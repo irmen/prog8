@@ -1,6 +1,9 @@
 package prog8tests
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
@@ -15,8 +18,6 @@ import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 
 /**
@@ -49,8 +50,12 @@ class TestCompilerOnRanges: FunSpec({
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val actualStr = "${rhsValues.first()} .. ${rhsValues.last()}"
-        assertEquals(expectedStr, actualStr,".first .. .last")
-        assertEquals(expectedEnd - expectedStart + 1, rhsValues.last() - rhsValues.first() + 1, "rangeExpr.size()")
+        withClue(".first .. .last") {
+            actualStr shouldBe expectedStr
+        }
+        withClue("rangeExpr.size()") {
+            (rhsValues.last() - rhsValues.first() + 1) shouldBe (expectedEnd - expectedStart + 1)
+        }
     }
 
     test("testFloatArrayInitializerWithRange_char_to_char") {
@@ -77,8 +82,12 @@ class TestCompilerOnRanges: FunSpec({
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val actualStr = "${rhsValues.first()} .. ${rhsValues.last()}"
-        assertEquals(expectedStr, actualStr,".first .. .last")
-        assertEquals(expectedEnd - expectedStart + 1, rhsValues.size, "rangeExpr.size()")
+        withClue(".first .. .last") {
+            actualStr shouldBe expectedStr
+        }
+        withClue("rangeExpr.size()") {
+            rhsValues.size shouldBe (expectedEnd - expectedStart + 1)
+        }
     }
 
     context("floatArrayInitializerWithRange") {
@@ -145,8 +154,12 @@ class TestCompilerOnRanges: FunSpec({
 
         val intProgression = rangeExpr.toConstantIntegerRange()
         val actualStr = "${intProgression?.first} .. ${intProgression?.last}"
-        assertEquals(expectedStr, actualStr,".first .. .last")
-        assertEquals(expectedEnd - expectedStart + 1, rangeExpr.size(), "rangeExpr.size()")
+        withClue(".first .. .last") {
+            actualStr shouldBe expectedStr
+        }
+        withClue("rangeExpr.size()") {
+            rangeExpr.size() shouldBe (expectedEnd - expectedStart + 1)
+        }
     }
 
     test("testForLoopWithRange_bool_to_bool") {
@@ -169,10 +182,10 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(2, rangeExpr.size())
+        rangeExpr.size() shouldBe 2
         val intProgression = rangeExpr.toConstantIntegerRange()
-        assertEquals(0, intProgression?.first)
-        assertEquals(1, intProgression?.last)
+        intProgression?.first shouldBe 0
+        intProgression?.last shouldBe 1
     }
 
     test("testForLoopWithRange_ubyte_to_ubyte") {
@@ -195,10 +208,10 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<RangeExpr>()[0]
 
-        assertEquals(9, rangeExpr.size())
+        rangeExpr.size() shouldBe 9
         val intProgression = rangeExpr.toConstantIntegerRange()
-        assertEquals(1, intProgression?.first)
-        assertEquals(9, intProgression?.last)
+        intProgression?.first shouldBe 1
+        intProgression?.last shouldBe 9
     }
 
     test("testForLoopWithRange_str_downto_str") {
@@ -213,9 +226,9 @@ class TestCompilerOnRanges: FunSpec({
                 }
             }
         """, errors, false).assertFailure()
-        assertEquals(2, errors.errors.size)
-        assertContains(errors.errors[0], ".p8:5:29: range expression from value must be integer")
-        assertContains(errors.errors[1], ".p8:5:44: range expression to value must be integer")
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain ".p8:5:29: range expression from value must be integer"
+        errors.errors[1] shouldContain ".p8:5:44: range expression to value must be integer"
     }
 
     test("testForLoopWithIterable_str") {
@@ -237,7 +250,7 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<IdentifierReference>()[0]
 
-        assertEquals(DataType.STR, iterable.inferType(program).getOr(DataType.UNDEFINED))
+        iterable.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.STR
     }
 
     test("testRangeExprNumericSize") {
@@ -246,7 +259,7 @@ class TestCompilerOnRanges: FunSpec({
             NumericLiteralValue.optimalInteger(20, Position.DUMMY),
             NumericLiteralValue.optimalInteger(2, Position.DUMMY),
             Position.DUMMY)
-        assertEquals(6, expr.size())
+        expr.size() shouldBe 6
         expr.toConstantIntegerRange()
     }
 })

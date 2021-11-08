@@ -2,10 +2,6 @@ package prog8tests
 
 import com.github.michaelbull.result.getErrorOrElse
 import com.github.michaelbull.result.getOrElse
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.equalTo
-import org.hamcrest.Matchers.nullValue
-import org.hamcrest.core.Is
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
 import prog8.compiler.ModuleImporter
@@ -67,26 +63,22 @@ class TestModuleImporter: FunSpec({
                 val srcPathRel = assumeNotExists(dirRel, "i_do_not_exist")
                 val srcPathAbs = srcPathRel.absolute()
                 val error1 = importer.importModule(srcPathRel).getErrorOrElse { fail("should have import error") }
-                assertThat(
-                    ".file should be normalized",
-                    "${error1.file}", equalTo("${error1.file.normalize()}")
-                )
-                assertThat(
-                    ".file should point to specified path",
-                    error1.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                )
-                assertThat(program.modules.size, equalTo(1))
+                withClue(".file should be normalized") {
+                    "${error1.file}" shouldBe "${error1.file.normalize()}"
+                }
+                withClue(".file should point to specified path") {
+                    error1.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
+                }
+                program.modules.size shouldBe 1
 
                 val error2 = importer.importModule(srcPathAbs).getErrorOrElse { fail("should have import error") }
-                assertThat(
-                    ".file should be normalized",
-                    "${error2.file}", equalTo("${error2.file.normalize()}")
-                )
-                assertThat(
-                    ".file should point to specified path",
-                    error2.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                )
-                assertThat(program.modules.size, equalTo(1))
+                withClue(".file should be normalized") {
+                    "${error2.file}" shouldBe "${error2.file.normalize()}"
+                }
+                withClue(".file should point to specified path") {
+                    error2.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
+                }
+                program.modules.size shouldBe 1
             }
 
             test("testDirectory") {
@@ -97,29 +89,25 @@ class TestModuleImporter: FunSpec({
 
                 shouldThrow<AccessDeniedException> { importer.importModule(srcPathRel) }
                     .let {
-                        assertThat(
-                            ".file should be normalized",
-                            "${it.file}", equalTo("${it.file.normalize()}")
-                        )
-                        assertThat(
-                            ".file should point to specified path",
-                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                        )
+                        withClue(".file should be normalized") {
+                            "${it.file}" shouldBe "${it.file.normalize()}"
+                        }
+                        withClue(".file should point to specified path") {
+                            it.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
+                        }
                     }
-                assertThat(program.modules.size, equalTo(1))
+                program.modules.size shouldBe 1
 
                 shouldThrow<AccessDeniedException> { importer.importModule(srcPathAbs) }
                     .let {
-                        assertThat(
-                            ".file should be normalized",
-                            "${it.file}", equalTo("${it.file.normalize()}")
-                        )
-                        assertThat(
-                            ".file should point to specified path",
-                            it.file.absolutePath, equalTo("${srcPathAbs.normalize()}")
-                        )
+                        withClue(".file should be normalized") {
+                            "${it.file}" shouldBe "${it.file.normalize()}"
+                        }
+                        withClue(".file should point to specified path") {
+                            it.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
+                        }
                     }
-                assertThat(program.modules.size, equalTo(1))
+                program.modules.size shouldBe 1
             }
         }
 
@@ -134,9 +122,9 @@ class TestModuleImporter: FunSpec({
                 val path = assumeReadableFile(searchIn[0], fileName)
 
                 val module = importer.importModule(path.absolute()).getOrElse { throw it }
-                assertThat(program.modules.size, equalTo(2))
+                program.modules.size shouldBe 2
                 module shouldBeIn program.modules
-                assertThat(module.program, equalTo(program))
+                module.program shouldBe program
             }
 
             test("testRelativeToWorkingDir") {
@@ -146,12 +134,14 @@ class TestModuleImporter: FunSpec({
                 val importer = makeImporter(null, searchIn)
                 val fileName = "simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
-                assertThat("sanity check: path should NOT be absolute", path.isAbsolute, equalTo(false))
+                withClue("sanity check: path should NOT be absolute") {
+                    path.isAbsolute shouldBe false
+                }
 
                 val module = importer.importModule(path).getOrElse { throw it }
-                assertThat(program.modules.size, equalTo(2))
+                program.modules.size shouldBe 2
                 module shouldBeIn program.modules
-                assertThat(module.program, equalTo(program))
+                module.program shouldBe program
             }
 
             test("testRelativeTo1stDirInSearchList") {
@@ -164,9 +154,9 @@ class TestModuleImporter: FunSpec({
                 assumeReadableFile(searchIn, path)
 
                 val module = importer.importModule(path).getOrElse { throw it }
-                assertThat(program.modules.size, equalTo(2))
+                program.modules.size shouldBe 2
                 module shouldBeIn program.modules
-                assertThat(module.program, equalTo(program))
+                module.program shouldBe program
             }
 
             //Disabled("TODO: relative to 2nd in search list")
@@ -185,13 +175,13 @@ class TestModuleImporter: FunSpec({
 
                     repeat(2) { n -> withClue(count[n] + " call") {
                             shouldThrow<ParseError>() { act() }.let {
-                                assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
-                                assertThat("line; should be 1-based", it.position.line, equalTo(2))
-                                assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
-                                assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
+                                it.position.file shouldBe SourceCode.relative(srcPath).toString()
+                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        assertThat(program.modules.size, equalTo(1))
+                        program.modules.size shouldBe 1
                     }
                 }
 
@@ -205,14 +195,14 @@ class TestModuleImporter: FunSpec({
 
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
                         shouldThrow<ParseError>() { act() }.let {
-                            assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
-                            assertThat("line; should be 1-based", it.position.line, equalTo(2))
-                            assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
-                            assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
+                            it.position.file shouldBe SourceCode.relative(imported).toString()
+                            withClue("line; should be 1-based") { it.position.line shouldBe 2 }
+                            withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                            withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                         }
                     }
-                        assertThat("imported module with error in it should not be present", program.modules.size, equalTo(1))
-                        assertThat(program.modules[0].name, equalTo(internedStringsModuleName))
+                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
+                        program.modules[0].name shouldBe internedStringsModuleName
                     }
                 }
 
@@ -238,22 +228,18 @@ class TestModuleImporter: FunSpec({
 
                 repeat(2) { n ->
                     val result = importer.importLibraryModule(filenameNoExt)
-                    assertThat(count[n] + " call / NO .p8 extension", result, Is(nullValue()))
-                    withClue(count[n] + " call / NO .p8 extension") {
-                        errors.noErrors() shouldBe false
-                    }
+                    withClue(count[n] + " call / NO .p8 extension") { result shouldBe null }
+                    withClue(count[n] + " call / NO .p8 extension") { errors.noErrors() shouldBe false }
                     errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist"
                     errors.report()
-                    assertThat(program.modules.size, equalTo(1))
+                    program.modules.size shouldBe 1
 
                     val result2 = importer.importLibraryModule(filenameWithExt)
-                    assertThat(count[n] + " call / with .p8 extension", result2, Is(nullValue()))
-                    withClue(count[n] + " call / with .p8 extension") {
-                        importer.errors.noErrors() shouldBe false
-                    }
+                    withClue(count[n] + " call / with .p8 extension") { result2 shouldBe null }
+                    withClue(count[n] + " call / with .p8 extension") { importer.errors.noErrors() shouldBe false }
                     errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist.p8"
                     errors.report()
-                    assertThat(program.modules.size, equalTo(1))
+                    program.modules.size shouldBe 1
                 }
             }
         }
@@ -269,13 +255,13 @@ class TestModuleImporter: FunSpec({
                             shouldThrow<ParseError>()
                             {
                                 importer.importLibraryModule(srcPath.nameWithoutExtension) }.let {
-                                assertThat(it.position.file, equalTo(SourceCode.relative(srcPath).toString()))
-                                assertThat("line; should be 1-based", it.position.line, equalTo(2))
-                                assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
-                                assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
+                                it.position.file shouldBe SourceCode.relative(srcPath).toString()
+                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        assertThat(program.modules.size, equalTo(1))
+                        program.modules.size shouldBe 1
                     }
                 }
 
@@ -291,14 +277,14 @@ class TestModuleImporter: FunSpec({
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
                             shouldThrow<ParseError>() {
                                 act() }.let {
-                                assertThat(it.position.file, equalTo(SourceCode.relative(imported).toString()))
-                                assertThat("line; should be 1-based", it.position.line, equalTo(2))
-                                assertThat("startCol; should be 0-based", it.position.startCol, equalTo(6))
-                                assertThat("endCol; should be 0-based", it.position.endCol, equalTo(6))
+                                it.position.file shouldBe SourceCode.relative(imported).toString()
+                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        assertThat("imported module with error in it should not be present", program.modules.size, equalTo(1))
-                        assertThat(program.modules[0].name, equalTo(internedStringsModuleName))
+                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
+                        program.modules[0].name shouldBe internedStringsModuleName
                         importer.errors.report()
                     }
                 }

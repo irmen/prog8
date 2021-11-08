@@ -1,6 +1,9 @@
 package prog8tests
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteralValue
@@ -12,8 +15,6 @@ import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileFile
 import kotlin.io.path.name
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 
 /**
@@ -40,10 +41,10 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                 .map { it.args[0] as IdentifierReference }
                 .map { it.targetVarDecl(program)!!.value as StringLiteralValue }
 
-            assertEquals("main.bar", strLits[0].value)
-            assertEquals("foo.bar", strLits[1].value)
-            assertEquals("main", strLits[0].definingScope.name)
-            assertEquals("foo", strLits[1].definingScope.name)
+            strLits[0].value shouldBe "main.bar"
+            strLits[1].value shouldBe "foo.bar"
+            strLits[0].definingScope.name shouldBe "main"
+            strLits[1].definingScope.name shouldBe "foo"
         }
     }
 
@@ -63,13 +64,13 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                 .map { it.args[0] }
 
             val str0 = (args[0] as IdentifierReference).targetVarDecl(program)!!.value as StringLiteralValue
-            assertEquals("main.bar", str0.value)
-            assertEquals("main", str0.definingScope.name)
+            str0.value shouldBe "main.bar"
+            str0.definingScope.name shouldBe "main"
 
             val id1 = (args[1] as AddressOf).identifier
             val lbl1 = id1.targetStatement(program) as Label
-            assertEquals("foo_bar", lbl1.name)
-            assertEquals("start", lbl1.definingScope.name)
+            lbl1.name shouldBe "foo_bar"
+            lbl1.definingScope.name shouldBe "start"
         }
     }
 
@@ -100,11 +101,11 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             test("%asmbinary from ${where}folder") {
                 val p8Path = assumeReadableFile(fixturesDir, p8Str)
                 // val binPath = assumeReadableFile(fixturesDir, binStr)
-                assertNotEquals( // the bug we're testing for (#54) was hidden if outputDir == workingDir
-                    workingDir.normalize().toAbsolutePath(),
-                    outputDir.normalize().toAbsolutePath(),
-                    "sanity check: workingDir and outputDir should not be the same folder"
-                )
+
+                // the bug we're testing for (#54) was hidden if outputDir == workingDir
+                withClue("sanity check: workingDir and outputDir should not be the same folder") {
+                    outputDir.normalize().toAbsolutePath() shouldNotBe workingDir.normalize().toAbsolutePath()
+                }
 
                 compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
                     .assertSuccess(

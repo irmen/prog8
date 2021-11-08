@@ -1,10 +1,10 @@
 package prog8tests
 
+import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
-import org.junit.jupiter.api.Assertions.fail
 import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType

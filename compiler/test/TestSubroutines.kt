@@ -1,6 +1,11 @@
 package prog8tests
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -9,7 +14,6 @@ import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
-import kotlin.test.*
 
 
 class TestSubroutines: FunSpec({
@@ -42,23 +46,27 @@ class TestSubroutines: FunSpec({
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        assertTrue(asmfunc.isAsmSubroutine)
-        assertEquals(DataType.STR, asmfunc.parameters.single().type)
-        assertTrue(asmfunc.statements.isEmpty())
-        assertFalse(func.isAsmSubroutine)
-        assertEquals(DataType.STR, func.parameters.single().type)
-        assertEquals(4, func.statements.size)
+        asmfunc.isAsmSubroutine shouldBe true
+        asmfunc.parameters.single().type shouldBe DataType.STR
+        asmfunc.statements.isEmpty() shouldBe true
+        func.isAsmSubroutine shouldBe false
+        func.parameters.single().type shouldBe DataType.STR
+        func.statements.size shouldBe 4
         val paramvar = func.statements[0] as VarDecl
-        assertEquals("thing", paramvar.name)
-        assertEquals(DataType.STR, paramvar.datatype)
+        paramvar.name shouldBe "thing"
+        paramvar.datatype shouldBe DataType.STR
         val assign = func.statements[2] as Assignment
-        assertEquals(listOf("t2"), assign.target.identifier!!.nameInSource)
-        assertTrue(assign.value is TypecastExpression, "str param in function body should not be transformed by normal compiler steps")
-        assertEquals(DataType.UWORD, (assign.value as TypecastExpression).type)
+        assign.target.identifier!!.nameInSource shouldBe listOf("t2")
+        withClue("str param in function body should not be transformed by normal compiler steps") {
+            assign.value shouldBe instanceOf<TypecastExpression>()
+        }
+        (assign.value as TypecastExpression).type shouldBe DataType.UWORD
         val call = func.statements[3] as FunctionCallStatement
-        assertEquals("asmfunc", call.target.nameInSource.single())
-        assertTrue(call.args.single() is IdentifierReference, "str param in function body should not be transformed by normal compiler steps")
-        assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
+        call.target.nameInSource.single() shouldBe "asmfunc"
+        withClue("str param in function body should not be transformed by normal compiler steps") {
+            call.args.single() shouldBe instanceOf<IdentifierReference>()
+        }
+        (call.args.single() as IdentifierReference).nameInSource.single() shouldBe "thing"
     }
 
     test("stringParameterAsmGen") {
@@ -89,26 +97,34 @@ class TestSubroutines: FunSpec({
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        assertTrue(asmfunc.isAsmSubroutine)
-        assertEquals(DataType.STR, asmfunc.parameters.single().type)
-        assertTrue(asmfunc.statements.single() is Return)
-        assertFalse(func.isAsmSubroutine)
-        assertEquals(DataType.UWORD, func.parameters.single().type, "asmgen should have changed str to uword type")
-        assertTrue(asmfunc.statements.last() is Return)
+        asmfunc.isAsmSubroutine shouldBe true
+        asmfunc.parameters.single().type shouldBe DataType.STR
+        asmfunc.statements.single() shouldBe instanceOf<Return>()
+        func.isAsmSubroutine shouldBe false
+        withClue("asmgen should have changed str to uword type") {
+            func.parameters.single().type shouldBe DataType.UWORD
+        }
+        asmfunc.statements.last() shouldBe instanceOf<Return>()
 
-        assertEquals(5, func.statements.size)
-        assertTrue(func.statements[4] is Return)
+        func.statements.size shouldBe 5
+        func.statements[4] shouldBe instanceOf<Return>()
         val paramvar = func.statements[0] as VarDecl
-        assertEquals("thing", paramvar.name)
-        assertEquals(DataType.UWORD, paramvar.datatype, "pre-asmgen should have changed str to uword type")
+        paramvar.name shouldBe "thing"
+        withClue("pre-asmgen should have changed str to uword type") {
+            paramvar.datatype shouldBe DataType.UWORD
+        }
         val assign = func.statements[2] as Assignment
-        assertEquals(listOf("t2"), assign.target.identifier!!.nameInSource)
-        assertTrue(assign.value is IdentifierReference, "str param in function body should be treated as plain uword before asmgen")
-        assertEquals("thing", (assign.value as IdentifierReference).nameInSource.single())
+        assign.target.identifier!!.nameInSource shouldBe listOf("t2")
+        withClue("str param in function body should be treated as plain uword before asmgen") {
+            assign.value shouldBe instanceOf<IdentifierReference>()
+        }
+        (assign.value as IdentifierReference).nameInSource.single() shouldBe "thing"
         val call = func.statements[3] as FunctionCallStatement
-        assertEquals("asmfunc", call.target.nameInSource.single())
-        assertTrue(call.args.single() is IdentifierReference, "str param in function body should be treated as plain uword and not been transformed")
-        assertEquals("thing", (call.args.single() as IdentifierReference).nameInSource.single())
+        call.target.nameInSource.single() shouldBe "asmfunc"
+        withClue("str param in function body should be treated as plain uword and not been transformed") {
+            call.args.single() shouldBe instanceOf<IdentifierReference>()
+        }
+        (call.args.single() as IdentifierReference).nameInSource.single() shouldBe "thing"
     }
 
     test("arrayParameterNotYetAllowed_ButShouldPerhapsBe") {
@@ -129,8 +145,8 @@ class TestSubroutines: FunSpec({
 
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
-        assertEquals(0, errors.warnings.size)
-        assertContains(errors.errors.single(), ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly")
+        errors.warnings.size shouldBe 0
+        errors.errors.single() shouldContain ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly"
     }
 
     // TODO allow this?
@@ -163,12 +179,12 @@ class TestSubroutines: FunSpec({
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        assertTrue(asmfunc.isAsmSubroutine)
-        assertEquals(DataType.ARRAY_UB, asmfunc.parameters.single().type)
-        assertTrue(asmfunc.statements.isEmpty())
-        assertFalse(func.isAsmSubroutine)
-        assertEquals(DataType.ARRAY_UB, func.parameters.single().type)
-        assertTrue(func.statements.isEmpty())
+        asmfunc.isAsmSubroutine shouldBe true
+        asmfunc.parameters.single().type shouldBe DataType.ARRAY_UB
+        asmfunc.statements.isEmpty() shouldBe true
+        func.isAsmSubroutine shouldBe false
+        func.parameters.single().type shouldBe DataType.ARRAY_UB
+        func.statements.isEmpty() shouldBe true
     }
 
     test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsDirectMemoryRead") {
@@ -193,25 +209,27 @@ class TestSubroutines: FunSpec({
         val module = result.program.toplevelModule
         val block = module.statements.single() as Block
         val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
-        assertEquals("main", block.name)
-        assertEquals(10, thing.statements.size, "rr, xx, xx assign, yy, yy assign, other, other assign 0, zz, zz assign, return")
+        block.name shouldBe "main"
+        thing.statements.size shouldBe 10          // rr, xx, xx assign, yy, yy assign, other, other assign 0, zz, zz assign, return
         val xx = thing.statements[1] as VarDecl
-        assertNull(xx.value, "vardecl init values must have been moved to separate assignments")
+        withClue("vardecl init values must have been moved to separate assignments") {
+            xx.value shouldBe null
+        }
         val assignXX = thing.statements[2] as Assignment
         val assignYY = thing.statements[4] as Assignment
         val assignZZ = thing.statements[8] as Assignment
-        assertEquals(listOf("xx"), assignXX.target.identifier!!.nameInSource)
-        assertEquals(listOf("yy"), assignYY.target.identifier!!.nameInSource)
-        assertEquals(listOf("zz"), assignZZ.target.identifier!!.nameInSource)
+        assignXX.target.identifier!!.nameInSource shouldBe listOf("xx")
+        assignYY.target.identifier!!.nameInSource shouldBe listOf("yy")
+        assignZZ.target.identifier!!.nameInSource shouldBe listOf("zz")
         val valueXXexpr = (assignXX.value as DirectMemoryRead).addressExpression as BinaryExpression
         val valueYYexpr = (assignYY.value as DirectMemoryRead).addressExpression as BinaryExpression
         val valueZZexpr = (assignZZ.value as DirectMemoryRead).addressExpression as BinaryExpression
-        assertEquals(listOf("rr"), (valueXXexpr.left as IdentifierReference).nameInSource)
-        assertEquals(listOf("rr"), (valueYYexpr.left as IdentifierReference).nameInSource)
-        assertEquals(listOf("other"), (valueZZexpr.left as IdentifierReference).nameInSource)
-        assertEquals(1, (valueXXexpr.right as NumericLiteralValue).number.toInt())
-        assertEquals(2, (valueYYexpr.right as NumericLiteralValue).number.toInt())
-        assertEquals(3, (valueZZexpr.right as NumericLiteralValue).number.toInt())
+        (valueXXexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
+        (valueYYexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
+        (valueZZexpr.left as IdentifierReference).nameInSource shouldBe listOf("other")
+        (valueXXexpr.right as NumericLiteralValue).number.toInt() shouldBe 1
+        (valueYYexpr.right as NumericLiteralValue).number.toInt() shouldBe 2
+        (valueZZexpr.right as NumericLiteralValue).number.toInt() shouldBe 3
     }
 
     test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsMemoryWrite") {
@@ -232,15 +250,15 @@ class TestSubroutines: FunSpec({
         val module = result.program.toplevelModule
         val block = module.statements.single() as Block
         val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
-        assertEquals("main", block.name)
-        assertEquals(3, thing.statements.size, "rr, rr assign, return void")
+        block.name shouldBe "main"
+        thing.statements.size shouldBe 3   // "rr, rr assign, return void"
         val assignRR = thing.statements[1] as Assignment
-        assertEquals(42, (assignRR.value as NumericLiteralValue).number.toInt())
+        (assignRR.value as NumericLiteralValue).number.toInt() shouldBe 42
         val memwrite = assignRR.target.memoryAddress
-        assertNotNull(memwrite, "memwrite to set byte array value")
-        val addressExpr = memwrite.addressExpression as BinaryExpression
-        assertEquals(listOf("rr"), (addressExpr.left as IdentifierReference).nameInSource)
-        assertEquals("+", addressExpr.operator)
-        assertEquals(10, (addressExpr.right as NumericLiteralValue).number.toInt())
+        memwrite shouldNotBe null
+        val addressExpr = memwrite!!.addressExpression as BinaryExpression
+        (addressExpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
+        addressExpr.operator shouldBe "+"
+        (addressExpr.right as NumericLiteralValue).number.toInt() shouldBe 10
     }
 })
