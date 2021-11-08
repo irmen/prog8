@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- migrate Compiler tests to KoTest library (this will close github issue #70)
 ...
 
 
