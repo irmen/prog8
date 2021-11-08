@@ -39,21 +39,6 @@ class TestModuleImporter: FunSpec({
         return makeImporter(errors, searchIn.asList())
     }
 
-    context("Constructor") {
-
-        //Disabled("TODO: invalid entries in search list")
-        xtest("testInvalidEntriesInSearchList") {
-        }
-
-        //Disabled("TODO: literal duplicates in search list")
-        xtest("testLiteralDuplicatesInSearchList") {
-        }
-
-        //Disabled("TODO: factual duplicates in search list")
-        xtest("testFactualDuplicatesInSearchList") {
-        }
-    }
-
     context("ImportModule") {
 
         context("WithInvalidPath") {
@@ -158,12 +143,6 @@ class TestModuleImporter: FunSpec({
                 module shouldBeIn program.modules
                 module.program shouldBe program
             }
-
-            //Disabled("TODO: relative to 2nd in search list")
-            xtest("testRelativeTo2ndDirInSearchList") {}
-
-            //Disabled("TODO: ambiguous - 2 or more really different candidates")
-            xtest("testAmbiguousCandidates") {}
 
             context("WithBadFile") {
                 test("testWithSyntaxError") {
