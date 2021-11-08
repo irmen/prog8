@@ -8,13 +8,12 @@ main {
 
     ubyte unused        ; TODO FIX : why is this not removed as an unused variable?
 
-    ubyte iteration_in_progress
-    uword num_bytes
+    ubyte bb
+    uword ww
+    bb = not bb or not ww       ; TODO FIX COMPILER CRASH (STORAGE SIZE)
 
-    ubyte qq = not iteration_in_progress or not num_bytes       ; TODO FIX COMPILER CRASH (STORAGE SIZE)
-
-    if not iteration_in_progress or not num_bytes
-        return
+;    if not iteration_in_progress or not num_bytes
+;        return
 
 ;    word xx=0
 ;    word[] xarr = [1,2,3]
