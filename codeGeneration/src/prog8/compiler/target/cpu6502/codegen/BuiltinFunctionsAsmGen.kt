@@ -46,7 +46,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "sum" -> funcSum(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sin8", "sin8u", "sin16", "sin16u",
-            "cos8", "cos8u", "cos16", "cos16u" -> funcSinCosInt(fcall, func, resultToStack, resultRegister, sscope)
+            "sinr8", "sinr8u", "sinr16", "sinr16u",
+            "cos8", "cos8u", "cos16", "cos16u",
+            "cosr8", "cosr8u", "cosr16", "cosr16u" -> funcSinCosInt(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
             "sin", "cos", "tan", "atan",
             "ln", "log2", "sqrt", "rad",
@@ -283,11 +285,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             asmgen.out("  jsr  prog8_lib.func_${func.name}_stack")
         else
             when(func.name) {
-                "sin8", "sin8u", "cos8", "cos8u" -> {
+                "sin8", "sin8u", "sinr8", "sinr8u", "cos8", "cos8u", "cosr8", "cosr8u" -> {
                     asmgen.out("  jsr  prog8_lib.func_${func.name}_into_A")
                     assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, program, asmgen), CpuRegister.A)
                 }
-                "sin16", "sin16u", "cos16", "cos16u" -> {
+                "sin16", "sin16u", "sinr16", "sinr16u", "cos16", "cos16u", "cosr16", "cosr16u" -> {
                     asmgen.out("  jsr  prog8_lib.func_${func.name}_into_AY")
                     assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
                 }

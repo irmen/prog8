@@ -87,6 +87,9 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "kefrenbars",
             "mandelbrot-gfx-colors",
             "multipalette",
+            "rasterbars",
+            "sincos",
+            "tehtriz",
             "testgfx2",
         ),
         listOf(false, true)

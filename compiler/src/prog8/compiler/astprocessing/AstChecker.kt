@@ -429,7 +429,7 @@ internal class AstChecker(private val program: Program,
             if(targetDt.isIterable)
                 errors.err("cannot assign value to string or array", assignment.value.position)
             else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD))
-                errors.err("type of value doesn't match target", assignment.value.position)
+                errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
         }
 
         if(assignment.value is TypecastExpression) {

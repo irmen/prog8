@@ -91,6 +91,13 @@ func_sin8_into_A	.proc
 _sinecos8	.char  trunc(127.0 * sin(range(256+64) * rad(360.0/256.0)))
 		.pend
 
+func_sinr8_into_A	.proc
+		tay
+		lda  _sinecosR8,y
+		rts
+_sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
+		.pend
+
 func_sin8u_into_A	.proc
 		tay
 		lda  _sinecos8u,y
@@ -98,9 +105,24 @@ func_sin8u_into_A	.proc
 _sinecos8u	.byte  trunc(128.0 + 127.5 * sin(range(256+64) * rad(360.0/256.0)))
 		.pend
 
+func_sinr8u_into_A	.proc
+		tay
+		lda  _sinecosR8u,y
+		rts
+_sinecosR8u	.byte  trunc(128.0 + 127.5 * sin(range(180+45) * rad(360.0/180.0)))
+		.pend
+
 func_sin8_stack	.proc
 		tay
 		lda  func_sin8_into_A._sinecos8,y
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
+func_sinr8_stack	.proc
+		tay
+		lda  func_sinr8_into_A._sinecosR8,y
 		sta  P8ESTACK_LO,x
 		dex
 		rts
@@ -114,15 +136,35 @@ func_sin8u_stack	.proc
 		rts
 		.pend
 
+func_sinr8u_stack	.proc
+		tay
+		lda  func_sinr8u_into_A._sinecosR8u,y
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
 func_cos8_into_A	.proc
 		tay
 		lda  func_sin8_into_A._sinecos8+64,y
 		rts
 		.pend
 
+func_cosr8_into_A	.proc
+		tay
+		lda  func_sinr8_into_A._sinecosR8+45,y
+		rts
+		.pend
+
 func_cos8u_into_A	.proc
 		tay
 		lda  func_sin8u_into_A._sinecos8u+64,y
+		rts
+		.pend
+
+func_cosr8u_into_A	.proc
+		tay
+		lda  func_sinr8u_into_A._sinecosR8u+45,y
 		rts
 		.pend
 
@@ -134,9 +176,25 @@ func_cos8_stack	.proc
 		rts
 		.pend
 
+func_cosr8_stack	.proc
+		tay
+		lda  func_sinr8_into_A._sinecosR8+45,y
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
 func_cos8u_stack	.proc
 		tay
 		lda  func_sin8u_into_A._sinecos8u+64,y
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
+func_cosr8u_stack	.proc
+		tay
+		lda  func_sinr8u_into_A._sinecosR8u+45,y
 		sta  P8ESTACK_LO,x
 		dex
 		rts
@@ -155,6 +213,19 @@ _sinecos8lo     .byte  <_
 _sinecos8hi     .byte  >_
 		.pend
 
+func_sinr16_into_AY	.proc
+		tay
+		lda  _sinecosR8lo,y
+		pha
+		lda  _sinecosR8hi,y
+		tay
+		pla
+		rts
+_  :=  trunc(32767.0 * sin(range(180+45) * rad(360.0/180.0)))
+_sinecosR8lo     .byte  <_
+_sinecosR8hi     .byte  >_
+		.pend
+
 func_sin16u_into_AY	.proc
 		tay
 		lda  _sinecos8ulo,y
@@ -168,12 +239,34 @@ _sinecos8ulo     .byte  <_
 _sinecos8uhi     .byte  >_
 		.pend
 
+func_sinr16u_into_AY	.proc
+		tay
+		lda  _sinecosR8ulo,y
+		pha
+		lda  _sinecosR8uhi,y
+		tay
+		pla
+		rts
+_  :=  trunc(32768.0 + 32767.5 * sin(range(180+45) * rad(360.0/180.0)))
+_sinecosR8ulo     .byte  <_
+_sinecosR8uhi     .byte  >_
+		.pend
 
 func_sin16_stack	.proc
 		tay
 		lda  func_sin16_into_AY._sinecos8lo,y
 		sta  P8ESTACK_LO,x
 		lda  func_sin16_into_AY._sinecos8hi,y
+		sta  P8ESTACK_HI,x
+		dex
+		rts
+		.pend
+
+func_sinr16_stack	.proc
+		tay
+		lda  func_sinr16_into_AY._sinecosR8lo,y
+		sta  P8ESTACK_LO,x
+		lda  func_sinr16_into_AY._sinecosR8hi,y
 		sta  P8ESTACK_HI,x
 		dex
 		rts
@@ -189,11 +282,31 @@ func_sin16u_stack	.proc
 		rts
 		.pend
 
+func_sinr16u_stack	.proc
+		tay
+		lda  func_sinr16u_into_AY._sinecosR8ulo,y
+		sta  P8ESTACK_LO,x
+		lda  func_sinr16u_into_AY._sinecosR8uhi,y
+		sta  P8ESTACK_HI,x
+		dex
+		rts
+		.pend
+
 func_cos16_into_AY	.proc
 		tay
 		lda  func_sin16_into_AY._sinecos8lo+64,y
 		pha
 		lda  func_sin16_into_AY._sinecos8hi+64,y
+		tay
+		pla
+		rts
+		.pend
+
+func_cosr16_into_AY	.proc
+		tay
+		lda  func_sinr16_into_AY._sinecosR8lo+45,y
+		pha
+		lda  func_sinr16_into_AY._sinecosR8hi+45,y
 		tay
 		pla
 		rts
@@ -209,6 +322,16 @@ func_cos16u_into_AY	.proc
 		rts
 		.pend
 
+func_cosr16u_into_AY	.proc
+		tay
+		lda  func_sinr16u_into_AY._sinecosR8ulo+45,y
+		pha
+		lda  func_sinr16u_into_AY._sinecosR8uhi+45,y
+		tay
+		pla
+		rts
+		.pend
+
 func_cos16_stack	.proc
 		tay
 		lda  func_sin16_into_AY._sinecos8lo+64,y
@@ -219,11 +342,31 @@ func_cos16_stack	.proc
 		rts
 		.pend
 
+func_cosr16_stack	.proc
+		tay
+		lda  func_sinr16_into_AY._sinecosR8lo+45,y
+		sta  P8ESTACK_LO,x
+		lda  func_sinr16_into_AY._sinecosR8hi+45,y
+		sta  P8ESTACK_HI,x
+		dex
+		rts
+		.pend
+
 func_cos16u_stack	.proc
 		tay
 		lda  func_sin16u_into_AY._sinecos8ulo+64,y
 		sta  P8ESTACK_LO,x
 		lda  func_sin16u_into_AY._sinecos8uhi+64,y
+		sta  P8ESTACK_HI,x
+		dex
+		rts
+		.pend
+
+func_cosr16u_stack	.proc
+		tay
+		lda  func_sinr16u_into_AY._sinecosR8ulo+45,y
+		sta  P8ESTACK_LO,x
+		lda  func_sinr16u_into_AY._sinecosR8uhi+45,y
 		sta  P8ESTACK_HI,x
 		dex
 		rts
