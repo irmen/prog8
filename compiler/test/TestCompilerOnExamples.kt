@@ -23,7 +23,7 @@ private val examplesDir = assumeDirectory(workingDir, "../examples")
 private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget) = compileProgram(
     filepath,
     optimize,
-    optimizeFloatExpressions = false,
+    optimizeFloatExpressions = true,
     writeAssembly = true,
     slowCodegenWarnings = false,
     quietAssembler = true,

@@ -2,10 +2,13 @@ package prog8tests.helpers
 
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
+import prog8.ast.Program
 import prog8.compiler.CompilationResult
 import prog8.compiler.compileProgram
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.cpu6502.codegen.AsmGen
+import prog8.compilerinterface.*
 import prog8tests.ast.helpers.assumeReadableFile
 import prog8tests.ast.helpers.outputDir
 import java.nio.file.Path
@@ -37,14 +40,15 @@ internal fun compileFile(
     fileName: String,
     outputDir: Path = prog8tests.ast.helpers.outputDir,
     errors: IErrorReporter? = null,
-    writeAssembly: Boolean = true
+    writeAssembly: Boolean = true,
+    optFloatExpr: Boolean = true
 ) : CompilationResult {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
     return compileProgram(
         filepath,
         optimize,
-        optimizeFloatExpressions = false,
+        optimizeFloatExpressions = optFloatExpr,
         writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
         quietAssembler = true,
@@ -65,10 +69,23 @@ internal fun compileText(
     optimize: Boolean,
     sourceText: String,
     errors: IErrorReporter? = null,
-    writeAssembly: Boolean = true
+    writeAssembly: Boolean = true,
+    optFloatExpr: Boolean = true
 ) : CompilationResult {
     val filePath = outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
-    return compileFile(platform, optimize, filePath.parent, filePath.name, errors=errors, writeAssembly=writeAssembly)
+    return compileFile(platform, optimize, filePath.parent, filePath.name, errors=errors, writeAssembly=writeAssembly, optFloatExpr = optFloatExpr)
+}
+
+
+internal fun generateAssembly(
+    program: Program,
+    options: CompilationOptions? = null
+): IAssemblyProgram {
+    val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, true, C64Target)
+    val zp = C64MachineDefinition.C64Zeropage(coptions)
+    coptions.compTarget.machine.zeropage=zp
+    val asmgen = AsmGen(program, ErrorReporterForTests(), zp, coptions, C64Target, outputDir)
+    return asmgen.compileToAssembly()
 }

@@ -3,6 +3,8 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- fix float crash in mandelbrot-gfx-colors.p8   (unittest is being written)
+
 - add cosr8, sinr8, cosr16 and sinr16 that take a degree 0..179 (= 0..359 in 2 degree steps)
   to more easily scale halves/quarters etc of a circle than possible with the ones that take 0..255 'degrees'.
 

@@ -15,16 +15,14 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
-import prog8tests.ast.helpers.outputDir
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
+import prog8tests.helpers.generateAssembly
 
 class TestOptimization: FunSpec({
     test("testRemoveEmptySubroutineExceptStart") {
@@ -188,10 +186,34 @@ class TestOptimization: FunSpec({
         (bbAssigns1expr.right as PrefixExpression).expression shouldBe IdentifierReference(listOf("ww"), Position.DUMMY)
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val zp = C64MachineDefinition.C64Zeropage(options)
-        options.compTarget.machine.zeropage=zp
-        val asmgen = AsmGen(result.program, ErrorReporterForTests(), zp, options, C64Target, outputDir)
-        val asm = asmgen.compileToAssembly()
+        val asm = generateAssembly(result.program, options)
+        asm.valid shouldBe true
+    }
+
+    test("asmgen correctly deals with float typecasting in augmented assignment") {
+        val src="""
+            %option enable_floats
+            
+            main {
+                sub start() {
+                    ubyte ub
+                    float ff
+                    ff += (ub as float)         ; operator doesn't matter
+                }
+            }
+        """
+        val result1 = compileText(C64Target, optimize=false, src, writeAssembly = false).assertSuccess()
+
+        // yy = (dy*(pixely as float) )
+        val assignYY = result1.program.entrypoint.statements.last() as Assignment
+        assignYY.isAugmentable shouldBe true
+        assignYY.target.identifier!!.nameInSource shouldBe listOf("ff")
+        val value = assignYY.value as BinaryExpression
+        value.operator shouldBe "+"
+        value.left shouldBe IdentifierReference(listOf("ff"), Position.DUMMY)
+        value.right shouldBe instanceOf<TypecastExpression>()
+
+        val asm = generateAssembly(result1.program)
         asm.valid shouldBe true
     }
 })

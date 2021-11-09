@@ -18,15 +18,15 @@ enum class ZeropageType {
     DONTUSE
 }
 
-data class CompilationOptions(val output: OutputType,
-                              val launcher: LauncherType,
-                              val zeropage: ZeropageType,
-                              val zpReserved: List<IntRange>,
-                              val floats: Boolean,
-                              val noSysInit: Boolean,
-                              val compTarget: ICompilationTarget
-) {
-    var slowCodegenWarnings = false
-    var optimize = false
-    var optimizeFloatExpressions = false
-}
+class CompilationOptions(val output: OutputType,
+                         val launcher: LauncherType,
+                         val zeropage: ZeropageType,
+                         val zpReserved: List<IntRange>,
+                         val floats: Boolean,
+                         val noSysInit: Boolean,
+                         val compTarget: ICompilationTarget,
+                         // these are set based on command line arguments:
+                         var slowCodegenWarnings: Boolean = false,
+                         var optimize: Boolean = false,
+                         var optimizeFloatExpressions: Boolean = false
+)

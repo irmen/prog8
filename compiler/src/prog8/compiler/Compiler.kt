@@ -44,6 +44,8 @@ fun compileProgram(filepath: Path,
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
 
+    val optimizeFloatExpr = if(optimize) optimizeFloatExpressions else false
+
     val compTarget =
         when(compilationTarget) {
             C64Target.name -> C64Target
@@ -58,7 +60,7 @@ fun compileProgram(filepath: Path,
             with(compilationOptions) {
                 this.slowCodegenWarnings = slowCodegenWarnings
                 this.optimize = optimize
-                this.optimizeFloatExpressions = optimizeFloatExpressions
+                this.optimizeFloatExpressions = optimizeFloatExpr
             }
             program = programresult
             importedFiles = imported
