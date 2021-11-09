@@ -83,8 +83,13 @@ class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                     val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
                     if (!anyCompatible) {
                         val actual = pair.first.toString()
-                        val expected = pair.second.toString()
-                        return "argument ${index + 1} type mismatch, was: $actual expected: $expected"
+                        return if(pair.second.size==1) {
+                            val expected = pair.second[0].toString()
+                            "argument ${index + 1} type mismatch, was: $actual expected: $expected"
+                        } else {
+                            val expected = pair.second.toList().toString()
+                            "argument ${index + 1} type mismatch, was: $actual expected one of: $expected"
+                        }
                     }
                 }
             }
