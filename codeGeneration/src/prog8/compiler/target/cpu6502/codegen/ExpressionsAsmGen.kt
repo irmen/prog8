@@ -528,7 +528,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                         translateExpressionInternal(expr.left)
                         when(leftDt) {
                             DataType.UBYTE -> asmgen.out("  lsr  P8ESTACK_LO+1,x")
-                            DataType.BYTE -> asmgen.out("  asl  P8ESTACK_LO+1,x |  ror  P8ESTACK_LO+1,x")
+                            DataType.BYTE -> asmgen.out("  lda  P8ESTACK_LO+1,x |  asl  a |  ror  P8ESTACK_LO+1,x")
                             DataType.UWORD -> asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
                             DataType.WORD -> asmgen.out("  lda  P8ESTACK_HI+1,x |  asl  a |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
                             else -> throw AssemblyError("wrong dt")

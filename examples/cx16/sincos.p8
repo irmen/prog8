@@ -77,8 +77,6 @@ main {
         ubyte r
 
         ; circles with "degrees" from 0 to 255
-
-; TODO FIX WHEN USING NO-OPT!  (CORRECT WHEN USING OPTIMIZATION..)
         for r in 0 to 255 {
             pixelxw = (sin8(r)/2 + 80) as uword
             pixelyb = (cos8(r)/2 + height/2) as ubyte
@@ -92,7 +90,6 @@ main {
         }
 
         ; circles with half-degrees from 0 to 179 (=full degrees 0..358 with steps of 2 degrees)
-; TODO FIX WHEN USING NO-OPT!  (CORRECT WHEN USING OPTIMIZATION..)
         for r in 0 to 179 {
             pixelxw = (sinr8(r) as word /2 + 220) as uword
             pixelyb = (cosr8(r)/2 + height/2) as ubyte
