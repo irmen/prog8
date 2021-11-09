@@ -46,14 +46,16 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                         if(binExpr.operator in associativeOperators) {
                             // A = <something-without-A>  <associativeoperator>  <otherthing-with-A>
                             // use the other part of the expression to split.
-                            val assignRight = Assignment(assignment.target, binExpr.right, assignment.position)
+                            val (_, right) = binExpr.right.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), program, implicit=true)
+                            val assignRight = Assignment(assignment.target, right, assignment.position)
                             return listOf(
                                     IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
                                     IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
                                     IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                         }
                     } else {
-                        val assignLeft = Assignment(assignment.target, binExpr.left, assignment.position)
+                        val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), program, implicit=true)
+                        val assignLeft = Assignment(assignment.target, left, assignment.position)
                         return listOf(
                                 IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
                                 IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))

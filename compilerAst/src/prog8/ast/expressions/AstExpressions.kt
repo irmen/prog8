@@ -62,6 +62,21 @@ sealed class Expression: Node {
             else -> other==this
         }
     }
+
+    fun typecastTo(targetDt: DataType, program: Program, sourceDt: DataType?=null, implicit: Boolean=false): Pair<Boolean, Expression> {
+        require(sourceDt==null || sourceDt!=DataType.UNDEFINED)
+        require(targetDt!=DataType.UNDEFINED)
+        if(this is TypecastExpression) {
+            this.type = targetDt
+            return Pair(false, this)
+        }
+        val exprDt = sourceDt ?: this.inferType(program).getOr(DataType.UNDEFINED)
+        if(exprDt==targetDt)
+            return Pair(false, this)
+
+        val typecast = TypecastExpression(this, targetDt, implicit, this.position)
+        return Pair(true, typecast)
+    }
 }
 
 

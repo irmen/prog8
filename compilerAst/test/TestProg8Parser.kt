@@ -1,5 +1,6 @@
 package prog8tests.ast
 
+import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -653,5 +654,25 @@ class TestProg8Parser: FunSpec( {
         correctPrios(andAssignmentExpr, "and")
         correctPrios(orAssignmentExpr, "or")
         correctPrios(xorAssignmentExpr, "xor")
+    }
+
+    test("inferred type correct for binaryexpression") {
+        val src = SourceCode.Text("""
+            main {
+                ubyte bb
+                uword ww
+                ubyte bb2 = not bb or not ww       ; expression combining ubyte and uword
+            }
+        """)
+        val module = parseModule(src)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        module.linkIntoProgram(program)
+        val bb2 = (module.statements.single() as Block).statements[2] as VarDecl
+        val expr = bb2.value as BinaryExpression
+        println(expr)
+        expr.operator shouldBe "or"
+        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
     }
 })

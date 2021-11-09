@@ -5,11 +5,7 @@ For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - if-statement expression simplification sometimes increases code size (Petaxian) FIX THIS!
 - add expression simplification to while and until loops as well.
-- fix crash about storage size mismatch
-        ubyte bb
-        uword ww
-        bb = not bb or not ww       ; CRASHES
-
+- let typecasting code use expression.typecastTo()
 
 
 Blocked by Commander-x16 v39 release

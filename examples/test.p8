@@ -6,11 +6,12 @@ main {
 
   sub start() {
 
-    ubyte unused        ; TODO FIX : why is this not removed as an unused variable?
+    ubyte unused                ; TODO FIX : why is this not removed as an unused variable?
+    ubyte @shared unused2
 
     ubyte bb
     uword ww
-    bb = not bb or not ww       ; TODO FIX COMPILER CRASH (STORAGE SIZE)
+    ww = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL
 
 ;    if not iteration_in_progress or not num_bytes
 ;        return

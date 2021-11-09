@@ -103,7 +103,21 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         throw FatalAstException("assignment should be augmentable $binExpr")
     }
 
-    private fun inplaceModification(target: AsmAssignTarget, operator: String, value: Expression) {
+    private fun inplaceModification(target: AsmAssignTarget, operator: String, origValue: Expression) {
+
+
+        // the asm-gen code can deal with situations where you want to assign a byte into a word.
+        // it will create the most optimized code to do this (so it type-extends for us).
+        // But we can't deal with writing a word into a byte - explicit typeconversion is required
+        val value = if(program.memsizer.memorySize(origValue.inferType(program).getOr(DataType.UNDEFINED)) > program.memsizer.memorySize(target.datatype)) {
+            val typecast = TypecastExpression(origValue, target.datatype, true, origValue.position)
+            typecast.linkParents(origValue.parent)
+            typecast
+        }
+        else {
+            origValue
+        }
+
         val valueLv = (value as? NumericLiteralValue)?.number
         val ident = value as? IdentifierReference
         val memread = value as? DirectMemoryRead
