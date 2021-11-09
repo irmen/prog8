@@ -204,7 +204,6 @@ class TestOptimization: FunSpec({
         """
         val result1 = compileText(C64Target, optimize=false, src, writeAssembly = false).assertSuccess()
 
-        // yy = (dy*(pixely as float) )
         val assignYY = result1.program.entrypoint.statements.last() as Assignment
         assignYY.isAugmentable shouldBe true
         assignYY.target.identifier!!.nameInSource shouldBe listOf("ff")

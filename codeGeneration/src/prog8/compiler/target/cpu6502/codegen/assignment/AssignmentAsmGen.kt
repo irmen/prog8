@@ -442,9 +442,35 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
         }
 
-        // No more special optmized cases yet. Do the rest via more complex evaluation
-        // note: cannot use assignTypeCastedValue because that is ourselves :P
-        asmgen.assignExpressionTo(origTypeCastExpression, target)
+        if(targetDt==DataType.FLOAT && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
+            when(valueDt) {
+                DataType.UBYTE -> {
+                    assignExpressionToRegister(value, RegisterOrPair.Y, false)
+                    asmgen.out("  jsr  floats.FREADUY")
+                }
+                DataType.BYTE -> {
+                    assignExpressionToRegister(value, RegisterOrPair.A, true)
+                    asmgen.out("  jsr  floats.FREADSA")
+                }
+                DataType.UWORD -> {
+                    assignExpressionToRegister(value, RegisterOrPair.AY, false)
+                    asmgen.out("  jsr  floats.GIVUAYFAY")
+                }
+                DataType.WORD -> {
+                    assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                    asmgen.out("  jsr  floats.GIVAYFAY")
+                }
+                else -> throw AssemblyError("invalid dt")
+            }
+            if(target.register==RegisterOrPair.FAC2) {
+                asmgen.out("  jsr floats.MOVEF")
+            }
+        } else {
+            // No more special optmized cases yet. Do the rest via more complex evaluation
+            // note: cannot use assignTypeCastedValue because that is ourselves :P
+            // NOTE: THIS MAY TURN INTO A STACK OVERFLOW ERROR IF IT CAN'T SIMPLIFY THE TYPECAST..... :-/
+            asmgen.assignExpressionTo(origTypeCastExpression, target)
+        }
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {

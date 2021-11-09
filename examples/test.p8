@@ -1,17 +1,42 @@
 %import textio
-; %import floats
+%import floats
 %zeropage basicsafe
 
 main {
 
   sub start() {
 
-    ubyte unused                ; TODO FIX : why is this not removed as an unused variable?
-    ubyte @shared unused2
+        ubyte ub=99
+        byte bb=-99
+        uword uw=9999
+        word ww=-9999
+        float ff
+        ff = 1.234
+        ff += (ub as float)         ; operator doesn't matter
+        floats.print_f(ff)
+        txt.nl()
 
-    ubyte bb
-    uword ww
-    ww = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL
+        ff = 1.234
+        ff += (bb as float)         ; operator doesn't matter
+        floats.print_f(ff)
+        txt.nl()
+
+        ff = 1.234
+        ff += (uw as float)         ; operator doesn't matter
+        floats.print_f(ff)
+        txt.nl()
+
+        ff = 1.234
+        ff += (ww as float)         ; operator doesn't matter
+        floats.print_f(ff)
+        txt.nl()
+
+;    ubyte unused                ; TODO FIX : why is this not removed as an unused variable?
+;    ubyte @shared unused2
+;
+;    ubyte bb
+;    uword ww
+;    ww = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL
 
 ;    if not iteration_in_progress or not num_bytes
 ;        return
@@ -36,14 +61,14 @@ main {
 ;        txt.print("xx is zero\n")
 ;    }
 
-    ubyte yy=$30
+;    ubyte yy=$30
 ;    ubyte zz=9
 ;    sys.memset(xx+200, yy*2, ~yy)
 ;
-
-    if yy & %10000 {
-        yy++
-    }
+;
+;    if yy & %10000 {
+;        yy++
+;    }
 ;
 ;    @($c030) = 10
 ;    @(~xx) *= 2
