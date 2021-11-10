@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- let typecasting code use expression.typecastTo()
 - add expression simplification to while and until loops as well.
 
 

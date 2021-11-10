@@ -46,7 +46,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                         if(binExpr.operator in associativeOperators) {
                             // A = <something-without-A>  <associativeoperator>  <otherthing-with-A>
                             // use the other part of the expression to split.
-                            val (_, right) = binExpr.right.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), program, implicit=true)
+                            val sourceDt = binExpr.right.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+                            val (_, right) = binExpr.right.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), sourceDt, implicit=true)
                             val assignRight = Assignment(assignment.target, right, assignment.position)
                             return listOf(
                                     IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
@@ -54,7 +55,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                                     IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
                         }
                     } else {
-                        val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), program, implicit=true)
+                        val sourceDt = binExpr.left.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+                        val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOr(DataType.UNDEFINED), sourceDt, implicit=true)
                         val assignLeft = Assignment(assignment.target, left, assignment.position)
                         return listOf(
                                 IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
@@ -335,13 +337,15 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications
-                val cast1 = TypecastExpression(arg1, if(dt1==DataType.UBYTE) DataType.UWORD else DataType.WORD, true, functionCallStatement.position)
-                return listOf(IAstModification.ReplaceNode(arg1, cast1, functionCallStatement))
+                val (replaced, cast) = arg1.typecastTo(if(dt1==DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
+                if(replaced)
+                    return listOf(IAstModification.ReplaceNode(arg1, cast, functionCallStatement))
             } else {
                 if(dt2 in WordDatatypes)
                     return noModifications
-                val cast2 = TypecastExpression(arg2, if(dt2==DataType.UBYTE) DataType.UWORD else DataType.WORD, true, functionCallStatement.position)
-                return listOf(IAstModification.ReplaceNode(arg2, cast2, functionCallStatement))
+                val (replaced, cast) = arg2.typecastTo(if(dt2==DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
+                if(replaced)
+                    return listOf(IAstModification.ReplaceNode(arg2, cast, functionCallStatement))
             }
         }
         return noModifications

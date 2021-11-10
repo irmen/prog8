@@ -169,8 +169,9 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                         is Subroutine -> {
                             val paramType = callee.parameters[argnum].type
                             if(leftDt isAssignableTo paramType) {
-                                val cast = TypecastExpression(expr.left, paramType, true, parent.position)
-                                return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                                val (replaced, cast) = expr.left.typecastTo(paramType, leftDt.getOr(DataType.UNDEFINED), true)
+                                if(replaced)
+                                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                             }
                         }
                         is BuiltinFunctionStatementPlaceholder -> {
@@ -178,8 +179,9 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                             val paramTypes = func.parameters[argnum].possibleDatatypes
                             for(type in paramTypes) {
                                 if(leftDt isAssignableTo type) {
-                                    val cast = TypecastExpression(expr.left, type, true, parent.position)
-                                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                                    val (replaced, cast) = expr.left.typecastTo(type, leftDt.getOr(DataType.UNDEFINED), true)
+                                    if(replaced)
+                                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                                 }
                             }
                         }
