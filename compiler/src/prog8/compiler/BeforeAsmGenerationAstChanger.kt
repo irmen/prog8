@@ -209,7 +209,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // simplify the conditional expression, introduce simple assignments if required.
-        // TODO sometimes this increases code size significantly (Petaxian) !!! FIX THIS
+        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
+        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
         val simplify = simplifyConditionalExpression(binExpr)
         val modifications = mutableListOf<IAstModification>()
         if(simplify.rightVarAssignment!=null) {

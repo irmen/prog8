@@ -3,9 +3,8 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- if-statement expression simplification sometimes increases code size (Petaxian) FIX THIS!
-- add expression simplification to while and until loops as well.
 - let typecasting code use expression.typecastTo()
+- add expression simplification to while and until loops as well.
 
 
 Blocked by Commander-x16 v39 release
