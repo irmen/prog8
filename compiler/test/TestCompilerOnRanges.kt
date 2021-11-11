@@ -29,7 +29,7 @@ class TestCompilerOnRanges: FunSpec({
 
     test("testUByteArrayInitializerWithRange_char_to_char") {
         val platform = Cx16Target
-        val result = compileText(platform, true, """
+        val result = compileText(platform, false, """
             main {
                 sub start() {
                     ubyte[] cs = @'a' to 'z' ; values are computed at compile time 

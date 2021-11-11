@@ -93,10 +93,10 @@ class TestOptimization: FunSpec({
             main {
                 sub start() {
                     const ubyte TEST = 10
-                    byte x1 = TEST as byte + 1
-                    byte x2 = 1 + TEST as byte
-                    ubyte y1 = TEST + 1 as byte
-                    ubyte y2 = 1 as byte + TEST
+                    byte @shared x1 = TEST as byte + 1
+                    byte @shared x2 = 1 + TEST as byte
+                    ubyte @shared y1 = TEST + 1 as byte
+                    ubyte @shared y2 = 1 as byte + TEST
                 }
             }
         """
@@ -214,5 +214,30 @@ class TestOptimization: FunSpec({
 
         val asm = generateAssembly(result1.program)
         asm.valid shouldBe true
+    }
+
+    test("unused variable removal") {
+        val src="""
+            main {
+                sub start() {
+                    ubyte unused
+                    ubyte @shared unused_but_shared     ; this one should remain
+                    ubyte usedvar_only_written
+                    usedvar_only_written=2
+                    usedvar_only_written++
+                    ubyte usedvar                       ; and this one too
+                    usedvar = msb(usedvar)
+                }
+            }
+        """
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        result.program.entrypoint.statements.size shouldBe 4       // unused_but_shared decl, unused_but_shared=0,  usedvar decl, usedvar assign
+        val (decl, assign, decl2, assign2) = result.program.entrypoint.statements
+        decl shouldBe instanceOf<VarDecl>()
+        (decl as VarDecl).name shouldBe "unused_but_shared"
+        assign shouldBe instanceOf<Assignment>()
+        decl2 shouldBe instanceOf<VarDecl>()
+        (decl2 as VarDecl).name shouldBe "usedvar"
+        assign2 shouldBe instanceOf<Assignment>()
     }
 })

@@ -5,9 +5,6 @@
 main {
 
     sub start() {
-        ubyte unused                ; TODO FIX : why is this not removed as an unused variable?
-        ubyte @shared unused2
-
         ubyte bb
         uword ww
         ww = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL
