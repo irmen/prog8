@@ -74,18 +74,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         if(sourceDt istype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
-        // TODO finish this; get rid of redundant final typecast to variable's type if they are the same
-//        if(parent is Assignment) {
-//            val targetDt = (parent).target.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-//            if(sourceDt istype targetDt) {
-//                // we can get rid of this typecast because the type is already
-//                // TODO REMOVE IT
-//                println("TYPECAST IN ASSIGNMENT $parent")  // TODO DEBUG
-//            } else {
-//                // TODO
-//                println("${typecast.expression} : source=$sourceDt  to $targetDt")
-//            }
-//        }
+        if(parent is Assignment) {
+            val targetDt = (parent).target.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+            if(sourceDt istype targetDt) {
+                // we can get rid of this typecast because the type is already
+                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+            }
+        }
 
         return noModifications
     }

@@ -14,6 +14,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
+import prog8.compiler.printAst
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.DummyFunctions
@@ -128,6 +129,27 @@ class TestOptimization: FunSpec({
         (initY2.value as NumericLiteralValue).number.toDouble() shouldBe 11.0
     }
 
+    test("typecasted assignment from ubyte logical expressoin to uword var") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte bb
+                    uword ww
+                    ww = not bb or not ww       ; expression combining ubyte and uword
+                }
+            }
+        """
+        val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
+
+        // ww = ((( not bb as uword)  or  not ww) as uword)
+        val wwAssign = result.program.entrypoint.statements.last() as Assignment
+        val expr = wwAssign.value as TypecastExpression
+
+        wwAssign.target.identifier?.nameInSource shouldBe listOf("ww")
+        expr.type shouldBe DataType.UWORD
+        expr.expression.inferType(result.program).istype(DataType.UBYTE) shouldBe true
+    }
+
     test("intermediate assignment steps have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {
         val src = """
             main {
@@ -168,8 +190,6 @@ class TestOptimization: FunSpec({
         val assigns = result.program.entrypoint.statements.filterIsInstance<Assignment>()
         val bbAssigns = assigns.filter { it.value !is NumericLiteralValue }
         bbAssigns.size shouldBe 2
-        println(bbAssigns[0])
-        println(bbAssigns[1])
 
         bbAssigns[0].target.identifier!!.nameInSource shouldBe listOf("bb")
         bbAssigns[0].value shouldBe instanceOf<PrefixExpression>()
