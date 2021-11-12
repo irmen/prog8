@@ -675,4 +675,51 @@ class TestProg8Parser: FunSpec( {
         expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
         expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
     }
+
+    test("inferred type for typecasted expressions with logical operators") {
+        val src=SourceCode.Text("""
+            main {
+                ubyte bb
+                uword ww
+                uword qq = (not bb as uword)
+                uword zz = not bb or not ww
+                ubyte bb2 = not bb or not ww
+                uword zz2 = (not bb as uword) or not ww
+            }
+        """)
+        val module = parseModule(src)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        module.linkIntoProgram(program)
+        val stmts = (module.statements.single() as Block).statements
+        stmts.size shouldBe 6
+        val qq = (stmts[2] as VarDecl).value as TypecastExpression
+        val zz = (stmts[3] as VarDecl).value as BinaryExpression
+        val bb2 = (stmts[4] as VarDecl).value as BinaryExpression
+        val zz2 = (stmts[5] as VarDecl).value as BinaryExpression
+        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+
+        zz2.operator shouldBe "or"
+        val left = zz2.left as TypecastExpression
+        val right = zz2.right as PrefixExpression
+        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE     //  'or' causes UBYTE result
+    }
+
+    test("type cast from byte to ubyte as desired target type") {
+        val src = SourceCode.Text("""
+            main {
+                ubyte r
+                ubyte ub = (cos8(r)/2 + 100) as ubyte
+            }""")
+        val module = parseModule(src)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        module.linkIntoProgram(program)
+        val stmts = (module.statements.single() as Block).statements
+        stmts.size shouldBe 2
+        val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
+        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+    }
 })

@@ -190,6 +190,39 @@ class TestOptimization: FunSpec({
         asm.valid shouldBe true
     }
 
+    test("intermediate assignment steps 2 have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte r
+                    ubyte @shared bb = (cos8(r)/2 + 100) as ubyte
+                }
+            }
+        """
+        val result = compileText(C64Target, true, src, writeAssembly = false).assertSuccess()
+
+        // bb = (cos8(r)/2 + 100) as ubyte
+        val bbAssign = result.program.entrypoint.statements.last() as Assignment
+        val texpr = bbAssign.value as TypecastExpression
+        texpr.type shouldBe DataType.UBYTE
+        texpr.expression shouldBe instanceOf<BinaryExpression>()
+        texpr.expression.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.BYTE
+
+        val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target)
+        val changer = BeforeAsmGenerationAstChanger(result.program,
+            options,
+            ErrorReporterForTests()
+        )
+
+        changer.visit(result.program)
+        while(changer.applyModifications()>0) {
+            changer.visit(result.program)
+        }
+
+        // printAst(result.program)
+        // TODO finish this test
+    }
+
     test("asmgen correctly deals with float typecasting in augmented assignment") {
         val src="""
             %option enable_floats

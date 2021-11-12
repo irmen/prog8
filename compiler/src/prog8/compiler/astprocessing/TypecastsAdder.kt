@@ -47,7 +47,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         val rightDt = expr.right.inferType(program)
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
             // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.operator, expr.right)
             if(toFix!=null) {
                 return when {
                     toFix===expr.left -> listOf(IAstModification.ReplaceNode(

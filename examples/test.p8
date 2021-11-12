@@ -7,7 +7,7 @@ main {
     sub start() {
         ubyte bb
         uword ww
-        ww = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL
+        uword @shared zz = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL-because of typecastings?
     }
 
 

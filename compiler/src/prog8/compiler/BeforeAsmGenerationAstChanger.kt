@@ -146,7 +146,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        // see if we can remove superfluous typecasts (outside of expressions)
+        // see if we can remove redundant typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword
         // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
         //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
