@@ -210,7 +210,7 @@ class TestOptimization: FunSpec({
         asm.valid shouldBe true
     }
 
-    test("intermediate assignment steps 2 have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {
+    test("intermediate assignment steps generated for typecasted expression") {
         val src = """
             main {
                 sub start() {
@@ -219,28 +219,28 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, true, src, writeAssembly = false).assertSuccess()
-
-        // bb = (cos8(r)/2 + 100) as ubyte
-        val bbAssign = result.program.entrypoint.statements.last() as Assignment
-        val texpr = bbAssign.value as TypecastExpression
-        texpr.type shouldBe DataType.UBYTE
-        texpr.expression shouldBe instanceOf<BinaryExpression>()
-        texpr.expression.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.BYTE
-
-        val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target)
-        val changer = BeforeAsmGenerationAstChanger(result.program,
-            options,
-            ErrorReporterForTests()
-        )
-
-        changer.visit(result.program)
-        while(changer.applyModifications()>0) {
-            changer.visit(result.program)
-        }
-
-        // printAst(result.program)
-        // TODO finish this test
+        val result = compileText(C64Target, true, src, writeAssembly = true).assertSuccess()
+        /* turned into:
+        ubyte r
+        r = 0
+        ubyte bb
+        cx16.r15sL = cos8(r)
+        cx16.r15sL >>= 1
+        cx16.r15sL += 100
+        bb = cx16.r15sL
+        return
+         */
+        val st = result.program.entrypoint.statements
+        st.size shouldBe 8
+        st.last() shouldBe instanceOf<Return>()
+        var assign = st[3] as Assignment
+        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign = st[4] as Assignment
+        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign = st[5] as Assignment
+        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign = st[6] as Assignment
+        assign.target.identifier!!.nameInSource shouldBe listOf("bb")
     }
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {
@@ -292,5 +292,33 @@ class TestOptimization: FunSpec({
         decl2 shouldBe instanceOf<VarDecl>()
         (decl2 as VarDecl).name shouldBe "usedvar"
         assign2 shouldBe instanceOf<Assignment>()
+    }
+
+    test("unused variable removal from subscope") {
+        val src="""
+            main {
+                sub start()  {
+                    if cx16.r0 {
+                        uword xx = 42       ; to be removed
+                        xx=99               ; to be removed
+                        cx16.r0 = 0
+                    }
+                    func2()
+            
+                    sub func2() {
+                         uword yy = 33      ; to be removed
+                         yy=99              ; to be removed
+                         cx16.r0 = 0
+                    }
+                }
+            }"""
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        result.program.entrypoint.statements.size shouldBe 3
+        val ifstmt = result.program.entrypoint.statements[0] as IfStatement
+        ifstmt.truepart.statements.size shouldBe 1
+        (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
+        val func2 = result.program.entrypoint.statements[2] as Subroutine
+        func2.statements.size shouldBe 1
+        (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
 })

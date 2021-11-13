@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix compiler crashing on assembler and imageviewer (add unit tests)
+- fix compiler crashing on imageviewer (add unit tests)
 - add expression simplification to while and until loops as well.
 
 

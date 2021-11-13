@@ -4,7 +4,10 @@ import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.expressions.augmentAssignmentOperators
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
@@ -17,33 +20,13 @@ import prog8.compilerinterface.isInRegularRAMof
 
 class BinExprSplitter(private val program: Program, private val options: CompilationOptions, private val compTarget: ICompilationTarget) : AstWalker() {
 
-//    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-// TODO somehow if we do this, the resulting code for some programs (cube3d.p8) gets hundreds of bytes larger...: [ IS THIS STILL TRUE AFTER ALL CHANGES? ]
-//        if(decl.type==VarDeclType.VAR ) {
-//            val binExpr = decl.value as? BinaryExpression
-//            if (binExpr != null && binExpr.operator in augmentAssignmentOperators) {
-//                // split into a vardecl with just the left expression, and an aug. assignment with the right expression.
-//                val augExpr = BinaryExpression(IdentifierReference(listOf(decl.name), decl.position), binExpr.operator, binExpr.right, binExpr.position)
-//                val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-//                val assign = Assignment(target, augExpr, binExpr.position)
-//                println("SPLIT VARDECL $decl")
-//                return listOf(
-//                        IAstModification.SetExpression({ decl.value = it }, binExpr.left, decl),
-//                        IAstModification.InsertAfter(decl, assign, parent)
-//                )
-//            }
-//        }
-//        return noModifications
-//    }
-
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+
+        if(assignment.value.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
+            return noModifications
 
         val binExpr = assignment.value as? BinaryExpression
         if (binExpr != null) {
-
-            if(binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
-                return noModifications
-
 
 /*
 
@@ -78,8 +61,37 @@ X =      BinExpr                                    X   =   LeftExpr
             }
 
             // TODO further unraveling of binary expression trees into flat statements.
-            // however this should probably be done in a more generic way to also service
+            // however this should probably be done in a more generic way to also work on
             // the expressiontrees that are not used in an assignment statement...
+        }
+
+        val typecast = assignment.value as? TypecastExpression
+        if(typecast!=null) {
+            val origExpr = typecast.expression as? BinaryExpression
+            if(origExpr!=null) {
+                // it's a typecast of a binary expression.
+                // we can see if we can unwrap the binary expression by working on a new temporary variable
+                // (that has the type of the expression), and then finally doing the typecast.
+                // Once it's outside the typecast, the regular splitting can commence.
+                val tempDt = origExpr.inferType(program).getOr(DataType.UNDEFINED)
+                val tempVar = when(tempDt) {
+                    DataType.UBYTE -> listOf("cx16", "r15L")
+                    DataType.BYTE -> listOf("cx16", "r15sL")
+                    DataType.UWORD -> listOf("cx16", "r15")
+                    DataType.WORD -> listOf("cx16", "r15s")
+                    DataType.FLOAT -> listOf("floats", "tempvar_swap_float")
+                    else -> throw FatalAstException("invalid dt $tempDt")
+                }
+                val assignTempVar = Assignment(
+                    AssignTarget(IdentifierReference(tempVar, typecast.position), null, null, typecast.position),
+                    typecast.expression, typecast.position
+                )
+                println("UNWRAP TYPECAST: ${assignment.position}")      // TODO DEBUG
+                return listOf(
+                    IAstModification.InsertBefore(assignment, assignTempVar, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(typecast.expression, IdentifierReference(tempVar, typecast.position), typecast)
+                )
+            }
         }
 
         return noModifications
