@@ -699,6 +699,23 @@ cx16 {
     &uword r14 = $cf1c
     &uword r15 = $cf1e
 
+    &word r0s  = $cf00
+    &word r1s  = $cf02
+    &word r2s  = $cf04
+    &word r3s  = $cf06
+    &word r4s  = $cf08
+    &word r5s  = $cf0a
+    &word r6s  = $cf0c
+    &word r7s  = $cf0e
+    &word r8s  = $cf10
+    &word r9s  = $cf12
+    &word r10s = $cf14
+    &word r11s = $cf16
+    &word r12s = $cf18
+    &word r13s = $cf1a
+    &word r14s = $cf1c
+    &word r15s = $cf1e
+
     &ubyte r0L  = $cf00
     &ubyte r1L  = $cf02
     &ubyte r2L  = $cf04
@@ -732,4 +749,38 @@ cx16 {
     &ubyte r13H = $cf1b
     &ubyte r14H = $cf1d
     &ubyte r15H = $cf1f
+
+    &byte r0sL  = $cf00
+    &byte r1sL  = $cf02
+    &byte r2sL  = $cf04
+    &byte r3sL  = $cf06
+    &byte r4sL  = $cf08
+    &byte r5sL  = $cf0a
+    &byte r6sL  = $cf0c
+    &byte r7sL  = $cf0e
+    &byte r8sL  = $cf10
+    &byte r9sL  = $cf12
+    &byte r10sL = $cf14
+    &byte r11sL = $cf16
+    &byte r12sL = $cf18
+    &byte r13sL = $cf1a
+    &byte r14sL = $cf1c
+    &byte r15sL = $cf1e
+
+    &byte r0sH  = $cf01
+    &byte r1sH  = $cf03
+    &byte r2sH  = $cf05
+    &byte r3sH  = $cf07
+    &byte r4sH  = $cf09
+    &byte r5sH  = $cf0b
+    &byte r6sH  = $cf0d
+    &byte r7sH  = $cf0f
+    &byte r8sH  = $cf11
+    &byte r9sH  = $cf13
+    &byte r10sH = $cf15
+    &byte r11sH = $cf17
+    &byte r12sH = $cf19
+    &byte r13sH = $cf1b
+    &byte r14sH = $cf1d
+    &byte r15sH = $cf1f
 }

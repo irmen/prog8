@@ -78,7 +78,7 @@ main {
 
         ; circles with "degrees" from 0 to 255
         for r in 0 to 255 {
-            pixelxw = (sin8(r)/2 + 80) as uword
+            pixelxw = ((sin8(r)/2 as word) + 80) as uword
             pixelyb = (cos8(r)/2 + height/2) as ubyte
             graphics.plot(pixelxw, pixelyb)
         }

@@ -609,12 +609,14 @@ flag such as Carry (Pc).
 
 
 .. note::
-    The 'virtual' 16-bit registers from the Commander X16 can also be used as ``R0`` .. ``R15`` .
+    The 'virtual' 16-bit registers from the Commander X16 can also be specified as ``R0`` .. ``R15`` .
     This means you don't have to set them up manually before calling a subroutine that takes
     one or more parameters in those 'registers'. You can just list the arguments directly.
     *This also works on the Commodore-64!*  (however they are not as efficient there because they're not in zeropage)
     In prog8 and assembly code these 'registers' are directly accessible too via
-    ``cx16.r0`` .. ``cx16.r15``  (they're memory mapped uword values)
+    ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
+    ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),
+    and ``L`` / ``H`` variants are also available to directly access the low and high bytes of these.
 
 
 Expressions

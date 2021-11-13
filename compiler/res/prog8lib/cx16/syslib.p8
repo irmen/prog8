@@ -95,7 +95,7 @@ cx16 {
     &uword  IRQ_VEC         = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
 
-; the sixteen virtual 16-bit registers
+; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
     &uword r0  = $0002
     &uword r1  = $0004
     &uword r2  = $0006
@@ -112,6 +112,23 @@ cx16 {
     &uword r13 = $001c
     &uword r14 = $001e
     &uword r15 = $0020
+
+    &word r0s  = $0002
+    &word r1s  = $0004
+    &word r2s  = $0006
+    &word r3s  = $0008
+    &word r4s  = $000a
+    &word r5s  = $000c
+    &word r6s  = $000e
+    &word r7s  = $0010
+    &word r8s  = $0012
+    &word r9s  = $0014
+    &word r10s = $0016
+    &word r11s = $0018
+    &word r12s = $001a
+    &word r13s = $001c
+    &word r14s = $001e
+    &word r15s = $0020
 
     &ubyte r0L  = $0002
     &ubyte r1L  = $0004
@@ -147,6 +164,39 @@ cx16 {
     &ubyte r14H = $001f
     &ubyte r15H = $0021
 
+    &byte r0sL  = $0002
+    &byte r1sL  = $0004
+    &byte r2sL  = $0006
+    &byte r3sL  = $0008
+    &byte r4sL  = $000a
+    &byte r5sL  = $000c
+    &byte r6sL  = $000e
+    &byte r7sL  = $0010
+    &byte r8sL  = $0012
+    &byte r9sL  = $0014
+    &byte r10sL = $0016
+    &byte r11sL = $0018
+    &byte r12sL = $001a
+    &byte r13sL = $001c
+    &byte r14sL = $001e
+    &byte r15sL = $0020
+
+    &byte r0sH  = $0003
+    &byte r1sH  = $0005
+    &byte r2sH  = $0007
+    &byte r3sH  = $0009
+    &byte r4sH  = $000b
+    &byte r5sH  = $000d
+    &byte r6sH  = $000f
+    &byte r7sH  = $0011
+    &byte r8sH  = $0013
+    &byte r9sH  = $0015
+    &byte r10sH = $0017
+    &byte r11sH = $0019
+    &byte r12sH = $001b
+    &byte r13sH = $001d
+    &byte r14sH = $001f
+    &byte r15sH = $0021
 
 ; VERA registers
 
