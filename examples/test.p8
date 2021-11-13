@@ -1,13 +1,30 @@
 %import textio
 %import floats
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
 
     sub start() {
-        ubyte bb
-        uword ww
-        uword @shared zz = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL-because of typecastings?
+        float[] farr = [1.111,2.222,3.333]
+        float f2 = 9.999
+
+        floats.print_f(f2)
+        txt.nl()
+        floats.print_f(farr[0])
+        txt.nl()
+        txt.nl()
+
+        swap(f2, farr[0])
+
+        floats.print_f(f2)
+        txt.nl()
+        floats.print_f(farr[0])
+        txt.nl()
+        txt.nl()
+
+;        ubyte bb
+;        uword ww
+;        uword @shared zz = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL-because it is a binaryexpression that isn't split
     }
 
 

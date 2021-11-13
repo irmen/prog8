@@ -13,7 +13,7 @@ floats {
         const float  PI     = 3.141592653589793
         const float  TWOPI  = 6.283185307179586
 
-        ubyte[5] tempvar_swap_float     ; used for some swap() operations
+        float  tempvar_swap_float     ; used for some swap() operations
 
 
 ; ---- ROM float functions ----

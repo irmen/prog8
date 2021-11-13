@@ -3,11 +3,12 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- fix compiler crashing on assembler and imageviewer (add unit tests)
 - add expression simplification to while and until loops as well.
 
 
-Blocked by Commander-x16 v39 release
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Blocked by an official Commander-x16 v39 release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
   (I hope this will still be included into the final v39 roms release for the cx16)
 
