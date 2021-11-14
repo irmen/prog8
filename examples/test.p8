@@ -5,15 +5,16 @@
 main {
 
     sub start() {
-        float[] farr = [1.111,2.222,3.333,4.444,5.555,6.666]
-        float f2 = 9.999
-        ubyte xx=1
-        ubyte yy=2
+        byte xx=1
 
-        floats.print_f(farr[3])
-        txt.nl()
-        floats.print_f(farr[xx+yy])
-        txt.nl()
+        if -xx {
+            xx++
+        }
+
+        sub test() -> ubyte {
+            xx++
+            return xx
+        }
     }
 
 

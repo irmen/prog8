@@ -240,10 +240,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         var rightAssignment: Assignment? = null
         var rightOperandReplacement: Expression? = null
 
-
-        // TODO don't optimize simple conditionals that are just a function call
-
-        if(!expr.left.isSimple) {
+        if(!expr.left.isSimple && expr.left !is IFunctionCall) {
             val dt = expr.left.inferType(program)
             val name = when {
                 dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")       // assume (hope) cx16.r9 isn't used for anything else...
@@ -259,7 +256,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                 expr.position
             )
         }
-        if(!expr.right.isSimple) {
+        if(!expr.right.isSimple && expr.right !is IFunctionCall) {
             val dt = expr.right.inferType(program)
             val name = when {
                 dt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")
