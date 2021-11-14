@@ -3,6 +3,7 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- simplifyConditionalExpression: don't change conditinal expressions that are just a single function call
 - add expression simplification to while and until loops as well.
 
 

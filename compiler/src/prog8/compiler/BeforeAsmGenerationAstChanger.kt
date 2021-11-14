@@ -239,6 +239,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         var leftOperandReplacement: Expression? = null
         var rightAssignment: Assignment? = null
         var rightOperandReplacement: Expression? = null
+
+
+        // TODO don't optimize simple conditionals that are just a function call
+
         if(!expr.left.isSimple) {
             val dt = expr.left.inferType(program)
             val name = when {
