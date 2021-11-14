@@ -242,8 +242,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         if(!expr.left.isSimple) {
             val dt = expr.left.inferType(program)
             val name = when {
-                dt.istype(DataType.UBYTE) -> listOf("cx16","r15L")
-                dt.istype(DataType.UWORD) -> listOf("cx16","r15")
+                dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")       // assume (hope) cx16.r9 isn't used for anything else...
+                dt.istype(DataType.UWORD) -> listOf("cx16","r9")        // assume (hope) cx16.r9 isn't used for anything else...
                 dt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b")
                 dt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w")
                 else -> throw AssemblyError("invalid dt")
@@ -409,10 +409,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val modifications = mutableListOf<IAstModification>()
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
-        val register = if(dt istype DataType.UBYTE  || dt istype DataType.BYTE ) "r9L" else "r9"
+        val register = if(dt istype DataType.UBYTE  || dt istype DataType.BYTE ) "retval_interm_ub" else "retval_interm_b"
         // replace the indexer with just the variable (simply use a cx16 virtual register r9, that we HOPE is not used for other things in the expression...)
         // assign the indexing expression to the helper variable, but only if that hasn't been done already
-        val target = AssignTarget(IdentifierReference(listOf("cx16", register), expr.indexer.position), null, null, expr.indexer.position)
+        val target = AssignTarget(IdentifierReference(listOf("prog8_lib", register), expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(IAstModification.ReplaceNode(expr.indexer.indexExpr, target.identifier!!.copy(), expr.indexer))

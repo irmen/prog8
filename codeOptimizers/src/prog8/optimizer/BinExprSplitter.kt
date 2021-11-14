@@ -75,10 +75,10 @@ X =      BinExpr                                    X   =   LeftExpr
                 // Once it's outside the typecast, the regular splitting can commence.
                 val tempDt = origExpr.inferType(program).getOr(DataType.UNDEFINED)
                 val tempVar = when(tempDt) {
-                    DataType.UBYTE -> listOf("cx16", "r15L")
-                    DataType.BYTE -> listOf("cx16", "r15sL")
-                    DataType.UWORD -> listOf("cx16", "r15")
-                    DataType.WORD -> listOf("cx16", "r15s")
+                    DataType.UBYTE -> listOf("prog8_lib", "retval_interm_ub")
+                    DataType.BYTE -> listOf("prog8_lib", "retval_interm_b")
+                    DataType.UWORD -> listOf("prog8_lib", "retval_interm_uw")
+                    DataType.WORD -> listOf("prog8_lib", "retval_interm_w")
                     DataType.FLOAT -> listOf("floats", "tempvar_swap_float")
                     else -> throw FatalAstException("invalid dt $tempDt")
                 }
@@ -86,7 +86,6 @@ X =      BinExpr                                    X   =   LeftExpr
                     AssignTarget(IdentifierReference(tempVar, typecast.position), null, null, typecast.position),
                     typecast.expression, typecast.position
                 )
-                println("UNWRAP TYPECAST: ${assignment.position}")      // TODO DEBUG
                 return listOf(
                     IAstModification.InsertBefore(assignment, assignTempVar, parent as IStatementContainer),
                     IAstModification.ReplaceNode(typecast.expression, IdentifierReference(tempVar, typecast.position), typecast)

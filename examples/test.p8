@@ -5,26 +5,15 @@
 main {
 
     sub start() {
-        float[] farr = [1.111,2.222,3.333]
+        float[] farr = [1.111,2.222,3.333,4.444,5.555,6.666]
         float f2 = 9.999
+        ubyte xx=1
+        ubyte yy=2
 
-        floats.print_f(f2)
+        floats.print_f(farr[3])
         txt.nl()
-        floats.print_f(farr[0])
+        floats.print_f(farr[xx+yy])
         txt.nl()
-        txt.nl()
-
-        swap(f2, farr[0])
-
-        floats.print_f(f2)
-        txt.nl()
-        floats.print_f(farr[0])
-        txt.nl()
-        txt.nl()
-
-;        ubyte bb
-;        uword ww
-;        uword @shared zz = not bb or not ww       ; TODO WHY DOES THIS USE STACK EVAL-because it is a binaryexpression that isn't split
     }
 
 

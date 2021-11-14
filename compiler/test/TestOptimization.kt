@@ -224,21 +224,21 @@ class TestOptimization: FunSpec({
         ubyte r
         r = 0
         ubyte bb
-        cx16.r15sL = cos8(r)
-        cx16.r15sL >>= 1
-        cx16.r15sL += 100
-        bb = cx16.r15sL
+        prog8_lib.retval_interm_b = cos8(r)
+        prog8_lib.retval_interm_b >>= 1
+        prog8_lib.retval_interm_b += 100
+        bb = prog8_lib.retval_interm_b
         return
          */
         val st = result.program.entrypoint.statements
         st.size shouldBe 8
         st.last() shouldBe instanceOf<Return>()
         var assign = st[3] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
         assign = st[4] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
         assign = st[5] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("cx16","r15sL")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
         assign = st[6] as Assignment
         assign.target.identifier!!.nameInSource shouldBe listOf("bb")
     }
