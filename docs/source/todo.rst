@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.3)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- add expression simplification to while and until loops as well.
+...
 
 
 Blocked by an official Commander-x16 v39 release
@@ -14,6 +14,11 @@ Blocked by an official Commander-x16 v39 release
 
 Future
 ^^^^^^
+- simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
+- remove special code generation for while and util expression
+  by rewriting while and until expressions into if+jump (consider them syntactic sugar)
+  but the result should not produce larger code ofcourse!
+- while-expression should now also get the simplifyConditionalExpression() treatment
 - fix the asm-labels problem (github issue #62)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
 - document the various compiler command line options in more detail. See "Compiling program code" in the docs

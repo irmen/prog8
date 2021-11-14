@@ -1,16 +1,33 @@
+%import textio
 
 main {
 
     sub start() {
-        byte xx=1
+        ubyte xx=10
 
-        if xx+2 {
-            xx++
+        txt.print("if\n")
+        if xx-2 {
+            txt.print("in if\n")
         }
 
-        sub test() -> ubyte {
+        txt.print("\nwhile\n")
+        xx=6
+        while xx-2 {
+            xx--
+            txt.print_ub(xx)
+            txt.spc()
+        }
+
+        txt.print("\nuntil\n")
+        xx=2
+        do {
             xx++
-            return xx
+            txt.print_ub(xx)
+            txt.spc()
+        } until xx+2==10
+        txt.print("\ndone")
+
+        repeat {
         }
     }
 

@@ -235,6 +235,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
     )
 
     private fun simplifyConditionalExpression(expr: BinaryExpression): CondExprSimplificationResult {
+
+        // TODO: somehow figure out if the expr will result in stack-evaluation STILL after being split off,
+        //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
+
         var leftAssignment: Assignment? = null
         var leftOperandReplacement: Expression? = null
         var rightAssignment: Assignment? = null
@@ -302,9 +306,21 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             (binExpr.right as? NumericLiteralValue)?.number!=0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
-        // TODO simplify conditional expression like in if-statement
+        // simplify the conditional expression, introduce simple assignments if required.
+        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
+        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
+        val simplify = simplifyConditionalExpression(binExpr)
+        val modifications = mutableListOf<IAstModification>()
+        if(simplify.rightVarAssignment!=null) {
+            modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
+            modifications += IAstModification.InsertLast(simplify.rightVarAssignment, untilLoop.body)
+        }
+        if(simplify.leftVarAssignment!=null) {
+            modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
+            modifications += IAstModification.InsertLast(simplify.leftVarAssignment, untilLoop.body)
+        }
 
-        return noModifications
+        return modifications
     }
 
     @Suppress("DuplicatedCode")
@@ -327,8 +343,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             (binExpr.right as? NumericLiteralValue)?.number!=0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
-        // TODO simplify conditional expression like in if-statement
-
+        // TODO simplify the conditional expression, introduce simple assignments if required.
+        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
+        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
+        // NOTE: this is nasty for a while-statement as the condition occurs at the top of the loop
+        //       so the expression needs to be evaluated also before the loop is entered...
+        //       but I don't want to duplicate the expression.
+        // val simplify = simplifyConditionalExpression(binExpr)
         return noModifications
     }
 
