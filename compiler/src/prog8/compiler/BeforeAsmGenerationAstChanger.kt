@@ -240,13 +240,17 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         var rightAssignment: Assignment? = null
         var rightOperandReplacement: Expression? = null
 
-        if(!expr.left.isSimple && expr.left !is IFunctionCall) {
+        val separateLeftExpr = !expr.left.isSimple && expr.left !is IFunctionCall
+        val separateRightExpr = !expr.right.isSimple && expr.right !is IFunctionCall
+
+        if(separateLeftExpr) {
             val dt = expr.left.inferType(program)
             val name = when {
-                dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")       // assume (hope) cx16.r9 isn't used for anything else...
-                dt.istype(DataType.UWORD) -> listOf("cx16","r9")        // assume (hope) cx16.r9 isn't used for anything else...
-                dt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b")
-                dt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w")
+                // TODO assume (hope) cx16.r9 isn't used for anything else...
+                dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")
+                dt.istype(DataType.BYTE) -> listOf("cx16","r9sL")
+                dt.istype(DataType.UWORD) -> listOf("cx16","r9")
+                dt.istype(DataType.WORD) -> listOf("cx16","r9s")
                 else -> throw AssemblyError("invalid dt")
             }
             leftOperandReplacement = IdentifierReference(name, expr.position)
@@ -256,7 +260,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                 expr.position
             )
         }
-        if(!expr.right.isSimple && expr.right !is IFunctionCall) {
+        if(separateRightExpr) {
             val dt = expr.right.inferType(program)
             val name = when {
                 dt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")

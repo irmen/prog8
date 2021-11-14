@@ -5,10 +5,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
-import prog8.ast.base.RegisterOrPair
-import prog8.ast.base.VarDeclType
+import prog8.ast.base.*
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
@@ -84,7 +81,7 @@ class AsmGenSymbolsTests: StringSpec({
         return asmgen
     }
 
-    "symbol names from strings" {
+    "symbol and variable names from strings" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
         asmgen.asmSymbolName("name") shouldBe "name"
@@ -97,7 +94,7 @@ class AsmGenSymbolsTests: StringSpec({
         asmgen.asmVariableName(listOf("a", "b", "name")) shouldBe "a.b.name"
     }
 
-    "symbol names from variable identifiers" {
+    "symbol and variable names from variable identifiers" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
@@ -120,7 +117,7 @@ class AsmGenSymbolsTests: StringSpec({
         asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
     }
 
-    "symbol names from label identifiers" {
+    "symbol and variable names from label identifiers" {
         val program = createTestProgram()
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
@@ -148,5 +145,29 @@ class AsmGenSymbolsTests: StringSpec({
         withClue("as a variable it uses different naming rules (no underscore prefix)") {
             asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
         }
+    }
+
+    "asm names for hooks to zp temp vars" {
+        /*
+main {
+
+    sub start() {
+        prog8_lib.P8ZP_SCRATCH_REG = 1
+        prog8_lib.P8ZP_SCRATCH_B1 = 1
+        prog8_lib.P8ZP_SCRATCH_W1 = 1
+        prog8_lib.P8ZP_SCRATCH_W2 = 1
+         */
+        val program = createTestProgram()
+        val asmgen = createTestAsmGen(program)
+        asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_REG") shouldBe "P8ZP_SCRATCH_REG"
+        asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_W2") shouldBe "P8ZP_SCRATCH_W2"
+        asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_REG")) shouldBe "P8ZP_SCRATCH_REG"
+        asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_W2")) shouldBe "P8ZP_SCRATCH_W2"
+        val id1 = IdentifierReference(listOf("prog8_lib","P8ZP_SCRATCH_REG"), Position.DUMMY)
+        id1.linkParents(program.toplevelModule)
+        val id2 = IdentifierReference(listOf("prog8_lib","P8ZP_SCRATCH_W2"), Position.DUMMY)
+        id2.linkParents(program.toplevelModule)
+        asmgen.asmSymbolName(id1) shouldBe "P8ZP_SCRATCH_REG"
+        asmgen.asmSymbolName(id2) shouldBe "P8ZP_SCRATCH_W2"
     }
 })

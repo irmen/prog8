@@ -1,13 +1,10 @@
-%import textio
-%import floats
-%zeropage dontuse
 
 main {
 
     sub start() {
         byte xx=1
 
-        if -xx {
+        if xx+2 {
             xx++
         }
 

@@ -1,5 +1,6 @@
 package prog8.compilerinterface
 
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
@@ -41,7 +42,7 @@ fun AssignTarget.isInRegularRAMof(machine: IMachineDefinition): Boolean {
         }
         ident != null -> {
             val program = definingModule.program
-            val decl = ident.targetVarDecl(program)!!
+            val decl = ident.targetVarDecl(program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
             return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
                 machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
             else

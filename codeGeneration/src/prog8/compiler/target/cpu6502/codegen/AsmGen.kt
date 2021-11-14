@@ -214,9 +214,9 @@ class AsmGen(private val program: Program,
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
         outputSourceLine(block)
-        zeropagevars2asm(block.statements)
-        memdefs2asm(block.statements)
-        vardecls2asm(block.statements)
+        zeropagevars2asm(block.statements, block)
+        memdefs2asm(block.statements, block)
+        vardecls2asm(block.statements, block)
         out("\n; subroutines in this block")
 
         // first translate regular statements, and then put the subroutines at the end.
@@ -258,10 +258,13 @@ class AsmGen(private val program: Program,
         } else assemblyLines.add(fragment)
     }
 
-    private fun zeropagevars2asm(statements: List<Statement>) {
+    private fun zeropagevars2asm(statements: List<Statement>, inBlock: Block?) {
         out("; vars allocated on zeropage")
         val variables = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
+        val blockname = inBlock?.name
         for(variable in variables) {
+            if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
+                continue       // the "hooks" to the temp vars are not generated as new variables
             val fullName = variable.makeScopedName(variable.name)
             val zpVar = allocatedZeropageVariables[fullName]
             if(zpVar==null) {
@@ -359,14 +362,17 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private fun memdefs2asm(statements: List<Statement>) {
+    private fun memdefs2asm(statements: List<Statement>, inBlock: Block?) {
+        val blockname = inBlock?.name
+
         out("\n; memdefs and kernal subroutines")
         val memvars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
         for(m in memvars) {
-            if(m.value is NumericLiteralValue)
-                out("  ${m.name} = ${(m.value as NumericLiteralValue).number.toHex()}")
-            else
-                out("  ${m.name} = ${asmVariableName((m.value as AddressOf).identifier)}")
+            if(blockname!="prog8_lib" || !m.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
+                if(m.value is NumericLiteralValue)
+                    out("  ${m.name} = ${(m.value as NumericLiteralValue).number.toHex()}")
+                else
+                    out("  ${m.name} = ${asmVariableName((m.value as AddressOf).identifier)}")
         }
         val asmSubs = statements.filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
         for(sub in asmSubs) {
@@ -379,7 +385,7 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private fun vardecls2asm(statements: List<Statement>) {
+    private fun vardecls2asm(statements: List<Statement>, inBlock: Block?) {
         out("\n; non-zeropage variables")
         val vars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
 
@@ -394,9 +400,13 @@ class AsmGen(private val program: Program,
         }
 
         // non-string variables
+        val blockname = inBlock?.name
+
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            if(it.makeScopedName(it.name) !in allocatedZeropageVariables)
-                vardecl2asm(it)
+            if(it.makeScopedName(it.name) !in allocatedZeropageVariables) {
+                if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
+                    vardecl2asm(it)
+            }
         }
     }
 
@@ -496,34 +506,40 @@ class AsmGen(private val program: Program,
     }
 
     fun asmSymbolName(identifier: IdentifierReference): String {
-        if(identifier.nameInSource.size==2 && identifier.nameInSource[0]=="prog8_slabs")
-            return identifier.nameInSource.joinToString(".")
+        fun internalName(): String {
+            if (identifier.nameInSource.size == 2 && identifier.nameInSource[0] == "prog8_slabs")
+                return identifier.nameInSource.joinToString(".")
 
-        val tgt2 = identifier.targetStatement(program)
-        if(tgt2==null && (identifier.nameInSource[0].startsWith("_prog8") || identifier.nameInSource[0].startsWith("prog8")))
-            return identifier.nameInSource.joinToString(".")
+            val tgt2 = identifier.targetStatement(program)
+            if (tgt2 == null && (identifier.nameInSource[0].startsWith("_prog8") || identifier.nameInSource[0].startsWith(
+                    "prog8"
+                ))
+            )
+                return identifier.nameInSource.joinToString(".")
 
-        val target = identifier.targetStatement(program)!!
-        val targetScope = target.definingSubroutine
-        val identScope = identifier.definingSubroutine
-        return if(targetScope !== identScope) {
-            val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
-            if(target is Label) {
-                // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
-                val last = scopedName.removeLast()
-                scopedName.add("_$last")
-            }
-            fixNameSymbols(scopedName.joinToString("."))
-        } else {
-            if(target is Label) {
-                // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
-                val scopedName = identifier.nameInSource.toMutableList()
-                val last = scopedName.removeLast()
-                scopedName.add("_$last")
+            val target = identifier.targetStatement(program)!!
+            val targetScope = target.definingSubroutine
+            val identScope = identifier.definingSubroutine
+            return if (targetScope !== identScope) {
+                val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
+                if (target is Label) {
+                    // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
+                    val last = scopedName.removeLast()
+                    scopedName.add("_$last")
+                }
                 fixNameSymbols(scopedName.joinToString("."))
+            } else {
+                if (target is Label) {
+                    // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
+                    val scopedName = identifier.nameInSource.toMutableList()
+                    val last = scopedName.removeLast()
+                    scopedName.add("_$last")
+                    fixNameSymbols(scopedName.joinToString("."))
+                } else fixNameSymbols(identifier.nameInSource.joinToString("."))
             }
-            else fixNameSymbols(identifier.nameInSource.joinToString("."))
         }
+
+        return fixNameSymbols(internalName())
     }
 
     fun asmVariableName(identifier: IdentifierReference) =
@@ -600,7 +616,10 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private  fun fixNameSymbols(name: String) = name.replace("<", "prog8_").replace(">", "")     // take care of the autogenerated invalid (anon) label names
+    private  fun fixNameSymbols(name: String): String {
+        val name2 = name.replace("<", "prog8_").replace(">", "")     // take care of the autogenerated invalid (anon) label names
+        return name2.replace("prog8_lib.P8ZP_SCRATCH_", "P8ZP_SCRATCH_")    // take care of the 'hooks' to the temp vars
+    }
 
     internal fun saveRegisterLocal(register: CpuRegister, scope: Subroutine) {
         if (isTargetCpu(CpuType.CPU65c02)) {
@@ -934,8 +953,8 @@ class AsmGen(private val program: Program,
         } else {
             // regular subroutine
             out("${sub.name}\t.proc")
-            zeropagevars2asm(sub.statements)
-            memdefs2asm(sub.statements)
+            zeropagevars2asm(sub.statements, null)
+            memdefs2asm(sub.statements, null)
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
             if(sub.name=="start" && sub.definingBlock.name=="main") {
@@ -985,7 +1004,7 @@ class AsmGen(private val program: Program,
                 out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(sub.asmGenInfo.usedFloatEvalResultVar2)
                 out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-            vardecls2asm(sub.statements)
+            vardecls2asm(sub.statements, null)
             out("  .pend\n")
         }
     }

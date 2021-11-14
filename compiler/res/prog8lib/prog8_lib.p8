@@ -15,6 +15,15 @@ prog8_lib {
 	word retval_interm_w2
 	byte retval_interm_b2
 
+        ; prog8 "hooks" to be able to access the temporary scratch variables
+        ; YOU SHOULD NOT USE THESE IN USER CODE - THESE ARE MEANT FOR INTERNAL COMPILER USE
+        ; NOTE: the assembly code generator will match these names and not generate
+        ;       new variables/memdefs for them, rather, they'll point to the scratch variables directly.
+        &ubyte P8ZP_SCRATCH_REG = $ff
+        &byte P8ZP_SCRATCH_B1 = $ff
+        &uword P8ZP_SCRATCH_W1 = $ff
+        &word P8ZP_SCRATCH_W2 = $ff
+
 
 	asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> ubyte @A {
 		%asm {{
