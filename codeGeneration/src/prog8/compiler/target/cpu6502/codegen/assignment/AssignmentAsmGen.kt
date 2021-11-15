@@ -270,7 +270,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         // Everything else just evaluate via the stack.
                         // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                         // because the code here is the implementation of exactly that...)
-                        // TODO FIX THIS... by using a temp var? so that it becomes augmentable assignment expression?
+                        // TODO DON'T STACK-EVAL THIS... by using a temp var? so that it becomes augmentable assignment expression?
                         asmgen.translateExpression(value)
                         if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
                             asmgen.signExtendStackLsb(assign.source.datatype)

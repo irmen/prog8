@@ -21,6 +21,7 @@ Future
 - while-expression should now also get the simplifyConditionalExpression() treatment
 - fix the asm-labels problem (github issue #62)
 - find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
+- find a way to let registerArgsViaStackEvaluation not use the stack anymore
 - document the various compiler command line options in more detail. See "Compiling program code" in the docs
 - get rid of all TODO's in the code
 - improve testability further, add more tests

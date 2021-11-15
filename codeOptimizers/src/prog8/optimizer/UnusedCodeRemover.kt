@@ -124,7 +124,6 @@ class UnusedCodeRemover(private val program: Program,
                         it.isInRegularRAMof(compTarget.machine)
                     }
                     if(assignTargets.size==usages.size) {
-                        // TODO FIX THAT A MEMREAD OF THE VARIABLE ISN'T RECOGNISED AS A USE (imageviewer iff_module.p8 pixptr)
                         errors.warn("removing unused variable '${decl.name}'", decl.position)
                         val assignmentsToRemove = assignTargets.map { it.parent to it.parent.parent as IStatementContainer}.toSet()
                         return assignmentsToRemove.map {

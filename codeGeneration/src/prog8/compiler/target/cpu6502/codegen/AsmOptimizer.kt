@@ -113,9 +113,9 @@ private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<S
 
 private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Modification> {
 
-    // optimize sequential assignments of the isSameAs value to various targets (bytes, words, floats)
+    // Optimize sequential assignments of the isSameAs value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
-    // @todo a better place to do this is in the Compiler instead and transform the Ast, or the AsmGen, and never even create the inefficient asm in the first place...
+    // The better place to do this is in the Compiler instead and never create these types of assembly, but hey
 
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {
