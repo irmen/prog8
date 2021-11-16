@@ -19,13 +19,7 @@ import kotlin.math.pow
 
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
-some of these may already be present:
-
-X ^ -1  =>  ~x
-X >= 1  =>  X > 0
-X <  1  =>  X <= 0
-
-and some const foldings (that may already be done as well):
+Add some const foldings (that may already be done as well):
 X + С1 == C2  =>  X == C2 - C1
 ((X + C1) + C2)  =>  (X + (C1 + C2))
 ((X + C1) + (Y + C2))  =>  ((X + Y) + (C1 + C2))
@@ -191,11 +185,23 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
         }
 
+        if(leftDt!=DataType.FLOAT && expr.operator == ">=" && rightVal?.number == 1.0) {
+            // for integers: x >= 1  -->  x > 0
+            expr.operator = ">"
+            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteralValue.optimalInteger(0, expr.right.position), expr))
+        }
+
         if(expr.operator == ">=" && rightVal?.number == 0.0) {
             if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
                 // unsigned >= 0 --> true
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(true, expr.position), parent))
             }
+        }
+
+        if(leftDt!=DataType.FLOAT && expr.operator == "<" && rightVal?.number == 1.0) {
+            // for integers: x < 1  -->  x <= 0
+            expr.operator = "<="
+            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteralValue.optimalInteger(0, expr.right.position), expr))
         }
 
         if(expr.operator == "<" && rightVal?.number == 0.0) {
