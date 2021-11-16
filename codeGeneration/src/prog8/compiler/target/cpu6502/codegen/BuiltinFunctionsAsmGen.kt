@@ -1231,6 +1231,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                 }
             }
+            else -> throw AssemblyError("wrong pokew arg type")
         }
 
         asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)

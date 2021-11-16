@@ -64,7 +64,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             for ((_, reg) in returns) {
                 // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
                 if (reg.registerOrPair != null) {
-                    when (reg.registerOrPair) {
+                    when (reg.registerOrPair!!) {
                         RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
                         RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
                         RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
