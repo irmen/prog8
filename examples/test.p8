@@ -13,22 +13,43 @@ main {
 
         ; TODO:  bitwise operations with a negative constant number -> replace the number by its positive 2 complement
 
-        if aw<1
-            yy++
-        if aw<=0
-            yy++
+; (X + C1) + (Y + C2)  =>  (X + Y) + (C1 + C2)
+; (X + C1) - (Y + C2)  =>  (X - Y) + (C1 - C2)
+; ---> together:   (X + C1) <plusmin> (Y + C2)  =>  (X <plusmin> Y) + (C1 <plusmin> C2)
 
-        if yy<1
-            yy++
-        if yy<=0
-            yy++
-        if bb<1
-            yy++
-        if bb<=0
-            yy++
 
-        txt.print_ub(yy)
-        txt.print_uw(aw)
+; (X - C1) + (Y - C2)  =>  (X + Y) - (C1 + C2)
+; (X - C1) - (Y - C2)  =>  (X - Y) - (C1 - C2)
 
+        xx=6
+        yy=8
+
+
+        yy = (xx+5)+(yy+10)
+        ; yy = (xx+yy)+(5+10)     ; TODO crashes compiler
+        txt.print_ub(yy)        ; 29
+        txt.nl()
+
+        xx=100
+        yy=8
+        ;yy = (xx+5)-(yy+10)
+        yy = (xx-yy)+(5-10) as ubyte
+        txt.print_ub(yy)        ; 87
+        txt.nl()
+
+        xx=50
+        yy=40
+        yy = (xx-5)+(yy-10)
+        txt.print_ub(yy)        ; 75
+        txt.nl()
+
+        xx=50
+        yy=20
+        yy = (xx-5)-(yy-10)
+        txt.print_ub(yy)        ; 35
+        txt.nl()
+
+        repeat {
+        }
     }
 }

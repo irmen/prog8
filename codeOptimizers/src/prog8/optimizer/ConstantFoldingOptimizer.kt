@@ -101,6 +101,33 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         val rightconst = expr.right.constValue(program)
         val modifications = mutableListOf<IAstModification>()
 
+        if(expr.operator=="==" && rightconst!=null) {
+            val leftExpr = expr.left as? BinaryExpression
+            if(leftExpr!=null) {
+                val leftRightConst = leftExpr.right.constValue(program)
+                if(leftRightConst!=null) {
+                    when (leftExpr.operator) {
+                        "+" -> {
+                            // X + С1 == C2  -->  X == C2 - C1
+                            val newRightConst = NumericLiteralValue(rightconst.type, rightconst.number - leftRightConst.number, rightconst.position)
+                            return listOf(
+                                IAstModification.ReplaceNode(leftExpr, leftExpr.left, expr),
+                                IAstModification.ReplaceNode(expr.right, newRightConst, expr)
+                            )
+                        }
+                        "-" -> {
+                            // X - С1 == C2  -->  X == C2 + C1
+                            val newRightConst = NumericLiteralValue(rightconst.type, rightconst.number + leftRightConst.number, rightconst.position)
+                            return listOf(
+                                IAstModification.ReplaceNode(leftExpr, leftExpr.left, expr),
+                                IAstModification.ReplaceNode(expr.right, newRightConst, expr)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         if(expr.operator == "**" && leftconst!=null) {
             // optimize various simple cases of ** :
             //  optimize away 1 ** x into just 1 and 0 ** x into just 0

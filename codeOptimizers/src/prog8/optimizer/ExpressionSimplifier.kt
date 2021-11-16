@@ -19,12 +19,6 @@ import kotlin.math.pow
 
     Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
-Add some const foldings (that may already be done as well):
-X + С1 == C2  =>  X == C2 - C1
-((X + C1) + C2)  =>  (X + (C1 + C2))
-((X + C1) + (Y + C2))  =>  ((X + Y) + (C1 + C2))
-
-
  */
 
 

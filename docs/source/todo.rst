@@ -3,7 +3,10 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+BUG: Fix C-64sound issue in petaxian (regression since 7.3, sound on c64 build works fine on older versions)
+BUG:    ubyte z1
+        ubyte z2
+        z2=z1+z2+5    CRASHES COMPILER
 
 
 Blocked by an official Commander-x16 v39 release
