@@ -21,9 +21,6 @@ import kotlin.math.pow
 
 some of these may already be present:
 
-*(&X)  =>  X
-X % 1  => 0
-X / 1  =>  X
 X ^ -1  =>  ~x
 X >= 1  =>  X > 0
 X <  1  =>  X <= 0
@@ -164,7 +161,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt, 1, y.position), y.position)
+                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt, 1.0, y.position), y.position)
                         val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
@@ -174,7 +171,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt, 1, y.position), y.position)
+                        val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt, 1.0, y.position), y.position)
                         val newExpr = BinaryExpression(x, "*", yMinus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
@@ -194,14 +191,14 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
         }
 
-        if(expr.operator == ">=" && rightVal?.number == 0) {
+        if(expr.operator == ">=" && rightVal?.number == 0.0) {
             if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
                 // unsigned >= 0 --> true
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(true, expr.position), parent))
             }
         }
 
-        if(expr.operator == "<" && rightVal?.number == 0) {
+        if(expr.operator == "<" && rightVal?.number == 0.0) {
             if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
                 // unsigned < 0 --> false
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(false, expr.position), parent))
@@ -271,8 +268,14 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     expr.right
                 else if (rightVal != null && !rightVal.asBooleanValue)
                     expr.left
-                else
-                    null
+                else {
+                    if(rightIDt.isBytes && (rightVal?.number==-1.0 || rightVal?.number==255.0))
+                        PrefixExpression("~", expr.left, expr.left.position)
+                    else if(rightIDt.isWords && (rightVal?.number==-1.0 || rightVal?.number==65535.0))
+                        PrefixExpression("~", expr.left, expr.left.position)
+                    else
+                        null
+                }
             }
             "&" -> {
                 if (leftVal != null && !leftVal.asBooleanValue)
@@ -324,7 +327,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
-                            NumericLiteralValue(valueDt.getOr(DataType.UBYTE), 0, arg.expression.position),
+                            NumericLiteralValue(valueDt.getOr(DataType.UBYTE), 0.0, arg.expression.position),
                             parent))
                 }
             } else {
@@ -333,7 +336,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCall,
-                            NumericLiteralValue(argDt.getOr(DataType.UBYTE), 0, arg.position),
+                            NumericLiteralValue(argDt.getOr(DataType.UBYTE), 0.0, arg.position),
                             parent))
                 }
             }
@@ -366,7 +369,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal2
-            when (rightConst.number.toDouble()) {
+            when (rightConst.number) {
                 0.0 -> {
                     // left
                     return expr2.left
@@ -375,7 +378,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         }
         // no need to check for left val constant (because of associativity)
 
-        val rnum = rightVal?.number?.toDouble()
+        val rnum = rightVal?.number
         if(rnum!=null && rnum<0.0) {
             expr.operator = "-"
             expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
@@ -396,7 +399,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
 
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
-            val rnum = rightVal.number.toDouble()
+            val rnum = rightVal.number
             if (rnum == 0.0) {
                 // left
                 return expr.left
@@ -410,7 +413,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         }
         if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when (leftVal.number.toDouble()) {
+            when (leftVal.number) {
                 0.0 -> {
                     // -right
                     return PrefixExpression("-", expr.right, expr.position)
@@ -429,7 +432,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
-            when (rightConst.number.toDouble()) {
+            when (rightConst.number) {
                 -3.0 -> {
                     // -1/(left*left*left)
                     return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
@@ -449,7 +452,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 }
                 0.0 -> {
                     // 1
-                    return NumericLiteralValue(rightConst.type, 1, expr.position)
+                    return NumericLiteralValue(rightConst.type, 1.0, expr.position)
                 }
                 0.5 -> {
                     // sqrt(left)
@@ -471,18 +474,18 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         }
         if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when (leftVal.number.toDouble()) {
+            when (leftVal.number) {
                 -1.0 -> {
                     // -1
                     return NumericLiteralValue(DataType.FLOAT, -1.0, expr.position)
                 }
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(leftVal.type, 0, expr.position)
+                    return NumericLiteralValue(leftVal.type, 0.0, expr.position)
                 }
                 1.0 -> {
                     //1
-                    return NumericLiteralValue(leftVal.type, 1, expr.position)
+                    return NumericLiteralValue(leftVal.type, 1.0, expr.position)
                 }
 
             }
@@ -504,7 +507,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
-                    return NumericLiteralValue(idt.getOr(DataType.UNDEFINED), 0, expr.position)
+                    return NumericLiteralValue(idt.getOr(DataType.UNDEFINED), 0.0, expr.position)
                 } else if (cv in powersOfTwo) {
                     expr.operator = "&"
                     expr.right = NumericLiteralValue.optimalInteger(cv!!.toInt()-1, expr.position)
@@ -524,7 +527,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteralValue = rightVal
-            val cv = rightConst.number.toDouble()
+            val cv = rightConst.number
             val leftIDt = expr.left.inferType(program)
             if (!leftIDt.isKnown)
                 return null
@@ -559,22 +562,22 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
 
             if (leftDt == DataType.UBYTE) {
-                if (abs(rightConst.number.toDouble()) >= 256.0) {
-                    return NumericLiteralValue(DataType.UBYTE, 0, expr.position)
+                if (abs(rightConst.number) >= 256.0) {
+                    return NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
                 }
             } else if (leftDt == DataType.UWORD) {
-                if (abs(rightConst.number.toDouble()) >= 65536.0) {
-                    return NumericLiteralValue(DataType.UBYTE, 0, expr.position)
+                if (abs(rightConst.number) >= 65536.0) {
+                    return NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
                 }
             }
         }
 
         if (leftVal != null) {
             // left value is a constant, see if we can optimize
-            when (leftVal.number.toDouble()) {
+            when (leftVal.number) {
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(leftVal.type, 0, expr.position)
+                    return NumericLiteralValue(leftVal.type, 0.0, expr.position)
                 }
             }
         }
@@ -591,14 +594,14 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             // right value is a constant, see if we can optimize
             val leftValue: Expression = expr2.left
             val rightConst: NumericLiteralValue = rightVal2
-            when (val cv = rightConst.number.toDouble()) {
+            when (val cv = rightConst.number) {
                 -1.0 -> {
                     // -left
                     return PrefixExpression("-", leftValue, expr.position)
                 }
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(rightConst.type, 0, expr.position)
+                    return NumericLiteralValue(rightConst.type, 0.0, expr.position)
                 }
                 1.0 -> {
                     // left
@@ -639,12 +642,12 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         when (val targetDt = targetIDt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
-                    return NumericLiteralValue(targetDt, 0, expr.position)
+                    return NumericLiteralValue(targetDt, 0.0, expr.position)
                 }
             }
             DataType.UWORD, DataType.WORD -> {
                 if (amount >= 16) {
-                    return NumericLiteralValue(targetDt, 0, expr.position)
+                    return NumericLiteralValue(targetDt, 0.0, expr.position)
                 } else if (amount >= 8) {
                     val lsb = FunctionCall(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
@@ -691,7 +694,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     val msb = FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
                         // mkword(0, msb(v))
-                        val zero = NumericLiteralValue(DataType.UBYTE, 0, expr.position)
+                        val zero = NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
                         return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
                     }
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)

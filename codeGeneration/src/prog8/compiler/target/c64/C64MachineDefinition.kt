@@ -89,7 +89,7 @@ object C64MachineDefinition: IMachineDefinition {
             if (options.zeropage == ZeropageType.FULL) {
                 free.addAll(0x04..0xf9)
                 free.add(0xff)
-                free.removeAll(listOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
+                free.removeAll(setOf(0xa0, 0xa1, 0xa2, 0x91, 0xc0, 0xc5, 0xcb, 0xf5, 0xf6))        // these are updated by IRQ
             } else {
                 if (options.zeropage == ZeropageType.KERNALSAFE || options.zeropage == ZeropageType.FLOATSAFE) {
                     free.addAll(listOf(
@@ -111,7 +111,7 @@ object C64MachineDefinition: IMachineDefinition {
 
                 if (options.zeropage == ZeropageType.FLOATSAFE) {
                     // remove the zeropage locations used for floating point operations from the free list
-                    free.removeAll(listOf(
+                    free.removeAll(setOf(
                             0x22, 0x23, 0x24, 0x25,
                             0x10, 0x11, 0x12, 0x26, 0x27, 0x28, 0x29, 0x2a,
                             0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f, 0x60,

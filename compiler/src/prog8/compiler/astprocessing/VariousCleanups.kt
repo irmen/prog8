@@ -94,6 +94,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         if(assignment.parent!==parent)
             throw FatalAstException("parent node mismatch at $assignment")
+
+        val nextAssign = assignment.nextSibling() as? Assignment
+        if(nextAssign!=null && nextAssign.target.isSameAs(assignment.target, program)) {
+            if(nextAssign.value isSameAs assignment.value)
+                return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+        }
+
         return noModifications
     }
 

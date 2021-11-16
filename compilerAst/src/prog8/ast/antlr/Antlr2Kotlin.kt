@@ -13,7 +13,7 @@ import kotlin.io.path.isRegularFile
 
 /***************** Antlr Extension methods to create AST ****************/
 
-private data class NumericLiteral(val number: Number, val datatype: DataType)
+private data class NumericLiteral(val number: Double, val datatype: DataType)
 
 
 private fun ParserRuleContext.toPosition() : Position {
@@ -396,7 +396,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
             }
             else -> throw FatalAstException("invalid radix")
         }
-        return NumericLiteral(integer, datatype)
+        return NumericLiteral(integer.toDouble(), datatype)
     }
     val terminal: TerminalNode = children[0] as TerminalNode
     val integerPart = this.intpart.text
@@ -420,11 +420,11 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
-                    DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, intLit.number.toShort(), litval.toPosition())
-                    DataType.BYTE -> NumericLiteralValue(DataType.BYTE, intLit.number.toShort(), litval.toPosition())
-                    DataType.UWORD -> NumericLiteralValue(DataType.UWORD, intLit.number.toInt(), litval.toPosition())
-                    DataType.WORD -> NumericLiteralValue(DataType.WORD, intLit.number.toInt(), litval.toPosition())
-                    DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, intLit.number.toDouble(), litval.toPosition())
+                    DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, intLit.number, litval.toPosition())
+                    DataType.BYTE -> NumericLiteralValue(DataType.BYTE, intLit.number, litval.toPosition())
+                    DataType.UWORD -> NumericLiteralValue(DataType.UWORD, intLit.number, litval.toPosition())
+                    DataType.WORD -> NumericLiteralValue(DataType.WORD, intLit.number, litval.toPosition())
+                    DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, intLit.number, litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
                 litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
@@ -455,7 +455,7 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
-        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep, toPosition())
+        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep.toDouble(), toPosition())
         return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 

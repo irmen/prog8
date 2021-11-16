@@ -40,9 +40,9 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number
                 when (assign.target.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toShort())
+                    DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toInt().toShort())
                     DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num.toInt())
-                    DataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
+                    DataType.FLOAT -> assignConstantFloat(assign.target, num)
                     else -> throw AssemblyError("weird numval type")
                 }
             }

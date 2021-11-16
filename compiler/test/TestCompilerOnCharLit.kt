@@ -43,7 +43,7 @@ class TestCompilerOnCharLit: FunSpec({
         }
         val arg = funCall.args[0] as NumericLiteralValue
         arg.type shouldBe DataType.UBYTE
-        arg.number.toShort() shouldBe platform.encodeString("\n", false)[0]
+        arg.number shouldBe platform.encodeString("\n", false)[0]
     }
 
     test("testCharVarAsRomsubArg") {
@@ -83,7 +83,7 @@ class TestCompilerOnCharLit: FunSpec({
         }
         val initializerValue = assignInitialValue.value as NumericLiteralValue
         initializerValue.type shouldBe DataType.UBYTE
-        initializerValue.number.toShort() shouldBe platform.encodeString("\n", false)[0]
+        initializerValue.number shouldBe platform.encodeString("\n", false)[0]
     }
 
     test("testCharConstAsRomsubArg") {
@@ -108,10 +108,10 @@ class TestCompilerOnCharLit: FunSpec({
                 val decl = arg.targetVarDecl(program)!!
                 decl.type shouldBe VarDeclType.CONST
                 decl.datatype shouldBe DataType.UBYTE
-                (decl.value as NumericLiteralValue).number.toShort() shouldBe platform.encodeString("\n", false)[0]
+                (decl.value as NumericLiteralValue).number shouldBe platform.encodeString("\n", false)[0]
             }
             is NumericLiteralValue -> {
-                arg.number.toShort() shouldBe platform.encodeString("\n", false)[0]
+                arg.number shouldBe platform.encodeString("\n", false)[0]
             }
             else -> fail("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail
         }

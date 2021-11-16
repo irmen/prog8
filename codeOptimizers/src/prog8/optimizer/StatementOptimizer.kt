@@ -82,7 +82,7 @@ class StatementOptimizer(private val program: Program,
                         val firstCharEncoded = compTarget.encodeString(string.value, string.altEncoding)[0]
                         val chrout = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toInt(), pos)),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
@@ -90,12 +90,12 @@ class StatementOptimizer(private val program: Program,
                         val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.altEncoding)
                         val chrout1 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toInt(), pos)),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         val chrout2 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toInt(), pos)),
+                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         return listOf(
@@ -196,7 +196,7 @@ class StatementOptimizer(private val program: Program,
                 if(size==1) {
                     // loop over string of length 1 -> just assign the single character
                     val character = compTarget.encodeString(sv.value, sv.altEncoding)[0]
-                    val byte = NumericLiteralValue(DataType.UBYTE, character, iterable.position)
+                    val byte = NumericLiteralValue(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
@@ -358,7 +358,7 @@ class StatementOptimizer(private val program: Program,
         val targetDt = targetIDt.getOr(DataType.UNDEFINED)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
-            val rightCv = bexpr.right.constValue(program)?.number?.toDouble()
+            val rightCv = bexpr.right.constValue(program)?.number
             if (rightCv != null && assignment.target isSameAs bexpr.left) {
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)

@@ -540,8 +540,8 @@ class TestProg8Parser: FunSpec( {
     }
 
     test("testLiteralValueComparisons") {
-        val ten = NumericLiteralValue(DataType.UWORD, 10, Position.DUMMY)
-        val nine = NumericLiteralValue(DataType.UBYTE, 9, Position.DUMMY)
+        val ten = NumericLiteralValue(DataType.UWORD, 10.0, Position.DUMMY)
+        val nine = NumericLiteralValue(DataType.UBYTE, 9.0, Position.DUMMY)
         ten shouldBe ten
         nine shouldNotBe ten
         (ten != ten) shouldBe false

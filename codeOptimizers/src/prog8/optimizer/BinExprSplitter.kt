@@ -73,8 +73,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 // we can see if we can unwrap the binary expression by working on a new temporary variable
                 // (that has the type of the expression), and then finally doing the typecast.
                 // Once it's outside the typecast, the regular splitting can commence.
-                val tempDt = origExpr.inferType(program).getOr(DataType.UNDEFINED)
-                val tempVar = when(tempDt) {
+                val tempVar = when(val tempDt = origExpr.inferType(program).getOr(DataType.UNDEFINED)) {
                     DataType.UBYTE -> listOf("prog8_lib", "retval_interm_ub")
                     DataType.BYTE -> listOf("prog8_lib", "retval_interm_b")
                     DataType.UWORD -> listOf("prog8_lib", "retval_interm_uw")

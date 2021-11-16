@@ -523,14 +523,14 @@ class AsmGen(private val program: Program,
             return if (targetScope !== identScope) {
                 val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
                 if (target is Label) {
-                    // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
+                    // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
                     val last = scopedName.removeLast()
                     scopedName.add("_$last")
                 }
                 fixNameSymbols(scopedName.joinToString("."))
             } else {
                 if (target is Label) {
-                    // make labels locally scoped in the asm. Is slightly problematic, see github issue #62
+                    // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
                     val scopedName = identifier.nameInSource.toMutableList()
                     val last = scopedName.removeLast()
                     scopedName.add("_$last")
@@ -1283,7 +1283,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: Label) {
-        // underscore prefix to make sure it's a local label. Is slightly problematic, see github issue #62
+        // underscore prefix to make sure it's a local label. Is slightly problematic, see GitHub issue #62
         out("_${stmt.name}")
     }
 
@@ -1401,7 +1401,7 @@ $label              nop""")
         }
     }
 
-    internal fun translate(ret: Return, withRts: Boolean=true) {
+    private fun translate(ret: Return, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->
             val sub = ret.definingSubroutine!!
             val returnType = sub.returntypes.single()
@@ -1611,7 +1611,7 @@ $label              nop""")
             }
         }
 
-        if (rightConstVal!=null && rightConstVal.number.toDouble() == 0.0)
+        if (rightConstVal!=null && rightConstVal.number == 0.0)
             jumpIfZeroOrNot(left, operator, jumpIfFalseLabel)
         else
             jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
@@ -1791,7 +1791,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$rightName
                 ldy  #>$rightName
@@ -1836,7 +1836,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$rightName
                 ldy  #>$rightName
@@ -1878,7 +1878,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -1923,7 +1923,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -2821,7 +2821,7 @@ $label              nop""")
             } else {
                 if (left is IdentifierReference) {
                     val name = asmVariableName(left)
-                    when(rightConstVal.number.toDouble())
+                    when(rightConstVal.number)
                     {
                         0.0 -> {
                             out("""
@@ -2860,7 +2860,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -2905,7 +2905,7 @@ $label              nop""")
             } else {
                 if (left is IdentifierReference) {
                     val name = asmVariableName(left)
-                    when(rightConstVal.number.toDouble())
+                    when(rightConstVal.number)
                     {
                         0.0 -> {
                             out("""
@@ -2945,7 +2945,7 @@ $label              nop""")
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number.toDouble())
+            val rightName = getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName

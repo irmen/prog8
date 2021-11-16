@@ -197,7 +197,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
             // generating the wrong results later
 
             fun wrapped(expr: Expression): Expression =
-                BinaryExpression(expr, "!=", NumericLiteralValue(DataType.UBYTE, 0, expr.position), expr.position)
+                BinaryExpression(expr, "!=", NumericLiteralValue(DataType.UBYTE, 0.0, expr.position), expr.position)
 
             fun isLogicalExpr(expr: Expression?): Boolean {
                 if(expr is BinaryExpression && expr.operator in (logicalOperators + comparisonOperators))

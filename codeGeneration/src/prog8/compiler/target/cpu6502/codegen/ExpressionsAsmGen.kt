@@ -220,7 +220,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 dex
             """)
             DataType.FLOAT -> {
-                val floatConst = asmgen.getFloatAsmConst(expr.number.toDouble())
+                val floatConst = asmgen.getFloatAsmConst(expr.number)
                 asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
             }
             else -> throw AssemblyError("weird type")

@@ -8,6 +8,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.IMemSizer
 import java.util.*
+import kotlin.math.round
 
 
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
@@ -381,43 +382,46 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
 }
 
 class NumericLiteralValue(val type: DataType,    // only numerical types allowed
-                          val number: Number,    // can be byte, word or float depending on the type
+                          numbervalue: Double,    // can be byte, word or float depending on the type
                           override val position: Position) : Expression() {
     override lateinit var parent: Node
+    val number: Double = if(type==DataType.FLOAT) numbervalue else round(numbervalue)
 
     override val isSimple = true
     fun copy() = NumericLiteralValue(type, number, position)
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteralValue(DataType.UBYTE, if (bool) 1 else 0, position)
+                NumericLiteralValue(DataType.UBYTE, if (bool) 1.0 else 0.0, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteralValue {
             return if(value is Double) {
                 NumericLiteralValue(DataType.FLOAT, value, position)
             } else {
-                when (val intval = value.toInt()) {
-                    in 0..255 -> NumericLiteralValue(DataType.UBYTE, intval, position)
-                    in -128..127 -> NumericLiteralValue(DataType.BYTE, intval, position)
-                    in 0..65535 -> NumericLiteralValue(DataType.UWORD, intval, position)
-                    in -32768..32767 -> NumericLiteralValue(DataType.WORD, intval, position)
-                    else -> NumericLiteralValue(DataType.FLOAT, intval.toDouble(), position)
+                val dvalue = value.toDouble()
+                when (value.toInt()) {
+                    in 0..255 -> NumericLiteralValue(DataType.UBYTE, dvalue, position)
+                    in -128..127 -> NumericLiteralValue(DataType.BYTE, dvalue, position)
+                    in 0..65535 -> NumericLiteralValue(DataType.UWORD, dvalue, position)
+                    in -32768..32767 -> NumericLiteralValue(DataType.WORD, dvalue, position)
+                    else -> NumericLiteralValue(DataType.FLOAT, dvalue, position)
                 }
             }
         }
 
         fun optimalInteger(value: Int, position: Position): NumericLiteralValue {
+            val dvalue = value.toDouble()
             return when (value) {
-                in 0..255 -> NumericLiteralValue(DataType.UBYTE, value, position)
-                in -128..127 -> NumericLiteralValue(DataType.BYTE, value, position)
-                in 0..65535 -> NumericLiteralValue(DataType.UWORD, value, position)
-                in -32768..32767 -> NumericLiteralValue(DataType.WORD, value, position)
-                else -> throw FatalAstException("integer overflow: $value")
+                in 0..255 -> NumericLiteralValue(DataType.UBYTE, dvalue, position)
+                in -128..127 -> NumericLiteralValue(DataType.BYTE, dvalue, position)
+                in 0..65535 -> NumericLiteralValue(DataType.UWORD, dvalue, position)
+                in -32768..32767 -> NumericLiteralValue(DataType.WORD, dvalue, position)
+                else -> throw FatalAstException("integer overflow: $dvalue")
             }
         }
     }
 
-    val asBooleanValue: Boolean = number.toDouble() != 0.0
+    val asBooleanValue: Boolean = number != 0.0
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -442,13 +446,13 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is NumericLiteralValue)
             return false
-        return number.toDouble()==other.number.toDouble()
+        return number==other.number
     }
 
-    operator fun compareTo(other: NumericLiteralValue): Int = number.toDouble().compareTo(other.number.toDouble())
+    operator fun compareTo(other: NumericLiteralValue): Int = number.compareTo(other.number)
 
     class CastValue(val isValid: Boolean, private val value: NumericLiteralValue?) {
-        fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0, Position.DUMMY)
+        fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
         fun linkParent(parent: Node) {
             value?.linkParents(parent)
         }
@@ -463,55 +467,54 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     private fun internalCast(targettype: DataType): CastValue {
         if(type==targettype)
             return CastValue(true, this)
-        val numval = number.toDouble()
         when(type) {
             DataType.UBYTE -> {
-                if(targettype== DataType.BYTE && numval <= 127)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
+                if(targettype== DataType.BYTE && number <= 127)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.WORD || targettype== DataType.UWORD)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             DataType.BYTE -> {
-                if(targettype== DataType.UBYTE && numval >= 0)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if(targettype== DataType.UWORD && numval >= 0)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                if(targettype== DataType.UBYTE && number >= 0)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if(targettype== DataType.UWORD && number >= 0)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.WORD)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             DataType.UWORD -> {
-                if(targettype== DataType.BYTE && numval <= 127)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if(targettype== DataType.UBYTE && numval <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if(targettype== DataType.WORD && numval <= 32767)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                if(targettype== DataType.BYTE && number <= 127)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if(targettype== DataType.UBYTE && number <= 255)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if(targettype== DataType.WORD && number <= 32767)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             DataType.WORD -> {
-                if(targettype== DataType.BYTE && numval >= -128 && numval <=127)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if(targettype== DataType.UBYTE && numval >= 0 && numval <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if(targettype== DataType.UWORD && numval >=0)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                if(targettype== DataType.BYTE && number >= -128 && number <=127)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if(targettype== DataType.UBYTE && number >= 0 && number <= 255)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if(targettype== DataType.UWORD && number >=0)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toDouble(), position))
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             DataType.FLOAT -> {
-                if (targettype == DataType.BYTE && numval >= -128 && numval <=127)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if (targettype == DataType.UBYTE && numval >=0 && numval <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toShort(), position))
-                if (targettype == DataType.WORD && numval >= -32768 && numval <= 32767)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
-                if (targettype == DataType.UWORD && numval >=0 && numval <= 65535)
-                    return CastValue(true, NumericLiteralValue(targettype, number.toInt(), position))
+                if (targettype == DataType.BYTE && number >= -128 && number <=127)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if (targettype == DataType.UBYTE && number >=0 && number <= 255)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                if (targettype == DataType.UWORD && number >=0 && number <= 65535)
+                    return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             else -> {}
         }
@@ -537,7 +540,7 @@ class CharLiteral(val value: Char,
     override fun referencesIdentifier(vararg scopedName: String) = false
     override fun constValue(program: Program): NumericLiteralValue {
         val bytevalue = program.encoding.encodeString(value.toString(), altEncoding).single()
-        return NumericLiteralValue(DataType.UBYTE, bytevalue, position)
+        return NumericLiteralValue(DataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -618,14 +621,6 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         if(other==null || other !is ArrayLiteralValue)
             return false
         return type==other.type && value.contentEquals(other.value)
-    }
-
-    fun memsize(memsizer: IMemSizer): Int {
-        if(type.isKnown) {
-            val eltType = ArrayToElementTypes.getValue(type.getOr(DataType.UNDEFINED))
-            return memsizer.memorySize(eltType) * value.size
-        }
-        else throw IllegalArgumentException("array datatype is not yet known")
     }
 
     fun guessDatatype(program: Program): InferredTypes.InferredType {

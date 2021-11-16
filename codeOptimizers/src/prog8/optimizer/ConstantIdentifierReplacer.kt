@@ -38,9 +38,9 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
     }
 
     override fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> {
-        val from = range.from.constValue(program)?.number?.toDouble()
-        val to = range.to.constValue(program)?.number?.toDouble()
-        val step = range.step.constValue(program)?.number?.toDouble()
+        val from = range.from.constValue(program)?.number
+        val to = range.to.constValue(program)?.number
+        val step = range.step.constValue(program)?.number
 
         if(from==null) {
             if(!range.from.inferType(program).isInteger)
@@ -132,7 +132,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteralValue
                     if (litval!=null && litval.type in IntegerDatatypes) {
-                        val newValue = NumericLiteralValue(DataType.FLOAT, litval.number.toDouble(), litval.position)
+                        val newValue = NumericLiteralValue(DataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
                 }
@@ -148,11 +148,11 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
                             val newValue = if(eltType in ByteDatatypes) {
                                 ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
-                                        constRange.map { NumericLiteralValue(eltType, it.toShort(), decl.value!!.position) }.toTypedArray(),
+                                        constRange.map { NumericLiteralValue(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                         position = decl.value!!.position)
                             } else {
                                 ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype),
-                                        constRange.map { NumericLiteralValue(eltType, it, decl.value!!.position) }.toTypedArray(),
+                                        constRange.map { NumericLiteralValue(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                         position = decl.value!!.position)
                             }
                             return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
@@ -185,7 +185,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                             else -> {}
                         }
                         // create the array itself, filled with the fillvalue.
-                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayToElementTypes.getValue(decl.datatype), it, numericLv.position) }.toTypedArray<Expression>()
+                        val array = Array(size) {fillvalue}.map { NumericLiteralValue(ArrayToElementTypes.getValue(decl.datatype), it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
                         val refValue = ArrayLiteralValue(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
                     }
@@ -210,7 +210,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     val size = decl.arraysize?.constIndex() ?: return noModifications
                     if(rangeExpr==null && numericLv!=null) {
                         // arraysize initializer is a single int, and we know the size.
-                        val fillvalue = numericLv.number.toDouble()
+                        val fillvalue = numericLv.number
                         if (fillvalue < compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > compTarget.machine.FLOAT_MAX_POSITIVE)
                             errors.err("float value overflow", numericLv.position)
                         else {

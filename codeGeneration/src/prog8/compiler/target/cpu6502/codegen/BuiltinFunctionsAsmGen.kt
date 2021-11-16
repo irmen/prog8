@@ -89,7 +89,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("callfar done on bank 0 which is reserved for the kernal")
 
         val argAddrArg = fcall.args[2]
-        if(argAddrArg.constValue(program)?.number == 0) {
+        if(argAddrArg.constValue(program)?.number == 0.0) {
             asmgen.out("""
                 jsr  cx16.jsrfar
                 .word  ${address.toHex()}
@@ -134,7 +134,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("callrom bank must be <32")
 
         val argAddrArg = fcall.args[2]
-        if(argAddrArg.constValue(program)?.number == 0) {
+        if(argAddrArg.constValue(program)?.number == 0.0) {
             asmgen.out("""
                 lda  $01
                 pha

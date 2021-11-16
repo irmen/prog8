@@ -40,7 +40,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                     }
                     DataType.FLOAT -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue(DataType.FLOAT, -subexpr.number.toDouble(), subexpr.position),
+                                NumericLiteralValue(DataType.FLOAT, -subexpr.number, subexpr.position),
                                 parent))
                     }
                     else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
@@ -48,29 +48,29 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                 "~" -> when (subexpr.type) {
                     DataType.BYTE -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue(DataType.BYTE, subexpr.number.toInt().inv(), subexpr.position),
+                                NumericLiteralValue(DataType.BYTE, subexpr.number.toInt().inv().toDouble(), subexpr.position),
                                 parent))
                     }
                     DataType.UBYTE -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue(DataType.UBYTE, subexpr.number.toInt().inv() and 255, subexpr.position),
+                                NumericLiteralValue(DataType.UBYTE, (subexpr.number.toInt().inv() and 255).toDouble(), subexpr.position),
                                 parent))
                     }
                     DataType.WORD -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue(DataType.WORD, subexpr.number.toInt().inv(), subexpr.position),
+                                NumericLiteralValue(DataType.WORD, subexpr.number.toInt().inv().toDouble(), subexpr.position),
                                 parent))
                     }
                     DataType.UWORD -> {
                         listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteralValue(DataType.UWORD, subexpr.number.toInt().inv() and 65535, subexpr.position),
+                                NumericLiteralValue(DataType.UWORD, (subexpr.number.toInt().inv() and 65535).toDouble(), subexpr.position),
                                 parent))
                     }
                     else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                 }
                 "not" -> {
                     listOf(IAstModification.ReplaceNode(expr,
-                            NumericLiteralValue.fromBoolean(subexpr.number.toDouble() == 0.0, subexpr.position),
+                            NumericLiteralValue.fromBoolean(subexpr.number == 0.0, subexpr.position),
                             parent))
                 }
                 else -> throw ExpressionError(expr.operator, subexpr.position)
@@ -106,18 +106,18 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             //  optimize away 1 ** x into just 1 and 0 ** x into just 0
             //  optimize 2 ** x into (1<<x)  if both operands are integer.
             val leftDt = leftconst.inferType(program).getOr(DataType.UNDEFINED)
-            when (leftconst.number.toDouble()) {
+            when (leftconst.number) {
                 0.0 -> {
-                    val value = NumericLiteralValue(leftDt, 0, expr.position)
+                    val value = NumericLiteralValue(leftDt, 0.0, expr.position)
                     modifications += IAstModification.ReplaceNode(expr, value, parent)
                 }
                 1.0 -> {
-                    val value = NumericLiteralValue(leftDt, 1, expr.position)
+                    val value = NumericLiteralValue(leftDt, 1.0, expr.position)
                     modifications += IAstModification.ReplaceNode(expr, value, parent)
                 }
                 2.0 -> {
                     if(rightconst!=null) {
-                        val value = NumericLiteralValue(leftDt, 2.0.pow(rightconst.number.toDouble()), expr.position)
+                        val value = NumericLiteralValue(leftDt, 2.0.pow(rightconst.number), expr.position)
                         modifications += IAstModification.ReplaceNode(expr, value, parent)
                     } else {
                         val rightDt = expr.right.inferType(program).getOr(DataType.UNDEFINED)
@@ -128,7 +128,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                                     is VarDecl -> parent.datatype
                                     else -> leftDt
                                 }
-                            val one = NumericLiteralValue(targetDt, 1, expr.position)
+                            val one = NumericLiteralValue(targetDt, 1.0, expr.position)
                             val shift = BinaryExpression(one, "<<", expr.right, expr.position)
                             modifications += IAstModification.ReplaceNode(expr, shift, parent)
                         }

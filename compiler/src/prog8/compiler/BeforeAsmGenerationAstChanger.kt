@@ -206,8 +206,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
         }
 
-        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0)
+        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // simplify the conditional expression, introduce simple assignments if required.
@@ -302,8 +302,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
         }
 
-        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0)
+        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // simplify the conditional expression, introduce simple assignments if required.
@@ -339,8 +339,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
         }
 
-        if((binExpr.left as? NumericLiteralValue)?.number==0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0)
+        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
+            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // TODO simplify the conditional expression, introduce simple assignments if required.

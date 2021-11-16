@@ -132,7 +132,7 @@ sealed class SourceCode {
             val inpStr = object {}.javaClass.getResourceAsStream(normalized)!!
             // CharStreams.fromStream() doesn't allow us to set the stream name properly, so we use a lower level api
             val channel = Channels.newChannel(inpStr)
-            return CharStreams.fromChannel(channel, StandardCharsets.UTF_8, 4096, CodingErrorAction.REPLACE, origin, -1);
+            return CharStreams.fromChannel(channel, StandardCharsets.UTF_8, 4096, CodingErrorAction.REPLACE, origin, -1)
         }
 
         override fun readText(): String {

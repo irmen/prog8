@@ -75,7 +75,7 @@ class TestOptimization: FunSpec({
     }
 
     test("testGeneratedConstvalueInheritsProperParentLinkage") {
-        val number = NumericLiteralValue(DataType.UBYTE, 11, Position.DUMMY)
+        val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         tc.linkParents(ParentSentinel)

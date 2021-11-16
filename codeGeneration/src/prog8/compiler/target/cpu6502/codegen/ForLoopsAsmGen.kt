@@ -43,7 +43,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
         val stepsize=range.step.constValue(program)!!.number.toInt()
 
         if(stepsize < -1) {
-            val limit = range.to.constValue(program)?.number?.toDouble()
+            val limit = range.to.constValue(program)?.number
             if(limit==0.0)
                 throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
         }
