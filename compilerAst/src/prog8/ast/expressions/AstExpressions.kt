@@ -6,7 +6,6 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.IMemSizer
 import java.util.*
 import kotlin.math.round
 
@@ -18,6 +17,7 @@ val logicalOperators = setOf("and", "or", "xor", "not")
 
 
 sealed class Expression: Node {
+    abstract override fun copy(): Expression
     abstract fun constValue(program: Program): NumericLiteralValue?
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
@@ -92,6 +92,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         replacement.parent = this
     }
 
+    override fun copy() = PrefixExpression(operator, expression.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -145,9 +146,8 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         replacement.parent = this
     }
 
-    override fun toString(): String {
-        return "[$left $operator $right]"
-    }
+    override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position)
+    override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false
 
@@ -292,7 +292,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         return "ArrayIndexed(ident=$arrayvar, arraysize=$indexer; pos=$position)"
     }
 
-    fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
+    override fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
 }
 
 class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
@@ -311,6 +311,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         replacement.parent = this
     }
 
+    override fun copy() = TypecastExpression(expression.copy(), type, implicit, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -346,6 +347,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
         replacement.parent = this
     }
 
+    override fun copy() = AddressOf(identifier.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun referencesIdentifier(vararg scopedName: String) = false
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
@@ -369,6 +371,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
         replacement.parent = this
     }
 
+    override fun copy() = DirectMemoryRead(addressExpression.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -388,7 +391,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     val number: Double = if(type==DataType.FLOAT) numbervalue else round(numbervalue)
 
     override val isSimple = true
-    fun copy() = NumericLiteralValue(type, number, position)
+    override fun copy() = NumericLiteralValue(type, number, position)
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
@@ -537,6 +540,7 @@ class CharLiteral(val value: Char,
         throw FatalAstException("can't replace here")
     }
 
+    override fun copy() = CharLiteral(value, altEncoding, position)
     override fun referencesIdentifier(vararg scopedName: String) = false
     override fun constValue(program: Program): NumericLiteralValue {
         val bytevalue = program.encoding.encodeString(value.toString(), altEncoding).single()
@@ -566,7 +570,7 @@ class StringLiteralValue(val value: String,
     }
 
     override val isSimple = true
-    fun copy() = StringLiteralValue(value, altEncoding, position)
+    override fun copy() = StringLiteralValue(value, altEncoding, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")
@@ -598,6 +602,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         value.forEach {it.linkParents(this)}
     }
 
+    override fun copy() = throw NotImplementedError("no support for duplicating a ArrayLiteralValue")
     override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -709,6 +714,7 @@ class RangeExpr(var from: Expression,
         replacement.parent = this
     }
 
+    override fun copy() = RangeExpr(from.copy(), to.copy(), step.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -766,6 +772,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         throw FatalAstException("can't replace here")
     }
 
+    override fun copy() = IdentifierReference(nameInSource, position)
     override fun constValue(program: Program): NumericLiteralValue? {
         val node = definingScope.lookup(nameInSource) ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
@@ -816,6 +823,7 @@ class FunctionCall(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
+    override fun copy() = throw NotImplementedError("no support for duplicating a FunctionCall")
     override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {

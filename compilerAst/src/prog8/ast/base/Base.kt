@@ -184,6 +184,8 @@ object ParentSentinel : Node {
     override fun replaceChildNode(node: Node, replacement: Node) {
         replacement.parent = this
     }
+
+    override fun copy(): Node = throw FatalAstException("should never duplicate a ParentSentinel")
 }
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {

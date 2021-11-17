@@ -321,4 +321,43 @@ class TestOptimization: FunSpec({
         func2.statements.size shouldBe 1
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
+
+    test("test simple augmented assignment optimization correctly initializes all variables") {
+        val src="""
+            main {
+                sub start()  {
+                    ubyte z1
+                    z1 = 10
+                    ubyte z2
+                    z2 = z1+z2+5      
+                }
+            }"""
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        /* expected:
+        ubyte z1
+        z1 = 10
+        ubyte z2
+        z2 = 0
+        z2 += z1        ; TODO actually add optimization to make this even better: no =0, and this should become z2 = z1
+        z2 += 5
+         */
+        val statements = result.program.entrypoint.statements
+        statements.size shouldBe 6        // TODO 5
+        val z1decl = statements[0] as VarDecl
+        val z1init = statements[1] as Assignment
+        val z2decl = statements[2] as VarDecl
+        val z2init = statements[3] as Assignment
+        val z2plus1 = statements[4] as Assignment
+        val z2plus2= statements[5] as Assignment
+
+        z1decl.name shouldBe "z1"
+        z1init.value shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
+        z2decl.name shouldBe "z2"
+        z2init.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+        z2plus1.isAugmentable shouldBe true
+        (z2plus1.value as BinaryExpression).operator shouldBe "+"
+        (z2plus1.value as BinaryExpression).right shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        (z2plus2.value as BinaryExpression).operator shouldBe "+"
+        (z2plus2.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+    }
 })

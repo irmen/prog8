@@ -7,6 +7,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
+import kotlin.reflect.typeOf
 
 const val internedStringsModuleName = "prog8_interned_strings"
 
@@ -262,6 +263,7 @@ interface Node {
         }
 
     fun replaceChildNode(node: Node, replacement: Node)
+    fun copy(): Node
 }
 
 
@@ -302,6 +304,8 @@ open class Module(final override var statements: MutableList<Statement>,
         replacement.parent = this
     }
 
+    override fun copy(): Node = throw NotImplementedError("no support for duplicating a Module")
+
     override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary})"
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -316,6 +320,8 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
+
+    override fun copy(): Node = throw NotImplementedError("no support for duplicating a GlobalNamespace")
 
     override fun lookup(scopedName: List<String>): Statement? {
         throw NotImplementedError("use lookup on actual ast node instead")

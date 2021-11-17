@@ -305,22 +305,22 @@ class StatementOptimizer(private val program: Program,
                     if(rNum!=null) {
                         if (op1 == "+" || op1 == "-") {
                             if (op2 == "+") {
-                                // A = A +/- B + N
+                                // A = A +/- B + N  --->  A = A +/- B  ;  A = A + N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
                                 val addConstant = Assignment(
-                                        assignment.target,
-                                        BinaryExpression(binExpr.left, "+", rExpr.right, rExpr.position),
+                                        assignment.target.copy(),
+                                        BinaryExpression(binExpr.left.copy(), "+", rExpr.right, rExpr.position),
                                         assignment.position
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
                                         IAstModification.InsertAfter(assignment, addConstant, parent as IStatementContainer))
                             } else if (op2 == "-") {
-                                // A = A +/- B - N
+                                // A = A +/- B - N  --->  A = A +/- B  ;  A = A - N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
                                 val subConstant = Assignment(
-                                        assignment.target,
-                                        BinaryExpression(binExpr.left, "-", rExpr.right, rExpr.position),
+                                        assignment.target.copy(),
+                                        BinaryExpression(binExpr.left.copy(), "-", rExpr.right, rExpr.position),
                                         assignment.position
                                 )
                                 return listOf(
@@ -375,7 +375,7 @@ class StatementOptimizer(private val program: Program,
                                 repeat(rightCv.toInt()) {
                                     incs.statements.add(PostIncrDecr(assignment.target.copy(), "++", assignment.position))
                                 }
-                                return listOf(IAstModification.ReplaceNode(assignment, incs, parent))
+                                listOf(IAstModification.ReplaceNode(assignment, if(incs.statements.size==1) incs.statements[0] else incs, parent))
                             }
                         }
                     }
