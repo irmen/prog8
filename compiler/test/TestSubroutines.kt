@@ -9,6 +9,7 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.printAst
 import prog8.compiler.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
@@ -191,10 +192,10 @@ class TestSubroutines: FunSpec({
         val text="""
             main {
               sub thing(uword rr) {
-                ubyte xx = rr[1]    ; should still work as var initializer that will be rewritten
-                ubyte yy
+                ubyte @shared xx = rr[1]    ; should still work as var initializer that will be rewritten
+                ubyte @shared yy
                 yy = rr[2]
-                uword other
+                uword @shared other
                 ubyte zz = other[3]
               }
             
@@ -210,14 +211,14 @@ class TestSubroutines: FunSpec({
         val block = module.statements.single() as Block
         val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
         block.name shouldBe "main"
-        thing.statements.size shouldBe 10          // rr, xx, xx assign, yy, yy assign, other, other assign 0, zz, zz assign, return
+        thing.statements.size shouldBe 11          // rr paramdecl, xx, xx assign, yy decl, yy init 0, yy assign, other, other assign 0, zz, zz assign, return
         val xx = thing.statements[1] as VarDecl
         withClue("vardecl init values must have been moved to separate assignments") {
             xx.value shouldBe null
         }
         val assignXX = thing.statements[2] as Assignment
-        val assignYY = thing.statements[4] as Assignment
-        val assignZZ = thing.statements[8] as Assignment
+        val assignYY = thing.statements[5] as Assignment
+        val assignZZ = thing.statements[9] as Assignment
         assignXX.target.identifier!!.nameInSource shouldBe listOf("xx")
         assignYY.target.identifier!!.nameInSource shouldBe listOf("yy")
         assignZZ.target.identifier!!.nameInSource shouldBe listOf("zz")

@@ -250,22 +250,21 @@ class TestOptimization: FunSpec({
             main {
                 sub start() {
                     ubyte ub
-                    float ff
+                    float ff = 1.0
                     ff += (ub as float)         ; operator doesn't matter
                 }
             }
         """
-        val result1 = compileText(C64Target, optimize=false, src, writeAssembly = false).assertSuccess()
-
-        val assignYY = result1.program.entrypoint.statements.last() as Assignment
-        assignYY.isAugmentable shouldBe true
-        assignYY.target.identifier!!.nameInSource shouldBe listOf("ff")
-        val value = assignYY.value as BinaryExpression
+        val result = compileText(C64Target, optimize=false, src, writeAssembly = false).assertSuccess()
+        val assignFF = result.program.entrypoint.statements.last() as Assignment
+        assignFF.isAugmentable shouldBe true
+        assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
+        val value = assignFF.value as BinaryExpression
         value.operator shouldBe "+"
         value.left shouldBe IdentifierReference(listOf("ff"), Position.DUMMY)
         value.right shouldBe instanceOf<TypecastExpression>()
 
-        val asm = generateAssembly(result1.program)
+        val asm = generateAssembly(result.program)
         asm.valid shouldBe true
     }
 
@@ -326,10 +325,12 @@ class TestOptimization: FunSpec({
         val src="""
             main {
                 sub start()  {
-                    ubyte z1
+                    ubyte @shared z1
                     z1 = 10
-                    ubyte z2
+                    ubyte @shared z2
                     z2 = z1+z2+5      
+                    ubyte @shared z3
+                    z3 = z1+z3-5      
                 }
             }"""
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
@@ -337,27 +338,34 @@ class TestOptimization: FunSpec({
         ubyte z1
         z1 = 10
         ubyte z2
-        z2 = 0
-        z2 += z1        ; TODO actually add optimization to make this even better: no =0, and this should become z2 = z1
+        z2 = z1
         z2 += 5
+        ubyte z3
+        z3 = z1
+        z3 -= 5
          */
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 6        // TODO 5
+        statements.size shouldBe 8
         val z1decl = statements[0] as VarDecl
         val z1init = statements[1] as Assignment
         val z2decl = statements[2] as VarDecl
         val z2init = statements[3] as Assignment
-        val z2plus1 = statements[4] as Assignment
-        val z2plus2= statements[5] as Assignment
+        val z2plus = statements[4] as Assignment
+        val z3decl = statements[5] as VarDecl
+        val z3init = statements[6] as Assignment
+        val z3plus = statements[7] as Assignment
 
         z1decl.name shouldBe "z1"
         z1init.value shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
         z2decl.name shouldBe "z2"
-        z2init.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
-        z2plus1.isAugmentable shouldBe true
-        (z2plus1.value as BinaryExpression).operator shouldBe "+"
-        (z2plus1.value as BinaryExpression).right shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
-        (z2plus2.value as BinaryExpression).operator shouldBe "+"
-        (z2plus2.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        z2init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        z2plus.isAugmentable shouldBe true
+        (z2plus.value as BinaryExpression).operator shouldBe "+"
+        (z2plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        z3decl.name shouldBe "z3"
+        z3init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        z3plus.isAugmentable shouldBe true
+        (z3plus.value as BinaryExpression).operator shouldBe "-"
+        (z3plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
     }
 })

@@ -5,6 +5,9 @@ For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 BUG: Fix C-64sound issue in petaxian (regression since 7.3, sound on c64 build works fine on older versions)
 
+optimize TODO in "Add assignment to initialize with zero" in StatementReorderer
+optimize TODO in after(assignment) in VariousCleanups
+
 
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -97,8 +97,20 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
 
         val nextAssign = assignment.nextSibling() as? Assignment
         if(nextAssign!=null && nextAssign.target.isSameAs(assignment.target, program)) {
+            // TODO hmm, if both assignments assign to the same thing, can't we just remove the first altogether???
+
             if(nextAssign.value isSameAs assignment.value)
                 return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+
+            if((assignment.value as? NumericLiteralValue)?.number==0.0 && nextAssign.isAugmentable) {
+                val value = nextAssign.value as BinaryExpression
+                require(value.left isSameAs assignment.target)
+                val assign = Assignment(assignment.target, value.right, nextAssign.position)
+                return listOf(
+                    IAstModification.Remove(assignment, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(nextAssign, assign, parent)
+                )
+            }
         }
 
         return noModifications
