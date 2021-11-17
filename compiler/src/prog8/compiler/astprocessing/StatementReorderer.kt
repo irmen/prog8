@@ -59,8 +59,10 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
                         val nextAssign = nextStmt as? Assignment
                         val nextFor = nextStmt as? ForLoop
                         val hasNextForWithThisLoopvar = nextFor?.loopVar?.nameInSource==listOf(decl.name)
-                        val hasNextAssignment = nextAssign!=null && nextAssign.target isSameAs IdentifierReference(listOf(decl.name), Position.DUMMY)
-                        if (!hasNextAssignment && !hasNextForWithThisLoopvar) {
+                        val hasNextAssignmentThatAlsoInitializes = nextAssign!=null
+                                && nextAssign.target isSameAs IdentifierReference(listOf(decl.name), Position.DUMMY)
+                                && !nextAssign.isAugmentable
+                        if (!hasNextAssignmentThatAlsoInitializes && !hasNextForWithThisLoopvar) {
                             // Add assignment to initialize with zero
                             // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
                             val identifier = IdentifierReference(listOf(decl.name), decl.position)
