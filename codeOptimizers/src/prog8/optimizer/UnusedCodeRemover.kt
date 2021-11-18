@@ -12,7 +12,7 @@ import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.CallGraph
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.isInRegularRAMof
+import prog8.compilerinterface.isIOAddress
 
 
 class UnusedCodeRemover(private val program: Program,
@@ -121,7 +121,7 @@ class UnusedCodeRemover(private val program: Program,
                                 it.parent.parent as AssignTarget
                         else null
                     }.filter {
-                        it.isInRegularRAMof(compTarget.machine)
+                        !it.isIOAddress(compTarget.machine)
                     }
                     if(assignTargets.size==usages.size) {
                         errors.warn("removing unused variable '${decl.name}'", decl.position)
@@ -147,7 +147,7 @@ class UnusedCodeRemover(private val program: Program,
             val assign1 = stmtPairs[0] as? Assignment
             val assign2 = stmtPairs[1] as? Assignment
             if (assign1 != null && assign2 != null && !assign2.isAugmentable) {
-                if (assign1.target.isSameAs(assign2.target, program) && assign1.target.isInRegularRAMof(compTarget.machine))  {
+                if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget.machine))  {
                     if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(*(assign2.target.identifier!!.nameInSource.toTypedArray())))
                         // only remove the second assignment if its value is a simple expression!
                         when(assign2.value) {

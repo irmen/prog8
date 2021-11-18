@@ -8,47 +8,45 @@ import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.AssignTarget
 import kotlin.math.abs
 
-fun AssignTarget.isInRegularRAMof(machine: IMachineDefinition): Boolean {
+fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
     val memAddr = memoryAddress
     val arrayIdx = arrayindexed
     val ident = identifier
     when {
         memAddr != null -> {
+            val addr = memAddr.addressExpression.constValue(definingModule.program)
+            if(addr!=null)
+                return machine.isIOAddress(addr.number.toInt())
             return when (memAddr.addressExpression) {
-                is NumericLiteralValue -> {
-                    machine.isRegularRAMaddress((memAddr.addressExpression as NumericLiteralValue).number.toInt())
-                }
                 is IdentifierReference -> {
-                    val program = definingModule.program
-                    val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(program)
-                    if ((decl?.type == VarDeclType.VAR || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
-                        machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                    val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(definingModule.program)
+                    val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
+                        machine.isIOAddress((decl.value as NumericLiteralValue).number.toInt())
                     else
                         false
+                    result
                 }
                 else -> false
             }
         }
         arrayIdx != null -> {
-            val program = definingModule.program
-            val targetStmt = arrayIdx.arrayvar.targetVarDecl(program)
+            val targetStmt = arrayIdx.arrayvar.targetVarDecl(definingModule.program)
             return if (targetStmt?.type == VarDeclType.MEMORY) {
                 val addr = targetStmt.value as? NumericLiteralValue
                 if (addr != null)
-                    machine.isRegularRAMaddress(addr.number.toInt())
+                    machine.isIOAddress(addr.number.toInt())
                 else
                     false
-            } else true
+            } else false
         }
         ident != null -> {
-            val program = definingModule.program
-            val decl = ident.targetVarDecl(program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
+            val decl = ident.targetVarDecl(definingModule.program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
             return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
-                machine.isRegularRAMaddress((decl.value as NumericLiteralValue).number.toInt())
+                machine.isIOAddress((decl.value as NumericLiteralValue).number.toInt())
             else
-                true
+                false
         }
-        else -> return true
+        else -> return false
     }
 }
 

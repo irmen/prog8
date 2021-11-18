@@ -15,7 +15,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.isInRegularRAMof
+import prog8.compilerinterface.isIOAddress
 
 
 class BinExprSplitter(private val program: Program, private val options: CompilationOptions, private val compTarget: ICompilationTarget) : AstWalker() {
@@ -97,7 +97,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
     private fun isSimpleTarget(target: AssignTarget) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                target.isInRegularRAMof(compTarget.machine)
+                !target.isIOAddress(compTarget.machine)
             else
                 false
 

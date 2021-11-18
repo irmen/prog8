@@ -32,7 +32,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
                 && assignment.target.identifier != null
-                && assignment.target.isInRegularRAMof(options.compTarget.machine)) {
+                && !assignment.target.isIOAddress(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
 
             if(binExpr!=null && binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)

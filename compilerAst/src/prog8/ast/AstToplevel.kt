@@ -290,11 +290,6 @@ open class Module(final override var statements: MutableList<Statement>,
         statements.forEach {it.linkParents(this)}
     }
 
-    fun linkIntoProgram(program: Program) {
-        this.program = program
-        linkParents(program.namespace)
-    }
-
     override val definingScope: INameScope
         get() = program.namespace
     override fun replaceChildNode(node: Node, replacement: Node) {

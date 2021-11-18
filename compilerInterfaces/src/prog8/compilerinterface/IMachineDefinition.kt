@@ -32,5 +32,5 @@ interface IMachineDefinition {
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
-    fun isRegularRAMaddress(address: Int): Boolean
+    fun isIOAddress(address: Int): Boolean
 }

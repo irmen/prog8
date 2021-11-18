@@ -41,7 +41,8 @@ class Program(val name: String,
         require(null == _modules.firstOrNull { it.name == module.name })
             { "module '${module.name}' already present" }
         _modules.add(module)
-        module.linkIntoProgram(this)
+        module.program = this
+        module.linkParents(namespace)
         return this
     }
 

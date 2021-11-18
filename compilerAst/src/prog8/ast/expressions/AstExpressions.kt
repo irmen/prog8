@@ -94,7 +94,26 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     }
 
     override fun copy() = PrefixExpression(operator, expression.copy(), position)
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteralValue? {
+        val constval = expression.constValue(program) ?: return null
+        return when(operator) {
+            "+" -> constval
+            "-" -> when (constval.type) {
+                in IntegerDatatypes -> NumericLiteralValue.optimalInteger(-constval.number.toInt(), constval.position)
+                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, -constval.number, constval.position)
+                else -> throw ExpressionError("can only take negative of int or float", constval.position)
+            }
+            "~" -> when (constval.type) {
+                DataType.BYTE -> NumericLiteralValue(DataType.BYTE, constval.number.toInt().inv().toDouble(), constval.position)
+                DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
+                DataType.WORD -> NumericLiteralValue(DataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
+                DataType.UWORD -> NumericLiteralValue(DataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
+                else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
+            }
+            "not" -> NumericLiteralValue.fromBoolean(constval.number == 0.0, constval.position)
+            else -> throw FatalAstException("invalid operator")
+        }
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 

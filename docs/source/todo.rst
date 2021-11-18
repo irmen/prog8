@@ -23,7 +23,7 @@ Future
 - use UByte instead of Short
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - remove special code generation for while and util expression
-  by rewriting while and until expressions into if+jump (consider them syntactic sugar)
+  by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
   but the result should not produce larger code ofcourse!
 - while-expression should now also get the simplifyConditionalExpression() treatment
 - fix the asm-labels problem (github issue #62)

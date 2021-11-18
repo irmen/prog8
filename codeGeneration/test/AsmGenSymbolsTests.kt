@@ -69,7 +69,6 @@ class AsmGenSymbolsTests: StringSpec({
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        module.linkIntoProgram(program)
         return program
     }
 
