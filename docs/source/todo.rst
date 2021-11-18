@@ -9,9 +9,6 @@ optimize TODO in "Add assignment to initialize with zero" in StatementReorderer
 optimize TODO in after(assignment) in VariousCleanups
 optimize: bitwise operations with a negative constant number -> replace the number by its positive 2 complement
 optimize: add some more constant folders mentioned in test.p8
-
-fix: give error when initializing an integer var with a float value
-
 optimize: there is an optimizations in AsmOptimizer that can only be done correctly
  if it knows about regular ram vs io space ram distinction.
 

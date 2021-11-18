@@ -5,12 +5,11 @@ main {
 
     sub start() {
 
-        ubyte xx = 1.234
-        ubyte yy = 2.234
+        ubyte xx = 1
+        ubyte yy = 2
         uword aw
         byte bb
         float fl
-
 
 ; TODO add these constant folders:
 

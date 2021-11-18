@@ -388,7 +388,16 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                           numbervalue: Double,    // can be byte, word or float depending on the type
                           override val position: Position) : Expression() {
     override lateinit var parent: Node
-    val number: Double = if(type==DataType.FLOAT) numbervalue else round(numbervalue)
+    val number: Double by lazy {
+        if(type==DataType.FLOAT)
+            numbervalue
+        else {
+            val rounded = round(numbervalue)
+            if(rounded != numbervalue)
+                throw ExpressionError("refused silent rounding of float to avoid loss of precision", position)
+            rounded
+        }
+    }
 
     override val isSimple = true
     override fun copy() = NumericLiteralValue(type, number, position)

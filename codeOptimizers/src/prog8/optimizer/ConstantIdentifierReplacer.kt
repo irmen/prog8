@@ -24,11 +24,16 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
         try {
             val declConstValue = decl.value?.constValue(program)
             if(declConstValue!=null && (decl.type==VarDeclType.VAR || decl.type==VarDeclType.CONST)
-                && declConstValue.inferType(program) isnot decl.datatype) {
-                // cast the numeric literal to the appropriate datatype of the variable
-                val cast = declConstValue.cast(decl.datatype)
-                if(cast.isValid)
-                    return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
+                && declConstValue.type != decl.datatype) {
+                // avoid silent float roundings
+                if(decl.datatype in IntegerDatatypes && declConstValue.type==DataType.FLOAT) {
+                    errors.err("refused silent rounding of float to avoid loss of precision", decl.value!!.position)
+                } else {
+                    // cast the numeric literal to the appropriate datatype of the variable
+                    val cast = declConstValue.cast(decl.datatype)
+                    if (cast.isValid)
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
+                }
             }
         } catch (x: UndefinedSymbolError) {
             errors.err(x.message, x.position)
