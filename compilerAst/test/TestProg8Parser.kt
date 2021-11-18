@@ -4,6 +4,7 @@ import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.or
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -666,7 +667,7 @@ class TestProg8Parser: FunSpec( {
         """)
         val module = parseModule(src)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
-        module.linkIntoProgram(program)
+        program.addModule(module)
         val bb2 = (module.statements.single() as Block).statements[2] as VarDecl
         val expr = bb2.value as BinaryExpression
         println(expr)
@@ -689,7 +690,7 @@ class TestProg8Parser: FunSpec( {
         """)
         val module = parseModule(src)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
-        module.linkIntoProgram(program)
+        program.addModule(module)
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 6
         val qq = (stmts[2] as VarDecl).value as TypecastExpression
@@ -716,10 +717,59 @@ class TestProg8Parser: FunSpec( {
             }""")
         val module = parseModule(src)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
-        module.linkIntoProgram(program)
+        program.addModule(module)
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 2
         val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
         ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+    }
+
+
+    test("assignment isAugmented correctness") {
+        val src = SourceCode.Text("""
+            main {
+                sub start() {
+                    ubyte r
+                    ubyte q
+                    r = q*3     ; #1 no
+                    r = r*3     ; #2 yes
+                    r = 3*r     ; #3 yes
+                    r = 3*q     ; #4 no
+                    r = 5+r     ; #5 yes
+                    r = 5-r     ; #6 no
+                    r = r-5     ; #7 yes
+                    r = not r   ; #8 yes
+                    r = not q   ; #9 no
+                    r = (q+r)+5 ; #10 yes
+                    r = q+(r+5) ; #11 yes
+                    r = (q+r)-5 ; #12 yes            TODO FIX THIS ONE
+                    r = q+(r-5) ; #13 yes            TODO FIX THIS ONE
+                }
+            }""")
+
+        // TODO fix augmented result for the above mentioned assignments
+        // TODO certain typecast expressions are also augmentable?? what does this even mean, and does the generated code make a difference???
+
+        val module = parseModule(src)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program.addModule(module)
+        val stmts = program.entrypoint.statements
+        val expectedResults = listOf(
+            false, true, true,
+            false, true, false,
+            true, true, false,
+            true, true, true,
+            true
+        )
+        stmts.size shouldBe 15
+        expectedResults.size shouldBe stmts.size-2
+        for((idx, pp) in stmts.drop(2).zip(expectedResults).withIndex()) {
+            val assign = pp.first as Assignment
+            val expected = pp.second
+            withClue("#${idx+1}: should be augmentable but isn't : $assign") {
+                assign.isAugmentable shouldBe expected
+                assign.value shouldBe (instanceOf<PrefixExpression>() or instanceOf<BinaryExpression>() or instanceOf<TypecastExpression>())
+            }
+        }
     }
 })
