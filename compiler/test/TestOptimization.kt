@@ -368,4 +368,65 @@ class TestOptimization: FunSpec({
         (z3plus.value as BinaryExpression).operator shouldBe "-"
         (z3plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
     }
+
+    test("force_output option should work with optimizing memwrite assignment") {
+        val src="""
+            main {
+                %option force_output
+                
+                sub start() {
+                    uword aa
+                    ubyte zz
+                    @(aa) = zz + 32    
+                }
+            }
+        """
+
+        // TODO fix this problem!
+
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printAst(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 5
+    }
+
+    test("don't optimize memory writes away") {
+        val src="""
+            main {
+                sub start() {
+                    uword aa
+                    ubyte zz
+                    @(aa) = zz + 32   ; do not optimize this away!
+                }
+            }
+        """
+
+        // TODO fix this problem!
+
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printAst(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 5
+    }
+
+    test("correctly process constant prefix numbers") {
+        val src="""
+            main {
+                sub start()  {
+                    byte z1 = 1
+                    byte z2 = +1
+                    byte z3 = ~1
+                    byte z4 = not 1
+                    byte z5 = - 1
+                }
+            }
+        """
+
+        // TODO fix this problem!
+
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printAst(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 2
+    }
 })
