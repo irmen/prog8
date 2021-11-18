@@ -46,6 +46,27 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
+
+            // convert a negative operand for bitwise operator to the 2's complement positive number instead
+            if(expr.operator in bitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
+                val leftCv = expr.left.constValue(program)
+                if(leftCv!=null && leftCv.number<0) {
+                    val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number
+                    return listOf(IAstModification.ReplaceNode(
+                        expr.left,
+                        NumericLiteralValue(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
+                        expr))
+                }
+                val rightCv = expr.right.constValue(program)
+                if(rightCv!=null && rightCv.number<0) {
+                    val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
+                    return listOf(IAstModification.ReplaceNode(
+                        expr.right,
+                        NumericLiteralValue(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
+                        expr))
+                }
+            }
+
             // determine common datatype and add typecast as required to make left and right equal types
             val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.operator, expr.right)
             if(toFix!=null) {

@@ -14,6 +14,7 @@ val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "=
 val comparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
 val augmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
 val logicalOperators = setOf("and", "or", "xor", "not")
+val bitwiseOperators = setOf("&", "|", "^")
 
 
 sealed class Expression: Node {

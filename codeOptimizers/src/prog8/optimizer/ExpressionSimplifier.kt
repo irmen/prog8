@@ -232,58 +232,62 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {
             "or" -> {
-                if ((leftVal != null && leftVal.asBooleanValue) || (rightVal != null && rightVal.asBooleanValue))
-                    constTrue
-                else if (leftVal != null && !leftVal.asBooleanValue)
-                    expr.right
-                else if (rightVal != null && !rightVal.asBooleanValue)
-                    expr.left
-                else
-                    null
+                when {
+                    leftVal != null && leftVal.asBooleanValue || rightVal != null && rightVal.asBooleanValue -> constTrue
+                    leftVal != null && !leftVal.asBooleanValue -> expr.right
+                    rightVal != null && !rightVal.asBooleanValue -> expr.left
+                    else -> null
+                }
             }
             "and" -> {
-                if ((leftVal != null && !leftVal.asBooleanValue) || (rightVal != null && !rightVal.asBooleanValue))
-                    constFalse
-                else if (leftVal != null && leftVal.asBooleanValue)
-                    expr.right
-                else if (rightVal != null && rightVal.asBooleanValue)
-                    expr.left
-                else
-                    null
+                when {
+                    leftVal != null && !leftVal.asBooleanValue || rightVal != null && !rightVal.asBooleanValue -> constFalse
+                    leftVal != null && leftVal.asBooleanValue -> expr.right
+                    rightVal != null && rightVal.asBooleanValue -> expr.left
+                    else -> null
+                }
             }
             "xor" -> {
-                if (leftVal != null && !leftVal.asBooleanValue)
-                    expr.right
-                else if (rightVal != null && !rightVal.asBooleanValue)
-                    expr.left
-                else if (leftVal != null && leftVal.asBooleanValue)
-                    PrefixExpression("not", expr.right, expr.right.position)
-                else if (rightVal != null && rightVal.asBooleanValue)
-                    PrefixExpression("not", expr.left, expr.left.position)
-                else
-                    null
+                when {
+                    leftVal != null && !leftVal.asBooleanValue -> expr.right
+                    rightVal != null && !rightVal.asBooleanValue -> expr.left
+                    leftVal != null && leftVal.asBooleanValue -> PrefixExpression("not", expr.right, expr.right.position)
+                    rightVal != null && rightVal.asBooleanValue -> PrefixExpression("not", expr.left, expr.left.position)
+                    else -> null
+                }
             }
-            "|", "^" -> {
-                if (leftVal != null && !leftVal.asBooleanValue)
-                    expr.right
-                else if (rightVal != null && !rightVal.asBooleanValue)
-                    expr.left
-                else {
-                    if(rightIDt.isBytes && (rightVal?.number==-1.0 || rightVal?.number==255.0))
-                        PrefixExpression("~", expr.left, expr.left.position)
-                    else if(rightIDt.isWords && (rightVal?.number==-1.0 || rightVal?.number==65535.0))
-                        PrefixExpression("~", expr.left, expr.left.position)
-                    else
-                        null
+            "|" -> {
+                when {
+                    leftVal?.number==0.0 -> expr.right
+                    rightVal?.number==0.0 -> expr.left
+                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteralValue(DataType.UBYTE, 255.0, rightVal.position)
+                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteralValue(DataType.UWORD, 65535.0, rightVal.position)
+                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteralValue(DataType.UBYTE, 255.0, leftVal.position)
+                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteralValue(DataType.UWORD, 65535.0, leftVal.position)
+                    else -> null
+                }
+            }
+            "^" -> {
+                when {
+                    leftVal?.number==0.0 -> expr.right
+                    rightVal?.number==0.0 -> expr.left
+                    rightIDt.isBytes && rightVal?.number==255.0 -> PrefixExpression("~", expr.left, expr.left.position)
+                    rightIDt.isWords && rightVal?.number==65535.0 -> PrefixExpression("~", expr.left, expr.left.position)
+                    leftIDt.isBytes && leftVal?.number==255.0 -> PrefixExpression("~", expr.right, expr.right.position)
+                    leftIDt.isWords && leftVal?.number==65535.0 -> PrefixExpression("~", expr.right, expr.right.position)
+                    else -> null
                 }
             }
             "&" -> {
-                if (leftVal != null && !leftVal.asBooleanValue)
-                    constFalse
-                else if (rightVal != null && !rightVal.asBooleanValue)
-                    constFalse
-                else
-                    null
+                when {
+                    leftVal?.number==0.0  -> constFalse
+                    rightVal?.number==0.0 -> constFalse
+                    rightIDt.isBytes && rightVal?.number==255.0 -> expr.left
+                    rightIDt.isWords && rightVal?.number==65535.0 -> expr.left
+                    leftIDt.isBytes && leftVal?.number==255.0 -> expr.right
+                    leftIDt.isWords && leftVal?.number==65535.0 -> expr.right
+                    else -> null
+                }
             }
             "*" -> optimizeMultiplication(expr, leftVal, rightVal)
             "/" -> optimizeDivision(expr, leftVal, rightVal)
