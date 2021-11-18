@@ -1,7 +1,7 @@
 package prog8.compiler.target.cpu6502.codegen
 
 
-// note: see https://wiki.nesdev.com/w/index.php/6502_assembly_optimisations
+// note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
 fun optimizeAssembly(lines: MutableList<String>): Int {
@@ -252,24 +252,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 }
             }
         }
-        /*
-        sta  A1
-        <other st/ld instruction not involving A1>
-        sta  A1     ; can be removed
-         */
-        if(!overlappingMods && first.startsWith("st") && third.startsWith("st")) {
-            val reg1 = first[2]
-            val reg3 = third[2]
-            if(reg1==reg3 && (second.startsWith("ld") || second.startsWith("st"))) {
-                val firstvalue = first.substring(4)
-                val secondvalue = second.substring(4)
-                val thirdvalue = third.substring(4)
-                if(firstvalue==thirdvalue && firstvalue!=secondvalue) {
-                    overlappingMods = true
-                    mods.add(Modification(lines[2].index, true, null))
-                }
-            }
-        }
+
         /*
         sta  A1
         ldy  A1     ; make tay
@@ -295,6 +278,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
 private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
     // TODO this is not true if X is not a regular RAM memory address (but instead mapped I/O or ROM) but how does this code know?
+    //      should this optimization be removed????  or teach it about the InRegularRAM ?
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
         val first = lines[1].value.trimStart()

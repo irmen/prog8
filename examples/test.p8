@@ -11,7 +11,8 @@ main {
         byte bb
         float fl
 
-        ; TODO:  bitwise operations with a negative constant number -> replace the number by its positive 2 complement
+
+; TODO add these constant folders:
 
 ; (X + C1) + (Y + C2)  =>  (X + Y) + (C1 + C2)
 ; (X + C1) - (Y + C2)  =>  (X - Y) + (C1 - C2)
@@ -24,16 +25,13 @@ main {
         xx=6
         yy=8
 
-
         yy = (xx+5)+(yy+10)
-        ; yy = (xx+yy)+(5+10)     ; TODO crashes compiler
         txt.print_ub(yy)        ; 29
         txt.nl()
 
         xx=100
         yy=8
-        ;yy = (xx+5)-(yy+10)
-        yy = (xx-yy)+(5-10) as ubyte
+        yy = (xx+5)-(yy+10)
         txt.print_ub(yy)        ; 87
         txt.nl()
 
