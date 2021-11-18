@@ -1,9 +1,12 @@
 package prog8tests
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.base.DataType
+import prog8.ast.base.ExpressionError
 import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.InferredTypes
@@ -31,11 +34,19 @@ class TestNumericLiteralValue: FunSpec({
     }
 
     test("test rounding") {
-        NumericLiteralValue(DataType.BYTE, -2.345, dummyPos).number shouldBe -2.0
-        NumericLiteralValue(DataType.BYTE, -2.6, dummyPos).number shouldBe -3.0
-        NumericLiteralValue(DataType.UWORD, 2222.345, dummyPos).number shouldBe 2222.0
-        NumericLiteralValue(DataType.UWORD, 2222.6, dummyPos).number shouldBe 2223.0
-        NumericLiteralValue(DataType.FLOAT, 123.456, dummyPos).number shouldBe 123.456
+        shouldThrow<ExpressionError> {
+            NumericLiteralValue(DataType.BYTE, -2.345, dummyPos)
+        }.message shouldContain "refused silent rounding"
+        shouldThrow<ExpressionError> {
+            NumericLiteralValue(DataType.BYTE, -2.6, dummyPos)
+        }.message shouldContain "refused silent rounding"
+        shouldThrow<ExpressionError> {
+            NumericLiteralValue(DataType.UWORD, 2222.345, dummyPos)
+        }.message shouldContain "refused silent rounding"
+        NumericLiteralValue(DataType.UBYTE, 2.0, dummyPos).number shouldBe 2.0
+        NumericLiteralValue(DataType.BYTE, -2.0, dummyPos).number shouldBe -2.0
+        NumericLiteralValue(DataType.UWORD, 2222.0, dummyPos).number shouldBe 2222.0
+        NumericLiteralValue(DataType.FLOAT, 123.456, dummyPos)
     }
 
     test("testEqualsAndNotEquals") {

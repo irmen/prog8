@@ -154,7 +154,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe false
     }
@@ -166,7 +166,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe false
     }
@@ -178,7 +178,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe true
     }
@@ -190,7 +190,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe false
     }
@@ -203,7 +203,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe false
     }
@@ -216,7 +216,7 @@ class TestMemory: FunSpec({
         val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
-        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe true
     }
