@@ -5,6 +5,7 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Program
@@ -16,6 +17,7 @@ import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
+import prog8tests.helpers.*
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
@@ -73,7 +75,7 @@ class TestOptimization: FunSpec({
         }
     }
 
-    test("generated constvalue inherits proper parent linkage") {
+    test("generated constvalue from typecast inherits proper parent linkage") {
         val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -83,9 +85,24 @@ class TestOptimization: FunSpec({
         tc shouldBeSameInstanceAs number.parent
         val constvalue = tc.constValue(program)!!
         constvalue shouldBe instanceOf<NumericLiteralValue>()
-        constvalue.number.toInt() shouldBe 11
+        constvalue.number shouldBe 11.0
         constvalue.type shouldBe DataType.BYTE
-        tc shouldBeSameInstanceAs constvalue.parent
+        constvalue.parent shouldBeSameInstanceAs tc.parent
+    }
+
+    test("generated constvalue from prefixexpr inherits proper parent linkage") {
+        val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
+        val pfx = PrefixExpression("-", number, Position.DUMMY)
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        pfx.linkParents(ParentSentinel)
+        pfx.parent shouldNotBe null
+        number.parent shouldNotBe null
+        pfx shouldBeSameInstanceAs number.parent
+        val constvalue = pfx.constValue(program)!!
+        constvalue shouldBe instanceOf<NumericLiteralValue>()
+        constvalue.number shouldBe -11.0
+        constvalue.type shouldBe DataType.BYTE
+        constvalue.parent shouldBeSameInstanceAs pfx.parent
     }
 
     test("constantfolded and silently typecasted for initializervalues") {
@@ -410,8 +427,8 @@ class TestOptimization: FunSpec({
             main {
                 sub start()  {
                     ubyte @shared z1 = 1
-                    ubyte @shared z2 = +1
-                    ubyte @shared z3 = ~1
+                    ubyte @shared z2 = + 1
+                    ubyte @shared z3 = ~ 1
                     ubyte @shared z4 = not 1
                     byte @shared z5 = - 1
                 }
@@ -422,5 +439,20 @@ class TestOptimization: FunSpec({
         stmts.size shouldBe 10
         stmts.filterIsInstance<VarDecl>().size shouldBe 5
         stmts.filterIsInstance<Assignment>().size shouldBe 5
+    }
+
+    test("correctly process constant prefix numbers with type mismatch and give error") {
+        val src="""
+            main {
+                sub start()  {
+                    ubyte @shared z1 = - 1
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, optimize=true, src, writeAssembly=false, errors = errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain  "type of value BYTE doesn't match target UBYTE"
+        errors.errors[1] shouldContain "value '-1' out of range for unsigned byte"
     }
 })

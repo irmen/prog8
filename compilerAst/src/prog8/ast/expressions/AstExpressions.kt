@@ -96,7 +96,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     override fun copy() = PrefixExpression(operator, expression.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? {
         val constval = expression.constValue(program) ?: return null
-        return when(operator) {
+        val converted = when(operator) {
             "+" -> constval
             "-" -> when (constval.type) {
                 in IntegerDatatypes -> NumericLiteralValue.optimalInteger(-constval.number.toInt(), constval.position)
@@ -112,6 +112,12 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             }
             "not" -> NumericLiteralValue.fromBoolean(constval.number == 0.0, constval.position)
             else -> throw FatalAstException("invalid operator")
+        }
+        return if(converted==null)
+            null
+        else {
+            converted.linkParents(this.parent)
+            converted
         }
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -340,8 +346,11 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
         val cast = cv.cast(type)
-        return if(cast.isValid)
-            cast.valueOrZero()
+        return if(cast.isValid) {
+            val newval = cast.valueOrZero()
+            newval.linkParents(parent)
+            return newval
+        }
         else
             null
     }
