@@ -115,11 +115,7 @@ class UnusedCodeRemover(private val program: Program,
                     // if all usages are just an assignment to this vardecl,
                     // and it is in regular RAM, then remove the var as well including all assignments
                     val assignTargets = usages.mapNotNull {
-                        if(it.parent is AssignTarget)
-                                it.parent as AssignTarget
-                        else if(it.parent.parent is AssignTarget)
-                                it.parent.parent as AssignTarget
-                        else null
+                        it.parent as? AssignTarget
                     }.filter {
                         !it.isIOAddress(compTarget.machine)
                     }

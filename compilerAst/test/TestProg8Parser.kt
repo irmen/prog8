@@ -725,7 +725,7 @@ class TestProg8Parser: FunSpec( {
     }
 
 
-    test("assignment isAugmented correctness") {
+    xtest("assignment isAugmented correctness") {
         val src = SourceCode.Text("""
             main {
                 sub start() {

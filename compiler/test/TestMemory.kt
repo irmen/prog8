@@ -133,7 +133,7 @@ class TestMemory: FunSpec({
         target.isIOAddress(C64Target.machine) shouldBe true
     }
 
-    test("memory expression mapped to IO memory on C64\"") {
+    test("memory expression mapped to IO memory on C64") {
         var memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)

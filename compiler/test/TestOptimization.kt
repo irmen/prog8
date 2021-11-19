@@ -14,7 +14,6 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
-import prog8.compiler.printAst
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.DummyFunctions
@@ -26,7 +25,7 @@ import prog8tests.helpers.compileText
 import prog8tests.helpers.generateAssembly
 
 class TestOptimization: FunSpec({
-    test("testRemoveEmptySubroutineExceptStart") {
+    test("remove empty subroutine except start") {
         val sourcecode = """
             main {
                 sub start() {
@@ -49,7 +48,7 @@ class TestOptimization: FunSpec({
         }
     }
 
-    test("testDontRemoveEmptySubroutineIfItsReferenced") {
+    test("don't remove empty subroutine if it's referenced") {
         val sourcecode = """
             main {
                 sub start() {
@@ -74,7 +73,7 @@ class TestOptimization: FunSpec({
         }
     }
 
-    test("testGeneratedConstvalueInheritsProperParentLinkage") {
+    test("generated constvalue inherits proper parent linkage") {
         val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -89,7 +88,7 @@ class TestOptimization: FunSpec({
         tc shouldBeSameInstanceAs constvalue.parent
     }
 
-    test("testConstantFoldedAndSilentlyTypecastedForInitializerValues") {
+    test("constantfolded and silently typecasted for initializervalues") {
         val sourcecode = """
             main {
                 sub start() {
@@ -382,12 +381,11 @@ class TestOptimization: FunSpec({
             }
         """
 
-        // TODO fix this problem!
-
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
-        printAst(result.program)
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
+        val assign=stmts.last() as Assignment
+        (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
     }
 
     test("don't optimize memory writes away") {
@@ -400,33 +398,29 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-
-        // TODO fix this problem!
-
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
-        printAst(result.program)
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
+        val assign=stmts.last() as Assignment
+        (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
     }
 
     test("correctly process constant prefix numbers") {
         val src="""
             main {
                 sub start()  {
-                    byte z1 = 1
-                    byte z2 = +1
-                    byte z3 = ~1
-                    byte z4 = not 1
-                    byte z5 = - 1
+                    ubyte @shared z1 = 1
+                    ubyte @shared z2 = +1
+                    ubyte @shared z3 = ~1
+                    ubyte @shared z4 = not 1
+                    byte @shared z5 = - 1
                 }
             }
         """
-
-        // TODO fix this problem!
-
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
-        printAst(result.program)
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 2
+        stmts.size shouldBe 10
+        stmts.filterIsInstance<VarDecl>().size shouldBe 5
+        stmts.filterIsInstance<Assignment>().size shouldBe 5
     }
 })

@@ -434,7 +434,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         return when {
             identifier != null -> identifier!!.copy()
             arrayindexed != null -> arrayindexed!!.copy()
-            memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression, memoryAddress.position)
+            memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
             else -> throw FatalAstException("invalid assignmenttarget $this")
         }
     }
