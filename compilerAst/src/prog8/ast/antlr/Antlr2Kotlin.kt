@@ -43,7 +43,7 @@ internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean) : Block {
             else -> throw FatalAstException("weird block node $it")
         }
     }
-    return Block(identifier().text, integerliteral()?.toAst()?.number?.toInt(), blockstatements.toMutableList(), isInLibrary, toPosition())
+    return Block(identifier().text, integerliteral()?.toAst()?.number?.toUInt(), blockstatements.toMutableList(), isInLibrary, toPosition())
 }
 
 private fun Prog8ANTLRParser.Statement_blockContext.toAst(): MutableList<Statement> =
@@ -193,7 +193,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
 
 private fun Prog8ANTLRParser.RomsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
-    val address = integerliteral().toAst().number.toInt()
+    val address = integerliteral().toAst().number.toUInt()
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = toPosition()
@@ -293,7 +293,7 @@ private fun Prog8ANTLRParser.ReturnstmtContext.toAst() : Return {
 }
 
 private fun Prog8ANTLRParser.UnconditionaljumpContext.toAst(): Jump {
-    val address = integerliteral()?.toAst()?.number?.toInt()
+    val address = integerliteral()?.toAst()?.number?.toUInt()
     val identifier = scoped_identifier()?.toAst()
     return Jump(address, identifier, null, toPosition())
 }
@@ -354,7 +354,7 @@ private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     if(str?.ALT_STRING_ENCODING() != null)
         throw SyntaxError("can't use alternate string s for directive arguments", toPosition())
 
-    return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toInt(), toPosition())
+    return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
 }
 
 private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {

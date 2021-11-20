@@ -40,7 +40,7 @@ class AsmGen(private val program: Program,
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
-    private val allocatedZeropageVariables = mutableMapOf<String, Pair<Int, DataType>>()
+    private val allocatedZeropageVariables = mutableMapOf<String, Pair<UInt, DataType>>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
@@ -49,7 +49,7 @@ class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
-    internal val slabs = mutableMapOf<String, Int>()
+    internal val slabs = mutableMapOf<String, UInt>()
     internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
@@ -119,7 +119,7 @@ class AsmGen(private val program: Program,
         out("\n.cpu  '$cpu'\n.enc  'none'\n")
 
         program.actualLoadAddress = program.definedLoadAddress
-        if (program.actualLoadAddress == 0)   // fix load address
+        if (program.actualLoadAddress == 0u)   // fix load address
             program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
                 compTarget.machine.BASIC_LOAD_ADDRESS else compTarget.machine.RAW_LOAD_ADDRESS
 
@@ -134,7 +134,7 @@ class AsmGen(private val program: Program,
 
         when {
             options.launcher == LauncherType.BASIC -> {
-                if (program.actualLoadAddress != 0x0801)
+                if (program.actualLoadAddress != 0x0801u)
                     throw AssemblyError("BASIC output must have load address $0801")
                 out("; ---- basic program with sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}")

@@ -513,6 +513,8 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
     return NumericLiteralValue(DataType.BYTE, constval.number.sign, position)
 }
 
+private fun numericLiteral(value: UInt, position: Position): NumericLiteralValue = numericLiteral(value.toInt(), position)
+
 private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {
     val floatNum=value.toDouble()
     val tweakedValue: Number =

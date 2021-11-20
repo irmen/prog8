@@ -16,7 +16,6 @@ Blocked by an official Commander-x16 v39 release
 
 Future
 ^^^^^^
-- use UByte instead of Short
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - remove special code generation for while and util expression

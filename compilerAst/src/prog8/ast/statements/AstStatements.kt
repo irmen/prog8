@@ -70,7 +70,7 @@ class BuiltinFunctionStatementPlaceholder(val name: String, override val positio
 data class RegisterOrStatusflag(val registerOrPair: RegisterOrPair?, val statusflag: Statusflag?)
 
 class Block(override val name: String,
-            val address: Int?,
+            val address: UInt?,
             override var statements: MutableList<Statement>,
             val isInLibrary: Boolean,
             override val position: Position) : Statement(), INameScope {
@@ -114,7 +114,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-data class DirectiveArg(val str: String?, val name: String?, val int: Int?, override val position: Position) : Node {
+data class DirectiveArg(val str: String?, val name: String?, val int: UInt?, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -520,7 +520,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     }
 }
 
-class Jump(val address: Int?,
+class Jump(val address: UInt?,
            val identifier: IdentifierReference?,
            val generatedLabel: String?,             // used in code generation scenarios
            override val position: Position) : Statement() {
@@ -631,7 +631,7 @@ class AsmGenInfo {
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 
-    val extraVars = mutableListOf<Triple<DataType, String, Int?>>()
+    val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
 }
 
 // the subroutine class covers both the normal user-defined subroutines,
@@ -643,7 +643,7 @@ class Subroutine(override val name: String,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,
-                 val asmAddress: Int?,
+                 val asmAddress: UInt?,
                  val isAsmSubroutine: Boolean,
                  val inline: Boolean,
                  override var statements: MutableList<Statement>,

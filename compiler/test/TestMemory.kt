@@ -109,7 +109,7 @@ class TestMemory: FunSpec({
         target.isIOAddress(C64Target.machine) shouldBe true
     }
 
-    fun createTestProgramForMemoryRefViaVar(address: Int, vartype: VarDeclType): AssignTarget {
+    fun createTestProgramForMemoryRefViaVar(address: UInt, vartype: VarDeclType): AssignTarget {
         val decl = VarDecl(vartype, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, false, Position.DUMMY)
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
@@ -119,17 +119,17 @@ class TestMemory: FunSpec({
     }
 
     test("identifier mapped to IO memory on C64") {
-        var target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.VAR)
+        var target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.VAR)
         target.isIOAddress(C64Target.machine) shouldBe false
-        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.VAR)
+        target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.VAR)
         target.isIOAddress(C64Target.machine) shouldBe false
-        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.CONST)
+        target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.CONST)
         target.isIOAddress(C64Target.machine) shouldBe false
-        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.CONST)
+        target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.CONST)
         target.isIOAddress(C64Target.machine) shouldBe true
-        target = createTestProgramForMemoryRefViaVar(0x1000, VarDeclType.MEMORY)
+        target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.MEMORY)
         target.isIOAddress(C64Target.machine) shouldBe false
-        target = createTestProgramForMemoryRefViaVar(0xd020, VarDeclType.MEMORY)
+        target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.MEMORY)
         target.isIOAddress(C64Target.machine) shouldBe true
     }
 

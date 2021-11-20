@@ -72,10 +72,10 @@ class Program(val name: String,
     val toplevelModule: Module
         get() = modules.first { it.name!= internedStringsModuleName }
 
-    val definedLoadAddress: Int
+    val definedLoadAddress: UInt
         get() = toplevelModule.loadAddress
 
-    var actualLoadAddress: Int = 0
+    var actualLoadAddress = 0u
     private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
 
     fun internString(string: StringLiteralValue): List<String> {

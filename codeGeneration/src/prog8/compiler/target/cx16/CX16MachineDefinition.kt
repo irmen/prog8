@@ -16,12 +16,12 @@ object CX16MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
     override val FLOAT_MEM_SIZE = 5
     override val POINTER_MEM_SIZE = 2
-    override val BASIC_LOAD_ADDRESS = 0x0801
-    override val RAW_LOAD_ADDRESS = 0x8000
+    override val BASIC_LOAD_ADDRESS = 0x0801u
+    override val RAW_LOAD_ADDRESS = 0x8000u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0x0400        //  $0400-$04ff inclusive
-    override val ESTACK_HI = 0x0500        //  $0500-$05ff inclusive
+    override val ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
+    override val ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
 
     override lateinit var zeropage: Zeropage
 
@@ -67,7 +67,7 @@ object CX16MachineDefinition: IMachineDefinition {
         }
     }
 
-    override fun isIOAddress(address: Int): Boolean = address==0 || address==1 || address in 0x9f00..0x9fff
+    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0x9f00u..0x9fffu
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)
@@ -89,10 +89,10 @@ object CX16MachineDefinition: IMachineDefinition {
 
     class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 
-        override val SCRATCH_B1 = 0x7a      // temp storage for a single byte
-        override val SCRATCH_REG = 0x7b     // temp storage for a register, must be B1+1
-        override val SCRATCH_W1 = 0x7c      // temp storage 1 for a word  $7c+$7d
-        override val SCRATCH_W2 = 0x7e      // temp storage 2 for a word  $7e+$7f
+        override val SCRATCH_B1 = 0x7au      // temp storage for a single byte
+        override val SCRATCH_REG = 0x7bu     // temp storage for a register, must be B1+1
+        override val SCRATCH_W1 = 0x7cu      // temp storage 1 for a word  $7c+$7d
+        override val SCRATCH_W2 = 0x7eu      // temp storage 2 for a word  $7e+$7f
 
 
         init {
@@ -103,14 +103,14 @@ object CX16MachineDefinition: IMachineDefinition {
 
             when (options.zeropage) {
                 ZeropageType.FULL -> {
-                    free.addAll(0x22..0xff)
+                    free.addAll(0x22u..0xffu)
                 }
                 ZeropageType.KERNALSAFE -> {
-                    free.addAll(0x22..0x7f)
-                    free.addAll(0xa9..0xff)
+                    free.addAll(0x22u..0x7fu)
+                    free.addAll(0xa9u..0xffu)
                 }
                 ZeropageType.BASICSAFE -> {
-                    free.addAll(0x22..0x7f)
+                    free.addAll(0x22u..0x7fu)
                 }
                 ZeropageType.DONTUSE -> {
                     free.clear() // don't use zeropage at all

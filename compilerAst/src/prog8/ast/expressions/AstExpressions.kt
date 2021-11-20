@@ -456,6 +456,14 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                 else -> throw FatalAstException("integer overflow: $dvalue")
             }
         }
+
+        fun optimalInteger(value: UInt, position: Position): NumericLiteralValue {
+            return when (value) {
+                in 0u..255u -> NumericLiteralValue(DataType.UBYTE, value.toDouble(), position)
+                in 0u..65535u -> NumericLiteralValue(DataType.UWORD, value.toDouble(), position)
+                else -> throw FatalAstException("unsigned integer overflow: $value")
+            }
+        }
     }
 
     val asBooleanValue: Boolean = number != 0.0

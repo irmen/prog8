@@ -40,7 +40,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number
                 when (assign.target.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toInt().toShort())
+                    DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toInt())
                     DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num.toInt())
                     DataType.FLOAT -> assignConstantFloat(assign.target, num)
                     else -> throw AssemblyError("weird numval type")
@@ -128,7 +128,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 val value = assign.source.memory!!
                 when (value.addressExpression) {
                     is NumericLiteralValue -> {
-                        val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                        val address = (value.addressExpression as NumericLiteralValue).number.toUInt()
                         assignMemoryByte(assign.target, address, null)
                     }
                     is IdentifierReference -> {
@@ -342,7 +342,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
                     when (value.addressExpression) {
                         is NumericLiteralValue -> {
-                            val address = (value.addressExpression as NumericLiteralValue).number.toInt()
+                            val address = (value.addressExpression as NumericLiteralValue).number.toUInt()
                             assignMemoryByteIntoWord(target, address, null)
                             return
                         }
@@ -802,7 +802,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
@@ -1012,7 +1012,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             TargetStorageKind.ARRAY -> {
                 target.array!!
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     when(target.datatype) {
                         in ByteDatatypes -> {
                             asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
@@ -1236,7 +1236,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype)
+                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
@@ -1289,7 +1289,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (wordtarget.constArrayIndexValue!=null) {
-                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2
+                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
                     asmgen.out("  lda  $sourceName")
                     asmgen.signExtendAYlsb(DataType.BYTE)
                     asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
@@ -1357,7 +1357,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (wordtarget.constArrayIndexValue!=null) {
-                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2
+                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
                     asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx")
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  stz  ${wordtarget.asmVarname}+$scaledIdx+1")
@@ -1517,7 +1517,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
-                    val idx = target.constArrayIndexValue!! * 2
+                    val idx = target.constArrayIndexValue!! * 2u
                     when (regs) {
                         RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}+$idx |  stx  ${target.asmVarname}+$idx+1")
                         RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
@@ -1738,8 +1738,8 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignConstantByte(target: AsmAssignTarget, byte: Short) {
-        if(byte==0.toShort() && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+    private fun assignConstantByte(target: AsmAssignTarget, byte: Int) {
+        if(byte==0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
             // optimize setting zero value for this cpu
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -1972,7 +1972,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignMemoryByte(target: AsmAssignTarget, address: Int?, identifier: IdentifierReference?) {
+    private fun assignMemoryByte(target: AsmAssignTarget, address: UInt?, identifier: IdentifierReference?) {
         if (address != null) {
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -2056,7 +2056,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
-    private fun assignMemoryByteIntoWord(wordtarget: AsmAssignTarget, address: Int?, identifier: IdentifierReference?) {
+    private fun assignMemoryByteIntoWord(wordtarget: AsmAssignTarget, address: UInt?, identifier: IdentifierReference?) {
         if (address != null) {
             when(wordtarget.kind) {
                 TargetStorageKind.VARIABLE -> {

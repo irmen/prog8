@@ -16,12 +16,12 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
         memAddr != null -> {
             val addr = memAddr.addressExpression.constValue(definingModule.program)
             if(addr!=null)
-                return machine.isIOAddress(addr.number.toInt())
+                return machine.isIOAddress(addr.number.toUInt())
             return when (memAddr.addressExpression) {
                 is IdentifierReference -> {
                     val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(definingModule.program)
                     val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
-                        machine.isIOAddress((decl.value as NumericLiteralValue).number.toInt())
+                        machine.isIOAddress((decl.value as NumericLiteralValue).number.toUInt())
                     else
                         false
                     result
@@ -34,7 +34,7 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
             return if (targetStmt?.type == VarDeclType.MEMORY) {
                 val addr = targetStmt.value as? NumericLiteralValue
                 if (addr != null)
-                    machine.isIOAddress(addr.number.toInt())
+                    machine.isIOAddress(addr.number.toUInt())
                 else
                     false
             } else false
@@ -42,7 +42,7 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
         ident != null -> {
             val decl = ident.targetVarDecl(definingModule.program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
             return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
-                machine.isIOAddress((decl.value as NumericLiteralValue).number.toInt())
+                machine.isIOAddress((decl.value as NumericLiteralValue).number.toUInt())
             else
                 false
         }

@@ -29,7 +29,7 @@ object Cx16Target: ICompilationTarget {
             in WordDatatypes -> 2
             DataType.FLOAT -> machine.FLOAT_MEM_SIZE
             in PassByReferenceDatatypes -> machine.POINTER_MEM_SIZE
-            else -> -9999999
+            else -> Int.MIN_VALUE
         }
     }
 }

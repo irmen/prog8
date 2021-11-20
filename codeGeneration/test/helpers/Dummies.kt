@@ -23,7 +23,7 @@ internal val DummyFunctions = object : IBuiltinFunctions {
 }
 
 internal val DummyMemsizer = object : IMemSizer {
-    override fun memorySize(dt: DataType): Int = 0
+    override fun memorySize(dt: DataType) = 0
 }
 
 internal val DummyStringEncoder = object : IStringEncoding {

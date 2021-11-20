@@ -18,10 +18,10 @@ interface IMachineDefinition {
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int
     val POINTER_MEM_SIZE: Int
-    val ESTACK_LO: Int
-    val ESTACK_HI: Int
-    val BASIC_LOAD_ADDRESS : Int
-    val RAW_LOAD_ADDRESS : Int
+    val ESTACK_LO: UInt
+    val ESTACK_HI: UInt
+    val BASIC_LOAD_ADDRESS : UInt
+    val RAW_LOAD_ADDRESS : UInt
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage
@@ -32,5 +32,5 @@ interface IMachineDefinition {
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
-    fun isIOAddress(address: Int): Boolean
+    fun isIOAddress(address: UInt): Boolean
 }

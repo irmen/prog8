@@ -279,8 +279,8 @@ open class Module(final override var statements: MutableList<Statement>,
             .substringAfterLast("/")
             .substringAfterLast("\\")
 
-    val loadAddress: Int by lazy {
-        val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0
+    val loadAddress: UInt by lazy {
+        val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0u
         address
     }
 

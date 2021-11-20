@@ -172,14 +172,14 @@ internal class AstChecker(private val program: Program,
         }
 
         val addr = jump.address
-        if(addr!=null && (addr < 0 || addr > 65535))
+        if(addr!=null && addr > 65535u)
             errors.err("jump address must be valid integer 0..\$ffff", jump.position)
         super.visit(jump)
     }
 
     override fun visit(block: Block) {
         val addr = block.address
-        if(addr!=null && (addr<0 || addr>65535)) {
+        if(addr!=null && addr>65535u) {
             errors.err("block memory address must be valid integer 0..\$ffff", block.position)
         }
 

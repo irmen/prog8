@@ -39,8 +39,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                val origAstTarget: AssignTarget? = null
                                )
 {
-    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.indexer?.constIndex() }
+    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toUInt() ?: 0u}
+    val constArrayIndexValue by lazy { array?.indexer?.constIndex()?.toUInt() }
     val asmVarname: String by lazy {
         if (array == null)
             variableAsmName!!
@@ -111,8 +111,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                                val expression: Expression? = null
 )
 {
-    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toInt() ?: 0}
-    val constArrayIndexValue by lazy { array?.indexer?.constIndex() }
+    val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toUInt() ?: 0u}
+    val constArrayIndexValue by lazy { array?.indexer?.constIndex()?.toUInt() }
 
     val asmVarname: String
         get() = if(array==null)

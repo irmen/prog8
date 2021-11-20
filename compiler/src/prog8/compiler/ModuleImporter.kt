@@ -51,7 +51,7 @@ class ModuleImporter(private val program: Program,
 
     fun importLibraryModule(name: String): Module? {
         val import = Directive("%import", listOf(
-                DirectiveArg("", name, 42, position = Position("<<<implicit-import>>>", 0, 0, 0))
+                DirectiveArg("", name, 42u, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
         return executeImportDirective(import, null)
     }

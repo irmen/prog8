@@ -5,6 +5,7 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.collections.shouldNotBeIn
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.ast.base.DataType
@@ -38,13 +39,13 @@ class TestAbstractZeropage: FunSpec({
     }
 
     class DummyZeropage(options: CompilationOptions) : Zeropage(options) {
-        override val SCRATCH_B1: Int = 0x10
-        override val SCRATCH_REG: Int = 0x11
-        override val SCRATCH_W1: Int= 0x20
-        override val SCRATCH_W2: Int = 0x30
+        override val SCRATCH_B1 = 0x10u
+        override val SCRATCH_REG = 0x11u
+        override val SCRATCH_W1 = 0x20u
+        override val SCRATCH_W2 = 0x30u
 
         init {
-            free.addAll(0..255)
+            free.addAll(0u..255u)
 
             removeReservedFromFreePool()
         }
@@ -58,7 +59,7 @@ class TestAbstractZeropage: FunSpec({
                 OutputType.RAW,
                 LauncherType.NONE,
                 ZeropageType.FULL,
-                listOf((0x50..0x5f)),
+                listOf((0x50u..0x5fu)),
                 false,
                 false,
                 compTarget
@@ -156,22 +157,22 @@ class TestC64Zeropage: FunSpec({
     test("testReservedSpace") {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         zp1.availableBytes() shouldBe 238
-        50 shouldBeIn zp1.free
-        100 shouldBeIn zp1.free
-        49 shouldBeIn zp1.free
-        101 shouldBeIn zp1.free
-        200 shouldBeIn zp1.free
-        255 shouldBeIn zp1.free
-        199 shouldBeIn zp1.free
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50 .. 100, 200..255), false, false, C64Target))
+        50u shouldBeIn zp1.free
+        100u shouldBeIn zp1.free
+        49u shouldBeIn zp1.free
+        101u shouldBeIn zp1.free
+        200u shouldBeIn zp1.free
+        255u shouldBeIn zp1.free
+        199u shouldBeIn zp1.free
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, listOf(50u .. 100u, 200u..255u), false, false, C64Target))
         zp2.availableBytes() shouldBe 139
-        50 shouldNotBeIn zp2.free
-        100 shouldNotBeIn zp2.free
-        49 shouldBeIn zp2.free
-        101 shouldBeIn zp2.free
-        200 shouldNotBeIn zp2.free
-        255 shouldNotBeIn zp2.free
-        199 shouldBeIn zp2.free
+        50u shouldNotBeIn zp2.free
+        100u shouldNotBeIn zp2.free
+        49u shouldBeIn zp2.free
+        101u shouldBeIn zp2.free
+        200u shouldNotBeIn zp2.free
+        255u shouldNotBeIn zp2.free
+        199u shouldBeIn zp2.free
     }
 
     test("testBasicsafeAllocation") {
@@ -187,7 +188,7 @@ class TestC64Zeropage: FunSpec({
 
         for (i in 0 until zp.availableBytes()) {
             val loc = zp.allocate("", DataType.UBYTE, null, errors)
-            loc shouldBeGreaterThan 0
+            loc shouldBeGreaterThan 0u
         }
         zp.availableBytes() shouldBe 0
         zp.hasByteAvailable() shouldBe false
@@ -206,7 +207,7 @@ class TestC64Zeropage: FunSpec({
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
         val loc = zp.allocate("", DataType.UWORD, null, errors)
-        loc shouldBeGreaterThan 3
+        loc shouldBeGreaterThan 3u
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
 
@@ -236,25 +237,25 @@ class TestC64Zeropage: FunSpec({
     test("testEfficientAllocation") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, C64Target))
         zp.availableBytes() shouldBe 18
-        zp.allocate("", DataType.WORD, null, errors) shouldBe 0x04
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x06
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0a
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9b
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9e
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xa5
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xb0
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xbe
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0e
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x92
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x96
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0xf9
+        zp.allocate("", DataType.WORD, null, errors) shouldBe 0x04u
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x06u
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0au
+        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9bu
+        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9eu
+        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xa5u
+        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xb0u
+        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xbeu
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0eu
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x92u
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x96u
+        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0xf9u
         zp.availableBytes() shouldBe 0
     }
 
     test("testReservedLocations") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
         withClue("zp _B1 and _REG must be next to each other to create a word") {
-            zp.SCRATCH_B1 + 1 shouldBe zp.SCRATCH_REG
+            zp.SCRATCH_B1 + 1u shouldBe zp.SCRATCH_REG
         }
     }
 })
@@ -266,7 +267,7 @@ class TestCx16Zeropage: FunSpec({
     test("testReservedLocations") {
         val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, Cx16Target))
         withClue("zp _B1 and _REG must be next to each other to create a word") {
-            zp.SCRATCH_B1 + 1 shouldBe zp.SCRATCH_REG
+            zp.SCRATCH_B1 + 1u shouldBe zp.SCRATCH_REG
         }
     }
 
@@ -299,10 +300,10 @@ class TestCx16Zeropage: FunSpec({
     test("testReservedSpace") {
         val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
         zp1.availableBytes() shouldBe 216
-        0x22 shouldBeIn zp1.free
-        0x80 shouldBeIn zp1.free
-        0xff shouldBeIn zp1.free
-        0x02 shouldNotBeIn zp1.free
-        0x21 shouldNotBeIn zp1.free
+        0x22u shouldBeIn zp1.free
+        0x80u shouldBeIn zp1.free
+        0xffu shouldBeIn zp1.free
+        0x02u shouldNotBeIn zp1.free
+        0x21u shouldNotBeIn zp1.free
     }
 })
