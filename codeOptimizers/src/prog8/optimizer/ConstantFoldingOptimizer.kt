@@ -79,7 +79,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         return noModifications
     }
 
-    /**
+    /*
      * Try to constfold a binary expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
      * For instance, "9 * (4 + 2)" will be optimized into the integer literal 54.
@@ -186,12 +186,42 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             }
         }
 
+        val evaluator = ConstExprEvaluator()
+
         // const fold when both operands are a const
         if(leftconst != null && rightconst != null) {
-            val evaluator = ConstExprEvaluator()
             val result = evaluator.evaluate(leftconst, expr.operator, rightconst)
             modifications += IAstModification.ReplaceNode(expr, result, parent)
         }
+
+
+        val leftBinExpr = expr.left as? BinaryExpression
+        val rightBinExpr = expr.right as? BinaryExpression
+        if(expr.operator=="+" || expr.operator=="-") {
+            if(leftBinExpr!=null && rightBinExpr!=null) {
+                val c1 = leftBinExpr.right.constValue(program)
+                val c2 = rightBinExpr.right.constValue(program)
+                if(leftBinExpr.operator=="+" && rightBinExpr.operator=="+") {
+                    if (c1 != null && c2 != null) {
+                        // (X + C1) <plusmin> (Y + C2)  =>  (X <plusmin> Y) + (C1 <plusmin> C2)
+                        val c3 = evaluator.evaluate(c1, expr.operator, c2)
+                        val xwithy = BinaryExpression(leftBinExpr.left, expr.operator, rightBinExpr.left, expr.position)
+                        val newExpr = BinaryExpression(xwithy, "+", c3, expr.position)
+                        modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
+                    }
+                }
+                else if(leftBinExpr.operator=="*" && rightBinExpr.operator=="*"){
+                    if (c1 != null && c2 != null && c1==c2) {
+                        //(X * C) <plusmin> (Y * C)  =>  (X <plusmin> Y) * C
+                        val xwithy = BinaryExpression(leftBinExpr.left, expr.operator, rightBinExpr.left, expr.position)
+                        val newExpr = BinaryExpression(xwithy, "*", c1, expr.position)
+                        modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
+                    }
+                }
+            }
+        }
+
+
 
         return modifications
     }
