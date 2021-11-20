@@ -15,7 +15,6 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
-import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.*
@@ -131,19 +130,19 @@ class TestOptimization: FunSpec({
         val declY2 = mainsub.statements[7] as VarDecl
         val initY2 = mainsub.statements[8] as Assignment
         mainsub.statements[9] shouldBe instanceOf<Return>()
-        (declTest.value as NumericLiteralValue).number.toDouble() shouldBe 10.0
+        (declTest.value as NumericLiteralValue).number shouldBe 10.0
         declX1.value shouldBe null
         declX2.value shouldBe null
         declY1.value shouldBe null
         declY2.value shouldBe null
         (initX1.value as NumericLiteralValue).type shouldBe DataType.BYTE
-        (initX1.value as NumericLiteralValue).number.toDouble() shouldBe 11.0
+        (initX1.value as NumericLiteralValue).number shouldBe 11.0
         (initX2.value as NumericLiteralValue).type shouldBe DataType.BYTE
-        (initX2.value as NumericLiteralValue).number.toDouble() shouldBe 11.0
+        (initX2.value as NumericLiteralValue).number shouldBe 11.0
         (initY1.value as NumericLiteralValue).type shouldBe DataType.UBYTE
-        (initY1.value as NumericLiteralValue).number.toDouble() shouldBe 11.0
+        (initY1.value as NumericLiteralValue).number shouldBe 11.0
         (initY2.value as NumericLiteralValue).type shouldBe DataType.UBYTE
-        (initY2.value as NumericLiteralValue).number.toDouble() shouldBe 11.0
+        (initY2.value as NumericLiteralValue).number shouldBe 11.0
     }
 
     test("typecasted assignment from ubyte logical expressoin to uword var") {
@@ -495,7 +494,8 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target, optimize=false, src, writeAssembly=true).assertSuccess()
-        result.program.entrypoint.statements.size shouldBe 10
+        result.program.entrypoint.statements.size shouldBe 11
+        result.program.entrypoint.statements.last() shouldBe instanceOf<Return>()
     }
 
     test("keep the value initializer assignment if the next one depends on it") {
@@ -512,7 +512,6 @@ class TestOptimization: FunSpec({
         }
         """
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
-        printProgram(result.program)
         /* expected result:
         uword yy
         yy = 20

@@ -100,6 +100,49 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
         }
 
+        val leftBinExpr = binExpr.left as? BinaryExpression
+        val rightBinExpr = binExpr.right as? BinaryExpression
+        if(leftBinExpr!=null && rightBinExpr==null) {
+            if(leftBinExpr.left isSameAs astTarget) {
+                // X = (X <oper> Right) <oper> Something
+                inplaceModification(target, leftBinExpr.operator, leftBinExpr.right)
+                inplaceModification(target, binExpr.operator, binExpr.right)
+                return
+            }
+            if(leftBinExpr.right isSameAs astTarget) {
+                // X = (Left <oper> X) <oper> Something
+                if(leftBinExpr.operator in associativeOperators) {
+                    inplaceModification(target, leftBinExpr.operator, leftBinExpr.left)
+                    inplaceModification(target, binExpr.operator, binExpr.right)
+                    return
+                } else {
+                    throw AssemblyError("operands in wrong order for non-associative operator")
+                }
+            }
+        }
+        if(leftBinExpr==null && rightBinExpr!=null) {
+            if(rightBinExpr.left isSameAs astTarget) {
+                // X = Something <oper> (X <oper> Right)
+                if(binExpr.operator in associativeOperators) {
+                    inplaceModification(target, rightBinExpr.operator, rightBinExpr.right)
+                    inplaceModification(target, binExpr.operator, binExpr.left)
+                    return
+                } else {
+                    throw AssemblyError("operands in wrong order for non-associative operator")
+                }
+            }
+            if(rightBinExpr.right isSameAs astTarget) {
+                // X = Something <oper> (Left <oper> X)
+                if(binExpr.operator in associativeOperators && rightBinExpr.operator in associativeOperators) {
+                    inplaceModification(target, rightBinExpr.operator, rightBinExpr.left)
+                    inplaceModification(target, binExpr.operator, binExpr.left)
+                    return
+                } else {
+                    throw AssemblyError("operands in wrong order for non-associative operator")
+                }
+            }
+        }
+
         throw FatalAstException("assignment should follow augmentable rules $binExpr")
     }
 

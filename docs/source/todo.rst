@@ -3,12 +3,8 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fix "test augmented expression asmgen" unittest  (and textelite compilation)
-
-optimize TODO in "Add assignment to initialize with zero" in StatementReorderer
-optimize TODO in after(assignment) in VariousCleanups
 optimize: add some more constant folders mentioned in test.p8
-optimize: there is an optimizations in AsmOptimizer that can only be done correctly
+optimize: there is an optimization in AsmOptimizer that can only be done correctly
  if it knows about regular ram vs io space ram distinction.
 
 

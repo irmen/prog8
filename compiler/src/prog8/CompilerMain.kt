@@ -66,6 +66,11 @@ private fun compileMain(args: Array<String>): Boolean {
     if(srcdirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
+    if (compilationTarget != C64Target.name && compilationTarget != Cx16Target.name) {
+        System.err.println("Invalid compilation target: $compilationTarget")
+        return false
+    }
+
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
         val allImportedFiles = mutableSetOf<Path>()
