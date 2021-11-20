@@ -302,7 +302,7 @@ class ArrayIndex(var indexExpr: Expression,
     }
 
     fun accept(visitor: IAstVisitor) = indexExpr.accept(visitor)
-    fun accept(visitor: AstWalker, parent: Node)  = indexExpr.accept(visitor, this)
+    fun accept(visitor: AstWalker)  = indexExpr.accept(visitor, this)
 
     override fun toString(): String {
         return("ArrayIndex($indexExpr, pos=$position)")
@@ -353,13 +353,13 @@ open class Assignment(var target: AssignTarget, var value: Expression, final ove
 
                 if(binExpr.operator in "+-") {
                     val leftBinExpr = binExpr.left as? BinaryExpression
-                    if(leftBinExpr!=null && leftBinExpr.operator in "+-") {
+                    val rightBinExpr = binExpr.right as? BinaryExpression
+                    if(rightBinExpr==null && leftBinExpr!=null && leftBinExpr.operator in "+-") {
                         // A = (A +- x) +- y
                         if(leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target || binExpr.right isSameAs target)
                             return true
                     }
-                    val rightBinExpr = binExpr.right as? BinaryExpression
-                    if(rightBinExpr!=null && rightBinExpr.operator in "+-") {
+                    if(leftBinExpr==null && rightBinExpr!=null && rightBinExpr.operator in "+-") {
                         // A = y +- (A +- x)
                         if(rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target || binExpr.left isSameAs target)
                             return true
@@ -371,15 +371,15 @@ open class Assignment(var target: AssignTarget, var value: Expression, final ove
                         return true  // A = v <associative-operator> A
 
                     val leftBinExpr = binExpr.left as? BinaryExpression
-                    if(leftBinExpr?.operator == binExpr.operator) {
+                    val rightBinExpr = binExpr.right as? BinaryExpression
+                    if(leftBinExpr?.operator == binExpr.operator && rightBinExpr==null) {
                         // one of these?
                         // A = (A <associative-operator> x) <same-operator> y
                         // A = (x <associative-operator> A) <same-operator> y
                         // A = (x <associative-operator> y) <same-operator> A
                         return leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target || binExpr.right isSameAs target
                     }
-                    val rightBinExpr = binExpr.right as? BinaryExpression
-                    if(rightBinExpr?.operator == binExpr.operator) {
+                    if(rightBinExpr?.operator == binExpr.operator && leftBinExpr==null) {
                         // one of these?
                         // A = y <associative-operator> (A <same-operator> x)
                         // A = y <associative-operator> (x <same-operator> y)

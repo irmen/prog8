@@ -235,7 +235,7 @@ abstract class AstWalker {
     fun visit(decl: VarDecl, parent: Node) {
         track(before(decl, parent), decl, parent)
         decl.value?.accept(this, decl)
-        decl.arraysize?.accept(this, decl)
+        decl.arraysize?.accept(this)
         track(after(decl, parent), decl, parent)
     }
 
@@ -375,7 +375,7 @@ abstract class AstWalker {
     fun visit(arrayIndexedExpression: ArrayIndexedExpression, parent: Node) {
         track(before(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
         arrayIndexedExpression.arrayvar.accept(this, arrayIndexedExpression)
-        arrayIndexedExpression.indexer.accept(this, arrayIndexedExpression)
+        arrayIndexedExpression.indexer.accept(this)
         track(after(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
     }
 
