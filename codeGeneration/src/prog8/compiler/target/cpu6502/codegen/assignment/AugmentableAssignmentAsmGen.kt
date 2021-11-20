@@ -2000,9 +2000,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out("  sta  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1")
-                            RegisterOrPair.X -> asmgen.out("  stx  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1 |  tax")
-                            RegisterOrPair.Y -> asmgen.out("  sty  P8ZP_SCRATCH_B1 |  lda  #0 |  sec |  sbc  P8ZP_SCRATCH_B1 |  tay")
+                            RegisterOrPair.A -> asmgen.out("  eor  #255 |  clc |  adc  #1")
+                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax |  inx")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay |  iny")
                             else -> throw AssemblyError("invalid reg dt for byte negate")
                         }
                     }
