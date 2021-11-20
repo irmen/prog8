@@ -455,4 +455,21 @@ class TestOptimization: FunSpec({
         errors.errors[0] shouldContain  "type of value BYTE doesn't match target UBYTE"
         errors.errors[1] shouldContain "value '-1' out of range for unsigned byte"
     }
+
+    test("test augmented expression asmgen") {
+        val src = """
+        main {
+            sub start() {
+                ubyte c
+                ubyte r
+                ubyte q
+                r = (q+r)-c
+                q=r
+                r = q+(r-c)
+                q=r
+            }
+        }"""
+        val result = compileText(C64Target, optimize=false, src, writeAssembly=true).assertSuccess()
+        result.program.entrypoint.statements.size shouldBe 10
+    }
 })

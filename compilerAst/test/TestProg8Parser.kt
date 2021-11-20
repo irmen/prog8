@@ -742,13 +742,10 @@ class TestProg8Parser: FunSpec( {
                     r = not q   ; #9 no
                     r = (q+r)+5 ; #10 yes
                     r = q+(r+5) ; #11 yes
-                    r = (q+r)-5 ; #12 yes            TODO FIX THIS ONE
-                    r = q+(r-5) ; #13 yes            TODO FIX THIS ONE
+                    r = (q+r)-5 ; #12 yes
+                    r = q+(r-5) ; #13 yes
                 }
             }""")
-
-        // TODO fix augmented result for the above mentioned assignments
-        // TODO certain typecast expressions are also augmentable?? what does this even mean, and does the generated code make a difference???
 
         val module = parseModule(src)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -766,7 +763,7 @@ class TestProg8Parser: FunSpec( {
         for((idx, pp) in stmts.drop(2).zip(expectedResults).withIndex()) {
             val assign = pp.first as Assignment
             val expected = pp.second
-            withClue("#${idx+1}: should be augmentable but isn't : $assign") {
+            withClue("#${idx+1}: should${if(expected) "" else "n't"} be augmentable: $assign") {
                 assign.isAugmentable shouldBe expected
                 assign.value shouldBe (instanceOf<PrefixExpression>() or instanceOf<BinaryExpression>() or instanceOf<TypecastExpression>())
             }

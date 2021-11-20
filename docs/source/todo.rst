@@ -3,13 +3,16 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-BUG: fix "assignment isAugmented correctness" test
+fix "test augmented expression asmgen" unittest  (and textelite compilation)
+
+TODO certain typecast expressions are also augmentable?? what does this even mean, and does the generated code make a difference???
 
 optimize TODO in "Add assignment to initialize with zero" in StatementReorderer
 optimize TODO in after(assignment) in VariousCleanups
 optimize: add some more constant folders mentioned in test.p8
 optimize: there is an optimizations in AsmOptimizer that can only be done correctly
  if it knows about regular ram vs io space ram distinction.
+
 
 
 Blocked by an official Commander-x16 v39 release
@@ -21,6 +24,7 @@ Blocked by an official Commander-x16 v39 release
 Future
 ^^^^^^
 - use UByte instead of Short
+- rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - remove special code generation for while and util expression
   by rewriting while and until expressions into if+jump (just consider them syntactic sugar)

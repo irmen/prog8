@@ -49,7 +49,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
                     return noModifications
 
-                if(binExpr.right.isSimple && !assignment.isAugmentable) {
+                if(binExpr.right.isSimple) {
                     val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)

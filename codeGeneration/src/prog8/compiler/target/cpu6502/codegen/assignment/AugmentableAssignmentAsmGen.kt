@@ -100,7 +100,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
         }
 
-        throw FatalAstException("assignment should be augmentable $binExpr")
+        throw FatalAstException("assignment should follow augmentable rules $binExpr")
     }
 
     private fun inplaceModification(target: AsmAssignTarget, operator: String, origValue: Expression) {

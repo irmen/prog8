@@ -351,6 +351,21 @@ open class Assignment(var target: AssignTarget, var value: Expression, final ove
                 if(binExpr.left isSameAs target)
                     return true  // A = A <operator> Something
 
+                if(binExpr.operator in "+-") {
+                    val leftBinExpr = binExpr.left as? BinaryExpression
+                    if(leftBinExpr!=null && leftBinExpr.operator in "+-") {
+                        // A = (A +- x) +- y
+                        if(leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target || binExpr.right isSameAs target)
+                            return true
+                    }
+                    val rightBinExpr = binExpr.right as? BinaryExpression
+                    if(rightBinExpr!=null && rightBinExpr.operator in "+-") {
+                        // A = y +- (A +- x)
+                        if(rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target || binExpr.left isSameAs target)
+                            return true
+                    }
+                }
+
                 if(binExpr.operator in associativeOperators) {
                     if (binExpr.left !is BinaryExpression && binExpr.right isSameAs target)
                         return true  // A = v <associative-operator> A
