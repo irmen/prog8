@@ -355,14 +355,26 @@ class StatementOptimizer(private val program: Program,
             throw FatalAstException("can't infer type of assignment target")
 
         // optimize binary expressions a bit
-        val targetDt = targetIDt.getOr(DataType.UNDEFINED)
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
             val rightCv = bexpr.right.constValue(program)?.number
+            if(bexpr.operator=="-" && rightCv==null) {
+                if(bexpr.right isSameAs assignment.target) {
+                    // X = value - X  -->  X = -X ; X += value  (to avoid need of stack-evaluation)
+                    val negation = PrefixExpression("-", bexpr.right.copy(), bexpr.position)
+                    val addValue = Assignment(assignment.target.copy(), BinaryExpression(bexpr.right, "+", bexpr.left, bexpr.position), assignment.position)
+                    return listOf(
+                        IAstModification.ReplaceNode(bexpr, negation, assignment),
+                        IAstModification.InsertAfter(assignment, addValue, parent as IStatementContainer)
+                    )
+                }
+            }
+
             if (rightCv != null && assignment.target isSameAs bexpr.left) {
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)
                 // optimize/rewrite some other expressions
+                val targetDt = targetIDt.getOr(DataType.UNDEFINED)
                 val vardeclDt = (assignment.target.identifier?.targetVarDecl(program))?.type
                 when (bexpr.operator) {
                     "+" -> {
