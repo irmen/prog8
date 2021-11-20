@@ -210,6 +210,15 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                         modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
                     }
                 }
+                else if(leftBinExpr.operator=="-" && rightBinExpr.operator=="-") {
+                    if (c1 != null && c2 != null) {
+                        // (X - C1) <plusmin> (Y - C2)  =>  (X <plusmin> Y) - (C1 <plusmin> C2)
+                        val c3 = evaluator.evaluate(c1, expr.operator, c2)
+                        val xwithy = BinaryExpression(leftBinExpr.left, expr.operator, rightBinExpr.left, expr.position)
+                        val newExpr = BinaryExpression(xwithy, "-", c3, expr.position)
+                        modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
+                    }
+                }
                 else if(leftBinExpr.operator=="*" && rightBinExpr.operator=="*"){
                     if (c1 != null && c2 != null && c1==c2) {
                         //(X * C) <plusmin> (Y * C)  =>  (X <plusmin> Y) * C
