@@ -508,7 +508,7 @@ internal class AstChecker(private val program: Program,
         fun err(msg: String) = errors.err(msg, decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
-        if(decl.value?.referencesIdentifier(decl.name) == true || decl.arraysize?.indexExpr?.referencesIdentifier(decl.name) == true)
+        if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
             err("recursive var declaration")
 
         // CONST can only occur on simple types (byte, word, float)

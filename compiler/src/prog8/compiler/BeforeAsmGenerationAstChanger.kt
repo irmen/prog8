@@ -40,7 +40,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
 
             if (binExpr != null && binExpr.operator !in comparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
-                    if (binExpr.right.referencesIdentifier(*assignment.target.identifier!!.nameInSource.toTypedArray())) {
+                    if (binExpr.right.referencesIdentifier(assignment.target.identifier!!.nameInSource)) {
                         // the right part of the expression contains the target variable itself.
                         // we can't 'split' it trivially because the variable will be changed halfway through.
                         if(binExpr.operator in associativeOperators) {

@@ -15,6 +15,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
+import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.*
@@ -344,9 +345,15 @@ class TestOptimization: FunSpec({
                     ubyte @shared z1
                     z1 = 10
                     ubyte @shared z2
-                    z2 = z1+z2+5      
+                    z2 = ~z2
                     ubyte @shared z3
-                    z3 = z1+z3-5      
+                    z3 = not z3
+                    uword @shared z4
+                    z4 = (z4 as ubyte)
+                    ubyte @shared z5
+                    z5 = z1+z5+5
+                    ubyte @shared z6
+                    z6 = z1+z6-5
                 }
             }"""
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
@@ -354,35 +361,53 @@ class TestOptimization: FunSpec({
         ubyte z1
         z1 = 10
         ubyte z2
-        z2 = z1
-        z2 += 5
+        z2 = 255
         ubyte z3
-        z3 = z1
-        z3 -= 5
-         */
+        z3 = 1
+        uword z4
+        z4 = 0
+        ubyte z5
+        z5 = z1
+        z5 += 5
+        ubyte z6
+        z6 = z1
+        z6 -= 5
+        */
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 8
+        statements.size shouldBe 14
         val z1decl = statements[0] as VarDecl
         val z1init = statements[1] as Assignment
         val z2decl = statements[2] as VarDecl
         val z2init = statements[3] as Assignment
-        val z2plus = statements[4] as Assignment
-        val z3decl = statements[5] as VarDecl
-        val z3init = statements[6] as Assignment
-        val z3plus = statements[7] as Assignment
+        val z3decl = statements[4] as VarDecl
+        val z3init = statements[5] as Assignment
+        val z4decl = statements[6] as VarDecl
+        val z4init = statements[7] as Assignment
+        val z5decl = statements[8] as VarDecl
+        val z5init = statements[9] as Assignment
+        val z5plus = statements[10] as Assignment
+        val z6decl = statements[11] as VarDecl
+        val z6init = statements[12] as Assignment
+        val z6plus = statements[13] as Assignment
 
         z1decl.name shouldBe "z1"
         z1init.value shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
         z2decl.name shouldBe "z2"
-        z2init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
-        z2plus.isAugmentable shouldBe true
-        (z2plus.value as BinaryExpression).operator shouldBe "+"
-        (z2plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        z2init.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
         z3decl.name shouldBe "z3"
-        z3init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
-        z3plus.isAugmentable shouldBe true
-        (z3plus.value as BinaryExpression).operator shouldBe "-"
-        (z3plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        z3init.value shouldBe NumericLiteralValue(DataType.UBYTE, 1.0, Position.DUMMY)
+        z4decl.name shouldBe "z4"
+        z4init.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+        z5decl.name shouldBe "z5"
+        z5init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        z5plus.isAugmentable shouldBe true
+        (z5plus.value as BinaryExpression).operator shouldBe "+"
+        (z5plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        z6decl.name shouldBe "z6"
+        z6init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        z6plus.isAugmentable shouldBe true
+        (z6plus.value as BinaryExpression).operator shouldBe "-"
+        (z6plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
     }
 
     test("force_output option should work with optimizing memwrite assignment") {
@@ -471,5 +496,36 @@ class TestOptimization: FunSpec({
         }"""
         val result = compileText(C64Target, optimize=false, src, writeAssembly=true).assertSuccess()
         result.program.entrypoint.statements.size shouldBe 10
+    }
+
+    test("keep the value initializer assignment if the next one depends on it") {
+        val src="""
+        main {
+            sub start() {
+                uword @shared yy
+                yy = 20             ; ok to remove =0 initializer before this
+                uword @shared zz
+                zz += 60            ; NOT ok to remove initializer, should evaluate to 60
+                ubyte @shared xx
+                xx = 6+sin8u(xx)     ; NOT ok to remove initializer
+            }
+        }
+        """
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printProgram(result.program)
+        /* expected result:
+        uword yy
+        yy = 20
+        uword zz
+        zz = 60
+        ubyte xx
+        xx = 0
+        xx = sin8u(xx)
+        xx += 6
+         */
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 8
+        stmts.filterIsInstance<VarDecl>().size shouldBe 3
+        stmts.filterIsInstance<Assignment>().size shouldBe 5
     }
 })

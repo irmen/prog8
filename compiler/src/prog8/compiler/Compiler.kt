@@ -351,7 +351,7 @@ private fun writeAssembly(program: Program,
     }
 }
 
-fun printAst(program: Program) {
+fun printProgram(program: Program) {
     println()
     val printer = AstToSourceTextConverter(::print, program)
     printer.visit(program)

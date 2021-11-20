@@ -22,7 +22,7 @@ sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteralValue?
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
-    abstract fun referencesIdentifier(vararg scopedName: String): Boolean
+    abstract fun referencesIdentifier(nameInSource: List<String>): Boolean
     abstract fun inferType(program: Program): InferredTypes.InferredType
     abstract val isSimple: Boolean
 
@@ -123,7 +123,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = expression.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program): InferredTypes.InferredType {
         val inferred = expression.inferType(program)
         return when(operator) {
@@ -183,7 +183,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = left.referencesIdentifier(*scopedName) || right.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>) = left.referencesIdentifier(nameInSource) || right.referencesIdentifier(nameInSource)
     override fun inferType(program: Program): InferredTypes.InferredType {
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
@@ -300,7 +300,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = arrayvar.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>) = arrayvar.referencesIdentifier(nameInSource)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val target = arrayvar.targetStatement(program)
@@ -341,7 +341,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = expression.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteralValue? {
         val cv = expression.constValue(program) ?: return null
@@ -378,7 +378,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
 
     override fun copy() = AddressOf(identifier.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? = null
-    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -404,7 +404,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun referencesIdentifier(nameInSource: List<String>) = addressExpression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
     override fun constValue(program: Program): NumericLiteralValue? = null
 
@@ -472,7 +472,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
         throw FatalAstException("can't replace here")
     }
 
-    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program) = this
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -579,7 +579,7 @@ class CharLiteral(val value: Char,
     }
 
     override fun copy() = CharLiteral(value, altEncoding, position)
-    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program): NumericLiteralValue {
         val bytevalue = program.encoding.encodeString(value.toString(), altEncoding).single()
         return NumericLiteralValue(DataType.UBYTE, bytevalue.toDouble(), position)
@@ -614,7 +614,7 @@ class StringLiteralValue(val value: String,
         throw FatalAstException("can't replace here")
     }
 
-    override fun referencesIdentifier(vararg scopedName: String) = false
+    override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -650,7 +650,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         replacement.parent = this
     }
 
-    override fun referencesIdentifier(vararg scopedName: String) = value.any { it.referencesIdentifier(*scopedName) }
+    override fun referencesIdentifier(nameInSource: List<String>) = value.any { it.referencesIdentifier(nameInSource) }
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -757,7 +757,7 @@ class RangeExpr(var from: Expression,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String): Boolean  = from.referencesIdentifier(*scopedName) || to.referencesIdentifier(*scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean  = from.referencesIdentifier(nameInSource) || to.referencesIdentifier(nameInSource)
     override fun inferType(program: Program): InferredTypes.InferredType {
         val fromDt=from.inferType(program)
         val toDt=to.inferType(program)
@@ -829,8 +829,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String): Boolean =
-            nameInSource.size==scopedName.size && nameInSource.toTypedArray().contentEquals(scopedName)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = this.nameInSource==nameInSource
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program)) {
@@ -899,7 +898,7 @@ class FunctionCall(override var target: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(vararg scopedName: String): Boolean = target.referencesIdentifier(*scopedName) || args.any{it.referencesIdentifier(*scopedName)}
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val constVal = constValue(program ,false)

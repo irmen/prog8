@@ -5,8 +5,6 @@ For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 fix "test augmented expression asmgen" unittest  (and textelite compilation)
 
-TODO certain typecast expressions are also augmentable?? what does this even mean, and does the generated code make a difference???
-
 optimize TODO in "Add assignment to initialize with zero" in StatementReorderer
 optimize TODO in after(assignment) in VariousCleanups
 optimize: add some more constant folders mentioned in test.p8

@@ -12,7 +12,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
-import prog8.compiler.printAst
+import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
@@ -144,7 +144,7 @@ class TestMemory: FunSpec({
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        printAst(target.definingModule.program)
+        printProgram(target.definingModule.program)
         target.isIOAddress(C64Target.machine) shouldBe true
     }
 

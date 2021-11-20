@@ -1,11 +1,9 @@
 package prog8.optimizer
 
 import prog8.ast.*
+import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.FunctionCall
-import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -58,8 +56,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
-        val removeDoubleAssignments = deduplicateAssignments(scope.statements)
-        return removeDoubleAssignments.map { IAstModification.Remove(it, scope) }
+        return deduplicateAssignments(scope.statements, scope)
     }
 
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
@@ -75,8 +72,7 @@ class UnusedCodeRemover(private val program: Program,
             }
         }
 
-        val removeDoubleAssignments = deduplicateAssignments(block.statements)
-        return removeDoubleAssignments.map { IAstModification.Remove(it, block) }
+        return deduplicateAssignments(block.statements, block)
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
@@ -99,8 +95,7 @@ class UnusedCodeRemover(private val program: Program,
             }
         }
 
-        val removeDoubleAssignments = deduplicateAssignments(subroutine.statements)
-        return removeDoubleAssignments.map { IAstModification.Remove(it, subroutine) }
+        return deduplicateAssignments(subroutine.statements, subroutine)
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -135,28 +130,117 @@ class UnusedCodeRemover(private val program: Program,
         return noModifications
     }
 
-    private fun deduplicateAssignments(statements: List<Statement>): List<Assignment> {
+    private fun deduplicateAssignments(statements: List<Statement>, scope: IStatementContainer): List<IAstModification> {
         // removes 'duplicate' assignments that assign the same target directly after another
         val linesToRemove = mutableListOf<Assignment>()
+        val modifications = mutableListOf<IAstModification>()
 
-        for (stmtPairs in statements.windowed(2, step = 1)) {
-            val assign1 = stmtPairs[0] as? Assignment
-            val assign2 = stmtPairs[1] as? Assignment
-            if (assign1 != null && assign2 != null && !assign2.isAugmentable) {
-                if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget.machine))  {
-                    if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(*(assign2.target.identifier!!.nameInSource.toTypedArray())))
-                        // only remove the second assignment if its value is a simple expression!
-                        when(assign2.value) {
-                            is PrefixExpression,
-                            is BinaryExpression,
-                            is TypecastExpression,
-                            is FunctionCall -> { /* don't remove */ }
-                            else -> linesToRemove.add(assign1)
-                        }
+        fun substituteZeroInBinexpr(expr: BinaryExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+            if(expr.left isSameAs assign2.target) {
+                // X = X <oper> Right
+                linesToRemove.add(assign1)
+                modifications.add(IAstModification.ReplaceNode(
+                    expr.left, zero, expr
+                ))
+            }
+            if(expr.right isSameAs assign2.target) {
+                // X = Left <oper> X
+                linesToRemove.add(assign1)
+                modifications.add(IAstModification.ReplaceNode(
+                    expr.right, zero, expr
+                ))
+            }
+            val leftBinExpr = expr.left as? BinaryExpression
+            val rightBinExpr = expr.right as? BinaryExpression
+            if(leftBinExpr!=null && rightBinExpr==null) {
+                if(leftBinExpr.left isSameAs assign2.target) {
+                    // X = (X <oper> Right) <oper> Something
+                    linesToRemove.add(assign1)
+                    modifications.add(IAstModification.ReplaceNode(
+                        leftBinExpr.left, zero, leftBinExpr
+                    ))
+                }
+                if(leftBinExpr.right isSameAs assign2.target) {
+                    // X = (Left <oper> X) <oper> Something
+                    linesToRemove.add(assign1)
+                    modifications.add(IAstModification.ReplaceNode(
+                        leftBinExpr.right, zero, leftBinExpr
+                    ))
+                }
+            }
+            if(leftBinExpr==null && rightBinExpr!=null) {
+                if(rightBinExpr.left isSameAs assign2.target) {
+                    // X = Something <oper> (X <oper> Right)
+                    linesToRemove.add(assign1)
+                    modifications.add(IAstModification.ReplaceNode(
+                        rightBinExpr.left, zero, rightBinExpr
+                    ))
+                }
+                if(rightBinExpr.right isSameAs assign2.target) {
+                    // X = Something <oper> (Left <oper> X)
+                    linesToRemove.add(assign1)
+                    modifications.add(IAstModification.ReplaceNode(
+                        rightBinExpr.right, zero, rightBinExpr
+                    ))
                 }
             }
         }
 
-        return linesToRemove
+        fun substituteZeroInPrefixexpr(expr: PrefixExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+            if(expr.expression isSameAs assign2.target) {
+                linesToRemove.add(assign1)
+                modifications.add(IAstModification.ReplaceNode(
+                    expr.expression, zero, expr
+                ))
+            }
+        }
+
+        fun substituteZeroInTypecast(expr: TypecastExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+            if(expr.expression isSameAs assign2.target) {
+                linesToRemove.add(assign1)
+                modifications.add(IAstModification.ReplaceNode(
+                    expr.expression, zero, expr
+                ))
+            }
+            val subCast = expr.expression as? TypecastExpression
+            if(subCast!=null && subCast.expression isSameAs assign2.target) {
+                linesToRemove.add(assign1)
+                modifications.add(IAstModification.ReplaceNode(
+                    subCast.expression, zero, subCast
+                ))
+            }
+        }
+
+        for (stmtPairs in statements.windowed(2, step = 1)) {
+            val assign1 = stmtPairs[0] as? Assignment
+            val assign2 = stmtPairs[1] as? Assignment
+            if (assign1 != null && assign2 != null) {
+                val cvalue1 = assign1.value.constValue(program)
+                if(cvalue1!=null && cvalue1.number==0.0 && assign2.isAugmentable) {
+                    val value2 = assign2.value
+                    val zero = VarDecl.defaultZero(value2.inferType(program).getOr(DataType.UNDEFINED), value2.position)
+                    when(value2) {
+                        is BinaryExpression -> substituteZeroInBinexpr(value2, zero, assign1, assign2)
+                        is PrefixExpression -> substituteZeroInPrefixexpr(value2, zero, assign1, assign2)
+                        is TypecastExpression -> substituteZeroInTypecast(value2, zero, assign1, assign2)
+                        else -> {}
+                    }
+                } else {
+                    if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget.machine))  {
+                        if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(assign2.target.identifier!!.nameInSource))
+                            // only remove the second assignment if its value is a simple expression!
+                            when(assign2.value) {
+                                is PrefixExpression,
+                                is BinaryExpression,
+                                is TypecastExpression,
+                                is FunctionCall -> { /* don't remove */ }
+                                else -> linesToRemove.add(assign1)
+                            }
+                    }
+                }
+            }
+        }
+
+        return modifications + linesToRemove.map { IAstModification.Remove(it, scope) }
     }
 }
