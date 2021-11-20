@@ -297,7 +297,7 @@ class AsmGen(private val program: Program,
             DataType.FLOAT -> out("$name\t.byte  0,0,0,0,0  ; float")
             DataType.STR -> {
                 val str = decl.value as StringLiteralValue
-                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0))
+                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte()))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -393,7 +393,7 @@ class AsmGen(private val program: Program,
                 .filter {it.datatype == DataType.STR }
                 .map {
                     val str = it.value as StringLiteralValue
-                    it to compTarget.encodeString(str.value, str.altEncoding).plus(0)
+                    it to compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte())
                 }
         for((decl, variables) in encodedstringVars) {
             outputStringvar(decl, variables)
@@ -410,7 +410,7 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private fun outputStringvar(strdecl: VarDecl, bytes: List<Short>) {
+    private fun outputStringvar(strdecl: VarDecl, bytes: List<UByte>) {
         val sv = strdecl.value as StringLiteralValue
         val altEncoding = if(sv.altEncoding) "@" else ""
         out("${strdecl.name}\t; ${strdecl.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")

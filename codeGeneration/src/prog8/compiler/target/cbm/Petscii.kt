@@ -1065,15 +1065,15 @@ object Petscii {
             else -> chr
         }
 
-    fun encodePetscii(text: String, lowercase: Boolean = false): Result<List<Short>, CharConversionException> {
-        fun encodeChar(chr3: Char, lowercase: Boolean): Short {
+    fun encodePetscii(text: String, lowercase: Boolean = false): Result<List<UByte>, CharConversionException> {
+        fun encodeChar(chr3: Char, lowercase: Boolean): UByte {
             val chr = replaceSpecial(chr3)
             val screencode = if(lowercase) encodingPetsciiLowercase[chr] else encodingPetsciiUppercase[chr]
-            return screencode?.toShort() ?: when (chr) {
-                '\u0000' -> 0.toShort()
+            return screencode?.toUByte() ?: when (chr) {
+                '\u0000' -> 0u
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (chr.code - 0x8000).toShort()
+                    (chr.code - 0x8000).toUByte()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
@@ -1095,7 +1095,7 @@ object Petscii {
         }
     }
 
-    fun decodePetscii(petscii: Iterable<Short>, lowercase: Boolean = false): String {
+    fun decodePetscii(petscii: Iterable<UByte>, lowercase: Boolean = false): String {
         return petscii.map {
             val code = it.toInt()
             if(code<0 || code>= decodingPetsciiLowercase.size)
@@ -1104,15 +1104,15 @@ object Petscii {
         }.joinToString("")
     }
 
-    fun encodeScreencode(text: String, lowercase: Boolean = false): Result<List<Short>, CharConversionException> {
-        fun encodeChar(chr3: Char, lowercase: Boolean): Short {
+    fun encodeScreencode(text: String, lowercase: Boolean = false): Result<List<UByte>, CharConversionException> {
+        fun encodeChar(chr3: Char, lowercase: Boolean): UByte {
             val chr = replaceSpecial(chr3)
             val screencode = if(lowercase) encodingScreencodeLowercase[chr] else encodingScreencodeUppercase[chr]
-            return screencode?.toShort() ?: when (chr) {
-                '\u0000' -> 0.toShort()
+            return screencode?.toUByte() ?: when (chr) {
+                '\u0000' -> 0u
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
-                    (chr.code - 0x8000).toShort()
+                    (chr.code - 0x8000).toUByte()
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
@@ -1134,7 +1134,7 @@ object Petscii {
         }
     }
 
-    fun decodeScreencode(screencode: Iterable<Short>, lowercase: Boolean = false): String {
+    fun decodeScreencode(screencode: Iterable<UByte>, lowercase: Boolean = false): String {
         return screencode.map {
             val code = it.toInt()
             if(code<0 || code>= decodingScreencodeLowercase.size)
@@ -1143,38 +1143,37 @@ object Petscii {
         }.joinToString("")
     }
 
-    fun petscii2scr(petscii_code: Short, inverseVideo: Boolean): Result<Short, CharConversionException> {
-        val code = when {
-            petscii_code < 0 -> return Err(CharConversionException("petscii code out of range"))
-            petscii_code <= 0x1f -> petscii_code + 128
-            petscii_code <= 0x3f -> petscii_code.toInt()
-            petscii_code <= 0x5f -> petscii_code - 64
-            petscii_code <= 0x7f -> petscii_code - 32
-            petscii_code <= 0x9f -> petscii_code + 64
-            petscii_code <= 0xbf -> petscii_code - 64
-            petscii_code <= 0xfe -> petscii_code - 128
-            petscii_code == 255.toShort() -> 95
+    fun petscii2scr(petscii_code: UByte, inverseVideo: Boolean): Result<UByte, CharConversionException> {
+        val code: UInt = when {
+            petscii_code <= 0x1fu -> petscii_code + 128u
+            petscii_code <= 0x3fu -> petscii_code.toUInt()
+            petscii_code <= 0x5fu -> petscii_code - 64u
+            petscii_code <= 0x7fu -> petscii_code - 32u
+            petscii_code <= 0x9fu -> petscii_code + 64u
+            petscii_code <= 0xbfu -> petscii_code - 64u
+            petscii_code <= 0xfeu -> petscii_code - 128u
+            petscii_code == 255.toUByte() -> 95u
             else -> return Err(CharConversionException("petscii code out of range"))
         }
-        if(inverseVideo)
-            return Ok((code or 0x80).toShort())
-        return Ok(code.toShort())
+        if(inverseVideo) {
+            return Ok((code or 0x80u).toUByte())
+        }
+        return Ok(code.toUByte())
     }
 
-    fun scr2petscii(screencode: Short): Result<Short, CharConversionException> {
-        val petscii = when {
-            screencode < 0 -> return Err(CharConversionException("screencode out of range"))
-            screencode <= 0x1f -> screencode + 64
-            screencode <= 0x3f -> screencode.toInt()
-            screencode <= 0x5d -> screencode +123
-            screencode == 0x5e.toShort() -> 255
-            screencode == 0x5f.toShort() -> 223
-            screencode <= 0x7f -> screencode + 64
-            screencode <= 0xbf -> screencode - 128
-            screencode <= 0xfe -> screencode - 64
-            screencode == 255.toShort() -> 191
+    fun scr2petscii(screencode: UByte): Result<UByte, CharConversionException> {
+        val petscii: UInt = when {
+            screencode <= 0x1fu -> screencode + 64u
+            screencode <= 0x3fu -> screencode.toUInt()
+            screencode <= 0x5du -> screencode +123u
+            screencode == 0x5e.toUByte() -> 255u
+            screencode == 0x5f.toUByte() -> 223u
+            screencode <= 0x7fu -> screencode + 64u
+            screencode <= 0xbfu -> screencode - 128u
+            screencode <= 0xfeu -> screencode - 64u
+            screencode == 255.toUByte() -> 191u
             else -> return Err(CharConversionException("screencode out of range"))
         }
-        return Ok(petscii.toShort())
+        return Ok(petscii.toUByte())
     }
 }

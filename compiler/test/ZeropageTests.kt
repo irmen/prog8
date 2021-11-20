@@ -23,11 +23,11 @@ class TestAbstractZeropage: FunSpec({
         override val machine: IMachineDefinition
             get() = throw NotImplementedError("dummy")
 
-        override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+        override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
             throw NotImplementedError("dummy")
         }
 
-        override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
+        override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
             throw NotImplementedError("dummy")
         }
 

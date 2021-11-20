@@ -26,19 +26,19 @@ internal val DummyMemsizer = object : IMemSizer {
 }
 
 internal val DummyStringEncoder = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
         return emptyList()
     }
 
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
+    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
         return ""
     }
 }
 
 internal val AsciiStringEncoder = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> = str.map { it.code.toShort() }
+    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> = str.map { it.code.toUByte() }
 
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean): String {
+    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
         return bytes.joinToString()
     }
 }

@@ -113,12 +113,8 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             "not" -> NumericLiteralValue.fromBoolean(constval.number == 0.0, constval.position)
             else -> throw FatalAstException("invalid operator")
         }
-        return if(converted==null)
-            null
-        else {
-            converted.linkParents(this.parent)
-            converted
-        }
+        converted.linkParents(this.parent)
+        return converted
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)

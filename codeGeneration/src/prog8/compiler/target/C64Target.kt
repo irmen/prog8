@@ -13,14 +13,14 @@ import prog8.compilerinterface.ICompilationTarget
 object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition
-    override fun encodeString(str: String, altEncoding: Boolean): List<Short> {
+    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
         val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(
             failure = { throw it },
             success = { it }
         )
     }
-    override fun decodeString(bytes: List<Short>, altEncoding: Boolean) =
+    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean) =
         if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
 
     override fun memorySize(dt: DataType): Int {
