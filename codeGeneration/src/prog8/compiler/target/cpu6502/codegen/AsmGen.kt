@@ -87,7 +87,7 @@ class AsmGen(private val program: Program,
             assemblyLines.addAll(outputFile.readLines())
             var optimizationsDone = 1
             while (optimizationsDone > 0) {
-                optimizationsDone = optimizeAssembly(assemblyLines)
+                optimizationsDone = optimizeAssembly(assemblyLines, options.compTarget.machine)
             }
             outputFile.printWriter().use {
                 for (line in assemblyLines) { it.println(line) }

@@ -3,9 +3,7 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-optimize: there is an optimization in AsmOptimizer that can only be done correctly
- if it knows about regular ram vs io space ram distinction.
-
+...
 
 
 Blocked by an official Commander-x16 v39 release

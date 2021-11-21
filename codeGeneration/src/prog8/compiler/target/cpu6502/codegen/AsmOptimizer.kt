@@ -1,10 +1,12 @@
 package prog8.compiler.target.cpu6502.codegen
 
+import prog8.compilerinterface.IMachineDefinition
+
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
-fun optimizeAssembly(lines: MutableList<String>): Int {
+fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition): Int {
 
     var numberOfOptimizations = 0
 
@@ -31,7 +33,7 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
         numberOfOptimizations++
     }
 
-    mods = optimizeStoreLoadSame(linesByFour)
+    mods = optimizeStoreLoadSame(linesByFour, machine)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
@@ -46,7 +48,7 @@ fun optimizeAssembly(lines: MutableList<String>): Int {
     }
 
     var linesByFourteen = getLinesBy(lines, 14)
-    mods = optimizeSameAssignments(linesByFourteen)
+    mods = optimizeSameAssignments(linesByFourteen, machine)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
@@ -111,9 +113,9 @@ private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<S
     return mods
 }
 
-private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition): List<Modification> {
 
-    // Optimize sequential assignments of the isSameAs value to various targets (bytes, words, floats)
+    // Optimize sequential assignments of the same value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
     // The better place to do this is in the Compiler instead and never create these types of assembly, but hey
 
@@ -135,9 +137,13 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val thirdvalue = fifth.substring(4)
             val fourthvalue = sixth.substring(4)
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
-                // lda/ldy   sta/sty   twice the isSameAs word -->  remove second lda/ldy pair (fifth and sixth lines)
-                mods.add(Modification(lines[4].index, true, null))
-                mods.add(Modification(lines[5].index, true, null))
+                // lda/ldy   sta/sty   twice the same word -->  remove second lda/ldy pair (fifth and sixth lines)
+                val address1 = getAddressArg(first)
+                val address2 = getAddressArg(second)
+                if(address1==null || address2==null || (!machine.isIOAddress(address1) && !machine.isIOAddress(address2))) {
+                    mods.add(Modification(lines[4].index, true, null))
+                    mods.add(Modification(lines[5].index, true, null))
+                }
             }
         }
 
@@ -145,8 +151,10 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val firstvalue = first.substring(4)
             val secondvalue = third.substring(4)
             if(firstvalue==secondvalue) {
-                // lda value / sta ? / lda isSameAs-value / sta ?  -> remove second lda (third line)
-                mods.add(Modification(lines[2].index, true, null))
+                // lda value / sta ? / lda same-value / sta ?  -> remove second lda (third line)
+                val address = getAddressArg(first)
+                if(address==null || !machine.isIOAddress(address))
+                    mods.add(Modification(lines[2].index, true, null))
             }
         }
 
@@ -227,10 +235,13 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 val thirdvalue = third.substring(4)
                 val fourthvalue = fourth.substring(4)
                 if(firstvalue==thirdvalue && secondvalue == fourthvalue) {
-                    overlappingMods = true
-                    mods.add(Modification(lines[2].index, true, null))
-                    if(!fifth.startsWith('b'))
-                        mods.add(Modification(lines[3].index, true, null))
+                    val address = getAddressArg(first)
+                    if(address==null || !machine.isIOAddress(address)) {
+                        overlappingMods = true
+                        mods.add(Modification(lines[2].index, true, null))
+                        if (!fifth.startsWith('b'))
+                            mods.add(Modification(lines[3].index, true, null))
+                    }
                 }
             }
         }
@@ -247,8 +258,11 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 val firstvalue = first.substring(4)
                 val thirdvalue = third.substring(4)
                 if(firstvalue==thirdvalue) {
-                    overlappingMods = true
-                    mods.add(Modification(lines[2].index, true, null))
+                    val address = getAddressArg(first)
+                    if(address==null || !machine.isIOAddress(address)) {
+                        overlappingMods = true
+                        mods.add(Modification(lines[2].index, true, null))
+                    }
                 }
             }
         }
@@ -264,10 +278,31 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val secondvalue = second.substring(4)
             val thirdvalue = third.substring(4)
             if(firstvalue==secondvalue && firstvalue==thirdvalue) {
-                overlappingMods = true
-                val reg2 = second[2]
-                mods.add(Modification(lines[1].index, false, "  ta$reg2"))
-                mods.add(Modification(lines[2].index, true, null))
+                val address = getAddressArg(first)
+                if(address==null || !machine.isIOAddress(address)) {
+                    overlappingMods = true
+                    val reg2 = second[2]
+                    mods.add(Modification(lines[1].index, false, "  ta$reg2"))
+                    mods.add(Modification(lines[2].index, true, null))
+                }
+            }
+        }
+
+        /*
+        sta  A
+        sta  A
+         */
+        if(!overlappingMods && first.startsWith("st") && second.startsWith("st")) {
+            if(first[2]==second[2]) {
+                val firstvalue = first.substring(4)
+                val secondvalue = second.substring(4)
+                if(firstvalue==secondvalue) {
+                    val address = getAddressArg(first)
+                    if(address==null || !machine.isIOAddress(address)) {
+                        overlappingMods = true
+                        mods.add(Modification(lines[1].index, true, null))
+                    }
+                }
             }
         }
     }
@@ -275,10 +310,8 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
     return mods
 }
 
-private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>, machine: IMachineDefinition): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
-    // TODO this is not true if X is not a regular RAM memory address (but instead mapped I/O or ROM) but how does this code know?
-    //      should this optimization be removed????  or teach it about the InRegularRAM ?
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
         val first = lines[1].value.trimStart()
@@ -305,7 +338,8 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>)
                 }
                 else {
                     // no branch instruction follows, we can remove the load instruction
-                    true
+                    val address = getAddressArg(lines[2].value)
+                    address==null || !machine.isIOAddress(address)
                 }
 
             if(attemptRemove) {
@@ -319,6 +353,17 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>)
     return mods
 }
 
+private fun getAddressArg(line: String): UInt? {
+    val loadArg = line.trimStart().substring(3).trim()
+    return when {
+        loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
+        loadArg.startsWith('%') -> loadArg.substring(1).toUIntOrNull(2)
+        loadArg.startsWith('#') -> null
+        loadArg.startsWith('(') -> null
+        else -> loadArg.substring(1).toUIntOrNull()
+    }
+}
+
 private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
     val mods = mutableListOf<Modification>()
@@ -327,8 +372,12 @@ private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<
         val second = lines[1].value
         if ((" iny" in first || "\tiny" in first) && (" dey" in second || "\tdey" in second)
                 || (" inx" in first || "\tinx" in first) && (" dex" in second || "\tdex" in second)
+                || (" ina" in first || "\tina" in first) && (" dea" in second || "\tdea" in second)
+                || (" inc  a" in first || "\tinc  a" in first) && (" dec  a" in second || "\tdec  a" in second)
                 || (" dey" in first || "\tdey" in first) && (" iny" in second || "\tiny" in second)
-                || (" dex" in first || "\tdex" in first) && (" inx" in second || "\tinx" in second)) {
+                || (" dex" in first || "\tdex" in first) && (" inx" in second || "\tinx" in second)
+                || (" dea" in first || "\tdea" in first) && (" ina" in second || "\tina" in second)
+                || (" dec  a" in first || "\tdec  a" in first) && (" inc  a" in second || "\tinc  a" in second)) {
             mods.add(Modification(lines[0].index, true, null))
             mods.add(Modification(lines[1].index, true, null))
         }
