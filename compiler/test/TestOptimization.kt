@@ -15,6 +15,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
+import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.*
@@ -526,5 +527,43 @@ class TestOptimization: FunSpec({
         stmts.size shouldBe 8
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
         stmts.filterIsInstance<Assignment>().size shouldBe 5
+    }
+
+    test("only substitue assignments with 0 after a =0 initializer if it is the same variable") {
+        val src="""
+        main {
+            sub start() {
+                uword @shared xx
+                xx = xx + 20    ; is same var so can be changed just fine into xx=20
+                uword @shared yy
+                xx = 20
+                yy = 0          ; is other var..
+                xx = xx+10      ; so this should not be changed into xx=10
+            }
+        }"""
+        val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        /*
+        expected result:
+        uword xx
+        xx = 20
+        uword yy
+        yy = 0
+        xx = 20
+        yy = 0
+        xx += 10
+         */
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 7
+        stmts.filterIsInstance<VarDecl>().size shouldBe 2
+        stmts.filterIsInstance<Assignment>().size shouldBe 5
+        val assignXX1 = stmts[1] as Assignment
+        assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
+        assignXX1.value shouldBe NumericLiteralValue(DataType.UBYTE, 20.0, Position.DUMMY)
+        val assignXX2 = stmts.last() as Assignment
+        assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
+        val xxValue = assignXX2.value as BinaryExpression
+        xxValue.operator shouldBe "+"
+        xxValue.left shouldBe IdentifierReference(listOf("xx"), Position.DUMMY)
+        xxValue.right shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
     }
 })

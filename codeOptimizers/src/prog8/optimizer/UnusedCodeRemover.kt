@@ -216,7 +216,7 @@ class UnusedCodeRemover(private val program: Program,
             val assign2 = stmtPairs[1] as? Assignment
             if (assign1 != null && assign2 != null) {
                 val cvalue1 = assign1.value.constValue(program)
-                if(cvalue1!=null && cvalue1.number==0.0 && assign2.isAugmentable) {
+                if(cvalue1!=null && cvalue1.number==0.0 && assign2.target.isSameAs(assign1.target, program) && assign2.isAugmentable) {
                     val value2 = assign2.value
                     val zero = VarDecl.defaultZero(value2.inferType(program).getOr(DataType.UNDEFINED), value2.position)
                     when(value2) {
