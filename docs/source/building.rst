@@ -63,48 +63,86 @@ Prog8 can create those, but it is also possible to output plain binary programs
 that can be loaded into memory anywhere.
 
 
-Compiling program code
-----------------------
+Running the compiler
+--------------------
 
 Make sure you have installed the :ref:`requirements`.
 
-Compilation of program code is done by telling the Prog8 compiler to compile a main source code module file.
+You run the Prog8 compiler on a main source code module file.
 Other modules that this code needs will be loaded and processed via imports from within that file.
 The compiler will link everything together into one output program at the end.
 
 If you start the compiler without arguments, it will print a short usage text.
-For normal use the compiler is invoked with the command:
+For normal use the compiler can be invoked with the command:
 
-    ``$ java -jar prog8compiler.jar sourcefile.p8``
+    ``$ java -jar prog8compiler-7.3-all.jar sourcefile.p8``
 
-    Other options are also available, see the introduction page about how
-    to build and run the compiler.
+    (Use the appropriate name and version of the jar file downloaded from one of the Git releases.
+    Other ways to invoke the compiler are also available: see the introduction page about how
+    to build and run the compiler yourself)
 
 
 By default, assembly code is generated and written to ``sourcefile.asm``.
-It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ cross assembler tool
-that assembles it into the final program.
-If you use the option to let the compiler auto-start an emulator, it will do so after
-a successful compilation. This will load your program and the symbol and breakpoint lists
-(for the machine code monitor) into the emulator.
+It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
+that creastes the final runnable program.
 
-Continuous compilation mode
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Almost instant compilation times (less than a second) can be achieved when using the continuous compilation mode.
-Start the compiler with the ``-watch`` argument to enable this.
-It will compile your program and then instead of exiting, it waits for any changes in the module source files.
-As soon as a change happens, the program gets compiled again.
-It is possible to use the watch mode with multiple modules as well, but it will
-recompile everything in that list even if only one of the files got updated.
 
-Other options
-^^^^^^^^^^^^^
-There's an option to specify the output directory if you're not happy with the default (the current working directory).
-Also it is possible to specify more than one main module to compile:
-this can be useful to quickly recompile multiple separate programs quickly.
-(compiling in a batch like this is a lot faster than invoking the compiler again once per main file)
+Command line options
+^^^^^^^^^^^^^^^^^^^^
 
-A short list and explanation of the options is printed if you launch the compiler with ``-h`` or ``-help``.
+One or more .p8 module files
+    Specify the main module file(s) to compile.
+    Every file specified is a separate program.
+
+``-help``, ``-h``
+    Prints short command line usage information.
+
+``-target <compilation target>``
+    Sets the target output of the compiler, currently 'c64' and 'cx16' are valid targets.
+    c64 = Commodore-64, cx16 = Commander X16.
+    Default = c64
+
+``-srcdirs <pathlist>``
+    Specify a list of extra paths (separated with ':'), to search in for imported modules.
+    Useful if you have library modules somewhere that you want to re-use,
+    or to switch implementations of certain routines via a command line switch.
+
+``-emu``, ``-emu2``
+    Auto-starts target system emulator after successful compilation.
+    emu2 starts the alternative emulator if available.
+    The compiled program and the symbol and breakpoint lists
+    (for the machine code monitor) are immediately loaded into the emulator..
+
+``-out <directory>``
+    sets directory location for output files instead of current directory
+
+``-noasm``
+    Do not create assembly code and output program.
+    Useful for debugging or doing quick syntax checks.
+
+``-noopt``
+    Don't perform any code optimizations.
+    Useful for debugging or faster compilation cycles.
+
+``-optfloatx``
+    Also optimize float expressions if optimizations are enabled.
+    Warning: can increase program size significantly if a lot of floating point expressions are used.
+
+``-watch``
+    Enables continuous compilation mode (watches for file changes).
+    This greatly increases compilation speed on subsequent runs:
+    almost instant compilation times (less than a second) can be achieved in this mode.
+    The compiler will compile your program and then instead of exiting, it waits for any changes in the module source files.
+    As soon as a change happens, the program gets compiled again.
+    Note that it is possible to use the watch mode with multiple modules as well, but it will
+    recompile everything in that list even if only one of the files got updated.
+
+``-slowwarn``
+    Shows debug warnings about slow or problematic assembly code generation.
+    Ideally, the compiler should use as few stack based evaluations as possible.
+
+``-quietasm``
+    Don't print assembler output results.
 
 
 Module source code files
