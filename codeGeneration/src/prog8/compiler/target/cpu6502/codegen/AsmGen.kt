@@ -1298,6 +1298,8 @@ $repeatLabel    lda  $counterVar
 
         val jump = stmt.truepart.statements.first() as? Jump
         if(jump!=null) {
+            if(jump.isGosub)
+                throw FatalAstException("didn't expect GoSub here")
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
@@ -1387,7 +1389,12 @@ $label              nop""")
         }
     }
 
-    private fun translate(jump: Jump) = jmp(getJumpTarget(jump))
+    private fun translate(jump: Jump) {
+        if(jump.isGosub)
+            out("  jsr  ${getJumpTarget(jump)}")
+        else
+            jmp(getJumpTarget(jump))
+    }
 
     private fun getJumpTarget(jump: Jump): String {
         val ident = jump.identifier

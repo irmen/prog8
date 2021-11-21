@@ -92,10 +92,7 @@ class Block(override val name: String,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "Block(name=$name, address=$address, ${statements.size} statements)"
-    }
+    override fun toString() = "Block(name=$name, address=$address, ${statements.size} statements)"
 
     fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
 }
@@ -135,10 +132,7 @@ data class Label(override val name: String, override val position: Position) : S
     override fun copy() = Label(name, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "Label(name=$name, pos=$position)"
-    }
+    override fun toString()= "Label(name=$name, pos=$position)"
 }
 
 open class Return(var value: Expression?, final override val position: Position) : Statement() {
@@ -158,10 +152,7 @@ open class Return(var value: Expression?, final override val position: Position)
     override fun copy() = Return(value?.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "Return($value, pos=$position)"
-    }
+    override fun toString() = "Return($value, pos=$position)"
 }
 
 class Break(override val position: Position) : Statement() {
@@ -256,10 +247,8 @@ open class VarDecl(val type: VarDeclType,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
-    }
+    override fun toString() =
+        "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
 
     fun zeroElementValue(): NumericLiteralValue {
         if(allowInitializeWithZero)
@@ -303,10 +292,7 @@ class ArrayIndex(var indexExpr: Expression,
 
     fun accept(visitor: IAstVisitor) = indexExpr.accept(visitor)
     fun accept(visitor: AstWalker)  = indexExpr.accept(visitor, this)
-
-    override fun toString(): String {
-        return("ArrayIndex($indexExpr, pos=$position)")
-    }
+    override fun toString() = "ArrayIndex($indexExpr, pos=$position)"
 
     fun constIndex() = (indexExpr as? NumericLiteralValue)?.number?.toInt()
 
@@ -335,10 +321,7 @@ open class Assignment(var target: AssignTarget, var value: Expression, final ove
     override fun copy()= Assignment(target.copy(), value.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return("Assignment(target: $target, value: $value, pos=$position)")
-    }
+    override fun toString() = "Assignment(target: $target, value: $value, pos=$position)"
 
     /**
      * Is the assigment value an expression that references the assignment target itself?
@@ -514,17 +497,15 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     override fun copy() = PostIncrDecr(target.copy(), operator, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "PostIncrDecr(op: $operator, target: $target, pos=$position)"
-    }
+    override fun toString() = "PostIncrDecr(op: $operator, target: $target, pos=$position)"
 }
 
-class Jump(val address: UInt?,
-           val identifier: IdentifierReference?,
-           val generatedLabel: String?,             // used in code generation scenarios
-           override val position: Position) : Statement() {
+open class Jump(val address: UInt?,
+                val identifier: IdentifierReference?,
+                val generatedLabel: String?,             // can be used in code generation scenarios
+                override val position: Position) : Statement() {
     override lateinit var parent: Node
+    open val isGosub = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -536,9 +517,18 @@ class Jump(val address: UInt?,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    override fun toString(): String {
-        return "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
-    }
+    override fun toString() =
+        "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
+}
+
+// a GoSub is ONLY created internally for calling subroutines
+class GoSub(address: UInt?, identifier: IdentifierReference?, generatedLabel: String?, position: Position) :
+    Jump(address, identifier, generatedLabel, position) {
+
+    override val isGosub = true
+    override fun copy() = GoSub(address, identifier?.copy(), generatedLabel, position)
+    override fun toString() =
+        "GoSub(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,
@@ -567,7 +557,6 @@ class FunctionCallStatement(override var target: IdentifierReference,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
     override fun toString() = "FunctionCallStatement(target=$target, pos=$position)"
 }
 
@@ -695,10 +684,8 @@ class Subroutine(override val name: String,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
-    }
+    override fun toString() =
+        "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
 
     fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
     fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
@@ -825,10 +812,7 @@ class ForLoop(var loopVar: IdentifierReference,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString(): String {
-        return "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
-    }
+    override fun toString() = "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
 
     fun loopVarDt(program: Program) = loopVar.inferType(program)
 }
@@ -978,9 +962,7 @@ class WhenChoice(var values: MutableList<Expression>?,           // if null,  th
     }
 
     override fun copy() = WhenChoice(values?.map{ it.copy() }?.toMutableList(), statements.copy(), position)
-    override fun toString(): String {
-        return "Choice($values at $position)"
-    }
+    override fun toString() = "Choice($values at $position)"
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -1000,10 +982,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
         replacement.parent = this
     }
 
-    override fun toString(): String {
-        return "DirectMemoryWrite($addressExpression)"
-    }
-
+    override fun toString() = "DirectMemoryWrite($addressExpression)"
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun copy() = DirectMemoryWrite(addressExpression.copy(), position)
