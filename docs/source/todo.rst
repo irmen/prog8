@@ -3,9 +3,6 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-BUG: amiga example doesn't clear the whole screen when compiled with optimizations (ok without opts)
-     same sort of problem in bobs example, and highresbitmap, and testgfx2
-
 ...
 
 
