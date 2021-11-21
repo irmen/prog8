@@ -16,13 +16,7 @@ Future
 ^^^^^^
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
-- remove special code generation for while and util expression
-  by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
-  but the result should not produce larger code ofcourse!
-- while-expression should now also get the simplifyConditionalExpression() treatment
 - fix the asm-labels problem (github issue #62)
-- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
-- find a way to let registerArgsViaStackEvaluation not use the stack anymore
 - get rid of all TODO's in the code
 - improve testability further, add more tests
 - replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
@@ -40,11 +34,16 @@ Future
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
-- introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
 
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- detect variables that are written but never read - mark those as unused too and remove them, such as ``uword unused = memory("unused222", 20)`` - also remove this memory slab allocation
+- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
+- find a way to let registerArgsViaStackEvaluation not use the stack anymore
+- remove special code generation for while and util expression
+  by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
+  but the result should not produce larger code ofcourse!
+- while-expression should now also get the simplifyConditionalExpression() treatment
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter (which is problematic now)
+- introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
