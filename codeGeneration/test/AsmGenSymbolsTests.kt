@@ -46,8 +46,8 @@ class AsmGenSymbolsTests: StringSpec({
     }
 
          */
-        val varInSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteralValue.optimalInteger(1234, Position.DUMMY), false, false, false, Position.DUMMY)
-        val var2InSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, false, Position.DUMMY)
+        val varInSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteralValue.optimalInteger(1234, Position.DUMMY), false, false, false, null, Position.DUMMY)
+        val var2InSub = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, false, null, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
 
         val tgt = AssignTarget(IdentifierReference(listOf("tgt"), Position.DUMMY), null, null, Position.DUMMY)
@@ -63,7 +63,7 @@ class AsmGenSymbolsTests: StringSpec({
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
         val subroutine = Subroutine("start", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
-        val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, Position.DUMMY)
+        val varInBlock = VarDecl(VarDeclType.VAR, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, false, null, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))

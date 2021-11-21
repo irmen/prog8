@@ -1,22 +1,32 @@
-%import textio
 
 main {
 
     sub start() {
+        ubyte @shared xx
+        main.routine.r1arg = 20
+        ; main.routine2.r2arg = 20      ; TODO asmgen
 
-        ubyte xx = 20
-        routine(xx)
+        xx = main.routine.r1arg
         xx++
-        routine(xx)
-        xx++
-        routine(xx)
+        ;xx = main.routine2.r2arg           ; TODO asmgen
+        ;xx++
 
+        printstuff("hello")
         repeat {
         }
     }
 
-    sub routine(ubyte x) {
-        txt.print_ub(x)
-        txt.spc()
+    sub printstuff(str addr) {
+
     }
+    sub routine(ubyte r1arg) {
+        r1arg++
+    }
+
+    asmsub routine2(ubyte r2arg @ A) {
+        %asm {{
+            rts
+        }}
+    }
+
 }

@@ -720,7 +720,6 @@ class AsmGen(private val program: Program,
     internal fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
-            is ParameterVarDecl -> { /* subroutine parameter vardecls don't get any special treatment here */ }
             is VarDecl -> translate(stmt)
             is NopStatement -> {}
             is Directive -> translate(stmt)

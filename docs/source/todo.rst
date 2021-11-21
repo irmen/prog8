@@ -3,6 +3,12 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Use GoSub to call subroutines (not in expressions?):
+    - [DONE] allow separate assigns to subroutine's parameter variables / registers
+    - for asmsubs: implement asmgen for assigning to asm parameter (register)
+    - for asmsubs: implement asmgen for reading asm parameter (register)
+    - replace subroutine param load code with just the right order of those assigns
+    - finally replace the actual call with a GoSub
 ...
 
 

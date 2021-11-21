@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
-import kotlin.reflect.typeOf
 
 const val internedStringsModuleName = "prog8_interned_strings"
 
@@ -69,23 +68,28 @@ interface IStatementContainer {
     fun isNotEmpty(): Boolean = statements.isNotEmpty()
 
     fun searchSymbol(name: String): Statement? {
+        if(this is Subroutine && isAsmSubroutine)
+            return searchAsmParameter(name)
+
         // this is called quite a lot and could perhaps be optimized a bit more,
         // but adding a memoization cache didn't make much of a practical runtime difference...
         for (stmt in statements) {
             when(stmt) {
-//                is INamedStatement -> {
+                is INamedStatement -> {
+                    if(stmt.name==name) return stmt
+                }
+//                is VarDecl -> {
+//                    // a variable was found with this name, which could also be the vardecl
+//                    // that is (auto)generated for regular subroutine parameters.
 //                    if(stmt.name==name) return stmt
 //                }
-                is VarDecl -> {
-                    if(stmt.name==name) return stmt
-                }
-                is Label -> {
-                    if(stmt.name==name) return stmt
-                }
-                is Subroutine -> {
-                    if(stmt.name==name)
-                        return stmt
-                }
+//                is Label -> {
+//                    if(stmt.name==name) return stmt
+//                }
+//                is Subroutine -> {
+//                    if(stmt.name==name)
+//                        return stmt
+//                }
                 is AnonymousScope -> {
                     val found = stmt.searchSymbol(name)
                     if(found!=null)
