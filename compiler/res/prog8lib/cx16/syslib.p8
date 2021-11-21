@@ -367,14 +367,14 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 
 ; ---- utilities -----
 
-inline asmsub rombank(ubyte rombank @A) {
+inline asmsub rombank(ubyte bank @A) {
     ; -- set the rom banks
     %asm {{
         sta  $01            ; rom bank register (v39+, used to be cx16.d1prb $9f60 in v38)
     }}
 }
 
-inline asmsub rambank(ubyte rambank @A) {
+inline asmsub rambank(ubyte bank @A) {
     ; -- set the ram bank
     %asm {{
         sta  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
