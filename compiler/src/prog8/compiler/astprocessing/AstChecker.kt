@@ -428,8 +428,15 @@ internal class AstChecker(private val program: Program,
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
             if(targetDt.isIterable)
                 errors.err("cannot assign value to string or array", assignment.value.position)
-            else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD))
-                errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
+            else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD)) {
+                if(targetDt.isUnknown) {
+                    if(assignment.target.identifier?.targetStatement(program)!=null)
+                        errors.err("target datatype is unknown", assignment.target.position)
+                    // otherwise, another error about missing symbol is already reported.
+                } else {
+                    errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
+                }
+            }
         }
 
         if(assignment.value is TypecastExpression) {

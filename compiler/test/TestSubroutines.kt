@@ -127,7 +127,7 @@ class TestSubroutines: FunSpec({
         (call.args.single() as IdentifierReference).nameInSource.single() shouldBe "thing"
     }
 
-    test("arrayParameterNotYetAllowed_ButShouldPerhapsBe") {
+    test("array param not yet allowd (but should perhaps be?)") {
         // note: the *parser* accepts this as it is valid *syntax*,
         // however, it's not (yet) valid for the compiler
         val text = """
@@ -187,7 +187,7 @@ class TestSubroutines: FunSpec({
         func.statements.isEmpty() shouldBe true
     }
 
-    test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsDirectMemoryRead") {
+    test("uword param and normal varindexed as array work as DirectMemoryRead") {
         val text="""
             main {
               sub thing(uword rr) {
@@ -232,7 +232,7 @@ class TestSubroutines: FunSpec({
         (valueZZexpr.right as NumericLiteralValue).number.toInt() shouldBe 3
     }
 
-    test("testUwordParameterAndNormalVarIndexedAsArrayWorkAsMemoryWrite") {
+    test("uword param and normal varindexed as array work as MemoryWrite") {
         val text="""
             main {
               sub thing(uword rr) {
