@@ -119,18 +119,20 @@ It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff
 
 .. _scopes:
 
-**Scopes**
+**Scoping rules**
 
 .. sidebar::
-    Scoped access to symbols / "dotted names"
+    Use qualified names ("dotted names") to reference symbols defined elsewhere
 
-    Every symbol is 'public' and can be accessed from elsewhere given its full "dotted name".
+    In prog8 every symbol is 'public' and can be accessed from anywhere else, given its *full* "dotted name".
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
 
 *Symbols* are names defined in a certain *scope*. Inside the same scope, you can refer
 to them by their 'short' name directly.  If the symbol is not found in the same scope,
-the enclosing scope is searched for it, and so on, until the symbol is found.
+the enclosing scope is searched for it, and so on, up to the top level block, until the symbol is found.
+If the symbol was not found the compiler will issue an error message.
+
 
 Scopes are created using either of these two statements:
 

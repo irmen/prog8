@@ -92,9 +92,9 @@ internal class AstChecker(private val program: Program,
         fun checkUnsignedLoopDownto0(range: RangeExpr?) {
             if(range==null)
                 return
-            val step = range.step.constValue(program)?.number?.toDouble() ?: 1.0
+            val step = range.step.constValue(program)?.number ?: 1.0
             if(step < -1.0) {
-                val limit = range.to.constValue(program)?.number?.toDouble()
+                val limit = range.to.constValue(program)?.number
                 if(limit==0.0 && range.from.constValue(program)==null)
                     errors.err("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping", forLoop.position)
             }
@@ -496,7 +496,7 @@ internal class AstChecker(private val program: Program,
                         if (assignment.value !is FunctionCall)
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
-                        checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE), assignTarget,
+                        checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
                                 sourceDatatype.getOr(DataType.BYTE), assignment.value, assignment.position)
                     }
                 }
@@ -833,7 +833,7 @@ internal class AstChecker(private val program: Program,
         when(expr.operator){
             "/", "%" -> {
                 val constvalRight = expr.right.constValue(program)
-                val divisor = constvalRight?.number?.toDouble()
+                val divisor = constvalRight?.number
                 if(divisor==0.0)
                     errors.err("division by zero", expr.right.position)
                 if(expr.operator=="%") {
@@ -1280,7 +1280,7 @@ internal class AstChecker(private val program: Program,
         }
         when (targetDt) {
             DataType.FLOAT -> {
-                val number=value.number.toDouble()
+                val number=value.number
                 if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
                     return err("value '$number' out of range for MFLPT format")
             }
@@ -1356,7 +1356,6 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkAssignmentCompatible(targetDatatype: DataType,
-                                          target: AssignTarget,
                                           sourceDatatype: DataType,
                                           sourceValue: Expression,
                                           position: Position) : Boolean {

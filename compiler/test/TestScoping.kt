@@ -85,11 +85,9 @@ class TestScoping: FunSpec({
                             addr = &labelinside
                             addr = &labeloutside
                             addr = &main.start.nested.nestedlabel
-                            addr = &nested.nestedlabel
                             goto labeloutside
                             goto iflabel
                             goto main.start.nested.nestedlabel
-                            goto nested.nestedlabel
                         }
             iflabel:
                     }
@@ -99,11 +97,9 @@ class TestScoping: FunSpec({
                         addr = &labelinside
                         addr = &labeloutside
                         addr = &main.start.nested.nestedlabel
-                        addr = &nested.nestedlabel
                         goto iflabel
                         goto labelinside
                         goto main.start.nested.nestedlabel
-                        goto nested.nestedlabel
             labelinside:
                     }
 
@@ -119,9 +115,7 @@ class TestScoping: FunSpec({
                     addr = &labelinside
                     addr = &labeloutside
                     addr = &main.start.nested.nestedlabel
-                    addr = &nested.nestedlabel
                     goto main.start.nested.nestedlabel
-                    goto nested.nestedlabel
                 }
             }
         """
@@ -306,7 +300,7 @@ class TestScoping: FunSpec({
         compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
     }
 
-    test("wrong variable refs with qualified names (not from root)") {
+    test("wrong variable refs with qualified names 1 (not from root)") {
         val text="""
             main {
                 sub start() {
@@ -315,12 +309,9 @@ class TestScoping: FunSpec({
                     routine(5)
                     routine.value = 5
                     routine.arg = 5
-                    xx = &routine.nested
-                    routine.nested(5)
-                    routine.nested.nestedvalue = 5
                     routine.nested.arg2 = 5
-                    xx = &wrong.routine
-                    wrong.routine.value = 5
+                    routine.nested.nestedvalue = 5
+                    nested.nestedvalue = 5
                 }
                 
                 sub routine(ubyte arg) {
@@ -334,16 +325,11 @@ class TestScoping: FunSpec({
         """
         val errors= ErrorReporterForTests()
         compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
-        errors.errors.size shouldBe 10
-        errors.errors[0] shouldContain "undefined symbol: routine"
-        errors.errors[1] shouldContain "undefined symbol: routine"
-        errors.errors[2] shouldContain "undefined symbol: routine.value"
-        errors.errors[3] shouldContain "undefined symbol: routine.arg"
-        errors.errors[4] shouldContain "undefined symbol: routine.nested"
-        errors.errors[5] shouldContain "undefined symbol: routine.nested"
-        errors.errors[6] shouldContain "undefined symbol: routine.nested.nestedvalue"
-        errors.errors[7] shouldContain "undefined symbol: routine.nested.arg2"
-        errors.errors[8] shouldContain "undefined symbol: wrong.routine"
-        errors.errors[9] shouldContain "undefined symbol: wrong.routine.value"
+        errors.errors.size shouldBe 5
+        errors.errors[0] shouldContain "undefined symbol: routine.value"
+        errors.errors[1] shouldContain "undefined symbol: routine.arg"
+        errors.errors[2] shouldContain "undefined symbol: routine.nested.arg2"
+        errors.errors[3] shouldContain "undefined symbol: routine.nested.nestedvalue"
+        errors.errors[4] shouldContain "undefined symbol: nested.nestedvalue"
     }
 })

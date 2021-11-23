@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
-import kotlin.reflect.typeOf
 
 const val internedStringsModuleName = "prog8_interned_strings"
 
@@ -76,16 +75,10 @@ interface IStatementContainer {
 //                is INamedStatement -> {
 //                    if(stmt.name==name) return stmt
 //                }
-                is VarDecl -> {
-                    if(stmt.name==name) return stmt
-                }
-                is Label -> {
-                    if(stmt.name==name) return stmt
-                }
-                is Subroutine -> {
-                    if(stmt.name==name)
-                        return stmt
-                }
+                is VarDecl -> if(stmt.name==name) return stmt
+                is Label -> if(stmt.name==name) return stmt
+                is Subroutine -> if(stmt.name==name) return stmt
+                is Block -> if(stmt.name==name) return stmt
                 is AnonymousScope -> {
                     val found = stmt.searchSymbol(name)
                     if(found!=null)
@@ -155,39 +148,20 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
-        // a scoped name refers to a name in another namespace.
-        // look "up" from our current scope to search for the correct one.
-        val localScope = this.subScope(scopedName[0])
-        if(localScope!=null)
-            return resolveLocally(localScope, scopedName.drop(1))
-
-        var statementScope = this
-        while(statementScope !is GlobalNamespace) {
-            if(statementScope !is Module && statementScope.name==scopedName[0]) {
-                return resolveLocally(statementScope, scopedName.drop(1))
-            } else {
-                statementScope = (statementScope as Node).definingScope
-            }
-        }
-
-        // not found, try again but now assume it's a globally scoped name starting with the name of a block
+        // a scoped name refers to a name in another namespace, and stars from the root.
         for(module in (this as Node).definingModule.program.modules) {
-            module.statements.forEach {
-                if(it is Block && it.name==scopedName[0])
-                    return it.lookup(scopedName)
+            val block = module.searchSymbol(scopedName[0])
+            if(block!=null) {
+                var statement = block
+                for(name in scopedName.drop(1)) {
+                    statement = (statement as? IStatementContainer)?.searchSymbol(name)
+                    if(statement==null)
+                        return null
+                }
+                return statement
             }
         }
         return null
-    }
-
-    private fun resolveLocally(startScope: INameScope, name: List<String>): Statement? {
-        var scope: INameScope? = startScope
-        for(part in name.dropLast(1)) {
-            scope = scope!!.subScope(part)
-            if(scope==null)
-                return null
-        }
-        return scope!!.searchSymbol(name.last())
     }
 
     private fun lookupUnqualified(name: String): Statement? {
@@ -200,7 +174,6 @@ interface INameScope: IStatementContainer, INamedStatement {
         }
 
         // search for the unqualified name in the current scope (and possibly in any anonymousscopes it may contain)
-        // if it's not found there, jump up one higher in the namespaces and try again.
         var statementScope = this
         while(statementScope !is GlobalNamespace) {
             val symbol = statementScope.searchSymbol(name)
