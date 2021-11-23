@@ -33,6 +33,9 @@ graphics {
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+        ; TODO implement this as optimized assembly, for instance https://github.com/EgonOlsen71/bresenham/blob/main/src/asm/graphics.asm  ??
+        ;      or from here https://retro64.altervista.org/blog/an-introduction-to-vector-based-graphics-the-commodore-64-rotating-simple-3d-objects/
+
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             swap(x1, x2)
