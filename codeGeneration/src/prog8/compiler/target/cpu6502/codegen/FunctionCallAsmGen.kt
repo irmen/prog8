@@ -5,10 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.InlineAssembly
-import prog8.ast.statements.RegisterOrStatusflag
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.SubroutineParameter
+import prog8.ast.statements.*
 import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
@@ -21,7 +18,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
     internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
         saveXbeforeCall(stmt)
-        translateFunctionCall(stmt)
+        translateFunctionCall(stmt, false)
         restoreXafterCall(stmt)
         // just ignore any result values from the function call.
     }
@@ -48,26 +45,30 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
-    internal fun translateFunctionCall(stmt: IFunctionCall) {
+    internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
-        val subName = asmgen.asmSymbolName(stmt.target)
-        if(stmt.args.isNotEmpty()) {
+        val sub = call.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.target}")
+
+        if(!isExpression && !sub.isAsmSubroutine) {
+            throw AssemblyError("functioncall statments to non-asmsub should have been replaced by GoSub $call")
+        }
+
+        if(call.args.isNotEmpty()) {
 
             if(sub.asmParameterRegisters.isEmpty()) {
                 // via variables
-                for(arg in sub.parameters.withIndex().zip(stmt.args)) {
+                for(arg in sub.parameters.withIndex().zip(call.args)) {
                     argumentViaVariable(sub, arg.first, arg.second)
                 }
             } else {
                 require(sub.isAsmSubroutine)
                 if(sub.parameters.size==1) {
                     // just a single parameter, no risk of clobbering registers
-                    argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), stmt.args[0])
+                    argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
                 } else {
 
                     fun isNoClobberRisk(expr: Expression): Boolean {
@@ -89,10 +90,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     }
 
                     when {
-                        stmt.args.all {isNoClobberRisk(it)} -> {
+                        call.args.all {isNoClobberRisk(it)} -> {
                             // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
                             // register assignment order: 1) cx16 virtual word registers, 2) actual CPU registers, 3) CPU Carry status flag.
-                            val argsInfo = sub.parameters.withIndex().zip(stmt.args).zip(sub.asmParameterRegisters)
+                            val argsInfo = sub.parameters.withIndex().zip(call.args).zip(sub.asmParameterRegisters)
                             val (cx16virtualRegs, args2) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
                             val (cpuRegs, statusRegs) = args2.partition { it.second.registerOrPair!=null }
                             for(arg in cx16virtualRegs)
@@ -104,13 +105,14 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         }
                         else -> {
                             // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
-                            registerArgsViaStackEvaluation(stmt, sub)
+                            registerArgsViaStackEvaluation(call, sub)
                         }
                     }
                 }
             }
         }
 
+        val subName = asmgen.asmSymbolName(call.target)
         if(!sub.inline || !asmgen.options.optimize) {
             asmgen.out("  jsr  $subName")
         } else {
@@ -267,7 +269,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
-        val varName = asmgen.asmVariableName(sub.scopedname+"."+parameter.value.name)
+        val varName = asmgen.asmVariableName(sub.scopedName + parameter.value.name)
         asmgen.assignExpressionToVariable(value, varName, parameter.value.type, sub)
     }
 

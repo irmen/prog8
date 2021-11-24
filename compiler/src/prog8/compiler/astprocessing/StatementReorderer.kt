@@ -21,6 +21,7 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
+    // - replace subroutine calls (statement) by just assigning the arguments to the parameters and then a GoSub to the routine.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
@@ -120,6 +121,30 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
             // all subroutines defined within this subroutine are moved to the end
             return subs.map { IAstModification.Remove(it, subroutine) } +
                     subs.map { IAstModification.InsertLast(it, subroutine) }
+        }
+
+        if(!subroutine.isAsmSubroutine) {
+            // change 'str' parameters into 'uword' (just treat it as an address)
+            val stringParams = subroutine.parameters.filter { it.type==DataType.STR }
+            val parameterChanges = stringParams.map {
+                val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
+                IAstModification.ReplaceNode(it, uwordParam, subroutine)
+            }
+
+            val stringParamsByNames = stringParams.associateBy { it.name }
+            val varsChanges =
+                if(stringParamsByNames.isNotEmpty()) {
+                    subroutine.statements
+                        .filterIsInstance<VarDecl>()
+                        .filter { it.subroutineParameter!=null && it.name in stringParamsByNames }
+                        .map {
+                            val newvar = VarDecl(it.type, DataType.UWORD, it.zeropage, null, it.name, null, false, true, it.sharedWithAsm, stringParamsByNames.getValue(it.name), it.position)
+                            IAstModification.ReplaceNode(it, newvar, subroutine)
+                        }
+                }
+                else emptyList()
+
+            return parameterChanges + varsChanges
         }
 
         return noModifications
@@ -332,5 +357,35 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
             assign.position
         )
         return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
+    }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        val function = functionCallStatement.target.targetStatement(program)!!
+        checkUnusedReturnValues(functionCallStatement, function, program, errors)
+
+        if(function is Subroutine) {
+            if(function.isAsmSubroutine)
+                return noModifications      // TODO new logic for passing arguments to asmsub
+
+            // regular subroutine call: replace the call with assigning the params directly +  actual call with a GoSub
+            require(function.asmParameterRegisters.isEmpty())
+            val assignParams =
+                function.parameters.zip(functionCallStatement.args).map {
+                    var argumentValue = it.second
+                    val paramIdentifier = IdentifierReference(function.scopedName + it.first.name, argumentValue.position)
+                    val argDt = argumentValue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+                    if(argDt in ArrayDatatypes) {
+                        // pass the address of the array instead
+                        argumentValue = AddressOf(argumentValue as IdentifierReference, argumentValue.position)
+                    }
+                    Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
+                }
+            return assignParams.map { IAstModification.InsertBefore(functionCallStatement, it, parent as IStatementContainer) } +
+                    IAstModification.ReplaceNode(
+                        functionCallStatement as Node,
+                        GoSub(null, functionCallStatement.target, null, (functionCallStatement as Node).position),
+                        parent)
+        }
+        return noModifications
     }
 }

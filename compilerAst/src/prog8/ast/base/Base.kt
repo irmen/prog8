@@ -29,7 +29,7 @@ enum class DataType {
                 UWORD -> targetType.oneOf(UWORD, FLOAT)
                 WORD -> targetType.oneOf(WORD, FLOAT)
                 FLOAT -> targetType == FLOAT
-                STR -> targetType == STR
+                STR -> targetType.oneOf(STR, UWORD)
                 in ArrayDatatypes -> targetType == this
                 else -> false
             }

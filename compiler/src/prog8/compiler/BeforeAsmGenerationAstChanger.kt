@@ -69,35 +69,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
     }
 
     private val subroutineVariables = mutableListOf<Pair<String, VarDecl>>()
-    private val addedIfConditionVars = mutableSetOf<Pair<Subroutine, String>>()
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         subroutineVariables.clear()
-        addedIfConditionVars.clear()
 
-        if(!subroutine.isAsmSubroutine) {
-            // change 'str' parameters into 'uword' (just treat it as an address)
-            val stringParams = subroutine.parameters.filter { it.type==DataType.STR }
-            val parameterChanges = stringParams.map {
-                val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
-                IAstModification.ReplaceNode(it, uwordParam, subroutine)
-            }
-
-            val stringParamsByNames = stringParams.associateBy { it.name }
-            val varsChanges =
-                if(stringParamsByNames.isNotEmpty()) {
-                    subroutine.statements
-                        .filterIsInstance<VarDecl>()
-                        .filter { it.subroutineParameter!=null && it.name in stringParamsByNames }
-                        .map {
-                            val newvar = VarDecl(it.type, DataType.UWORD, it.zeropage, null, it.name, null, false, true, it.sharedWithAsm, stringParamsByNames.getValue(it.name), it.position)
-                            IAstModification.ReplaceNode(it, newvar, subroutine)
-                        }
-                }
-            else emptyList()
-
-            return parameterChanges + varsChanges
-        }
         return noModifications
     }
 

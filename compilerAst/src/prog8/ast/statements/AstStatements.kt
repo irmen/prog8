@@ -9,6 +9,19 @@ import prog8.ast.walk.IAstVisitor
 
 interface INamedStatement {
     val name: String
+
+    val scopedName: List<String>
+        get() {
+            val scopedName = mutableListOf(name)
+            var node: Node = this as Node
+            while (node !is Block) {
+                node = node.parent
+                if(node is INameScope) {
+                    scopedName.add(0, node.name)
+                }
+            }
+            return scopedName
+        }
 }
 
 sealed class Statement : Node {
@@ -16,6 +29,7 @@ sealed class Statement : Node {
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
 
+    @Deprecated("get rid of this in favor of INamedStatement.scopedName")   // TODO
     fun makeScopedName(name: String): String {
         // easy way out is to always return the full scoped name.
         // it would be nicer to find only the minimal prefixed scoped name, but that's too much hassle for now.
@@ -33,6 +47,7 @@ sealed class Statement : Node {
             scope.add(name)
         return scope.joinToString(".")
     }
+
 
     fun nextSibling(): Statement? {
         val statements = (parent as? IStatementContainer)?.statements ?: return null
@@ -664,7 +679,6 @@ class Subroutine(override val name: String,
 
     override lateinit var parent: Node
     val asmGenInfo = AsmGenInfo()
-    val scopedname: String by lazy { makeScopedName(name) }
 
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")
 
@@ -751,6 +765,7 @@ open class SubroutineParameter(val name: String,
     }
 
     override fun copy() = SubroutineParameter(name, type, position)
+    override fun toString() = "Param($type:$name)"
 }
 
 class IfStatement(var condition: Expression,

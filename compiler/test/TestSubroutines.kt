@@ -50,17 +50,18 @@ class TestSubroutines: FunSpec({
         asmfunc.parameters.single().type shouldBe DataType.STR
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.STR
-        func.statements.size shouldBe 4
-        val paramvar = func.statements[0] as VarDecl
-        paramvar.name shouldBe "thing"
-        paramvar.datatype shouldBe DataType.STR
+        withClue("str param for normal subroutine should be changed into UWORD") {
+            func.parameters.single().type shouldBe DataType.UWORD
+            func.statements.size shouldBe 4
+            val paramvar = func.statements[0] as VarDecl
+            paramvar.name shouldBe "thing"
+            paramvar.datatype shouldBe DataType.UWORD
+        }
         val assign = func.statements[2] as Assignment
         assign.target.identifier!!.nameInSource shouldBe listOf("t2")
-        withClue("str param in function body should not be transformed by normal compiler steps") {
-            assign.value shouldBe instanceOf<TypecastExpression>()
+        withClue("str param in function body should have been transformed into just uword assignment") {
+            assign.value shouldBe instanceOf<IdentifierReference>()
         }
-        (assign.value as TypecastExpression).type shouldBe DataType.UWORD
         val call = func.statements[3] as FunctionCallStatement
         call.target.nameInSource.single() shouldBe "asmfunc"
         withClue("str param in function body should not be transformed by normal compiler steps") {

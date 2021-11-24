@@ -159,7 +159,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         when (val sub = value.target.targetStatement(program)) {
                             is Subroutine -> {
                                 asmgen.saveXbeforeCall(value)
-                                asmgen.translateFunctionCall(value)
+                                asmgen.translateFunctionCall(value, true)
                                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
                                     sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
                                 when (returnValue.first) {

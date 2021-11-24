@@ -302,7 +302,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         val target = arrayvar.targetStatement(program)
         if (target is VarDecl) {
             return when (target.datatype) {
-                DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
+                DataType.STR, DataType.UWORD -> InferredTypes.knownFor(DataType.UBYTE)
                 in ArrayDatatypes -> InferredTypes.knownFor(ArrayToElementTypes.getValue(target.datatype))
                 else -> InferredTypes.unknown()
             }

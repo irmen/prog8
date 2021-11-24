@@ -53,7 +53,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         } else {
             sub as Subroutine
             asmgen.saveXbeforeCall(call)
-            asmgen.translateFunctionCall(call)
+            asmgen.translateFunctionCall(call, true)
             if(sub.regXasResult()) {
                 // store the return value in X somewhere that we can acces again below
                 asmgen.out("  stx  P8ZP_SCRATCH_REG")

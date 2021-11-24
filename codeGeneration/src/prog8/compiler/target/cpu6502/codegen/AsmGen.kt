@@ -545,6 +545,7 @@ class AsmGen(private val program: Program,
     fun asmVariableName(identifier: IdentifierReference) =
         fixNameSymbols(identifier.nameInSource.joinToString("."))
 
+    // TODO use INamedStatement.scopedName
     private fun getScopedSymbolNameForTarget(actualName: String, target: Statement): MutableList<String> {
         val scopedName = mutableListOf(actualName)
         var node: Node = target
@@ -857,8 +858,8 @@ class AsmGen(private val program: Program,
     internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack, resultRegister)
 
-    internal fun translateFunctionCall(functionCall: FunctionCall) =
-            functioncallAsmGen.translateFunctionCall(functionCall)
+    internal fun translateFunctionCall(functionCall: FunctionCall, isExpression: Boolean) =
+            functioncallAsmGen.translateFunctionCall(functionCall, isExpression)
 
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)

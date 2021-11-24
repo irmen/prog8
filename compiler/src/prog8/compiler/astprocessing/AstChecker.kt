@@ -418,11 +418,10 @@ internal class AstChecker(private val program: Program,
             val stmt = (assignment.value as FunctionCall).target.targetStatement(program)
             if (stmt is Subroutine) {
                 val idt = assignment.target.inferType(program)
-                if(!idt.isKnown) {
-                     errors.err("return type mismatch", assignment.value.position)
-                }
+                if(!idt.isKnown)
+                    throw FatalAstException("assignment target invalid dt")
                 if(stmt.returntypes.isEmpty() || (stmt.returntypes.size == 1 && stmt.returntypes.single() isNotAssignableTo idt.getOr(DataType.BYTE))) {
-                    errors.err("return type mismatch", assignment.value.position)
+                    errors.err("return type mismatch: ${stmt.returntypes.single()} expected $idt", assignment.value.position)
                 }
             }
         }
@@ -977,21 +976,9 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
-        if(targetStatement!=null)
+        if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
-        if (!functionCallStatement.void) {
-            // check for unused return values
-            if (targetStatement is Subroutine && targetStatement.returntypes.isNotEmpty()) {
-                if(targetStatement.returntypes.size==1)
-                    errors.warn("result value of subroutine call is discarded (use void?)", functionCallStatement.position)
-                else
-                    errors.warn("result values of subroutine call are discarded (use void?)", functionCallStatement.position)
-            }
-            else if(targetStatement is BuiltinFunctionStatementPlaceholder) {
-                val rt = builtinFunctionReturnType(targetStatement.name, functionCallStatement.args, program)
-                if(rt.isKnown)
-                    errors.warn("result value of a function call is discarded (use void?)", functionCallStatement.position)
-            }
+            checkUnusedReturnValues(functionCallStatement, targetStatement, program, errors)
         }
 
         if(functionCallStatement.target.nameInSource.last() == "sort") {
@@ -1400,5 +1387,21 @@ internal class AstChecker(private val program: Program,
 
 
         return false
+    }
+}
+
+internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, program: Program, errors: IErrorReporter) {
+    if (!call.void) {
+        // check for unused return values
+        if (target is Subroutine && target.returntypes.isNotEmpty()) {
+            if (target.returntypes.size == 1)
+                errors.warn("result value of subroutine call is discarded (use void?)", call.position)
+            else
+                errors.warn("result values of subroutine call are discarded (use void?)", call.position)
+        } else if (target is BuiltinFunctionStatementPlaceholder) {
+            val rt = builtinFunctionReturnType(target.name, call.args, program)
+            if (rt.isKnown)
+                errors.warn("result value of a function call is discarded (use void?)", call.position)
+        }
     }
 }
