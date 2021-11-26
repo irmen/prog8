@@ -1101,6 +1101,11 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         }
     }
 
+    internal fun assignFAC2float(target: AsmAssignTarget) {
+        asmgen.out("  jsr  floats.MOVFA")       // fac2 -> fac1
+        assignFAC1float(target)
+    }
+
     internal fun assignFAC1float(target: AsmAssignTarget) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
