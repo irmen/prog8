@@ -6,7 +6,8 @@ main {
     sub start() {
 
         uword xx
-        xx = random_name()
+        ubyte yy = 33
+        void sin8u(yy)
         ; concat_string(random_name())
 
 ;        ubyte  xx=20

@@ -57,8 +57,7 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        // TODO use  functionCallStatement.target.targetStatement() is BuiltinFunctionStatementPlaceholder ?
-        if(functionCallStatement.target.nameInSource.size==1 && functionCallStatement.target.nameInSource[0] in functions.names) {
+        if(functionCallStatement.target.targetStatement(program) is BuiltinFunctionStatementPlaceholder) {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in functions.purefunctionNames) {
                 errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)

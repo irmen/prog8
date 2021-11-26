@@ -367,7 +367,7 @@ private fun builtinSin8(args: List<Expression>, position: Position, program: Pro
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, 127.0 * sin(rad), position)
+    return NumericLiteralValue(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -376,7 +376,7 @@ private fun builtinSin8u(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("sin8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, 128.0 + 127.5 * sin(rad), position)
+    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -385,7 +385,7 @@ private fun builtinSinR8(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("sinr8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, 127.0 * sin(rad), position)
+    return NumericLiteralValue(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -394,7 +394,7 @@ private fun builtinSinR8u(args: List<Expression>, position: Position, program: P
         throw SyntaxError("sinr8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, 128.0 + 127.5 * sin(rad), position)
+    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -403,7 +403,7 @@ private fun builtinCos8(args: List<Expression>, position: Position, program: Pro
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, 127.0 * cos(rad), position)
+    return NumericLiteralValue(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -412,7 +412,7 @@ private fun builtinCos8u(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("cos8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, 128.0 + 127.5 * cos(rad), position)
+    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -421,7 +421,7 @@ private fun builtinCosR8(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("cosr8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, 127.0 * cos(rad), position)
+    return NumericLiteralValue(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -430,7 +430,7 @@ private fun builtinCosR8u(args: List<Expression>, position: Position, program: P
         throw SyntaxError("cosr8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, 128.0 + 127.5 * cos(rad), position)
+    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -439,7 +439,7 @@ private fun builtinSin16(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("sin16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, 32767.0 * sin(rad), position)
+    return NumericLiteralValue(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -448,7 +448,7 @@ private fun builtinSin16u(args: List<Expression>, position: Position, program: P
         throw SyntaxError("sin16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, 32768.0 + 32767.5 * sin(rad), position)
+    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -457,7 +457,7 @@ private fun builtinSinR16(args: List<Expression>, position: Position, program: P
         throw SyntaxError("sinr16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, 32767.0 * sin(rad), position)
+    return NumericLiteralValue(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -466,7 +466,7 @@ private fun builtinSinR16u(args: List<Expression>, position: Position, program: 
         throw SyntaxError("sinr16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, 32768.0 + 32767.5 * sin(rad), position)
+    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -475,7 +475,7 @@ private fun builtinCos16(args: List<Expression>, position: Position, program: Pr
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, 32767.0 * cos(rad), position)
+    return NumericLiteralValue(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -484,7 +484,7 @@ private fun builtinCos16u(args: List<Expression>, position: Position, program: P
         throw SyntaxError("cos16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, 32768.0 + 32767.5 * cos(rad), position)
+    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -493,7 +493,7 @@ private fun builtinCosR16(args: List<Expression>, position: Position, program: P
         throw SyntaxError("cosr16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, 32767.0 * cos(rad), position)
+    return NumericLiteralValue(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -502,7 +502,7 @@ private fun builtinCosR16u(args: List<Expression>, position: Position, program: 
         throw SyntaxError("cosr16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, 32768.0 + 32767.5 * cos(rad), position)
+    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
