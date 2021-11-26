@@ -25,13 +25,19 @@ class StatementOptimizer(private val program: Program,
     override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
         // if the first instruction in the called subroutine is a return statement with a simple value,
         // remove the jump altogeter and inline the returnvalue directly.
+
+        fun scopePrefix(variable: IdentifierReference): IdentifierReference {
+            val target = variable.targetStatement(program) as INamedStatement
+            return IdentifierReference(target.scopedName, variable.position)
+        }
+
         val subroutine = functionCall.target.targetSubroutine(program)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return && first.value?.isSimple==true) {
                 val copy = when(val orig = first.value!!) {
                     is AddressOf -> {
-                        val scoped = scopePrefix(orig.identifier, subroutine)
+                        val scoped = scopePrefix(orig.identifier)
                         AddressOf(scoped, orig.position)
                     }
                     is DirectMemoryRead -> {
@@ -40,7 +46,7 @@ class StatementOptimizer(private val program: Program,
                             else -> return noModifications
                         }
                     }
-                    is IdentifierReference -> scopePrefix(orig, subroutine)
+                    is IdentifierReference -> scopePrefix(orig)
                     is NumericLiteralValue -> orig.copy()
                     is StringLiteralValue -> orig.copy()
                     else -> return noModifications
@@ -51,10 +57,7 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    private fun scopePrefix(variable: IdentifierReference, subroutine: Subroutine): IdentifierReference {
-        val scoped = subroutine.makeScopedName(variable.nameInSource.last())
-        return IdentifierReference(scoped.split('.'), variable.position)
-    }
+
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.targetStatement(program) is BuiltinFunctionStatementPlaceholder) {

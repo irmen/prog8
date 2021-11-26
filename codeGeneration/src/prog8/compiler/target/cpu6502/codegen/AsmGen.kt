@@ -265,7 +265,7 @@ class AsmGen(private val program: Program,
         for(variable in variables) {
             if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
                 continue       // the "hooks" to the temp vars are not generated as new variables
-            val fullName = variable.makeScopedName(variable.name)
+            val fullName = variable.scopedName.joinToString(".")
             val zpVar = allocatedZeropageVariables[fullName]
             if(zpVar==null) {
                 // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
@@ -403,7 +403,8 @@ class AsmGen(private val program: Program,
         val blockname = inBlock?.name
 
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            if(it.makeScopedName(it.name) !in allocatedZeropageVariables) {
+            val scopedname = it.scopedName.joinToString(".")
+            if(scopedname !in allocatedZeropageVariables) {
                 if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
                     vardecl2asm(it)
             }
@@ -581,7 +582,7 @@ class AsmGen(private val program: Program,
             }
             is VarDecl -> {
                 val sourceName = asmVariableName(pointervar)
-                val scopedName = target.makeScopedName(target.name)
+                val scopedName = target.scopedName.joinToString(".")
                 if (isTargetCpu(CpuType.CPU65c02)) {
                     return if (isZpVar(scopedName)) {
                         // pointervar is already in the zero page, no need to copy
@@ -1485,7 +1486,7 @@ $label              nop""")
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
-        return vardecl.makeScopedName(vardecl.name) in allocatedZeropageVariables
+        return vardecl.scopedName.joinToString(".") in allocatedZeropageVariables
     }
 
     internal fun jmp(asmLabel: String) {

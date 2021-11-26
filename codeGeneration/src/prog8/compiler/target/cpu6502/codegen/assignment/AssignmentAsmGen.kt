@@ -2148,7 +2148,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         fun storeAIntoPointerVar(pointervar: IdentifierReference) {
             val sourceName = asmgen.asmVariableName(pointervar)
             val vardecl = pointervar.targetVarDecl(program)!!
-            val scopedName = vardecl.makeScopedName(vardecl.name)
+            val scopedName = vardecl.scopedName.joinToString(".")
             if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                 if (asmgen.isZpVar(scopedName)) {
                     // pointervar is already in the zero page, no need to copy

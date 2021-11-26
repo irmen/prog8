@@ -29,27 +29,7 @@ sealed class Statement : Node {
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
 
-    @Deprecated("get rid of this in favor of INamedStatement.scopedName")   // TODO
-    fun makeScopedName(name: String): String {
-        // easy way out is to always return the full scoped name.
-        // it would be nicer to find only the minimal prefixed scoped name, but that's too much hassle for now.
-        // and like this, we can cache the name even,
-        // like in a lazy property on the statement object itself (label, subroutine, vardecl)
-        val scope = mutableListOf<String>()
-        var statementScope = this.parent
-        while(statementScope !is ParentSentinel && statementScope !is Module) {
-            if(statementScope is INameScope) {
-                scope.add(0, statementScope.name)
-            }
-            statementScope = statementScope.parent
-        }
-        if(name.isNotEmpty())
-            scope.add(name)
-        return scope.joinToString(".")
-    }
-
-
-    fun nextSibling(): Statement? {
+`    fun nextSibling(): Statement? {
         val statements = (parent as? IStatementContainer)?.statements ?: return null
         val nextIdx = statements.indexOfFirst { it===this } + 1
         return if(nextIdx < statements.size)

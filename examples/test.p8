@@ -7,7 +7,7 @@ main {
 
         uword xx
         ubyte yy = 33
-        void sin8u(yy)
+        xx=xx-routine(2)
         ; concat_string(random_name())
 
 ;        ubyte  xx=20
@@ -39,9 +39,10 @@ main {
         return name
     }
 
+    ubyte qqq
     sub routine(ubyte r1arg) -> ubyte {
-        r1arg++
-        return r1arg
+        return qqq
+        return main.start.yy
     }
 
     asmsub routine2(ubyte r2arg @ A) {
