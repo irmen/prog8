@@ -68,6 +68,9 @@ interface IStatementContainer {
     fun isNotEmpty(): Boolean = statements.isNotEmpty()
 
     fun searchSymbol(name: String): Statement? {
+        if(this is Subroutine && isAsmSubroutine)
+            return searchAsmParameter(name)
+
         // this is called quite a lot and could perhaps be optimized a bit more,
         // but adding a memoization cache didn't make much of a practical runtime difference...
         for (stmt in statements) {

@@ -277,12 +277,13 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
-        // if the jump is to the next statement, remove the jump
-        val scope = jump.parent as IStatementContainer
-        val label = jump.identifier?.targetStatement(program)
-        if(label!=null && scope.statements.indexOf(label) == scope.statements.indexOf(jump)+1)
-            return listOf(IAstModification.Remove(jump, scope))
-
+        if(!jump.isGosub) {
+            // if the jump is to the next statement, remove the jump
+            val scope = jump.parent as IStatementContainer
+            val label = jump.identifier?.targetStatement(program)
+            if (label != null && scope.statements.indexOf(label) == scope.statements.indexOf(jump) + 1)
+                return listOf(IAstModification.Remove(jump, scope))
+        }
         return noModifications
     }
 

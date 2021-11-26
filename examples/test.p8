@@ -1,33 +1,32 @@
-%import textio
 
 main {
 
     sub start() {
+        ubyte @shared xx
+        main.routine.r1arg = 20
+        ; main.routine2.r2arg = 20      ; TODO asmgen
 
-        repeat 100 {
-            random_rgb12()
-            txt.print_ubhex(target_red,false)
-            txt.print_ubhex(target_green,false)
-            txt.print_ubhex(target_blue,false)
-            txt.nl()
-        }
+        xx = main.routine.r1arg
+        xx++
+        ;xx = main.routine2.r2arg           ; TODO asmgen
+        ;xx++
 
+        printstuff("hello")
         repeat {
         }
     }
 
-        ubyte target_red
-        ubyte target_green
-        ubyte target_blue
+    sub printstuff(str addr) {
 
-        sub random_rgb12() {
-            do {
-                uword rr = rndw()
-                target_red = msb(rr) & 15
-                target_green = lsb(rr)
-                target_blue = target_green & 15
-                target_green >>= 4
-            } until target_red+target_green+target_blue >= 12
-        }
+    }
+    sub routine(ubyte r1arg) {
+        r1arg++
+    }
+
+    asmsub routine2(ubyte r2arg @ A) {
+        %asm {{
+            rts
+        }}
+    }
 
 }

@@ -62,7 +62,13 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 throw AssemblyError("unknown dt")
             val dt = idt.getOr(DataType.UNDEFINED)
             when {
-                identifier != null -> AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                identifier != null -> {
+                    val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
+                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
+                        TODO("ASSIGN ASMPARAM $parameter ::  $assign")
+                    }
+                    AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                }
                 arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
                 memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
                 else -> throw AssemblyError("weird target")
@@ -133,6 +139,10 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
+                    val parameter = value.targetVarDecl(program)?.subroutineParameter
+                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
+                        TODO("ASSIGN SOURCE FROM ASMPARAM $parameter ::  $value")
+                    }
                     val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system

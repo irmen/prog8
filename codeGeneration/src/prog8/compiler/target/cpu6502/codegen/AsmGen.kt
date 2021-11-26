@@ -720,7 +720,6 @@ class AsmGen(private val program: Program,
     internal fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
-            is ParameterVarDecl -> { /* subroutine parameter vardecls don't get any special treatment here */ }
             is VarDecl -> translate(stmt)
             is NopStatement -> {}
             is Directive -> translate(stmt)
@@ -1298,6 +1297,8 @@ $repeatLabel    lda  $counterVar
 
         val jump = stmt.truepart.statements.first() as? Jump
         if(jump!=null) {
+            if(jump.isGosub)
+                throw FatalAstException("didn't expect GoSub here")
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
@@ -1387,7 +1388,12 @@ $label              nop""")
         }
     }
 
-    private fun translate(jump: Jump) = jmp(getJumpTarget(jump))
+    private fun translate(jump: Jump) {
+        if(jump.isGosub)
+            out("  jsr  ${getJumpTarget(jump)}")
+        else
+            jmp(getJumpTarget(jump))
+    }
 
     private fun getJumpTarget(jump: Jump): String {
         val ident = jump.identifier

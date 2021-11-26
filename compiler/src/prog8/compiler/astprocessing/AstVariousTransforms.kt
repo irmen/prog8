@@ -20,13 +20,13 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         val symbolsInSub = subroutine.allDefinedSymbols
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
-            if(subroutine.asmParameterRegisters.isEmpty() && subroutine.parameters.isNotEmpty()) {
+            if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
                 val vars = subroutine.statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
                 if(!vars.containsAll(subroutine.parameters.map{it.name})) {
                     return subroutine.parameters
                             .filter { it.name !in namesInSub }
                             .map {
-                                val vardecl = ParameterVarDecl(it.name, it.type, subroutine.position)
+                                val vardecl = VarDecl.fromParameter(it)
                                 IAstModification.InsertFirst(vardecl, subroutine)
                             }
                 }

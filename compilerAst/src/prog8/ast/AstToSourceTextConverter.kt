@@ -219,7 +219,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(jump: Jump) {
-        output("goto ")
+        if(jump.isGosub)
+            output("gosub ")
+        else
+            output("goto ")
         when {
             jump.address!=null -> output(jump.address.toHex())
             jump.generatedLabel!=null -> output(jump.generatedLabel)
