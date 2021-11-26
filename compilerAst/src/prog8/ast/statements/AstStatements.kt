@@ -29,7 +29,7 @@ sealed class Statement : Node {
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
 
-`    fun nextSibling(): Statement? {
+    fun nextSibling(): Statement? {
         val statements = (parent as? IStatementContainer)?.statements ?: return null
         val nextIdx = statements.indexOfFirst { it===this } + 1
         return if(nextIdx < statements.size)

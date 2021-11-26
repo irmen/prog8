@@ -522,13 +522,15 @@ class AsmGen(private val program: Program,
             val targetScope = target.definingSubroutine
             val identScope = identifier.definingSubroutine
             return if (targetScope !== identScope) {
-                val scopedName = getScopedSymbolNameForTarget(identifier.nameInSource.last(), target)
+                val scopedName = (target as INamedStatement).scopedName
                 if (target is Label) {
                     // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
-                    val last = scopedName.removeLast()
-                    scopedName.add("_$last")
+                    val newName = scopedName.dropLast(1) + ("_${scopedName.last()}")
+                    fixNameSymbols(newName.joinToString("."))
                 }
-                fixNameSymbols(scopedName.joinToString("."))
+                else {
+                    fixNameSymbols(scopedName.joinToString("."))
+                }
             } else {
                 if (target is Label) {
                     // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
@@ -545,19 +547,6 @@ class AsmGen(private val program: Program,
 
     fun asmVariableName(identifier: IdentifierReference) =
         fixNameSymbols(identifier.nameInSource.joinToString("."))
-
-    // TODO use INamedStatement.scopedName
-    private fun getScopedSymbolNameForTarget(actualName: String, target: Statement): MutableList<String> {
-        val scopedName = mutableListOf(actualName)
-        var node: Node = target
-        while (node !is Block) {
-            node = node.parent
-            if(node is INameScope) {
-                scopedName.add(0, node.name)
-            }
-        }
-        return scopedName
-    }
 
     internal fun asmSymbolName(regs: RegisterOrPair): String =
         if (regs in Cx16VirtualRegisters)
