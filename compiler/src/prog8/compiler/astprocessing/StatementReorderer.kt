@@ -362,30 +362,43 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         val function = functionCallStatement.target.targetStatement(program)!!
         checkUnusedReturnValues(functionCallStatement, function, program, errors)
-
         if(function is Subroutine) {
-            if(function.isAsmSubroutine)
-                return noModifications      // TODO new logic for passing arguments to asmsub
-
-            // regular subroutine call: replace the call with assigning the params directly +  actual call with a GoSub
-            require(function.asmParameterRegisters.isEmpty())
-            val assignParams =
-                function.parameters.zip(functionCallStatement.args).map {
-                    var argumentValue = it.second
-                    val paramIdentifier = IdentifierReference(function.scopedName + it.first.name, argumentValue.position)
-                    val argDt = argumentValue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-                    if(argDt in ArrayDatatypes) {
-                        // pass the address of the array instead
-                        argumentValue = AddressOf(argumentValue as IdentifierReference, argumentValue.position)
-                    }
-                    Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
-                }
-            return assignParams.map { IAstModification.InsertBefore(functionCallStatement, it, parent as IStatementContainer) } +
-                    IAstModification.ReplaceNode(
-                        functionCallStatement as Node,
-                        GoSub(null, functionCallStatement.target, null, (functionCallStatement as Node).position),
-                        parent)
+            if(function.inline)
+                return noModifications
+            return if(function.isAsmSubroutine)
+                replaceCallAsmSubStatementWithGosub(function, functionCallStatement, parent)
+            else
+                replaceCallSubStatementWithGosub(function, functionCallStatement, parent)
         }
         return noModifications
+    }
+
+    private fun replaceCallSubStatementWithGosub(function: Subroutine, call: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        val assignParams =
+            function.parameters.zip(call.args).map {
+                var argumentValue = it.second
+                val paramIdentifier = IdentifierReference(function.scopedName + it.first.name, argumentValue.position)
+                val argDt = argumentValue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+                if(argDt in ArrayDatatypes) {
+                    // pass the address of the array instead
+                    argumentValue = AddressOf(argumentValue as IdentifierReference, argumentValue.position)
+                }
+                Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
+            }
+        return assignParams.map { IAstModification.InsertBefore(call, it, parent as IStatementContainer) } +
+                IAstModification.ReplaceNode(
+                    call,
+                    GoSub(null, call.target, null, call.position),
+                    parent)
+    }
+
+    private fun replaceCallAsmSubStatementWithGosub(function: Subroutine, call: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(function.parameters.isEmpty()) {
+            // 0 params -> just GoSub
+            return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
+        } else {
+            // TODO new logic for passing arguments to asmsub:  >0 params -> not sure yet how to do this....
+            return noModifications
+        }
     }
 }

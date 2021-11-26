@@ -854,8 +854,14 @@ class AsmGen(private val program: Program,
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)
 
+    internal fun saveXbeforeCall(gosub: GoSub)  =
+            functioncallAsmGen.saveXbeforeCall(gosub)
+
     internal fun restoreXafterCall(functionCall: IFunctionCall) =
             functioncallAsmGen.restoreXafterCall(functionCall)
+
+    internal fun restoreXafterCall(gosub: GoSub) =
+            functioncallAsmGen.restoreXafterCall(gosub)
 
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)
@@ -1380,8 +1386,11 @@ $label              nop""")
     }
 
     private fun translate(jump: Jump) {
-        if(jump.isGosub)
+        if(jump.isGosub) {
+            saveXbeforeCall(jump as GoSub)
             out("  jsr  ${getJumpTarget(jump)}")
+            restoreXafterCall(jump as GoSub)
+        }
         else
             jmp(getJumpTarget(jump))
     }
