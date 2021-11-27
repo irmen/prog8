@@ -194,12 +194,12 @@ Directives
 .. data:: %asm {{ ... }}
 
     Level: not at module scope.
-	Declares that there is *inline assembly code* in the lines enclosed by the curly braces.
-	This code will be written as-is into the generated output file.
-	The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses.
+	Declares that a piece of *assembly code* is inside the curly braces.
+	This code will be copied as-is into the generated output assembly source file.
+	The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses (64tass).
 	Note that the start and end markers are both *double curly braces* to minimize the chance
-	that the inline assembly itself contains either of those. If it does contain a ``}}``,
- 	the parsing of the inline assembler block will end prematurely and cause compilation errors.
+	that the assembly code itself contains either of those. If it does contain a ``}}``,
+ 	it will confuse the parser.
 
 
 Identifiers
