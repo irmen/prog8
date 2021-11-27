@@ -627,32 +627,60 @@ _longcopy
 
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
-            php
-            pla
+        php
+        pla
+        }}
+    }
+
+    inline asmsub push(ubyte @A) {
+        %asm {{
+        pha
+        }}
+    }
+
+    inline asmsub pop() -> ubyte @A {
+        %asm {{
+        pla
+        }}
+    }
+
+    inline asmsub pushw(uword @AY) {
+        %asm {{
+        pha
+        tya
+        pha
+        }}
+    }
+
+    inline asmsub popw() -> uword @AY {
+        %asm {{
+        pla
+        tay
+        pla
         }}
     }
 
     inline asmsub clear_carry() {
         %asm {{
-            clc
+        clc
         }}
     }
 
     inline asmsub set_carry() {
         %asm {{
-            sec
+        sec
         }}
     }
 
     inline asmsub clear_irqd() {
         %asm {{
-            cli
+        cli
         }}
     }
 
     inline asmsub set_irqd() {
         %asm {{
-            sei
+        sei
         }}
     }
 

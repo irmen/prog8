@@ -887,27 +887,53 @@ sys {
         }}
     }
 
+    inline asmsub push(ubyte value @A) {
+        %asm {{
+        pha
+        }}
+    }
+
+    inline asmsub pop() -> ubyte @A {
+        %asm {{
+        pla
+        }}
+    }
+
+    inline asmsub pushw(uword value @AY) {
+        %asm {{
+        pha
+        phy
+        }}
+    }
+
+    inline asmsub popw() -> uword @AY {
+        %asm {{
+        ply
+        pla
+        }}
+    }
+
     inline asmsub clear_carry() {
         %asm {{
-            clc
+        clc
         }}
     }
 
     inline asmsub set_carry() {
         %asm {{
-            sec
+        sec
         }}
     }
 
     inline asmsub clear_irqd() {
         %asm {{
-            cli
+        cli
         }}
     }
 
     inline asmsub set_irqd() {
         %asm {{
-            sei
+        sei
         }}
     }
 

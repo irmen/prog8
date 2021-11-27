@@ -67,12 +67,38 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
+//            "push", "pushw" -> funcPush(fcall, func)
+//            "pop", "popw" -> funcPop(func)
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
         }
     }
+
+//    private fun funcPop(func: FSignature) {
+//        if(func.name=="pop") {
+//            asmgen.out("  pla")
+//        } else {
+//            if (asmgen.isTargetCpu(CpuType.CPU65c02))
+//                asmgen.out("  ply |  pla")
+//            else
+//                asmgen.out("  pla |  tay |  pla")
+//        }
+//    }
+//
+//    private fun funcPush(fcall: IFunctionCall, func: FSignature) {
+//        if(func.name=="push") {
+//            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
+//            asmgen.out("  pha")
+//        } else {
+//            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+//            if (asmgen.isTargetCpu(CpuType.CPU65c02))
+//                asmgen.out("  pha |  phy")
+//            else
+//                asmgen.out("  pha |  tya |  pha")
+//        }
+//    }
 
     private fun funcCallFar(fcall: IFunctionCall) {
         if(asmgen.options.compTarget !is Cx16Target)

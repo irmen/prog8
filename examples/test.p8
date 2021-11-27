@@ -1,13 +1,26 @@
+%import test_stack
 
 main {
 
     sub start() {
-        uword ww
+        test_stack.test()
 
-        main.routine2.num = ww+1
-        main.routine2.switch=true
+        sys.push(-22 as ubyte)
+        sys.push(44)
+        sys.pushw(-11234 as uword)
+        sys.pushw(12345)
+        sys.push(1)
+        sys.push(2)
+        ubyte @shared ub = sys.pop()
+        byte @shared bb = sys.pop() as byte
+        uword @shared uw = sys.popw()
+        word @shared ww = sys.popw() as word
+        void sys.pop()
+        void sys.pop()
 
-        routine2(ww+1, true)
+        ; routine2(uw+1, true)
+
+        test_stack.test()
 
         repeat {
         }
