@@ -632,7 +632,7 @@ _longcopy
         }}
     }
 
-    inline asmsub push(ubyte @A) {
+    inline asmsub push(ubyte value @A) {
         %asm {{
         pha
         }}
@@ -644,7 +644,7 @@ _longcopy
         }}
     }
 
-    inline asmsub pushw(uword @AY) {
+    inline asmsub pushw(uword value @AY) {
         %asm {{
         pha
         tya
