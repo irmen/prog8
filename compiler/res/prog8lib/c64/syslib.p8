@@ -625,6 +625,22 @@ _longcopy
         }}
     }
 
+    inline asmsub rsavex() {
+        %asm {{
+        txa
+        pha
+        }}
+    }
+
+    inline asmsub rrestorex() {
+        %asm {{
+        sta  P8ZP_SCRATCH_REG
+        pla
+        tax
+        lda  P8ZP_SCRATCH_REG
+        }}
+    }
+
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
         php
@@ -641,6 +657,15 @@ _longcopy
     inline asmsub pop() -> ubyte @A {
         %asm {{
         pla
+        }}
+    }
+
+    inline asmsub popx() -> ubyte @X {
+        %asm {{
+        sta  P8ZP_SCRATCH_REG
+        pla
+        tax
+        lda  P8ZP_SCRATCH_REG
         }}
     }
 

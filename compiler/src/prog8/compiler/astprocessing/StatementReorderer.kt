@@ -7,11 +7,14 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
 
-internal class StatementReorderer(val program: Program, val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class StatementReorderer(val program: Program,
+                                  val errors: IErrorReporter,
+                                  private val options: CompilationOptions) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.
@@ -397,30 +400,91 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         if(function.parameters.isEmpty()) {
             // 0 params -> just GoSub
             return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
-        } else if(!compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
-            // no register clobber risk, let the asmgen assign values to registers directly.
+        } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
+            // no register clobber risk, let the asmgen assign values to the registers directly.
             return noModifications
         } else {
-            // TODO new logic for passing arguments to asmsub with clobber risk...
-            val argEvalOrder = compTarget.asmsubArgsEvalOrder(function)
-            println("ARGS ORDER OF $call:  ${argEvalOrder.toList()}")
+            // clobber risk; evaluate the arguments on the CPU stack first (in reverse order)...
+            if (options.slowCodegenWarnings)
+                errors.warn("slow argument passing used to avoid register clobbering", call.position)
+            val argOrder = options.compTarget.asmsubArgsEvalOrder(function)
+            val modifications = mutableListOf<IAstModification>()
+            if(function.shouldSaveX())
+                modifications += IAstModification.InsertBefore(
+                    call,
+                    FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position),
+                    parent as IStatementContainer
+                )
+            argOrder.reversed().forEach {
+                val arg = call.args[it]
+                val param = function.parameters[it]
+                val push = pushCall(arg, param.type, arg.position)
+                modifications += IAstModification.InsertBefore(call, push, parent as IStatementContainer)
+            }
+            // ... and pop them off again into the registers.
+            argOrder.forEach {
+                val param = function.parameters[it]
+                val targetName = function.scopedName + param.name
+                val popassign =
+                    if(function.asmParameterRegisters[it].registerOrPair == RegisterOrPair.X)
+                        popCallAssignX(targetName, param.type, call.position)
+                    else
+                        popCallAssign(targetName, param.type, call.position)
+                modifications += IAstModification.InsertBefore(call, popassign, parent as IStatementContainer)
+            }
+            if(function.shouldSaveX())
+                modifications += IAstModification.InsertAfter(
+                    call,
+                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
+                    parent as IStatementContainer
+                )
 
-//            function.asmsubArgsEvalOrder().forEach {
-//                val arg = call.args[it]
-//                val param = function.parameters[it]
-//                val paramReg = function.asmParameterRegisters[it]
-//                when(param.type) {
-//                    DataType.UBYTE -> TODO()
-//                    DataType.BYTE -> TODO()
-//                    DataType.UWORD -> TODO()
-//                    DataType.WORD -> TODO()
-//                    else -> throw FatalAstException("invalidt dt for asmsub param")
-//                }
-//            }
-//
-            return noModifications
+            return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
         }
     }
 
+    private fun popCallAssignX(targetName: List<String>, dt: DataType, position: Position): Assignment {
+        val func = IdentifierReference(listOf("sys", "popx"), position)
+        val popcall = when(dt) {
+            DataType.UBYTE -> FunctionCall(func, mutableListOf(), position)
+            DataType.BYTE -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UBYTE, true, position)
+            else -> throw FatalAstException("invalid dt $dt")
+        }
+        return Assignment(
+            AssignTarget(IdentifierReference(targetName, position), null, null, position),
+            popcall, position
+        )
+    }
+
+    private fun popCallAssign(targetName: List<String>, dt: DataType, position: Position): Assignment {
+        val func = IdentifierReference(listOf("sys", if(dt in ByteDatatypes) "pop" else "popw"), position)
+        val popcall = when(dt) {
+            DataType.UBYTE, DataType.UWORD -> FunctionCall(func, mutableListOf(), position)
+            in PassByReferenceDatatypes -> FunctionCall(func, mutableListOf(), position)
+            DataType.BYTE -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UBYTE, true, position)
+            DataType.WORD -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UWORD, true, position)
+            else -> throw FatalAstException("invalid dt $dt")
+        }
+        return Assignment(
+            AssignTarget(IdentifierReference(targetName, position), null, null, position),
+            popcall, position
+        )
+    }
+
+    private fun pushCall(value: Expression, dt: DataType, position: Position): FunctionCallStatement {
+        val pushvalue = when(dt) {
+            DataType.UBYTE, DataType.UWORD -> value
+            in PassByReferenceDatatypes -> value
+            DataType.BYTE -> TypecastExpression(value, DataType.UBYTE, true, position)
+            DataType.WORD -> TypecastExpression(value, DataType.UWORD, true, position)
+            else -> throw FatalAstException("invalid dt $dt    $value")
+        }
+
+        return FunctionCallStatement(
+            IdentifierReference(listOf("sys", if(dt in ByteDatatypes) "push" else "pushw"), position),
+            mutableListOf(pushvalue),
+            true, position
+        )
+    }
 
 }

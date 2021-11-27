@@ -1,3 +1,4 @@
+%import textio
 %import test_stack
 
 main {
@@ -6,28 +7,9 @@ main {
         test_stack.test()
 
         uword @shared uw
-
-;        sys.push(-22 as ubyte)
-;        sys.push(44)
-;        sys.pushw(-11234 as uword)
-;        sys.pushw(12345)
-;        sys.push(1)
-;        sys.push(2)
-;        ubyte @shared ub = sys.pop()
-;        byte @shared bb = sys.pop() as byte
-;        uw = sys.popw()
-;        word @shared ww = sys.popw() as word
-;        void sys.pop()
-;        void sys.pop()
-
-        routine2(uw, 11,22, true, 33)
-        routine2(uw, 11,22, true, 33)
-        routine2(uw, 11,22, true, 33)
-        routine2(uw, 11,22, true, 33)
-        blerp(22)
-        blerp(22)
-        blerp(22)
-        blerp(22)
+        uw= 0
+        routine(uw+11, 22,33, true, 44)
+        routine2(uw+11, 22,33, true, 44)
 
         test_stack.test()
 
@@ -36,14 +18,32 @@ main {
 
     }
 
-    sub blerp(uword z) {
-        z++
+    sub routine(uword num, ubyte a1, ubyte a2, ubyte switch, byte a3) {
+        txt.print_uw(num)
+        txt.spc()
+        txt.print_ub(a1)
+        txt.spc()
+        txt.print_ub(a2)
+        txt.spc()
+        txt.print_ub(switch)
+        txt.spc()
+        txt.print_b(a3)
+        txt.nl()
     }
 
-    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @Pc, ubyte a3 @X) {
+    ; TODO make switch R3 use Pc instead and make that work !
+    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @R3, ubyte a3 @X) {
         %asm {{
-            adc #20
-            rts
+            sta  routine.num
+            sty  routine.num+1
+            lda  cx16.r1
+            sta  routine.a1
+            lda  cx16.r2
+            sta  routine.a2
+            lda  cx16.r3
+            sta  routine.switch
+            stx  routine.a3
+            jmp  routine
         }}
     }
 

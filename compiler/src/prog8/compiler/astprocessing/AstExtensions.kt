@@ -29,8 +29,8 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     }
 }
 
-internal fun Program.reorderStatements(errors: IErrorReporter, target: ICompilationTarget) {
-    val reorder = StatementReorderer(this, errors, target)
+internal fun Program.reorderStatements(errors: IErrorReporter, options: CompilationOptions) {
+    val reorder = StatementReorderer(this, errors, options)
     reorder.visit(this)
     if(errors.noErrors()) {
         reorder.applyModifications()

@@ -880,6 +880,18 @@ sys {
         }}
     }
 
+    inline asmsub rsavex() {
+        %asm {{
+        phx
+        }}
+    }
+
+    inline asmsub rrestorex() {
+        %asm {{
+        plx
+        }}
+    }
+
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
             php
@@ -896,6 +908,12 @@ sys {
     inline asmsub pop() -> ubyte @A {
         %asm {{
         pla
+        }}
+    }
+
+    inline asmsub popx() -> ubyte @X {
+        %asm {{
+        plx
         }}
     }
 
