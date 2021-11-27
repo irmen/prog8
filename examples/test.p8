@@ -2,21 +2,19 @@
 main {
 
     sub start() {
+        uword ww
 
-        &ubyte derp = $c000
+        main.routine2.num = ww+1
+        main.routine2.switch=true
 
-        @($c000) = not @($c000)
-        @($c000) = ~ @($c000)
+        routine2(ww+1, true)
 
-        ubyte uu
-        uu = abs(uu)
-        routine2(12345, true)
         repeat {
         }
 
     }
 
-    asmsub routine2(uword num @AY, ubyte switch @Pc) {
+    asmsub routine2(uword num @AY, ubyte switch @X) {
         %asm {{
             adc #20
             rts

@@ -56,22 +56,31 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
-        fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget = with(assign.target) {
-            val idt = inferType(program)
-            if(!idt.isKnown)
-                throw AssemblyError("unknown dt")
-            val dt = idt.getOr(DataType.UNDEFINED)
-            when {
-                identifier != null -> {
-                    val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
-                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
-                        TODO("ASSIGNTARGET ASMPARAM $parameter ::  $assign")
+        fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget {
+            with(assign.target) {
+                val idt = inferType(program)
+                if(!idt.isKnown)
+                    throw AssemblyError("unknown dt")
+                val dt = idt.getOr(DataType.UNDEFINED)
+                when {
+                    identifier != null -> {
+                        val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
+                        if (parameter!=null) {
+                            val sub = parameter.definingSubroutine!!
+                            if (sub.isAsmSubroutine) {
+                                val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
+                                if(reg.statusflag!=null)
+                                    throw AssemblyError("can't assign value to processor statusflag directly")
+                                else
+                                    return AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, dt, assign.definingSubroutine, register=reg.registerOrPair, origAstTarget = this)
+                            }
+                        }
+                        return AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                     }
-                    AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                    arrayindexed != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
+                    memoryAddress != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
+                    else -> throw AssemblyError("weird target")
                 }
-                arrayindexed != null -> AsmAssignTarget(TargetStorageKind.ARRAY, program, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
-                memoryAddress != null -> AsmAssignTarget(TargetStorageKind.MEMORY, program, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
-                else -> throw AssemblyError("weird target")
             }
         }
 
@@ -140,9 +149,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
                     val parameter = value.targetVarDecl(program)?.subroutineParameter
-                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
-                        TODO("ASSIGNSOURCE ASMPARAM $parameter ::  $value")
-                    }
+                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine)
+                        throw AssemblyError("can't assign from a asmsub register parameter")
                     val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
