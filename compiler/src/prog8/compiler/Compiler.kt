@@ -265,7 +265,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget)
     program.constantFold(errors, compilerOptions.compTarget)
     errors.report()
-    program.reorderStatements(errors)
+    program.reorderStatements(errors, compilerOptions.compTarget)
     errors.report()
     program.addTypecasts(errors)
     errors.report()

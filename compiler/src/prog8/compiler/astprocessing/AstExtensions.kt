@@ -11,6 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
 
@@ -28,8 +29,8 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     }
 }
 
-internal fun Program.reorderStatements(errors: IErrorReporter) {
-    val reorder = StatementReorderer(this, errors)
+internal fun Program.reorderStatements(errors: IErrorReporter, target: ICompilationTarget) {
+    val reorder = StatementReorderer(this, errors, target)
     reorder.visit(this)
     if(errors.noErrors()) {
         reorder.applyModifications()

@@ -5,7 +5,11 @@ import prog8.ast.base.ByteDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.PassByReferenceDatatypes
 import prog8.ast.base.WordDatatypes
+import prog8.ast.expressions.Expression
+import prog8.ast.statements.Subroutine
 import prog8.compiler.target.cbm.Petscii
+import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
+import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.compiler.target.cx16.CX16MachineDefinition
 import prog8.compilerinterface.ICompilationTarget
 
@@ -22,6 +26,9 @@ object Cx16Target: ICompilationTarget {
     }
     override fun decodeString(bytes: List<UByte>, altEncoding: Boolean) =
         if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+
+    override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> = asmsub6502ArgsEvalOrder(sub)
+    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>): Boolean  = asmsub6502ArgsHaveRegisterClobberRisk(args)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {

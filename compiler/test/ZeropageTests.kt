@@ -6,9 +6,10 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.collections.shouldNotBeIn
 import io.kotest.matchers.comparables.shouldBeGreaterThan
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.ast.base.DataType
+import prog8.ast.expressions.Expression
+import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.c64.C64MachineDefinition.C64Zeropage
@@ -29,6 +30,14 @@ class TestAbstractZeropage: FunSpec({
         }
 
         override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
+            throw NotImplementedError("dummy")
+        }
+
+        override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> {
+            throw NotImplementedError("dummy")
+        }
+
+        override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>): Boolean {
             throw NotImplementedError("dummy")
         }
 

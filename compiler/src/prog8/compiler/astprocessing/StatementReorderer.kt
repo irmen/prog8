@@ -7,10 +7,11 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
 
-internal class StatementReorderer(val program: Program, val errors: IErrorReporter) : AstWalker() {
+internal class StatementReorderer(val program: Program, val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.
@@ -396,9 +397,30 @@ internal class StatementReorderer(val program: Program, val errors: IErrorReport
         if(function.parameters.isEmpty()) {
             // 0 params -> just GoSub
             return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
+        } else if(!compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
+            // no register clobber risk, let the asmgen assign values to registers directly.
+            return noModifications
         } else {
-            // TODO new logic for passing arguments to asmsub:  >0 params -> not sure yet how to do this....
+            // TODO new logic for passing arguments to asmsub with clobber risk...
+            val argEvalOrder = compTarget.asmsubArgsEvalOrder(function)
+            println("ARGS ORDER OF $call:  ${argEvalOrder.toList()}")
+
+//            function.asmsubArgsEvalOrder().forEach {
+//                val arg = call.args[it]
+//                val param = function.parameters[it]
+//                val paramReg = function.asmParameterRegisters[it]
+//                when(param.type) {
+//                    DataType.UBYTE -> TODO()
+//                    DataType.BYTE -> TODO()
+//                    DataType.UWORD -> TODO()
+//                    DataType.WORD -> TODO()
+//                    else -> throw FatalAstException("invalidt dt for asmsub param")
+//                }
+//            }
+//
             return noModifications
         }
     }
+
+
 }

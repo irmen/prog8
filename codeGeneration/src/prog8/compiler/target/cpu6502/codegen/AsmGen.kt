@@ -104,6 +104,9 @@ class AsmGen(private val program: Program,
     internal fun isTargetCpu(cpu: CpuType) = compTarget.machine.cpu == cpu
     internal fun haveFPWR() = compTarget is Cx16Target
 
+    internal fun asmsubArgsEvalOrder(sub: Subroutine) = compTarget.asmsubArgsEvalOrder(sub)
+    internal fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>) = compTarget.asmsubArgsHaveRegisterClobberRisk(args)
+
     private fun header() {
         val ourName = this.javaClass.name
         val cpu = when(compTarget.machine.cpu) {
