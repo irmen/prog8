@@ -21,12 +21,23 @@ main {
 ;        void sys.pop()
 
         routine2(uw, 11,22, true, 33)
+        routine2(uw, 11,22, true, 33)
+        routine2(uw, 11,22, true, 33)
+        routine2(uw, 11,22, true, 33)
+        blerp(22)
+        blerp(22)
+        blerp(22)
+        blerp(22)
 
         test_stack.test()
 
         repeat {
         }
 
+    }
+
+    sub blerp(uword z) {
+        z++
     }
 
     asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @Pc, ubyte a3 @X) {

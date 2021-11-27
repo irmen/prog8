@@ -28,27 +28,28 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(breakStmt, parent as IStatementContainer)
+        reportUnreachable(breakStmt)
         return emptyList()
     }
 
     override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(jump, parent as IStatementContainer)
+        if(!jump.isGosub)
+            reportUnreachable(jump)
         return emptyList()
     }
 
     override fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> {
-        reportUnreachable(returnStmt, parent as IStatementContainer)
+        reportUnreachable(returnStmt)
         return emptyList()
     }
 
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource.last() == "exit")
-            reportUnreachable(functionCallStatement, parent as IStatementContainer)
+            reportUnreachable(functionCallStatement)
         return emptyList()
     }
 
-    private fun reportUnreachable(stmt: Statement, parent: IStatementContainer) {
+    private fun reportUnreachable(stmt: Statement) {
         when(val next = stmt.nextSibling()) {
             null, is Label, is Directive, is VarDecl, is InlineAssembly, is Subroutine -> {}
             else -> errors.warn("unreachable code", next.position)
