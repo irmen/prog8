@@ -236,9 +236,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        // TODO OTHER EVALUATION HERE, don't use the estack
+                        // TODO OTHER EVALUATION HERE, don't use the estack to transfer the address to read/write from
                         asmgen.assignExpressionTo(memory.addressExpression, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, memory.definingSubroutine))
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")      // TODO don't use estack to transfer the address to read from
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, ident)
@@ -249,7 +249,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                             else -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
                         }
-                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")  // TODO don't use estack to transfer the address to read from
+                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
                     }
                 }
             }
@@ -1898,11 +1898,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         +                           ldx  #1
         +""")
                             }
-                            in Cx16VirtualRegisters -> TODO()
+                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
                             else -> throw AssemblyError("invalid reg dt for word not")
                         }
                     }
-                    TargetStorageKind.MEMORY -> TODO("no asm gen for uword-memory not")
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack not")
                     else -> throw AssemblyError("no asm gen for in-place not of uword for ${target.kind}")
                 }
@@ -1974,11 +1973,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             RegisterOrPair.AX -> asmgen.out("  pha |  txa |  eor  #255 |  tax |  pla |  eor  #255")
                             RegisterOrPair.AY -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
                             RegisterOrPair.XY -> asmgen.out("  txa |  eor  #255 |  tax |  tya |  eor  #255 |  tay")
-                            in Cx16VirtualRegisters -> TODO("no asm gen for cx16 word register invert")
+                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
                             else -> throw AssemblyError("invalid reg dt for word invert")
                         }
                     }
-                    TargetStorageKind.MEMORY -> TODO("no asm gen for uword-memory invert")
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
                     else -> throw AssemblyError("no asm gen for in-place invert uword for ${target.kind}")
                 }
@@ -2006,9 +2004,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             else -> throw AssemblyError("invalid reg dt for byte negate")
                         }
                     }
-                    TargetStorageKind.MEMORY -> TODO("can't in-place negate memory ubyte")
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't in-place negate")
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
-                    else -> throw AssemblyError("no asm gen for in-place negate byte array")
+                    else -> throw AssemblyError("no asm gen for in-place negate byte")
                 }
             }
             DataType.WORD -> {
@@ -2063,13 +2061,12 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     sbc  P8ZP_SCRATCH_REG+1
                                     tay""")
                             }
-                            in Cx16VirtualRegisters -> TODO("no asm gen for cx16 word register negate")
+                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
                             else -> throw AssemblyError("invalid reg dt for word neg")
                         }
                     }
-                    TargetStorageKind.MEMORY -> TODO("no asm gen for word memory negate")
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
-                    else -> throw AssemblyError("no asm gen for in-place negate word array")
+                    else -> throw AssemblyError("no asm gen for in-place negate word")
                 }
             }
             DataType.FLOAT -> {
@@ -2082,8 +2079,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}+1
                         """)
                     }
-                    TargetStorageKind.REGISTER -> TODO("no asm gen for float reg negate")
-                    TargetStorageKind.MEMORY -> TODO("no asm gen for float memory negate")
                     TargetStorageKind.STACK -> TODO("no asm gen for stack float negate")
                     else -> throw AssemblyError("weird target kind for inplace negate float ${target.kind}")
                 }

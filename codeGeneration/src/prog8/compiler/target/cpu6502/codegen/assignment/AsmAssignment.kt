@@ -65,7 +65,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 identifier != null -> {
                     val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
                     if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
-                        TODO("ASSIGN ASMPARAM $parameter ::  $assign")
+                        TODO("ASSIGNTARGET ASMPARAM $parameter ::  $assign")
                     }
                     AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                 }
@@ -141,7 +141,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is IdentifierReference -> {
                     val parameter = value.targetVarDecl(program)?.subroutineParameter
                     if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine) {
-                        TODO("ASSIGN SOURCE FROM ASMPARAM $parameter ::  $value")
+                        TODO("ASSIGNSOURCE ASMPARAM $parameter ::  $value")
                     }
                     val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)

@@ -6,8 +6,9 @@ For next compiler release (7.4)
 Use GoSub to call subroutines (statements):
     - [DONE] allow separate assigns to subroutine's parameter variables / registers
     - [DONE] turn a regular subroutine call into assignments to the parameters + GoSub (take code from gosub branch)
+    - also do this for asmsubs taking >0 parameters
 
-Function call expression:
+Optimize Function calls in expressions:
     - move args to assignments to params
     - add tempvar immediately in front of expression with the fuction call
     - replace the function call in the expression with the tempvar

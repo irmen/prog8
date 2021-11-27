@@ -74,86 +74,85 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
         val sub = call.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.target}")
+        val subAsmName = asmgen.asmSymbolName(call.target)
 
-        if(!isExpression && !sub.isAsmSubroutine) {
-            throw AssemblyError("functioncall statments to non-asmsub should have been replaced by GoSub $call")
-        }
+        if(!isExpression && !sub.isAsmSubroutine)
+            throw AssemblyError("functioncall statements to non-asmsub should have been replaced by GoSub $call")
 
-        if(call.args.isNotEmpty()) {
-
-            if(sub.asmParameterRegisters.isEmpty()) {
-                // via variables
-                for(arg in sub.parameters.withIndex().zip(call.args)) {
-                    argumentViaVariable(sub, arg.first, arg.second)
-                }
+        if(sub.isAsmSubroutine) {
+            argumentsViaRegisters(sub, call)
+            if (sub.inline && asmgen.options.optimize) {
+                // inline the subroutine.
+                // we do this by copying the subroutine's statements at the call site.
+                // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
+                // (this condition has been enforced by an ast check earlier)
+                asmgen.out("  \t; inlined routine follows: ${sub.name}")
+                val assembly = sub.statements.single() as InlineAssembly
+                asmgen.translate(assembly)
+                asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
-                require(sub.isAsmSubroutine)
-                if(sub.parameters.size==1) {
-                    // just a single parameter, no risk of clobbering registers
-                    argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
-                } else {
-
-                    fun isNoClobberRisk(expr: Expression): Boolean {
-                        if(expr is AddressOf ||
-                                expr is NumericLiteralValue ||
-                                expr is StringLiteralValue ||
-                                expr is ArrayLiteralValue ||
-                                expr is IdentifierReference)
-                            return true
-
-                        if(expr is FunctionCall) {
-                            if(expr.target.nameInSource==listOf("lsb") || expr.target.nameInSource==listOf("msb"))
-                                return isNoClobberRisk(expr.args[0])
-                            if(expr.target.nameInSource==listOf("mkword"))
-                                return isNoClobberRisk(expr.args[0]) && isNoClobberRisk(expr.args[1])
-                        }
-
-                        return false
-                    }
-
-                    when {
-                        call.args.all {isNoClobberRisk(it)} -> {
-                            // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
-                            // register assignment order: 1) cx16 virtual word registers, 2) actual CPU registers, 3) CPU Carry status flag.
-                            val argsInfo = sub.parameters.withIndex().zip(call.args).zip(sub.asmParameterRegisters)
-                            val (cx16virtualRegs, args2) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
-                            val (cpuRegs, statusRegs) = args2.partition { it.second.registerOrPair!=null }
-                            for(arg in cx16virtualRegs)
-                                argumentViaRegister(sub, arg.first.first, arg.first.second)
-                            for(arg in cpuRegs)
-                                argumentViaRegister(sub, arg.first.first, arg.first.second)
-                            for(arg in statusRegs)
-                                argumentViaRegister(sub, arg.first.first, arg.first.second)
-                        }
-                        else -> {
-                            // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
-                            registerArgsViaStackEvaluation(call, sub)
-                        }
-                    }
-                }
+                asmgen.out("  jsr  $subAsmName")
             }
         }
-
-        val subName = asmgen.asmSymbolName(call.target)
-        if(!sub.inline || !asmgen.options.optimize) {
-            asmgen.out("  jsr  $subName")
-        } else {
-            // inline the subroutine.
-            // we do this by copying the subroutine's statements at the call site.
-            // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
-            // (this condition has been enforced by an ast check earlier)
-
-            // note: for now, this is only reliably supported for asmsubs.
-            if(!sub.isAsmSubroutine)
+        else {
+            if(sub.inline)
                 throw AssemblyError("can only reliably inline asmsub routines at this time")
 
-            asmgen.out("  \t; inlined routine follows: ${sub.name}")
-            val assembly = sub.statements.single() as InlineAssembly
-            asmgen.translate(assembly)
-            asmgen.out("  \t; inlined routine end: ${sub.name}")
+            argumentsViaVariables(sub, call)
+            asmgen.out("  jsr  $subAsmName")
         }
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
+    }
+
+    private fun argumentsViaVariables(sub: Subroutine, call: IFunctionCall) {
+        for(arg in sub.parameters.withIndex().zip(call.args))
+            argumentViaVariable(sub, arg.first, arg.second)
+    }
+
+    private fun argumentsViaRegisters(sub: Subroutine, call: IFunctionCall) {
+        fun isNoClobberRisk(expr: Expression): Boolean {
+            if(expr is AddressOf ||
+                expr is NumericLiteralValue ||
+                expr is StringLiteralValue ||
+                expr is ArrayLiteralValue ||
+                expr is IdentifierReference)
+                return true
+
+            if(expr is FunctionCall) {
+                if(expr.target.nameInSource==listOf("lsb") || expr.target.nameInSource==listOf("msb"))
+                    return isNoClobberRisk(expr.args[0])
+                if(expr.target.nameInSource==listOf("mkword"))
+                    return isNoClobberRisk(expr.args[0]) && isNoClobberRisk(expr.args[1])
+            }
+
+            return false
+        }
+
+        if(sub.parameters.size==1) {
+            // just a single parameter, no risk of clobbering registers
+            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
+        } else {
+            when {
+                call.args.all {isNoClobberRisk(it)} -> {
+                    // There's no risk of clobbering for these simple argument types. Optimize the register loading directly from these values.
+                    // register assignment order: 1) cx16 virtual word registers, 2) actual CPU registers, 3) CPU Carry status flag.
+                    val argsInfo = sub.parameters.withIndex().zip(call.args).zip(sub.asmParameterRegisters)
+                    val (cx16virtualRegs, args2) = argsInfo.partition { it.second.registerOrPair in Cx16VirtualRegisters }
+                    val (cpuRegs, statusRegs) = args2.partition { it.second.registerOrPair!=null }
+                    for(arg in cx16virtualRegs)
+                        argumentViaRegister(sub, arg.first.first, arg.first.second)
+                    for(arg in cpuRegs)
+                        argumentViaRegister(sub, arg.first.first, arg.first.second)
+                    for(arg in statusRegs)
+                        argumentViaRegister(sub, arg.first.first, arg.first.second)
+                }
+                else -> {
+                    // Risk of clobbering due to complex expression args. Evaluate first, then assign registers.
+                    registerArgsViaStackEvaluation(call, sub)
+                }
+            }
+        }
     }
 
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {

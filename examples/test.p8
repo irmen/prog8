@@ -1,23 +1,22 @@
-%import textio
-%import conv
 
 main {
 
     sub start() {
 
-        ubyte  @shared xx=20
-        ubyte  @shared yy=10
+        &ubyte derp = $c000
 
-        routine2()
-        routine2()
-        routine2()
+        @($c000) = not @($c000)
+        @($c000) = ~ @($c000)
 
+        ubyte uu
+        uu = abs(uu)
+        routine2(12345, true)
         repeat {
-            xx++
         }
+
     }
 
-    asmsub routine2() -> ubyte @A {
+    asmsub routine2(uword num @AY, ubyte switch @Pc) {
         %asm {{
             adc #20
             rts
