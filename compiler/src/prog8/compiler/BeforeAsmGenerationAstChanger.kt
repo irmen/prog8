@@ -18,11 +18,22 @@ import prog8.compilerinterface.*
 internal class BeforeAsmGenerationAstChanger(val program: Program, private val options: CompilationOptions,
                                              private val errors: IErrorReporter) : AstWalker() {
 
+    private val subroutineVariables = mutableMapOf<Subroutine, MutableList<Pair<String, VarDecl>>>()
+
+    private fun rememberSubroutineVar(decl: VarDecl) {
+        val sub = decl.definingSubroutine ?: return
+        var varsList = subroutineVariables[sub]
+        if(varsList==null) {
+            varsList = mutableListOf()
+            subroutineVariables[sub] = varsList
+        }
+        varsList.add(decl.name to decl)
+    }
+
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
             throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
-
-        subroutineVariables.add(decl.name to decl)
+        rememberSubroutineVar(decl)
         return noModifications
     }
 
@@ -68,26 +79,16 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
-    private val subroutineVariables = mutableListOf<Pair<String, VarDecl>>()
-
-    override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        subroutineVariables.clear()
-
-        return noModifications
-    }
-
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         if(scope.statements.any { it is VarDecl || it is IStatementContainer })
             throw FatalAstException("anonymousscope may no longer contain any vardecls or subscopes")
-
-        val decls = scope.statements.filterIsInstance<VarDecl>().filter { it.type == VarDeclType.VAR }
-        subroutineVariables.addAll(decls.map { it.name to it })
         return noModifications
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val firstDeclarations = mutableMapOf<String, VarDecl>()
-        for(decl in subroutineVariables) {
+        val rememberedSubroutineVars = subroutineVariables.getOrDefault(subroutine, mutableListOf())
+        for(decl in rememberedSubroutineVars) {
             val existing = firstDeclarations[decl.first]
             if(existing!=null && existing !== decl.second) {
                 errors.err("variable ${decl.first} already defined in subroutine ${subroutine.name} at ${existing.position}", decl.second.position)
@@ -95,7 +96,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                 firstDeclarations[decl.first] = decl.second
             }
         }
-
+        rememberedSubroutineVars.clear()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.

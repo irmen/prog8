@@ -15,21 +15,21 @@ main {
         ubyte @shared ub
         word @shared ww
 
-;        push(127)
-;        pop(ub)
-;        txt.print_ub(ub)
-;        txt.nl()
-;        pushw(32767)
-;        popw(uw)
-;        txt.print_uw(uw)
-;        txt.nl()
+        push(127)
+        pop(ub)
+        txt.print_ub(ub)
+        txt.nl()
+        pushw(32767)
+        popw(uw)
+        txt.print_uw(uw)
+        txt.nl()
 
-        uw=10000
-        routines(44,uw+123)
-        routines2(44,uw+123)
-
-        routine(uw+123, 22,33, true, 44)
-        routine2(uw+123, 22,33, true, 44)
+;        uw=10000
+;        routines(44,uw+123)
+;        routines2(44,uw+123)
+;
+;        routine(uw+123, 22,33, true, 44)
+;        routine2(uw+123, 22,33, true, 44)
 
         test_stack.test()
 

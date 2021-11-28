@@ -8,7 +8,7 @@ Use GoSub to call subroutines (statements):
     - [DONE] turn a regular subroutine call into assignments to the parameters + GoSub (take code from gosub branch)
     - [DONE] also do this for asmsubs taking >0 parameters
 
-    - make that push(x+1) doesn't use stack evaluation, via a temp var?
+    - make that push(x+1) doesn't use stack evaluation, via a temp var cx16.R9?
 
 Optimize Function calls in expressions:
     - move args to assignments to params
