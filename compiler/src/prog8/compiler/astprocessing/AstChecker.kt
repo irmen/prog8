@@ -1070,7 +1070,12 @@ internal class AstChecker(private val program: Program,
                             ident = fcall.args[0] as? IdentifierReference
                     }
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
-                        val reg = RegisterOrPair.valueOf(ident.nameInSource[1].uppercase())
+                        var regname = ident.nameInSource[1].uppercase()
+                        if(regname.endsWith('L'))
+                            regname=regname.substring(0, regname.length-1)
+                        if(regname.endsWith('s'))
+                            regname=regname.substring(0, regname.length-1)
+                        val reg = RegisterOrPair.valueOf(regname)
                         val same = params.filter { it.value.registerOrPair==reg }
                         for(s in same) {
                             if(s.index!=arg.index) {

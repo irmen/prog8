@@ -150,7 +150,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is IdentifierReference -> {
                     val parameter = value.targetVarDecl(program)?.subroutineParameter
                     if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine)
-                        throw AssemblyError("can't assign from a asmsub register parameter")
+                        throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system

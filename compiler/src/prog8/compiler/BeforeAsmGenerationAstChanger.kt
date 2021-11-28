@@ -235,6 +235,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                 dt.istype(DataType.BYTE) -> listOf("cx16","r9sL")
                 dt.istype(DataType.UWORD) -> listOf("cx16","r9")
                 dt.istype(DataType.WORD) -> listOf("cx16","r9s")
+                dt.isPassByReference -> listOf("cx16","r9")
                 else -> throw AssemblyError("invalid dt")
             }
             leftOperandReplacement = IdentifierReference(name, expr.position)

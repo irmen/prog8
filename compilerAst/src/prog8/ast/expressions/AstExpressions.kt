@@ -864,7 +864,7 @@ class FunctionCall(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = throw NotImplementedError("no support for duplicating a FunctionCall")
+    override fun copy() = FunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
     override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {

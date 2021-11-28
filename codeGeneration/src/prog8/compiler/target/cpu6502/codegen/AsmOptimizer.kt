@@ -7,6 +7,10 @@ import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.IMachineDefinition
 
 
+// TODO optimize subsequent  pha/pla,  phx/plx,  phy/ply  pairs
+// TODO optimize pha/plx -> tax,  pha/ply -> tay,  etc.
+
+
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 

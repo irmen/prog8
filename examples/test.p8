@@ -11,6 +11,8 @@ main {
     sub start() {
         test_stack.test()
 
+        save(8, "wob", 0, 10)
+
         uword @shared uw
         ubyte @shared ub
         word @shared ww
@@ -39,6 +41,10 @@ main {
         repeat {
         }
 
+    }
+
+    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size)  {
+        c64.SETNAM(string.length(filenameptr), filenameptr)
     }
 
     sub single(ubyte num) {
