@@ -378,6 +378,11 @@ internal class StatementReorderer(val program: Program,
     }
 
     private fun replaceCallSubStatementWithGosub(function: Subroutine, call: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(function.parameters.isEmpty()) {
+            // 0 params -> just GoSub
+            return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
+        }
+
         val assignParams =
             function.parameters.zip(call.args).map {
                 var argumentValue = it.second

@@ -307,12 +307,10 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
     }
 }
 
-object BuiltinFunctionScopePlaceholder : INameScope {
+internal object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
     override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<Statement>()
     override var parent: Node = ParentSentinel
     override fun linkParents(parent: Node) {}
 }
-
-

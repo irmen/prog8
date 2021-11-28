@@ -16,7 +16,7 @@ main {
         word @shared ww
         byte @shared bb
 
-        push(-bb)
+        push(ub+1)
         pop(ub)
         txt.print_ub(ub)
         txt.nl()
@@ -24,6 +24,8 @@ main {
         popw(uw)
         txt.print_uw(uw)
         txt.nl()
+
+        single(ub+1)
 
 ;        uw=10000
 ;        routines(44,uw+123)
@@ -37,6 +39,10 @@ main {
         repeat {
         }
 
+    }
+
+    sub single(ubyte num) {
+        num++
     }
 
     sub routine(uword num, ubyte a1, ubyte a2, ubyte switch, byte a3) {
