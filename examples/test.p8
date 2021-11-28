@@ -58,19 +58,17 @@ main {
         txt.nl()
     }
 
-    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @Pc, ubyte a3 @X) {
+    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R0, ubyte switch @Pc, ubyte a3 @X) {
         %asm {{
-            pha
+            sta  routine.num
+            sty  routine.num+1
             lda  #0
             adc  #0
             sta  routine.switch
-            pla
-            sta  routine.num
-            sty  routine.num+1
+            lda  cx16.r0
+            sta  routine.a2
             lda  cx16.r1
             sta  routine.a1
-            lda  cx16.r2
-            sta  routine.a2
             stx  routine.a3
             jmp  routine
         }}

@@ -77,6 +77,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcPop(fcall: IFunctionCall, func: FSignature) {
+        // note: because A is pushed first so popped last, saving A is often not required here.
         require(fcall.args[0] is IdentifierReference) {
             "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${(fcall as Node).position}"
         }
@@ -87,15 +88,19 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             require(sub.isAsmSubroutine) {
                 "push/pop arg passing only supported on asmsubs ${(fcall as Node).position}"
             }
+            val shouldKeepA = sub.asmParameterRegisters.any { it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY }
             val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
             if(reg.statusflag!=null) {
+                if(shouldKeepA)
+                    asmgen.out("  sta  P8ZP_SCRATCH_REG")
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_REG
                     clc
                     pla
                     beq  +
                     sec
-+                   lda  P8ZP_SCRATCH_REG""")
++""")
+                if(shouldKeepA)
+                    asmgen.out("  lda  P8ZP_SCRATCH_REG")
             }
             else {
                 if (func.name == "pop") {
@@ -109,15 +114,25 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                         }
                     } else {
                         when (reg.registerOrPair) {
-                            // TODO make sure that A is pushed first so popped last, so that those store/load to save A are no longer needed (c64)
                             RegisterOrPair.A -> asmgen.out("  pla")
-                            RegisterOrPair.X -> asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
-                            RegisterOrPair.Y -> asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
+                            RegisterOrPair.X -> {
+                                if(shouldKeepA)
+                                    asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
+                                else
+                                    asmgen.out("  pla |  tax")
+                            }
+                            RegisterOrPair.Y -> {
+                                if(shouldKeepA)
+                                    asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
+                                else
+                                    asmgen.out("  pla |  tay")
+                            }
                             in Cx16VirtualRegisters -> asmgen.out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
                             else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
                         }
                     }
                 } else {
+                    // word pop
                     if (asmgen.isTargetCpu(CpuType.CPU65c02))
                         when (reg.registerOrPair) {
                             RegisterOrPair.AX -> asmgen.out("  plx |  pla")
