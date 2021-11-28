@@ -389,30 +389,23 @@ internal class StatementReorderer(val program: Program,
                 }
                 Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
             }
-        return assignParams.map { IAstModification.InsertBefore(call, it, parent as IStatementContainer) } +
-                IAstModification.ReplaceNode(
-                    call,
-                    GoSub(null, call.target, null, call.position),
-                    parent)
+        val scope = AnonymousScope(assignParams.toMutableList(), call.position)
+        scope.statements += GoSub(null, call.target, null, call.position)
+        return listOf(IAstModification.ReplaceNode(call, scope, parent))
     }
 
     private fun replaceCallAsmSubStatementWithGosub(function: Subroutine, call: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(function.parameters.isEmpty()) {
             // 0 params -> just GoSub
-            val modifications = mutableListOf<IAstModification>()
+            val scope = AnonymousScope(mutableListOf(), call.position)
             if(function.shouldSaveX()) {
-                modifications += IAstModification.InsertBefore(
-                    call,
-                    FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position),
-                    parent as IStatementContainer
-                )
-                modifications += IAstModification.InsertAfter(
-                    call,
-                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
-                    parent as IStatementContainer
-                )
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position)
             }
-            return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
+            scope.statements += GoSub(null, call.target, null, call.position)
+            if(function.shouldSaveX()) {
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position)
+            }
+            return listOf(IAstModification.ReplaceNode(call, scope, parent))
         } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
             // no register clobber risk, let the asmgen assign values to the registers directly.
             // this is more efficient than first evaluating them to the stack
@@ -423,34 +416,26 @@ internal class StatementReorderer(val program: Program,
             if (options.slowCodegenWarnings)
                 errors.warn("slow argument passing used to avoid register clobbering", call.position)
             val argOrder = options.compTarget.asmsubArgsEvalOrder(function)
-            val modifications = mutableListOf<IAstModification>()
+            val scope = AnonymousScope(mutableListOf(), call.position)
             if(function.shouldSaveX()) {
-                modifications += IAstModification.InsertBefore(
-                    call,
-                    FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position),
-                    parent as IStatementContainer
-                )
-                modifications += IAstModification.InsertAfter(
-                    call,
-                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
-                    parent as IStatementContainer
-                )
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position)
             }
             argOrder.reversed().forEach {
                 val arg = call.args[it]
                 val param = function.parameters[it]
-                val push = pushCall(arg, param.type, arg.position)
-                modifications += IAstModification.InsertBefore(call, push, parent as IStatementContainer)
+                scope.statements += pushCall(arg, param.type, arg.position)
             }
             // ... and pop them off again into the registers.
             argOrder.forEach {
                 val param = function.parameters[it]
                 val targetName = function.scopedName + param.name
-                val pop = popCall(targetName, param.type, call.position)
-                modifications += IAstModification.InsertBefore(call, pop, parent as IStatementContainer)
+                scope.statements += popCall(targetName, param.type, call.position)
             }
-
-            return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
+            scope.statements += GoSub(null, call.target, null, call.position)
+            if(function.shouldSaveX()) {
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position)
+            }
+            return listOf(IAstModification.ReplaceNode(call, scope, parent))
         }
     }
 
