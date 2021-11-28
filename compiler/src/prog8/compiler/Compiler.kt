@@ -327,8 +327,8 @@ private fun writeAssembly(program: Program,
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
 
-    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-    printProgram(program)
+//    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//    printProgram(program)
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val assembly = asmGeneratorFor(compilerOptions.compTarget,

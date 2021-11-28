@@ -103,7 +103,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     Statusflag.Pc -> {
                         asmgen.out("""
                             lda  #0
-                            adc  #0
+                            rol  a
                             sta  P8ESTACK_LO,x
                             dex""")
                     }

@@ -214,11 +214,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(argForCarry!=null) {
             val plusIdxStr = if(argForCarry.index==0) "" else "+${argForCarry.index}"
             asmgen.out("""
+                clc
                 lda  P8ESTACK_LO$plusIdxStr,x
                 beq  +
                 sec
-                bcs  ++
-+               clc
 +               php""")             // push the status flags
         }
 
@@ -297,11 +296,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         val sourceName = asmgen.asmVariableName(value)
                         asmgen.out("""
                 pha
+                clc
                 lda  $sourceName
                 beq  +
                 sec  
-                bcs  ++
-    +           clc
     +           pla
     """)
                     }

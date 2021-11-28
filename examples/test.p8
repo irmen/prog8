@@ -11,15 +11,10 @@ main {
     sub start() {
         test_stack.test()
 
-        c64.SETNAM(string.length(filenameptr), filenameptr)
+        uword @shared uw
+        ubyte @shared ub
+        word @shared ww
 
-        sys.memcopy(&savedata + 2, cargohold, len(cargohold))
-        sys.memcopy(cargohold, &savedata + 2, len(cargohold))
-
-;        uword @shared uw
-;        ubyte @shared ub
-;        word @shared ww
-;
 ;        push(127)
 ;        pop(ub)
 ;        txt.print_ub(ub)
@@ -28,13 +23,13 @@ main {
 ;        popw(uw)
 ;        txt.print_uw(uw)
 ;        txt.nl()
-;
-;        uw=10000
-;        routines(44,uw+123)
-;        routines2(44,uw+123)
-;
-;        routine(uw+123, 22,33, true, 44)
-;        routine2(uw+123, 22,33, true, 44)
+
+        uw=10000
+        routines(44,uw+123)
+        routines2(44,uw+123)
+
+        routine(uw+123, 22,33, true, 44)
+        routine2(uw+123, 22,33, true, 44)
 
         test_stack.test()
 
@@ -63,17 +58,19 @@ main {
         txt.nl()
     }
 
-    ; TODO make switch R3 use Pc instead and make that work !
-    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @R3, ubyte a3 @X) {
+    asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @Pc, ubyte a3 @X) {
         %asm {{
+            pha
+            lda  #0
+            adc  #0
+            sta  routine.switch
+            pla
             sta  routine.num
             sty  routine.num+1
             lda  cx16.r1
             sta  routine.a1
             lda  cx16.r2
             sta  routine.a2
-            lda  cx16.r3
-            sta  routine.switch
             stx  routine.a3
             jmp  routine
         }}

@@ -415,6 +415,8 @@ internal class StatementReorderer(val program: Program,
             return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
         } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
             // no register clobber risk, let the asmgen assign values to the registers directly.
+            // this is more efficient than first evaluating them to the stack
+            // TODO but what about complex expressions?
             return noModifications
         } else {
             // clobber risk; evaluate the arguments on the CPU stack first (in reverse order)...

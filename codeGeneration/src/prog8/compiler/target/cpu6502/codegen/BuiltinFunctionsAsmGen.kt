@@ -88,8 +88,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 "push/pop arg passing only supported on asmsubs ${(fcall as Node).position}"
             }
             val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
-            if(reg.statusflag!=null)
-                TODO("can't assign value to processor statusflag directly")
+            if(reg.statusflag!=null) {
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_REG
+                    clc
+                    pla
+                    beq  +
+                    sec
++                   lda  P8ZP_SCRATCH_REG""")
+            }
             else {
                 if (func.name == "pop") {
                     if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
