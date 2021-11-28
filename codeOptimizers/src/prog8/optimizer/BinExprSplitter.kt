@@ -58,19 +58,19 @@ X =      BinExpr                                    X   =   LeftExpr
                     if(rightBx!=null && (!rightBx.left.isSimple || !rightBx.right.isSimple))
                         return noModifications
 
-                    // TODO below attempts to remove stack-based evaluated expressions, but sometimes the resulting code is BIGGER.
-                    val dt = assignment.target.inferType(program)
-                    if(!dt.isInteger)
-                        return noModifications
-                    val tempVar = IdentifierReference(getTempVarName(dt), binExpr.right.position)
-                    val assignTempVar = Assignment(
-                        AssignTarget(tempVar, null, null, binExpr.right.position),
-                        binExpr.right, binExpr.right.position
-                    )
-                    return listOf(
-                        IAstModification.InsertBefore(assignment, assignTempVar, assignment.parent as IStatementContainer),
-                        IAstModification.ReplaceNode(binExpr.right, tempVar.copy(), binExpr)
-                    )
+                      // TODO below attempts to remove stack-based evaluated expressions, but often the resulting code is BIGGER, and SLOWER.
+//                    val dt = assignment.target.inferType(program)
+//                    if(!dt.isInteger)
+//                        return noModifications
+//                    val tempVar = IdentifierReference(getTempVarName(dt), binExpr.right.position)
+//                    val assignTempVar = Assignment(
+//                        AssignTarget(tempVar, null, null, binExpr.right.position),
+//                        binExpr.right, binExpr.right.position
+//                    )
+//                    return listOf(
+//                        IAstModification.InsertBefore(assignment, assignTempVar, assignment.parent as IStatementContainer),
+//                        IAstModification.ReplaceNode(binExpr.right, tempVar.copy(), binExpr)
+//                    )
                 }
 
                 if(binExpr.right.isSimple) {
