@@ -1390,9 +1390,15 @@ $label              nop""")
 
     private fun translate(jump: Jump) {
         if(jump.isGosub) {
-            saveXbeforeCall(jump as GoSub)
-            out("  jsr  ${getJumpTarget(jump)}")
-            restoreXafterCall(jump as GoSub)
+            val tgt = jump.identifier!!.targetSubroutine(program)
+            if(tgt!=null && tgt.isAsmSubroutine) {
+                // no need to rescue X , this has been taken care of already
+                out("  jsr  ${getJumpTarget(jump)}")
+            } else {
+                saveXbeforeCall(jump as GoSub)
+                out("  jsr  ${getJumpTarget(jump)}")
+                restoreXafterCall(jump as GoSub)
+            }
         }
         else
             jmp(getJumpTarget(jump))

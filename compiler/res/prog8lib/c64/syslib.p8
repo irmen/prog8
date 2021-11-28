@@ -648,43 +648,6 @@ _longcopy
         }}
     }
 
-    inline asmsub push(ubyte value @A) {
-        %asm {{
-        pha
-        }}
-    }
-
-    inline asmsub pop() -> ubyte @A {
-        %asm {{
-        pla
-        }}
-    }
-
-    inline asmsub popx() -> ubyte @X {
-        %asm {{
-        sta  P8ZP_SCRATCH_REG
-        pla
-        tax
-        lda  P8ZP_SCRATCH_REG
-        }}
-    }
-
-    inline asmsub pushw(uword value @AY) {
-        %asm {{
-        pha
-        tya
-        pha
-        }}
-    }
-
-    inline asmsub popw() -> uword @AY {
-        %asm {{
-        pla
-        tay
-        pla
-        }}
-    }
-
     inline asmsub clear_carry() {
         %asm {{
         clc

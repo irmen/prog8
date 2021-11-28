@@ -399,7 +399,20 @@ internal class StatementReorderer(val program: Program,
     private fun replaceCallAsmSubStatementWithGosub(function: Subroutine, call: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(function.parameters.isEmpty()) {
             // 0 params -> just GoSub
-            return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
+            val modifications = mutableListOf<IAstModification>()
+            if(function.shouldSaveX()) {
+                modifications += IAstModification.InsertBefore(
+                    call,
+                    FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position),
+                    parent as IStatementContainer
+                )
+                modifications += IAstModification.InsertAfter(
+                    call,
+                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
+                    parent as IStatementContainer
+                )
+            }
+            return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
         } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
             // no register clobber risk, let the asmgen assign values to the registers directly.
             return noModifications
@@ -409,12 +422,18 @@ internal class StatementReorderer(val program: Program,
                 errors.warn("slow argument passing used to avoid register clobbering", call.position)
             val argOrder = options.compTarget.asmsubArgsEvalOrder(function)
             val modifications = mutableListOf<IAstModification>()
-            if(function.shouldSaveX())
+            if(function.shouldSaveX()) {
                 modifications += IAstModification.InsertBefore(
                     call,
                     FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position),
                     parent as IStatementContainer
                 )
+                modifications += IAstModification.InsertAfter(
+                    call,
+                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
+                    parent as IStatementContainer
+                )
+            }
             argOrder.reversed().forEach {
                 val arg = call.args[it]
                 val param = function.parameters[it]
@@ -425,49 +444,19 @@ internal class StatementReorderer(val program: Program,
             argOrder.forEach {
                 val param = function.parameters[it]
                 val targetName = function.scopedName + param.name
-                val popassign =
-                    if(function.asmParameterRegisters[it].registerOrPair == RegisterOrPair.X)
-                        popCallAssignX(targetName, param.type, call.position)
-                    else
-                        popCallAssign(targetName, param.type, call.position)
-                modifications += IAstModification.InsertBefore(call, popassign, parent as IStatementContainer)
+                val pop = popCall(targetName, param.type, call.position)
+                modifications += IAstModification.InsertBefore(call, pop, parent as IStatementContainer)
             }
-            if(function.shouldSaveX())
-                modifications += IAstModification.InsertAfter(
-                    call,
-                    FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position),
-                    parent as IStatementContainer
-                )
 
             return modifications + IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent)
         }
     }
 
-    private fun popCallAssignX(targetName: List<String>, dt: DataType, position: Position): Assignment {
-        val func = IdentifierReference(listOf("sys", "popx"), position)
-        val popcall = when(dt) {
-            DataType.UBYTE -> FunctionCall(func, mutableListOf(), position)
-            DataType.BYTE -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UBYTE, true, position)
-            else -> throw FatalAstException("invalid dt $dt")
-        }
-        return Assignment(
-            AssignTarget(IdentifierReference(targetName, position), null, null, position),
-            popcall, position
-        )
-    }
-
-    private fun popCallAssign(targetName: List<String>, dt: DataType, position: Position): Assignment {
-        val func = IdentifierReference(listOf("sys", if(dt in ByteDatatypes) "pop" else "popw"), position)
-        val popcall = when(dt) {
-            DataType.UBYTE, DataType.UWORD -> FunctionCall(func, mutableListOf(), position)
-            in PassByReferenceDatatypes -> FunctionCall(func, mutableListOf(), position)
-            DataType.BYTE -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UBYTE, true, position)
-            DataType.WORD -> TypecastExpression(FunctionCall(func, mutableListOf(), position), DataType.UWORD, true, position)
-            else -> throw FatalAstException("invalid dt $dt")
-        }
-        return Assignment(
-            AssignTarget(IdentifierReference(targetName, position), null, null, position),
-            popcall, position
+    private fun popCall(targetName: List<String>, dt: DataType, position: Position): FunctionCallStatement {
+        return FunctionCallStatement(
+            IdentifierReference(listOf(if(dt in ByteDatatypes) "pop" else "popw"), position),
+            mutableListOf(IdentifierReference(targetName, position)),
+            true, position
         )
     }
 
@@ -481,7 +470,7 @@ internal class StatementReorderer(val program: Program,
         }
 
         return FunctionCallStatement(
-            IdentifierReference(listOf("sys", if(dt in ByteDatatypes) "push" else "pushw"), position),
+            IdentifierReference(listOf(if(dt in ByteDatatypes) "push" else "pushw"), position),
             mutableListOf(pushvalue),
             true, position
         )

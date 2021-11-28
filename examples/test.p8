@@ -7,9 +7,24 @@ main {
         test_stack.test()
 
         uword @shared uw
-        uw= 0
-        routine(uw+11, 22,33, true, 44)
-        routine2(uw+11, 22,33, true, 44)
+        ubyte @shared ub
+
+        push(127)
+        popw(ub)            ; TODO give type error
+        pop(ub)
+        txt.print_ub(ub)
+        txt.nl()
+        pushw(32767)
+        popw(uw)
+        txt.print_uw(uw)
+        txt.nl()
+
+        uw=10000
+        routines(44,uw+123)
+        routines2(44,uw+123)
+
+        routine(uw+123, 22,33, true, 44)
+        routine2(uw+123, 22,33, true, 44)
 
         test_stack.test()
 
@@ -31,6 +46,13 @@ main {
         txt.nl()
     }
 
+    sub routines(ubyte bb, uword num) {
+        txt.print_ub(bb)
+        txt.spc()
+        txt.print_uw(num)
+        txt.nl()
+    }
+
     ; TODO make switch R3 use Pc instead and make that work !
     asmsub routine2(uword num @AY, ubyte a1 @R1, ubyte a2 @R2, ubyte switch @R3, ubyte a3 @X) {
         %asm {{
@@ -44,6 +66,15 @@ main {
             sta  routine.switch
             stx  routine.a3
             jmp  routine
+        }}
+    }
+
+    asmsub routines2(ubyte bb @X, uword num @AY) {
+        %asm {{
+            sta  routines.num
+            sty  routines.num+1
+            stx  routines.bb
+            jmp  routines
         }}
     }
 

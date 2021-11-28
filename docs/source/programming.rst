@@ -861,6 +861,20 @@ poke(address, value)
 pokew(address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
+push(value)
+    pushes a byte value on the CPU hardware stack. Lowlevel function that should normally not be used.
+
+pushw(value)
+    pushes a 16-bit word value on the CPU hardware stack. Lowlevel function that should normally not be used.
+
+pop(variable)
+    pops a byte value off the CPU hardware stack into the given variable. Only variables can be used.
+    Lowlevel function that should normally not be used.
+
+popw(value)
+    pops a 16-bit word value off the CPU hardware stack into the given variable. Only variables can be used.
+    Lowlevel function that should normally not be used.
+
 rnd()
     returns a pseudo-random byte from 0..255
 

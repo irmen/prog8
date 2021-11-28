@@ -67,8 +67,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
-//            "push", "pushw" -> funcPush(fcall, func)
-//            "pop", "popw" -> funcPop(func)
+            "push", "pushw" -> funcPush(fcall, func)
+            "pop", "popw" -> funcPop(fcall, func)
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "callrom" -> funcCallRom(fcall)
@@ -76,29 +76,93 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         }
     }
 
-//    private fun funcPop(func: FSignature) {
-//        if(func.name=="pop") {
-//            asmgen.out("  pla")
-//        } else {
-//            if (asmgen.isTargetCpu(CpuType.CPU65c02))
-//                asmgen.out("  ply |  pla")
-//            else
-//                asmgen.out("  pla |  tay |  pla")
-//        }
-//    }
-//
-//    private fun funcPush(fcall: IFunctionCall, func: FSignature) {
-//        if(func.name=="push") {
-//            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
-//            asmgen.out("  pha")
-//        } else {
-//            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-//            if (asmgen.isTargetCpu(CpuType.CPU65c02))
-//                asmgen.out("  pha |  phy")
-//            else
-//                asmgen.out("  pha |  tya |  pha")
-//        }
-//    }
+    private fun funcPop(fcall: IFunctionCall, func: FSignature) {
+        require(fcall.args[0] is IdentifierReference) {
+            "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${(fcall as Node).position}"
+        }
+        val target = (fcall.args[0] as IdentifierReference).targetVarDecl(program)!!
+        val parameter = target.subroutineParameter
+        if(parameter!=null) {
+            val sub = parameter.definingSubroutine!!
+            require(sub.isAsmSubroutine) {
+                "push/pop arg passing only supported on asmsubs ${(fcall as Node).position}"
+            }
+            val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
+            if(reg.statusflag!=null)
+                TODO("can't assign value to processor statusflag directly")
+            else {
+                if (func.name == "pop") {
+                    if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        when (reg.registerOrPair) {
+                            RegisterOrPair.A -> asmgen.out("  pla")
+                            RegisterOrPair.X -> asmgen.out("  plx")
+                            RegisterOrPair.Y -> asmgen.out("  ply")
+                            in Cx16VirtualRegisters -> asmgen.out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
+                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                        }
+                    } else {
+                        when (reg.registerOrPair) {
+                            // TODO make sure that A is pushed first so popped last, so that those store/load to save A are no longer needed (c64)
+                            RegisterOrPair.A -> asmgen.out("  pla")
+                            RegisterOrPair.X -> asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
+                            RegisterOrPair.Y -> asmgen.out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
+                            in Cx16VirtualRegisters -> asmgen.out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
+                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                        }
+                    }
+                } else {
+                    if (asmgen.isTargetCpu(CpuType.CPU65c02))
+                        when (reg.registerOrPair) {
+                            RegisterOrPair.AX -> asmgen.out("  plx |  pla")
+                            RegisterOrPair.AY -> asmgen.out("  ply |  pla")
+                            RegisterOrPair.XY -> asmgen.out("  ply |  plx")
+                            in Cx16VirtualRegisters -> {
+                                val regname = reg.registerOrPair!!.name.lowercase()
+                                asmgen.out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
+                            }
+                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                        }
+                    else {
+                        when (reg.registerOrPair) {
+                            RegisterOrPair.AX -> asmgen.out("  pla |  tax |  pla")
+                            RegisterOrPair.AY -> asmgen.out("  pla |  tay |  pla")
+                            RegisterOrPair.XY -> asmgen.out("  pla |  tay |  pla |  tax")
+                            in Cx16VirtualRegisters -> {
+                                val regname = reg.registerOrPair!!.name.lowercase()
+                                asmgen.out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
+                            }
+                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                        }
+                    }
+                }
+            }
+        } else {
+            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, target.datatype, (fcall as Node).definingSubroutine, variableAsmName = asmgen.asmVariableName(target.name))
+            if (func.name == "pop") {
+                asmgen.out("  pla")
+                asmgen.assignRegister(RegisterOrPair.A, tgt)
+            } else {
+                if (asmgen.isTargetCpu(CpuType.CPU65c02))
+                    asmgen.out("  ply |  pla")
+                else
+                    asmgen.out("  pla |  tay |  pla")
+                asmgen.assignRegister(RegisterOrPair.AY, tgt)
+            }
+        }
+    }
+
+    private fun funcPush(fcall: IFunctionCall, func: FSignature) {
+        if(func.name=="push") {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
+            asmgen.out("  pha")
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+            if (asmgen.isTargetCpu(CpuType.CPU65c02))
+                asmgen.out("  pha |  phy")
+            else
+                asmgen.out("  pha |  tya |  pha")
+        }
+    }
 
     private fun funcCallFar(fcall: IFunctionCall) {
         if(asmgen.options.compTarget !is Cx16Target)
