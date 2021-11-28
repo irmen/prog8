@@ -3,28 +3,34 @@
 
 main {
 
+    ubyte[23]  savedata
+    ubyte[17] cargohold = 0
+
     sub start() {
         test_stack.test()
 
-        uword @shared uw
-        ubyte @shared ub
-        word @shared ww
+        sys.memcopy(&savedata + 2, cargohold, len(cargohold))
+        sys.memcopy(cargohold, &savedata + 2, len(cargohold))
 
-        push(127)
-        pop(ub)
-        txt.print_ub(ub)
-        txt.nl()
-        pushw(32767)
-        popw(uw)
-        txt.print_uw(uw)
-        txt.nl()
-
-        uw=10000
-        routines(44,uw+123)
-        routines2(44,uw+123)
-
-        routine(uw+123, 22,33, true, 44)
-        routine2(uw+123, 22,33, true, 44)
+;        uword @shared uw
+;        ubyte @shared ub
+;        word @shared ww
+;
+;        push(127)
+;        pop(ub)
+;        txt.print_ub(ub)
+;        txt.nl()
+;        pushw(32767)
+;        popw(uw)
+;        txt.print_uw(uw)
+;        txt.nl()
+;
+;        uw=10000
+;        routines(44,uw+123)
+;        routines2(44,uw+123)
+;
+;        routine(uw+123, 22,33, true, 44)
+;        routine2(uw+123, 22,33, true, 44)
 
         test_stack.test()
 
