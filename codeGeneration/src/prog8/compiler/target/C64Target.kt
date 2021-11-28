@@ -27,7 +27,7 @@ object C64Target: ICompilationTarget {
         if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
 
     override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> = asmsub6502ArgsEvalOrder(sub)
-    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>): Boolean  = asmsub6502ArgsHaveRegisterClobberRisk(args)
+    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>) = asmsub6502ArgsHaveRegisterClobberRisk(args)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {

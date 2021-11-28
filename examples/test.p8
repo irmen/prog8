@@ -8,9 +8,9 @@ main {
 
         uword @shared uw
         ubyte @shared ub
+        word @shared ww
 
         push(127)
-        popw(ub)            ; TODO give type error
         pop(ub)
         txt.print_ub(ub)
         txt.nl()

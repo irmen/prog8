@@ -981,19 +981,31 @@ internal class AstChecker(private val program: Program,
             checkUnusedReturnValues(functionCallStatement, targetStatement, program, errors)
         }
 
-        if(functionCallStatement.target.nameInSource.last() == "sort") {
-            // sort is not supported on float arrays
-            val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
-            if(idref!=null && idref.inferType(program) istype DataType.ARRAY_F) {
-                errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
-            }
-        }
+        val funcName = functionCallStatement.target.nameInSource
 
-        if(functionCallStatement.target.nameInSource.last() in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
-            // in-place modification, can't be done on literals
-            if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
-                errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
+        if(funcName.size==1) {
+            // check some builtin function calls
+            if(funcName[0] == "sort") {
+                // sort is not supported on float arrays
+                val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
+                if(idref!=null && idref.inferType(program) istype DataType.ARRAY_F) {
+                    errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
+                }
             }
+            else if(funcName[0] in arrayOf("pop", "popw")) {
+                // can only pop into a variable, that has to have the correct type
+                val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
+                if(idref==null)
+                    errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
+            }
+
+            if(funcName[0] in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
+                // in-place modification, can't be done on literals
+                if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
+                    errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
+                }
+            }
+
         }
 
         val error =
