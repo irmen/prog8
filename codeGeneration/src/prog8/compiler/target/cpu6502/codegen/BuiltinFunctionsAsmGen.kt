@@ -174,11 +174,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcPush(fcall: IFunctionCall, func: FSignature) {
+        val signed = fcall.args[0].inferType(program).oneOf(DataType.BYTE, DataType.WORD)
         if(func.name=="push") {
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)
             asmgen.out("  pha")
         } else {
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)
             if (asmgen.isTargetCpu(CpuType.CPU65c02))
                 asmgen.out("  pha |  phy")
             else

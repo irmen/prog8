@@ -2083,7 +2083,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("weird target kind for inplace negate float ${target.kind}")
                 }
             }
-            else -> throw AssemblyError("negate of invalid type")
+            else -> throw AssemblyError("negate of invalid type $dt")
         }
     }
 

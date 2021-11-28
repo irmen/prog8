@@ -14,8 +14,9 @@ main {
         uword @shared uw
         ubyte @shared ub
         word @shared ww
+        byte @shared bb
 
-        push(127)
+        push(-bb)
         pop(ub)
         txt.print_ub(ub)
         txt.nl()
