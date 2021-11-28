@@ -808,11 +808,8 @@ _done
                         sta  cx16.VERA_ADDR_L
                         bcc  +
                         inc  cx16.VERA_ADDR_M
-+                       lda  x
-                        clc
-                        adc  #1
-                        sta  x
-                        bcc  +
++                       inc  x
+                        bne  +
                         inc  x+1
 +                       dey
                         bne  -

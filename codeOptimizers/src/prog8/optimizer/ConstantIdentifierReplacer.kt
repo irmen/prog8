@@ -110,7 +110,6 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
 
     override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
-        // TODO: use call graph for this?
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true) {
             errors.err("recursive var declaration", decl.position)
             return noModifications

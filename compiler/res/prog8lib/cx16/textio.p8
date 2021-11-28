@@ -565,9 +565,8 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		tay
 		pla
 		eor  #255
-		clc
-		adc  #1
-		bcc  +
+		ina
+		bne +
 		iny
 +		bra  print_uw
 	}}

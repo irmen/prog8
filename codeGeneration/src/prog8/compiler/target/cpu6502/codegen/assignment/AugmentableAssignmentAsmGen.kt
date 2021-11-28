@@ -1998,7 +1998,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out("  eor  #255 |  clc |  adc  #1")
+                            RegisterOrPair.A -> {
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  eor  #255 |  ina")
+                                else
+                                    asmgen.out("  eor  #255 |  clc |  adc  #1")
+
+                            }
                             RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax |  inx")
                             RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay |  iny")
                             else -> throw AssemblyError("invalid reg dt for byte negate")
