@@ -994,9 +994,16 @@ internal class AstChecker(private val program: Program,
             }
             else if(funcName[0] in arrayOf("pop", "popw")) {
                 // can only pop into a variable, that has to have the correct type
-                val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
-                if(idref==null)
-                    errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
+                val idref = functionCallStatement.args[0]
+                if(idref !is IdentifierReference) {
+                    if(idref is TypecastExpression) {
+                        val passByRef = idref.expression.inferType(program).isPassByReference
+                        if(idref.type!=DataType.UWORD || !passByRef)
+                            errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
+                    } else {
+                        errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
+                    }
+                }
             }
 
             if(funcName[0] in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {

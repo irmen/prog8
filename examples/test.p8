@@ -1,13 +1,17 @@
 %import textio
+%import string
 %import test_stack
 
 main {
 
     ubyte[23]  savedata
     ubyte[17] cargohold = 0
+    uword filenameptr = $c000
 
     sub start() {
         test_stack.test()
+
+        c64.SETNAM(string.length(filenameptr), filenameptr)
 
         sys.memcopy(&savedata + 2, cargohold, len(cargohold))
         sys.memcopy(cargohold, &savedata + 2, len(cargohold))
