@@ -120,16 +120,7 @@ class StatementOptimizer(private val program: Program,
         if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
             val arg = functionCallStatement.args[0]
             if(!arg.isSimple && arg !is TypecastExpression && arg !is IFunctionCall) {
-                val dt = arg.inferType(program)
-                val name = when {
-                    // TODO assume (hope) cx16.r9 isn't used for anything else...
-                    dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")
-                    dt.istype(DataType.BYTE) -> listOf("cx16","r9sL")
-                    dt.istype(DataType.UWORD) -> listOf("cx16","r9")
-                    dt.istype(DataType.WORD) -> listOf("cx16","r9s")
-                    dt.isPassByReference -> listOf("cx16","r9")
-                    else -> throw FatalAstException("invalid dt $dt")
-                }
+                val name = getTempVarName(arg.inferType(program))
                 val tempvar = IdentifierReference(name, functionCallStatement.position)
                 val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, functionCallStatement.position)
                 return listOf(

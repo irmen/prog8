@@ -46,8 +46,32 @@ X =      BinExpr                                    X   =   LeftExpr
 
  */
             if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target)) {
-                if(assignment.target isSameAs binExpr.left || assignment.target isSameAs binExpr.right)
+                if(assignment.target isSameAs binExpr.right)
                     return noModifications
+                if(assignment.target isSameAs binExpr.left) {
+                    if(binExpr.right.isSimple)
+                        return noModifications
+                    val leftBx = binExpr.left as? BinaryExpression
+                    if(leftBx!=null && (!leftBx.left.isSimple || !leftBx.right.isSimple))
+                        return noModifications
+                    val rightBx = binExpr.right as? BinaryExpression
+                    if(rightBx!=null && (!rightBx.left.isSimple || !rightBx.right.isSimple))
+                        return noModifications
+
+                    // TODO below attempts to remove stack-based evaluated expressions, but sometimes the resulting code is BIGGER.
+                    val dt = assignment.target.inferType(program)
+                    if(!dt.isInteger)
+                        return noModifications
+                    val tempVar = IdentifierReference(getTempVarName(dt), binExpr.right.position)
+                    val assignTempVar = Assignment(
+                        AssignTarget(tempVar, null, null, binExpr.right.position),
+                        binExpr.right, binExpr.right.position
+                    )
+                    return listOf(
+                        IAstModification.InsertBefore(assignment, assignTempVar, assignment.parent as IStatementContainer),
+                        IAstModification.ReplaceNode(binExpr.right, tempVar.copy(), binExpr)
+                    )
+                }
 
                 if(binExpr.right.isSimple) {
                     val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)

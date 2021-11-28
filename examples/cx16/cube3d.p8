@@ -25,6 +25,8 @@ main {
             anglex+=500
             angley+=215
             anglez+=453
+            sys.waitvsync()
+            sys.waitvsync()
         }
     }
 

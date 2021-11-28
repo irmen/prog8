@@ -13,6 +13,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isSubroutineParameter
 import prog8.compiler.target.AssemblyError
 import prog8.compilerinterface.*
+import prog8.optimizer.getTempVarName
 
 
 internal class BeforeAsmGenerationAstChanger(val program: Program, private val options: CompilationOptions,
@@ -228,16 +229,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val separateRightExpr = !expr.right.isSimple && expr.right !is IFunctionCall
 
         if(separateLeftExpr) {
-            val dt = expr.left.inferType(program)
-            val name = when {
-                // TODO assume (hope) cx16.r9 isn't used for anything else...
-                dt.istype(DataType.UBYTE) -> listOf("cx16","r9L")
-                dt.istype(DataType.BYTE) -> listOf("cx16","r9sL")
-                dt.istype(DataType.UWORD) -> listOf("cx16","r9")
-                dt.istype(DataType.WORD) -> listOf("cx16","r9s")
-                dt.isPassByReference -> listOf("cx16","r9")
-                else -> throw AssemblyError("invalid dt")
-            }
+            val name = getTempVarName(expr.left.inferType(program))
             leftOperandReplacement = IdentifierReference(name, expr.position)
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
