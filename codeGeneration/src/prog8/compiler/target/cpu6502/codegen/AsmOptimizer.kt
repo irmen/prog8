@@ -7,10 +7,6 @@ import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.IMachineDefinition
 
 
-// TODO optimize subsequent  pha/pla,  phx/plx,  phy/ply  pairs
-// TODO optimize pha/plx -> tax,  pha/ply -> tay,  etc.
-
-
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
@@ -356,6 +352,31 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>,
                 if (firstLoc == secondLoc)
                     mods.add(Modification(lines[2].index, true, null))
             }
+        }
+        else if(first=="pha" && second=="pla" ||
+            first=="phx" && second=="plx" ||
+            first=="phy" && second=="ply" ||
+            first=="php" && second=="plp") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, true, null))
+        } else if(first=="pha" && second=="plx") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  tax"))
+        } else if(first=="pha" && second=="ply") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  tay"))
+        } else if(first=="phx" && second=="pla") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  txa"))
+        } else if(first=="phx" && second=="ply") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  txy"))
+        } else if(first=="phy" && second=="pla") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  tya"))
+        } else if(first=="phy" && second=="plx") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, false, "  tyx"))
         }
     }
     return mods

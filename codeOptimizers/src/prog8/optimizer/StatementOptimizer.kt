@@ -143,21 +143,6 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    // TODO WHAT TO DO WITH THIS:
-//    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-//        // if the first instruction in the called subroutine is a return statement with constant value, replace with the constant value
-//        val subroutine = functionCall.target.targetSubroutine(program)
-//        if(subroutine!=null) {
-//            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-//            if(first is Return && first.value!=null) {
-//                val constval = first.value?.constValue(program)
-//                if(constval!=null)
-//                    return listOf(IAstModification.ReplaceNode(functionCall, constval, parent))
-//            }
-//        }
-//        return noModifications
-//    }
-
     override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
         if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty())
