@@ -3,6 +3,10 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+BUG: balls example crashes / animates wrong!
+
+
 Use GoSub to call subroutines (statements):
     - [DONE] allow separate assigns to subroutine's parameter variables / registers
     - [DONE] turn a regular subroutine call into assignments to the parameters + GoSub (take code from gosub branch)

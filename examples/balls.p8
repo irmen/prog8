@@ -45,14 +45,11 @@ main {
 
                 if DX[lp] == 0 {
                     if (BX[lp] == 0)
-                    {
                         DX[lp] = 1
-                    } else {
+                    else
                         BX[lp]=BX[lp]-1
-                    }
                 } else if DX[lp] == 1 {
-                    if (BX[lp] == txt.DEFAULT_WIDTH-1)
-                    {
+                    if (BX[lp] == txt.DEFAULT_WIDTH-1) {
                         BX[lp] = txt.DEFAULT_WIDTH-2
                         DX[lp] = 0
                     } else {
@@ -61,14 +58,11 @@ main {
                 }
                 if DY[lp] == 0 {
                     if (BY[lp] == 0)
-                    {
                         DY[lp] = 1
-                    } else {
+                    else
                         BY[lp]=BY[lp]-1
-                    }
                 } else if DY[lp] == 1 {
-                    if (BY[lp] == txt.DEFAULT_HEIGHT-1)
-                    {
+                    if (BY[lp] == txt.DEFAULT_HEIGHT-1) {
                         BY[lp] = txt.DEFAULT_HEIGHT-2
                         DY[lp] = 0
                     } else {
@@ -82,6 +76,8 @@ main {
 
             ;txt.plot(0,0)
             ;txt.print_uw(frame)
+
+            sys.waitvsync()
         }
 
         uword jiffies = c64.RDTIM16()
