@@ -597,50 +597,6 @@ _longcopy
         }}
     }
 
-
-    inline asmsub rsave() {
-        ; save cpu status flag and all registers A, X, Y.
-        ; see http://6502.org/tutorials/register_preservation.html
-        %asm {{
-            php
-            sta  P8ZP_SCRATCH_REG
-            pha
-            txa
-            pha
-            tya
-            pha
-            lda  P8ZP_SCRATCH_REG
-        }}
-    }
-
-    inline asmsub rrestore() {
-        ; restore all registers and cpu status flag
-        %asm {{
-            pla
-            tay
-            pla
-            tax
-            pla
-            plp
-        }}
-    }
-
-    inline asmsub rsavex() {
-        %asm {{
-        txa
-        pha
-        }}
-    }
-
-    inline asmsub rrestorex() {
-        %asm {{
-        sta  P8ZP_SCRATCH_REG
-        pla
-        tax
-        lda  P8ZP_SCRATCH_REG
-        }}
-    }
-
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
         php

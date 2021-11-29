@@ -404,11 +404,11 @@ internal class StatementReorderer(val program: Program,
             // 0 params -> just GoSub
             val scope = AnonymousScope(mutableListOf(), call.position)
             if(function.shouldSaveX()) {
-                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position)
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), call.position), mutableListOf(), true, call.position)
             }
             scope.statements += GoSub(null, call.target, null, call.position)
             if(function.shouldSaveX()) {
-                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position)
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), call.position), mutableListOf(), true, call.position)
             }
             return listOf(IAstModification.ReplaceNode(call, scope, parent))
         } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args, function.asmParameterRegisters)) {
@@ -423,7 +423,7 @@ internal class StatementReorderer(val program: Program,
             val argOrder = options.compTarget.asmsubArgsEvalOrder(function)
             val scope = AnonymousScope(mutableListOf(), call.position)
             if(function.shouldSaveX()) {
-                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rsavex"), call.position), mutableListOf(), true, call.position)
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), call.position), mutableListOf(), true, call.position)
             }
             argOrder.reversed().forEach {
                 val arg = call.args[it]
@@ -438,7 +438,7 @@ internal class StatementReorderer(val program: Program,
             }
             scope.statements += GoSub(null, call.target, null, call.position)
             if(function.shouldSaveX()) {
-                scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position)
+                scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), call.position), mutableListOf(), true, call.position)
             }
             return listOf(IAstModification.ReplaceNode(call, scope, parent))
         }

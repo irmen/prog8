@@ -859,39 +859,6 @@ sys {
         }}
     }
 
-    inline asmsub rsave() {
-        ; save cpu status flag and all registers A, X, Y.
-        ; see http://6502.org/tutorials/register_preservation.html
-        %asm {{
-            php
-            pha
-            phy
-            phx
-        }}
-    }
-
-    inline asmsub rrestore() {
-        ; restore all registers and cpu status flag
-        %asm {{
-            plx
-            ply
-            pla
-            plp
-        }}
-    }
-
-    inline asmsub rsavex() {
-        %asm {{
-        phx
-        }}
-    }
-
-    inline asmsub rrestorex() {
-        %asm {{
-        plx
-        }}
-    }
-
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
             php

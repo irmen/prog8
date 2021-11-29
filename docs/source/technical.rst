@@ -115,5 +115,5 @@ inaccessible unless you write a short piece of inline assembly code to deal with
 Prog8 also provides some help to deal with this:
 
 - you should use a ``clobbers(X)`` specification for asmsub routines that modify the X register; the compiler will preserve it for you automatically when such a routine is called
-- the ``sys.rsave()`` and ``sys.rrestore()`` routines can preserve and restore *all* registers (but this is very slow and overkill if you only need to save X)
-
+- the ``rsavex()`` and ``rrestorex()`` builtin functions can preserve and restore the X register
+- the ``rsave()`` and ``rrestore()`` builtin functions can preserve and restore *all* registers (but this is very slow and overkill if you only need to save X)

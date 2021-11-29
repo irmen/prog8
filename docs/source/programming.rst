@@ -951,6 +951,12 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler t
     and you'll have to set up a call in assembly code yourself that handles the banking and
     argument/returnvalues.
 
+rsave, rsavex
+    Saves all registers including status (or only X) on the stack
+
+rrestore, rrestorex
+    Restore all registers including status (or only X) back from the cpu hardware stack
+
 
 Library routines
 ----------------

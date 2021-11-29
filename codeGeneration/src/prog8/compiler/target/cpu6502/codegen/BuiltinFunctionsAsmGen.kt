@@ -69,11 +69,66 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "push", "pushw" -> funcPush(fcall, func)
             "pop", "popw" -> funcPop(fcall, func)
+            "rsave" -> funcRsave()
+            "rsavex" -> funcRsaveX()
+            "rrestore" -> funcRrestore()
+            "rrestorex" -> funcRrestoreX()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
         }
+    }
+
+    private fun funcRsave() {
+        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+            asmgen.out("""
+                php
+                pha
+                phy
+                phx""")
+        else
+            // see http://6502.org/tutorials/register_preservation.html
+            asmgen.out("""
+                php
+                sta  P8ZP_SCRATCH_REG
+                pha
+                txa
+                pha
+                tya
+                pha
+                lda  P8ZP_SCRATCH_REG""")
+    }
+
+    private fun funcRsaveX() {
+        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+            asmgen.out("  phx")
+        else
+            asmgen.out("  txa |  pha")
+    }
+
+    private fun funcRrestore() {
+        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+            asmgen.out("""
+                plx
+                ply
+                pla
+                plp""")
+        else
+            asmgen.out("""
+                pla
+                tay
+                pla
+                tax
+                pla
+                plp""")
+    }
+
+    private fun funcRrestoreX() {
+        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+            asmgen.out("  plx")
+        else
+            asmgen.out("  sta  P8ZP_SCRATCH_B1 |  pla |  tax |  lda  P8ZP_SCRATCH_B1")
     }
 
     private fun funcPop(fcall: IFunctionCall, func: FSignature) {

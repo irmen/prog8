@@ -1,6 +1,4 @@
 %import textio
-%import test_stack
-
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -31,12 +29,8 @@ main {
             DY[lp] = rnd() & 1
         }
 
-        ; start clock
-        c64.SETTIM(0,0,0)
-
         ; display balls
-        uword frame
-        for frame in 0 to 999 {
+        repeat {
             ; Loop though all balls clearing current spot and setting new spot
             for lp in 0 to ballCount-1 {
 
@@ -74,17 +68,7 @@ main {
                 txt.setclr(BX[lp], BY[lp], BC[lp])
             }
 
-            ;txt.plot(0,0)
-            ;txt.print_uw(frame)
-
             sys.waitvsync()
         }
-
-        uword jiffies = c64.RDTIM16()
-        txt.print("\nbenchmark: ")
-        txt.print_uw(jiffies)
-        txt.print(" jiffies for 1000 frames.\n")
-
-        ; test_stack.test()
     }
 }

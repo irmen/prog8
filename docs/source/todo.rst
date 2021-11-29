@@ -4,12 +4,7 @@ TODO
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-BUG: sys.rsave/sys.rrestore can never work as subroutine because stack is used -> builtin funcs
-
-BUG: balls example crashes / animates wrong!
-     caused by c83882161521378f20dc0076c01e18e8556e363e  'refactor function arguments codegen a bit'
-     on the lines that call txt.setclr(BX[lp], BY[lp], BC[lp])  - they work with regular vars as args
-     so, something wrong with clobber/arg order when passing array lookups??
+BUG: line-circle-text doesn't compile anymore due to missing symbol!
      Add unit test to avoid this in the future?
 
 
