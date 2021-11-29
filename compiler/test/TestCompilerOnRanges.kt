@@ -4,11 +4,13 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compilerinterface.size
@@ -261,5 +263,43 @@ class TestCompilerOnRanges: FunSpec({
             Position.DUMMY)
         expr.size() shouldBe 6
         expr.toConstantIntegerRange()
+    }
+
+    test("range with negative step should be constvalue") {
+        val result = compileText(C64Target, false, """
+            main {
+                sub start() {
+                    ubyte[] array = 100 to 50 step -2
+                    ubyte xx
+                    for xx in 100 to 50 step -2 {
+                    }
+                }
+            }
+        """).assertSuccess()
+        val statements = result.program.entrypoint.statements
+        val array = (statements[0] as VarDecl).value
+        array shouldBe instanceOf<ArrayLiteralValue>()
+        (array as ArrayLiteralValue).value.size shouldBe 26
+        val forloop = (statements.dropLast(1).last() as ForLoop)
+        forloop.iterable shouldBe instanceOf<RangeExpr>()
+        (forloop.iterable as RangeExpr).step shouldBe NumericLiteralValue(DataType.UBYTE, -2.0, Position.DUMMY)
+    }
+
+    test("range with start/end variables should be ok") {
+        val result = compileText(C64Target, false, """
+            main {
+                sub start() {
+                    byte from = 100
+                    byte end = 50
+                    byte xx
+                    for xx in from to end step -2 {
+                    }
+                }
+            }
+        """).assertSuccess()
+        val statements = result.program.entrypoint.statements
+        val forloop = (statements.dropLast(1).last() as ForLoop)
+        forloop.iterable shouldBe instanceOf<RangeExpr>()
+        (forloop.iterable as RangeExpr).step shouldBe NumericLiteralValue(DataType.UBYTE, -2.0, Position.DUMMY)
     }
 })

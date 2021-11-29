@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.SyntaxError
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
@@ -21,19 +22,31 @@ class AstPreprocessor(val program: Program) : AstWalker() {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
         val modifications = mutableListOf<IAstModification>()
         if(range.from !is NumericLiteralValue) {
-            val constval = range.from.constValue(program)
-            if(constval!=null)
-                modifications += IAstModification.ReplaceNode(range.from, constval, range)
+            try {
+                val constval = range.from.constValue(program)
+                if (constval != null)
+                    modifications += IAstModification.ReplaceNode(range.from, constval, range)
+            } catch (x: SyntaxError) {
+                // syntax errors will be reported later
+            }
         }
         if(range.to !is NumericLiteralValue) {
-            val constval = range.to.constValue(program)
-            if(constval!=null)
-                modifications += IAstModification.ReplaceNode(range.to, constval, range)
+            try {
+                val constval = range.to.constValue(program)
+                if(constval!=null)
+                    modifications += IAstModification.ReplaceNode(range.to, constval, range)
+            } catch (x: SyntaxError) {
+                // syntax errors will be reported later
+            }
         }
         if(range.step !is NumericLiteralValue) {
-            val constval = range.step.constValue(program)
-            if(constval!=null)
-                modifications += IAstModification.ReplaceNode(range.step, constval, range)
+            try {
+                val constval = range.step.constValue(program)
+                if(constval!=null)
+                    modifications += IAstModification.ReplaceNode(range.step, constval, range)
+            } catch (x: SyntaxError) {
+                // syntax errors will be reported later
+            }
         }
         return modifications
     }
