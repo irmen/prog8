@@ -775,6 +775,7 @@ _done
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to multiples of 8 !  TODO allow per-pixel horizontal positioning
+        ; TODO draw whole horizontal spans using vera auto increment if possible, instead of per-character columns
         uword chardataptr
         when active_mode {
             1, 5 -> {
@@ -823,7 +824,6 @@ _done
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, 1)
                     repeat 8 {
-                        ; TODO rewrite this inner loop fully in assembly
                         position(x,y)
                         y++
                         %asm {{
@@ -852,7 +852,9 @@ _done
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     repeat 8 {
-                        ; TODO rewrite this inner loop fully in assembly
+                        ; TODO rewrite this inner loop partly in assembly
+                        ;      requires expanding the charbits to 2-bits per pixel (based on color)
+                        ;      also it's way more efficient to draw whole horizontal spans instead of per-character
                         ubyte charbits = cx16.vpeek(charset_bank, chardataptr)
                         repeat 8 {
                             charbits <<= 1
