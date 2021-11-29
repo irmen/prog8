@@ -146,7 +146,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                         // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.constIndex()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
-                            errors.err("range expression size doesn't match declared array size", decl.value?.position!!)
+                            errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                         val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)

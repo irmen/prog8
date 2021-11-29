@@ -69,11 +69,12 @@ fun RangeExpr.toConstantIntegerRange(): IntProgression? {
 
     val fromLv = from as? NumericLiteralValue
     val toLv = to as? NumericLiteralValue
-    if(fromLv==null || toLv==null)
+    val stepLv = step as? NumericLiteralValue
+    if(fromLv==null || toLv==null || stepLv==null)
         return null
     val fromVal = fromLv.number.toInt()
     val toVal = toLv.number.toInt()
-    val stepVal = (step as? NumericLiteralValue)?.number?.toInt() ?: 1
+    val stepVal = stepLv.number.toInt()
     return makeRange(fromVal, toVal, stepVal)
 }
 

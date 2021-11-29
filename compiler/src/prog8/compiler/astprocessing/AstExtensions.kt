@@ -65,8 +65,8 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.preprocessAst() {
-    val transforms = AstPreprocessor()
+internal fun Program.preprocessAst(program: Program) {
+    val transforms = AstPreprocessor(program)
     transforms.visit(this)
     var mods = transforms.applyModifications()
     while(mods>0)
