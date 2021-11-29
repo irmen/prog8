@@ -114,7 +114,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(sub.parameters.size==1) {
             argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
         } else {
-            if(asmgen.asmsubArgsHaveRegisterClobberRisk(call.args)) {
+            if(asmgen.asmsubArgsHaveRegisterClobberRisk(call.args, sub.asmParameterRegisters)) {
                 registerArgsViaStackEvaluation(call, sub)
             } else {
                 asmgen.asmsubArgsEvalOrder(sub).forEach {

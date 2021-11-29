@@ -1,11 +1,9 @@
 package prog8.compiler.target
 
 import com.github.michaelbull.result.fold
-import prog8.ast.base.ByteDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.PassByReferenceDatatypes
-import prog8.ast.base.WordDatatypes
+import prog8.ast.base.*
 import prog8.ast.expressions.Expression
+import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cbm.Petscii
@@ -26,8 +24,10 @@ object C64Target: ICompilationTarget {
     override fun decodeString(bytes: List<UByte>, altEncoding: Boolean) =
         if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
 
-    override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> = asmsub6502ArgsEvalOrder(sub)
-    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>) = asmsub6502ArgsHaveRegisterClobberRisk(args)
+    override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> =
+        asmsub6502ArgsEvalOrder(sub)
+    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>, paramRegisters: List<RegisterOrStatusflag>) =
+        asmsub6502ArgsHaveRegisterClobberRisk(args, paramRegisters)
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {

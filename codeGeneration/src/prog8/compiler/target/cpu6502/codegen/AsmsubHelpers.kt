@@ -3,6 +3,7 @@ package prog8.compiler.target.cpu6502.codegen
 import prog8.ast.base.Cx16VirtualRegisters
 import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.*
+import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 
 
@@ -34,19 +35,27 @@ internal fun asmsub6502ArgsEvalOrder(sub: Subroutine): List<Int> {
     return order
 }
 
-internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>): Boolean {
+internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
+                                                   paramRegisters: List<RegisterOrStatusflag>): Boolean {
     fun isClobberRisk(expr: Expression): Boolean {
-        if (expr.isSimple && expr !is PrefixExpression)
-            return false
-
-        if (expr is FunctionCall) {
-            if (expr.target.nameInSource == listOf("lsb") || expr.target.nameInSource == listOf("msb"))
-                return isClobberRisk(expr.args[0])
-            if (expr.target.nameInSource == listOf("mkword"))
-                return isClobberRisk(expr.args[0]) && isClobberRisk(expr.args[1])
+        when (expr) {
+            is ArrayIndexedExpression -> {
+                return paramRegisters.any {
+                    it.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
+                }
+            }
+            is PrefixExpression -> {
+                return true         // TODO really, is prefixexpression problematic for register clobbering?
+            }
+            is FunctionCall -> {
+                if (expr.target.nameInSource == listOf("lsb") || expr.target.nameInSource == listOf("msb"))
+                    return isClobberRisk(expr.args[0])
+                if (expr.target.nameInSource == listOf("mkword"))
+                    return isClobberRisk(expr.args[0]) && isClobberRisk(expr.args[1])
+                return !expr.isSimple
+            }
+            else -> return !expr.isSimple
         }
-
-        return true
     }
 
     return args.size>1 && args.any { isClobberRisk(it) }

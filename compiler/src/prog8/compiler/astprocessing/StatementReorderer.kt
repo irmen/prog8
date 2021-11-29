@@ -411,7 +411,7 @@ internal class StatementReorderer(val program: Program,
                 scope.statements += FunctionCallStatement(IdentifierReference(listOf("sys", "rrestorex"), call.position), mutableListOf(), true, call.position)
             }
             return listOf(IAstModification.ReplaceNode(call, scope, parent))
-        } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args)) {
+        } else if(!options.compTarget.asmsubArgsHaveRegisterClobberRisk(call.args, function.asmParameterRegisters)) {
             // No register clobber risk, let the asmgen assign values to the registers directly.
             // this is more efficient than first evaluating them to the stack.
             // As complex expressions will be flagged as a clobber-risk, these will be simplified below.

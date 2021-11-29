@@ -9,6 +9,7 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
+import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
@@ -37,7 +38,8 @@ class TestAbstractZeropage: FunSpec({
             throw NotImplementedError("dummy")
         }
 
-        override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>): Boolean {
+        override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>,
+                                                       paramRegisters: List<RegisterOrStatusflag>): Boolean {
             throw NotImplementedError("dummy")
         }
 
