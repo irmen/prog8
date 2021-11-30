@@ -29,6 +29,13 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             translateNormalAssignment(assign)
     }
 
+    internal fun virtualRegsToVariables(origtarget: AsmAssignTarget): AsmAssignTarget {
+        return if(origtarget.kind==TargetStorageKind.REGISTER && origtarget.register in Cx16VirtualRegisters) {
+            AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, origtarget.datatype, origtarget.scope,
+                variableAsmName = "cx16.${origtarget.register!!.name.lowercase()}", origAstTarget = origtarget.origAstTarget)
+        } else origtarget
+    }
+
     fun translateNormalAssignment(assign: AsmAssignment) {
         if(assign.isAugmentable) {
             augmentableAsmGen.translate(assign)
@@ -258,11 +265,12 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             assign.target,
                             false, program.memsizer, assign.position
                         ))
+                        val target = virtualRegsToVariables(assign.target)
                         when(value.operator) {
                             "+" -> {}
-                            "-" -> augmentableAsmGen.inplaceNegate(assign.target, assign.target.datatype)
-                            "~" -> augmentableAsmGen.inplaceInvert(assign.target, assign.target.datatype)
-                            "not" -> augmentableAsmGen.inplaceBooleanNot(assign.target, assign.target.datatype)
+                            "-" -> augmentableAsmGen.inplaceNegate(target, target.datatype)
+                            "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
+                            "not" -> augmentableAsmGen.inplaceBooleanNot(target, target.datatype)
                             else -> throw AssemblyError("invalid prefix operator")
                         }
                     }
@@ -1067,7 +1075,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                 adc  #<${target.asmVarname}
                                 bcc  +
                                 iny
-+                                   jsr  floats.copy_float""")
++                               jsr  floats.copy_float""")
                         }
                         else -> throw AssemblyError("weird dt")
                     }

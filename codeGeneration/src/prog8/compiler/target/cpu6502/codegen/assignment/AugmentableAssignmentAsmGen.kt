@@ -9,6 +9,7 @@ import prog8.compiler.target.AssemblyError
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.CpuType
 
+
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
                                            private val asmgen: AsmGen
@@ -20,15 +21,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         when (val value = assign.source.expression!!) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
+                val target = assignmentAsmGen.virtualRegsToVariables(assign.target)
                 val itype = value.inferType(program)
                 if(!itype.isKnown)
                     throw AssemblyError("unknown dt")
                 val type = itype.getOr(DataType.UNDEFINED)
                 when (value.operator) {
                     "+" -> {}
-                    "-" -> inplaceNegate(assign.target, type)
-                    "~" -> inplaceInvert(assign.target, type)
-                    "not" -> inplaceBooleanNot(assign.target, type)
+                    "-" -> inplaceNegate(target, type)
+                    "~" -> inplaceInvert(target, type)
+                    "not" -> inplaceBooleanNot(target, type)
                     else -> throw AssemblyError("invalid prefix operator")
                 }
             }
@@ -147,7 +149,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification(target: AsmAssignTarget, operator: String, origValue: Expression) {
-
 
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
         // it will create the most optimized code to do this (so it type-extends for us).
@@ -1158,7 +1159,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
                             sta  $name+1
-                        """)                    }
+                        """)
+                    }
                     "<<" -> {
                         asmgen.out("""
                         ldy  $otherName
