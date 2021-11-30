@@ -43,16 +43,18 @@ main {
 
 
 irq {
-    ubyte angle
+    ubyte angle1=200
+    ubyte angle2=0
 
     sub irqhandler() {
-        angle++
+        angle1 += 2
+        angle2 += 3
         c64.MSIGX=0
         ubyte @zp spri
         for spri in 7 downto 0 {
             c64.EXTCOL++
-            uword @zp x = sin8u(angle*2-spri*16) as uword + 50
-            ubyte @zp y = cos8u(angle*3-spri*16) / 2 + 70
+            uword @zp x = sin8u(angle1-spri*16) as uword + 50
+            ubyte @zp y = sin8u(angle2-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(y, lsb(x))
             c64.MSIGX <<= 1
             if msb(x) c64.MSIGX++
