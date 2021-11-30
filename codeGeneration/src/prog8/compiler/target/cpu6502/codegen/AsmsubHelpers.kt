@@ -44,9 +44,6 @@ internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
                     it.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
                 }
             }
-            is PrefixExpression -> {
-                return true         // TODO really, is prefixexpression problematic for register clobbering?
-            }
             is FunctionCall -> {
                 if (expr.target.nameInSource == listOf("lsb") || expr.target.nameInSource == listOf("msb"))
                     return isClobberRisk(expr.args[0])
