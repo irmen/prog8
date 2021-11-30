@@ -3,16 +3,6 @@ TODO
 
 For next compiler release (7.4)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Use GoSub to call subroutines (statements):
-    - [DONE] allow separate assigns to subroutine's parameter variables / registers
-    - [DONE] turn a regular subroutine call into assignments to the parameters + GoSub (take code from gosub branch)
-    - [DONE] also do this for asmsubs taking >0 parameters
-
-Optimize Function calls in expressions:
-    - move args to assignments to params
-    - add tempvar immediately in front of expression with the fuction call
-    - replace the function call in the expression with the tempvar
-
 ...
 
 
@@ -48,8 +38,6 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- find a way to optimize asm-subroutine param passing where it now sometimes uses the evalstack?
-- find a way to let registerArgsViaStackEvaluation not use the stack anymore
 - remove special code generation for while and util expression
   by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
   but the result should not produce larger code ofcourse!
