@@ -4,6 +4,7 @@ import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import prog8.ast.Program
 import prog8.compiler.CompilationResult
+import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
@@ -45,7 +46,7 @@ internal fun compileFile(
 ) : CompilationResult {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
-    return compileProgram(
+    val args = CompilerArguments(
         filepath,
         optimize,
         optimizeFloatExpressions = optFloatExpr,
@@ -53,10 +54,10 @@ internal fun compileFile(
         slowCodegenWarnings = false,
         quietAssembler = true,
         platform.name,
-        sourceDirs = listOf(),
-        outputDir,
+        outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests()
     )
+    return compileProgram(args)
 }
 
 /**

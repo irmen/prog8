@@ -1,6 +1,8 @@
 package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
+import prog8.compiler.CompilationResult
+import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
@@ -20,17 +22,19 @@ import kotlin.io.path.exists
 
 private val examplesDir = assumeDirectory(workingDir, "../examples")
 
-private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget) = compileProgram(
-    filepath,
-    optimize,
-    optimizeFloatExpressions = true,
-    writeAssembly = true,
-    slowCodegenWarnings = false,
-    quietAssembler = true,
-    compilationTarget = target.name,
-    sourceDirs = listOf(),
-    outputDir
-)
+private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget): CompilationResult {
+    val args = CompilerArguments(
+        filepath,
+        optimize,
+        optimizeFloatExpressions = true,
+        writeAssembly = true,
+        slowCodegenWarnings = false,
+        quietAssembler = true,
+        compilationTarget = target.name,
+        outputDir = outputDir
+    )
+    return compileProgram(args)
+}
 
 private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompilationTarget): Pair<String, Path> {
     val searchIn = mutableListOf(examplesDir)

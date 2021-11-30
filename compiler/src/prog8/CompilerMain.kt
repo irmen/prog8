@@ -3,6 +3,7 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
+import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
@@ -80,10 +81,18 @@ private fun compileMain(args: Array<String>): Boolean {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val compilationResult = compileProgram(filepath,
-                    dontOptimize!=true, optimizeFloatExpressions==true,
-                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
-                    compilationTarget, srcdirs, outputPath)
+                val args = CompilerArguments(
+                    filepath,
+                    dontOptimize != true,
+                    optimizeFloatExpressions == true,
+                    dontWriteAssembly != true,
+                    slowCodegenWarnings == true,
+                    quietAssembler == true,
+                    compilationTarget,
+                    srcdirs,
+                    outputPath
+                )
+                val compilationResult = compileProgram(args)
                 results.add(compilationResult)
             }
 
@@ -120,11 +129,19 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                compilationResult = compileProgram(filepath,
-                    dontOptimize!=true, optimizeFloatExpressions==true,
-                    dontWriteAssembly!=true, slowCodegenWarnings==true, quietAssembler==true,
-                    compilationTarget, srcdirs, outputPath)
-                if(!compilationResult.success)
+                val args = CompilerArguments(
+                    filepath,
+                    dontOptimize != true,
+                    optimizeFloatExpressions == true,
+                    dontWriteAssembly != true,
+                    slowCodegenWarnings == true,
+                    quietAssembler == true,
+                    compilationTarget,
+                    srcdirs,
+                    outputPath
+                )
+                compilationResult = compileProgram(args)
+                if (!compilationResult.success)
                     return false
             } catch (x: AstException) {
                 return false

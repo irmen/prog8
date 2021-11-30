@@ -28,26 +28,27 @@ class CompilationResult(val success: Boolean,
                         val compTarget: ICompilationTarget,
                         val importedFiles: List<Path>)
 
+class CompilerArguments(val filepath: Path,
+                        val optimize: Boolean,
+                        val optimizeFloatExpressions: Boolean,
+                        val writeAssembly: Boolean,
+                        val slowCodegenWarnings: Boolean,
+                        val quietAssembler: Boolean,
+                        val compilationTarget: String,
+                        val sourceDirs: List<String> = emptyList(),
+                        val outputDir: Path = Path(""),
+                        val errors: IErrorReporter = ErrorReporter())
 
-// TODO refactor the gigantic list of parameters
-fun compileProgram(filepath: Path,
-                   optimize: Boolean,
-                   optimizeFloatExpressions: Boolean,
-                   writeAssembly: Boolean,
-                   slowCodegenWarnings: Boolean,
-                   quietAssembler: Boolean,
-                   compilationTarget: String,
-                   sourceDirs: List<String>,
-                   outputDir: Path,
-                   errors: IErrorReporter = ErrorReporter()): CompilationResult {
+
+fun compileProgram(args: CompilerArguments): CompilationResult {
     var programName = ""
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
 
-    val optimizeFloatExpr = if(optimize) optimizeFloatExpressions else false
+    val optimizeFloatExpr = if(args.optimize) args.optimizeFloatExpressions else false
 
     val compTarget =
-        when(compilationTarget) {
+        when(args.compilationTarget) {
             C64Target.name -> C64Target
             Cx16Target.name -> Cx16Target
             else -> throw IllegalArgumentException("invalid compilation target")
@@ -56,30 +57,30 @@ fun compileProgram(filepath: Path,
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (programresult, compilationOptions, imported) = parseImports(filepath, errors, compTarget, sourceDirs)
+            val (programresult, compilationOptions, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
             with(compilationOptions) {
-                this.slowCodegenWarnings = slowCodegenWarnings
-                this.optimize = optimize
+                this.slowCodegenWarnings = args.slowCodegenWarnings
+                this.optimize = args.optimize
                 this.optimizeFloatExpressions = optimizeFloatExpr
             }
             program = programresult
             importedFiles = imported
-            processAst(program, errors, compilationOptions)
+            processAst(program, args.errors, compilationOptions)
             if (compilationOptions.optimize)
                 optimizeAst(
                     program,
                     compilationOptions,
-                    errors,
+                    args.errors,
                     BuiltinFunctionsFacade(BuiltinFunctions),
                     compTarget
                 )
-            postprocessAst(program, errors, compilationOptions)
+            postprocessAst(program, args.errors, compilationOptions)
 
 //            println("*********** AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
 
-            if (writeAssembly) {
-                val result = writeAssembly(program, errors, outputDir, quietAssembler, compilationOptions)
+            if (args.writeAssembly) {
+                val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)
                 when (result) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {

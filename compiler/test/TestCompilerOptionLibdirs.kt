@@ -1,6 +1,8 @@
 package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
+import prog8.compiler.CompilationResult
+import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.Cx16Target
 import prog8tests.ast.helpers.assumeReadableFile
@@ -37,8 +39,8 @@ class TestCompilerOptionSourcedirs: FunSpec({
         tempFileInWorkingDir.deleteExisting()
     }
 
-    fun compileFile(filePath: Path, sourceDirs: List<String>) =
-        compileProgram(
+    fun compileFile(filePath: Path, sourceDirs: List<String>): CompilationResult {
+        val args = CompilerArguments(
             filepath = filePath,
             optimize = false,
             optimizeFloatExpressions = false,
@@ -49,6 +51,8 @@ class TestCompilerOptionSourcedirs: FunSpec({
             sourceDirs,
             outputDir
         )
+        return compileProgram(args)
+    }
 
     test("testAbsoluteFilePathInWorkingDir") {
         val filepath = assumeReadableFile(tempFileInWorkingDir.absolute())
