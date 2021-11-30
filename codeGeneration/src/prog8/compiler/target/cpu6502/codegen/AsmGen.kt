@@ -23,6 +23,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.io.path.Path
+import kotlin.io.path.writeLines
 import kotlin.math.absoluteValue
 
 
@@ -77,22 +78,14 @@ class AsmGen(private val program: Program,
         slaballocations()
         footer()
 
-        val outputFile = outputDir.resolve("${program.name}.asm").toFile()
-        outputFile.printWriter().use {
-            for (line in assemblyLines) { it.println(line) }
-        }
-
         if(options.optimize) {
-            assemblyLines.clear()
-            assemblyLines.addAll(outputFile.readLines())
             var optimizationsDone = 1
             while (optimizationsDone > 0) {
                 optimizationsDone = optimizeAssembly(assemblyLines, options.compTarget.machine, program)
             }
-            outputFile.printWriter().use {
-                for (line in assemblyLines) { it.println(line) }
-            }
         }
+
+        outputDir.resolve("${program.name}.asm").writeLines(assemblyLines)
 
         return if(errors.noErrors())
             AssemblyProgram(true, program.name, outputDir, compTarget.name)
@@ -253,10 +246,9 @@ class AsmGen(private val program: Program,
 
     internal fun out(str: String, splitlines: Boolean = true) {
         val fragment = (if(" | " in str) str.replace("|", "\n") else str).trim('\n')
-
         if (splitlines) {
-            for (line in fragment.split('\n')) {
-                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line.trim()
+            for (line in fragment.splitToSequence('\n')) {
+                val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line
                 // trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
                 assemblyLines.add(trimmed)
             }
