@@ -420,7 +420,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                                 left -= 7
                             }
                             if (left in 0..2)
-                                repeat(left) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
+                                repeat(left) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl  a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
                                 asmgen.out(" jsr  math.shift_right_w_$left")
                         }

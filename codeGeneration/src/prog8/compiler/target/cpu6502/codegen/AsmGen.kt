@@ -777,7 +777,7 @@ class AsmGen(private val program: Program,
                     }
                 }
                 in WordDatatypes -> {
-                    out("  lda  $indexName |  sec |  rol a")
+                    out("  lda  $indexName |  sec |  rol  a")
                     when (register) {
                         CpuRegister.A -> {
                         }
@@ -808,7 +808,7 @@ class AsmGen(private val program: Program,
             when (elementDt) {
                 in ByteDatatypes -> out("  ld$reg  $indexName")
                 in WordDatatypes -> {
-                    out("  lda  $indexName |  asl a")
+                    out("  lda  $indexName |  asl  a")
                     when (register) {
                         CpuRegister.A -> {
                         }
