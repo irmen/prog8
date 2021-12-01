@@ -257,7 +257,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
     program.preprocessAst(program)
-    program.checkIdentifiers(errors, compilerOptions)
+    program.checkIdentifiers(errors, program, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
     //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
@@ -274,7 +274,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.checkValid(errors, compilerOptions)
     errors.report()
-    program.checkIdentifiers(errors, compilerOptions)
+    program.checkIdentifiers(errors, program, compilerOptions)
     errors.report()
 }
 

@@ -1015,8 +1015,7 @@ internal class AstChecker(private val program: Program,
 
         }
 
-        val error =
-            VerifyFunctionArgTypes.checkTypes(functionCallStatement, program)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, program)
         if(error!=null) {
             errors.err(error, functionCallStatement.args.firstOrNull()?.position ?: functionCallStatement.position)
         }

@@ -9,6 +9,7 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
@@ -261,5 +262,67 @@ class TestSubroutines: FunSpec({
         (addressExpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
         addressExpr.operator shouldBe "+"
         (addressExpr.right as NumericLiteralValue).number.toInt() shouldBe 10
+    }
+
+    test("invalid number of args check on normal subroutine") {
+        val text="""
+            main {
+              sub thing(ubyte a1, ubyte a2) {
+              }
+            
+              sub start() {
+                  thing(1)
+                  thing(1,2)
+                  thing(1,2,3)
+              }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "7:24: invalid number of arguments"
+        errors.errors[1] shouldContain "9:24: invalid number of arguments"
+    }
+
+    test("invalid number of args check on asm subroutine") {
+        val text="""
+            main {
+              asmsub thing(ubyte a1 @A, ubyte a2 @Y) {
+              }
+            
+              sub start() {
+                  thing(1)
+                  thing(1,2)
+                  thing(1,2,3)
+              }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "7:24: invalid number of arguments"
+        errors.errors[1] shouldContain "9:24: invalid number of arguments"
+    }
+
+    test("invalid number of args check on call to label and builtin func") {
+        val text="""
+            main {
+        label:            
+              sub start() {
+                  label()
+                  label(1)
+                  void rnd()
+                  void rnd(1)
+              }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "cannot use arguments"
+        errors.errors[1] shouldContain "invalid number of arguments"
     }
 })

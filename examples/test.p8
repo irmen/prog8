@@ -10,7 +10,14 @@ main {
         byte b2 = 22
         word b3 = 3333
         dummy++
-        func(-b1,-b2,-b3)
+        labelz()
+        labelz(1)
+        printz(1)
+        printz(1,2,3,4,5,6)
+        func(-b1,-b2,-b3 , 3, 4, 5)
+
+labelz:
+
     }
 
     sub printz(word a1, byte a2, word a3) {

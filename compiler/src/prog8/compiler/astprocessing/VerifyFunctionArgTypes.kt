@@ -11,7 +11,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.InternalCompilerException
 
-class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
+internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
     override fun visit(functionCall: FunctionCall) {
         val error = checkTypes(functionCall as IFunctionCall, program)

@@ -1,6 +1,11 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
+import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -8,7 +13,9 @@ import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
-internal class AstIdentifiersChecker(private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : IAstVisitor {
+internal class AstIdentifiersChecker(private val errors: IErrorReporter,
+                                     private val program: Program,
+                                     private val compTarget: ICompilationTarget) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {
@@ -120,5 +127,28 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter, private
             errors.err("string literal length max is 255", string.position)
 
         super.visit(string)
+    }
+
+    override fun visit(functionCall: FunctionCall) =  visitFunctionCall(functionCall)
+    override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
+
+    private fun visitFunctionCall(call: IFunctionCall) {
+        when (val target = call.target.targetStatement(program)) {
+            is Subroutine -> {
+                if(call.args.size != target.parameters.size)
+                    errors.err("invalid number of arguments", call.args[0].position)
+            }
+            is BuiltinFunctionStatementPlaceholder -> {
+                val func = BuiltinFunctions.getValue(target.name)
+                if(call.args.size != func.parameters.size)
+                    errors.err("invalid number of arguments", call.args[0].position)
+            }
+            is Label -> {
+                if(call.args.isNotEmpty())
+                    errors.err("cannot use arguments when calling a label", call.args[0].position)
+            }
+            null -> {}
+            else -> throw FatalAstException("weird call target")
+        }
     }
 }

@@ -73,9 +73,9 @@ internal fun Program.preprocessAst(program: Program) {
         mods = transforms.applyModifications()
 }
 
-internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
+internal fun Program.checkIdentifiers(errors: IErrorReporter, program: Program, options: CompilationOptions) {
 
-    val checker2 = AstIdentifiersChecker(errors, options.compTarget)
+    val checker2 = AstIdentifiersChecker(errors, program, options.compTarget)
     checker2.visit(this)
 
     if(errors.noErrors()) {
