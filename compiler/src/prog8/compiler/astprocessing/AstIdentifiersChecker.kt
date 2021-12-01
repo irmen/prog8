@@ -135,17 +135,23 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     private fun visitFunctionCall(call: IFunctionCall) {
         when (val target = call.target.targetStatement(program)) {
             is Subroutine -> {
-                if(call.args.size != target.parameters.size)
-                    errors.err("invalid number of arguments", call.args[0].position)
+                if(call.args.size != target.parameters.size) {
+                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                    errors.err("invalid number of arguments", pos)
+                }
             }
             is BuiltinFunctionStatementPlaceholder -> {
                 val func = BuiltinFunctions.getValue(target.name)
-                if(call.args.size != func.parameters.size)
-                    errors.err("invalid number of arguments", call.args[0].position)
+                if(call.args.size != func.parameters.size) {
+                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                    errors.err("invalid number of arguments", pos)
+                }
             }
             is Label -> {
-                if(call.args.isNotEmpty())
-                    errors.err("cannot use arguments when calling a label", call.args[0].position)
+                if(call.args.isNotEmpty()) {
+                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                    errors.err("cannot use arguments when calling a label", pos)
+                }
             }
             null -> {}
             else -> throw FatalAstException("weird call target")

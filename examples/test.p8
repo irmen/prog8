@@ -1,10 +1,14 @@
 %import textio
 %import test_stack
+%import string
 %zeropage dontuse
 
 main {
 
     sub start() {
+
+    string.copy()
+
         ubyte @shared dummy
         word b1 = 1111
         byte b2 = 22
