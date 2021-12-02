@@ -11,7 +11,6 @@ import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.*
 import java.io.CharConversionException
 import java.io.File
-import java.util.*
 import kotlin.io.path.Path
 
 internal class AstChecker(private val program: Program,
@@ -414,18 +413,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
-        if(assignment.value is FunctionCall) {
-            val stmt = (assignment.value as FunctionCall).target.targetStatement(program)
-            if (stmt is Subroutine) {
-                val idt = assignment.target.inferType(program)
-                if(!idt.isKnown)
-                    throw FatalAstException("assignment target invalid dt")
-                if(stmt.returntypes.isEmpty() || (stmt.returntypes.size == 1 && stmt.returntypes.single() isNotAssignableTo idt.getOr(DataType.BYTE))) {
-                    errors.err("return type mismatch: ${stmt.returntypes.single()} expected $idt", assignment.value.position)
-                }
-            }
-        }
-
         val targetDt = assignment.target.inferType(program)
         val valueDt = assignment.value.inferType(program)
         if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
@@ -500,7 +487,7 @@ internal class AstChecker(private val program: Program,
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
-                                sourceDatatype.getOr(DataType.BYTE), assignment.value, assignment.position)
+                                sourceDatatype.getOr(DataType.BYTE), assignment.value)
                     }
                 }
             }
@@ -1371,8 +1358,8 @@ internal class AstChecker(private val program: Program,
 
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
-                                          sourceValue: Expression,
-                                          position: Position) : Boolean {
+                                          sourceValue: Expression) : Boolean {
+        val position = sourceValue.position
 
         if(sourceValue is RangeExpr)
             errors.err("can't assign a range value to something else", position)
@@ -1400,14 +1387,8 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else {
             if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes)
-                errors.err(
-                    "cannot assign ${sourceDatatype.name.lowercase()} to ${
-                        targetDatatype.name.lowercase(
-                            Locale.getDefault()
-                        )
-                    }", position)
+                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
-
 
         return false
     }

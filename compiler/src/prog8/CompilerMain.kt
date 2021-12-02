@@ -81,7 +81,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val results = mutableListOf<CompilationResult>()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
-                val args = CompilerArguments(
+                val compilerArgs = CompilerArguments(
                     filepath,
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
@@ -92,7 +92,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     srcdirs,
                     outputPath
                 )
-                val compilationResult = compileProgram(args)
+                val compilationResult = compileProgram(compilerArgs)
                 results.add(compilationResult)
             }
 
@@ -129,7 +129,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
-                val args = CompilerArguments(
+                val compilerArgs = CompilerArguments(
                     filepath,
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
@@ -140,7 +140,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     srcdirs,
                     outputPath
                 )
-                compilationResult = compileProgram(args)
+                compilationResult = compileProgram(compilerArgs)
                 if (!compilationResult.success)
                     return false
             } catch (x: AstException) {
