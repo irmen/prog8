@@ -3,9 +3,6 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- optimize loops that iterate 256 times to not use word counter (memcopy, repeat, for, ...)
-- return 2+var -> optimize stack eval?
-
 ...
 
 
