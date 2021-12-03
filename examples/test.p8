@@ -1,20 +1,30 @@
 %import textio
 %import test_stack
-%import string
-%zeropage dontuse
+%import diskio
+%zeropage basicsafe
 
 main {
 
     sub start() {
+        test_stack.test()
 
-        uword[10] ptrs
-        ubyte @shared xx
-        xx = compare("zzz", ptrs[2])
-    }
+        str filename="...................."
+        uword length
 
-    asmsub compare(uword string1 @R0, uword string2 @AY) clobbers(Y) -> byte @A {
-        %asm {{
-        rts
-        }}
+        txt.print("filename? ")
+        txt.input_chars(filename)
+        txt.nl()
+
+        txt.print("loading at $1000...")
+        length = diskio.load(8, filename, $1000)
+        txt.print_uw(length)
+        txt.nl()
+
+        txt.print("raw loading at $4000...")
+        length = diskio.load_raw(8, filename, $4000)
+        txt.print_uw(length)
+        txt.nl()
+
+        test_stack.test()
     }
 }

@@ -433,6 +433,14 @@ io_error:
         return first_byte
     }
 
+    ; Use kernal LOAD routine to load the given program file in memory.
+    ; This mimimics Basic's  LOAD "filename",drive  /  LOAD "filename",drive,1
+    ; If you don't give an address_override, the location in memory is taken from the 2-byte file header.
+    ; If you specify a custom address_override, the first 2 bytes in the file are ignored
+    ; and the rest is loaded at the given location in memory.
+    ; Returns the number of bytes loaded.
+    ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
+    ;       (which is possible on the Commander X16), the returned size is not correct.
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
@@ -456,13 +464,27 @@ io_error:
         c64.CLOSE(1)
 
         if end_of_load
-            return end_of_load - address_override
+            return end_of_load - address_override    ; not correct when the file spans multiple RAM banks
 
         return 0
     }
 
-
-    str filename = "0:??????????????????????????????????????"
+    ; Use kernal LOAD routine to load the given file in memory.
+    ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
+    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
+    ; The load address is mandatory. Returns the number of bytes loaded.
+    ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
+    ;       (which is possible on the Commander X16), the returned size is not correct.
+    sub load_raw(ubyte drivenumber, uword filenameptr, uword address) -> uword {
+        if not f_open(drivenumber, filenameptr)
+            return 0
+        uword read = f_read(address, 2)
+        f_close()
+        if read!=2
+            return 0
+        address += 2
+        return 2+load(drivenumber, filenameptr, address)
+    }
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive
@@ -489,4 +511,6 @@ io_error:
         c64.CLRCHN()
         c64.CLOSE(1)
     }
+
+    str filename = "0:??????????????????????????????????????"
 }
