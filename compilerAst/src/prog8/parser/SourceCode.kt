@@ -72,7 +72,7 @@ sealed class SourceCode {
         override val isFromResources = false
         override val isFromFilesystem = false
         override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
-        override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
+        public override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
         override fun readText() = text
     }
 

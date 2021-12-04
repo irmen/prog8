@@ -12,9 +12,9 @@ import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.internedStringsModuleName
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.DummyFunctions
-import prog8tests.ast.helpers.DummyMemsizer
-import prog8tests.ast.helpers.DummyStringEncoder
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
 
 class TestProgram: FunSpec({
 

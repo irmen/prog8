@@ -9,10 +9,10 @@ import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8.compiler.target.C64Target
 import prog8.compilerinterface.ZeropageType
-import prog8tests.ast.helpers.outputDir
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
+import prog8tests.helpers.outputDir
 
 
 class TestImportedModulesOrderAndOptions: FunSpec({

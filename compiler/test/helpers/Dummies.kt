@@ -34,3 +34,11 @@ internal val DummyStringEncoder = object : IStringEncoding {
         return ""
     }
 }
+
+internal val AsciiStringEncoder = object : IStringEncoding {
+    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> = str.map { it.code.toUByte() }
+
+    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
+        return bytes.joinToString()
+    }
+}

@@ -5,10 +5,7 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.Cx16Target
-import prog8tests.ast.helpers.assumeReadableFile
-import prog8tests.ast.helpers.fixturesDir
-import prog8tests.ast.helpers.outputDir
-import prog8tests.ast.helpers.workingDir
+import prog8tests.helpers.*
 import prog8tests.helpers.assertSuccess
 import java.nio.file.Path
 import kotlin.io.path.absolute
@@ -73,19 +70,19 @@ class TestCompilerOptionSourcedirs: FunSpec({
     }
 
     test("testAbsoluteFilePathOutsideWorkingDir") {
-        val filepath = assumeReadableFile(fixturesDir, "simple_main.p8")
+        val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
         compileFile(filepath.absolute(), listOf())
             .assertSuccess()
     }
 
     test("testFilePathOutsideWorkingDirRelativeToWorkingDir") {
-        val filepath = workingDir.relativize(assumeReadableFile(fixturesDir, "simple_main.p8").absolute())
+        val filepath = workingDir.relativize(assumeReadableFile(fixturesDir, "ast_simple_main.p8").absolute())
         compileFile(filepath, listOf())
             .assertSuccess()
     }
 
     test("testFilePathOutsideWorkingDirRelativeTo1stInSourcedirs") {
-        val filepath = assumeReadableFile(fixturesDir, "simple_main.p8")
+        val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
         val sourcedirs = listOf("$fixturesDir")
         compileFile(filepath.fileName, sourcedirs)
             .assertSuccess()

@@ -10,8 +10,6 @@ import prog8.compiler.target.C64Target
 import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
-import prog8tests.ast.helpers.assumeReadableFile
-import prog8tests.ast.helpers.outputDir
 import java.nio.file.Path
 import kotlin.io.path.name
 
@@ -39,7 +37,7 @@ internal fun compileFile(
     optimize: Boolean,
     fileDir: Path,
     fileName: String,
-    outputDir: Path = prog8tests.ast.helpers.outputDir,
+    outputDir: Path = prog8tests.helpers.outputDir,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true

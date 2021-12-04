@@ -1,4 +1,4 @@
-package prog8tests.ast.helpers
+package prog8tests.helpers
 
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe

@@ -545,16 +545,16 @@ class AsmGen(private val program: Program,
     fun asmVariableName(identifier: IdentifierReference) =
         fixNameSymbols(identifier.nameInSource.joinToString("."))
 
-    internal fun asmSymbolName(regs: RegisterOrPair): String =
+    fun asmSymbolName(regs: RegisterOrPair): String =
         if (regs in Cx16VirtualRegisters)
             "cx16." + regs.toString().lowercase()
         else
             throw AssemblyError("no symbol name for register $regs")
 
-    internal fun asmSymbolName(name: String) = fixNameSymbols(name)
-    internal fun asmVariableName(name: String) = fixNameSymbols(name)
-    internal fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
-    internal fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
+    fun asmSymbolName(name: String) = fixNameSymbols(name)
+    fun asmVariableName(name: String) = fixNameSymbols(name)
+    fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
+    fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
 
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): String {

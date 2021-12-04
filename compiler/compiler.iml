@@ -8,7 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
     </content>
-    <orderEntry type="jdk" jdkName="openjdk-11" jdkType="JavaSDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="compilerAst" />
@@ -19,5 +19,6 @@
     <orderEntry type="module" module-name="codeGeneration" />
     <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
+    <orderEntry type="library" name="antlr.antlr4" level="project" />
   </component>
 </module>

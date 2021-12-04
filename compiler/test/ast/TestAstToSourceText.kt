@@ -10,9 +10,9 @@ import prog8.ast.internedStringsModuleName
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.DummyFunctions
-import prog8tests.ast.helpers.DummyMemsizer
-import prog8tests.ast.helpers.DummyStringEncoder
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
 
 
 class TestAstToSourceText: AnnotationSpec() {

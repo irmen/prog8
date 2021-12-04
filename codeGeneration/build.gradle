@@ -3,7 +3,6 @@ plugins {
     id 'java'
     id 'application'
     id "org.jetbrains.kotlin.jvm"
-    id "io.kotest" version "0.3.8"
 }
 
 java {
@@ -19,7 +18,6 @@ dependencies {
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12"
 
-    testImplementation 'io.kotest:kotest-runner-junit5-jvm:4.6.3'
 }
 
 sourceSets {
@@ -31,22 +29,6 @@ sourceSets {
             srcDirs = ["${project.projectDir}/res"]
         }
     }
-    test {
-        java {
-            srcDirs = ["${project.projectDir}/test"]
-        }
-    }
 }
 
-
-test {
-    useJUnitPlatform()
-
-    // Always run tests, even when nothing changed.
-    dependsOn 'cleanTest'
-
-    // Show test results.
-    testLogging {
-        events "skipped", "failed"
-    }
-}
+// note: there are no unit tests in this module!

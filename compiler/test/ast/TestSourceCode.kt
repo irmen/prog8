@@ -6,10 +6,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.parser.SourceCode
 import prog8.parser.SourceCode.Companion.libraryFilePrefix
-import prog8tests.ast.helpers.assumeNotExists
-import prog8tests.ast.helpers.assumeReadableFile
-import prog8tests.ast.helpers.fixturesDir
-import prog8tests.ast.helpers.resourcesDir
+import prog8tests.helpers.assumeNotExists
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.resourcesDir
 import kotlin.io.path.Path
 
 
@@ -40,7 +40,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromPathWithMissingExtension_p8() {
         val pathWithoutExt = assumeNotExists(fixturesDir,"simple_main")
-        assumeReadableFile(fixturesDir,"simple_main.p8")
+        assumeReadableFile(fixturesDir,"ast_simple_main.p8")
         shouldThrow<NoSuchFileException> { SourceCode.File(pathWithoutExt) }
     }
 
@@ -51,7 +51,7 @@ class TestSourceCode: AnnotationSpec() {
 
     @Test
     fun testFromPathWithExistingPath() {
-        val filename = "simple_main.p8"
+        val filename = "ast_simple_main.p8"
         val path = assumeReadableFile(fixturesDir, filename)
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
@@ -63,7 +63,7 @@ class TestSourceCode: AnnotationSpec() {
 
     @Test
     fun testFromPathWithExistingNonNormalizedPath() {
-        val filename = "simple_main.p8"
+        val filename = "ast_simple_main.p8"
         val path = Path(".", "test", "..", "test", "fixtures", filename)
         val srcFile = assumeReadableFile(path).toFile()
         val src = SourceCode.File(path)

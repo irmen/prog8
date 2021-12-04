@@ -1,4 +1,4 @@
-package prog8tests.ast.helpers
+package prog8tests.helpers
 
 fun <T, U> cartesianProduct(c1: Collection<T>, c2: Collection<U>): Sequence<Pair<T, U>> {
     return c1.flatMap { lhsElem -> c2.map { rhsElem -> lhsElem to rhsElem } }.asSequence()

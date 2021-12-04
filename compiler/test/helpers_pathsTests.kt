@@ -1,10 +1,10 @@
-package prog8tests.ast
+package prog8tests
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import prog8tests.ast.helpers.*
+import prog8tests.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
 
@@ -28,7 +28,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing file") {
                 shouldThrow<java.lang.AssertionError> {
-                    assumeNotExists(fixturesDir / "simple_main.p8")
+                    assumeNotExists(fixturesDir / "ast_simple_main.p8")
                 }
             }
 
@@ -49,7 +49,7 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on existing file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 shouldThrow<java.lang.AssertionError> {
                     assumeNotExists("$path")
                 }
@@ -73,7 +73,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing file") {
                 shouldThrow<java.lang.AssertionError> {
-                    assumeNotExists(fixturesDir, "simple_main.p8")
+                    assumeNotExists(fixturesDir, "ast_simple_main.p8")
                 }
             }
 
@@ -96,7 +96,7 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on existing file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 shouldThrow<AssertionError> {
                     assumeDirectory(path)
                 }
@@ -119,7 +119,7 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on existing file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 shouldThrow<AssertionError> {
                     assumeDirectory("$path")
                 }
@@ -142,7 +142,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing file") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory(fixturesDir, "simple_main.p8")
+                    assumeDirectory(fixturesDir, "ast_simple_main.p8")
                 }
             }
 
@@ -163,7 +163,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing file") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("$fixturesDir", "simple_main.p8")
+                    assumeDirectory("$fixturesDir", "ast_simple_main.p8")
                 }
             }
 
@@ -184,7 +184,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing file") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("$fixturesDir", Path("simple_main.p8"))
+                    assumeDirectory("$fixturesDir", Path("ast_simple_main.p8"))
                 }
             }
 
@@ -209,7 +209,7 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on readable file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 withClue("should return the path") {
                     assumeReadableFile(path) shouldBe path
                 }
@@ -232,7 +232,7 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on readable file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 withClue("should return the resulting path") {
                     assumeReadableFile("$path") shouldBe path
                 }
@@ -253,9 +253,9 @@ class PathsHelpersTests: FunSpec({
             }
 
             test("on readable file") {
-                val path = fixturesDir / "simple_main.p8"
+                val path = fixturesDir / "ast_simple_main.p8"
                 withClue("should return the resulting path") {
-                    assumeReadableFile(fixturesDir / "simple_main.p8") shouldBe path
+                    assumeReadableFile(fixturesDir / "ast_simple_main.p8") shouldBe path
                 }
             }
 
@@ -275,7 +275,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on readable file") {
                 withClue("should return the resulting path") {
-                    assumeReadableFile(fixturesDir / Path("simple_main.p8")) shouldBe fixturesDir / "simple_main.p8"
+                    assumeReadableFile(fixturesDir / Path("ast_simple_main.p8")) shouldBe fixturesDir / "ast_simple_main.p8"
                 }
             }
 
@@ -295,7 +295,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on readable file") {
                 withClue("should return the resulting path") {
-                    assumeReadableFile(fixturesDir / "simple_main.p8") shouldBe  fixturesDir / "simple_main.p8"
+                    assumeReadableFile(fixturesDir / "ast_simple_main.p8") shouldBe  fixturesDir / "ast_simple_main.p8"
                 }
             }
 

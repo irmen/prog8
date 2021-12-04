@@ -1,4 +1,4 @@
-package prog8tests.asmgen
+package prog8tests.codegeneration
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
@@ -15,10 +15,10 @@ import prog8.compiler.target.c64.C64MachineDefinition
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
-import prog8tests.asmgen.helpers.DummyFunctions
-import prog8tests.asmgen.helpers.DummyMemsizer
-import prog8tests.asmgen.helpers.DummyStringEncoder
-import prog8tests.asmgen.helpers.ErrorReporterForTests
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
 
 class AsmGenSymbolsTests: StringSpec({

@@ -7,7 +7,7 @@ import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compilerinterface.ICompilationTarget
-import prog8tests.ast.helpers.*
+import prog8tests.helpers.*
 import prog8tests.helpers.assertSuccess
 import java.nio.file.Path
 import kotlin.io.path.absolute

@@ -110,8 +110,7 @@ class ModuleImporter(private val program: Program,
                 }
             )
 
-        if(importedModule!=null)
-            removeDirectivesFromImportedModule(importedModule)
+        removeDirectivesFromImportedModule(importedModule)
         return importedModule
     }
 

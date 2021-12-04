@@ -21,9 +21,8 @@ import prog8.ast.statements.*
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.*
-import prog8tests.ast.helpers.DummyFunctions
-import prog8tests.ast.helpers.DummyMemsizer
+import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
@@ -186,7 +185,7 @@ class TestProg8Parser: FunSpec( {
         }
 
         test("from an empty file should result in empty Module") {
-            val path = assumeReadableFile(fixturesDir, "empty.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_empty.p8")
             val module = parseModule(SourceCode.File(path))
             module.statements.size shouldBe 0
         }
@@ -205,7 +204,7 @@ class TestProg8Parser: FunSpec( {
         }
 
         test("parsed from a file") {
-            val path = assumeReadableFile(fixturesDir, "simple_main.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             module.name shouldBe path.nameWithoutExtension
         }
@@ -268,7 +267,7 @@ class TestProg8Parser: FunSpec( {
         }
 
         test("in ParseError from bad file source code") {
-            val path = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
             val e = shouldThrow<ParseError> { parseModule(SourceCode.File(path)) }
             assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
@@ -284,13 +283,13 @@ class TestProg8Parser: FunSpec( {
         }
 
         test("of Module parsed from a file") {
-            val path = assumeReadableFile(fixturesDir, "simple_main.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
         }
 
         test("of non-root Nodes parsed from file") {
-            val path = assumeReadableFile(fixturesDir, "simple_main.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
 
             val module = parseModule(SourceCode.File(path))
             val mpf = module.position.file
@@ -354,7 +353,7 @@ class TestProg8Parser: FunSpec( {
         }
 
         test("isn't absolute for filesystem paths") {
-            val path = assumeReadableFile(fixturesDir, "simple_main.p8")
+            val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val module = parseModule(SourceCode.File(path))
             assertSomethingForAllNodes(module) {
                 Path(it.position.file).isAbsolute shouldBe false

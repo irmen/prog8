@@ -8,11 +8,6 @@ import prog8.compiler.ModuleImporter
 import prog8.compilerinterface.IErrorReporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode
-import prog8tests.ast.helpers.*
-import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
 import kotlin.io.path.*
 import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
@@ -21,6 +16,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.ErrorReporterForTests
 
 
 class TestModuleImporter: FunSpec({
@@ -103,7 +103,7 @@ class TestModuleImporter: FunSpec({
                     Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
-                val fileName = "simple_main.p8"
+                val fileName = "ast_simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
 
                 val module = importer.importModule(path.absolute()).getOrElse { throw it }
@@ -117,7 +117,7 @@ class TestModuleImporter: FunSpec({
                     Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
-                val fileName = "simple_main.p8"
+                val fileName = "ast_simple_main.p8"
                 val path = assumeReadableFile(searchIn[0], fileName)
                 withClue("sanity check: path should NOT be absolute") {
                     path.isAbsolute shouldBe false
@@ -134,7 +134,7 @@ class TestModuleImporter: FunSpec({
                     .div(workingDir.relativize(fixturesDir))
                     .invariantSeparatorsPathString
                 val importer = makeImporter(null, searchIn)
-                val fileName = "simple_main.p8"
+                val fileName = "ast_simple_main.p8"
                 val path = Path(".", fileName)
                 assumeReadableFile(searchIn, path)
 
@@ -148,7 +148,7 @@ class TestModuleImporter: FunSpec({
                 test("testWithSyntaxError") {
                     val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val srcPath = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
+                    val srcPath = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
                     val act = { importer.importModule(srcPath) }
 
@@ -228,7 +228,7 @@ class TestModuleImporter: FunSpec({
                 test("testWithSyntaxError") {
                     val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val srcPath = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
+                    val srcPath = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
                     repeat(2) { n -> withClue(count[n] + " call") {
                             shouldThrow<ParseError>()
