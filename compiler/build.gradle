@@ -12,6 +12,18 @@ java {
     }
 }
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
@@ -40,7 +52,6 @@ configurations {
         extendsFrom = extendsFrom.findAll { it != configurations.antlr }
     }
 }
-
 
 sourceSets {
     main {

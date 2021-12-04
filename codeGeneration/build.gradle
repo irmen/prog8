@@ -11,6 +11,18 @@ java {
     }
 }
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
 dependencies {
     implementation project(':compilerInterfaces')
     implementation project(':compilerAst')

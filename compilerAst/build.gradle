@@ -9,7 +9,20 @@ java {
     }
 }
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = javaVersion
+    }
+}
+
 dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation 'org.antlr:antlr4-runtime:4.9.2'
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.12"
     implementation project(':parser')
