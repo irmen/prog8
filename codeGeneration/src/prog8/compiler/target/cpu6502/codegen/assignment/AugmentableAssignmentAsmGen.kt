@@ -1816,9 +1816,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(mem.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
+                                asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                                 asmgen.out("""
-                                    ldy  #0
-                                    lda  (P8ZP_SCRATCH_W2),y
                                     beq  +
                                     lda  #1
 +                                   eor  #1""")

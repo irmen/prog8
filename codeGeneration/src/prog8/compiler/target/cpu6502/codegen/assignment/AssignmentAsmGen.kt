@@ -125,10 +125,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             SourceStorageKind.MEMORY -> {
                 fun assignViaExprEval(expression: Expression) {
                     assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD, assign.target.scope)
-                    if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
-                    else
-                        asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                    asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                     assignRegisterByte(assign.target, CpuRegister.A)
                 }
 
@@ -341,10 +338,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
                     fun assignViaExprEval(addressExpression: Expression) {
                         asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                        if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  lda  (P8ZP_SCRATCH_W2)")
-                        else
-                            asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
+                        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                         assignRegisterByte(target, CpuRegister.A)
                     }
 
