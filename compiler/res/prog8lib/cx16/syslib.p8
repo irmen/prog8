@@ -381,6 +381,20 @@ inline asmsub rambank(ubyte bank @A) {
     }}
 }
 
+inline asmsub getrombank() -> ubyte @A {
+    ; -- get the current rom bank
+    %asm {{
+        lda  $01            ; rom bank register (v39+, used to be cx16.d1prb $9f60 in v38)
+    }}
+}
+
+inline asmsub getrambank() -> ubyte @A {
+    ; -- get the current ram bank
+    %asm {{
+        lda  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
+    }}
+}
+
 asmsub numbanks() -> ubyte @A {
     ; -- uses MEMTOP's cx16 extension to query the number of available RAM banks. (each is 8 Kb)
     %asm {{

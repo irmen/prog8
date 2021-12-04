@@ -1,43 +1,31 @@
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
-
-    ubyte[64*3] palette
-
     sub start() {
-        ubyte i
-        for i in 0 to len(palette)-1 {
-            palette[i] = 15
-        }
-
-        for i in 0 to len(palette)-1 {
-            txt.print_ubhex(palette[i], false)
-        }
-        txt.nl()
-        make_ehb_palette()
-        for i in 0 to len(palette)-1 {
-            txt.print_ubhex(palette[i], false)
-        }
-        txt.nl()
-
+        ubyte num_banks = cx16.numbanks()
+        txt.print("number of ram banks ")
+        txt.print_ub(num_banks)
+        txt.print(" = ")
+        txt.print_uw($0008*num_banks)
+        txt.print("kb\n")
+        print_banks()
+        cx16.rambank(55)
+        cx16.rombank(3)
+        print_banks()
     }
 
-    sub make_ehb_palette() {
-        ; generate 32 additional Extra-Halfbrite colors in the cmap
-        uword palletteptr = &palette
-        uword ehbptr = palletteptr + 32*3
-        repeat 32 {
-            @(ehbptr) = @(palletteptr)>>1
-            ehbptr++
-            palletteptr++
-            @(ehbptr) = @(palletteptr)>>1
-            ehbptr++
-            palletteptr++
-            @(ehbptr) = @(palletteptr)>>1
-            ehbptr++
-            palletteptr++
-        }
+    sub print_banks() {
+        ubyte rambank = cx16.getrambank()
+        ubyte rombank = cx16.getrombank()
+        cx16.rombank(0) ; enable kernal
+        txt.print("ram bank ")
+        txt.print_ub(rambank)
+        txt.nl()
+        txt.print("rom bank ")
+        txt.print_ub(rombank)
+        txt.nl()
+        cx16.rombank(rombank)
     }
-
 }
