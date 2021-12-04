@@ -2140,52 +2140,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
             when(addressExpr) {
                 is NumericLiteralValue, is IdentifierReference -> {
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                    if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
-                    else
-                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }
                 else -> {
                     // same as above but we need to save the A register
                     asmgen.out("  pha")
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                     asmgen.out("  pla")
-                    if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  sta  (P8ZP_SCRATCH_W2)")
-                    else
-                        asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W2),y")
-                }
-            }
-        }
-
-        fun storeAIntoPointerVar(pointervar: IdentifierReference) {
-            val sourceName = asmgen.asmVariableName(pointervar)
-            val vardecl = pointervar.targetVarDecl(program)!!
-            val scopedName = vardecl.scopedName.joinToString(".")
-            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
-                if (asmgen.isZpVar(scopedName)) {
-                    // pointervar is already in the zero page, no need to copy
-                    asmgen.out("  sta  ($sourceName)")
-                } else {
-                    asmgen.out("""
-                    ldy  $sourceName
-                    sty  P8ZP_SCRATCH_W2
-                    ldy  $sourceName+1
-                    sty  P8ZP_SCRATCH_W2+1
-                    sta  (P8ZP_SCRATCH_W2)""")
-                }
-            } else {
-                if (asmgen.isZpVar(scopedName)) {
-                    // pointervar is already in the zero page, no need to copy
-                    asmgen.out(" ldy  #0 |  sta  ($sourceName),y")
-                } else {
-                    asmgen.out("""
-                    ldy  $sourceName
-                    sty  P8ZP_SCRATCH_W2
-                    ldy  $sourceName+1
-                    sty  P8ZP_SCRATCH_W2+1
-                    ldy  #0
-                    sta  (P8ZP_SCRATCH_W2),y""")
+                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }
             }
         }
@@ -2195,7 +2157,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                 asmgen.out("  sta  ${addressLv.number.toHex()}")
             }
             addressExpr is IdentifierReference -> {
-                storeAIntoPointerVar(addressExpr)
+                asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is BinaryExpression -> {
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))

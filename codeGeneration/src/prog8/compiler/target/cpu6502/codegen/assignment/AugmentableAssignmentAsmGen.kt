@@ -372,9 +372,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
             "-" -> asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
-            "*" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.multiply_bytes |  ldy  #0")
-            "/" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
-            "%" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  ldy  #0")
+            "*" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.multiply_bytes")
+            "/" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  tya")
+            "%" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm")
             "<<" -> {
                 asmgen.out("""
                     ldy  P8ZP_SCRATCH_B1
@@ -398,8 +398,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
+        // TODO THIS IS WRONG:????
         val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-        asmgen.out("  sta  ($sourceName),y")
+        asmgen.storeAIntoZpPointerVar(sourceName)
     }
 
     private fun inplaceModification_byte_variable_to_pointer(pointervar: IdentifierReference, operator: String, value: IdentifierReference) {
@@ -410,9 +411,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  $otherName")
             "-" -> asmgen.out("  sec |  sbc  $otherName")
-            "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes |  ldy  #0")
-            "/" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
-            "%" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  ldy  #0")
+            "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes")
+            "/" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  tya")
+            "%" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm")
             "<<" -> {
                 asmgen.out("""
                         ldy  $otherName
@@ -436,7 +437,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" eor  $otherName")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
-        asmgen.out("  sta  ($sourceName),y")
+        asmgen.storeAIntoZpPointerVar(sourceName)
     }
 
     private fun inplaceModification_byte_litval_to_pointer(pointervar: IdentifierReference, operator: String, value: Int) {
@@ -445,63 +446,63 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "+" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  clc |  adc  #$value")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "-" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  sec |  sbc  #$value")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "*" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value in asmgen.optimizedByteMultiplications)
                     asmgen.out("  jsr  math.mul_byte_${value}")
                 else
-                    asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes |  ldy  #0")
-                asmgen.out("  sta  ($sourceName),y")
+                    asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "/" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya |  ldy  #0")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "%" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  ldy  #0")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "<<" -> {
                 if (value > 0) {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out(" asl  a") }
-                    asmgen.out("  sta  ($sourceName),y")
+                    repeat(value) { asmgen.out("  asl  a") }
+                    asmgen.storeAIntoZpPointerVar(sourceName)
                 }
             }
             ">>" -> {
                 if (value > 0) {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out(" lsr  a") }
-                    asmgen.out("  sta  ($sourceName),y")
+                    repeat(value) { asmgen.out("  lsr  a") }
+                    asmgen.storeAIntoZpPointerVar(sourceName)
                 }
             }
             "&", "and" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  and  #$value")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "|", "or" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  ora  #$value")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             "^", "xor" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  eor  #$value")
-                asmgen.out("  sta  ($sourceName),y")
+                asmgen.storeAIntoZpPointerVar(sourceName)
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1811,7 +1812,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     beq  +
                                     lda  #1
 +                                   eor  #1""")
-                                asmgen.out("  sta  ($sourceName),y")
+                                asmgen.storeAIntoZpPointerVar(sourceName)
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(mem.addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
@@ -1820,8 +1821,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                     lda  (P8ZP_SCRATCH_W2),y
                                     beq  +
                                     lda  #1
-+                                   eor  #1                                    
-                                    sta  (P8ZP_SCRATCH_W2),y""")
++                                   eor  #1""")
+                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                             }
                         }
                     }
@@ -1942,8 +1943,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 asmgen.out("""
                                     ldy  #0
                                     lda  (P8ZP_SCRATCH_W2),y
-                                    eor  #255
-                                    sta  (P8ZP_SCRATCH_W2),y""")
+                                    eor  #255""")
+                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                             }
                         }
                     }

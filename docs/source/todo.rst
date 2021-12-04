@@ -3,6 +3,10 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BUG: imageviewer.p8 iff loader: winterqueen.iff (EHB image) is not displayed correctly!
+     --> make_ehb_palette() is wrong with optimizations, ok without.
+     --> caused by splitBinaryExpressions()
+
 ...
 
 

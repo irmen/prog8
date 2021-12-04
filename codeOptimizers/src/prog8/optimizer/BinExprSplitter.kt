@@ -73,6 +73,7 @@ X =      BinExpr                                    X   =   LeftExpr
 //                    )
                 }
 
+                // TODO breaks imageviewer EHB palette
                 if(binExpr.right.isSimple) {
                     val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
