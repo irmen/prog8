@@ -144,7 +144,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
 
             return when(value) {
-                is NumericLiteralValue -> AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, value.type, number = cv)
+                is NumericLiteralValue -> throw AssemblyError("should have been constant value")
                 is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {

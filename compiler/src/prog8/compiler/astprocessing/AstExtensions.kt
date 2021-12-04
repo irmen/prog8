@@ -11,7 +11,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
 

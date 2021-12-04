@@ -35,9 +35,6 @@ enum class DataType {
             }
 
     fun oneOf(vararg types: DataType) = this in types
-    infix fun isAssignableTo(targetTypes: Set<DataType>) = targetTypes.any { this isAssignableTo it }
-    infix fun isNotAssignableTo(targetType: DataType) = !this.isAssignableTo(targetType)
-    infix fun isNotAssignableTo(targetTypes: Set<DataType>) = !this.isAssignableTo(targetTypes)
 
     infix fun largerThan(other: DataType) =
             when {

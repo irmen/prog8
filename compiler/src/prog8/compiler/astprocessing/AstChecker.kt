@@ -703,7 +703,7 @@ internal class AstChecker(private val program: Program,
                     err("this directive can't be used here")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
-                else if(directive.args.isNotEmpty() && directive.args[0].str==null) err(errormsg)
+                else if(directive.args[0].str==null) err(errormsg)
                 else if(directive.args.size>=2 && directive.args[1].int==null) err(errormsg)
                 else if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
                 else if(directive.args.size>3) err(errormsg)
@@ -1216,7 +1216,7 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize<1 || arraySpecSize>256)
+                        if(arraySpecSize>256)
                             return err("byte array length must be 1-256")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
@@ -1235,7 +1235,7 @@ internal class AstChecker(private val program: Program,
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize<1 || arraySpecSize>128)
+                        if(arraySpecSize>128)
                             return err("word array length must be 1-128")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
@@ -1254,7 +1254,7 @@ internal class AstChecker(private val program: Program,
                     val arraySize = value.value.size
                     val arraySpecSize = arrayspec.constIndex()
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize < 1 || arraySpecSize>51)
+                        if(arraySpecSize>51)
                             return err("float array length must be 1-51")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)

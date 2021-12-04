@@ -108,7 +108,7 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                     }
                     val cvalue = assignment.value.constValue(program)
                     if(cvalue!=null) {
-                        val number = cvalue.number.toDouble()
+                        val number = cvalue.number
                         // more complex comparisons if the type is different, but the constant value is compatible
                         if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
                             if(number>0)

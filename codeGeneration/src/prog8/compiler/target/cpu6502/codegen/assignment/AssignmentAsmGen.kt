@@ -1660,7 +1660,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.out("  stz  ${target.asmVarname} |  stz  ${target.asmVarname}+1")
                 }
                 TargetStorageKind.MEMORY -> {
-                    throw AssemblyError("no asm gen for assign word $word to memory ${target.memory}")
+                    throw AssemblyError("memory is bytes not words")
                 }
                 TargetStorageKind.ARRAY -> {
                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
@@ -1759,7 +1759,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     asmgen.out("  stz  ${target.asmVarname} ")
                 }
                 TargetStorageKind.MEMORY -> {
-                    asmgen.out("  lda  #${byte.toHex()}")
+                    asmgen.out("  lda  #0")
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {

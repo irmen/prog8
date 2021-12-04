@@ -8,7 +8,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
 

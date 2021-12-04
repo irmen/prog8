@@ -173,14 +173,14 @@ class TestModuleImporter: FunSpec({
                     val act = { importer.importModule(importing) }
 
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
-                        shouldThrow<ParseError>() { act() }.let {
+                        shouldThrow<ParseError> { act() }.let {
                             it.position.file shouldBe SourceCode.relative(imported).toString()
                             withClue("line; should be 1-based") { it.position.line shouldBe 2 }
                             withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
                             withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                         }
                     }
-                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
+                    withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
                         program.modules[0].name shouldBe internedStringsModuleName
                     }
                 }

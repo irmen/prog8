@@ -43,10 +43,7 @@ class ModuleImporter(private val program: Program,
         println(logMsg)
 
         val module = importModule(SourceCode.File(srcPath))
-        return if(module==null)
-            Err(NoSuchFileException(srcPath.toFile()))
-        else
-            Ok(module)
+        return Ok(module)
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -56,7 +53,7 @@ class ModuleImporter(private val program: Program,
         return executeImportDirective(import, null)
     }
 
-    private fun importModule(src: SourceCode) : Module? {
+    private fun importModule(src: SourceCode) : Module {
         val moduleAst = Prog8Parser.parseModule(src)
         program.addModule(moduleAst)
 
@@ -150,7 +147,7 @@ class ModuleImporter(private val program: Program,
         locations.forEach {
             try {
                 return Ok(SourceCode.File(it.resolve(fileName)))
-            } catch (e: NoSuchFileException) {
+            } catch (_: NoSuchFileException) {
             }
         }
 

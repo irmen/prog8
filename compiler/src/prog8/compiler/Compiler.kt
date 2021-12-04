@@ -80,8 +80,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 //            printProgram(program)
 
             if (args.writeAssembly) {
-                val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)
-                when (result) {
+                when (val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
