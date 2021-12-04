@@ -209,14 +209,14 @@ class TestModuleImporter: FunSpec({
                     val result = importer.importLibraryModule(filenameNoExt)
                     withClue(count[n] + " call / NO .p8 extension") { result shouldBe null }
                     withClue(count[n] + " call / NO .p8 extension") { errors.noErrors() shouldBe false }
-                    errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist"
+                    errors.errors.single() shouldContain "0:0) no module found with name i_do_not_exist"
                     errors.report()
                     program.modules.size shouldBe 1
 
                     val result2 = importer.importLibraryModule(filenameWithExt)
                     withClue(count[n] + " call / with .p8 extension") { result2 shouldBe null }
                     withClue(count[n] + " call / with .p8 extension") { importer.errors.noErrors() shouldBe false }
-                    errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist.p8"
+                    errors.errors.single() shouldContain "0:0) no module found with name i_do_not_exist.p8"
                     errors.report()
                     program.modules.size shouldBe 1
                 }

@@ -148,7 +148,7 @@ class TestSubroutines: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
         errors.warnings.size shouldBe 0
-        errors.errors.single() shouldContain ".p8:9:16: Non-string pass-by-reference types cannot occur as a parameter type directly"
+        errors.errors.single() shouldContain ".p8:9:17) Non-string pass-by-reference types cannot occur as a parameter type directly"
     }
 
     // TODO allow this?
@@ -281,8 +281,8 @@ class TestSubroutines: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:24: invalid number of arguments"
-        errors.errors[1] shouldContain "9:24: invalid number of arguments"
+        errors.errors[0] shouldContain "7:25) invalid number of arguments"
+        errors.errors[1] shouldContain "9:25) invalid number of arguments"
     }
 
     test("invalid number of args check on asm subroutine") {
@@ -302,8 +302,8 @@ class TestSubroutines: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:24: invalid number of arguments"
-        errors.errors[1] shouldContain "9:24: invalid number of arguments"
+        errors.errors[0] shouldContain "7:25) invalid number of arguments"
+        errors.errors[1] shouldContain "9:25) invalid number of arguments"
     }
 
     test("invalid number of args check on call to label and builtin func") {

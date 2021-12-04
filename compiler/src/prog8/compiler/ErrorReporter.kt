@@ -32,7 +32,7 @@ internal class ErrorReporter: IErrorReporter {
                 MessageSeverity.ERROR -> printer.print("\u001b[91m")  // bright red
                 MessageSeverity.WARNING -> printer.print("\u001b[93m")  // bright yellow
             }
-            val msg = "${it.position.toClickableStr()} ${it.severity} ${it.message}".trim()
+            val msg = "${it.severity} ${it.position.toClickableStr()} ${it.message}".trim()
             if(msg !in alreadyReportedMessages) {
                 printer.println(msg)
                 alreadyReportedMessages.add(msg)

@@ -229,8 +229,8 @@ class TestCompilerOnRanges: FunSpec({
             }
         """, errors, false).assertFailure()
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain ".p8:5:29: range expression from value must be integer"
-        errors.errors[1] shouldContain ".p8:5:44: range expression to value must be integer"
+        errors.errors[0] shouldContain ".p8:5:30) range expression from value must be integer"
+        errors.errors[1] shouldContain ".p8:5:45) range expression to value must be integer"
     }
 
     test("testForLoopWithIterable_str") {

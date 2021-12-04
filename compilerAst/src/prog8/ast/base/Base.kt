@@ -1,6 +1,8 @@
 package prog8.ast.base
 
 import prog8.ast.Node
+import kotlin.io.path.Path
+import kotlin.io.path.absolute
 
 
 /**************************** AST Data classes ****************************/
@@ -187,7 +189,7 @@ object ParentSentinel : Node {
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
     override fun toString(): String = "[$file: line $line col ${startCol+1}-${endCol+1}]"
-    fun toClickableStr(): String = "$file:$line:$startCol:"
+    fun toClickableStr(): String = "(${Path("").absolute()}/$file:$line:$startCol)"
 
     companion object {
         val DUMMY = Position("<dummy>", 0, 0, 0)

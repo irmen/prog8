@@ -296,9 +296,9 @@ class TestProg8Parser: FunSpec( {
             val mpf = module.position.file
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0, 3)
+            assertPositionOf(mainBlock, mpf, 2, 1, 4)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4, 6)
+            assertPositionOf(startSub, mpf, 3, 5, 7)
         }
 
         test("of non-root Nodes parsed from a string") {
@@ -320,22 +320,22 @@ class TestProg8Parser: FunSpec( {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 0, 8)
+            assertPositionOf(targetDirective, mpf, 1, 1, 9)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 0, 3)
+            assertPositionOf(mainBlock, mpf, 2, 1, 4)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 4, 6)
+            assertPositionOf(startSub, mpf, 3, 5, 7)
             val declFoo = startSub.statements.filterIsInstance<VarDecl>()[0]
-            assertPositionOf(declFoo, mpf, 4, 8, 12)
+            assertPositionOf(declFoo, mpf, 4, 9, 13)
             val rhsFoo = declFoo.value!!
-            assertPositionOf(rhsFoo, mpf, 4, 20, 21)
+            assertPositionOf(rhsFoo, mpf, 4, 21, 22)
             val declBar = startSub.statements.filterIsInstance<VarDecl>()[1]
-            assertPositionOf(declBar, mpf, 5, 8, 12)
+            assertPositionOf(declBar, mpf, 5, 9, 13)
             val whenStmt = startSub.statements.filterIsInstance<WhenStatement>()[0]
-            assertPositionOf(whenStmt, mpf, 6, 8, 11)
-            assertPositionOf(whenStmt.choices[0], mpf, 7, 12, 13)
-            assertPositionOf(whenStmt.choices[1], mpf, 8, 12, 13)
-            assertPositionOf(whenStmt.choices[2], mpf, 9, 12, 15)
+            assertPositionOf(whenStmt, mpf, 6, 9, 12)
+            assertPositionOf(whenStmt.choices[0], mpf, 7, 13, 14)
+            assertPositionOf(whenStmt.choices[1], mpf, 8, 13, 14)
+            assertPositionOf(whenStmt.choices[2], mpf, 9, 13, 16)
         }
     }
 
