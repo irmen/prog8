@@ -11,7 +11,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.C64Zeropage
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
@@ -75,7 +75,7 @@ class AsmGenSymbolsTests: StringSpec({
     fun createTestAsmGen(program: Program): AsmGen {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target)
-        val zp = C64MachineDefinition.C64Zeropage(options)
+        val zp = C64Zeropage(options)
         val asmgen = AsmGen(program, errors, zp, options, C64Target, Path.of(""))
         return asmgen
     }

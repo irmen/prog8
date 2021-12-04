@@ -11,9 +11,10 @@ import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
 import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.compilerinterface.ICompilationTarget
 
+
 object C64Target: ICompilationTarget {
     override val name = "c64"
-    override val machine = C64MachineDefinition
+    override val machine = C64MachineDefinition()
     override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
         val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(

@@ -1,20 +1,19 @@
 package prog8.compiler.target.cx16
 
-import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.cbm.Mflpt5
 import prog8.compiler.target.cbm.viceMonListPostfix
 import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path
 
 
-object CX16MachineDefinition: IMachineDefinition {
+class CX16MachineDefinition: IMachineDefinition {
 
     override val cpu = CpuType.CPU65c02
 
-    // 5-byte cbm MFLPT format limitations:
-    override val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
-    override val FLOAT_MAX_NEGATIVE = -1.7014118345e+38        // bytes: 255,255,255,255,255
-    override val FLOAT_MEM_SIZE = 5
+    override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
+    override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
+    override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2
     override val BASIC_LOAD_ADDRESS = 0x0801u
     override val RAW_LOAD_ADDRESS = 0x8000u
@@ -25,7 +24,7 @@ object CX16MachineDefinition: IMachineDefinition {
 
     override lateinit var zeropage: Zeropage
 
-    override fun getFloat(num: Number) = C64MachineDefinition.Mflpt5.fromNumber(num)
+    override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             listOf("syslib")
@@ -87,38 +86,4 @@ object CX16MachineDefinition: IMachineDefinition {
             "rmb", "smb", "stp", "wai")
 
 
-    class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
-
-        override val SCRATCH_B1 = 0x7au      // temp storage for a single byte
-        override val SCRATCH_REG = 0x7bu     // temp storage for a register, must be B1+1
-        override val SCRATCH_W1 = 0x7cu      // temp storage 1 for a word  $7c+$7d
-        override val SCRATCH_W2 = 0x7eu      // temp storage 2 for a word  $7e+$7f
-
-
-        init {
-            if (options.floats && options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE ))
-                throw InternalCompilerException("when floats are enabled, zero page type should be 'basicsafe' or 'dontuse'")
-
-            // the addresses 0x02 to 0x21 (inclusive) are taken for sixteen virtual 16-bit api registers.
-
-            when (options.zeropage) {
-                ZeropageType.FULL -> {
-                    free.addAll(0x22u..0xffu)
-                }
-                ZeropageType.KERNALSAFE -> {
-                    free.addAll(0x22u..0x7fu)
-                    free.addAll(0xa9u..0xffu)
-                }
-                ZeropageType.BASICSAFE -> {
-                    free.addAll(0x22u..0x7fu)
-                }
-                ZeropageType.DONTUSE -> {
-                    free.clear() // don't use zeropage at all
-                }
-                else -> throw InternalCompilerException("for this machine target, zero page type 'floatsafe' is not available. ${options.zeropage}")
-            }
-
-            removeReservedFromFreePool()
-        }
-    }
 }

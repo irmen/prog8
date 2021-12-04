@@ -7,7 +7,7 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compiler.target.C64Target
-import prog8.compiler.target.c64.C64MachineDefinition
+import prog8.compiler.target.c64.C64Zeropage
 import prog8.compiler.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import java.nio.file.Path
@@ -83,7 +83,7 @@ internal fun generateAssembly(
     options: CompilationOptions? = null
 ): IAssemblyProgram {
     val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, true, C64Target)
-    val zp = C64MachineDefinition.C64Zeropage(coptions)
+    val zp = C64Zeropage(coptions)
     coptions.compTarget.machine.zeropage=zp
     val asmgen = AsmGen(program, ErrorReporterForTests(), zp, coptions, C64Target, outputDir)
     return asmgen.compileToAssembly()

@@ -5,9 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import prog8.ast.toHex
-import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_NEGATIVE
-import prog8.compiler.target.c64.C64MachineDefinition.FLOAT_MAX_POSITIVE
-import prog8.compiler.target.c64.C64MachineDefinition.Mflpt5
+import prog8.compiler.target.cbm.Mflpt5
 import prog8.compilerinterface.InternalCompilerException
 
 
@@ -69,8 +67,8 @@ class TestNumbers: FunSpec({
     }
 
     test("testFloatRange") {
-        Mflpt5.fromNumber(FLOAT_MAX_POSITIVE) shouldBe Mflpt5(0xffu, 0x7fu, 0xffu, 0xffu, 0xffu)
-        Mflpt5.fromNumber(FLOAT_MAX_NEGATIVE) shouldBe Mflpt5(0xffu, 0xffu, 0xffu, 0xffu, 0xffu)
+        Mflpt5.fromNumber(Mflpt5.FLOAT_MAX_POSITIVE) shouldBe Mflpt5(0xffu, 0x7fu, 0xffu, 0xffu, 0xffu)
+        Mflpt5.fromNumber(Mflpt5.FLOAT_MAX_NEGATIVE) shouldBe Mflpt5(0xffu, 0xffu, 0xffu, 0xffu, 0xffu)
         Mflpt5.fromNumber(1.7e-38) shouldBe Mflpt5(0x03u, 0x39u, 0x1du, 0x15u, 0x63u)
         Mflpt5.fromNumber(1.7e-39) shouldBe Mflpt5(0x00u, 0x00u, 0x00u, 0x00u, 0x00u)
         Mflpt5.fromNumber(-1.7e-38) shouldBe Mflpt5(0x03u, 0xb9u, 0x1du, 0x15u, 0x63u)

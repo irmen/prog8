@@ -17,9 +17,9 @@ import prog8.compilerinterface.ICompilationTarget
 
 object Cx16Target: ICompilationTarget {
     override val name = "cx16"
-    override val machine = CX16MachineDefinition
+    override val machine = CX16MachineDefinition()
     override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
-        val coded= if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+        val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
         return coded.fold(
             failure = { throw it },
             success = { it }
