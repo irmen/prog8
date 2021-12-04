@@ -440,7 +440,9 @@ io_error:
     ; and the rest is loaded at the given location in memory.
     ; Returns the number of bytes loaded.
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
-    ;       (which is possible on the Commander X16), the returned size is not correct.
+    ;       (which is possible on the Commander X16), the returned size is not correct,
+    ;       because it doesn't take the number of ram banks into account.
+    ;       Consider using cx16diskio.load() instead.
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
@@ -474,16 +476,21 @@ io_error:
     ; This is different from Basic's LOAD instruction which always skips the first two bytes.
     ; The load address is mandatory. Returns the number of bytes loaded.
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
-    ;       (which is possible on the Commander X16), the returned size is not correct.
+    ;       (which is possible on the Commander X16), the returned size is not correct,
+    ;       because it doesn't take the number of ram banks into account.
+    ;       Consider using cx16diskio.load_raw() instead.
     sub load_raw(ubyte drivenumber, uword filenameptr, uword address) -> uword {
         if not f_open(drivenumber, filenameptr)
             return 0
-        uword read = f_read(address, 2)
+        uword size = f_read(address, 2)
         f_close()
-        if read!=2
+        if size!=2
             return 0
         address += 2
-        return 2+load(drivenumber, filenameptr, address)
+        size = load(drivenumber, filenameptr, address)
+        if size
+            return size+2
+        return 0
     }
 
     sub delete(ubyte drivenumber, uword filenameptr) {
