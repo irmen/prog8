@@ -3,9 +3,8 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fix: cx16.r0 isn't seen as zeropage so @(cx16.r0) still copies it to temp zp
-fix: when statements generate unneeded branches to choice_end?
-fix: amountOfRtsInAsm() look in subscopes too
+- fix: amountOfRtsInAsm() look in subscopes too
+- fix: when statements generate unneeded branches to choice_end?
 
 
 

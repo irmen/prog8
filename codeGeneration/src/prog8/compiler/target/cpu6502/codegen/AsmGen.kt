@@ -41,7 +41,7 @@ class AsmGen(private val program: Program,
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
-    private val allocatedZeropageVariables = mutableMapOf<String, Pair<UInt, DataType>>()
+    private val allocatedZeropageVariables = compTarget.machine.getPreallocatedZeropageVars().toMutableMap()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
@@ -1530,7 +1530,8 @@ $label              nop""")
         }
     }
 
-    internal fun isZpVar(scopedName: String): Boolean = scopedName in allocatedZeropageVariables
+    internal fun isZpVar(scopedName: String): Boolean =
+        scopedName in allocatedZeropageVariables
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
