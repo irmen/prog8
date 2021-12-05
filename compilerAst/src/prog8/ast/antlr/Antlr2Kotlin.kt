@@ -288,8 +288,10 @@ private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCall {
         FunctionCall(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
-private fun Prog8ANTLRParser.InlineasmContext.toAst() =
-        InlineAssembly(INLINEASMBLOCK().text, toPosition())
+private fun Prog8ANTLRParser.InlineasmContext.toAst(): InlineAssembly {
+    val text = INLINEASMBLOCK().text
+    return InlineAssembly(text.substring(2, text.length-2), toPosition())
+}
 
 private fun Prog8ANTLRParser.ReturnstmtContext.toAst() : Return {
     return Return(expression()?.toAst(), toPosition())
@@ -356,8 +358,7 @@ private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
     if(str?.ALT_STRING_ENCODING() != null)
         throw SyntaxError("can't use alternate string s for directive arguments", toPosition())
-
-    return DirectiveArg(stringliteral()?.text, identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
+    return DirectiveArg(str?.text?.substring(1, text.length-1), identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
 }
 
 private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
@@ -480,11 +481,15 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     throw FatalAstException(text)
 }
 
-private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral =
-    CharLiteral(unescape(this.SINGLECHAR().text, toPosition())[0], this.ALT_STRING_ENCODING() != null, toPosition())
+private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
+    val text = this.SINGLECHAR().text
+    return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], this.ALT_STRING_ENCODING() != null, toPosition())
+}
 
-private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue =
-    StringLiteralValue(unescape(this.STRING().text, toPosition()), ALT_STRING_ENCODING()!=null, toPosition())
+private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue {
+    val text=this.STRING().text
+    return StringLiteralValue(unescape(text.substring(1, text.length-1), toPosition()), ALT_STRING_ENCODING() != null, toPosition())
+}
 
 private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
     return ArrayIndexedExpression(scoped_identifier().toAst(),

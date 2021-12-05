@@ -2,6 +2,7 @@ package prog8.ast.antlr
 
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
+import kotlin.NumberFormatException
 
 fun escape(str: String): String {
     val es = str.map {
@@ -32,12 +33,24 @@ fun unescape(str: String, position: Position): String {
                 '"' -> '"'
                 '\'' -> '\''
                 'u' -> {
-                    "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
+                    try {
+                        "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
+                    } catch (sb: StringIndexOutOfBoundsException) {
+                        throw SyntaxError("invalid \\u escape sequence", position)
+                    } catch (nf: NumberFormatException) {
+                        throw SyntaxError("invalid \\u escape sequence", position)
+                    }
                 }
                 'x' -> {
                     // special hack 0x8000..0x80ff  will be outputted verbatim without encoding
-                    val hex = ("" + iter.nextChar() + iter.nextChar()).toInt(16)
-                    (0x8000 + hex).toChar()
+                    try {
+                        val hex = ("" + iter.nextChar() + iter.nextChar()).toInt(16)
+                        (0x8000 + hex).toChar()
+                    } catch (sb: StringIndexOutOfBoundsException) {
+                        throw SyntaxError("invalid \\x escape sequence", position)
+                    } catch (nf: NumberFormatException) {
+                        throw SyntaxError("invalid \\x escape sequence", position)
+                    }
                 }
                 else -> throw SyntaxError("invalid escape char in string: \\$ec", position)
             })

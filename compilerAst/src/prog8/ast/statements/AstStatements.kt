@@ -706,6 +706,7 @@ class Subroutine(override val name: String,
         return KeepAresult(false, saveAonReturn)
     }
 
+    // TODO fix this to also look in asm nodes in subscopes
     fun amountOfRtsInAsm(): Int = statements
             .asSequence()
             .filter { it is InlineAssembly }

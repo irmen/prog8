@@ -33,31 +33,16 @@ ALT_STRING_ENCODING: '@';
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? FNUMBER)? ;	// sign comes later from unary expression
 fragment FNUMBER :  ('0' .. '9') + ('.' ('0' .. '9') +)? ;
 
-fragment STRING_ESCAPE_SEQ :  '\\' . | '\\' EOL;
+fragment STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
 STRING :
 	'"' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] )* '"'
-	{
-		// get rid of the enclosing quotes
-		String s = getText();
-		setText(s.substring(1, s.length() - 1));
-	}
 	;
 INLINEASMBLOCK :
 	'{{' .+? '}}'
-	{
-		// get rid of the enclosing double braces
-		String s = getText();
-		setText(s.substring(2, s.length() - 2));
-	}
 	;
 
 SINGLECHAR :
-	'\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] ) '\''
-	{
-		// get rid of the enclosing quotes
-		String s = getText();
-		setText(s.substring(1, s.length() - 1));
-	}
+	'\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f'] ) '\''
 	;
 
 ZEROPAGE :
