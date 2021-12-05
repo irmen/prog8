@@ -4,13 +4,16 @@
 
 main {
     sub start() {
-        str text = "hello"
+        str text = "\x00\xff\u0041A"
         txt.print(text)
-        txt.print("hello2\u0032")
-        ubyte chr1 = '\x33'
-        txt.chrout(chr1)
-        %asm {{
-            nop
-        }}
+        txt.nl()
+        txt.print_ub(text[0])
+        txt.spc()
+        txt.print_ub(text[1])
+        txt.spc()
+        txt.print_ub(text[2])
+        txt.spc()
+        txt.print_ub(text[3])
+        txt.nl()
     }
 }

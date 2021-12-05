@@ -1,5 +1,6 @@
 package prog8tests.ast
 
+import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -18,6 +19,9 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compiler.printProgram
+import prog8.compiler.target.C64Target
+import prog8.compiler.target.cbm.Petscii
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
@@ -767,5 +771,34 @@ class TestProg8Parser: FunSpec( {
                 assign.value shouldBe (instanceOf<PrefixExpression>() or instanceOf<BinaryExpression>() or instanceOf<TypecastExpression>())
             }
         }
+    }
+
+    test("test string x and u escape sequences") {
+        val text="""
+            main {
+                sub start() {
+                    str string = "\x00\xff\u0041"
+                    ubyte zero = '\x00'
+                    ubyte ff = '\xff'
+                    ubyte letter = '\u0041'
+                }
+            }
+        """
+        val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        val start = result.program.entrypoint
+        val string = (start.statements[0] as VarDecl).value as StringLiteralValue
+        withClue("x-escapes are hacked to range 0x8000-0x80ff") {
+            string.value[0].code shouldBe 0x8000
+            string.value[1].code shouldBe 0x80ff
+        }
+        string.value[2].code shouldBe 65
+        val zero = start.statements[2] as Assignment
+        zero.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+        val ff = start.statements[4] as Assignment
+        ff.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
+        val letter = start.statements[6] as Assignment
+        // TODO characters should not be encoded until code generation, like strings...
+        val encodedletter = Petscii.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
+        letter.value shouldBe NumericLiteralValue(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
 })
