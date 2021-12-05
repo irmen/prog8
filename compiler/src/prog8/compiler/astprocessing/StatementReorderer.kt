@@ -253,6 +253,13 @@ internal class StatementReorderer(val program: Program,
     }
 
     override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
+        val lastChoiceValues = whenStatement.choices.lastOrNull()?.values
+        if(lastChoiceValues?.isNotEmpty()==true) {
+            val elseChoice = whenStatement.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
+            if(elseChoice>=0)
+                errors.err("else choice must be the last one", whenStatement.choices[elseChoice].position)
+        }
+
         val choices = whenStatement.choiceValues(program).sortedBy {
             it.first?.first() ?: Int.MAX_VALUE
         }

@@ -4,14 +4,18 @@
 
 main {
     sub start() {
-        ubyte @shared bb = @(cx16.r0)
-    }
+        ubyte @shared bb
 
-    sub count() -> ubyte {
-        repeat {
-            %asm {{
-                rts
-            }}
+        when bb {
+            0,1,2 -> {
+                bb ++
+            }
+            3 -> {
+                bb--
+            }
+            else -> {
+                bb=0
+            }
         }
     }
 }

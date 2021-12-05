@@ -1293,7 +1293,6 @@ $repeatLabel    lda  $counterVar
             if(choice.values==null) {
                 // the else choice
                 translate(choice.statements)
-                jmp(endLabel)
             } else {
                 choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values!!) {
@@ -1313,10 +1312,11 @@ $repeatLabel    lda  $counterVar
             }
         }
         jmp(endLabel)
-        for(choiceBlock in choiceBlocks) {
-            out(choiceBlock.first)
-            translate(choiceBlock.second)
-            jmp(endLabel)
+        for(choiceBlock in choiceBlocks.withIndex()) {
+            out(choiceBlock.value.first)
+            translate(choiceBlock.value.second)
+            if(choiceBlock.index<choiceBlocks.size-1)
+                jmp(endLabel)
         }
         out(endLabel)
     }

@@ -3,8 +3,7 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix: when statements generate unneeded branches to choice_end?
-
+...
 
 
 Blocked by an official Commander-x16 v39 release
