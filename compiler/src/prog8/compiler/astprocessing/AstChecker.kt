@@ -217,7 +217,7 @@ internal class AstChecker(private val program: Program,
         super.visit(label)
     }
 
-    private fun hasReturnOrJump(scope: IStatementContainer): Boolean {
+    private fun hasReturnOrJumpOrRts(scope: IStatementContainer): Boolean {
         class Searcher: IAstVisitor
         {
             var count=0
@@ -227,6 +227,13 @@ internal class AstChecker(private val program: Program,
             }
             override fun visit(jump: Jump) {
                 if(!jump.isGosub)
+                    count++
+            }
+
+            override fun visit(inlineAssembly: InlineAssembly) {
+                val assembly = inlineAssembly.assembly
+                if(" rti" in assembly || "\trti" in assembly || " rts" in assembly || "\trts" in assembly ||
+                    " jmp" in assembly || "\tjmp" in assembly || " bra" in assembly || "\tbra" in assembly )
                     count++
             }
         }
@@ -262,13 +269,11 @@ internal class AstChecker(private val program: Program,
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
-        if(!hasReturnOrJump(subroutine)) {
-            if (subroutine.amountOfRtsInAsm() == 0) {
-                if (subroutine.returntypes.isNotEmpty()) {
-                    // for asm subroutines with an address, no statement check is possible.
-                    if (subroutine.asmAddress == null && !subroutine.inline)
-                        err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or rts/jmp/bra in case of %asm)")
-                }
+        if(!hasReturnOrJumpOrRts(subroutine)) {
+            if (subroutine.returntypes.isNotEmpty()) {
+                // for asm subroutines with an address, no statement check is possible.
+                if (subroutine.asmAddress == null && !subroutine.inline)
+                    err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or rts/jmp/bra in case of %asm)")
             }
         }
 

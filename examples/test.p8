@@ -6,4 +6,12 @@ main {
     sub start() {
         ubyte @shared bb = @(cx16.r0)
     }
+
+    sub count() -> ubyte {
+        repeat {
+            %asm {{
+                rts
+            }}
+        }
+    }
 }

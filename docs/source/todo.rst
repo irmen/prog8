@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix: amountOfRtsInAsm() look in subscopes too
 - fix: when statements generate unneeded branches to choice_end?
 
 
