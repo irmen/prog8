@@ -41,5 +41,5 @@ More code optimization ideas
   but the result should not produce larger code ofcourse!
 - while-expression should now also get the simplifyConditionalExpression() treatment
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
-- this removes the need for the BinExprSplitter (which is problematic now)
+- this removes the need for the BinExprSplitter? (which is problematic and very limited now)
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4

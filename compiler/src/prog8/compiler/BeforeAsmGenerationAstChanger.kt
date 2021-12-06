@@ -219,6 +219,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
 
         // TODO: somehow figure out if the expr will result in stack-evaluation STILL after being split off,
         //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
+        // TODO: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer)
+        //       it WILL result in larger code.
+        // TODO: this should be replaced by a general expression-evaluation optimization step.
+        //       the actual conditional expression in the statement should be no more than VARIABLE <COMPARISON-OPERATOR> SIMPLE-EXPRESSION
 
         var leftAssignment: Assignment? = null
         var leftOperandReplacement: Expression? = null
@@ -317,6 +321,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // TODO simplify the conditional expression, introduce simple assignments if required.
+        //      make sure to evaluate it only once, but also right at entry of the while loop
         // NOTE: sometimes this increases code size because additional stores/loads are generated for the
         //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
         // NOTE: this is nasty for a while-statement as the condition occurs at the top of the loop
@@ -408,10 +413,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val modifications = mutableListOf<IAstModification>()
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
-        val register = if(dt istype DataType.UBYTE  || dt istype DataType.BYTE ) "retval_interm_ub" else "retval_interm_b"
-        // replace the indexer with just the variable (simply use a cx16 virtual register r9, that we HOPE is not used for other things in the expression...)
-        // assign the indexing expression to the helper variable, but only if that hasn't been done already
-        val target = AssignTarget(IdentifierReference(listOf("prog8_lib", register), expr.indexer.position), null, null, expr.indexer.position)
+        val tempvar = if(dt.isBytes) listOf("prog8_lib","retval_interm_ub") else listOf("prog8_lib","retval_interm_b")
+        val target = AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(IAstModification.ReplaceNode(expr.indexer.indexExpr, target.identifier!!.copy(), expr.indexer))
