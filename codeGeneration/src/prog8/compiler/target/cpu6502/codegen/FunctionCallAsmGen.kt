@@ -254,9 +254,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun argumentViaVariable(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
         // pass parameter via a regular variable (not via registers)
         val valueIDt = value.inferType(program)
-        if(!valueIDt.isKnown)
-            throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.getOr(DataType.UNDEFINED)
+        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
@@ -267,9 +265,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
         // pass argument via a register parameter
         val valueIDt = value.inferType(program)
-        if(!valueIDt.isKnown)
-            throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.getOr(DataType.UNDEFINED)
+        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 

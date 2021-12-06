@@ -314,9 +314,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origTypeCastExpression: TypecastExpression) {
         val valueIDt = value.inferType(program)
-        if(!valueIDt.isKnown)
-            throw AssemblyError("unknown dt")
-        val valueDt = valueIDt.getOr(DataType.UNDEFINED)
+        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
         if(valueDt==targetDt)
             throw AssemblyError("type cast to identical dt should have been removed")
 

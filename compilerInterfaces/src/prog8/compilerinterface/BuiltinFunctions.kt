@@ -189,9 +189,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
         }
         if(arglist is IdentifierReference) {
             val idt = arglist.inferType(program)
-            if(!idt.isKnown)
-                throw FatalAstException("couldn't determine type of iterable $arglist")
-            return when(val dt = idt.getOr(DataType.UNDEFINED)) {
+            return when(val dt = idt.getOrElse { throw FatalAstException("unknown dt") }) {
                 DataType.STR, in NumericDatatypes -> dt
                 in ArrayDatatypes -> ArrayToElementTypes.getValue(dt)
                 else -> throw FatalAstException("function '$function' requires one argument which is an iterable")

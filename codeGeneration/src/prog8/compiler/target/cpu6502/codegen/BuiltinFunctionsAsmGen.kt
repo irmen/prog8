@@ -347,8 +347,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     private fun funcCmp(fcall: IFunctionCall) {
         val arg1 = fcall.args[0]
         val arg2 = fcall.args[1]
-        val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
-        val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
+        val dt1 = arg1.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
+        val dt2 = arg2.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
         if(dt1 in ByteDatatypes) {
             if(dt2 in ByteDatatypes) {
                 when (arg2) {
@@ -992,9 +992,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             val arrayVarName1 = asmgen.asmVariableName(first.arrayvar)
             val arrayVarName2 = asmgen.asmVariableName(second.arrayvar)
             val elementIDt = first.inferType(program)
-            if(!elementIDt.isKnown)
-                throw AssemblyError("unknown dt")
-            val elementDt = elementIDt.getOr(DataType.UNDEFINED)
+            val elementDt = elementIDt.getOrElse { throw AssemblyError("unknown dt") }
 
             val firstNum = first.indexer.indexExpr as? NumericLiteralValue
             val firstVar = first.indexer.indexExpr as? IdentifierReference
@@ -1646,7 +1644,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun translateArguments(args: MutableList<Expression>, signature: FSignature, scope: Subroutine?) {
-        val callConv = signature.callConvention(args.map { it.inferType(program).getOr(DataType.UNDEFINED) })
+        val callConv = signature.callConvention(args.map {
+            it.inferType(program).getOrElse { throw AssemblyError("unknown dt")}
+        })
 
         fun getSourceForFloat(value: Expression): AsmAssignSource {
             return when (value) {

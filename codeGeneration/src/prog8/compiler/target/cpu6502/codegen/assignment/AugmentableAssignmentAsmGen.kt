@@ -23,9 +23,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // A = -A , A = +A, A = ~A, A = not A
                 val target = assignmentAsmGen.virtualRegsToVariables(assign.target)
                 val itype = value.inferType(program)
-                if(!itype.isKnown)
-                    throw AssemblyError("unknown dt")
-                val type = itype.getOr(DataType.UNDEFINED)
+                val type = itype.getOrElse { throw AssemblyError("unknown dt") }
                 when (value.operator) {
                     "+" -> {}
                     "-" -> inplaceNegate(target, type)
@@ -153,7 +151,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
         // it will create the most optimized code to do this (so it type-extends for us).
         // But we can't deal with writing a word into a byte - explicit typeconversion is required
-        val value = if(program.memsizer.memorySize(origValue.inferType(program).getOr(DataType.UNDEFINED)) > program.memsizer.memorySize(target.datatype)) {
+        val value = if(program.memsizer.memorySize(origValue.inferType(program).getOrElse { throw AssemblyError("unknown dt") }) > program.memsizer.memorySize(target.datatype)) {
             val typecast = TypecastExpression(origValue, target.datatype, true, origValue.position)
             typecast.linkParents(origValue.parent)
             typecast
@@ -353,9 +351,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     private fun tryRemoveRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
         if (target.datatype == value.type) {
             val childIDt = value.expression.inferType(program)
-            if(!childIDt.isKnown)
-                throw AssemblyError("unknown dt")
-            val childDt = childIDt.getOr(DataType.UNDEFINED)
+            val childDt = childIDt.getOrElse { throw AssemblyError("unknown dt") }
             if (value.type!=DataType.FLOAT && (value.type.equalsSize(childDt) || value.type.largerThan(childDt))) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
                 // (works for integer types, not for float.)
@@ -1293,9 +1289,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         // because the value is evaluated onto the eval stack (=slow).
 
         val valueiDt = value.inferType(program)
-        if(!valueiDt.isKnown)
-            throw AssemblyError("unknown dt")
-        val valueDt = valueiDt.getOr(DataType.UNDEFINED)
+        val valueDt = valueiDt.getOrElse { throw AssemblyError("unknown dt") }
 
         fun multiplyVarByWordInAY() {
             asmgen.out("""

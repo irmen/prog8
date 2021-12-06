@@ -202,11 +202,7 @@ open class VarDecl(val type: VarDeclType,
 
         fun createAuto(array: ArrayLiteralValue): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
-            val arrayDt =
-                if(!array.type.isKnown)
-                    throw FatalAstException("unknown dt")
-                else
-                    array.type.getOr(DataType.UNDEFINED)
+            val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,

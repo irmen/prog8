@@ -254,8 +254,8 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
         if(!leftIDt.isKnown || !rightIDt.isKnown)
             throw AssemblyError("can't infer type of both expression operands")
 
-        val leftDt = leftIDt.getOr(DataType.UNDEFINED)
-        val rightDt = rightIDt.getOr(DataType.UNDEFINED)
+        val leftDt = leftIDt.getOrElse { throw AssemblyError("unknown dt") }
+        val rightDt = rightIDt.getOrElse { throw AssemblyError("unknown dt") }
         // see if we can apply some optimized routines
         when(expr.operator) {
             "+" -> {
@@ -578,9 +578,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
     private fun translateExpression(expr: PrefixExpression) {
         translateExpressionInternal(expr.expression)
         val itype = expr.inferType(program)
-        if(!itype.isKnown)
-            throw AssemblyError("unknown dt")
-        val type = itype.getOr(DataType.UNDEFINED)
+        val type = itype.getOrElse { throw AssemblyError("unknown dt") }
         when(expr.operator) {
             "+" -> {}
             "-" -> {

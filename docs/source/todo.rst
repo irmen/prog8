@@ -19,8 +19,6 @@ Future
 - fix the asm-labels problem (github issue #62)
 - get rid of all TODO's in the code
 - improve testability further, add more tests
-- replace certain uses of inferredType.getOr(DataType.UNDEFINED) by i.getOrElse({ errorhandler })
-- see if we can remove more "[InferredType].getOr(DataType.UNDEFINED)"
 - use more of Result<> and Either<> to handle errors/ nulls better
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
