@@ -48,10 +48,10 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.STR
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        withClue("str param for normal subroutine should be changed into UWORD") {
+        withClue("str param for subroutines should be changed into UWORD") {
+            asmfunc.parameters.single().type shouldBe DataType.UWORD
             func.parameters.single().type shouldBe DataType.UWORD
             func.statements.size shouldBe 4
             val paramvar = func.statements[0] as VarDecl
@@ -100,10 +100,10 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.STR
         asmfunc.statements.single() shouldBe instanceOf<Return>()
         func.isAsmSubroutine shouldBe false
-        withClue("asmgen should have changed str to uword type") {
+        withClue("str param should have been changed to uword") {
+            asmfunc.parameters.single().type shouldBe DataType.UWORD
             func.parameters.single().type shouldBe DataType.UWORD
         }
         asmfunc.statements.last() shouldBe instanceOf<Return>()
@@ -129,49 +129,24 @@ class TestSubroutines: FunSpec({
         (call.args.single() as IdentifierReference).nameInSource.single() shouldBe "thing"
     }
 
-    test("array param not yet allowd (but should perhaps be?)") {
-        // note: the *parser* accepts this as it is valid *syntax*,
-        // however, it's not (yet) valid for the compiler
-        val text = """
-            main {
-                sub start() {
-                }
-                
-                asmsub asmfunc(ubyte[] thing @AY) {
-                }
-
-                sub func(ubyte[22] thing) {
-                }
-            }
-        """
-
-        val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors, false).assertFailure("currently array dt in signature is invalid")     // TODO should not be invalid?
-        errors.warnings.size shouldBe 0
-        errors.errors.single() shouldContain ".p8:9:17) Non-string pass-by-reference types cannot occur as a parameter type directly"
-    }
-
-    // TODO allow this?
-    xtest("arrayParameter") {
+    test("ubyte[] array parameters") {
         val text = """
             main {
                 sub start() {
                     ubyte[] array = [1,2,3]
                     
                     asmfunc(array)
-                    asmfunc([4,5,6])
                     asmfunc($2000)
-                    asmfunc(12.345)
+                    asmfunc("zzzz")
                     func(array)
-                    func([4,5,6])
                     func($2000)
-                    func(12.345)
+                    func("zzzz")
                 }
                 
                 asmsub asmfunc(ubyte[] thing @AY) {
                 }
 
-                sub func(ubyte[22] thing) {
+                sub func(ubyte[] thing) {
                 }
             }
         """
@@ -181,12 +156,31 @@ class TestSubroutines: FunSpec({
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
-        asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.ARRAY_UB
-        asmfunc.statements.isEmpty() shouldBe true
-        func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.ARRAY_UB
-        func.statements.isEmpty() shouldBe true
+        withClue("ubyte array param should have been replaced by UWORD pointer") {
+            asmfunc.parameters.single().type shouldBe DataType.UWORD
+            func.parameters.single().type shouldBe DataType.UWORD
+        }
+    }
+
+    test("not ubyte[] array parameters not allowed") {
+        val text = """
+            main {
+                sub start() {
+                }
+                
+                asmsub func1(uword[] thing @AY) {
+                }
+              
+                sub func(byte[] thing) {
+                }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "pass-by-reference type can't be used"
+        errors.errors[1] shouldContain "pass-by-reference type can't be used"
     }
 
     test("uword param and normal varindexed as array work as DirectMemoryRead") {

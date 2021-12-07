@@ -33,7 +33,9 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
             // there are some exceptions that are considered compatible, such as STR <> UWORD
             if(argDt==DataType.STR && paramDt==DataType.UWORD ||
-                    argDt==DataType.UWORD && paramDt==DataType.STR)
+                    argDt==DataType.UWORD && paramDt==DataType.STR ||
+                    argDt==DataType.UWORD && paramDt==DataType.ARRAY_UB ||
+                    argDt==DataType.STR && paramDt==DataType.ARRAY_UB)
                 return true
 
             return false

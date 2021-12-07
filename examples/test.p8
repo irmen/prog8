@@ -3,17 +3,10 @@
 
 main {
     sub start() {
+        str name = "irmen"
+        txt.print(name)
+    }
 
-        uword array = $8000
-        array[0] = 10
-        array[1] = 20
-        array[2] = 30
-
-        txt.print_ub(@($8000))
-        txt.spc()
-        txt.print_ub(@($8001))
-        txt.spc()
-        txt.print_ub(@($8002))
-        txt.spc()
+    sub func(uword[22] thing) {
     }
 }

@@ -151,10 +151,12 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
                         val requiredType = pair.first.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
-                                modifications += IAstModification.ReplaceNode(
-                                        call.args[index],
-                                        TypecastExpression(pair.second, requiredType, true, pair.second.position),
-                                        call as Node)
+                                // don't need a cast for pass-by-reference types that are assigned to UWORD
+                                if(requiredType!=DataType.UWORD || argtype !in PassByReferenceDatatypes)
+                                    modifications += IAstModification.ReplaceNode(
+                                            call.args[index],
+                                            TypecastExpression(pair.second, requiredType, true, pair.second.position),
+                                            call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
                                 // We allow STR/ARRAY values in place of UWORD parameters.
                                 // Take their address instead, UNLESS it's a str parameter in the containing subroutine

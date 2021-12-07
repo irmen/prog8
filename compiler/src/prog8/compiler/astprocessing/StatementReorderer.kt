@@ -119,23 +119,28 @@ internal class StatementReorderer(val program: Program,
             }
         }
 
+        val modifications = mutableListOf<IAstModification>()
+
         val subs = subroutine.statements.filterIsInstance<Subroutine>()
         if(subs.isNotEmpty()) {
             // all subroutines defined within this subroutine are moved to the end
-            return subs.map { IAstModification.Remove(it, subroutine) } +
-                    subs.map { IAstModification.InsertLast(it, subroutine) }
+            // NOTE: this doesn't check if this has already been done!!!
+            modifications +=
+                subs.map { IAstModification.Remove(it, subroutine) } +
+                subs.map { IAstModification.InsertLast(it, subroutine) }
         }
 
-        if(!subroutine.isAsmSubroutine) {
-            // change 'str' parameters into 'uword' (just treat it as an address)
-            val stringParams = subroutine.parameters.filter { it.type==DataType.STR }
-            val parameterChanges = stringParams.map {
-                val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
-                IAstModification.ReplaceNode(it, uwordParam, subroutine)
-            }
+        // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
+        val stringParams = subroutine.parameters.filter { it.type==DataType.STR || it.type==DataType.ARRAY_UB }
+        val parameterChanges = stringParams.map {
+            val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
+            IAstModification.ReplaceNode(it, uwordParam, subroutine)
+        }
 
+        val varsChanges = mutableListOf<IAstModification>()
+        if(!subroutine.isAsmSubroutine) {
             val stringParamsByNames = stringParams.associateBy { it.name }
-            val varsChanges =
+            varsChanges +=
                 if(stringParamsByNames.isNotEmpty()) {
                     subroutine.statements
                         .filterIsInstance<VarDecl>()
@@ -146,11 +151,9 @@ internal class StatementReorderer(val program: Program,
                         }
                 }
                 else emptyList()
-
-            return parameterChanges + varsChanges
         }
 
-        return noModifications
+        return modifications + parameterChanges + varsChanges
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
@@ -396,7 +399,8 @@ internal class StatementReorderer(val program: Program,
                 val argDt = argumentValue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
                 if(argDt in ArrayDatatypes) {
                     // pass the address of the array instead
-                    argumentValue = AddressOf(argumentValue as IdentifierReference, argumentValue.position)
+                    if(argumentValue is IdentifierReference)
+                        argumentValue = AddressOf(argumentValue, argumentValue.position)
                 }
                 Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
             }

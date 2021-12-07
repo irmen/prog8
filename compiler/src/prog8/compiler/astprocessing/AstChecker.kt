@@ -387,13 +387,13 @@ internal class AstChecker(private val program: Program,
             if(statusFlagsNoCarry.isNotEmpty())
                 err("can only use Carry as status flag parameter")
 
-        } else {
-            // Non-string Pass-by-reference datatypes can not occur as parameters to a subroutine directly
-            // Instead, their reference (address) should be passed (as an UWORD).
-            for(p in subroutine.parameters) {
-                if(p.type in PassByReferenceDatatypes && p.type != DataType.STR) {
-                    err("Non-string pass-by-reference types cannot occur as a parameter type directly. Instead, use an uword to receive their address, or access the variable from the outer scope directly.")
-                }
+        }
+
+        // Non-string and non-ubytearray Pass-by-reference datatypes can not occur as parameters to a subroutine directly
+        // Instead, their reference (address) should be passed (as an UWORD).
+        for(p in subroutine.parameters) {
+            if(p.type in PassByReferenceDatatypes && p.type !in listOf(DataType.STR, DataType.ARRAY_UB)) {
+                errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use an uword to receive the address, or access the variable from the outer scope directly.", p.position)
             }
         }
     }
