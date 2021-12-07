@@ -294,6 +294,11 @@ This way you can set the second character on the second row from the top like th
 
     top5screenrows[41] = '!'
 
+**Array indexing on a pointer variable:**
+An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
+dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
+a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
+memory at the given index. See also :ref:`pointervars_programming`
 
 Strings
 ^^^^^^^
@@ -368,6 +373,7 @@ address you specified, and setting the varible will directly modify that memory 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
 	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
 
+.. _pointervars_programming:
 
 Direct access to memory locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

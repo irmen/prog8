@@ -21,6 +21,7 @@ Future
 - improve testability further, add more tests
 - use more of Result<> and Either<> to handle errors/ nulls better
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
+- add a switch to not create the globals-initialization logic, but instead create a smaller program (that can only run once though)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?

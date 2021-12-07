@@ -361,6 +361,8 @@ should be the *memory address* where the value is located::
     &ubyte[5*40]  top5screenrows = $0400        ; works for array as well
 
 
+.. _pointervars:
+
 Direct access to memory locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Instead of defining a memory mapped name for a specific memory location, you can also
@@ -370,7 +372,7 @@ directly access the memory. Enclose a numeric expression or literal with ``@(...
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; a dynamic expression to 'calculate' the address
 
-The array indexing notation is syntactic sugar for such a direct memory access expression::
+The array indexing notation on a uword 'pointer variable' is syntactic sugar for such a direct memory access expression::
 
     pointervar[999] = 0     ; equivalent to @(pointervar+999) = 0
 
@@ -420,6 +422,9 @@ Syntax is familiar with brackets:  ``arrayvar[x]`` ::
     array[2]        ; the third byte in the array (index is 0-based)
     string[4]       ; the fifth character (=byte) in the string
 
+Note: you can also use array indexing on a 'pointer variable', which is basically an uword variable
+containing a memory address. Currently this is equivalent to directly referencing the bytes in
+memory at the given index. See :ref:`pointervars`
 
 String
 ^^^^^^
