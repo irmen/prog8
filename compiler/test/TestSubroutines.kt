@@ -325,4 +325,24 @@ class TestSubroutines: FunSpec({
         errors.errors[0] shouldContain "cannot use arguments"
         errors.errors[1] shouldContain "invalid number of arguments"
     }
+
+    test("fallthrough prevented") {
+        val text = """
+            main {
+                sub start() {
+                    func(1)
+
+                    sub func(ubyte a) {
+                        a++
+                    }
+                }
+            }
+        """
+        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val stmts = result.program.entrypoint.statements
+
+        stmts.last() shouldBe instanceOf<Subroutine>()
+        stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough
+        stmts.dropLast(2).last() shouldBe instanceOf<Jump>()
+    }
 })

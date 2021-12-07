@@ -31,6 +31,14 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         varsList.add(decl.name to decl)
     }
 
+    override fun before(block: Block, parent: Node): Iterable<IAstModification> {
+        // move all subroutines to the bottom of the block
+        val subs = block.statements.filterIsInstance<Subroutine>()
+        block.statements.removeAll(subs)
+        block.statements.addAll(subs)
+        return noModifications
+    }
+
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
             throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
@@ -116,12 +124,14 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val outerScope = subroutine.definingScope
         val outerStatements = outerScope.statements
         val subroutineStmtIdx = outerStatements.indexOf(subroutine)
-        if (subroutineStmtIdx > 0
-                && outerStatements[subroutineStmtIdx - 1] !is Jump
-                && outerStatements[subroutineStmtIdx - 1] !is Subroutine
-                && outerStatements[subroutineStmtIdx - 1] !is Return
-                && outerScope !is Block) {
-            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+        if (subroutineStmtIdx > 0) {
+            val prevStmt = outerStatements[subroutineStmtIdx-1]
+                if(outerScope !is Block
+                    && (prevStmt !is Jump || prevStmt.isGosub)
+                    && prevStmt !is Subroutine
+                    && prevStmt !is Return) {
+                mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+            }
         }
         return mods
     }
