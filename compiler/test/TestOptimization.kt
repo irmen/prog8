@@ -106,6 +106,57 @@ class TestOptimization: FunSpec({
         constvalue.parent shouldBeSameInstanceAs pfx.parent
     }
 
+    test("const folding multiple scenarios +/-") {
+        val source = """
+            main {
+                const ubyte boardHeightC = 20
+                const ubyte boardOffsetC = 3
+
+                sub start() {
+                    uword load_location = 12345
+                    cx16.r0 = load_location + 8000 + 1000 + 1000
+                    cx16.r1L = @(load_location + 8000 + 1000 + 1000)
+                    cx16.r2 = 8000 + 1000 + 1000 + load_location
+                    cx16.r3L = @(8000 + 1000 + 1000 + load_location)
+                    cx16.r4 = load_location + boardOffsetC + boardHeightC - 1
+                }
+            }"""
+        val result = compileText(C64Target, true, source, writeAssembly = false).assertSuccess()
+        // expected:
+//        uword load_location
+//        load_location = 12345
+//        cx16.r0 = load_location
+//        cx16.r0 += 10000
+//        cx16.r1L = @((load_location+10000))
+//        cx16.r2 = load_location
+//        cx16.r2 += 10000
+//        cx16.r3L = @((load_location+10000))
+//        cx16.r4 = load_location
+//        cx16.r4 += 22
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 10
+
+        val addR0value = (stmts[3] as Assignment).value
+        val binexpr0 = addR0value as BinaryExpression
+        binexpr0.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+        val valueR1L = (stmts[4] as Assignment).value
+        val addrExpr1 = ((valueR1L as DirectMemoryRead).addressExpression as BinaryExpression)
+        addrExpr1.left shouldBe IdentifierReference(listOf("load_location"),  Position.DUMMY)
+        addrExpr1.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+
+        val addR2value = (stmts[6] as Assignment).value
+        var binexpr2 = addR2value as BinaryExpression
+        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+        val valueR3L = (stmts[7] as Assignment).value
+        val addrExpr3 = ((valueR3L as DirectMemoryRead).addressExpression as BinaryExpression)
+        addrExpr3.left shouldBe IdentifierReference(listOf("load_location"),  Position.DUMMY)
+        addrExpr3.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+
+        val addR4value = (stmts[9] as Assignment).value
+        val binexpr4 = addR4value as BinaryExpression
+        binexpr4.right shouldBe NumericLiteralValue(DataType.UWORD, 22.0, Position.DUMMY)
+    }
+
     test("constantfolded and silently typecasted for initializervalues") {
         val sourcecode = """
             main {

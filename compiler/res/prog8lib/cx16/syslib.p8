@@ -312,7 +312,8 @@ romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
-; TODO specify the correct clobbers for all functions below, we now assume all 3 regs are clobbered
+
+; It's not documented what registers are clobbered, so we assume the worst for all following kernal routines...:
 
 ; high level graphics & fonts
 romsub $ff20 = GRAPH_init(uword vectors @R0)  clobbers(A,X,Y)

@@ -198,6 +198,22 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         val leftBinExpr = expr.left as? BinaryExpression
         val rightBinExpr = expr.right as? BinaryExpression
         if(expr.operator=="+" || expr.operator=="-") {
+
+            if(leftBinExpr!=null && rightconst!=null) {
+                if(leftBinExpr.operator=="+") {
+                    val c2 = leftBinExpr.right.constValue(program)
+                    if(c2!=null) {
+                        // (X + C2) +/- rightConst  -->  X + (C2 +/- rightConst)
+                        // TODO SAME FOR (X - C1) +/- C2   -->  X - (C1+C2)  mind the operator flip?
+                        // TODO SAME FOR (X * C1) * C2   -->  X * (C1*C2)
+                        // TODO SAME FOR (X / C1) / C2   -->  X / (C1*C2)
+                        val constants = BinaryExpression(c2, expr.operator, rightconst, c2.position)
+                        val newExpr = BinaryExpression(leftBinExpr.left, "+", constants, expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                    }
+                }
+            }
+
             if(leftBinExpr!=null && rightBinExpr!=null) {
                 val c1 = leftBinExpr.right.constValue(program)
                 val c2 = rightBinExpr.right.constValue(program)
@@ -378,7 +394,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     {
         // NOTE: THIS IS ONLY VALID ON FLOATING POINT CONSTANTS
 
-        // todo: this implements only a small set of possible reorderings at this time
+        // todo: this implements only a small set of possible reorderings at this time, we could think of more
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
 

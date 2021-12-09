@@ -235,7 +235,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     else -> {
-                        // TODO OTHER EVALUATION HERE, don't use the estack to transfer the address to read/write from
+                        // TODO use some other evaluation here; don't use the estack to transfer the address to read/write from
                         asmgen.assignExpressionTo(memory.addressExpression, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, memory.definingSubroutine))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when {
@@ -2081,7 +2081,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             sta  ${target.asmVarname}+1
                         """)
                     }
-                    TargetStorageKind.STACK -> TODO("no asm gen for stack float negate")
+                    TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
                     else -> throw AssemblyError("weird target kind for inplace negate float ${target.kind}")
                 }
             }

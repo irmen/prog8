@@ -71,7 +71,7 @@ fun Program.splitBinaryExpressions(options: CompilationOptions, compTarget: ICom
 
 fun getTempVarName(dt: InferredTypes.InferredType): List<String> {
     return when {
-        // TODO assume (hope) cx16.r9 isn't used for anything else...
+        // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
         dt.istype(DataType.UBYTE) -> listOf("cx16", "r9L")
         dt.istype(DataType.BYTE) -> listOf("cx16", "r9sL")
         dt.istype(DataType.UWORD) -> listOf("cx16", "r9")

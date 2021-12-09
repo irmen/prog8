@@ -3,6 +3,8 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+more const-foldings
+check correctness of inplaceModification_byte_value_to_pointer()
 ...
 
 
@@ -41,6 +43,8 @@ More code optimization ideas
   by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
   but the result should not produce larger code ofcourse!
 - while-expression should now also get the simplifyConditionalExpression() treatment
+- byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
+   for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
