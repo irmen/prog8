@@ -15,7 +15,9 @@ c64 {
 
         &ubyte  COLOR           = $0286     ; cursor color
         &ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)
-        &uword  CINV            = $0314     ; IRQ vector
+        &uword  CINV            = $0314     ; IRQ vector (in ram)
+        &uword  CBINV           = $0316     ; BRK vector (in ram)
+        &uword  NMINV           = $0318     ; NMI vector (in ram)
         &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in

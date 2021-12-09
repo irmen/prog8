@@ -90,6 +90,8 @@ cx16 {
 
 ; irq and hardware vectors:
     &uword  CINV            = $0314     ; IRQ vector (in ram)
+    &uword  CBINV           = $0316     ; BRK vector (in ram)
+    &uword  NMINV           = $0318     ; NMI vector (in ram)
     &uword  NMI_VEC         = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
     &uword  RESET_VEC       = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
     &uword  IRQ_VEC         = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
