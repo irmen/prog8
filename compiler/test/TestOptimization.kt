@@ -123,7 +123,6 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target, true, source, writeAssembly = false).assertSuccess()
-        printProgram(result.program)
         // expected:
 //        uword load_location
 //        load_location = 12345
@@ -162,6 +161,45 @@ class TestOptimization: FunSpec({
         val binexpr7 = subR7value as BinaryExpression
         binexpr7.operator shouldBe "+"
         binexpr7.right shouldBe NumericLiteralValue(DataType.UWORD, 99.0, Position.DUMMY)
+    }
+
+    test("const folding multiple scenarios * and /") {
+        val source = """
+            main {
+                sub start() {
+                    ; TODO other variants of this const folding
+                    word llw = 300
+                    cx16.r0s = 9 * 2 * 10 * llw
+                    cx16.r1s = llw * 9 * 2 * 10
+                    cx16.r2s = llw / 20 / 3
+                }
+            }"""
+        val result = compileText(C64Target, true, source, writeAssembly = false).assertSuccess()
+        printProgram(result.program)
+        // expected:
+//        word llw
+//        llw = 300
+//        cx16.r0s = llw
+//        cx16.r0s *= 180
+//        cx16.r1s = llw
+//        cx16.r1s *= 180
+//        cx16.r2s = llw
+//        cx16.r2s /= 100
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 8
+
+        val mulR0Value = (stmts[3] as Assignment).value
+        val binexpr0 = mulR0Value as BinaryExpression
+        binexpr0.operator shouldBe "*"
+        binexpr0.right shouldBe NumericLiteralValue(DataType.UWORD, 180.0, Position.DUMMY)
+        val mulR1Value = (stmts[5] as Assignment).value
+        val binexpr1 = mulR1Value as BinaryExpression
+        binexpr1.operator shouldBe "*"
+        binexpr1.right shouldBe NumericLiteralValue(DataType.UWORD, 180.0, Position.DUMMY)
+        val divR2Value = (stmts[7] as Assignment).value
+        val binexpr2 = divR2Value as BinaryExpression
+        binexpr2.operator shouldBe "/"
+        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 60.0, Position.DUMMY)
     }
 
     test("constantfolded and silently typecasted for initializervalues") {

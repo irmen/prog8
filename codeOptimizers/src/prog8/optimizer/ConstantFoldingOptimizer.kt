@@ -197,9 +197,9 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
 
         val leftBinExpr = expr.left as? BinaryExpression
         val rightBinExpr = expr.right as? BinaryExpression
-        if(expr.operator=="+" || expr.operator=="-") {
 
-            if(leftBinExpr!=null && rightconst!=null) {
+        if(leftBinExpr!=null && rightconst!=null) {
+            if(expr.operator=="+" || expr.operator=="-") {
                 if(leftBinExpr.operator in listOf("+", "-")) {
                     val c2 = leftBinExpr.right.constValue(program)
                     if(c2!=null) {
@@ -211,10 +211,30 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
                 }
-                // TODO SAME FOR (X * C1) * C2   -->  X * (C1*C2)
-                // TODO SAME FOR (X / C1) / C2   -->  X / (C1*C2)
             }
+            else if(expr.operator=="*" && leftBinExpr.operator=="*") {
+                val c2 = leftBinExpr.right.constValue(program)
+                if(c2!=null) {
+                    // (X * C1) * C2   -->  X * (C1*C2)
+                    // TODO  (X * C1) / C2   -->  X * (C1/C2)
+                    val constants = BinaryExpression(c2, "*", rightconst, c2.position)
+                    val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                }
+            }
+            else if(expr.operator=="/" && leftBinExpr.operator=="/") {
+                val c2 = leftBinExpr.right.constValue(program)
+                if(c2!=null) {
+                    // (X / C1) / C2   -->  X / (C1*C2)
+                    // TODO  (X / C1) * C2   -->  X * (C2/C1)
+                    val constants = BinaryExpression(c2, "*", rightconst, c2.position)
+                    val newExpr = BinaryExpression(leftBinExpr.left, "/", constants, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                }
+            }
+        }
 
+        if(expr.operator=="+" || expr.operator=="-") {
             if(leftBinExpr!=null && rightBinExpr!=null) {
                 val c1 = leftBinExpr.right.constValue(program)
                 val c2 = rightBinExpr.right.constValue(program)
@@ -246,7 +266,6 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                 }
             }
         }
-
 
 
         return modifications
