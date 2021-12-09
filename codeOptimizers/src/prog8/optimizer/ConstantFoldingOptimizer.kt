@@ -200,18 +200,19 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         if(expr.operator=="+" || expr.operator=="-") {
 
             if(leftBinExpr!=null && rightconst!=null) {
-                if(leftBinExpr.operator=="+") {
+                if(leftBinExpr.operator in listOf("+", "-")) {
                     val c2 = leftBinExpr.right.constValue(program)
                     if(c2!=null) {
                         // (X + C2) +/- rightConst  -->  X + (C2 +/- rightConst)
-                        // TODO SAME FOR (X - C1) +/- C2   -->  X - (C1+C2)  mind the operator flip?
-                        // TODO SAME FOR (X * C1) * C2   -->  X * (C1*C2)
-                        // TODO SAME FOR (X / C1) / C2   -->  X / (C1*C2)
-                        val constants = BinaryExpression(c2, expr.operator, rightconst, c2.position)
-                        val newExpr = BinaryExpression(leftBinExpr.left, "+", constants, expr.position)
+                        // (X - C2) +/- rightConst  -->  X - (C2 +/- rightConst)   mind the flipped right operator
+                        val operator = if(leftBinExpr.operator=="+") expr.operator else if(expr.operator=="-") "+" else "-"
+                        val constants = BinaryExpression(c2, operator, rightconst, c2.position)
+                        val newExpr = BinaryExpression(leftBinExpr.left, leftBinExpr.operator, constants, expr.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
                 }
+                // TODO SAME FOR (X * C1) * C2   -->  X * (C1*C2)
+                // TODO SAME FOR (X / C1) / C2   -->  X / (C1*C2)
             }
 
             if(leftBinExpr!=null && rightBinExpr!=null) {

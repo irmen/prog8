@@ -114,47 +114,54 @@ class TestOptimization: FunSpec({
 
                 sub start() {
                     uword load_location = 12345
+                    word llw = 12345
                     cx16.r0 = load_location + 8000 + 1000 + 1000
-                    cx16.r1L = @(load_location + 8000 + 1000 + 1000)
                     cx16.r2 = 8000 + 1000 + 1000 + load_location
-                    cx16.r3L = @(8000 + 1000 + 1000 + load_location)
                     cx16.r4 = load_location + boardOffsetC + boardHeightC - 1
+                    cx16.r5s = llw - 900 - 999
+                    cx16.r7s = llw - 900 + 999
                 }
             }"""
         val result = compileText(C64Target, true, source, writeAssembly = false).assertSuccess()
+        printProgram(result.program)
         // expected:
 //        uword load_location
 //        load_location = 12345
+//        word llw
+//        llw = 12345
 //        cx16.r0 = load_location
 //        cx16.r0 += 10000
-//        cx16.r1L = @((load_location+10000))
 //        cx16.r2 = load_location
 //        cx16.r2 += 10000
-//        cx16.r3L = @((load_location+10000))
 //        cx16.r4 = load_location
 //        cx16.r4 += 22
+//        cx16.r5s = llw
+//        cx16.r5s -= 1899
+//        cx16.r7s = llw
+//        cx16.r7s += 99
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 10
+        stmts.size shouldBe 14
 
-        val addR0value = (stmts[3] as Assignment).value
+        val addR0value = (stmts[5] as Assignment).value
         val binexpr0 = addR0value as BinaryExpression
+        binexpr0.operator shouldBe "+"
         binexpr0.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
-        val valueR1L = (stmts[4] as Assignment).value
-        val addrExpr1 = ((valueR1L as DirectMemoryRead).addressExpression as BinaryExpression)
-        addrExpr1.left shouldBe IdentifierReference(listOf("load_location"),  Position.DUMMY)
-        addrExpr1.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
-
-        val addR2value = (stmts[6] as Assignment).value
-        var binexpr2 = addR2value as BinaryExpression
+        val addR2value = (stmts[7] as Assignment).value
+        val binexpr2 = addR2value as BinaryExpression
+        binexpr2.operator shouldBe "+"
         binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
-        val valueR3L = (stmts[7] as Assignment).value
-        val addrExpr3 = ((valueR3L as DirectMemoryRead).addressExpression as BinaryExpression)
-        addrExpr3.left shouldBe IdentifierReference(listOf("load_location"),  Position.DUMMY)
-        addrExpr3.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
-
         val addR4value = (stmts[9] as Assignment).value
         val binexpr4 = addR4value as BinaryExpression
+        binexpr4.operator shouldBe "+"
         binexpr4.right shouldBe NumericLiteralValue(DataType.UWORD, 22.0, Position.DUMMY)
+        val subR5value = (stmts[11] as Assignment).value
+        val binexpr5 = subR5value as BinaryExpression
+        binexpr5.operator shouldBe "-"
+        binexpr5.right shouldBe NumericLiteralValue(DataType.UWORD, 1899.0, Position.DUMMY)
+        val subR7value = (stmts[13] as Assignment).value
+        val binexpr7 = subR7value as BinaryExpression
+        binexpr7.operator shouldBe "+"
+        binexpr7.right shouldBe NumericLiteralValue(DataType.UWORD, 99.0, Position.DUMMY)
     }
 
     test("constantfolded and silently typecasted for initializervalues") {
@@ -169,7 +176,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, true, sourcecode).assertSuccess()
+        val result = compileText(C64Target, false, sourcecode).assertSuccess()
         val mainsub = result.program.entrypoint
         mainsub.statements.size shouldBe 10
         val declTest = mainsub.statements[0] as VarDecl
