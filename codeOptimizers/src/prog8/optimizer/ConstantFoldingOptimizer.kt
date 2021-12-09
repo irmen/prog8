@@ -212,21 +212,27 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                     }
                 }
             }
-            else if(expr.operator=="*" && leftBinExpr.operator=="*") {
+            else if(expr.operator=="*") {
                 val c2 = leftBinExpr.right.constValue(program)
                 if(c2!=null) {
-                    // (X * C1) * C2   -->  X * (C1*C2)
-                    // TODO  (X * C1) / C2   -->  X * (C1/C2)
-                    val constants = BinaryExpression(c2, "*", rightconst, c2.position)
-                    val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
-                    return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                    if(leftBinExpr.operator=="*") {
+                        // (X * C2) * rightConst  -->  X * (rightConst*C2)
+                        val constants = BinaryExpression(rightconst, "*", c2, c2.position)
+                        val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                    } else if (leftBinExpr.operator=="/") {
+                        //  (X / C2) * rightConst   -->  X * (rightConst/C2)
+                        val constants = BinaryExpression(rightconst, "/", c2, c2.position)
+                        val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                    }
                 }
             }
-            else if(expr.operator=="/" && leftBinExpr.operator=="/") {
+            else if(expr.operator=="/") {
                 val c2 = leftBinExpr.right.constValue(program)
-                if(c2!=null) {
+                if(c2!=null && leftBinExpr.operator=="/") {
                     // (X / C1) / C2   -->  X / (C1*C2)
-                    // TODO  (X / C1) * C2   -->  X * (C2/C1)
+                    // NOTE: do not optimize  (X * C1) / C2   -->  X * (C1/C2)  because this causes precision loss on integers
                     val constants = BinaryExpression(c2, "*", rightconst, c2.position)
                     val newExpr = BinaryExpression(leftBinExpr.left, "/", constants, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))

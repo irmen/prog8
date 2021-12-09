@@ -167,11 +167,12 @@ class TestOptimization: FunSpec({
         val source = """
             main {
                 sub start() {
-                    ; TODO other variants of this const folding
                     word llw = 300
                     cx16.r0s = 9 * 2 * 10 * llw
                     cx16.r1s = llw * 9 * 2 * 10
-                    cx16.r2s = llw / 20 / 3
+                    cx16.r2s = llw / 30 / 3
+                    cx16.r3s = llw / 2 * 10
+                    cx16.r4s = llw * 90 / 5     ; not optimized because of loss of integer division precision
                 }
             }"""
         val result = compileText(C64Target, true, source, writeAssembly = false).assertSuccess()
@@ -184,9 +185,14 @@ class TestOptimization: FunSpec({
 //        cx16.r1s = llw
 //        cx16.r1s *= 180
 //        cx16.r2s = llw
-//        cx16.r2s /= 100
+//        cx16.r2s /= 90
+//        cx16.r3s = llw
+//        cx16.r3s *= 5
+//        cx16.r4s = llw
+//        cx16.r4s *= 90
+//        cx16.r4s /= 5
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 8
+        stmts.size shouldBe 13
 
         val mulR0Value = (stmts[3] as Assignment).value
         val binexpr0 = mulR0Value as BinaryExpression
@@ -199,7 +205,19 @@ class TestOptimization: FunSpec({
         val divR2Value = (stmts[7] as Assignment).value
         val binexpr2 = divR2Value as BinaryExpression
         binexpr2.operator shouldBe "/"
-        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 60.0, Position.DUMMY)
+        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 90.0, Position.DUMMY)
+        val mulR3Value = (stmts[9] as Assignment).value
+        val binexpr3 = mulR3Value as BinaryExpression
+        binexpr3.operator shouldBe "*"
+        binexpr3.right shouldBe NumericLiteralValue(DataType.UWORD, 5.0, Position.DUMMY)
+        val mulR4Value = (stmts[11] as Assignment).value
+        val binexpr4 = mulR4Value as BinaryExpression
+        binexpr4.operator shouldBe "*"
+        binexpr4.right shouldBe NumericLiteralValue(DataType.UWORD, 90.0, Position.DUMMY)
+        val divR4Value = (stmts[12] as Assignment).value
+        val binexpr4b = divR4Value as BinaryExpression
+        binexpr4b.operator shouldBe "/"
+        binexpr4b.right shouldBe NumericLiteralValue(DataType.UWORD, 5.0, Position.DUMMY)
     }
 
     test("constantfolded and silently typecasted for initializervalues") {

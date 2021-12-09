@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-more const-foldings
 check correctness of inplaceModification_byte_value_to_pointer()
 ...
 
