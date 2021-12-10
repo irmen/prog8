@@ -3,11 +3,27 @@
 
 main {
     sub start() {
-        word llw = 300
-        cx16.r0s = 9 * 2 * 10 * llw
-        cx16.r1s = llw * 9 * 2 * 10
-        cx16.r3s = llw / 30 / 3
-        cx16.r4s = llw / 2 * 10
-        cx16.r5s = llw * 90 / 5     ; not optimized because of loss of integer division precision
+        ubyte @zp xx
+        for xx in 0 to 10 {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+
+        for cx16.r0L in 0 to 10 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+
+        for main.derp.xx in 0 to 10 {
+            txt.print_ub(main.derp.xx)
+            txt.spc()
+        }
+        txt.nl()
+    }
+
+    sub derp() {
+        ubyte xx
     }
 }

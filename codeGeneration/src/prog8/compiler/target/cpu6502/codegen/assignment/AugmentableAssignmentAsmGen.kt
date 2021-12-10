@@ -364,6 +364,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     private fun inplaceModification_byte_value_to_pointer(pointervar: IdentifierReference, operator: String, value: Expression) {
         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
@@ -394,8 +395,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
-        // TODO THIS IS WRONG:????
-        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
         asmgen.storeAIntoZpPointerVar(sourceName)
     }
 
