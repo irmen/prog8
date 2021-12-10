@@ -20,10 +20,14 @@ main {
             txt.print_ub(main.derp.xx)
             txt.spc()
         }
+
+        derp()
         txt.nl()
     }
 
     sub derp() {
         ubyte xx
+
+        xx++
     }
 }

@@ -545,7 +545,7 @@ private fun Prog8ANTLRParser.BranchconditionContext.toAst() = BranchCondition.va
 )
 
 private fun Prog8ANTLRParser.ForloopContext.toAst(): ForLoop {
-    val loopvar = identifier().toAst()
+    val loopvar = scoped_identifier().toAst()
     val iterable = expression()!!.toAst()
     val scope =
             if(statement()!=null)

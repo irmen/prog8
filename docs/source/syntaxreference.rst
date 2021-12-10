@@ -643,8 +643,7 @@ Loops
 for loop
 ^^^^^^^^
 
-The loop variable must be a byte or word variable,
-and must be defined first in the local scope of the for loop.
+The loop variable must be a byte or word variable, and it must be defined separately first.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
 

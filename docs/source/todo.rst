@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.5)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- allow cx16.rX as loop variable in forloops (now requires unqualified identifiername)
 ...
 
 
