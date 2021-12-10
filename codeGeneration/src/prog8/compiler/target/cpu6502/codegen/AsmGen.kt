@@ -79,6 +79,10 @@ class AsmGen(private val program: Program,
         footer()
 
         if(options.optimize) {
+            val separateLines = assemblyLines.flatMap { it.split('\n') }
+            assemblyLines.clear()
+            assemblyLines.addAll(separateLines)
+            require(assemblyLines.all { !it.contains('\n') })
             var optimizationsDone = 1
             while (optimizationsDone > 0) {
                 optimizationsDone = optimizeAssembly(assemblyLines, options.compTarget.machine, program)
