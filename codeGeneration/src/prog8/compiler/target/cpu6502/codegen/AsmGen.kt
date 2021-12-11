@@ -1340,9 +1340,7 @@ $repeatLabel    lda  $counterVar
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
         val jump = stmt.truepart.statements.first() as? Jump
-        if(jump!=null) {
-            if(jump.isGosub)
-                throw FatalAstException("didn't expect GoSub here")
+        if(jump!=null && !jump.isGosub) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")

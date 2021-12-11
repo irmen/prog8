@@ -279,7 +279,19 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
-        if(!jump.isGosub) {
+        if(jump.isGosub) {
+            // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
+            val subroutineParams = jump.identifier?.targetSubroutine(program)?.parameters
+            if(subroutineParams!=null && subroutineParams.isEmpty()) {
+                val returnstmt = jump.nextSibling() as? Return
+                if(returnstmt!=null && returnstmt.value==null) {
+                    return listOf(
+                        IAstModification.Remove(returnstmt, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(jump, Jump(jump.address, jump.identifier, jump.generatedLabel, jump.position), parent)
+                    )
+                }
+            }
+        } else {
             // if the jump is to the next statement, remove the jump
             val scope = jump.parent as IStatementContainer
             val label = jump.identifier?.targetStatement(program)
