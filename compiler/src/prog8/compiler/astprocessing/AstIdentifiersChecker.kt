@@ -154,7 +154,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 }
             }
             null -> {}
-            else -> throw FatalAstException("weird call target")
+            else -> errors.err("cannot call this as a subroutine or function", call.target.position)
         }
     }
 }
