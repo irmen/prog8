@@ -2036,7 +2036,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.A)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     }
                     else
                         jmp(jumpIfFalseLabel)
@@ -2044,7 +2044,7 @@ $label              nop""")
                 else if (left is DirectMemoryRead) {
                     return if(rightConstVal.number.toInt()!=0) {
                         translateDirectMemReadExpressionToRegAorStack(left, false)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     }
                     else
                         jmp(jumpIfFalseLabel)
@@ -2116,7 +2116,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                     else
                         jmp(jumpIfFalseLabel)
@@ -2153,7 +2153,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                     else {
                         val name = asmVariableName(left)
@@ -2189,14 +2189,14 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     assignExpressionToRegister(left, RegisterOrPair.A)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  beq  $jumpIfFalseLabel")
                 }
@@ -2270,7 +2270,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                     else {
                         val name = asmVariableName(left)
@@ -2354,14 +2354,14 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     assignExpressionToRegister(left, RegisterOrPair.A)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  bne  $jumpIfFalseLabel")
                 }
@@ -2437,7 +2437,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                     else {
                         val name = asmVariableName(left)
@@ -2521,14 +2521,14 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.A)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     }
                     return
                 }
                 else if (left is DirectMemoryRead) {
                     if(rightConstVal.number.toInt()!=0) {
                         translateDirectMemReadExpressionToRegAorStack(left, false)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     }
                     return
                 }
@@ -2598,7 +2598,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                 }
             }
@@ -2633,7 +2633,7 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     return if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
-                        code("#>${rightConstVal.number}", "#<${rightConstVal.number}")
+                        code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
                     }
                     else {
                         val name = asmVariableName(left)
@@ -2665,14 +2665,14 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     assignExpressionToRegister(left, RegisterOrPair.A)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  bne  $jumpIfFalseLabel")
                 }
@@ -2702,14 +2702,14 @@ $label              nop""")
                 if (left is IdentifierReference) {
                     assignExpressionToRegister(left, RegisterOrPair.A)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  beq  $jumpIfFalseLabel")
                 }
                 else if (left is DirectMemoryRead) {
                     translateDirectMemReadExpressionToRegAorStack(left, false)
                     return if(rightConstVal.number.toInt()!=0)
-                        code("#${rightConstVal.number}")
+                        code("#${rightConstVal.number.toInt()}")
                     else
                         out("  beq  $jumpIfFalseLabel")
                 }
@@ -2733,20 +2733,23 @@ $label              nop""")
             } else {
                 if (left is IdentifierReference) {
                     val name = asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
+                    if(rightConstVal.number!=0.0) {
+                        val rightNum = rightConstVal.number.toHex()
                         out("""
                         lda  $name
-                        cmp  #<${rightConstVal.number}
+                        cmp  #<$rightNum
                         bne  $jumpIfFalseLabel
                         lda  $name+1
-                        cmp  #>${rightConstVal.number}
+                        cmp  #>$rightNum
                         bne  $jumpIfFalseLabel""")
-                    else
+                    }
+                    else {
                         out("""
                         lda  $name
                         bne  $jumpIfFalseLabel
                         lda  $name+1
                         bne  $jumpIfFalseLabel""")
+                    }
                     return
                 }
             }
@@ -2805,15 +2808,17 @@ $label              nop""")
             } else {
                 if (left is IdentifierReference) {
                     val name = asmVariableName(left)
-                    if(rightConstVal.number.toInt()!=0)
+                    if(rightConstVal.number.toInt()!=0) {
+                        val number = rightConstVal.number.toHex()
                         out("""
                         lda  $name
-                        cmp  #<${rightConstVal.number}
+                        cmp  #<$number
                         bne  +
                         lda  $name+1
-                        cmp  #>${rightConstVal.number}
+                        cmp  #>$number
                         beq  $jumpIfFalseLabel
 +""")
+                    }
                     else
                         out("""
                         lda  $name

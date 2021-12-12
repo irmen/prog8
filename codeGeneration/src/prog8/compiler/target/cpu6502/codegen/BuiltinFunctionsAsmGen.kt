@@ -358,7 +358,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     }
                     is NumericLiteralValue -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
-                        asmgen.out("  cmp  #${arg2.number}")
+                        asmgen.out("  cmp  #${arg2.number.toInt()}")
                     }
                     is DirectMemoryRead -> {
                         if(arg2.addressExpression is NumericLiteralValue) {
@@ -393,9 +393,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     is NumericLiteralValue -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                         asmgen.out("""
-                            cpy  #>${arg2.number}
+                            cpy  #>${arg2.number.toInt()}
                             bne  +
-                            cmp  #<${arg2.number}
+                            cmp  #<${arg2.number.toInt()}
 +""")
                     }
                     else -> {

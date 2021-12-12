@@ -330,6 +330,8 @@ as newlines, quote characters themselves, and so on. The ones used most often ar
 ``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
 read the syntax reference on strings.
 
+You can use the automatic string concatenation using ``+`` to split long strings over separate
+lines, but remember that the length of the total string still cannot exceed 255 characaters.
 
 .. hint::
     Strings/arrays and uwords (=memory address) can often be interchanged.
