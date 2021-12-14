@@ -438,9 +438,7 @@ io_error:
     ; If you don't give an address_override, the location in memory is taken from the 2-byte file header.
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
-    ; Returns the number of bytes loaded if address_override was given, otherwise the end address.
-    ;  TODO this is stupid - why not always return the number of bytes loaded and let the caller figure out the rest
-    ;
+    ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
@@ -448,7 +446,7 @@ io_error:
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
-        uword end_of_load = 0
+        cx16.r1 = 0
         if address_override
             secondary = 0
         c64.SETLFS(1, drivenumber, secondary)
@@ -459,24 +457,21 @@ io_error:
             ldy  address_override+1
             jsr  c64.LOAD
             bcs  +
-            stx  end_of_load
-            sty  end_of_load+1
+            stx  cx16.r1
+            sty  cx16.r1+1
 +           ldx  P8ZP_SCRATCH_REG
         }}
 
         c64.CLRCHN()
         c64.CLOSE(1)
-
-        if end_of_load
-            return end_of_load - address_override    ; not correct when the file spans multiple RAM banks
-
-        return 0
+        return cx16.r1
     }
 
     ; Use kernal LOAD routine to load the given file in memory.
     ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
     ; This is different from Basic's LOAD instruction which always skips the first two bytes.
-    ; The load address is mandatory. Returns the number of bytes loaded.
+    ; The load address is mandatory.
+    ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
@@ -484,15 +479,12 @@ io_error:
     sub load_raw(ubyte drivenumber, uword filenameptr, uword address) -> uword {
         if not f_open(drivenumber, filenameptr)
             return 0
-        uword size = f_read(address, 2)
+        cx16.r1 = f_read(address, 2)
         f_close()
-        if size!=2
+        if cx16.r1!=2
             return 0
         address += 2
-        size = load(drivenumber, filenameptr, address)
-        if size
-            return size+2
-        return 0
+        return load(drivenumber, filenameptr, address)
     }
 
     sub delete(ubyte drivenumber, uword filenameptr) {

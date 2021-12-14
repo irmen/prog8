@@ -3,8 +3,6 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fix return value of diskio.load() (see commment) and possibly other routines?
-
 optimization in call convention:
 non-asm subroutines with just a single byte or word parameter:
     pass the parameter via A or A/Y registers.
