@@ -9,7 +9,7 @@ import prog8.ast.walk.IAstVisitor
 import java.util.*
 import kotlin.math.round
 
-
+// TODO capitalize for consistency
 val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
 val comparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
 val augmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")

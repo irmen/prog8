@@ -3,8 +3,6 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fix compiler crash when trying to concatenate string var and string literal.
-
 fix return value of diskio.load() (see commment) and possibly other routines?
 
 optimization in call convention:

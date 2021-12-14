@@ -313,10 +313,12 @@ platform (if defined). For the C-64, that is SCREEN CODES (also known as POKE co
 This @-prefix can also be used for character byte values.
 
 
-You can concatenate two string literals using '+' (not very useful though) or repeat
-a string literal a given number of times using '*'. You can also assign a new string
-value to another string. No bounds check is done so be sure the destination string is
-large enough to contain the new value (it is overwritten in memory)::
+You can concatenate two string literals using '+', which can be useful to
+split long strings over separate lines. But remember that the length
+of the total string still cannot exceed 255 characaters.
+A string literal can also be repeated a given number of times using '*'.
+And a new string value can be assigned to another string, but no bounds check is done
+so be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
 
     str string1 = "first part" + "second part"
     str string2 = "hello!" * 10
@@ -329,9 +331,6 @@ There are several 'escape sequences' to help you put special characters into str
 as newlines, quote characters themselves, and so on. The ones used most often are
 ``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
 read the syntax reference on strings.
-
-You can use the automatic string concatenation using ``+`` to split long strings over separate
-lines, but remember that the length of the total string still cannot exceed 255 characaters.
 
 .. hint::
     Strings/arrays and uwords (=memory address) can often be interchanged.

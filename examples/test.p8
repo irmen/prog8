@@ -3,10 +3,10 @@
 
 main {
     sub start() {
-        ubyte @shared yy
-
-        if yy&64 {
-            yy++
-        }
+        str derp = "derp" * 4
+        derp = derp / "zzz"
+        derp = derp - "zzz"
+        derp = derp + "zzz"
+        txt.print(&derp+2)
     }
 }
