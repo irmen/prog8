@@ -3,6 +3,21 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fix compiler crash when trying to concatenate string var and string literal.
+
+fix return value of diskio.load() (see commment) and possibly other routines?
+
+optimization in call convention:
+non-asm subroutines with just a single byte or word parameter:
+    pass the parameter via A or A/Y registers.
+    add code to set the parameter variable in the start of the subroutine itself,
+    rather than requiring the caller to set it there. This is not faster but saves a lot of bytes of code.
+
+rewrite multiple choice if into when:
+    if X==1 or X==2 or X==3 { truepart } else { falsepart }
+    ->  when X  { 1,2,3->truepart   else->falsepart }
+    same with assignment if the lhs is simple var or memaddr
+
 ...
 
 

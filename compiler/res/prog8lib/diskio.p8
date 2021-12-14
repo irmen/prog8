@@ -438,7 +438,9 @@ io_error:
     ; If you don't give an address_override, the location in memory is taken from the 2-byte file header.
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
-    ; Returns the number of bytes loaded.
+    ; Returns the number of bytes loaded if address_override was given, otherwise the end address.
+    ;  TODO this is stupid - why not always return the number of bytes loaded and let the caller figure out the rest
+    ;
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
