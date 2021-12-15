@@ -55,7 +55,6 @@ class TestModuleImporter: FunSpec({
                     error1.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                 }
                 program.modules.size shouldBe 1
-
                 val error2 = importer.importModule(srcPathAbs).getErrorOrElse { fail("should have import error") }
                 withClue(".file should be normalized") {
                     "${error2.file}" shouldBe "${error2.file.normalize()}"

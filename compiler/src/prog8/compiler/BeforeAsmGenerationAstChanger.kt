@@ -240,9 +240,16 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
 
         val separateLeftExpr = !expr.left.isSimple && expr.left !is IFunctionCall
         val separateRightExpr = !expr.right.isSimple && expr.right !is IFunctionCall
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
+
+        if(!leftDt.isInteger || !rightDt.isInteger) {
+            // we can't reasonably simplify non-integer expressions
+            return CondExprSimplificationResult(null, null, null, null)
+        }
 
         if(separateLeftExpr) {
-            val name = getTempVarName(expr.left.inferType(program))
+            val name = getTempVarName(leftDt)
             leftOperandReplacement = IdentifierReference(name, expr.position)
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
@@ -251,12 +258,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             )
         }
         if(separateRightExpr) {
-            val dt = expr.right.inferType(program)
             val name = when {
-                dt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")
-                dt.istype(DataType.UWORD) -> listOf("prog8_lib","retval_interm_uw")
-                dt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b2")
-                dt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w2")
+                rightDt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")
+                rightDt.istype(DataType.UWORD) -> listOf("prog8_lib","retval_interm_uw")
+                rightDt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b2")
+                rightDt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w2")
                 else -> throw AssemblyError("invalid dt")
             }
             rightOperandReplacement = IdentifierReference(name, expr.position)

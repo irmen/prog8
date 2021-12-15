@@ -3,7 +3,7 @@ package prog8tests.helpers
 import prog8.ast.base.Position
 import prog8.compilerinterface.IErrorReporter
 
-internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true): IErrorReporter {
+internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false): IErrorReporter {
 
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()
@@ -23,6 +23,12 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
         errors.forEach { println("UNITTEST COMPILATION REPORT: ERROR: $it") }
         if(throwExceptionAtReportIfErrors)
             finalizeNumErrors(errors.size, warnings.size)
+        if(!keepMessagesAfterReporting) {
+            clear()
+        }
+    }
+
+    fun clear() {
         errors.clear()
         warnings.clear()
     }
