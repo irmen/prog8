@@ -310,7 +310,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         val binExpr = assignment.value as? BinaryExpression
         if(binExpr!=null && binExpr.left isSameAs assignment.target
                 && binExpr.operator !in arrayOf("and", "or", "xor")
-                && binExpr.operator !in comparisonOperators) {
+                && binExpr.operator !in ComparisonOperators) {
             // we only support the inplace assignments of the form A = A <operator> <value>
             assignment.target.accept(this)
             output(" ${binExpr.operator}= ")

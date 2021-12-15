@@ -8,7 +8,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.TypecastExpression
-import prog8.ast.expressions.augmentAssignmentOperators
+import prog8.ast.expressions.AugmentAssignmentOperators
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker
@@ -45,7 +45,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
-            if(binExpr.operator in augmentAssignmentOperators && isSimpleTarget(assignment.target)) {
+            if(binExpr.operator in AugmentAssignmentOperators && isSimpleTarget(assignment.target)) {
                 if(assignment.target isSameAs binExpr.right)
                     return noModifications
                 if(assignment.target isSameAs binExpr.left) {

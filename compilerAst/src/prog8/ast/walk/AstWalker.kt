@@ -67,7 +67,7 @@ interface IAstModification {
 
     class SwapOperands(private val expr: BinaryExpression): IAstModification {
         override fun perform() {
-            require(expr.operator in associativeOperators)
+            require(expr.operator in AssociativeOperators)
             val tmp = expr.left
             expr.left = expr.right
             expr.right = tmp

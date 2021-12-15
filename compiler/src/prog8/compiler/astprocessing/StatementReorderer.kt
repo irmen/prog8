@@ -170,7 +170,7 @@ internal class StatementReorderer(val program: Program,
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
-        if (expr.left.constValue(program) != null && expr.operator in associativeOperators && expr.right.constValue(program) == null)
+        if (expr.left.constValue(program) != null && expr.operator in AssociativeOperators && expr.right.constValue(program) == null)
             return listOf(IAstModification.SwapOperands(expr))
 
         // when using a simple bit shift and assigning it to a variable of a different type,
@@ -220,7 +220,7 @@ internal class StatementReorderer(val program: Program,
                 else -> return noModifications
             }
         }
-        else if(expr.operator in logicalOperators) {
+        else if(expr.operator in LogicalOperators) {
             // make sure that logical expressions like "var and other-logical-expression
             // is rewritten as "var!=0 and other-logical-expression", to avoid bitwise boolean and
             // generating the wrong results later
@@ -229,9 +229,9 @@ internal class StatementReorderer(val program: Program,
                 BinaryExpression(expr, "!=", NumericLiteralValue(DataType.UBYTE, 0.0, expr.position), expr.position)
 
             fun isLogicalExpr(expr: Expression?): Boolean {
-                if(expr is BinaryExpression && expr.operator in (logicalOperators + comparisonOperators))
+                if(expr is BinaryExpression && expr.operator in (LogicalOperators + ComparisonOperators))
                     return true
-                if(expr is PrefixExpression && expr.operator in logicalOperators)
+                if(expr is PrefixExpression && expr.operator in LogicalOperators)
                     return true
                 return false
             }
@@ -295,7 +295,7 @@ internal class StatementReorderer(val program: Program,
                 return noModifications
             }
 
-            if(binExpr.operator in associativeOperators) {
+            if(binExpr.operator in AssociativeOperators) {
                 if (binExpr.right isSameAs assignment.target) {
                     // A = v <associative-operator> A  ==>  A = A <associative-operator> v
                     return listOf(IAstModification.SwapOperands(binExpr))
@@ -391,6 +391,12 @@ internal class StatementReorderer(val program: Program,
             // 0 params -> just GoSub
             return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
         }
+
+//        if(function.parameters.size==1) {
+//            // 1 param
+//            val dt = function.parameters[0].type
+//            if(dt in IntegerDatatypes)
+//        }
 
         val assignParams =
             function.parameters.zip(call.args).map {

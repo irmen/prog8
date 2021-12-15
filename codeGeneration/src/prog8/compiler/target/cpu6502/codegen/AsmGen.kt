@@ -1101,7 +1101,7 @@ class AsmGen(private val program: Program,
     }
 
     private fun requireComparisonExpression(condition: Expression) {
-        if(condition !is BinaryExpression || condition.operator !in comparisonOperators)
+        if(condition !is BinaryExpression || condition.operator !in ComparisonOperators)
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 

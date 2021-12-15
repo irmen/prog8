@@ -58,12 +58,12 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             if(binExpr!=null && binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
                 return noModifications
 
-            if (binExpr != null && binExpr.operator !in comparisonOperators) {
+            if (binExpr != null && binExpr.operator !in ComparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
                     if (binExpr.right.referencesIdentifier(assignment.target.identifier!!.nameInSource)) {
                         // the right part of the expression contains the target variable itself.
                         // we can't 'split' it trivially because the variable will be changed halfway through.
-                        if(binExpr.operator in associativeOperators) {
+                        if(binExpr.operator in AssociativeOperators) {
                             // A = <something-without-A>  <associativeoperator>  <otherthing-with-A>
                             // use the other part of the expression to split.
                             val sourceDt = binExpr.right.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
@@ -191,7 +191,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         }
 
         val binExpr = ifStatement.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
             val booleanExpr = BinaryExpression(ifStatement.condition, "!=", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
             return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
@@ -288,7 +288,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         }
 
         val binExpr = untilLoop.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // until x  ->  until x!=0,    until x+5  ->  until x+5 != 0
             val booleanExpr = BinaryExpression(untilLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
             return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
@@ -325,7 +325,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         }
 
         val binExpr = whileLoop.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in comparisonOperators) {
+        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // while x  ->  while x!=0,    while x+5  ->  while x+5 != 0
             val booleanExpr = BinaryExpression(whileLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
             return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))

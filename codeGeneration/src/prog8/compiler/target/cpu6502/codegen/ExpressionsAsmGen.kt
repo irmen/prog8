@@ -543,7 +543,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
             throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
 
-        if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in comparisonOperators) {
+        if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in ComparisonOperators) {
             translateCompareStrings(expr.left, expr.operator, expr.right)
         }
         else {

@@ -98,11 +98,11 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             throw FatalAstException("can't determine datatype of both expression operands $expr")
 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
-        if (leftVal != null && expr.operator in associativeOperators && rightVal == null)
+        if (leftVal != null && expr.operator in AssociativeOperators && rightVal == null)
             return listOf(IAstModification.SwapOperands(expr))
 
         // NonBinaryExpression  <associativeoperator>  BinaryExpression  -->  BinaryExpression  <associativeoperator>  NonBinaryExpression
-        if (expr.operator in associativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
+        if (expr.operator in AssociativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
             if(parent !is Assignment || !(expr.left isSameAs parent.target))
                 return listOf(IAstModification.SwapOperands(expr))
         }
@@ -717,7 +717,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
     }
 
     private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteralValue?): BinExprWithConstants {
-        if (expr.operator in associativeOperators && leftVal != null) {
+        if (expr.operator in AssociativeOperators && leftVal != null) {
             // swap left and right so that right is always the constant
             val tmp = expr.left
             expr.left = expr.right

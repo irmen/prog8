@@ -49,7 +49,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
 
             // convert a negative operand for bitwise operator to the 2's complement positive number instead
-            if(expr.operator in bitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
+            if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
                 val leftCv = expr.left.constValue(program)
                 if(leftCv!=null && leftCv.number<0) {
                     val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number

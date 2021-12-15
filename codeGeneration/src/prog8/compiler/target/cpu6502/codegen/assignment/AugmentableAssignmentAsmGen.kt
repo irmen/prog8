@@ -45,7 +45,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             return inplaceModification(target, binExpr.operator, binExpr.right)
         }
 
-        if (binExpr.operator in associativeOperators) {
+        if (binExpr.operator in AssociativeOperators) {
             if (binExpr.right isSameAs astTarget) {
                 // A = 5 <operator> A
                 return inplaceModification(target, binExpr.operator, binExpr.left)
@@ -111,7 +111,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             if(leftBinExpr.right isSameAs astTarget) {
                 // X = (Left <oper> X) <oper> Something
-                if(leftBinExpr.operator in associativeOperators) {
+                if(leftBinExpr.operator in AssociativeOperators) {
                     inplaceModification(target, leftBinExpr.operator, leftBinExpr.left)
                     inplaceModification(target, binExpr.operator, binExpr.right)
                     return
@@ -123,7 +123,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         if(leftBinExpr==null && rightBinExpr!=null) {
             if(rightBinExpr.left isSameAs astTarget) {
                 // X = Something <oper> (X <oper> Right)
-                if(binExpr.operator in associativeOperators) {
+                if(binExpr.operator in AssociativeOperators) {
                     inplaceModification(target, rightBinExpr.operator, rightBinExpr.right)
                     inplaceModification(target, binExpr.operator, binExpr.left)
                     return
@@ -133,7 +133,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             if(rightBinExpr.right isSameAs astTarget) {
                 // X = Something <oper> (Left <oper> X)
-                if(binExpr.operator in associativeOperators && rightBinExpr.operator in associativeOperators) {
+                if(binExpr.operator in AssociativeOperators && rightBinExpr.operator in AssociativeOperators) {
                     inplaceModification(target, rightBinExpr.operator, rightBinExpr.left)
                     inplaceModification(target, binExpr.operator, binExpr.left)
                     return

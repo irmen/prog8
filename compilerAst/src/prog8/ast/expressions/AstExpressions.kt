@@ -9,12 +9,11 @@ import prog8.ast.walk.IAstVisitor
 import java.util.*
 import kotlin.math.round
 
-// TODO capitalize for consistency
-val associativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
-val comparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
-val augmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
-val logicalOperators = setOf("and", "or", "xor", "not")
-val bitwiseOperators = setOf("&", "|", "^")
+val AssociativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
+val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
+val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
+val LogicalOperators = setOf("and", "or", "xor", "not")
+val BitwiseOperators = setOf("&", "|", "^")
 
 
 sealed class Expression: Node {

@@ -9,11 +9,6 @@ non-asm subroutines with just a single byte or word parameter:
     add code to set the parameter variable in the start of the subroutine itself,
     rather than requiring the caller to set it there. This is not faster but saves a lot of bytes of code.
 
-rewrite multiple choice if into when:
-    if X==1 or X==2 or X==3 { truepart } else { falsepart }
-    ->  when X  { 1,2,3->truepart   else->falsepart }
-    same with assignment if the lhs is simple var or memaddr
-
 ...
 
 
@@ -54,6 +49,11 @@ More code optimization ideas
 - while-expression should now also get the simplifyConditionalExpression() treatment
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
+- rewrite multiple choice if into when:
+    if X==1 or X==2 or X==3 { truepart } else { falsepart }
+    ->  when X  { 1,2,3->truepart   else->falsepart }
+    same with assignment if the lhs is simple var or memaddr
+
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4

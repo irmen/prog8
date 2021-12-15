@@ -348,7 +348,7 @@ open class Assignment(var target: AssignTarget, var value: Expression, final ove
                     }
                 }
 
-                if(binExpr.operator in associativeOperators) {
+                if(binExpr.operator in AssociativeOperators) {
                     if (binExpr.left !is BinaryExpression && binExpr.right isSameAs target)
                         return true  // A = v <associative-operator> A
 

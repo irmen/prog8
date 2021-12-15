@@ -863,7 +863,7 @@ internal class AstChecker(private val program: Program,
         if(leftDt!=rightDt)
             errors.err("left and right operands aren't the same type", expr.left.position)
 
-        if(expr.operator !in comparisonOperators) {
+        if(expr.operator !in ComparisonOperators) {
             if (leftDt == DataType.STR && rightDt == DataType.STR || leftDt in ArrayDatatypes && rightDt in ArrayDatatypes) {
                 // str+str  and  str*number have already been const evaluated before we get here.
                 errors.err("no computational expressions with strings or arrays are possible", expr.position)

@@ -425,7 +425,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             // both operators are the same.
 
             // If associative,  we can simply shuffle the const operands around to optimize.
-            if(expr.operator in associativeOperators) {
+            if(expr.operator in AssociativeOperators) {
                 return if(leftIsConst) {
                     if(subleftIsConst)
                         ShuffleOperands(expr, null, subExpr, subExpr.right, null, null, expr.left)
