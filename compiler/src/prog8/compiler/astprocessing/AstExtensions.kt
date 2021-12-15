@@ -53,8 +53,8 @@ internal fun Program.charLiteralsToUByteLiterals(enc: IStringEncoding) {
     walker.applyModifications()
 }
 
-internal fun Program.addTypecasts(errors: IErrorReporter) {
-    val caster = TypecastsAdder(this, errors)
+internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOptions) {
+    val caster = TypecastsAdder(this, options, errors)
     caster.visit(this)
     caster.applyModifications()
 }

@@ -267,7 +267,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors, compilerOptions)
     errors.report()
-    program.addTypecasts(errors)
+    program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
     errors.report()
@@ -300,7 +300,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    program.addTypecasts(errors)
+    program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid

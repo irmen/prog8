@@ -4,9 +4,15 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.toHex
+import prog8.compiler.target.C64Target
 import prog8.compiler.target.cbm.Mflpt5
 import prog8.compilerinterface.InternalCompilerException
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileText
 
 
 class TestNumbers: FunSpec({
@@ -104,5 +110,46 @@ class TestNumbers: FunSpec({
         Mflpt5(0x7Fu, 0x00u, 0x00u, 0x00u, 0x00u).toDouble() shouldBe .25
         Mflpt5(0xd1u, 0x02u, 0xb7u, 0x06u, 0xfbu).toDouble() shouldBe(123.45678e22 plusOrMinus 1.0e15)
         Mflpt5(0x3eu, 0xe9u, 0x34u, 0x09u, 0x1bu).toDouble() shouldBe(-123.45678e-22 plusOrMinus epsilon)
+    }
+
+    test("implicit float conversion warning if enabled") {
+        val src="""
+            %option enable_floats
+            main {
+                sub start() {
+                    uword xx = 10
+                    if xx+99 == 1.23456
+                        xx++
+                    if xx+99 == 1234567
+                        xx++
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertSuccess()
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 2
+        errors.warnings[0] shouldContain "converted to float"
+        errors.warnings[1] shouldContain "converted to float"
+    }
+
+    test("implicit float conversion error if not enabled") {
+        val src="""
+            main {
+                sub start() {
+                    uword xx = 10
+                    if xx+99 == 1.23456
+                        xx++
+                    if xx+99 == 1234567
+                        xx++
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "converted to float"
+        errors.errors[1] shouldContain "converted to float"
     }
 })

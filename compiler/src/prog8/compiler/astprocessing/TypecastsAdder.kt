@@ -9,10 +9,11 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
 
 
-class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalker() {
+class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {
     /*
      * Make sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
      * (this includes function call arguments)
@@ -220,7 +221,10 @@ class TypecastsAdder(val program: Program, val errors: IErrorReporter) : AstWalk
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
-            errors.warn("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
+            if(options.floats)
+                errors.warn("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
+            else
+                errors.err("integer implicitly converted to float but floating point is not enabled via options", typecast.position)
         }
         return noModifications
     }
