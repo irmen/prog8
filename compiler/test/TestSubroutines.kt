@@ -324,9 +324,9 @@ class TestSubroutines: FunSpec({
         val text = """
             main {
                 sub start() {
-                    func(1)
+                    func(1, 2, 3)
 
-                    sub func(ubyte a) {
+                    sub func(ubyte a, ubyte b, ubyte c) {
                         a++
                     }
                 }

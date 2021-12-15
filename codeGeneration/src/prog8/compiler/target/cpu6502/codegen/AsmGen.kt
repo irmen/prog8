@@ -16,6 +16,7 @@ import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
 import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
+import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import java.nio.file.Path
@@ -1013,6 +1014,16 @@ class AsmGen(private val program: Program,
                     ldx  #255       ; init estack ptr
                     clv
                     clc""")
+            }
+
+            if(functioncallAsmGen.singleArgViaRegisters(sub)) {
+                out("; single arg is passed via register(s)")
+                val dt = sub.parameters[0].type
+                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, dt, sub, variableAsmName = sub.parameters[0].name)
+                if(dt in ByteDatatypes)
+                    assignRegister(RegisterOrPair.A, target)
+                else
+                    assignRegister(RegisterOrPair.AY, target)
             }
 
             if(!onlyVariables) {

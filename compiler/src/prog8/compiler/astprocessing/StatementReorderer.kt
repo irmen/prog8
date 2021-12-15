@@ -392,11 +392,15 @@ internal class StatementReorderer(val program: Program,
             return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
         }
 
-//        if(function.parameters.size==1) {
-//            // 1 param
-//            val dt = function.parameters[0].type
-//            if(dt in IntegerDatatypes)
-//        }
+        if(function.parameters.size==1) {
+            // 1 param
+            val dt = function.parameters[0].type
+            if(dt in IntegerDatatypes) {
+                // optimization: 1 integer param is passed via registers directly, not by assignment to param variable
+                // TODO also do this for 2x byte param , can be put in A and Y
+                return noModifications
+            }
+        }
 
         val assignParams =
             function.parameters.zip(call.args).map {

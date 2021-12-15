@@ -67,6 +67,8 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
+    internal fun singleArgViaRegisters(sub: Subroutine) = sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes
+
     internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
@@ -76,8 +78,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         val sub = call.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.target}")
         val subAsmName = asmgen.asmSymbolName(call.target)
 
-        if(!isExpression && !sub.isAsmSubroutine)
-            throw AssemblyError("functioncall statements to non-asmsub should have been replaced by GoSub $call")
+        if(!isExpression && !sub.isAsmSubroutine) {
+            if(!singleArgViaRegisters(sub))
+                throw AssemblyError("functioncall statements to non-asmsub should have been replaced by GoSub $call")
+        }
 
         if(sub.isAsmSubroutine) {
             argumentsViaRegisters(sub, call)
@@ -98,7 +102,12 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(sub.inline)
                 throw AssemblyError("can only reliably inline asmsub routines at this time")
 
-            argumentsViaVariables(sub, call)
+            if(singleArgViaRegisters(sub)) {
+                val register = if(sub.parameters[0].type in ByteDatatypes) RegisterOrPair.A else RegisterOrPair.AY
+                argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
+            } else {
+                argumentsViaVariables(sub, call)
+            }
             asmgen.out("  jsr  $subAsmName")
         }
 
@@ -262,14 +271,14 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         asmgen.assignExpressionToVariable(value, varName, parameter.value.type, sub)
     }
 
-    private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
+    private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression, registerOverride: RegisterOrPair? = null) {
         // pass argument via a register parameter
         val valueIDt = value.inferType(program)
         val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
         if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
-        val paramRegister = sub.asmParameterRegisters[parameter.index]
+        val paramRegister = if(registerOverride==null) sub.asmParameterRegisters[parameter.index] else RegisterOrStatusflag(registerOverride, null)
         val statusflag = paramRegister.statusflag
         val register = paramRegister.registerOrPair
         val requiredDt = parameter.value.type
