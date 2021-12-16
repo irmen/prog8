@@ -466,21 +466,13 @@ class StatementOptimizer(private val program: Program,
             return null
         }
 
-        when(returnStmt.value) {
-            is PrefixExpression -> {
-                val mod = returnViaIntermediaryVar(returnStmt.value!!)
-                if(mod!=null)
-                    return mod
-            }
-            is BinaryExpression -> {
-                val mod = returnViaIntermediaryVar(returnStmt.value!!)
-                if(mod!=null)
-                    return mod
-            }
-            else -> {}
+        if(returnStmt.value is BinaryExpression) {
+            val mod = returnViaIntermediaryVar(returnStmt.value!!)
+            if(mod!=null)
+                return mod
         }
 
-        return super.after(returnStmt, parent)
+        return noModifications
     }
 
     private fun hasBreak(scope: IStatementContainer): Boolean {

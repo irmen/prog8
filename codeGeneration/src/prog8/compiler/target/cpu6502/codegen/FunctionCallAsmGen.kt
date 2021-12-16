@@ -312,22 +312,21 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                     is IdentifierReference -> {
                         val sourceName = asmgen.asmVariableName(value)
                         asmgen.out("""
-                pha
-                clc
-                lda  $sourceName
-                beq  +
-                sec  
-    +           pla
-    """)
+                            pha
+                            clc
+                            lda  $sourceName
+                            beq  +
+                            sec  
++                           pla""")
                     }
                     else -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("""
-                                    beq  +
-                                    sec
-                                    bcs  ++
-    +                               clc
-    +""")
+                            beq  +
+                            sec
+                            bcs  ++
++                           clc
++""")
                     }
                 }
             } else throw AssemblyError("can only use Carry as status flag parameter")

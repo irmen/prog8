@@ -1824,18 +1824,18 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 cmp  #0
                                 beq  +
                                 lda  #1
-    +                           eor  #1""")
++                               eor  #1""")
                             RegisterOrPair.X -> asmgen.out("""
                                 txa
                                 beq  +
                                 lda  #1
-    +                           eor  #1
++                               eor  #1
                                 tax""")
                             RegisterOrPair.Y -> asmgen.out("""
                                 tya
                                 beq  +
                                 lda  #1
-    +                           eor  #1
++                               eor  #1
                                 tay""")
                             else -> throw AssemblyError("invalid reg dt for byte not")
                         }

@@ -3,10 +3,6 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-why does the following use a intermediate return value and not just A?
-  sub pushing_start() -> ubyte {
-    return joy_info & 16
-  }
 ...
 
 
