@@ -8,6 +8,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
 
@@ -393,11 +394,14 @@ internal class StatementReorderer(val program: Program,
         }
 
         if(function.parameters.size==1) {
-            // 1 param
-            val dt = function.parameters[0].type
-            if(dt in IntegerDatatypes) {
-                // optimization: 1 integer param is passed via registers directly, not by assignment to param variable
-                // TODO also do this for 2x byte param , can be put in A and Y
+            if(function.parameters[0].type in IntegerDatatypes) {
+                // optimization: 1 integer param is passed via register(s) directly, not by assignment to param variable
+                return noModifications
+            }
+        }
+        else if(function.parameters.size==2) {
+            if(function.parameters[0].type in ByteDatatypes && function.parameters[1].type in ByteDatatypes) {
+                // optimization: 2 simple byte param is passed via 2 registers directly, not by assignment to param variables
                 return noModifications
             }
         }

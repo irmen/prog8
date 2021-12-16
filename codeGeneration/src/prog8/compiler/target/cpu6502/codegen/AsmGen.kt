@@ -1016,14 +1016,23 @@ class AsmGen(private val program: Program,
                     clc""")
             }
 
-            if(functioncallAsmGen.singleArgViaRegisters(sub)) {
-                out("; single arg is passed via register(s)")
-                val dt = sub.parameters[0].type
-                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, dt, sub, variableAsmName = sub.parameters[0].name)
-                if(dt in ByteDatatypes)
-                    assignRegister(RegisterOrPair.A, target)
-                else
-                    assignRegister(RegisterOrPair.AY, target)
+            if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
+                out("; simple int arg(s) passed via register(s)")
+                if(sub.parameters.size==1) {
+                    val dt = sub.parameters[0].type
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, dt, sub, variableAsmName = sub.parameters[0].name)
+                    if(dt in ByteDatatypes)
+                        assignRegister(RegisterOrPair.A, target)
+                    else
+                        assignRegister(RegisterOrPair.AY, target)
+                } else {
+                    require(sub.parameters.size==2)
+                    // 2 simple byte args, first in A, second in Y
+                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, sub.parameters[0].type, sub, variableAsmName = sub.parameters[0].name)
+                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, sub.parameters[1].type, sub, variableAsmName = sub.parameters[1].name)
+                    assignRegister(RegisterOrPair.A, target1)
+                    assignRegister(RegisterOrPair.Y, target2)
+                }
             }
 
             if(!onlyVariables) {

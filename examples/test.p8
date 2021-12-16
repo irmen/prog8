@@ -4,10 +4,17 @@
 
 main {
     sub start() {
+        ubyte xx = 0
+
+        singleparamb(123)
         singleparamb(123)
         singleparamw(-9999)
-        doubleparamb(123,-99)
-        doubleparamw(8888,-9999)
+        singleparamw(-9999)
+        doubleparamb(xx+111,-99)
+        doubleparamb(xx+111,-99)
+        doubleparamw(xx+8888,-9999)
+        doubleparamw(xx+8888,-9999)
+        singleparamf(1.23456)
         singleparamf(1.23456)
     }
 

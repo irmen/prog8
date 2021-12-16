@@ -3,12 +3,6 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-optimization in call convention:
-non-asm subroutines with just a single byte or word parameter:
-    pass the parameter via A or A/Y registers.
-    add code to set the parameter variable in the start of the subroutine itself,
-    rather than requiring the caller to set it there. This is not faster but saves a lot of bytes of code.
-
 ...
 
 
