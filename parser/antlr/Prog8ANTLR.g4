@@ -128,7 +128,7 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype SHARED? ZEROPAGE? (arrayindex | ARRAYSIG) ? varname=identifier ;
+vardecl: datatype (arrayindex | ARRAYSIG)? SHARED? ZEROPAGE? varname=identifier ;
 
 varinitializer : vardecl '=' expression ;
 

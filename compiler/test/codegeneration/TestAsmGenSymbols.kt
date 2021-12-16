@@ -21,7 +21,7 @@ import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Path
 
-class AsmGenSymbolsTests: StringSpec({
+class TestAsmGenSymbols: StringSpec({
     fun createTestProgram(): Program {
         /*
     main  {
