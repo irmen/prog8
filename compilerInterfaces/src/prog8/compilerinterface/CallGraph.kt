@@ -114,12 +114,12 @@ class CallGraph(private val program: Program) : IAstVisitor {
     fun checkRecursiveCalls(errors: IErrorReporter) {
         val cycles = recursionCycles()
         if(cycles.any()) {
-            errors.warn("Program contains recursive subroutine calls. These only works in very specific limited scenarios!", Position.DUMMY)
+            errors.warn("Program contains recursive subroutine calls. These only works in very specific limited scenarios!", cycles[0][0].position)
             val printed = mutableSetOf<Subroutine>()
             for(chain in cycles) {
                 if(chain[0] !in printed) {
                     val chainStr = chain.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-                    errors.warn("Cycle in (a subroutine call in) $chainStr", Position.DUMMY)
+                    errors.warn("Cycle in (a subroutine call in) $chainStr", chain[0].position)
                     printed.add(chain[0])
                 }
             }
