@@ -1,16 +1,19 @@
-%option enable_floats
+
 
 main {
-    sub start() {
-        ubyte[] @shared @zp array = [1,2,3,4]
-        str @shared @zp name = "test"
-        ubyte @shared @zp bytevar = 0
-        float @shared @zp fl
+    ubyte @shared joy_info
 
-        %asm {{
-            lda  array
-            lda  name
-            lda  bytevar
-        }}
+    sub start() {
+        void pushing_start()
+    }
+
+    sub pushing_start() -> ubyte {
+        joy_info++
+        return not c64.READST()
+    }
+
+    sub derp(ubyte aa) -> ubyte {
+        aa++
+        return aa*2
     }
 }

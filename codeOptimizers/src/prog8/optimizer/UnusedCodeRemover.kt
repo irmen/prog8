@@ -68,7 +68,8 @@ class UnusedCodeRemover(private val program: Program,
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
             if(callgraph.unused(block)) {
-                errors.warn("removing unused block '${block.name}'", block.position)
+                if(block.statements.any{ it !is VarDecl || it.type==VarDeclType.VAR})
+                    errors.warn("removing unused block '${block.name}'", block.position)
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
         }

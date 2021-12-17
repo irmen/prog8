@@ -952,11 +952,8 @@ internal class AstChecker(private val program: Program,
                 // if the asmsub returns multiple values and one of them is via a status register bit,
                 // it *is* possible to handle them by just actually assigning the register value and
                 // dealing with the status bit as just being that, the status bit after the call.
-                val (returnRegisters, returnStatusflags) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
-                if (returnRegisters.isEmpty() || returnRegisters.size == 1) {
-                    if (returnStatusflags.any())
-                        errors.warn("this asmsub also has one or more return 'values' in one of the status flags", functionCall.position)
-                } else {
+                val (returnRegisters, _) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
+                if (returnRegisters.size>1) {
                     errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCall.position)
                 }
             }
