@@ -52,11 +52,12 @@ What does Prog8 provide?
 - breakpoints, that let the Vice emulator drop into the monitor if execution hits them
 - source code labels automatically loaded in Vice emulator so it can show them in disassembly
 
-*Two supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
+*Multiple supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
 
-- "c64": Commodore-64  (6510 CPU = almost a 6502)
+- "c64": Commodore-64  (6502 like CPU)
+- "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
 - "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
-- If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+- If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)
 
 
 
