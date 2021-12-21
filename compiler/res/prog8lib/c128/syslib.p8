@@ -3,111 +3,18 @@
 ;
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 ;
-; indent format: TABS, size=8
-;
-
 
 c64 {
-; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----
-;  // TODO c128 address : are these really the same?
-
-romsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use txt.print instead)
-romsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
-romsub $E566 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
-romsub $EA31 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
-romsub $EA81 = IRQDFEND() clobbers(A,X,Y)                       ; default IRQ end/cleanup
-romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
-romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
-romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, tape buffer, screen
-romsub $FF8A = RESTOR() clobbers(A,X,Y)                         ; restore default I/O vectors
-romsub $FF8D = VECTOR(uword userptr @ XY, ubyte dir @ Pc) clobbers(A,Y)     ; read/set I/O vector table
-romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag
-romsub $FF93 = SECOND(ubyte address @ A) clobbers(A)            ; (alias: LSTNSA) send secondary address after LISTEN
-romsub $FF96 = TKSA(ubyte address @ A) clobbers(A)              ; (alias: TALKSA) send secondary address after TALK
-romsub $FF99 = MEMTOP(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer
-romsub $FF9C = MEMBOT(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
-romsub $FF9F = SCNKEY() clobbers(A,X,Y)                         ; scan the keyboard
-romsub $FFA2 = SETTMO(ubyte timeout @ A)                        ; set time-out flag for IEEE bus
-romsub $FFA5 = ACPTR() -> ubyte @ A                             ; (alias: IECIN) input byte from serial bus
-romsub $FFA8 = CIOUT(ubyte databyte @ A)                        ; (alias: IECOUT) output byte to serial bus
-romsub $FFAB = UNTLK() clobbers(A)                              ; command serial bus device to UNTALK
-romsub $FFAE = UNLSN() clobbers(A)                              ; command serial bus device to UNLISTEN
-romsub $FFB1 = LISTEN(ubyte device @ A) clobbers(A)             ; command serial bus device to LISTEN
-romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial bus device to TALK
-romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word
-romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
-romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
-romsub $FFC0 = OPEN() clobbers(X,Y) -> ubyte @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
-romsub $FFC3 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; (via 796 ($31C)) close a logical file
-romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> ubyte @Pc    ; (via 798 ($31E)) define an input channel
-romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320)) define an output channel
-romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322)) restore default devices
-romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
-romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326)) output a character
-romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
-romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
-romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
-romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
-romsub $FFE1 = STOP() clobbers(X) -> ubyte @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
-romsub $FFE4 = GETIN() clobbers(X,Y) -> ubyte @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
-romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
-romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
-romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
-romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
-romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
-
-; ---- end of C64 ROM kernal routines ----
-
-; ---- utilities -----
-
-asmsub STOP2() -> ubyte @A  {
-    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
-    %asm {{
-        txa
-        pha
-        jsr  c64.STOP
-        beq  +
-        pla
-        tax
-        lda  #0
-        rts
-+       pla
-        tax
-        lda  #1
-        rts
-    }}
-}
-
-asmsub RDTIM16() -> uword @AY {
-    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
-    %asm {{
-        stx  P8ZP_SCRATCH_REG
-        jsr  c64.RDTIM
-        pha
-        txa
-        tay
-        pla
-        ldx  P8ZP_SCRATCH_REG
-        rts
-    }}
-}
-
-}
-
-
-c128 {
-
-    ; TODO c128 address : if these are the same as on the c64, just use block name 'c64' instead of 'c128'
 
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $a1       ;  .. mid byte
         &ubyte  TIME_LO         = $a2       ;    .. lo byte. Updated by IRQ every 1/60 sec
         &ubyte  STATUS          = $90       ; kernal status variable for I/O
         &ubyte  STKEY           = $91       ; various keyboard statuses (updated by IRQ)
-        &ubyte  SFDX            = $cb       ; current key pressed (matrix value) (updated by IRQ)
+        ;;&ubyte  SFDX            = $cb       ; current key pressed (matrix value) (updated by IRQ)     // TODO c128 ??
 
-        &ubyte  COLOR           = $0286     ; cursor color
-        &ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)
+        &ubyte  COLOR           = $00f1     ; cursor color
+        ;;&ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)        // TODO c128 ??
         &uword  CINV            = $0314     ; IRQ vector (in ram)
         &uword  CBINV           = $0316     ; BRK vector (in ram)
         &uword  NMINV           = $0318     ; NMI vector (in ram)
@@ -268,6 +175,95 @@ c128 {
 
     ; ---- end of SID registers ----
 
+; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----
+
+; STROUT -> use txt.print
+romsub $C07B = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
+romsub $C150 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
+romsub $FA65 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
+romsub $FF33 = IRQDFEND() clobbers(A,X,Y)                       ; default IRQ end/cleanup
+
+; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
+
+romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
+romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
+romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, tape buffer, screen
+romsub $FF8A = RESTOR() clobbers(A,X,Y)                         ; restore default I/O vectors
+romsub $FF8D = VECTOR(uword userptr @ XY, ubyte dir @ Pc) clobbers(A,Y)     ; read/set I/O vector table
+romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag
+romsub $FF93 = SECOND(ubyte address @ A) clobbers(A)            ; (alias: LSTNSA) send secondary address after LISTEN
+romsub $FF96 = TKSA(ubyte address @ A) clobbers(A)              ; (alias: TALKSA) send secondary address after TALK
+romsub $FF99 = MEMTOP(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer
+romsub $FF9C = MEMBOT(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
+romsub $FF9F = SCNKEY() clobbers(A,X,Y)                         ; scan the keyboard
+romsub $FFA2 = SETTMO(ubyte timeout @ A)                        ; set time-out flag for IEEE bus
+romsub $FFA5 = ACPTR() -> ubyte @ A                             ; (alias: IECIN) input byte from serial bus
+romsub $FFA8 = CIOUT(ubyte databyte @ A)                        ; (alias: IECOUT) output byte to serial bus
+romsub $FFAB = UNTLK() clobbers(A)                              ; command serial bus device to UNTALK
+romsub $FFAE = UNLSN() clobbers(A)                              ; command serial bus device to UNLISTEN
+romsub $FFB1 = LISTEN(ubyte device @ A) clobbers(A)             ; command serial bus device to LISTEN
+romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial bus device to TALK
+romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word
+romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
+romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
+romsub $FFC0 = OPEN() clobbers(X,Y) -> ubyte @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
+romsub $FFC3 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; (via 796 ($31C)) close a logical file
+romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> ubyte @Pc    ; (via 798 ($31E)) define an input channel
+romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320)) define an output channel
+romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322)) restore default devices
+romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
+romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326)) output a character
+romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
+romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
+romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
+romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
+romsub $FFE1 = STOP() clobbers(X) -> ubyte @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
+romsub $FFE4 = GETIN() clobbers(X,Y) -> ubyte @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
+romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
+romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
+romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
+romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
+romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
+
+; ---- end of C64 compatible ROM kernal routines ----
+
+; ---- utilities -----
+
+asmsub STOP2() -> ubyte @A  {
+    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
+    %asm {{
+        txa
+        pha
+        jsr  c64.STOP
+        beq  +
+        pla
+        tax
+        lda  #0
+        rts
++       pla
+        tax
+        lda  #1
+        rts
+    }}
+}
+
+asmsub RDTIM16() -> uword @AY {
+    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
+    %asm {{
+        stx  P8ZP_SCRATCH_REG
+        jsr  c64.RDTIM
+        pha
+        txa
+        tay
+        pla
+        ldx  P8ZP_SCRATCH_REG
+        rts
+    }}
+}
+
+}
+
+c128 {
 ; ---- C128 specific system utility routines: ----
 
 asmsub  init_system()  {
@@ -280,19 +276,19 @@ asmsub  init_system()  {
     %asm {{
         sei
         cld
-        lda  #%00101111
-        sta  $00
-        lda  #%00100111
-        sta  $01
+        ;;lda  #%00101111                     ; TODO c128 ram and rom bank selection how?
+        ;;sta  $00
+        ;;lda  #%00100111
+        ;;sta  $01
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
         lda  #6
-        sta  c128.EXTCOL
+        sta  c64.EXTCOL
         lda  #7
-        sta  c128.COLOR
+        sta  c64.COLOR
         lda  #0
-        sta  c128.BGCOL0
+        sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
         clc
         clv
@@ -303,16 +299,17 @@ asmsub  init_system()  {
 
 asmsub  init_system_phase2()  {
     %asm {{
-        rts     ; no phase 2 steps on the C64
+        rts     ; no phase 2 steps on the C128
     }}
 }
 
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
-        lda  #$80
-        sta  657    ; disable charset switching
-        lda  #239
-        sta  808    ; disable run/stop key
+        ;; TODO c128 how to do this?
+        ;; lda  #$80
+        ;; sta  657    ; disable charset switching
+        ;; lda  #239
+        ;; sta  808    ; disable run/stop key
         rts
     }}
 }
@@ -488,9 +485,9 @@ sys {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{
             sei
-            lda  #14
-            sta  $01        ; bank the kernal in
-            jmp  (c128.RESET_VEC)
+            ;lda  #14
+            ;sta  $01        ; bank the kernal in       TODO c128 how to do this?
+            jmp  (c64.RESET_VEC)
         }}
     }
 
@@ -659,109 +656,108 @@ _longcopy
 cx16 {
 
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
-    ; they are simulated on the C64 as well but their location in memory is different
+    ; they are simulated on the C128 as well but their location in memory is different
     ; (because there's no room for them in the zeropage)
-    ; they are allocated at the bottom of the eval-stack (should be ample space unless
-    ; you're doing insane nesting of expressions...)
-    &uword r0  = $cf00
-    &uword r1  = $cf02
-    &uword r2  = $cf04
-    &uword r3  = $cf06
-    &uword r4  = $cf08
-    &uword r5  = $cf0a
-    &uword r6  = $cf0c
-    &uword r7  = $cf0e
-    &uword r8  = $cf10
-    &uword r9  = $cf12
-    &uword r10 = $cf14
-    &uword r11 = $cf16
-    &uword r12 = $cf18
-    &uword r13 = $cf1a
-    &uword r14 = $cf1c
-    &uword r15 = $cf1e
+    ; $1300-$1bff is unused RAM on C128, we put the registers at the last 32 bytes of that chunk.
+    &uword r0  = $1be0
+    &uword r1  = $1be2
+    &uword r2  = $1be4
+    &uword r3  = $1be6
+    &uword r4  = $1be8
+    &uword r5  = $1bea
+    &uword r6  = $1bec
+    &uword r7  = $1bee
+    &uword r8  = $1bf0
+    &uword r9  = $1bf2
+    &uword r10 = $1bf4
+    &uword r11 = $1bf6
+    &uword r12 = $1bf8
+    &uword r13 = $1bfa
+    &uword r14 = $1bfc
+    &uword r15 = $1bfe
 
-    &word r0s  = $cf00
-    &word r1s  = $cf02
-    &word r2s  = $cf04
-    &word r3s  = $cf06
-    &word r4s  = $cf08
-    &word r5s  = $cf0a
-    &word r6s  = $cf0c
-    &word r7s  = $cf0e
-    &word r8s  = $cf10
-    &word r9s  = $cf12
-    &word r10s = $cf14
-    &word r11s = $cf16
-    &word r12s = $cf18
-    &word r13s = $cf1a
-    &word r14s = $cf1c
-    &word r15s = $cf1e
+    &word r0s  = $1be0
+    &word r1s  = $1be2
+    &word r2s  = $1be4
+    &word r3s  = $1be6
+    &word r4s  = $1be8
+    &word r5s  = $1bea
+    &word r6s  = $1bec
+    &word r7s  = $1bee
+    &word r8s  = $1bf0
+    &word r9s  = $1bf2
+    &word r10s = $1bf4
+    &word r11s = $1bf6
+    &word r12s = $1bf8
+    &word r13s = $1bfa
+    &word r14s = $1bfc
+    &word r15s = $1bfe
 
-    &ubyte r0L  = $cf00
-    &ubyte r1L  = $cf02
-    &ubyte r2L  = $cf04
-    &ubyte r3L  = $cf06
-    &ubyte r4L  = $cf08
-    &ubyte r5L  = $cf0a
-    &ubyte r6L  = $cf0c
-    &ubyte r7L  = $cf0e
-    &ubyte r8L  = $cf10
-    &ubyte r9L  = $cf12
-    &ubyte r10L = $cf14
-    &ubyte r11L = $cf16
-    &ubyte r12L = $cf18
-    &ubyte r13L = $cf1a
-    &ubyte r14L = $cf1c
-    &ubyte r15L = $cf1e
+    &ubyte r0L  = $1be0
+    &ubyte r1L  = $1be2
+    &ubyte r2L  = $1be4
+    &ubyte r3L  = $1be6
+    &ubyte r4L  = $1be8
+    &ubyte r5L  = $1bea
+    &ubyte r6L  = $1bec
+    &ubyte r7L  = $1bee
+    &ubyte r8L  = $1bf0
+    &ubyte r9L  = $1bf2
+    &ubyte r10L = $1bf4
+    &ubyte r11L = $1bf6
+    &ubyte r12L = $1bf8
+    &ubyte r13L = $1bfa
+    &ubyte r14L = $1bfc
+    &ubyte r15L = $1bfe
 
-    &ubyte r0H  = $cf01
-    &ubyte r1H  = $cf03
-    &ubyte r2H  = $cf05
-    &ubyte r3H  = $cf07
-    &ubyte r4H  = $cf09
-    &ubyte r5H  = $cf0b
-    &ubyte r6H  = $cf0d
-    &ubyte r7H  = $cf0f
-    &ubyte r8H  = $cf11
-    &ubyte r9H  = $cf13
-    &ubyte r10H = $cf15
-    &ubyte r11H = $cf17
-    &ubyte r12H = $cf19
-    &ubyte r13H = $cf1b
-    &ubyte r14H = $cf1d
-    &ubyte r15H = $cf1f
+    &ubyte r0H  = $1be1
+    &ubyte r1H  = $1be3
+    &ubyte r2H  = $1be5
+    &ubyte r3H  = $1be7
+    &ubyte r4H  = $1be9
+    &ubyte r5H  = $1beb
+    &ubyte r6H  = $1bed
+    &ubyte r7H  = $1bef
+    &ubyte r8H  = $1bf1
+    &ubyte r9H  = $1bf3
+    &ubyte r10H = $1bf5
+    &ubyte r11H = $1bf7
+    &ubyte r12H = $1bf9
+    &ubyte r13H = $1bfb
+    &ubyte r14H = $1bfd
+    &ubyte r15H = $1bff
 
-    &byte r0sL  = $cf00
-    &byte r1sL  = $cf02
-    &byte r2sL  = $cf04
-    &byte r3sL  = $cf06
-    &byte r4sL  = $cf08
-    &byte r5sL  = $cf0a
-    &byte r6sL  = $cf0c
-    &byte r7sL  = $cf0e
-    &byte r8sL  = $cf10
-    &byte r9sL  = $cf12
-    &byte r10sL = $cf14
-    &byte r11sL = $cf16
-    &byte r12sL = $cf18
-    &byte r13sL = $cf1a
-    &byte r14sL = $cf1c
-    &byte r15sL = $cf1e
+    &byte r0sL  = $1be0
+    &byte r1sL  = $1be2
+    &byte r2sL  = $1be4
+    &byte r3sL  = $1be6
+    &byte r4sL  = $1be8
+    &byte r5sL  = $1bea
+    &byte r6sL  = $1bec
+    &byte r7sL  = $1bee
+    &byte r8sL  = $1bf0
+    &byte r9sL  = $1bf2
+    &byte r10sL = $1bf4
+    &byte r11sL = $1bf6
+    &byte r12sL = $1bf8
+    &byte r13sL = $1bfa
+    &byte r14sL = $1bfc
+    &byte r15sL = $1bfe
 
-    &byte r0sH  = $cf01
-    &byte r1sH  = $cf03
-    &byte r2sH  = $cf05
-    &byte r3sH  = $cf07
-    &byte r4sH  = $cf09
-    &byte r5sH  = $cf0b
-    &byte r6sH  = $cf0d
-    &byte r7sH  = $cf0f
-    &byte r8sH  = $cf11
-    &byte r9sH  = $cf13
-    &byte r10sH = $cf15
-    &byte r11sH = $cf17
-    &byte r12sH = $cf19
-    &byte r13sH = $cf1b
-    &byte r14sH = $cf1d
-    &byte r15sH = $cf1f
+    &byte r0sH  = $1be1
+    &byte r1sH  = $1be3
+    &byte r2sH  = $1be5
+    &byte r3sH  = $1be7
+    &byte r4sH  = $1be9
+    &byte r5sH  = $1beb
+    &byte r6sH  = $1bed
+    &byte r7sH  = $1bef
+    &byte r8sH  = $1bf1
+    &byte r9sH  = $1bf3
+    &byte r10sH = $1bf5
+    &byte r11sH = $1bf7
+    &byte r12sH = $1bf9
+    &byte r13sH = $1bfb
+    &byte r14sH = $1bfd
+    &byte r15sH = $1bff
 }

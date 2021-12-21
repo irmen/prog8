@@ -87,15 +87,15 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 }
 
 sub color (ubyte txtcol) {
-    c128.COLOR = txtcol
+    c64.COLOR = txtcol
 }
 
 sub lowercase() {
-    c128.VMCSB |= 2
+    c64.VMCSB |= 2
 }
 
 sub uppercase() {
-    c128.VMCSB &= ~2
+    c64.VMCSB &= ~2
 }
 
 asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {

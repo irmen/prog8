@@ -17,8 +17,8 @@ class C128MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2
-    override val BASIC_LOAD_ADDRESS = 0x1c01u               // TODO c128 address
-    override val RAW_LOAD_ADDRESS = 0xc000u                 // TODO c128 address
+    override val BASIC_LOAD_ADDRESS = 0x1c01u
+    override val RAW_LOAD_ADDRESS = 0x1300u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive          // TODO c128 address
@@ -57,7 +57,7 @@ class C128MachineDefinition: IMachineDefinition {
         }
     }
 
-    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu            // TODO c128 address
+    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu
     override fun getPreallocatedZeropageVars(): Map<String, Pair<UInt, DataType>> = emptyMap()
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
