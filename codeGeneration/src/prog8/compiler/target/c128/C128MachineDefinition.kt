@@ -21,8 +21,8 @@ class C128MachineDefinition: IMachineDefinition {
     override val RAW_LOAD_ADDRESS = 0x1300u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive          // TODO c128 address
-    override val ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive          // TODO c128 address
+    override val ESTACK_LO = 0x1a00u     //  $1a00-$1aff inclusive
+    override val ESTACK_HI = 0x1b00u     //  $1b00-$1bff inclusive
 
     override lateinit var zeropage: Zeropage
 
