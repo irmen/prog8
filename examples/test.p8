@@ -1,4 +1,4 @@
-
+%import textio
 
 main {
     ubyte @shared joy_info

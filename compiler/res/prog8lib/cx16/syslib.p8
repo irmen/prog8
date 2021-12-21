@@ -811,7 +811,7 @@ asmsub  set_rasterline(uword line @AY) {
 sys {
     ; ------- lowlevel system routines --------
 
-    const ubyte target = 16         ;  compilation target specifier.  64 = C64,  16 = CommanderX16.
+    const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
 
 
     asmsub reset_system() {

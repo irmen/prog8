@@ -143,31 +143,16 @@ class TestC64Zeropage: FunSpec({
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, C64Target))
         zp3.availableBytes() shouldBe 125
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        zp4.availableBytes() shouldBe 238
+        zp4.availableBytes() shouldBe 239
         zp4.allocate("test", DataType.UBYTE, null, errors)
-        zp4.availableBytes() shouldBe 237
+        zp4.availableBytes() shouldBe 238
         zp4.allocate("test2", DataType.UBYTE, null, errors)
-        zp4.availableBytes() shouldBe 236
-    }
-
-    test("testFreeSpacesWords") {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, C64Target))
-        zp1.availableWords() shouldBe 6
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, C64Target))
-        zp2.availableWords() shouldBe 38
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, C64Target))
-        zp3.availableWords() shouldBe 57
-        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        zp4.availableWords() shouldBe 116
-        zp4.allocate("test", DataType.UWORD, null, errors)
-        zp4.availableWords() shouldBe 115
-        zp4.allocate("test2", DataType.UWORD, null, errors)
-        zp4.availableWords() shouldBe 114
+        zp4.availableBytes() shouldBe 237
     }
 
     test("testReservedSpace") {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        zp1.availableBytes() shouldBe 238
+        zp1.availableBytes() shouldBe 239
         50u shouldBeIn zp1.free
         100u shouldBeIn zp1.free
         49u shouldBeIn zp1.free
@@ -214,7 +199,7 @@ class TestC64Zeropage: FunSpec({
 
     test("testFullAllocation") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        zp.availableBytes() shouldBe 238
+        zp.availableBytes() shouldBe 239
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
         val loc = zp.allocate("", DataType.UWORD, null, errors)
@@ -222,17 +207,17 @@ class TestC64Zeropage: FunSpec({
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
 
-        for(i in 0..num-4) {
+        for(i in 0..num-3) {
             zp.allocate("", DataType.UWORD, null, errors)
         }
-        zp.availableBytes() shouldBe 6
+        zp.availableBytes() shouldBe 5
 
         shouldThrow<ZeropageDepletedError> {
             // can't allocate because no more sequential bytes, only fragmented
             zp.allocate("", DataType.UWORD, null, errors)
         }
 
-        for(i in 0..5) {
+        for(i in 0..4) {
             zp.allocate("", DataType.UBYTE, null, errors)
         }
 
@@ -293,19 +278,6 @@ class TestCx16Zeropage: FunSpec({
         zp3.availableBytes() shouldBe 215
         zp3.allocate("test2", DataType.UBYTE, null, errors)
         zp3.availableBytes() shouldBe 214
-    }
-
-    test("testFreeSpacesWords") {
-        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
-        zp1.availableWords() shouldBe 108
-        val zp2 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, Cx16Target))
-        zp2.availableWords() shouldBe 87
-        val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, Cx16Target))
-        zp3.availableWords() shouldBe 44
-        zp3.allocate("test", DataType.UWORD, null, errors)
-        zp3.availableWords() shouldBe 43
-        zp3.allocate("test2", DataType.UWORD, null, errors)
-        zp3.availableWords() shouldBe 42
     }
 
     test("testReservedSpace") {

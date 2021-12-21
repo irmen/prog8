@@ -10,6 +10,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.compiler.astprocessing.*
+import prog8.compiler.target.C128Target
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import prog8.compiler.target.cpu6502.codegen.AsmGen
@@ -50,6 +51,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
     val compTarget =
         when(args.compilationTarget) {
             C64Target.name -> C64Target
+            C128Target.name -> C128Target
             Cx16Target.name -> Cx16Target
             else -> throw IllegalArgumentException("invalid compilation target")
         }

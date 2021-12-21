@@ -1,14 +1,14 @@
-package prog8.compiler.target.c64
+package prog8.compiler.target.c128
 
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.InternalCompilerException
 import prog8.compilerinterface.Zeropage
 import prog8.compilerinterface.ZeropageType
 
-class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
+class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
 
-    override val SCRATCH_B1 = 0x02u      // temp storage for a single byte
-    override val SCRATCH_REG = 0x03u     // temp storage for a register, must be B1+1
+    override val SCRATCH_B1 = 0x80u      // temp storage for a single byte                  // TODO c128 address
+    override val SCRATCH_REG = 0x81u     // temp storage for a register, must be B1+1       // TODO c128 address
     override val SCRATCH_W1 = 0xfbu      // temp storage 1 for a word  $fb+$fc
     override val SCRATCH_W2 = 0xfdu      // temp storage 2 for a word  $fd+$fe
 
@@ -21,8 +21,9 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             ))
             throw InternalCompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'")
 
+        // TODO c128 address : build the lists of free ZP locations for the various configurations
         if (options.zeropage == ZeropageType.FULL) {
-            free.addAll(0x02u..0xffu)
+            free.addAll(0x09u..0xffu)
             free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1+1u, SCRATCH_W2, SCRATCH_W2+1u))
             free.removeAll(setOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
         } else {

@@ -28,21 +28,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
     fun hasByteAvailable() = if(options.zeropage== ZeropageType.DONTUSE) false else free.isNotEmpty()
-    fun availableWords(): Int {
-        if(options.zeropage== ZeropageType.DONTUSE)
-            return 0
-
-        val words = free.windowed(2).filter { it[0] == it[1]-1u }
-        var nonOverlappingWordsCount = 0
-        var prevMsbLoc = UInt.MAX_VALUE
-        for(w in words) {
-            if(w[0]!=prevMsbLoc) {
-                nonOverlappingWordsCount++
-                prevMsbLoc = w[1]
-            }
-        }
-        return nonOverlappingWordsCount
-    }
     fun hasWordAvailable(): Boolean {
         if(options.zeropage== ZeropageType.DONTUSE)
             return false

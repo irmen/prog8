@@ -137,8 +137,8 @@ class AsmGen(private val program: Program,
 
         when {
             options.launcher == LauncherType.BASIC -> {
-                if (program.actualLoadAddress != 0x0801u)
-                    throw AssemblyError("BASIC output must have load address $0801")
+                if (program.actualLoadAddress != options.compTarget.machine.BASIC_LOAD_ADDRESS)
+                    throw AssemblyError("BASIC output must have correct load address")
                 out("; ---- basic program with sys call ----")
                 out("* = ${program.actualLoadAddress.toHex()}")
                 val year = LocalDate.now().year

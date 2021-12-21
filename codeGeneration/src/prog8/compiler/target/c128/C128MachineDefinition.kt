@@ -1,6 +1,7 @@
-package prog8.compiler.target.c64
+package prog8.compiler.target.c128
 
 import prog8.ast.base.DataType
+import prog8.compiler.target.c64.normal6502instructions
 import prog8.compiler.target.cbm.Mflpt5
 import prog8.compiler.target.cbm.viceMonListPostfix
 import prog8.compilerinterface.*
@@ -8,7 +9,7 @@ import java.io.IOException
 import java.nio.file.Path
 
 
-class C64MachineDefinition: IMachineDefinition {
+class C128MachineDefinition: IMachineDefinition {
 
     override val cpu = CpuType.CPU6502
 
@@ -16,12 +17,12 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val POINTER_MEM_SIZE = 2
-    override val BASIC_LOAD_ADDRESS = 0x0801u
-    override val RAW_LOAD_ADDRESS = 0xc000u
+    override val BASIC_LOAD_ADDRESS = 0x1c01u               // TODO c128 address
+    override val RAW_LOAD_ADDRESS = 0xc000u                 // TODO c128 address
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
-    override val ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive
+    override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive          // TODO c128 address
+    override val ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive          // TODO c128 address
 
     override lateinit var zeropage: Zeropage
 
@@ -36,12 +37,12 @@ class C64MachineDefinition: IMachineDefinition {
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         if(selectedEmulator!=1) {
-            System.err.println("The c64 target only supports the main emulator (Vice).")
+            System.err.println("The c128 target only supports the main emulator (Vice).")
             return
         }
 
-        for(emulator in listOf("x64sc", "x64")) {
-            println("\nStarting C-64 emulator $emulator...")
+        for(emulator in listOf("x128")) {
+            println("\nStarting C-128 emulator $emulator...")
             val cmdline = listOf(emulator, "-silent", "-moncommands", "${programNameWithPath}.$viceMonListPostfix",
                     "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()
@@ -56,25 +57,12 @@ class C64MachineDefinition: IMachineDefinition {
         }
     }
 
-    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu
+    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu            // TODO c128 address
     override fun getPreallocatedZeropageVars(): Map<String, Pair<UInt, DataType>> = emptyMap()
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
-        zeropage = C64Zeropage(compilerOptions)
+        zeropage = C128Zeropage(compilerOptions)
     }
 
     override val opcodeNames = normal6502instructions
 }
-
-
-// 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
-internal val normal6502instructions = setOf(
-    "adc", "ahx", "alr", "anc", "and", "ane", "arr", "asl", "asr", "axs", "bcc", "bcs",
-    "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
-    "cld", "cli", "clv", "cmp", "cpx", "cpy", "dcm", "dcp", "dec", "dex", "dey",
-    "eor", "gcc", "gcs", "geq", "gge", "glt", "gmi", "gne", "gpl", "gvc", "gvs",
-    "inc", "ins", "inx", "iny", "isb", "isc", "jam", "jmp", "jsr", "lae", "las",
-    "lax", "lda", "lds", "ldx", "ldy", "lsr", "lxa", "nop", "ora", "pha", "php",
-    "pla", "plp", "rla", "rol", "ror", "rra", "rti", "rts", "sax", "sbc", "sbx",
-    "sec", "sed", "sei", "sha", "shl", "shr", "shs", "shx", "shy", "slo", "sre",
-    "sta", "stx", "sty", "tas", "tax", "tay", "tsx", "txa", "txs", "tya", "xaa")

@@ -5,6 +5,7 @@ import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
+import prog8.compiler.target.C128Target
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.Cx16Target
 import java.io.File
@@ -40,7 +41,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.name}', '${C128Target.name}', '${Cx16Target.name}')").default(C64Target.name)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
@@ -67,7 +68,7 @@ private fun compileMain(args: Array<String>): Boolean {
     if(srcdirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
-    if (compilationTarget != C64Target.name && compilationTarget != Cx16Target.name) {
+    if (compilationTarget !in setOf(C64Target.name, C128Target.name, Cx16Target.name)) {
         System.err.println("Invalid compilation target: $compilationTarget")
         return false
     }

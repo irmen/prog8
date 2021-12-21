@@ -99,7 +99,7 @@ One or more .p8 module files
 
 ``-target <compilation target>``
     Sets the target output of the compiler, currently 'c64' and 'cx16' are valid targets.
-    c64 = Commodore-64, cx16 = Commander X16.
+    c64 = Commodore 64, c128 = Commodore 128, cx16 = Commander X16.
     Default = c64
 
 ``-srcdirs <pathlist>``
