@@ -15,7 +15,7 @@ sub start() {
 
     txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
     void c64.CHRIN()
-    c64.CLEARSCR()
+    txt.clear_screen()
 
     repeat {
         uword note
@@ -32,27 +32,19 @@ sub start() {
             c64.CR2 = waveform <<4 | 1
 
             print_notes(note1, note2)
-            delay()
-        }
-    }
-}
-
-sub delay() {
-    repeat 8 {
-        ubyte jiffy = c64.TIME_LO
-        while c64.TIME_LO==jiffy {
+            sys.wait(8)
         }
     }
 }
 
 sub print_notes(ubyte n1, ubyte n2) {
-    c64.CHROUT('\n')
+    txt.nl()
     txt.plot(n1/2, 24)
     txt.color(7)
-    c64.CHROUT('Q')
+    txt.chrout('Q')
     txt.plot(n2/2, 24)
     txt.color(4)
-    c64.CHROUT('Q')
+    txt.chrout('Q')
 }
 
 

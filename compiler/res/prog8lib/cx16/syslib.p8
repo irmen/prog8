@@ -11,7 +11,7 @@ c64 {
 
 ; STROUT --> use txt.print
 ; CLEARSCR -> use txt.clear_screen
-; HOMECRSR -> use txt.plot
+; HOMECRSR -> use txt.home or txt.plot
 
 romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
 romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)

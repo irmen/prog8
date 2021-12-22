@@ -177,9 +177,10 @@ c64 {
 
 ; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----
 
-; STROUT -> use txt.print
-romsub $C07B = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
-romsub $C150 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
+; STROUT --> use txt.print
+; CLEARSCR -> use txt.clear_screen
+; HOMECRSR -> use txt.home or txt.plot
+
 romsub $FA65 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
 romsub $FF33 = IRQDFEND() clobbers(A,X,Y)                       ; default IRQ end/cleanup
 
