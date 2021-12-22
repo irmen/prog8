@@ -67,19 +67,6 @@ sys (part of syslib)
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
-``rsave()``
-    Saves the CPU registers and the status flags.
-    You can now more or less 'safely' use the registers directly, until you
-    restore them again so the generated code can carry on normally.
-    Note: it's not needed to rsave() before an asm subroutine that clobbers the X register
-    (which is used as the internal evaluation stack pointer).
-    The compiler will take care of this situation automatically.
-    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved.
-
-``rrestore()``
-    Restores the CPU registers and the status flags from previously saved values.
-    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* restored.
-
 ``read_flags() -> ubyte``
     Returns the current value of the CPU status register.
 
