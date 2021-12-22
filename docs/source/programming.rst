@@ -960,9 +960,14 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler t
 
 rsave, rsavex
     Saves all registers including status (or only X) on the stack
+    It's not needed to rsave()/rsavex() before an asm subroutine that clobbers the X register
+    (which is used by prog8 as the internal evaluation stack pointer);
+    the compiler will take care of this situation automatically.
+    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved.
 
 rrestore, rrestorex
     Restore all registers including status (or only X) back from the cpu hardware stack
+    Note: the 16 bit 'virtual' registers of the Commander X16 are *not* restored.
 
 
 Library routines
