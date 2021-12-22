@@ -313,11 +313,10 @@ asmsub  init_system_phase2()  {
 
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
-        ;; TODO c128 how to do this?
-        ;; lda  #$80
-        ;; sta  657    ; disable charset switching
-        ;; lda  #239
-        ;; sta  808    ; disable run/stop key
+        lda  #$80
+        sta  247    ; disable charset switching
+        lda  #112
+        sta  808    ; disable run/stop key
         rts
     }}
 }
