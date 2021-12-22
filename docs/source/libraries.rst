@@ -109,7 +109,7 @@ sys (part of syslib)
     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
     note for cx16: the system irq handler has to be active for this to work (this is not required on c64)
 
-``waitrastborder()`` (c64 target only)
+``waitrastborder()`` (c64/c128 targets only)
     busy wait till the raster position has reached the bottom screen border (approximately)
     can be used to avoid screen flicker/tearing when updating screen contents.
     note: a more accurate way to do this is by using a raster irq handler instead.

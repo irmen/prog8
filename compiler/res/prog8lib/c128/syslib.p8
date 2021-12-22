@@ -264,6 +264,14 @@ asmsub RDTIM16() -> uword @AY {
 }
 
 c128 {
+; ---- C128 specific registers ----
+
+    &ubyte  VM1     = $0A2C         ; shadow for VUC $d018 in text mode
+    &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
+    &ubyte  VM3     = $0A2E         ; starting page for VDC screen mem
+    &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
+
+
 ; ---- C128 specific system utility routines: ----
 
 asmsub  init_system()  {
@@ -310,6 +318,27 @@ asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
         ;; sta  657    ; disable charset switching
         ;; lda  #239
         ;; sta  808    ; disable run/stop key
+        rts
+    }}
+}
+
+asmsub  disable_basic() clobbers(A) {
+    %asm {{
+        lda $0a04   ; disable BASIC shadow registers
+        and #$fe
+        sta $0a04
+
+        lda #$01    ; disable BASIC IRQ service routine
+        sta $12fd
+
+        lda #$ff    ; disable screen editor IRQ setup
+        sta $d8
+
+        lda #$b7    ; skip programmable function key check
+        sta $033c
+
+        lda #$0e    ; bank out BASIC ROM
+        sta $ff00
         rts
     }}
 }

@@ -92,10 +92,12 @@ sub color (ubyte txtcol) {
 
 sub lowercase() {
     c64.VMCSB |= 2
+    c128.VM1 |= 2
 }
 
 sub uppercase() {
     c64.VMCSB &= ~2
+    c128.VM1 &= ~2
 }
 
 asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
