@@ -262,83 +262,14 @@ asmsub RDTIM16() -> uword @AY {
     }}
 }
 
-}
 
-c128 {
-; ---- C128 specific registers ----
-
-    &ubyte  VM1     = $0A2C         ; shadow for VUC $d018 in text mode
-    &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
-    &ubyte  VM3     = $0A2E         ; starting page for VDC screen mem
-    &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
-
-
-; ---- C128 specific system utility routines: ----
-
-asmsub  init_system()  {
-    ; Initializes the machine to a sane starting state.
-    ; Called automatically by the loader program logic.
-    ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
-    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-    ; Also a different color scheme is chosen to identify ourselves a little.
-    ; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
-    %asm {{
-        sei
-        cld
-        ;;lda  #%00101111                     ; TODO c128 ram and rom bank selection how?
-        ;;sta  $00
-        ;;lda  #%00100111
-        ;;sta  $01
-        jsr  c64.IOINIT
-        jsr  c64.RESTOR
-        jsr  c64.CINT
-        lda  #6
-        sta  c64.EXTCOL
-        lda  #7
-        sta  c64.COLOR
-        lda  #0
-        sta  c64.BGCOL0
-        jsr  disable_runstop_and_charsetswitch
-        clc
-        clv
-        cli
-        rts
-    }}
-}
-
-asmsub  init_system_phase2()  {
-    %asm {{
-        rts     ; no phase 2 steps on the C128
-    }}
-}
-
+; ---- system utility routines that are essentially the same as on the C64: -----
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
         lda  #$80
         sta  247    ; disable charset switching
         lda  #112
         sta  808    ; disable run/stop key
-        rts
-    }}
-}
-
-asmsub  disable_basic() clobbers(A) {
-    %asm {{
-        lda $0a04   ; disable BASIC shadow registers
-        and #$fe
-        sta $0a04
-
-        lda #$01    ; disable BASIC IRQ service routine
-        sta $12fd
-
-        lda #$ff    ; disable screen editor IRQ setup
-        sta $d8
-
-        lda #$b7    ; skip programmable function key check
-        sta $033c
-
-        lda #$0e    ; bank out BASIC ROM
-        sta $ff00
         rts
     }}
 }
@@ -498,6 +429,77 @@ _setup_raster_irq
 		sta  c64.IREQMASK   ;enable raster interrupt signals from vic
 		rts
 	}}
+}
+
+}
+
+c128 {
+; ---- C128 specific registers ----
+
+    &ubyte  VM1     = $0A2C         ; shadow for VUC $d018 in text mode
+    &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
+    &ubyte  VM3     = $0A2E         ; starting page for VDC screen mem
+    &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
+
+
+; ---- C128 specific system utility routines: ----
+
+asmsub  init_system()  {
+    ; Initializes the machine to a sane starting state.
+    ; Called automatically by the loader program logic.
+    ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
+    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
+    ; Also a different color scheme is chosen to identify ourselves a little.
+    ; Uppercase charset is activated, and all three registers set to 0, status flags cleared.
+    %asm {{
+        sei
+        cld
+        ;;lda  #%00101111                     ; TODO c128 ram and rom bank selection how?
+        ;;sta  $00
+        ;;lda  #%00100111
+        ;;sta  $01
+        jsr  c64.IOINIT
+        jsr  c64.RESTOR
+        jsr  c64.CINT
+        lda  #6
+        sta  c64.EXTCOL
+        lda  #7
+        sta  c64.COLOR
+        lda  #0
+        sta  c64.BGCOL0
+        jsr  c64.disable_runstop_and_charsetswitch
+        clc
+        clv
+        cli
+        rts
+    }}
+}
+
+asmsub  init_system_phase2()  {
+    %asm {{
+        rts     ; no phase 2 steps on the C128
+    }}
+}
+
+asmsub  disable_basic() clobbers(A) {
+    %asm {{
+        lda $0a04   ; disable BASIC shadow registers
+        and #$fe
+        sta $0a04
+
+        lda #$01    ; disable BASIC IRQ service routine
+        sta $12fd
+
+        lda #$ff    ; disable screen editor IRQ setup
+        sta $d8
+
+        lda #$b7    ; skip programmable function key check
+        sta $033c
+
+        lda #$0e    ; bank out BASIC ROM
+        sta $ff00
+        rts
+    }}
 }
 
 ; ---- end of C128 specific system utility routines ----
