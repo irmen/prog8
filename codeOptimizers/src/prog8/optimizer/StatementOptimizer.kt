@@ -367,7 +367,7 @@ class StatementOptimizer(private val program: Program,
 
         val targetIDt = assignment.target.inferType(program)
         if(!targetIDt.isKnown)
-            throw FatalAstException("can't infer type of assignment target")
+            return noModifications
 
         // optimize binary expressions a bit
         val bexpr=assignment.value as? BinaryExpression
