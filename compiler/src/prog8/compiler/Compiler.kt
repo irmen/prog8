@@ -76,8 +76,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                 )
             postprocessAst(program, args.errors, compilationOptions)
 
-            println("*********** AST BEFORE ASSEMBLYGEN *************")
-            printProgram(program)
+//            println("*********** AST BEFORE ASSEMBLYGEN *************")
+//            printProgram(program)
 
             if (args.writeAssembly) {
                 when (val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)) {

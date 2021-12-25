@@ -633,14 +633,13 @@ class TestOptimization: FunSpec({
         uword zz
         zz = 60
         ubyte xx
-        xx = 0
         xx = sin8u(xx)
         xx += 6
          */
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 8
+        stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
-        stmts.filterIsInstance<Assignment>().size shouldBe 5
+        stmts.filterIsInstance<Assignment>().size shouldBe 4
     }
 
     test("only substitue assignments with 0 after a =0 initializer if it is the same variable") {
@@ -666,6 +665,8 @@ class TestOptimization: FunSpec({
         yy = 0
         xx += 10
          */
+        printProgram(result.program)
+
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 2

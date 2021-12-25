@@ -2,6 +2,14 @@
 %zeropage basicsafe
 
 main {
+    ubyte @shared foo=99
+      sub thing(uword rr) {
+        ubyte @shared xx = rr[1]    ; should still work as var initializer that will be rewritten
+        ubyte @shared yy
+        yy = rr[2]
+        uword @shared other
+        ubyte @shared zz = other[3]
+      }
     sub start() {
         ubyte @shared xx
         repeat {

@@ -206,14 +206,14 @@ class TestSubroutines: FunSpec({
         val block = module.statements.single() as Block
         val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
         block.name shouldBe "main"
-        thing.statements.size shouldBe 11          // rr paramdecl, xx, xx assign, yy decl, yy init 0, yy assign, other, other assign 0, zz, zz assign, return
+        thing.statements.size shouldBe 10          // rr paramdecl, xx, xx assign, yy decl, yy assign, other, other assign 0, zz, zz assign, return
         val xx = thing.statements[1] as VarDecl
         withClue("vardecl init values must have been moved to separate assignments") {
             xx.value shouldBe null
         }
         val assignXX = thing.statements[2] as Assignment
-        val assignYY = thing.statements[5] as Assignment
-        val assignZZ = thing.statements[9] as Assignment
+        val assignYY = thing.statements[4] as Assignment
+        val assignZZ = thing.statements[8] as Assignment
         assignXX.target.identifier!!.nameInSource shouldBe listOf("xx")
         assignYY.target.identifier!!.nameInSource shouldBe listOf("yy")
         assignZZ.target.identifier!!.nameInSource shouldBe listOf("zz")
