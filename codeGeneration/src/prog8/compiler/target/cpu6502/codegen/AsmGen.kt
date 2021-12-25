@@ -781,18 +781,14 @@ class AsmGen(private val program: Program,
             is BranchStatement -> translate(stmt)
             is IfStatement -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
-            is Break -> {
-                if(loopEndLabels.isEmpty())
-                    throw AssemblyError("break statement out of context  ${stmt.position}")
-                jmp(loopEndLabels.peek())
-            }
             is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
             is UntilLoop -> translate(stmt)
             is WhenStatement -> translate(stmt)
-            is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
             is AnonymousScope -> translate(stmt)
+            is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is Block -> throw AssemblyError("block should have been handled elsewhere")
+            is Break -> throw AssemblyError("break should have been replaced by goto")
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
     }
@@ -1366,34 +1362,12 @@ $repeatLabel    lda  $counterVar
             out("  $instruction  ${getJumpTarget(jump)}")
             translate(stmt.elsepart)
         } else {
-            val truePartIsJustBreak = stmt.truepart.statements.firstOrNull() is Break
-            val elsePartIsJustBreak = stmt.elsepart.statements.firstOrNull() is Break
             if(stmt.elsepart.isEmpty()) {
-                if(truePartIsJustBreak) {
-                    // branch with just a break (jump out of loop)
-                    val instruction = branchInstruction(stmt.condition, false)
-                    val loopEndLabel = loopEndLabels.peek()
-                    out("  $instruction  $loopEndLabel")
-                } else {
-                    val instruction = branchInstruction(stmt.condition, true)
-                    val elseLabel = makeLabel("branch_else")
-                    out("  $instruction  $elseLabel")
-                    translate(stmt.truepart)
-                    out(elseLabel)
-                }
-            }
-            else if(truePartIsJustBreak) {
-                // branch with just a break (jump out of loop)
-                val instruction = branchInstruction(stmt.condition, false)
-                val loopEndLabel = loopEndLabels.peek()
-                out("  $instruction  $loopEndLabel")
-                translate(stmt.elsepart)
-            } else if(elsePartIsJustBreak) {
-                // branch with just a break (jump out of loop) but true/false inverted
                 val instruction = branchInstruction(stmt.condition, true)
-                val loopEndLabel = loopEndLabels.peek()
-                out("  $instruction  $loopEndLabel")
+                val elseLabel = makeLabel("branch_else")
+                out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
+                out(elseLabel)
             } else {
                 val instruction = branchInstruction(stmt.condition, true)
                 val elseLabel = makeLabel("branch_else")

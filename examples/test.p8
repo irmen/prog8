@@ -1,19 +1,38 @@
-
+%import textio
+%zeropage basicsafe
 
 main {
-    ubyte @shared joy_info
-
     sub start() {
-        void pushing_start()
-    }
+        ubyte @shared xx
+        repeat {
+            xx++
+            if xx==10
+                break
+        }
+        txt.print_ub(xx)
+        txt.nl()
 
-    sub pushing_start() -> ubyte {
-        joy_info++
-        return not c64.READST()
-    }
+        while xx<50 {
+            xx++
+            if xx==40
+                break
+        }
+        txt.print_ub(xx)
+        txt.nl()
 
-    sub derp(ubyte aa) -> ubyte {
-        aa++
-        return aa*2
+        do {
+            xx++
+            if xx==80
+                break
+        } until xx>100
+        txt.print_ub(xx)
+        txt.nl()
+
+        for xx in 0 to 25 {
+            if xx==20
+                break
+        }
+        txt.print_ub(xx)
+        txt.nl()
     }
 }

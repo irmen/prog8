@@ -6,7 +6,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.size
@@ -228,15 +227,14 @@ class StatementOptimizer(private val program: Program,
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
         val constvalue = untilLoop.condition.constValue(program)
         if(constvalue!=null) {
-            if(constvalue.asBooleanValue) {
-                // always true -> keep only the statement block (if there are no break statements)
+            return if(constvalue.asBooleanValue) {
+                // always true -> keep only the statement block
                 errors.warn("condition is always true", untilLoop.condition.position)
-                if(!hasBreak(untilLoop.body))
-                    return listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
+                listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
                 // always false
                 val forever = RepeatLoop(null, untilLoop.body, untilLoop.position)
-                return listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
+                listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
             }
         }
         return noModifications
@@ -474,25 +472,4 @@ class StatementOptimizer(private val program: Program,
 
         return noModifications
     }
-
-    private fun hasBreak(scope: IStatementContainer): Boolean {
-
-        class Searcher: IAstVisitor
-        {
-            var count=0
-
-            override fun visit(breakStmt: Break) {
-                count++
-            }
-        }
-
-        val s=Searcher()
-        for(stmt in scope.statements) {
-            stmt.accept(s)
-            if(s.count>0)
-                return true
-        }
-        return s.count > 0
-    }
-
 }

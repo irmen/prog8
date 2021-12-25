@@ -59,6 +59,12 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     caster.applyModifications()
 }
 
+fun Program.desugaring(errors: IErrorReporter): Int {
+    val desugar = CodeDesugarer(this, errors)
+    desugar.visit(this)
+    return desugar.applyModifications()
+}
+
 internal fun Program.verifyFunctionArgTypes() {
     val fixer = VerifyFunctionArgTypes(this)
     fixer.visit(this)

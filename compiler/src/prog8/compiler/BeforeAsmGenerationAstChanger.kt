@@ -31,6 +31,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         varsList.add(decl.name to decl)
     }
 
+    override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
+        throw FatalAstException("break should have been replaced by goto $breakStmt")
+    }
+
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {
         // move all subroutines to the bottom of the block
         val subs = block.statements.filterIsInstance<Subroutine>()

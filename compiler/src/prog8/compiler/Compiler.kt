@@ -76,8 +76,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                 )
             postprocessAst(program, args.errors, compilationOptions)
 
-//            println("*********** AST BEFORE ASSEMBLYGEN *************")
-//            printProgram(program)
+            println("*********** AST BEFORE ASSEMBLYGEN *************")
+            printProgram(program)
 
             if (args.writeAssembly) {
                 when (val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)) {
@@ -267,6 +267,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors, compilerOptions)
     errors.report()
+    program.desugaring(errors)
+    errors.report()
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
@@ -295,11 +297,11 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
-
     errors.report()
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    program.desugaring(errors)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
