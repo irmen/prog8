@@ -15,6 +15,17 @@ val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", 
 val LogicalOperators = setOf("and", "or", "xor", "not")
 val BitwiseOperators = setOf("&", "|", "^")
 
+fun invertedComparisonOperator(operator: String) =
+    when (operator) {
+        "==" -> "!="
+        "!=" -> "=="
+        "<" -> ">="
+        ">" -> "<="
+        "<=" -> ">"
+        ">=" -> "<"
+        else -> null
+    }
+
 
 sealed class Expression: Node {
     abstract override fun copy(): Expression
@@ -937,4 +948,14 @@ class FunctionCall(override var target: IdentifierReference,
             else -> return InferredTypes.unknown()
         }
     }
+}
+
+
+fun invertCondition(cond: Expression): BinaryExpression? {
+    if(cond is BinaryExpression) {
+        val invertedOperator = invertedComparisonOperator(cond.operator)
+        if (invertedOperator != null)
+            return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
+    }
+    return null
 }

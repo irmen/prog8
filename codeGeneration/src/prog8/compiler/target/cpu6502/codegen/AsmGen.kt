@@ -1098,15 +1098,14 @@ class AsmGen(private val program: Program,
         val booleanCondition = stmt.condition as BinaryExpression
 
         if (stmt.elsepart.isEmpty()) {
-// TODO specialize this
-//            if(stmt.truepart.statements.singleOrNull() is Jump) {
-//                translateCompareAndJumpIfTrue(booleanCondition, stmt.truepart.statements[0] as Jump)
-//            } else {
+            if(stmt.truepart.statements.singleOrNull() is Jump) {
+                translateCompareAndJumpIfTrue(booleanCondition, stmt.truepart.statements[0] as Jump)
+            } else {
                 val endLabel = makeLabel("if_end")
                 translateCompareAndJumpIfFalse(booleanCondition, endLabel)
                 translate(stmt.truepart)
                 out(endLabel)
-//            }
+            }
         }
         else {
             // both true and else parts
@@ -1613,16 +1612,29 @@ $label              nop""")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: BinaryExpression, jump: Jump) {
+        if(expr.operator !in ComparisonOperators)
+            throw AssemblyError("must be comparison expression")
+
+        // invert the comparison, so we can reuse the JumpIfFalse code generation routines
+        val invertedComparisonOperator = invertedComparisonOperator(expr.operator)
+            ?: throw AssemblyError("can't invert comparison $expr")
+
         val left = expr.left
         val right = expr.right
-        val operator = expr.operator
-        val leftConstVal = left.constValue(program)
         val rightConstVal = right.constValue(program)
 
+        val label = when {
+            jump.generatedLabel!=null -> jump.generatedLabel!!
+            jump.identifier!=null -> asmSymbolName(jump.identifier!!)
+            jump.address!=null -> jump.address!!.toHex()
+            else -> throw AssemblyError("weird jump")
+        }
         if (rightConstVal!=null && rightConstVal.number == 0.0)
-            testZeroAndJump(left, operator, jump, null)
-        else
-            testNonzeroComparisonAndJump(left, operator, right, jump, null, leftConstVal, rightConstVal)
+            testZeroAndJump(left, invertedComparisonOperator, label)
+        else {
+            val leftConstVal = left.constValue(program)
+            testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
+        }
     }
 
     private fun translateCompareAndJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
@@ -1633,18 +1645,16 @@ $label              nop""")
         val rightConstVal = right.constValue(program)
 
         if (rightConstVal!=null && rightConstVal.number == 0.0)
-            testZeroAndJump(left, operator, null, jumpIfFalseLabel)
+            testZeroAndJump(left, operator, jumpIfFalseLabel)
         else
-            testNonzeroComparisonAndJump(left, operator, right, null, jumpIfFalseLabel, leftConstVal, rightConstVal)
+            testNonzeroComparisonAndJump(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
     }
 
     private fun testZeroAndJump(
         left: Expression,
         operator: String,
-        jumpIfTrue: Jump?,
-        jumpIfFalseLabel: String?
+        jumpIfFalseLabel: String
     ) {
-        require(jumpIfTrue!=null || jumpIfFalseLabel!=null)
         when(val dt = left.inferType(program).getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.UWORD -> {
                 if(operator=="<") {
@@ -1733,15 +1743,11 @@ $label              nop""")
         left: Expression,
         operator: String,
         right: Expression,
-        jumpIfTrue: Jump?,
-        jumpIfFalseLabel: String?,
+        jumpIfFalseLabel: String,
         leftConstVal: NumericLiteralValue?,
         rightConstVal: NumericLiteralValue?
     ) {
-        require(jumpIfTrue!=null || jumpIfFalseLabel!=null)
         val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
-
-        jumpIfFalseLabel!!  // TODO  jump if true... or rewrite everything to use just jump-if-false
 
         when (operator) {
             "==" -> {

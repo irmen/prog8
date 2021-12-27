@@ -9,7 +9,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.IErrorReporter
-import prog8.optimizer.invertedComparisonOperator
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter): AstWalker() {

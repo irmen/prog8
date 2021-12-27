@@ -3,7 +3,10 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-optimize ifs containing only a jump: reuse old code from AsmGen translateComparisonExpressionWithJumpIfFalse?
+fix imageviewer pcx decoding, broken since if/goto changes...
+also wormfood: worm freezes when you press fire...
+also petaxian: gameplay doesn't work at all anymore
+also textelite: after showing map, it just exits
 
 
 Blocked by an official Commander-x16 v39 release

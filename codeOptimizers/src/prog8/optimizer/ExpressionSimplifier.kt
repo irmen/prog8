@@ -725,24 +725,3 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private data class BinExprWithConstants(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
 
 }
-
-
-fun invertCondition(cond: Expression): BinaryExpression? {
-    if(cond is BinaryExpression) {
-        val invertedOperator = invertedComparisonOperator(cond.operator)
-        if (invertedOperator != null)
-            return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
-    }
-    return null
-}
-
-fun invertedComparisonOperator(operator: String) =
-    when (operator) {
-        "==" -> "!="
-        "!=" -> "=="
-        "<" -> ">="
-        ">" -> "<="
-        "<=" -> ">"
-        ">=" -> "<"
-        else -> null
-    }
