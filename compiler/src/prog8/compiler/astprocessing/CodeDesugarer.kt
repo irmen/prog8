@@ -1,11 +1,13 @@
 package prog8.compiler.astprocessing
 
-import com.github.michaelbull.result.toResultOr
+import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.FunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
@@ -110,5 +112,26 @@ _whilecond:
                 pos)
         ), pos)
         return listOf(IAstModification.ReplaceNode(whileLoop, replacement, parent))
+    }
+
+    override fun before(functionCallStatement: FunctionCallStatement, parent: Node) =
+        before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
+
+    override fun before(functionCall: FunctionCall, parent: Node) =
+        before(functionCall as IFunctionCall, parent, functionCall.position)
+
+    private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<IAstModification> {
+        if(functionCall.target.nameInSource==listOf("peek")) {
+            // peek(a) is synonymous with @(a)
+            val memread = DirectMemoryRead(functionCall.args.single(), position)
+            return listOf(IAstModification.ReplaceNode(functionCall as Node, memread, parent))
+        }
+        if(functionCall.target.nameInSource==listOf("poke")) {
+            // poke(a, v) is synonymous with @(a) = v
+            val tgt = AssignTarget(null, null, DirectMemoryWrite(functionCall.args[0], position), position)
+            val assign = Assignment(tgt, functionCall.args[1], position)
+            return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
+        }
+        return noModifications
     }
 }
