@@ -19,14 +19,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         return listOf(IAstModification.Remove(nopStatement, parent as IStatementContainer))
     }
 
-    override fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         return if(parent is IStatementContainer)
             listOf(ScopeFlatten(scope, parent as IStatementContainer))
         else
             noModifications
     }
 
-    class ScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : IAstModification {
+    private class ScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : IAstModification {
         override fun perform() {
             val idx = into.statements.indexOf(scope)
             if(idx>=0) {
@@ -37,15 +37,16 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         }
     }
 
-    override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        return before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
-    }
+    override fun before(functionCallStatement: FunctionCallStatement, parent: Node) =
+        before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
 
-    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        return before(functionCall as IFunctionCall, parent, functionCall.position)
-    }
+    override fun before(functionCall: FunctionCall, parent: Node) =
+        before(functionCall as IFunctionCall, parent, functionCall.position)
 
     private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<IAstModification> {
+
+        // TODO move to CodeDesugarer
+
         if(functionCall.target.nameInSource==listOf("peek")) {
             // peek(a) is synonymous with @(a)
             val memread = DirectMemoryRead(functionCall.args.single(), position)
@@ -61,9 +62,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.parent!==parent)
-            throw FatalAstException("parent node mismatch at $typecast")
-
         if(typecast.expression is NumericLiteralValue) {
             val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
             if(value.isValid)
@@ -85,52 +83,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         return noModifications
     }
 
-    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        if(subroutine.parent!==parent)
-            throw FatalAstException("parent node mismatch at $subroutine")
-        return noModifications
-    }
-
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if(assignment.parent!==parent)
-            throw FatalAstException("parent node mismatch at $assignment")
-
         val nextAssign = assignment.nextSibling() as? Assignment
         if(nextAssign!=null && nextAssign.target.isSameAs(assignment.target, program)) {
             if(nextAssign.value isSameAs assignment.value)
                 return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
         }
 
-        return noModifications
-    }
-
-    override fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> {
-        if(assignTarget.parent!==parent)
-            throw FatalAstException("parent node mismatch at $assignTarget")
-        return noModifications
-    }
-
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.parent!==parent)
-            throw FatalAstException("parent node mismatch at $decl")
-        return noModifications
-    }
-
-    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
-        if(scope.parent!==parent)
-            throw FatalAstException("parent node mismatch at $scope")
-        return noModifications
-    }
-
-    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
-        if(returnStmt.parent!==parent)
-            throw FatalAstException("parent node mismatch at $returnStmt")
-        return noModifications
-    }
-
-    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
-        if(identifier.parent!==parent)
-            throw FatalAstException("parent node mismatch at $identifier")
         return noModifications
     }
 }

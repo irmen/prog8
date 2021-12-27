@@ -1,10 +1,13 @@
 package prog8.compiler.astprocessing
 
+import com.github.michaelbull.result.toResultOr
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ParentSentinel
+import prog8.ast.base.Position
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -25,18 +28,22 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     private var generatedLabelSequenceNumber: Int = 0
     private val generatedLabelPrefix = "prog8_label_"
 
-    private fun makeLabel(postfix: String): String {
+    private fun makeLabel(postfix: String, position: Position): Label {
         generatedLabelSequenceNumber++
-        return "${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
+        return Label("${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix", position)
+    }
+
+    private fun jumpLabel(label: Label): Jump {
+        val ident = IdentifierReference(listOf(label.name), label.position)
+        return Jump(null, ident, null, label.position)
     }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
-            val labelName = makeLabel("after")
-            val ident = IdentifierReference(listOf(labelName), breakStmt.position)
+            val label = makeLabel("after", breakStmt.position)
             return listOf(
-                IAstModification.ReplaceNode(breakStmt, Jump(null, ident, null, breakStmt.position), parent),
-                IAstModification.InsertAfter(stmt, Label(labelName, breakStmt.position), stmt.parent as IStatementContainer)
+                IAstModification.ReplaceNode(breakStmt, jumpLabel(label), parent),
+                IAstModification.InsertAfter(stmt, label, stmt.parent as IStatementContainer)
             )
         }
 
@@ -56,4 +63,52 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
         }
     }
 
+    override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        /*
+do { STUFF } until CONDITION
+    ===>
+_loop:
+  STUFF
+if not CONDITION
+   goto _loop
+         */
+        val pos = untilLoop.position
+        val loopLabel = makeLabel("untilloop", pos)
+        val notCondition = PrefixExpression("not", untilLoop.condition, pos)
+        val replacement = AnonymousScope(mutableListOf(
+            loopLabel,
+            untilLoop.body,
+            IfStatement(notCondition,
+                AnonymousScope(mutableListOf(jumpLabel(loopLabel)), pos),
+                AnonymousScope(mutableListOf(), pos),
+                pos)
+        ), pos)
+        return listOf(IAstModification.ReplaceNode(untilLoop, replacement, parent))
+    }
+
+    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        /*
+while CONDITION { STUFF }
+    ==>
+  goto _whilecond
+_whileloop:
+  STUFF
+_whilecond:
+  if CONDITION goto _whileloop
+         */
+        val pos = whileLoop.position
+        val condLabel = makeLabel("whilecond", pos)
+        val loopLabel = makeLabel("whileloop", pos)
+        val replacement = AnonymousScope(mutableListOf(
+            jumpLabel(condLabel),
+            loopLabel,
+            whileLoop.body,
+            condLabel,
+            IfStatement(whileLoop.condition,
+                AnonymousScope(mutableListOf(jumpLabel(loopLabel)), pos),
+                AnonymousScope(mutableListOf(), pos),
+                pos)
+        ), pos)
+        return listOf(IAstModification.ReplaceNode(whileLoop, replacement, parent))
+    }
 }

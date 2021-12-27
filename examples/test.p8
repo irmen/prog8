@@ -11,6 +11,9 @@ main {
         ubyte @shared zz = other[3]
       }
     sub start() {
+
+        txt.print("should print:  10  40  80  20\n")
+
         ubyte @shared xx
         repeat {
             xx++

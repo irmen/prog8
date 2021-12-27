@@ -16,6 +16,8 @@ import prog8.compilerinterface.IStringEncoding
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    val parentChecker = ParentNodeChecker()
+    parentChecker.visit(this)
     val checker = AstChecker(this, errors, compilerOptions)
     checker.visit(this)
 }

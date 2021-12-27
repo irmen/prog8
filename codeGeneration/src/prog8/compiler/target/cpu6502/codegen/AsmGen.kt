@@ -781,12 +781,12 @@ class AsmGen(private val program: Program,
             is BranchStatement -> translate(stmt)
             is IfStatement -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
-            is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
-            is UntilLoop -> translate(stmt)
             is WhenStatement -> translate(stmt)
             is AnonymousScope -> translate(stmt)
             is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
+            is UntilLoop -> throw AssemblyError("do..until should have been desugared to jumps")
+            is WhileLoop -> throw AssemblyError("while should have been desugared to jumps")
             is Block -> throw AssemblyError("block should have been handled elsewhere")
             is Break -> throw AssemblyError("break should have been replaced by goto")
             else -> throw AssemblyError("missing asm translation for $stmt")
@@ -1266,35 +1266,6 @@ $repeatLabel    lda  $counterVar
             else -> throw AssemblyError("invalidt dt")
         }
         return counterVar
-    }
-
-    private fun translate(stmt: WhileLoop) {
-        requireComparisonExpression(stmt.condition)  // WhileLoop: condition must be of form  'x <comparison> <value>'
-        val booleanCondition = stmt.condition as BinaryExpression
-
-        val whileLabel = makeLabel("while")
-        val endLabel = makeLabel("whileend")
-        loopEndLabels.push(endLabel)
-        out(whileLabel)
-        translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
-        translate(stmt.body)
-        jmp(whileLabel)
-        out(endLabel)
-        loopEndLabels.pop()
-    }
-
-    private fun translate(stmt: UntilLoop) {
-        requireComparisonExpression(stmt.condition)  // UntilLoop: condition must be of form  'x <comparison> <value>'
-        val booleanCondition = stmt.condition as BinaryExpression
-
-        val repeatLabel = makeLabel("repeat")
-        val endLabel = makeLabel("repeatend")
-        loopEndLabels.push(endLabel)
-        out(repeatLabel)
-        translate(stmt.body)
-        translateComparisonExpressionWithJumpIfFalse(booleanCondition, repeatLabel)
-        out(endLabel)
-        loopEndLabels.pop()
     }
 
     private fun translate(stmt: WhenStatement) {

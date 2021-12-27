@@ -476,7 +476,12 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun constValue(program: Program) = this
+    override fun constValue(program: Program): NumericLiteralValue {
+        return copy().also {
+            if(::parent.isInitialized)
+                it.parent = parent
+        }
+    }
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)

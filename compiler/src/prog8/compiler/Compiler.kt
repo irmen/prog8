@@ -305,13 +305,13 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
-    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
-    errors.report()
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
     errors.report()
     program.verifyFunctionArgTypes()
     program.moveMainAndStartToFirst()
+    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
+    errors.report()
 }
 
 private sealed class WriteAssemblyResult {
