@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.IErrorReporter
+import prog8.optimizer.invertedComparisonOperator
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter): AstWalker() {
@@ -81,20 +82,32 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
             val comparison = expr.expression as? BinaryExpression
             if (comparison != null) {
                 // NOT COMPARISON ==> inverted COMPARISON
-                val invertedOperator =
-                    when (comparison.operator) {
-                        "==" -> "!="
-                        "!=" -> "=="
-                        "<" -> ">="
-                        ">" -> "<="
-                        "<=" -> ">"
-                        ">=" -> "<"
-                        else -> null
-                    }
+                val invertedOperator = invertedComparisonOperator(comparison.operator)
                 if (invertedOperator != null) {
                     comparison.operator = invertedOperator
                     return listOf(IAstModification.ReplaceNode(expr, comparison, parent))
                 }
+            }
+        }
+        return noModifications
+    }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator in ComparisonOperators) {
+            val leftConstVal = expr.left.constValue(program)
+            val rightConstVal = expr.right.constValue(program)
+            // make sure the constant value is on the right of the comparison expression
+            if(rightConstVal==null && leftConstVal!=null) {
+                val newOperator =
+                    when(expr.operator) {
+                        "<" -> ">"
+                        "<=" -> ">="
+                        ">" -> "<"
+                        ">=" -> "<="
+                        else -> expr.operator
+                    }
+                val replacement = BinaryExpression(expr.right, newOperator, expr.left, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
             }
         }
         return noModifications

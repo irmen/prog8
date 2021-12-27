@@ -1,5 +1,6 @@
 package prog8.optimizer
 
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -7,7 +8,10 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
+import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.IfStatement
+import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import kotlin.math.abs
@@ -52,6 +56,31 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         }
 
         return mods
+    }
+
+    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
+        val truepart = ifStatement.truepart
+        val elsepart = ifStatement.elsepart
+        if(truepart.isNotEmpty() && elsepart.isNotEmpty()) {
+            if(truepart.statements.singleOrNull() is Jump) {
+                return listOf(
+                    IAstModification.InsertAfter(ifStatement, elsepart, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifStatement)
+                )
+            }
+            if(elsepart.statements.singleOrNull() is Jump) {
+                val invertedCondition = invertCondition(ifStatement.condition)
+                if(invertedCondition!=null) {
+                    return listOf(
+                        IAstModification.ReplaceNode(ifStatement.condition, invertedCondition, ifStatement),
+                        IAstModification.InsertAfter(ifStatement, truepart, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifStatement),
+                        IAstModification.ReplaceNode(truepart, elsepart, ifStatement)
+                    )
+                }
+            }
+        }
+        return noModifications
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
@@ -696,3 +725,24 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private data class BinExprWithConstants(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
 
 }
+
+
+fun invertCondition(cond: Expression): BinaryExpression? {
+    if(cond is BinaryExpression) {
+        val invertedOperator = invertedComparisonOperator(cond.operator)
+        if (invertedOperator != null)
+            return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
+    }
+    return null
+}
+
+fun invertedComparisonOperator(operator: String) =
+    when (operator) {
+        "==" -> "!="
+        "!=" -> "=="
+        "<" -> ">="
+        ">" -> "<="
+        "<=" -> ">"
+        ">=" -> "<"
+        else -> null
+    }

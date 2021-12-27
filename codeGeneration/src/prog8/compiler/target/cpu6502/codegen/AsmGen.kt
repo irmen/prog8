@@ -1098,16 +1098,21 @@ class AsmGen(private val program: Program,
         val booleanCondition = stmt.condition as BinaryExpression
 
         if (stmt.elsepart.isEmpty()) {
-            val endLabel = makeLabel("if_end")
-            translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
-            translate(stmt.truepart)
-            out(endLabel)
+// TODO specialize this
+//            if(stmt.truepart.statements.singleOrNull() is Jump) {
+//                translateCompareAndJumpIfTrue(booleanCondition, stmt.truepart.statements[0] as Jump)
+//            } else {
+                val endLabel = makeLabel("if_end")
+                translateCompareAndJumpIfFalse(booleanCondition, endLabel)
+                translate(stmt.truepart)
+                out(endLabel)
+//            }
         }
         else {
             // both true and else parts
             val elseLabel = makeLabel("if_else")
             val endLabel = makeLabel("if_end")
-            translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
+            translateCompareAndJumpIfFalse(booleanCondition, elseLabel)
             translate(stmt.truepart)
             jmp(endLabel)
             out(elseLabel)
@@ -1607,44 +1612,39 @@ $label              nop""")
         return false
     }
 
-
-    private fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // This is a helper routine called from if expressions to generate optimized conditional branching code.
-        // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
-
-        var left = expr.left
-        var right = expr.right
-        var operator = expr.operator
-        var leftConstVal = left.constValue(program)
-        var rightConstVal = right.constValue(program)
-
-        // make sure the constant value is on the right of the comparison expression
-        if(leftConstVal!=null) {
-            val tmp = left
-            left = right
-            right = tmp
-            val tmp2 = leftConstVal
-            leftConstVal = rightConstVal
-            rightConstVal = tmp2
-            when(expr.operator) {
-                "<" -> operator = ">"
-                "<=" -> operator = ">="
-                ">" -> operator = "<"
-                ">=" -> operator = "<="
-            }
-        }
+    private fun translateCompareAndJumpIfTrue(expr: BinaryExpression, jump: Jump) {
+        val left = expr.left
+        val right = expr.right
+        val operator = expr.operator
+        val leftConstVal = left.constValue(program)
+        val rightConstVal = right.constValue(program)
 
         if (rightConstVal!=null && rightConstVal.number == 0.0)
-            jumpIfZeroOrNot(left, operator, jumpIfFalseLabel)
+            testZeroAndJump(left, operator, jump, null)
         else
-            jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+            testNonzeroComparisonAndJump(left, operator, right, jump, null, leftConstVal, rightConstVal)
     }
 
-    private fun jumpIfZeroOrNot(
+    private fun translateCompareAndJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
+        val left = expr.left
+        val right = expr.right
+        val operator = expr.operator
+        val leftConstVal = left.constValue(program)
+        val rightConstVal = right.constValue(program)
+
+        if (rightConstVal!=null && rightConstVal.number == 0.0)
+            testZeroAndJump(left, operator, null, jumpIfFalseLabel)
+        else
+            testNonzeroComparisonAndJump(left, operator, right, null, jumpIfFalseLabel, leftConstVal, rightConstVal)
+    }
+
+    private fun testZeroAndJump(
         left: Expression,
         operator: String,
-        jumpIfFalseLabel: String
+        jumpIfTrue: Jump?,
+        jumpIfFalseLabel: String?
     ) {
+        require(jumpIfTrue!=null || jumpIfFalseLabel!=null)
         when(val dt = left.inferType(program).getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.UWORD -> {
                 if(operator=="<") {
@@ -1729,15 +1729,19 @@ $label              nop""")
         }
     }
 
-    private fun jumpIfComparison(
+    private fun testNonzeroComparisonAndJump(
         left: Expression,
         operator: String,
         right: Expression,
-        jumpIfFalseLabel: String,
+        jumpIfTrue: Jump?,
+        jumpIfFalseLabel: String?,
         leftConstVal: NumericLiteralValue?,
         rightConstVal: NumericLiteralValue?
     ) {
+        require(jumpIfTrue!=null || jumpIfFalseLabel!=null)
         val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
+
+        jumpIfFalseLabel!!  // TODO  jump if true... or rewrite everything to use just jump-if-false
 
         when (operator) {
             "==" -> {
