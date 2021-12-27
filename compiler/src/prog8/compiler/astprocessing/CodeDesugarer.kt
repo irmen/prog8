@@ -92,24 +92,25 @@ if not CONDITION
         /*
 while CONDITION { STUFF }
     ==>
-  goto _whilecond
 _whileloop:
+  if NOT CONDITION goto _after
   STUFF
-_whilecond:
-  if CONDITION goto _whileloop
+  goto _whileloop
+_after:
          */
         val pos = whileLoop.position
-        val condLabel = makeLabel("whilecond", pos)
         val loopLabel = makeLabel("whileloop", pos)
+        val afterLabel = makeLabel("afterwhile", pos)
+        val notCondition = PrefixExpression("not", whileLoop.condition, pos)
         val replacement = AnonymousScope(mutableListOf(
-            jumpLabel(condLabel),
             loopLabel,
-            whileLoop.body,
-            condLabel,
-            IfStatement(whileLoop.condition,
-                AnonymousScope(mutableListOf(jumpLabel(loopLabel)), pos),
+            IfStatement(notCondition,
+                AnonymousScope(mutableListOf(jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
-                pos)
+                pos),
+            whileLoop.body,
+            jumpLabel(loopLabel),
+            afterLabel
         ), pos)
         return listOf(IAstModification.ReplaceNode(whileLoop, replacement, parent))
     }

@@ -66,4 +66,37 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
 
         return noModifications
     }
+
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="+") {
+            // +X --> X
+            return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+        }
+        if(expr.operator=="not") {
+            val nestedPrefix = expr.expression as? PrefixExpression
+            if(nestedPrefix!=null && nestedPrefix.operator=="not") {
+                // NOT NOT X  -->  X
+                return listOf(IAstModification.ReplaceNode(expr, nestedPrefix.expression, parent))
+            }
+            val comparison = expr.expression as? BinaryExpression
+            if (comparison != null) {
+                // NOT COMPARISON ==> inverted COMPARISON
+                val invertedOperator =
+                    when (comparison.operator) {
+                        "==" -> "!="
+                        "!=" -> "=="
+                        "<" -> ">="
+                        ">" -> "<="
+                        "<=" -> ">"
+                        ">=" -> "<"
+                        else -> null
+                    }
+                if (invertedOperator != null) {
+                    comparison.operator = invertedOperator
+                    return listOf(IAstModification.ReplaceNode(expr, comparison, parent))
+                }
+            }
+        }
+        return noModifications
+    }
 }

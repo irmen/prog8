@@ -54,40 +54,6 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         return mods
     }
 
-    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if (expr.operator == "+") {
-            // +X --> X
-            return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
-        } else if (expr.operator == "not") {
-            when(expr.expression) {
-                is PrefixExpression -> {
-                    // NOT(NOT(...)) -> ...
-                    val pe = expr.expression as PrefixExpression
-                    if(pe.operator == "not")
-                        return listOf(IAstModification.ReplaceNode(expr, pe.expression, parent))
-                }
-                is BinaryExpression -> {
-                    // NOT (xxxx)  ->   invert the xxxx
-                    val be = expr.expression as BinaryExpression
-                    val newExpr = when (be.operator) {
-                        "<" -> BinaryExpression(be.left, ">=", be.right, be.position)
-                        ">" -> BinaryExpression(be.left, "<=", be.right, be.position)
-                        "<=" -> BinaryExpression(be.left, ">", be.right, be.position)
-                        ">=" -> BinaryExpression(be.left, "<", be.right, be.position)
-                        "==" -> BinaryExpression(be.left, "!=", be.right, be.position)
-                        "!=" -> BinaryExpression(be.left, "==", be.right, be.position)
-                        else -> null
-                    }
-
-                    if (newExpr != null)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
-                }
-                else -> return noModifications
-            }
-        }
-        return noModifications
-    }
-
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
