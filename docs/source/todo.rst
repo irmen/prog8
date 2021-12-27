@@ -3,6 +3,7 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+change desugar of while loop so that no initial jump is required
 optimize ifs containing only a jump: reuse old code from AsmGen translateComparisonExpressionWithJumpIfFalse?
 
 

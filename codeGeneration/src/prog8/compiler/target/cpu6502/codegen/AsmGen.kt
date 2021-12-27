@@ -1608,9 +1608,8 @@ $label              nop""")
     }
 
 
-
     private fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
+        // This is a helper routine called from if expressions to generate optimized conditional branching code.
         // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
 
         var left = expr.left
