@@ -267,6 +267,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget)
     program.constantFold(errors, compilerOptions.compTarget)
     errors.report()
+    program.desugaring(errors)
+    errors.report()
     program.reorderStatements(errors, compilerOptions)
     errors.report()
     program.addTypecasts(errors, compilerOptions)
@@ -297,21 +299,21 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
-
     errors.report()
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    program.desugaring(errors)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(program, errors)
-    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
-    errors.report()
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
     errors.report()
     program.verifyFunctionArgTypes()
     program.moveMainAndStartToFirst()
+    program.checkValid(errors, compilerOptions)          // check if final tree is still valid
+    errors.report()
 }
 
 private sealed class WriteAssemblyResult {

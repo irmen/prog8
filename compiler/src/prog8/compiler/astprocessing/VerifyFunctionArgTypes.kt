@@ -4,7 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.FunctionCallExpr
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -13,8 +13,8 @@ import prog8.compilerinterface.InternalCompilerException
 
 internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
-    override fun visit(functionCall: FunctionCall) {
-        val error = checkTypes(functionCall as IFunctionCall, program)
+    override fun visit(functionCallExpr: FunctionCallExpr) {
+        val error = checkTypes(functionCallExpr as IFunctionCall, program)
         if(error!=null)
             throw InternalCompilerException(error)
     }
@@ -76,7 +76,7 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                     }
                 }
             }
-            else if (target is BuiltinFunctionStatementPlaceholder) {
+            else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
                 if(call.args.size != func.parameters.size)
                     return "invalid number of arguments"

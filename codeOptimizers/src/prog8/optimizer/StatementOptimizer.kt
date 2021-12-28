@@ -6,7 +6,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.size
@@ -19,7 +18,7 @@ class StatementOptimizer(private val program: Program,
                                   private val compTarget: ICompilationTarget
 ) : AstWalker() {
 
-    override fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+    override fun before(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
         // if the first instruction in the called subroutine is a return statement with a simple value,
         // remove the jump altogeter and inline the returnvalue directly.
 
@@ -28,7 +27,7 @@ class StatementOptimizer(private val program: Program,
             return IdentifierReference(target.scopedName, variable.position)
         }
 
-        val subroutine = functionCall.target.targetSubroutine(program)
+        val subroutine = functionCallExpr.target.targetSubroutine(program)
         if(subroutine!=null) {
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return && first.value?.isSimple==true) {
@@ -48,7 +47,7 @@ class StatementOptimizer(private val program: Program,
                     is StringLiteralValue -> orig.copy()
                     else -> return noModifications
                 }
-                return listOf(IAstModification.ReplaceNode(functionCall, copy, parent))
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, copy, parent))
             }
         }
         return noModifications
@@ -57,7 +56,7 @@ class StatementOptimizer(private val program: Program,
 
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(functionCallStatement.target.targetStatement(program) is BuiltinFunctionStatementPlaceholder) {
+        if(functionCallStatement.target.targetStatement(program) is BuiltinFunctionPlaceholder) {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in functions.purefunctionNames) {
                 errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
@@ -134,33 +133,33 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
         // remove empty if statements
-        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isEmpty())
-            return listOf(IAstModification.Remove(ifStatement, parent as IStatementContainer))
+        if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty())
+            return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
 
         // empty true part? switch with the else part
-        if(ifStatement.truepart.isEmpty() && ifStatement.elsepart.isNotEmpty()) {
-            val invertedCondition = PrefixExpression("not", ifStatement.condition, ifStatement.condition.position)
-            val emptyscope = AnonymousScope(mutableListOf(), ifStatement.elsepart.position)
-            val truepart = AnonymousScope(ifStatement.elsepart.statements, ifStatement.truepart.position)
+        if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
+            val invertedCondition = PrefixExpression("not", ifElse.condition, ifElse.condition.position)
+            val emptyscope = AnonymousScope(mutableListOf(), ifElse.elsepart.position)
+            val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(
-                    IAstModification.ReplaceNode(ifStatement.condition, invertedCondition, ifStatement),
-                    IAstModification.ReplaceNode(ifStatement.truepart, truepart, ifStatement),
-                    IAstModification.ReplaceNode(ifStatement.elsepart, emptyscope, ifStatement)
+                    IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
+                    IAstModification.ReplaceNode(ifElse.truepart, truepart, ifElse),
+                    IAstModification.ReplaceNode(ifElse.elsepart, emptyscope, ifElse)
             )
         }
 
-        val constvalue = ifStatement.condition.constValue(program)
+        val constvalue = ifElse.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                errors.warn("condition is always true", ifStatement.position)
-                listOf(IAstModification.ReplaceNode(ifStatement, ifStatement.truepart, parent))
+                errors.warn("condition is always true", ifElse.position)
+                listOf(IAstModification.ReplaceNode(ifElse, ifElse.truepart, parent))
             } else {
                 // always false -> keep only else-part
-                errors.warn("condition is always false", ifStatement.position)
-                listOf(IAstModification.ReplaceNode(ifStatement, ifStatement.elsepart, parent))
+                errors.warn("condition is always false", ifElse.position)
+                listOf(IAstModification.ReplaceNode(ifElse, ifElse.elsepart, parent))
             }
         }
 
@@ -228,15 +227,14 @@ class StatementOptimizer(private val program: Program,
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
         val constvalue = untilLoop.condition.constValue(program)
         if(constvalue!=null) {
-            if(constvalue.asBooleanValue) {
-                // always true -> keep only the statement block (if there are no break statements)
+            return if(constvalue.asBooleanValue) {
+                // always true -> keep only the statement block
                 errors.warn("condition is always true", untilLoop.condition.position)
-                if(!hasBreak(untilLoop.body))
-                    return listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
+                listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
                 // always false
                 val forever = RepeatLoop(null, untilLoop.body, untilLoop.position)
-                return listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
+                listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
             }
         }
         return noModifications
@@ -279,24 +277,25 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
-        if(jump.isGosub) {
-            // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
-            val subroutineParams = jump.identifier?.targetSubroutine(program)?.parameters
-            if(subroutineParams!=null && subroutineParams.isEmpty()) {
-                val returnstmt = jump.nextSibling() as? Return
-                if(returnstmt!=null && returnstmt.value==null) {
-                    return listOf(
-                        IAstModification.Remove(returnstmt, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(jump, Jump(jump.address, jump.identifier, jump.generatedLabel, jump.position), parent)
-                    )
-                }
+        // if the jump is to the next statement, remove the jump
+        val scope = jump.parent as IStatementContainer
+        val label = jump.identifier?.targetStatement(program)
+        if (label != null && scope.statements.indexOf(label) == scope.statements.indexOf(jump) + 1)
+            return listOf(IAstModification.Remove(jump, scope))
+        return noModifications
+    }
+
+    override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
+        // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
+        val subroutineParams = gosub.identifier?.targetSubroutine(program)?.parameters
+        if(subroutineParams!=null && subroutineParams.isEmpty()) {
+            val returnstmt = gosub.nextSibling() as? Return
+            if(returnstmt!=null && returnstmt.value==null) {
+                return listOf(
+                    IAstModification.Remove(returnstmt, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(gosub, Jump(gosub.address, gosub.identifier, gosub.generatedLabel, gosub.position), parent)
+                )
             }
-        } else {
-            // if the jump is to the next statement, remove the jump
-            val scope = jump.parent as IStatementContainer
-            val label = jump.identifier?.targetStatement(program)
-            if (label != null && scope.statements.indexOf(label) == scope.statements.indexOf(jump) + 1)
-                return listOf(IAstModification.Remove(jump, scope))
         }
         return noModifications
     }
@@ -474,25 +473,4 @@ class StatementOptimizer(private val program: Program,
 
         return noModifications
     }
-
-    private fun hasBreak(scope: IStatementContainer): Boolean {
-
-        class Searcher: IAstVisitor
-        {
-            var count=0
-
-            override fun visit(breakStmt: Break) {
-                count++
-            }
-        }
-
-        val s=Searcher()
-        for(stmt in scope.statements) {
-            stmt.accept(s)
-            if(s.count>0)
-                return true
-        }
-        return s.count > 0
-    }
-
 }

@@ -195,8 +195,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(functionCall: FunctionCall) {
-        printout(functionCall as IFunctionCall)
+    override fun visit(functionCallExpr: FunctionCallExpr) {
+        printout(functionCallExpr as IFunctionCall)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
@@ -219,10 +219,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(jump: Jump) {
-        if(jump.isGosub)
-            output("gosub ")
-        else
-            output("goto ")
+        output("goto ")
         when {
             jump.address!=null -> output(jump.address.toHex())
             jump.generatedLabel!=null -> output(jump.generatedLabel)
@@ -230,23 +227,32 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(ifStatement: IfStatement) {
-        output("if ")
-        ifStatement.condition.accept(this)
-        output(" ")
-        ifStatement.truepart.accept(this)
-        if(ifStatement.elsepart.statements.isNotEmpty()) {
-            output(" else ")
-            ifStatement.elsepart.accept(this)
+    override fun visit(gosub: GoSub) {
+        output("gosub ")
+        when {
+            gosub.address!=null -> output(gosub.address.toHex())
+            gosub.generatedLabel!=null -> output(gosub.generatedLabel)
+            gosub.identifier!=null -> gosub.identifier.accept(this)
         }
     }
 
-    override fun visit(branchStatement: BranchStatement) {
-        output("if_${branchStatement.condition.toString().lowercase()} ")
-        branchStatement.truepart.accept(this)
-        if(branchStatement.elsepart.statements.isNotEmpty()) {
+    override fun visit(ifElse: IfElse) {
+        output("if ")
+        ifElse.condition.accept(this)
+        output(" ")
+        ifElse.truepart.accept(this)
+        if(ifElse.elsepart.statements.isNotEmpty()) {
             output(" else ")
-            branchStatement.elsepart.accept(this)
+            ifElse.elsepart.accept(this)
+        }
+    }
+
+    override fun visit(branch: Branch) {
+        output("if_${branch.condition.toString().lowercase()} ")
+        branch.truepart.accept(this)
+        if(branch.elsepart.statements.isNotEmpty()) {
+            output(" else ")
+            branch.elsepart.accept(this)
         }
     }
 
@@ -416,12 +422,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputlni("}}")
     }
 
-    override fun visit(whenStatement: WhenStatement) {
+    override fun visit(`when`: When) {
         output("when ")
-        whenStatement.condition.accept(this)
+        `when`.condition.accept(this)
         outputln(" {")
         scopelevel++
-        whenStatement.choices.forEach { it.accept(this) }
+        `when`.choices.forEach { it.accept(this) }
         scopelevel--
         outputlni("}")
     }

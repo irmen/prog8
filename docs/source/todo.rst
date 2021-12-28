@@ -5,7 +5,6 @@ For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
 
-
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
@@ -37,10 +36,6 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- remove special code generation for while and util expression
-  by rewriting while and until expressions into if+jump (just consider them syntactic sugar)
-  but the result should not produce larger code ofcourse!
-- while-expression should now also get the simplifyConditionalExpression() treatment
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite multiple choice if into when:

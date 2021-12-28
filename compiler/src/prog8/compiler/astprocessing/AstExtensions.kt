@@ -16,6 +16,8 @@ import prog8.compilerinterface.IStringEncoding
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
+    val parentChecker = ParentNodeChecker()
+    parentChecker.visit(this)
     val checker = AstChecker(this, errors, compilerOptions)
     checker.visit(this)
 }
@@ -57,6 +59,12 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     val caster = TypecastsAdder(this, options, errors)
     caster.visit(this)
     caster.applyModifications()
+}
+
+fun Program.desugaring(errors: IErrorReporter): Int {
+    val desugar = CodeDesugarer(this, errors)
+    desugar.visit(this)
+    return desugar.applyModifications()
 }
 
 internal fun Program.verifyFunctionArgTypes() {

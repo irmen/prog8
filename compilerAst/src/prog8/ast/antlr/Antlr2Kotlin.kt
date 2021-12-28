@@ -280,12 +280,12 @@ private fun Prog8ANTLRParser.Functioncall_stmtContext.toAst(): Statement {
         FunctionCallStatement(location, expression_list().toAst().toMutableList(), void, toPosition())
 }
 
-private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCall {
+private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCallExpr {
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
-        FunctionCall(location, mutableListOf(), toPosition())
+        FunctionCallExpr(location, mutableListOf(), toPosition())
     else
-        FunctionCall(location, expression_list().toAst().toMutableList(), toPosition())
+        FunctionCallExpr(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
 private fun Prog8ANTLRParser.InlineasmContext.toAst(): InlineAssembly {
@@ -516,28 +516,28 @@ private fun Prog8ANTLRParser.BooleanliteralContext.toAst() = when(text) {
 private fun Prog8ANTLRParser.ArrayliteralContext.toAst() : Array<Expression> =
         expression().map { it.toAst() }.toTypedArray()
 
-private fun Prog8ANTLRParser.If_stmtContext.toAst(): IfStatement {
+private fun Prog8ANTLRParser.If_stmtContext.toAst(): IfElse {
     val condition = expression().toAst()
     val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val elseStatements = else_part()?.toAst() ?: mutableListOf()
     val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition()
             ?: statement().toPosition())
     val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
-    return IfStatement(condition, trueScope, elseScope, toPosition())
+    return IfElse(condition, trueScope, elseScope, toPosition())
 }
 
 private fun Prog8ANTLRParser.Else_partContext.toAst(): MutableList<Statement> {
     return statement_block()?.toAst() ?: mutableListOf(statement().toAst())
 }
 
-private fun Prog8ANTLRParser.Branch_stmtContext.toAst(): BranchStatement {
+private fun Prog8ANTLRParser.Branch_stmtContext.toAst(): Branch {
     val branchcondition = branchcondition().toAst()
     val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val elseStatements = else_part()?.toAst() ?: mutableListOf()
     val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition()
             ?: statement().toPosition())
     val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
-    return BranchStatement(branchcondition, trueScope, elseScope, toPosition())
+    return Branch(branchcondition, trueScope, elseScope, toPosition())
 }
 
 private fun Prog8ANTLRParser.BranchconditionContext.toAst() = BranchCondition.valueOf(
@@ -581,10 +581,10 @@ private fun Prog8ANTLRParser.UntilloopContext.toAst(): UntilLoop {
     return UntilLoop(scope, untilCondition, toPosition())
 }
 
-private fun Prog8ANTLRParser.WhenstmtContext.toAst(): WhenStatement {
+private fun Prog8ANTLRParser.WhenstmtContext.toAst(): When {
     val condition = expression().toAst()
     val choices = this.when_choice()?.map { it.toAst() }?.toMutableList() ?: mutableListOf()
-    return WhenStatement(condition, choices, toPosition())
+    return When(condition, choices, toPosition())
 }
 
 private fun Prog8ANTLRParser.When_choiceContext.toAst(): WhenChoice {

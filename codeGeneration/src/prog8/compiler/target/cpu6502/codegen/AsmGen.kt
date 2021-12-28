@@ -760,7 +760,7 @@ class AsmGen(private val program: Program,
         outputSourceLine(stmt)
         when(stmt) {
             is VarDecl -> translate(stmt)
-            is NopStatement -> {}
+            is Nop -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> translateSubroutine(stmt)
@@ -775,24 +775,21 @@ class AsmGen(private val program: Program,
                 }
             }
             is Assignment -> assignmentAsmGen.translate(stmt)
-            is Jump -> translate(stmt)
+            is Jump -> jmp(getJumpTarget(stmt))
+            is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
-            is BranchStatement -> translate(stmt)
-            is IfStatement -> translate(stmt)
+            is Branch -> translate(stmt)
+            is IfElse -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
-            is Break -> {
-                if(loopEndLabels.isEmpty())
-                    throw AssemblyError("break statement out of context  ${stmt.position}")
-                jmp(loopEndLabels.peek())
-            }
-            is WhileLoop -> translate(stmt)
             is RepeatLoop -> translate(stmt)
-            is UntilLoop -> translate(stmt)
-            is WhenStatement -> translate(stmt)
-            is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore?")
+            is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
+            is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
+            is UntilLoop -> throw AssemblyError("do..until should have been desugared to jumps")
+            is WhileLoop -> throw AssemblyError("while should have been desugared to jumps")
             is Block -> throw AssemblyError("block should have been handled elsewhere")
+            is Break -> throw AssemblyError("break should have been replaced by goto")
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
     }
@@ -893,11 +890,11 @@ class AsmGen(private val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpr, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
 
-    internal fun translateFunctionCall(functionCall: FunctionCall, isExpression: Boolean) =
-            functioncallAsmGen.translateFunctionCall(functionCall, isExpression)
+    internal fun translateFunctionCall(functionCallExpr: FunctionCallExpr, isExpression: Boolean) =
+            functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
 
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)
@@ -1097,21 +1094,26 @@ class AsmGen(private val program: Program,
                 }
             }
 
-    private fun translate(stmt: IfStatement) {
+    private fun translate(stmt: IfElse) {
         requireComparisonExpression(stmt.condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
 
         if (stmt.elsepart.isEmpty()) {
-            val endLabel = makeLabel("if_end")
-            translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
-            translate(stmt.truepart)
-            out(endLabel)
+            val jump = stmt.truepart.statements.singleOrNull()
+            if(jump is Jump) {
+                translateCompareAndJumpIfTrue(booleanCondition, jump)
+            } else {
+                val endLabel = makeLabel("if_end")
+                translateCompareAndJumpIfFalse(booleanCondition, endLabel)
+                translate(stmt.truepart)
+                out(endLabel)
+            }
         }
         else {
             // both true and else parts
             val elseLabel = makeLabel("if_else")
             val endLabel = makeLabel("if_end")
-            translateComparisonExpressionWithJumpIfFalse(booleanCondition, elseLabel)
+            translateCompareAndJumpIfFalse(booleanCondition, elseLabel)
             translate(stmt.truepart)
             jmp(endLabel)
             out(elseLabel)
@@ -1272,36 +1274,7 @@ $repeatLabel    lda  $counterVar
         return counterVar
     }
 
-    private fun translate(stmt: WhileLoop) {
-        requireComparisonExpression(stmt.condition)  // WhileLoop: condition must be of form  'x <comparison> <value>'
-        val booleanCondition = stmt.condition as BinaryExpression
-
-        val whileLabel = makeLabel("while")
-        val endLabel = makeLabel("whileend")
-        loopEndLabels.push(endLabel)
-        out(whileLabel)
-        translateComparisonExpressionWithJumpIfFalse(booleanCondition, endLabel)
-        translate(stmt.body)
-        jmp(whileLabel)
-        out(endLabel)
-        loopEndLabels.pop()
-    }
-
-    private fun translate(stmt: UntilLoop) {
-        requireComparisonExpression(stmt.condition)  // UntilLoop: condition must be of form  'x <comparison> <value>'
-        val booleanCondition = stmt.condition as BinaryExpression
-
-        val repeatLabel = makeLabel("repeat")
-        val endLabel = makeLabel("repeatend")
-        loopEndLabels.push(endLabel)
-        out(repeatLabel)
-        translate(stmt.body)
-        translateComparisonExpressionWithJumpIfFalse(booleanCondition, repeatLabel)
-        out(endLabel)
-        loopEndLabels.pop()
-    }
-
-    private fun translate(stmt: WhenStatement) {
+    private fun translate(stmt: When) {
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
         val conditionDt = stmt.condition.inferType(program)
@@ -1355,45 +1328,23 @@ $repeatLabel    lda  $counterVar
         scope.statements.forEach{ translate(it) }
     }
 
-    private fun translate(stmt: BranchStatement) {
+    private fun translate(stmt: Branch) {
         if(stmt.truepart.isEmpty() && stmt.elsepart.isNotEmpty())
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
         val jump = stmt.truepart.statements.first() as? Jump
-        if(jump!=null && !jump.isGosub) {
+        if(jump!=null) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
             translate(stmt.elsepart)
         } else {
-            val truePartIsJustBreak = stmt.truepart.statements.firstOrNull() is Break
-            val elsePartIsJustBreak = stmt.elsepart.statements.firstOrNull() is Break
             if(stmt.elsepart.isEmpty()) {
-                if(truePartIsJustBreak) {
-                    // branch with just a break (jump out of loop)
-                    val instruction = branchInstruction(stmt.condition, false)
-                    val loopEndLabel = loopEndLabels.peek()
-                    out("  $instruction  $loopEndLabel")
-                } else {
-                    val instruction = branchInstruction(stmt.condition, true)
-                    val elseLabel = makeLabel("branch_else")
-                    out("  $instruction  $elseLabel")
-                    translate(stmt.truepart)
-                    out(elseLabel)
-                }
-            }
-            else if(truePartIsJustBreak) {
-                // branch with just a break (jump out of loop)
-                val instruction = branchInstruction(stmt.condition, false)
-                val loopEndLabel = loopEndLabels.peek()
-                out("  $instruction  $loopEndLabel")
-                translate(stmt.elsepart)
-            } else if(elsePartIsJustBreak) {
-                // branch with just a break (jump out of loop) but true/false inverted
                 val instruction = branchInstruction(stmt.condition, true)
-                val loopEndLabel = loopEndLabels.peek()
-                out("  $instruction  $loopEndLabel")
+                val elseLabel = makeLabel("branch_else")
+                out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
+                out(elseLabel)
             } else {
                 val instruction = branchInstruction(stmt.condition, true)
                 val elseLabel = makeLabel("branch_else")
@@ -1450,27 +1401,34 @@ $label              nop""")
         }
     }
 
-    private fun translate(jump: Jump) {
-        if(jump.isGosub) {
-            jump as GoSub
-            val tgt = jump.identifier!!.targetSubroutine(program)
-            if(tgt!=null && tgt.isAsmSubroutine) {
-                // no need to rescue X , this has been taken care of already
-                out("  jsr  ${getJumpTarget(jump)}")
-            } else {
-                saveXbeforeCall(jump)
-                out("  jsr  ${getJumpTarget(jump)}")
-                restoreXafterCall(jump)
-            }
+    private fun translate(gosub: GoSub) {
+        val tgt = gosub.identifier!!.targetSubroutine(program)
+        if(tgt!=null && tgt.isAsmSubroutine) {
+            // no need to rescue X , this has been taken care of already
+            out("  jsr  ${getJumpTarget(gosub)}")
+        } else {
+            saveXbeforeCall(gosub)
+            out("  jsr  ${getJumpTarget(gosub)}")
+            restoreXafterCall(gosub)
         }
-        else
-            jmp(getJumpTarget(jump))
     }
 
     private fun getJumpTarget(jump: Jump): String {
         val ident = jump.identifier
         val label = jump.generatedLabel
         val addr = jump.address
+        return when {
+            ident!=null -> asmSymbolName(ident)
+            label!=null -> label
+            addr!=null -> addr.toHex()
+            else -> "????"
+        }
+    }
+
+    private fun getJumpTarget(gosub: GoSub): String {
+        val ident = gosub.identifier
+        val label = gosub.generatedLabel
+        val addr = gosub.address
         return when {
             ident!=null -> asmSymbolName(ident)
             label!=null -> label
@@ -1662,41 +1620,46 @@ $label              nop""")
         return false
     }
 
+    private fun translateCompareAndJumpIfTrue(expr: BinaryExpression, jump: Jump) {
+        if(expr.operator !in ComparisonOperators)
+            throw AssemblyError("must be comparison expression")
 
+        // invert the comparison, so we can reuse the JumpIfFalse code generation routines
+        val invertedComparisonOperator = invertedComparisonOperator(expr.operator)
+            ?: throw AssemblyError("can't invert comparison $expr")
 
-    private fun translateComparisonExpressionWithJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
-        // This is a helper routine called from while, do-util, and if expressions to generate optimized conditional branching code.
-        // First, if it is of the form:   <constvalue> <comparison> X  ,  then flip the expression so the constant is always the right operand.
+        val left = expr.left
+        val right = expr.right
+        val rightConstVal = right.constValue(program)
 
-        var left = expr.left
-        var right = expr.right
-        var operator = expr.operator
-        var leftConstVal = left.constValue(program)
-        var rightConstVal = right.constValue(program)
-
-        // make sure the constant value is on the right of the comparison expression
-        if(leftConstVal!=null) {
-            val tmp = left
-            left = right
-            right = tmp
-            val tmp2 = leftConstVal
-            leftConstVal = rightConstVal
-            rightConstVal = tmp2
-            when(expr.operator) {
-                "<" -> operator = ">"
-                "<=" -> operator = ">="
-                ">" -> operator = "<"
-                ">=" -> operator = "<="
-            }
+        val label = when {
+            jump.generatedLabel!=null -> jump.generatedLabel!!
+            jump.identifier!=null -> asmSymbolName(jump.identifier!!)
+            jump.address!=null -> jump.address!!.toHex()
+            else -> throw AssemblyError("weird jump")
         }
-
         if (rightConstVal!=null && rightConstVal.number == 0.0)
-            jumpIfZeroOrNot(left, operator, jumpIfFalseLabel)
-        else
-            jumpIfComparison(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+            testZeroAndJump(left, invertedComparisonOperator, label)
+        else {
+            val leftConstVal = left.constValue(program)
+            testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
+        }
     }
 
-    private fun jumpIfZeroOrNot(
+    private fun translateCompareAndJumpIfFalse(expr: BinaryExpression, jumpIfFalseLabel: String) {
+        val left = expr.left
+        val right = expr.right
+        val operator = expr.operator
+        val leftConstVal = left.constValue(program)
+        val rightConstVal = right.constValue(program)
+
+        if (rightConstVal!=null && rightConstVal.number == 0.0)
+            testZeroAndJump(left, operator, jumpIfFalseLabel)
+        else
+            testNonzeroComparisonAndJump(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+    }
+
+    private fun testZeroAndJump(
         left: Expression,
         operator: String,
         jumpIfFalseLabel: String
@@ -1711,7 +1674,7 @@ $label              nop""")
                 }
                 if(dt==DataType.UBYTE) {
                     assignExpressionToRegister(left, RegisterOrPair.A, false)
-                    if (left is FunctionCall && !left.isSimple)
+                    if (left is FunctionCallExpr && !left.isSimple)
                         out("  cmp  #0")
                 } else {
                     assignExpressionToRegister(left, RegisterOrPair.AY, false)
@@ -1727,7 +1690,7 @@ $label              nop""")
             }
             DataType.BYTE -> {
                 assignExpressionToRegister(left, RegisterOrPair.A, true)
-                if (left is FunctionCall && !left.isSimple)
+                if (left is FunctionCallExpr && !left.isSimple)
                     out("  cmp  #0")
                 when (operator) {
                     "==" -> out("  bne  $jumpIfFalseLabel")
@@ -1785,7 +1748,7 @@ $label              nop""")
         }
     }
 
-    private fun jumpIfComparison(
+    private fun testNonzeroComparisonAndJump(
         left: Expression,
         operator: String,
         right: Expression,

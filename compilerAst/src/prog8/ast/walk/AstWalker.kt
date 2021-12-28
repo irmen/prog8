@@ -85,7 +85,7 @@ abstract class AstWalker {
     open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(branchStatement: BranchStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -93,17 +93,18 @@ abstract class AstWalker {
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(gosub: GoSub, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(label: Label, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(nop: Nop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(program: Program): Iterable<IAstModification> = noModifications
@@ -116,7 +117,7 @@ abstract class AstWalker {
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
@@ -125,26 +126,27 @@ abstract class AstWalker {
     open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(branchStatement: BranchStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(builtinFunctionStatementPlaceholder: BuiltinFunctionStatementPlaceholder, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(builtinFunctionPlaceholder: BuiltinFunctionPlaceholder, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(label: Label, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(nopStatement: NopStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(nop: Nop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(program: Program): Iterable<IAstModification> = noModifications
@@ -157,7 +159,7 @@ abstract class AstWalker {
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
@@ -245,11 +247,11 @@ abstract class AstWalker {
         track(after(subroutine, parent), subroutine, parent)
     }
 
-    fun visit(functionCall: FunctionCall, parent: Node) {
-        track(before(functionCall, parent), functionCall, parent)
-        functionCall.target.accept(this, functionCall)
-        functionCall.args.forEach { it.accept(this, functionCall) }
-        track(after(functionCall, parent), functionCall, parent)
+    fun visit(functionCallExpr: FunctionCallExpr, parent: Node) {
+        track(before(functionCallExpr, parent), functionCallExpr, parent)
+        functionCallExpr.target.accept(this, functionCallExpr)
+        functionCallExpr.args.forEach { it.accept(this, functionCallExpr) }
+        track(after(functionCallExpr, parent), functionCallExpr, parent)
     }
 
     fun visit(functionCallStatement: FunctionCallStatement, parent: Node) {
@@ -270,19 +272,25 @@ abstract class AstWalker {
         track(after(jump, parent), jump, parent)
     }
 
-    fun visit(ifStatement: IfStatement, parent: Node) {
-        track(before(ifStatement, parent), ifStatement, parent)
-        ifStatement.condition.accept(this, ifStatement)
-        ifStatement.truepart.accept(this, ifStatement)
-        ifStatement.elsepart.accept(this, ifStatement)
-        track(after(ifStatement, parent), ifStatement, parent)
+    fun visit(gosub: GoSub, parent: Node) {
+        track(before(gosub, parent), gosub, parent)
+        gosub.identifier?.accept(this, gosub)
+        track(after(gosub, parent), gosub, parent)
     }
 
-    fun visit(branchStatement: BranchStatement, parent: Node) {
-        track(before(branchStatement, parent), branchStatement, parent)
-        branchStatement.truepart.accept(this, branchStatement)
-        branchStatement.elsepart.accept(this, branchStatement)
-        track(after(branchStatement, parent), branchStatement, parent)
+    fun visit(ifElse: IfElse, parent: Node) {
+        track(before(ifElse, parent), ifElse, parent)
+        ifElse.condition.accept(this, ifElse)
+        ifElse.truepart.accept(this, ifElse)
+        ifElse.elsepart.accept(this, ifElse)
+        track(after(ifElse, parent), ifElse, parent)
+    }
+
+    fun visit(branch: Branch, parent: Node) {
+        track(before(branch, parent), branch, parent)
+        branch.truepart.accept(this, branch)
+        branch.elsepart.accept(this, branch)
+        track(after(branch, parent), branch, parent)
     }
 
     fun visit(range: RangeExpr, parent: Node) {
@@ -422,16 +430,16 @@ abstract class AstWalker {
         track(after(inlineAssembly, parent), inlineAssembly, parent)
     }
 
-    fun visit(nopStatement: NopStatement, parent: Node) {
-        track(before(nopStatement, parent), nopStatement, parent)
-        track(after(nopStatement, parent), nopStatement, parent)
+    fun visit(nop: Nop, parent: Node) {
+        track(before(nop, parent), nop, parent)
+        track(after(nop, parent), nop, parent)
     }
 
-    fun visit(whenStatement: WhenStatement, parent: Node) {
-        track(before(whenStatement, parent), whenStatement, parent)
-        whenStatement.condition.accept(this, whenStatement)
-        whenStatement.choices.forEach { it.accept(this, whenStatement) }
-        track(after(whenStatement, parent), whenStatement, parent)
+    fun visit(whenStmt: When, parent: Node) {
+        track(before(whenStmt, parent), whenStmt, parent)
+        whenStmt.condition.accept(this, whenStmt)
+        whenStmt.choices.forEach { it.accept(this, whenStmt) }
+        track(after(whenStmt, parent), whenStmt, parent)
     }
 
     fun visit(whenChoice: WhenChoice, parent: Node) {

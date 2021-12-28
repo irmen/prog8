@@ -3,9 +3,8 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
-import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.FunctionCallExpr
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -129,7 +128,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(string)
     }
 
-    override fun visit(functionCall: FunctionCall) =  visitFunctionCall(functionCall)
+    override fun visit(functionCallExpr: FunctionCallExpr) =  visitFunctionCall(functionCallExpr)
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
 
     private fun visitFunctionCall(call: IFunctionCall) {
@@ -140,7 +139,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     errors.err("invalid number of arguments", pos)
                 }
             }
-            is BuiltinFunctionStatementPlaceholder -> {
+            is BuiltinFunctionPlaceholder -> {
                 val func = BuiltinFunctions.getValue(target.name)
                 if(call.args.size != func.parameters.size) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position

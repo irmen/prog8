@@ -49,7 +49,7 @@ sealed class Statement : Node {
 }
 
 
-class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position, override var parent: Node) : Statement() {
+class BuiltinFunctionPlaceholder(val name: String, override val position: Position, override var parent: Node) : Statement() {
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstVisitor) = throw FatalAstException("should not iterate over this node")
     override fun accept(visitor: AstWalker, parent: Node) = throw FatalAstException("should not iterate over this node")
@@ -130,7 +130,7 @@ data class Label(override val name: String, override val position: Position) : S
     override fun toString()= "Label(name=$name, pos=$position)"
 }
 
-open class Return(var value: Expression?, final override val position: Position) : Statement() {
+class Return(var value: Expression?, final override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -171,7 +171,7 @@ enum class ZeropageWish {
     NOT_IN_ZEROPAGE
 }
 
-open class VarDecl(val type: VarDeclType,
+class VarDecl(val type: VarDeclType,
                    private val declaredDatatype: DataType,
                    val zeropage: ZeropageWish,
                    var arraysize: ArrayIndex?,
@@ -299,7 +299,7 @@ class ArrayIndex(var indexExpr: Expression,
     override fun copy() = ArrayIndex(indexExpr.copy(), position)
 }
 
-open class Assignment(var target: AssignTarget, var value: Expression, final override val position: Position) : Statement() {
+class Assignment(var target: AssignTarget, var value: Expression, final override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -499,12 +499,11 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     override fun toString() = "PostIncrDecr(op: $operator, target: $target, pos=$position)"
 }
 
-open class Jump(val address: UInt?,
-                val identifier: IdentifierReference?,
-                val generatedLabel: String?,             // can be used in code generation scenarios
-                override val position: Position) : Statement() {
+class Jump(val address: UInt?,
+           val identifier: IdentifierReference?,
+           val generatedLabel: String?,             // can be used in code generation scenarios
+           override val position: Position) : Statement() {
     override lateinit var parent: Node
-    open val isGosub = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -521,11 +520,22 @@ open class Jump(val address: UInt?,
 }
 
 // a GoSub is ONLY created internally for calling subroutines
-class GoSub(address: UInt?, identifier: IdentifierReference?, generatedLabel: String?, position: Position) :
-    Jump(address, identifier, generatedLabel, position) {
+class GoSub(val address: UInt?,
+            val identifier: IdentifierReference?,
+            val generatedLabel: String?,             // can be used in code generation scenarios
+            override val position: Position) : Statement() {
+    override lateinit var parent: Node
 
-    override val isGosub = true
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier?.linkParents(this)
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = GoSub(address, identifier?.copy(), generatedLabel, position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
     override fun toString() =
         "GoSub(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
 }
@@ -595,7 +605,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class NopStatement(override val position: Position): Statement() {
+class Nop(override val position: Position): Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -603,7 +613,7 @@ class NopStatement(override val position: Position): Statement() {
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = NopStatement(position)
+    override fun copy() = Nop(position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -744,10 +754,10 @@ open class SubroutineParameter(val name: String,
     override fun toString() = "Param($type:$name)"
 }
 
-class IfStatement(var condition: Expression,
-                  var truepart: AnonymousScope,
-                  var elsepart: AnonymousScope,
-                  override val position: Position) : Statement() {
+class IfElse(var condition: Expression,
+             var truepart: AnonymousScope,
+             var elsepart: AnonymousScope,
+             override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -774,10 +784,10 @@ class IfStatement(var condition: Expression,
 
 }
 
-class BranchStatement(var condition: BranchCondition,
-                      var truepart: AnonymousScope,
-                      var elsepart: AnonymousScope,
-                      override val position: Position) : Statement() {
+class Branch(var condition: BranchCondition,
+             var truepart: AnonymousScope,
+             var elsepart: AnonymousScope,
+             override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -909,9 +919,9 @@ class UntilLoop(var body: AnonymousScope,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class WhenStatement(var condition: Expression,
-                    var choices: MutableList<WhenChoice>,
-                    override val position: Position): Statement() {
+class When(var condition: Expression,
+           var choices: MutableList<WhenChoice>,
+           override val position: Position): Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

@@ -1,5 +1,6 @@
 package prog8.optimizer
 
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -7,7 +8,10 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
+import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.IfElse
+import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import kotlin.math.abs
@@ -54,35 +58,26 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         return mods
     }
 
-    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if (expr.operator == "+") {
-            // +X --> X
-            return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
-        } else if (expr.operator == "not") {
-            when(expr.expression) {
-                is PrefixExpression -> {
-                    // NOT(NOT(...)) -> ...
-                    val pe = expr.expression as PrefixExpression
-                    if(pe.operator == "not")
-                        return listOf(IAstModification.ReplaceNode(expr, pe.expression, parent))
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val truepart = ifElse.truepart
+        val elsepart = ifElse.elsepart
+        if(truepart.isNotEmpty() && elsepart.isNotEmpty()) {
+            if(truepart.statements.singleOrNull() is Jump) {
+                return listOf(
+                    IAstModification.InsertAfter(ifElse, elsepart, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse)
+                )
+            }
+            if(elsepart.statements.singleOrNull() is Jump) {
+                val invertedCondition = invertCondition(ifElse.condition)
+                if(invertedCondition!=null) {
+                    return listOf(
+                        IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
+                        IAstModification.InsertAfter(ifElse, truepart, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse),
+                        IAstModification.ReplaceNode(truepart, elsepart, ifElse)
+                    )
                 }
-                is BinaryExpression -> {
-                    // NOT (xxxx)  ->   invert the xxxx
-                    val be = expr.expression as BinaryExpression
-                    val newExpr = when (be.operator) {
-                        "<" -> BinaryExpression(be.left, ">=", be.right, be.position)
-                        ">" -> BinaryExpression(be.left, "<=", be.right, be.position)
-                        "<=" -> BinaryExpression(be.left, ">", be.right, be.position)
-                        ">=" -> BinaryExpression(be.left, "<", be.right, be.position)
-                        "==" -> BinaryExpression(be.left, "!=", be.right, be.position)
-                        "!=" -> BinaryExpression(be.left, "==", be.right, be.position)
-                        else -> null
-                    }
-
-                    if (newExpr != null)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
-                }
-                else -> return noModifications
             }
         }
         return noModifications
@@ -216,7 +211,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     // signedw < 0 -->  msb(signedw) & $80
                     return listOf(IAstModification.ReplaceNode(
                             expr,
-                            BinaryExpression(FunctionCall(IdentifierReference(listOf("msb"), expr.position),
+                            BinaryExpression(FunctionCallExpr(IdentifierReference(listOf("msb"), expr.position),
                                     mutableListOf(expr.left),
                                     expr.position
                             ), "&", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
@@ -306,31 +301,31 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         return noModifications
     }
 
-    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        if(functionCall.target.nameInSource == listOf("lsb")) {
-            val arg = functionCall.args[0]
+    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+        if(functionCallExpr.target.nameInSource == listOf("lsb")) {
+            val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
                 if (valueDt istype DataType.BYTE || valueDt istype DataType.UBYTE) {
                     // useless lsb() of byte value that was typecasted to word
-                    return listOf(IAstModification.ReplaceNode(functionCall, arg.expression, parent))
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, arg.expression, parent))
                 }
             } else {
                 val argDt = arg.inferType(program)
                 if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless lsb() of byte value
-                    return listOf(IAstModification.ReplaceNode(functionCall, arg, parent))
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, arg, parent))
                 }
             }
         }
-        else if(functionCall.target.nameInSource == listOf("msb")) {
-            val arg = functionCall.args[0]
+        else if(functionCallExpr.target.nameInSource == listOf("msb")) {
+            val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
                 if (valueDt istype DataType.BYTE || valueDt istype DataType.UBYTE) {
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
-                            functionCall,
+                            functionCallExpr,
                             NumericLiteralValue(valueDt.getOr(DataType.UBYTE), 0.0, arg.expression.position),
                             parent))
                 }
@@ -339,7 +334,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
-                            functionCall,
+                            functionCallExpr,
                             NumericLiteralValue(argDt.getOr(DataType.UBYTE), 0.0, arg.position),
                             parent))
                 }
@@ -460,7 +455,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 }
                 0.5 -> {
                     // sqrt(left)
-                    return FunctionCall(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
+                    return FunctionCallExpr(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
                 }
                 1.0 -> {
                     // left
@@ -653,12 +648,12 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 if (amount >= 16) {
                     return NumericLiteralValue(targetDt, 0.0, expr.position)
                 } else if (amount >= 8) {
-                    val lsb = FunctionCall(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val lsb = FunctionCallExpr(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
-                        return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
+                        return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                     }
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
-                    return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
+                    return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                 }
             }
             else -> {
@@ -695,11 +690,11 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 }
                 else if (amount >= 8) {
-                    val msb = FunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val msb = FunctionCallExpr(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
                         // mkword(0, msb(v))
                         val zero = NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
-                        return FunctionCall(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
+                        return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
                     }
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
                 }

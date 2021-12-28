@@ -3,7 +3,7 @@ package prog8.compiler.target.cpu6502.codegen
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.BuiltinFunctionStatementPlaceholder
+import prog8.ast.statements.BuiltinFunctionPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compiler.target.AssemblyError
@@ -36,18 +36,18 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is DirectMemoryRead -> asmgen.translateDirectMemReadExpressionToRegAorStack(expression, true)
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
-            is FunctionCall -> translateFunctionCallResultOntoStack(expression)
+            is FunctionCallExpr -> translateFunctionCallResultOntoStack(expression)
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
             is CharLiteral -> throw AssemblyError("charliteral should have been replaced by ubyte using certain encoding")
         }
     }
 
-    private fun translateFunctionCallResultOntoStack(call: FunctionCall) {
+    private fun translateFunctionCallResultOntoStack(call: FunctionCallExpr) {
         // only for use in nested expression evaluation
 
         val sub = call.target.targetStatement(program)
-        if(sub is BuiltinFunctionStatementPlaceholder) {
+        if(sub is BuiltinFunctionPlaceholder) {
             val builtinFunc = BuiltinFunctions.getValue(sub.name)
             asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true, null)
         } else {

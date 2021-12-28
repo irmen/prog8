@@ -31,6 +31,18 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         varsList.add(decl.name to decl)
     }
 
+    override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
+        throw FatalAstException("break should have been replaced by goto $breakStmt")
+    }
+
+    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        throw FatalAstException("while should have been desugared to jumps")
+    }
+
+    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        throw FatalAstException("do..until should have been desugared to jumps")
+    }
+
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {
         // move all subroutines to the bottom of the block
         val subs = block.statements.filterIsInstance<Subroutine>()
@@ -127,7 +139,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         if (subroutineStmtIdx > 0) {
             val prevStmt = outerStatements[subroutineStmtIdx-1]
                 if(outerScope !is Block
-                    && (prevStmt !is Jump || prevStmt.isGosub)
+                    && (prevStmt !is Jump)
                     && prevStmt !is Subroutine
                     && prevStmt !is Return) {
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
@@ -181,20 +193,19 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
-    @Suppress("DuplicatedCode")
-    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
-        val prefixExpr = ifStatement.condition as? PrefixExpression
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val prefixExpr = ifElse.condition as? PrefixExpression
         if(prefixExpr!=null && prefixExpr.operator=="not") {
             // if not x -> if x==0
-            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
-            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
-        val binExpr = ifStatement.condition as? BinaryExpression
+        val binExpr = ifElse.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
-            val booleanExpr = BinaryExpression(ifStatement.condition, "!=", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
-            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+            val booleanExpr = BinaryExpression(ifElse.condition, "!=", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
         if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
@@ -208,11 +219,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val modifications = mutableListOf<IAstModification>()
         if(simplify.rightVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifStatement, simplify.rightVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(ifElse, simplify.rightVarAssignment, parent as IStatementContainer)
         }
         if(simplify.leftVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifStatement, simplify.leftVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(ifElse, simplify.leftVarAssignment, parent as IStatementContainer)
         }
 
         return modifications
@@ -278,74 +289,6 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         )
     }
 
-    @Suppress("DuplicatedCode")
-    override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
-        val prefixExpr = untilLoop.condition as? PrefixExpression
-        if(prefixExpr!=null && prefixExpr.operator=="not") {
-            // until not x -> until x==0
-            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
-            return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
-        }
-
-        val binExpr = untilLoop.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
-            // until x  ->  until x!=0,    until x+5  ->  until x+5 != 0
-            val booleanExpr = BinaryExpression(untilLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, untilLoop.condition.position), untilLoop.condition.position)
-            return listOf(IAstModification.ReplaceNode(untilLoop.condition, booleanExpr, untilLoop))
-        }
-
-        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
-            throw FatalAstException("0==X should have been swapped to if X==0")
-
-        // simplify the conditional expression, introduce simple assignments if required.
-        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
-        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
-        val simplify = simplifyConditionalExpression(binExpr)
-        val modifications = mutableListOf<IAstModification>()
-        if(simplify.rightVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertLast(simplify.rightVarAssignment, untilLoop.body)
-        }
-        if(simplify.leftVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertLast(simplify.leftVarAssignment, untilLoop.body)
-        }
-
-        return modifications
-    }
-
-    @Suppress("DuplicatedCode")
-    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
-        val prefixExpr = whileLoop.condition as? PrefixExpression
-        if(prefixExpr!=null && prefixExpr.operator=="not") {
-            // while not x -> while x==0
-            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
-            return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
-        }
-
-        val binExpr = whileLoop.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
-            // while x  ->  while x!=0,    while x+5  ->  while x+5 != 0
-            val booleanExpr = BinaryExpression(whileLoop.condition, "!=", NumericLiteralValue.optimalInteger(0, whileLoop.condition.position), whileLoop.condition.position)
-            return listOf(IAstModification.ReplaceNode(whileLoop.condition, booleanExpr, whileLoop))
-        }
-
-        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
-            throw FatalAstException("0==X should have been swapped to if X==0")
-
-        // TODO simplify the conditional expression, introduce simple assignments if required.
-        //      make sure to evaluate it only once, but also right at entry of the while loop
-        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
-        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
-        // NOTE: this is nasty for a while-statement as the condition occurs at the top of the loop
-        //       so the expression needs to be evaluated also before the loop is entered...
-        //       but I don't want to duplicate the expression.
-        // val simplify = simplifyConditionalExpression(binExpr)
-        return noModifications
-    }
-
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource==listOf("cmp")) {
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
@@ -398,12 +341,12 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                     complexArrayIndexedExpressions.add(arrayIndexedExpression)
             }
 
-            override fun visit(branchStatement: BranchStatement) {}
+            override fun visit(branch: Branch) {}
 
             override fun visit(forLoop: ForLoop) {}
 
-            override fun visit(ifStatement: IfStatement) {
-                ifStatement.condition.accept(this)
+            override fun visit(ifElse: IfElse) {
+                ifElse.condition.accept(this)
             }
 
             override fun visit(untilLoop: UntilLoop) {

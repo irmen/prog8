@@ -33,8 +33,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
-        if(!jump.isGosub)
-            reportUnreachable(jump)
+        reportUnreachable(jump)
         return emptyList()
     }
 
@@ -235,7 +234,7 @@ class UnusedCodeRemover(private val program: Program,
                                 is PrefixExpression,
                                 is BinaryExpression,
                                 is TypecastExpression,
-                                is FunctionCall -> { /* don't remove */ }
+                                is FunctionCallExpr -> { /* don't remove */ }
                                 else -> linesToRemove.add(assign1)
                             }
                     }

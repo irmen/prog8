@@ -39,14 +39,14 @@ interface IStatementContainer {
                 when(it) {
                     is Label -> result.add(it)
                     is IStatementContainer -> find(it)
-                    is IfStatement -> {
+                    is IfElse -> {
                         find(it.truepart)
                         find(it.elsepart)
                     }
                     is UntilLoop -> find(it.body)
                     is RepeatLoop -> find(it.body)
                     is WhileLoop -> find(it.body)
-                    is WhenStatement -> it.choices.forEach { choice->find(choice.statements) }
+                    is When -> it.choices.forEach { choice->find(choice.statements) }
                     else -> { /* do nothing */ }
                 }
             }
@@ -87,12 +87,12 @@ interface IStatementContainer {
                     if(found!=null)
                         return found
                 }
-                is IfStatement -> {
+                is IfElse -> {
                     val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
-                is BranchStatement -> {
+                is Branch -> {
                     val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
                     if(found!=null)
                         return found
@@ -117,7 +117,7 @@ interface IStatementContainer {
                     if(found!=null)
                         return found
                 }
-                is WhenStatement -> {
+                is When -> {
                     stmt.choices.forEach {
                         val found = it.statements.searchSymbol(name)
                         if(found!=null)
@@ -244,8 +244,8 @@ interface Node {
 
 
 open class Module(final override var statements: MutableList<Statement>,
-             final override val position: Position,
-             val source: SourceCode) : Node, INameScope {
+                  final override val position: Position,
+                  val source: SourceCode) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program
