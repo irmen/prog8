@@ -36,11 +36,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
     }
 
     override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
-        throw FatalAstException("while should have been desugared to jumps")
+        throw FatalAstException("while should have been converted to jumps")
     }
 
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
-        throw FatalAstException("do..until should have been desugared to jumps")
+        throw FatalAstException("do..until should have been converted to jumps")
     }
 
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {

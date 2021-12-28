@@ -91,6 +91,19 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         return noModifications
     }
 
+    override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator == "or") {
+            val leftBinExpr = expr.left as? BinaryExpression
+            val rightBinExpr = expr.right as? BinaryExpression
+            if(leftBinExpr!=null && leftBinExpr.operator=="==" && rightBinExpr!=null && rightBinExpr.operator=="==") {
+                if(leftBinExpr.right is NumericLiteralValue && rightBinExpr.right is NumericLiteralValue) {
+                    errors.warn("consider using when statement to test for multiple values", expr.position)
+                }
+            }
+        }
+        return noModifications
+    }
+
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator in ComparisonOperators) {
             val leftConstVal = expr.left.constValue(program)

@@ -9,6 +9,11 @@ main {
         if xx<100 {
             foobar()
         }
+
+        if xx==9 or xx==10 or xx==11 or xx==12 or xx==13 {
+            txt.print("9 10 11\n")
+        }
+
         txt.print("\nthe end\n")
     }
 

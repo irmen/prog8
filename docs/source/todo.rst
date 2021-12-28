@@ -3,7 +3,10 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+add "if X in [1,2,3] {...}" syntax , as an alternative to when X { 1,2,3-> {...} }
+if the array is not a literal, do a normal containment test instead in an array or string or range
+change "consider using when statement..." to "consider using if X in [..] or when statement..."
+
 
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -13,12 +16,14 @@ Blocked by an official Commander-x16 v39 release
 
 Future
 ^^^^^^
-- rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
-- simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
+- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
+  then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
+- simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - get rid of all TODO's in the code
 - improve testability further, add more tests
 - use more of Result<> and Either<> to handle errors/ nulls better
+- rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - add a switch to not create the globals-initialization logic, but instead create a smaller program (that can only run once though)
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
@@ -27,7 +32,7 @@ Future
 - add a flood fill routine to gfx2?
 - add a diskio.f_seek() routine for the Cx16 that uses its seek dos api?
 - make it possible for diskio to read and write from more than one file at the same time (= use multiple io channels)?
-- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
+- fix problems in c128 target
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
@@ -36,13 +41,9 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
-- rewrite multiple choice if into when:
-    if X==1 or X==2 or X==3 { truepart } else { falsepart }
-    ->  when X  { 1,2,3->truepart   else->falsepart }
-    same with assignment if the lhs is simple var or memaddr
-
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
