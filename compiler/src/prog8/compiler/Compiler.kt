@@ -9,6 +9,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
+import prog8.codegen.target.C128Target
 import prog8.compiler.astprocessing.*
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
