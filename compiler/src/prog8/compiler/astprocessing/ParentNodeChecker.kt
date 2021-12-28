@@ -119,6 +119,12 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
+    override fun before(gosub: GoSub, parent: Node): Iterable<IAstModification> {
+        if(gosub.parent!==parent)
+            throw FatalAstException("parent node mismatch at $gosub")
+        return noModifications
+    }
+
     override fun before(label: Label, parent: Node): Iterable<IAstModification> {
         if(label.parent!==parent)
             throw FatalAstException("parent node mismatch at $label")

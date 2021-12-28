@@ -3,9 +3,7 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fix imageviewer crashes...
-also textelite: after showing map, it continues to show the market without keyboard entry...
-
+...
 
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

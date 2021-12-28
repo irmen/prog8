@@ -337,6 +337,6 @@ class TestSubroutines: FunSpec({
 
         stmts.last() shouldBe instanceOf<Subroutine>()
         stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough
-        stmts.dropLast(2).last() shouldBe instanceOf<Jump>()
+        stmts.dropLast(2).last() shouldBe instanceOf<GoSub>()
     }
 })

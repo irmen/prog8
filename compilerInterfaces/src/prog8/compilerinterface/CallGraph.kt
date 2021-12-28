@@ -103,6 +103,17 @@ class CallGraph(private val program: Program) : IAstVisitor {
         super.visit(jump)
     }
 
+    override fun visit(gosub: GoSub) {
+        val otherSub = gosub.identifier?.targetSubroutine(program)
+        if (otherSub != null) {
+            gosub.definingSubroutine?.let { thisSub ->
+                calls[thisSub] = calls.getValue(thisSub) + otherSub
+                calledBy[otherSub] = calledBy.getValue(otherSub) + gosub
+            }
+        }
+        super.visit(gosub)
+    }
+
     override fun visit(identifier: IdentifierReference) {
         allIdentifiersAndTargets[Pair(identifier, identifier.position)] = identifier.targetStatement(program)!!
     }

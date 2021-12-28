@@ -168,7 +168,7 @@ internal class AstChecker(private val program: Program,
                 if(targetStatement is BuiltinFunctionStatementPlaceholder)
                     errors.err("can't jump to a builtin function", jump.position)
             }
-            if(!jump.isGosub && targetStatement is Subroutine && targetStatement.parameters.any()) {
+            if(targetStatement is Subroutine && targetStatement.parameters.any()) {
                 errors.err("can't jump to a subroutine that takes parameters", jump.position)
             }
         }
@@ -177,6 +177,22 @@ internal class AstChecker(private val program: Program,
         if(addr!=null && addr > 65535u)
             errors.err("jump address must be valid integer 0..\$ffff", jump.position)
         super.visit(jump)
+    }
+
+    override fun visit(gosub: GoSub) {
+        val ident = gosub.identifier
+        if(ident!=null) {
+            val targetStatement = checkFunctionOrLabelExists(ident, gosub)
+            if(targetStatement!=null) {
+                if(targetStatement is BuiltinFunctionStatementPlaceholder)
+                    errors.err("can't gosub to a builtin function", gosub.position)
+            }
+        }
+
+        val addr = gosub.address
+        if(addr!=null && addr > 65535u)
+            errors.err("gosub address must be valid integer 0..\$ffff", gosub.position)
+        super.visit(gosub)
     }
 
     override fun visit(block: Block) {
@@ -226,8 +242,7 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                if(!jump.isGosub)
-                    count++
+                count++
             }
 
             override fun visit(inlineAssembly: InlineAssembly) {

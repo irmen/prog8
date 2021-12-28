@@ -499,12 +499,11 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     override fun toString() = "PostIncrDecr(op: $operator, target: $target, pos=$position)"
 }
 
-open class Jump(val address: UInt?,
-                val identifier: IdentifierReference?,
-                val generatedLabel: String?,             // can be used in code generation scenarios
-                override val position: Position) : Statement() {
+class Jump(val address: UInt?,
+           val identifier: IdentifierReference?,
+           val generatedLabel: String?,             // can be used in code generation scenarios
+           override val position: Position) : Statement() {
     override lateinit var parent: Node
-    open val isGosub = false
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -521,11 +520,22 @@ open class Jump(val address: UInt?,
 }
 
 // a GoSub is ONLY created internally for calling subroutines
-class GoSub(address: UInt?, identifier: IdentifierReference?, generatedLabel: String?, position: Position) :
-    Jump(address, identifier, generatedLabel, position) {
+class GoSub(val address: UInt?,
+            val identifier: IdentifierReference?,
+            val generatedLabel: String?,             // can be used in code generation scenarios
+            override val position: Position) : Statement() {
+    override lateinit var parent: Node
 
-    override val isGosub = true
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier?.linkParents(this)
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = GoSub(address, identifier?.copy(), generatedLabel, position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
     override fun toString() =
         "GoSub(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
 }

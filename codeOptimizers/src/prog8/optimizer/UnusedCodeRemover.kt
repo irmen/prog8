@@ -33,8 +33,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
-        if(!jump.isGosub)
-            reportUnreachable(jump)
+        reportUnreachable(jump)
         return emptyList()
     }
 

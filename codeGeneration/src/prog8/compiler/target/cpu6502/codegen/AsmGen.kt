@@ -775,7 +775,8 @@ class AsmGen(private val program: Program,
                 }
             }
             is Assignment -> assignmentAsmGen.translate(stmt)
-            is Jump -> translate(stmt)
+            is Jump -> jmp(getJumpTarget(stmt))
+            is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
             is BranchStatement -> translate(stmt)
@@ -1099,7 +1100,7 @@ class AsmGen(private val program: Program,
 
         if (stmt.elsepart.isEmpty()) {
             val jump = stmt.truepart.statements.singleOrNull()
-            if(jump is Jump && !jump.isGosub) {
+            if(jump is Jump) {
                 translateCompareAndJumpIfTrue(booleanCondition, jump)
             } else {
                 val endLabel = makeLabel("if_end")
@@ -1332,7 +1333,7 @@ $repeatLabel    lda  $counterVar
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
         val jump = stmt.truepart.statements.first() as? Jump
-        if(jump!=null && !jump.isGosub) {
+        if(jump!=null) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
             out("  $instruction  ${getJumpTarget(jump)}")
@@ -1400,27 +1401,34 @@ $label              nop""")
         }
     }
 
-    private fun translate(jump: Jump) {
-        if(jump.isGosub) {
-            jump as GoSub
-            val tgt = jump.identifier!!.targetSubroutine(program)
-            if(tgt!=null && tgt.isAsmSubroutine) {
-                // no need to rescue X , this has been taken care of already
-                out("  jsr  ${getJumpTarget(jump)}")
-            } else {
-                saveXbeforeCall(jump)
-                out("  jsr  ${getJumpTarget(jump)}")
-                restoreXafterCall(jump)
-            }
+    private fun translate(gosub: GoSub) {
+        val tgt = gosub.identifier!!.targetSubroutine(program)
+        if(tgt!=null && tgt.isAsmSubroutine) {
+            // no need to rescue X , this has been taken care of already
+            out("  jsr  ${getJumpTarget(gosub)}")
+        } else {
+            saveXbeforeCall(gosub)
+            out("  jsr  ${getJumpTarget(gosub)}")
+            restoreXafterCall(gosub)
         }
-        else
-            jmp(getJumpTarget(jump))
     }
 
     private fun getJumpTarget(jump: Jump): String {
         val ident = jump.identifier
         val label = jump.generatedLabel
         val addr = jump.address
+        return when {
+            ident!=null -> asmSymbolName(ident)
+            label!=null -> label
+            addr!=null -> addr.toHex()
+            else -> "????"
+        }
+    }
+
+    private fun getJumpTarget(gosub: GoSub): String {
+        val ident = gosub.identifier
+        val label = gosub.generatedLabel
+        val addr = gosub.address
         return when {
             ident!=null -> asmSymbolName(ident)
             label!=null -> label
@@ -1613,8 +1621,6 @@ $label              nop""")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: BinaryExpression, jump: Jump) {
-        require(!jump.isGosub)
-
         if(expr.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
 

@@ -139,7 +139,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         if (subroutineStmtIdx > 0) {
             val prevStmt = outerStatements[subroutineStmtIdx-1]
                 if(outerScope !is Block
-                    && (prevStmt !is Jump || prevStmt.isGosub)
+                    && (prevStmt !is Jump)
                     && prevStmt !is Subroutine
                     && prevStmt !is Return) {
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
