@@ -1,8 +1,8 @@
-package prog8.compiler.target.c64
+package prog8.codegen.target.c64
 
 import prog8.ast.base.DataType
-import prog8.compiler.target.cbm.Mflpt5
-import prog8.compiler.target.cbm.viceMonListPostfix
+import prog8.codegen.target.cbm.Mflpt5
+import prog8.codegen.target.cbm.viceMonListPostfix
 import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path

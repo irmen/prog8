@@ -1,4 +1,4 @@
-package prog8.compiler.target.c64
+package prog8.codegen.target.c64
 
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.InternalCompilerException

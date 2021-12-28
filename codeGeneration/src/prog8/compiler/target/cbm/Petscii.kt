@@ -1,4 +1,4 @@
-package prog8.compiler.target.cbm
+package prog8.codegen.target.cbm
 
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok

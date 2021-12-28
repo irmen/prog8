@@ -1,4 +1,4 @@
-package prog8.compiler.target.cpu6502.codegen
+package prog8.codegen.target.cpu6502.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.ArrayToElementTypes
@@ -8,7 +8,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
-import prog8.compiler.target.AssemblyError
+import prog8.codegen.target.AssemblyError
 import prog8.compilerinterface.toConstantIntegerRange
 import kotlin.math.absoluteValue
 

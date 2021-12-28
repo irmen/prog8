@@ -1,4 +1,4 @@
-package prog8.compiler.target.cpu6502.codegen
+package prog8.codegen.target.cpu6502.codegen
 
 import com.github.michaelbull.result.fold
 import prog8.ast.*
@@ -6,17 +6,17 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.target.AssemblyError
-import prog8.compiler.target.C64Target
-import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.cbm.AssemblyProgram
-import prog8.compiler.target.cbm.loadAsmIncludeFile
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignSource
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignTarget
-import prog8.compiler.target.cpu6502.codegen.assignment.AsmAssignment
-import prog8.compiler.target.cpu6502.codegen.assignment.AssignmentAsmGen
-import prog8.compiler.target.cpu6502.codegen.assignment.SourceStorageKind
-import prog8.compiler.target.cpu6502.codegen.assignment.TargetStorageKind
+import prog8.codegen.target.AssemblyError
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.Cx16Target
+import prog8.codegen.target.cbm.AssemblyProgram
+import prog8.codegen.target.cbm.loadAsmIncludeFile
+import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignSource
+import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignTarget
+import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignment
+import prog8.codegen.target.cpu6502.codegen.assignment.AssignmentAsmGen
+import prog8.codegen.target.cpu6502.codegen.assignment.SourceStorageKind
+import prog8.codegen.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import java.nio.file.Path

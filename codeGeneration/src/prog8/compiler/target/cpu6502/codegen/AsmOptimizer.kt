@@ -1,4 +1,4 @@
-package prog8.compiler.target.cpu6502.codegen
+package prog8.codegen.target.cpu6502.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.VarDeclType

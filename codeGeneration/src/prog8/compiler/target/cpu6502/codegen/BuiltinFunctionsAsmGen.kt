@@ -1,4 +1,4 @@
-package prog8.compiler.target.cpu6502.codegen
+package prog8.codegen.target.cpu6502.codegen
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
@@ -10,9 +10,9 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.compiler.target.AssemblyError
-import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.cpu6502.codegen.assignment.*
+import prog8.codegen.target.AssemblyError
+import prog8.codegen.target.Cx16Target
+import prog8.codegen.target.cpu6502.codegen.assignment.*
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.FSignature
 import prog8.compilerinterface.subroutineFloatEvalResultVar2

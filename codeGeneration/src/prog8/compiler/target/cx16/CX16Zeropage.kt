@@ -1,4 +1,4 @@
-package prog8.compiler.target.cx16
+package prog8.codegen.target.cx16
 
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.InternalCompilerException
