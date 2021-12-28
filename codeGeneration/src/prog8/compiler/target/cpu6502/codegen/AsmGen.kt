@@ -1098,8 +1098,9 @@ class AsmGen(private val program: Program,
         val booleanCondition = stmt.condition as BinaryExpression
 
         if (stmt.elsepart.isEmpty()) {
-            if(stmt.truepart.statements.singleOrNull() is Jump) {
-                translateCompareAndJumpIfTrue(booleanCondition, stmt.truepart.statements[0] as Jump)
+            val jump = stmt.truepart.statements.singleOrNull()
+            if(jump is Jump && !jump.isGosub) {
+                translateCompareAndJumpIfTrue(booleanCondition, jump)
             } else {
                 val endLabel = makeLabel("if_end")
                 translateCompareAndJumpIfFalse(booleanCondition, endLabel)
@@ -1612,6 +1613,8 @@ $label              nop""")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: BinaryExpression, jump: Jump) {
+        require(!jump.isGosub)
+
         if(expr.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
 
