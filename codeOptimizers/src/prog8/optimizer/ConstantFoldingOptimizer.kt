@@ -303,11 +303,11 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         return noModifications
     }
 
-    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
         // the args of a fuction are constfolded via recursion already.
-        val constvalue = functionCall.constValue(program)
+        val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
-            listOf(IAstModification.ReplaceNode(functionCall, constvalue, parent))
+            listOf(IAstModification.ReplaceNode(functionCallExpr, constvalue, parent))
         else
             noModifications
     }

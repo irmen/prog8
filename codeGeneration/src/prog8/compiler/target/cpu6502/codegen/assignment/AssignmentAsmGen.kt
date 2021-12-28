@@ -159,7 +159,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
-                    is FunctionCall -> {
+                    is FunctionCallExpr -> {
                         when (val sub = value.target.targetStatement(program)) {
                             is Subroutine -> {
                                 asmgen.saveXbeforeCall(value)
@@ -215,7 +215,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                                     }
                                 }
                             }
-                            is BuiltinFunctionStatementPlaceholder -> {
+                            is BuiltinFunctionPlaceholder -> {
                                 val signature = BuiltinFunctions.getValue(sub.name)
                                 asmgen.translateBuiltinFunctionCallExpression(value, signature, false, assign.target.register)
                                 if(assign.target.register==null) {
@@ -474,7 +474,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {
-        val lsb = FunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
+        val lsb = FunctionCallExpr(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
         lsb.linkParents(value.parent)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, target, false, program.memsizer, value.position)

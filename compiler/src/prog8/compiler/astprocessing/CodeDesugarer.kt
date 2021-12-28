@@ -7,7 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.FunctionCallExpr
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
@@ -80,7 +80,7 @@ if not CONDITION
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
-            IfStatement(notCondition,
+            IfElse(notCondition,
                 AnonymousScope(mutableListOf(jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
@@ -104,7 +104,7 @@ _after:
         val notCondition = PrefixExpression("not", whileLoop.condition, pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
-            IfStatement(notCondition,
+            IfElse(notCondition,
                 AnonymousScope(mutableListOf(jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),
@@ -118,8 +118,8 @@ _after:
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node) =
         before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
 
-    override fun before(functionCall: FunctionCall, parent: Node) =
-        before(functionCall as IFunctionCall, parent, functionCall.position)
+    override fun before(functionCallExpr: FunctionCallExpr, parent: Node) =
+        before(functionCallExpr as IFunctionCall, parent, functionCallExpr.position)
 
     private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<IAstModification> {
         if(functionCall.target.nameInSource==listOf("peek")) {

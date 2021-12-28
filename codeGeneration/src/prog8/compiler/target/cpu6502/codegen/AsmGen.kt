@@ -760,7 +760,7 @@ class AsmGen(private val program: Program,
         outputSourceLine(stmt)
         when(stmt) {
             is VarDecl -> translate(stmt)
-            is NopStatement -> {}
+            is Nop -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> translateSubroutine(stmt)
@@ -779,13 +779,13 @@ class AsmGen(private val program: Program,
             is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
-            is BranchStatement -> translate(stmt)
-            is IfStatement -> translate(stmt)
+            is Branch -> translate(stmt)
+            is IfElse -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
             is RepeatLoop -> translate(stmt)
-            is WhenStatement -> translate(stmt)
+            is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
-            is BuiltinFunctionStatementPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
+            is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been desugared to jumps")
             is WhileLoop -> throw AssemblyError("while should have been desugared to jumps")
             is Block -> throw AssemblyError("block should have been handled elsewhere")
@@ -890,11 +890,11 @@ class AsmGen(private val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCall: FunctionCall, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCall, signature, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpr, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
 
-    internal fun translateFunctionCall(functionCall: FunctionCall, isExpression: Boolean) =
-            functioncallAsmGen.translateFunctionCall(functionCall, isExpression)
+    internal fun translateFunctionCall(functionCallExpr: FunctionCallExpr, isExpression: Boolean) =
+            functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
 
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)
@@ -1094,7 +1094,7 @@ class AsmGen(private val program: Program,
                 }
             }
 
-    private fun translate(stmt: IfStatement) {
+    private fun translate(stmt: IfElse) {
         requireComparisonExpression(stmt.condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
         val booleanCondition = stmt.condition as BinaryExpression
 
@@ -1274,7 +1274,7 @@ $repeatLabel    lda  $counterVar
         return counterVar
     }
 
-    private fun translate(stmt: WhenStatement) {
+    private fun translate(stmt: When) {
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
         val conditionDt = stmt.condition.inferType(program)
@@ -1328,7 +1328,7 @@ $repeatLabel    lda  $counterVar
         scope.statements.forEach{ translate(it) }
     }
 
-    private fun translate(stmt: BranchStatement) {
+    private fun translate(stmt: Branch) {
         if(stmt.truepart.isEmpty() && stmt.elsepart.isNotEmpty())
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
@@ -1674,7 +1674,7 @@ $label              nop""")
                 }
                 if(dt==DataType.UBYTE) {
                     assignExpressionToRegister(left, RegisterOrPair.A, false)
-                    if (left is FunctionCall && !left.isSimple)
+                    if (left is FunctionCallExpr && !left.isSimple)
                         out("  cmp  #0")
                 } else {
                     assignExpressionToRegister(left, RegisterOrPair.AY, false)
@@ -1690,7 +1690,7 @@ $label              nop""")
             }
             DataType.BYTE -> {
                 assignExpressionToRegister(left, RegisterOrPair.A, true)
-                if (left is FunctionCall && !left.isSimple)
+                if (left is FunctionCallExpr && !left.isSimple)
                     out("  cmp  #0")
                 when (operator) {
                     "==" -> out("  bne  $jumpIfFalseLabel")

@@ -444,7 +444,7 @@ class TestOptimization: FunSpec({
             }"""
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
         result.program.entrypoint.statements.size shouldBe 3
-        val ifstmt = result.program.entrypoint.statements[0] as IfStatement
+        val ifstmt = result.program.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1
         (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
         val func2 = result.program.entrypoint.statements[2] as Subroutine

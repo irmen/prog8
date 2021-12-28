@@ -66,8 +66,8 @@ sealed class Expression: Node {
             is RangeExpr -> {
                 (other is RangeExpr && other.from==from && other.to==to && other.step==step)
             }
-            is FunctionCall -> {
-                (other is FunctionCall && other.target.nameInSource == target.nameInSource
+            is FunctionCallExpr -> {
+                (other is FunctionCallExpr && other.target.nameInSource == target.nameInSource
                         && other.args.size == args.size
                         && other.args.zip(args).all { it.first isSameAs it.second } )
             }
@@ -811,7 +811,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun targetStatement(program: Program) =
         if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
-            BuiltinFunctionStatementPlaceholder(nameInSource[0], position, parent)
+            BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
             definingScope.lookup(nameInSource)
 
@@ -868,9 +868,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 }
 
-class FunctionCall(override var target: IdentifierReference,
-                   override var args: MutableList<Expression>,
-                   override val position: Position) : Expression(), IFunctionCall {
+class FunctionCallExpr(override var target: IdentifierReference,
+                       override var args: MutableList<Expression>,
+                       override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -879,7 +879,7 @@ class FunctionCall(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = FunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
+    override fun copy() = FunctionCallExpr(target.copy(), args.map { it.copy() }.toMutableList(), position)
     override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -925,7 +925,7 @@ class FunctionCall(override var target: IdentifierReference,
             return InferredTypes.knownFor(constVal.type)
         val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
         when (stmt) {
-            is BuiltinFunctionStatementPlaceholder -> {
+            is BuiltinFunctionPlaceholder -> {
                 if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
                         target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
                     return InferredTypes.void() // these have no return value

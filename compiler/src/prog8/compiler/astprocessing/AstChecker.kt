@@ -80,10 +80,10 @@ internal class AstChecker(private val program: Program,
         super.visit(returnStmt)
     }
 
-    override fun visit(ifStatement: IfStatement) {
-        if(!ifStatement.condition.inferType(program).isInteger)
-            errors.err("condition value should be an integer type", ifStatement.condition.position)
-        super.visit(ifStatement)
+    override fun visit(ifElse: IfElse) {
+        if(!ifElse.condition.inferType(program).isInteger)
+            errors.err("condition value should be an integer type", ifElse.condition.position)
+        super.visit(ifElse)
     }
 
     override fun visit(forLoop: ForLoop) {
@@ -165,7 +165,7 @@ internal class AstChecker(private val program: Program,
         if(ident!=null) {
             val targetStatement = checkFunctionOrLabelExists(ident, jump)
             if(targetStatement!=null) {
-                if(targetStatement is BuiltinFunctionStatementPlaceholder)
+                if(targetStatement is BuiltinFunctionPlaceholder)
                     errors.err("can't jump to a builtin function", jump.position)
             }
             if(targetStatement is Subroutine && targetStatement.parameters.any()) {
@@ -184,7 +184,7 @@ internal class AstChecker(private val program: Program,
         if(ident!=null) {
             val targetStatement = checkFunctionOrLabelExists(ident, gosub)
             if(targetStatement!=null) {
-                if(targetStatement is BuiltinFunctionStatementPlaceholder)
+                if(targetStatement is BuiltinFunctionPlaceholder)
                     errors.err("can't gosub to a builtin function", gosub.position)
             }
         }
@@ -209,7 +209,7 @@ internal class AstChecker(private val program: Program,
                 is VarDecl,
                 is InlineAssembly,
                 is IStatementContainer,
-                is NopStatement -> true
+                is Nop -> true
                 is Assignment -> {
                     val target = statement.target.identifier!!.targetStatement(program)
                     target === statement.previousSibling()      // an initializer assignment is okay
@@ -503,7 +503,7 @@ internal class AstChecker(private val program: Program,
                 } else {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCall)
+                        if (assignment.value !is FunctionCallExpr)
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
@@ -935,28 +935,28 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun visit(functionCall: FunctionCall) {
+    override fun visit(functionCallExpr: FunctionCallExpr) {
         // this function call is (part of) an expression, which should be in a statement somewhere.
-        val stmtOfExpression = findParentNode<Statement>(functionCall)
-                ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCall.position}")
+        val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
+                ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
 
-        val targetStatement = checkFunctionOrLabelExists(functionCall.target, stmtOfExpression)
+        val targetStatement = checkFunctionOrLabelExists(functionCallExpr.target, stmtOfExpression)
         if(targetStatement!=null)
-            checkFunctionCall(targetStatement, functionCall.args, functionCall.position)
+            checkFunctionCall(targetStatement, functionCallExpr.args, functionCallExpr.position)
 
         // warn about sgn(unsigned) this is likely a mistake
-        if(functionCall.target.nameInSource.last()=="sgn") {
-            val sgnArgType = functionCall.args.first().inferType(program)
+        if(functionCallExpr.target.nameInSource.last()=="sgn") {
+            val sgnArgType = functionCallExpr.args.first().inferType(program)
             if(sgnArgType istype DataType.UBYTE  || sgnArgType istype DataType.UWORD)
-                errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCall.args.first().position)
+                errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCallExpr.args.first().position)
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCall, program)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program)
         if(error!=null)
-            errors.err(error, functionCall.position)
+            errors.err(error, functionCallExpr.position)
 
         // check the functions that return multiple returnvalues.
-        val stmt = functionCall.target.targetStatement(program)
+        val stmt = functionCallExpr.target.targetStatement(program)
         if (stmt is Subroutine) {
             if (stmt.returntypes.size > 1) {
                 // Currently, it's only possible to handle ONE (or zero) return values from a subroutine.
@@ -969,7 +969,7 @@ internal class AstChecker(private val program: Program,
                 // dealing with the status bit as just being that, the status bit after the call.
                 val (returnRegisters, _) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
                 if (returnRegisters.size>1) {
-                    errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCall.position)
+                    errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCallExpr.position)
                 }
             }
         }
@@ -977,18 +977,18 @@ internal class AstChecker(private val program: Program,
         // functions that don't return a value, can't be used in an expression or assignment
         if(targetStatement is Subroutine) {
             if(targetStatement.returntypes.isEmpty()) {
-                if(functionCall.parent is Expression || functionCall.parent is Assignment)
-                    errors.err("subroutine doesn't return a value", functionCall.position)
+                if(functionCallExpr.parent is Expression || functionCallExpr.parent is Assignment)
+                    errors.err("subroutine doesn't return a value", functionCallExpr.position)
             }
         }
-        else if(targetStatement is BuiltinFunctionStatementPlaceholder) {
-            if(builtinFunctionReturnType(targetStatement.name, functionCall.args, program).isUnknown) {
-                if(functionCall.parent is Expression || functionCall.parent is Assignment)
-                    errors.err("function doesn't return a value", functionCall.position)
+        else if(targetStatement is BuiltinFunctionPlaceholder) {
+            if(builtinFunctionReturnType(targetStatement.name, functionCallExpr.args, program).isUnknown) {
+                if(functionCallExpr.parent is Expression || functionCallExpr.parent is Assignment)
+                    errors.err("function doesn't return a value", functionCallExpr.position)
             }
         }
 
-        super.visit(functionCall)
+        super.visit(functionCallExpr)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
@@ -1044,7 +1044,7 @@ internal class AstChecker(private val program: Program,
         if(target is Label && args.isNotEmpty())
             errors.err("cannot use arguments when calling a label", position)
 
-        if(target is BuiltinFunctionStatementPlaceholder) {
+        if(target is BuiltinFunctionPlaceholder) {
             if(target.name=="swap") {
                 // swap() is a bit weird because this one is translated into an operations directly, instead of being a function call
                 val dt1 = args[0].inferType(program)
@@ -1080,8 +1080,8 @@ internal class AstChecker(private val program: Program,
                     var ident: IdentifierReference? = null
                     if(arg.value is IdentifierReference)
                         ident = arg.value as IdentifierReference
-                    else if(arg.value is FunctionCall) {
-                        val fcall = arg.value as FunctionCall
+                    else if(arg.value is FunctionCallExpr) {
+                        val fcall = arg.value as FunctionCallExpr
                         if(fcall.target.nameInSource == listOf("lsb") || fcall.target.nameInSource == listOf("msb"))
                             ident = fcall.args[0] as? IdentifierReference
                     }
@@ -1164,11 +1164,11 @@ internal class AstChecker(private val program: Program,
         super.visit(arrayIndexedExpression)
     }
 
-    override fun visit(whenStatement: WhenStatement) {
-        if(!whenStatement.condition.inferType(program).isInteger)
-            errors.err("when condition must be an integer value", whenStatement.position)
+    override fun visit(whenStmt: When) {
+        if(!whenStmt.condition.inferType(program).isInteger)
+            errors.err("when condition must be an integer value", whenStmt.position)
         val tally = mutableSetOf<Int>()
-        for((choices, choiceNode) in whenStatement.choiceValues(program)) {
+        for((choices, choiceNode) in whenStmt.choiceValues(program)) {
             if(choices!=null) {
                 for (c in choices) {
                     if(c in tally)
@@ -1179,14 +1179,14 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(whenStatement.choices.isEmpty())
-            errors.err("empty when statement", whenStatement.position)
+        if(whenStmt.choices.isEmpty())
+            errors.err("empty when statement", whenStmt.position)
 
-        super.visit(whenStatement)
+        super.visit(whenStmt)
     }
 
     override fun visit(whenChoice: WhenChoice) {
-        val whenStmt = whenChoice.parent as WhenStatement
+        val whenStmt = whenChoice.parent as When
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
             if(!conditionType.isKnown)
@@ -1208,7 +1208,7 @@ internal class AstChecker(private val program: Program,
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {
-            is Label, is Subroutine, is BuiltinFunctionStatementPlaceholder -> return targetStatement
+            is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
             null -> errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
             else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", statement.position)
         }
@@ -1432,7 +1432,7 @@ internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statem
                 errors.warn("result value of subroutine call is discarded (use void?)", call.position)
             else
                 errors.warn("result values of subroutine call are discarded (use void?)", call.position)
-        } else if (target is BuiltinFunctionStatementPlaceholder) {
+        } else if (target is BuiltinFunctionPlaceholder) {
             val rt = builtinFunctionReturnType(target.name, call.args, program)
             if (rt.isKnown)
                 errors.warn("result value of a function call is discarded (use void?)", call.position)

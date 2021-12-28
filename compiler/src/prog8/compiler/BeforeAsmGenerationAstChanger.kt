@@ -193,19 +193,19 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         return noModifications
     }
 
-    override fun after(ifStatement: IfStatement, parent: Node): Iterable<IAstModification> {
-        val prefixExpr = ifStatement.condition as? PrefixExpression
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val prefixExpr = ifElse.condition as? PrefixExpression
         if(prefixExpr!=null && prefixExpr.operator=="not") {
             // if not x -> if x==0
-            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
-            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
-        val binExpr = ifStatement.condition as? BinaryExpression
+        val binExpr = ifElse.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
-            val booleanExpr = BinaryExpression(ifStatement.condition, "!=", NumericLiteralValue.optimalInteger(0, ifStatement.condition.position), ifStatement.condition.position)
-            return listOf(IAstModification.ReplaceNode(ifStatement.condition, booleanExpr, ifStatement))
+            val booleanExpr = BinaryExpression(ifElse.condition, "!=", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
         if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
@@ -219,11 +219,11 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val modifications = mutableListOf<IAstModification>()
         if(simplify.rightVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifStatement, simplify.rightVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(ifElse, simplify.rightVarAssignment, parent as IStatementContainer)
         }
         if(simplify.leftVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifStatement, simplify.leftVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(ifElse, simplify.leftVarAssignment, parent as IStatementContainer)
         }
 
         return modifications
@@ -341,12 +341,12 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                     complexArrayIndexedExpressions.add(arrayIndexedExpression)
             }
 
-            override fun visit(branchStatement: BranchStatement) {}
+            override fun visit(branch: Branch) {}
 
             override fun visit(forLoop: ForLoop) {}
 
-            override fun visit(ifStatement: IfStatement) {
-                ifStatement.condition.accept(this)
+            override fun visit(ifElse: IfElse) {
+                ifElse.condition.accept(this)
             }
 
             override fun visit(untilLoop: UntilLoop) {

@@ -210,7 +210,7 @@ internal class StatementReorderer(val program: Program,
                                     return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                             }
                         }
-                        is BuiltinFunctionStatementPlaceholder -> {
+                        is BuiltinFunctionPlaceholder -> {
                             val func = BuiltinFunctions.getValue(callee.name)
                             val paramTypes = func.parameters[argnum].possibleDatatypes
                             for(type in paramTypes) {
@@ -262,19 +262,19 @@ internal class StatementReorderer(val program: Program,
         return noModifications
     }
 
-    override fun after(whenStatement: WhenStatement, parent: Node): Iterable<IAstModification> {
-        val lastChoiceValues = whenStatement.choices.lastOrNull()?.values
+    override fun after(`when`: When, parent: Node): Iterable<IAstModification> {
+        val lastChoiceValues = `when`.choices.lastOrNull()?.values
         if(lastChoiceValues?.isNotEmpty()==true) {
-            val elseChoice = whenStatement.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
+            val elseChoice = `when`.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
             if(elseChoice>=0)
-                errors.err("else choice must be the last one", whenStatement.choices[elseChoice].position)
+                errors.err("else choice must be the last one", `when`.choices[elseChoice].position)
         }
 
-        val choices = whenStatement.choiceValues(program).sortedBy {
+        val choices = `when`.choiceValues(program).sortedBy {
             it.first?.first() ?: Int.MAX_VALUE
         }
-        whenStatement.choices.clear()
-        choices.mapTo(whenStatement.choices) { it.second }
+        `when`.choices.clear()
+        choices.mapTo(`when`.choices) { it.second }
         return noModifications
     }
 

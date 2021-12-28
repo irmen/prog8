@@ -195,8 +195,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(functionCall: FunctionCall) {
-        printout(functionCall as IFunctionCall)
+    override fun visit(functionCallExpr: FunctionCallExpr) {
+        printout(functionCallExpr as IFunctionCall)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
@@ -236,23 +236,23 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(ifStatement: IfStatement) {
+    override fun visit(ifElse: IfElse) {
         output("if ")
-        ifStatement.condition.accept(this)
+        ifElse.condition.accept(this)
         output(" ")
-        ifStatement.truepart.accept(this)
-        if(ifStatement.elsepart.statements.isNotEmpty()) {
+        ifElse.truepart.accept(this)
+        if(ifElse.elsepart.statements.isNotEmpty()) {
             output(" else ")
-            ifStatement.elsepart.accept(this)
+            ifElse.elsepart.accept(this)
         }
     }
 
-    override fun visit(branchStatement: BranchStatement) {
-        output("if_${branchStatement.condition.toString().lowercase()} ")
-        branchStatement.truepart.accept(this)
-        if(branchStatement.elsepart.statements.isNotEmpty()) {
+    override fun visit(branch: Branch) {
+        output("if_${branch.condition.toString().lowercase()} ")
+        branch.truepart.accept(this)
+        if(branch.elsepart.statements.isNotEmpty()) {
             output(" else ")
-            branchStatement.elsepart.accept(this)
+            branch.elsepart.accept(this)
         }
     }
 
@@ -422,12 +422,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputlni("}}")
     }
 
-    override fun visit(whenStatement: WhenStatement) {
+    override fun visit(`when`: When) {
         output("when ")
-        whenStatement.condition.accept(this)
+        `when`.condition.accept(this)
         outputln(" {")
         scopelevel++
-        whenStatement.choices.forEach { it.accept(this) }
+        `when`.choices.forEach { it.accept(this) }
         scopelevel--
         outputlni("}")
     }

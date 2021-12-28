@@ -6,7 +6,7 @@ import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.FunctionCall
+import prog8.ast.expressions.FunctionCallExpr
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -59,15 +59,15 @@ class CallGraph(private val program: Program) : IAstVisitor {
         super.visit(directive)
     }
 
-    override fun visit(functionCall: FunctionCall) {
-        val otherSub = functionCall.target.targetSubroutine(program)
+    override fun visit(functionCallExpr: FunctionCallExpr) {
+        val otherSub = functionCallExpr.target.targetSubroutine(program)
         if (otherSub != null) {
-            functionCall.definingSubroutine?.let { thisSub ->
+            functionCallExpr.definingSubroutine?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub) + otherSub
-                calledBy[otherSub] = calledBy.getValue(otherSub) + functionCall
+                calledBy[otherSub] = calledBy.getValue(otherSub) + functionCallExpr
             }
         }
-        super.visit(functionCall)
+        super.visit(functionCallExpr)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {

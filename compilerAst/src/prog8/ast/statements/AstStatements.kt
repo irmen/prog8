@@ -49,7 +49,7 @@ sealed class Statement : Node {
 }
 
 
-class BuiltinFunctionStatementPlaceholder(val name: String, override val position: Position, override var parent: Node) : Statement() {
+class BuiltinFunctionPlaceholder(val name: String, override val position: Position, override var parent: Node) : Statement() {
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstVisitor) = throw FatalAstException("should not iterate over this node")
     override fun accept(visitor: AstWalker, parent: Node) = throw FatalAstException("should not iterate over this node")
@@ -605,7 +605,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class NopStatement(override val position: Position): Statement() {
+class Nop(override val position: Position): Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -613,7 +613,7 @@ class NopStatement(override val position: Position): Statement() {
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = NopStatement(position)
+    override fun copy() = Nop(position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -754,10 +754,10 @@ open class SubroutineParameter(val name: String,
     override fun toString() = "Param($type:$name)"
 }
 
-class IfStatement(var condition: Expression,
-                  var truepart: AnonymousScope,
-                  var elsepart: AnonymousScope,
-                  override val position: Position) : Statement() {
+class IfElse(var condition: Expression,
+             var truepart: AnonymousScope,
+             var elsepart: AnonymousScope,
+             override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -784,10 +784,10 @@ class IfStatement(var condition: Expression,
 
 }
 
-class BranchStatement(var condition: BranchCondition,
-                      var truepart: AnonymousScope,
-                      var elsepart: AnonymousScope,
-                      override val position: Position) : Statement() {
+class Branch(var condition: BranchCondition,
+             var truepart: AnonymousScope,
+             var elsepart: AnonymousScope,
+             override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -919,9 +919,9 @@ class UntilLoop(var body: AnonymousScope,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class WhenStatement(var condition: Expression,
-                    var choices: MutableList<WhenChoice>,
-                    override val position: Position): Statement() {
+class When(var condition: Expression,
+           var choices: MutableList<WhenChoice>,
+           override val position: Position): Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

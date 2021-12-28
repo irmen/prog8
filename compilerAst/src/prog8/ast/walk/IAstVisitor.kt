@@ -39,9 +39,9 @@ interface IAstVisitor {
         subroutine.statements.forEach { it.accept(this) }
     }
 
-    fun visit(functionCall: FunctionCall) {
-        functionCall.target.accept(this)
-        functionCall.args.forEach { it.accept(this) }
+    fun visit(functionCallExpr: FunctionCallExpr) {
+        functionCallExpr.target.accept(this)
+        functionCallExpr.args.forEach { it.accept(this) }
     }
 
     fun visit(functionCallStatement: FunctionCallStatement) {
@@ -60,15 +60,15 @@ interface IAstVisitor {
         gosub.identifier?.accept(this)
     }
 
-    fun visit(ifStatement: IfStatement) {
-        ifStatement.condition.accept(this)
-        ifStatement.truepart.accept(this)
-        ifStatement.elsepart.accept(this)
+    fun visit(ifElse: IfElse) {
+        ifElse.condition.accept(this)
+        ifElse.truepart.accept(this)
+        ifElse.elsepart.accept(this)
     }
 
-    fun visit(branchStatement: BranchStatement) {
-        branchStatement.truepart.accept(this)
-        branchStatement.elsepart.accept(this)
+    fun visit(branch: Branch) {
+        branch.truepart.accept(this)
+        branch.elsepart.accept(this)
     }
 
     fun visit(range: RangeExpr) {
@@ -164,12 +164,12 @@ interface IAstVisitor {
     fun visit(inlineAssembly: InlineAssembly) {
     }
 
-    fun visit(nopStatement: NopStatement) {
+    fun visit(nop: Nop) {
     }
 
-    fun visit(whenStatement: WhenStatement) {
-        whenStatement.condition.accept(this)
-        whenStatement.choices.forEach { it.accept(this) }
+    fun visit(`when`: When) {
+        `when`.condition.accept(this)
+        `when`.choices.forEach { it.accept(this) }
     }
 
     fun visit(whenChoice: WhenChoice) {

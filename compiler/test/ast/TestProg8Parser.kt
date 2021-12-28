@@ -19,7 +19,6 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.printProgram
 import prog8.compiler.target.C64Target
 import prog8.compiler.target.cbm.Petscii
 import prog8.parser.ParseError
@@ -334,7 +333,7 @@ class TestProg8Parser: FunSpec( {
             assertPositionOf(rhsFoo, mpf, 4, 21, 22)
             val declBar = startSub.statements.filterIsInstance<VarDecl>()[1]
             assertPositionOf(declBar, mpf, 5, 9, 13)
-            val whenStmt = startSub.statements.filterIsInstance<WhenStatement>()[0]
+            val whenStmt = startSub.statements.filterIsInstance<When>()[0]
             assertPositionOf(whenStmt, mpf, 6, 9, 12)
             assertPositionOf(whenStmt.choices[0], mpf, 7, 13, 14)
             assertPositionOf(whenStmt.choices[1], mpf, 8, 13, 14)

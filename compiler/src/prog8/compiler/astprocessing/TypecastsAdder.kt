@@ -135,8 +135,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return afterFunctionCallArgs(functionCallStatement)
     }
 
-    override fun after(functionCall: FunctionCall, parent: Node): Iterable<IAstModification> {
-        return afterFunctionCallArgs(functionCall)
+    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+        return afterFunctionCallArgs(functionCallExpr)
     }
 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
@@ -180,7 +180,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
             }
-            is BuiltinFunctionStatementPlaceholder -> {
+            is BuiltinFunctionPlaceholder -> {
                 val func = BuiltinFunctions.getValue(sub.name)
                 func.parameters.zip(call.args).forEachIndexed { index, pair ->
                     val argItype = pair.second.inferType(program)
