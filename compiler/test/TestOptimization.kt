@@ -16,7 +16,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.compiler.BeforeAsmGenerationAstChanger
 import prog8.compiler.printProgram
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8.compilerinterface.*
 import prog8tests.helpers.*
 import prog8tests.helpers.DummyFunctions

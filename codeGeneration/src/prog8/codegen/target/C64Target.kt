@@ -1,14 +1,14 @@
-package prog8.compiler.target
+package prog8.codegen.target
 
 import com.github.michaelbull.result.fold
 import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
-import prog8.compiler.target.c64.C64MachineDefinition
-import prog8.compiler.target.cbm.Petscii
-import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
-import prog8.compiler.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
+import prog8.codegen.target.c64.C64MachineDefinition
+import prog8.codegen.target.cbm.Petscii
+import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
+import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.compilerinterface.ICompilationTarget
 
 

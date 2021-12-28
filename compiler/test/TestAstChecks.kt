@@ -3,7 +3,7 @@ package prog8tests
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText

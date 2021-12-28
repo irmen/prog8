@@ -10,7 +10,7 @@ import prog8.ast.GlobalNamespace
 import prog8.ast.base.ParentSentinel
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess

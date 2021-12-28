@@ -19,8 +19,8 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.target.C64Target
-import prog8.compiler.target.cbm.Petscii
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.cbm.Petscii
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode

@@ -1,3 +1,3 @@
-package prog8.compiler.target
+package prog8.codegen.target
 
 class AssemblyError(msg: String) : RuntimeException(msg)

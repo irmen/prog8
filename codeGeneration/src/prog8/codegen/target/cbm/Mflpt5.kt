@@ -1,4 +1,4 @@
-package prog8.compiler.target.cbm
+package prog8.codegen.target.cbm
 
 import prog8.compilerinterface.IMachineFloat
 import prog8.compilerinterface.InternalCompilerException

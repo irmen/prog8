@@ -13,7 +13,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.compiler.printProgram
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions

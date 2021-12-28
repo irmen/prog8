@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8.compiler.target.Cx16Target
+import prog8.codegen.target.Cx16Target
 import prog8tests.helpers.*
 import prog8tests.helpers.assertSuccess
 import java.nio.file.Path

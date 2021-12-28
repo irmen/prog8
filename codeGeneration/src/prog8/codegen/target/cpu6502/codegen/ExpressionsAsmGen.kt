@@ -1,4 +1,4 @@
-package prog8.compiler.target.cpu6502.codegen
+package prog8.codegen.target.cpu6502.codegen
 
 import prog8.ast.Program
 import prog8.ast.base.*
@@ -6,7 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.BuiltinFunctionPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.compiler.target.AssemblyError
+import prog8.codegen.target.AssemblyError
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue

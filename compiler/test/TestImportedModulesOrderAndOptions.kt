@@ -7,7 +7,7 @@ import io.kotest.matchers.string.shouldStartWith
 import prog8.ast.internedStringsModuleName
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertSuccess
