@@ -130,7 +130,7 @@ data class Label(override val name: String, override val position: Position) : S
     override fun toString()= "Label(name=$name, pos=$position)"
 }
 
-open class Return(var value: Expression?, final override val position: Position) : Statement() {
+class Return(var value: Expression?, final override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -171,7 +171,7 @@ enum class ZeropageWish {
     NOT_IN_ZEROPAGE
 }
 
-open class VarDecl(val type: VarDeclType,
+class VarDecl(val type: VarDeclType,
                    private val declaredDatatype: DataType,
                    val zeropage: ZeropageWish,
                    var arraysize: ArrayIndex?,
@@ -299,7 +299,7 @@ class ArrayIndex(var indexExpr: Expression,
     override fun copy() = ArrayIndex(indexExpr.copy(), position)
 }
 
-open class Assignment(var target: AssignTarget, var value: Expression, final override val position: Position) : Statement() {
+class Assignment(var target: AssignTarget, var value: Expression, final override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

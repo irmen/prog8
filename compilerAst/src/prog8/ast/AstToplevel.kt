@@ -244,8 +244,8 @@ interface Node {
 
 
 open class Module(final override var statements: MutableList<Statement>,
-             final override val position: Position,
-             val source: SourceCode) : Node, INameScope {
+                  final override val position: Position,
+                  val source: SourceCode) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program
