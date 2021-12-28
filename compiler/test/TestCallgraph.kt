@@ -7,7 +7,7 @@ import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
-import prog8.compiler.target.C64Target
+import prog8.codegen.target.C64Target
 import prog8.compilerinterface.CallGraph
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText

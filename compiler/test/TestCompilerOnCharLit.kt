@@ -11,7 +11,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Assignment
-import prog8.compiler.target.Cx16Target
+import prog8.codegen.target.Cx16Target
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 

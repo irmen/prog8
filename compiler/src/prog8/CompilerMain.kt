@@ -5,8 +5,8 @@ import prog8.ast.base.AstException
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8.compiler.target.C64Target
-import prog8.compiler.target.Cx16Target
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.Cx16Target
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path

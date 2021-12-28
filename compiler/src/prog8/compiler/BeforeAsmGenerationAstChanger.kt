@@ -11,7 +11,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compiler.astprocessing.isSubroutineParameter
-import prog8.compiler.target.AssemblyError
+import prog8.codegen.target.AssemblyError
 import prog8.compilerinterface.*
 import prog8.optimizer.getTempVarName
 

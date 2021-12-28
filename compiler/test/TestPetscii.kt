@@ -6,7 +6,7 @@ import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import prog8.compiler.target.cbm.Petscii
+import prog8.codegen.target.cbm.Petscii
 
 
 class TestPetscii: FunSpec({

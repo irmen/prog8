@@ -11,10 +11,10 @@ import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
-import prog8.compiler.target.C64Target
-import prog8.compiler.target.Cx16Target
-import prog8.compiler.target.c64.C64Zeropage
-import prog8.compiler.target.cx16.CX16Zeropage
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.Cx16Target
+import prog8.codegen.target.c64.C64Zeropage
+import prog8.codegen.target.cx16.CX16Zeropage
 import prog8.compilerinterface.*
 import prog8tests.helpers.ErrorReporterForTests
 
