@@ -91,7 +91,8 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, program: Program, 
         transforms.applyModifications()
         val lit2decl = LiteralsToAutoVars(this)
         lit2decl.visit(this)
-        lit2decl.applyModifications()
+        if(errors.noErrors())
+            lit2decl.applyModifications()
     }
 }
 

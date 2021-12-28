@@ -6,6 +6,7 @@ For next compiler release (7.6)
 add "if X in [1,2,3] {...}" syntax , as an alternative to when X { 1,2,3-> {...} }
 if the array is not a literal, do a normal containment test instead in an array or string or range
 change "consider using when statement..." to "consider using if X in [..] or when statement..."
+also add to the docs!
 
 
 Blocked by an official Commander-x16 v39 release

@@ -301,4 +301,68 @@ class TestCompilerOnRanges: FunSpec({
         forloop.iterable shouldBe instanceOf<RangeExpr>()
         (forloop.iterable as RangeExpr).step shouldBe NumericLiteralValue(DataType.UBYTE, -2.0, Position.DUMMY)
     }
+
+
+    test("for statement on all possible iterable expressions") {
+        compileText(C64Target, false, """
+            main {
+                sub start() {
+                    ubyte xx
+                    str name = "irmen"
+                    ubyte[] values = [1,2,3,4,5,6,7]
+            
+                    for xx in name {
+                        xx++
+                    }
+            
+                    for xx in values {
+                        xx++
+                    }
+            
+                    for xx in 10 to 20 step 3 {
+                        xx++
+                    }
+            
+                    for xx in "abcdef" {
+                        xx++
+                    }
+            
+                    for xx in [2,4,6,8] {
+                        xx++
+                    }
+                }
+            }""").assertSuccess()
+    }
+
+    // TODO enable this after this if-syntax is implemented
+    xtest("if containment check on all possible iterable expressions") {
+        compileText(C64Target, false, """
+            main {
+                sub start() {
+                    ubyte xx
+                    str name = "irmen"
+                    ubyte[] values = [1,2,3,4,5,6,7]
+            
+                    if xx in name {
+                        xx++
+                    }
+            
+                    if xx in values {
+                        xx++
+                    }
+            
+                    if xx in 10 to 20 step 3 {
+                        xx++
+                    }
+            
+                    if xx in "abcdef" {
+                        xx++
+                    }
+            
+                    if xx in [2,4,6,8] {
+                        xx++
+                    }
+                }
+            }""").assertSuccess()
+    }
 })

@@ -5,10 +5,76 @@
 main {
     sub start() {
         ubyte @shared xx
+        str name = "irmen"
+        ubyte[] values = [1,2,3,4,5,6,7]
 
-        if xx<100 {
-            foobar()
+        for xx in name {
+            txt.chrout(xx)
+            txt.spc()
         }
+        txt.nl()
+
+        for xx in values {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+
+        for xx in 10 to 20 step 3 {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+
+        for xx in "abcdef" {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+
+        for xx in [2,4,6,8] {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+
+
+;        if xx in 100 {          ; TODO error
+;            xx++
+;        }
+;
+;        if xx in 'a' {          ; TODO error
+;            xx++
+;        }
+;
+;        if xx in "abc" {         ; TODO containment test via when
+;            xx++
+;        }
+;
+;        if xx in [1,2,3,4,5] {    ; TODO containment test via when
+;            xx++
+;        }
+;
+;        if xx in [1,2,3,4,5,6,7,8,9,10] {    ; TODO containment test via loop?
+;            xx++
+;        }
+;
+;        if xx in name {         ; TODO containment test via loop
+;            xx++
+;        }
+;
+;        if xx in values {       ; TODO containment test via loop
+;            xx++
+;        }
+;
+;        if xx in 10 to 20 step 2 {      ; TODO
+;
+;        }
+
+        ; TODO const optimizing of the containment tests
+        ; TODO also with (u)word and floats
+
+
 
         if xx==9 or xx==10 or xx==11 or xx==12 or xx==13 {
             txt.print("9 10 11\n")
