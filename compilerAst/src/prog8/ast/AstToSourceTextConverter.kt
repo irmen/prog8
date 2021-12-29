@@ -48,6 +48,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputln("}\n")
     }
 
+    override fun visit(containment: ContainmentCheck) {
+        containment.element.accept(this)
+        output(" in ")
+        containment.iterable.accept(this)
+    }
+
     override fun visit(expr: PrefixExpression) {
         if(expr.operator.any { it.isLetter() })
             output(" ${expr.operator} ")

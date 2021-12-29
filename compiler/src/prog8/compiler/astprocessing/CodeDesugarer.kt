@@ -6,10 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
-import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.FunctionCallExpr
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.PrefixExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -25,6 +22,8 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     //
     // List of modifications:
     // - replace 'break' statements by a goto + generated after label.
+    // - replace while and do-until loops by just jumps.
+    // - replace peek() and poke() by direct memory accesses.
 
 
     private var generatedLabelSequenceNumber: Int = 0
@@ -132,6 +131,13 @@ _after:
             val tgt = AssignTarget(null, null, DirectMemoryWrite(functionCall.args[0], position), position)
             val assign = Assignment(tgt, functionCall.args[1], position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
+        }
+        return noModifications
+    }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="in") {
+            println("IN-TEST:  $expr\n     in:  $parent")
         }
         return noModifications
     }

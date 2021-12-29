@@ -87,6 +87,7 @@ abstract class AstWalker {
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -128,6 +129,7 @@ abstract class AstWalker {
     open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(builtinFunctionPlaceholder: BuiltinFunctionPlaceholder, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -226,6 +228,13 @@ abstract class AstWalker {
     fun visit(directive: Directive, parent: Node) {
         track(before(directive, parent), directive, parent)
         track(after(directive, parent), directive, parent)
+    }
+
+    fun visit(containment: ContainmentCheck, parent: Node) {
+        track(before(containment, parent), containment, parent)
+        containment.element.accept(this, containment)
+        containment.iterable?.accept(this, containment)
+        track(after(containment, parent), containment, parent)
     }
 
     fun visit(block: Block, parent: Node) {

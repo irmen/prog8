@@ -1083,3 +1083,45 @@ strlen          .proc
 		bne  -
 +		rts
 		.pend
+
+
+containment_bytearray	.proc
+	; -- check if a value exists in a byte array.
+	;    parameters: P8ZP_SCRATCH_W1: address of the byte array, A = byte to check, Y = length of array (>=1).
+	;    returns boolean 0/1 in A.
+		dey
+-		cmp  (P8ZP_SCRATCH_W1),y
+		beq  +
+		dey
+		cpy  #255
+		bne  -
+		lda  #0
+		rts
++		lda  #1
+		rts
+		.pend
+
+containment_wordarray	.proc
+	; -- check if a value exists in a word array.
+	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: address of the word array, Y = length of array (>=1).
+	;    returns boolean 0/1 in A.
+		dey
+		tya
+		asl  a
+		tay
+-		lda  P8ZP_SCRATCH_W1
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  +
+		lda  P8ZP_SCRATCH_W1+1
+		iny
+		cmp  (P8ZP_SCRATCH_W2),y
+		beq  _found
++		dey
+		dey
+		cpy  #254
+		bne  -
+		lda  #0
+		rts
+_found		lda  #1
+		rts
+		.pend

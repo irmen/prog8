@@ -3,6 +3,8 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.ArrayDatatypes
+import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -97,7 +99,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
             val rightBinExpr = expr.right as? BinaryExpression
             if(leftBinExpr!=null && leftBinExpr.operator=="==" && rightBinExpr!=null && rightBinExpr.operator=="==") {
                 if(leftBinExpr.right is NumericLiteralValue && rightBinExpr.right is NumericLiteralValue) {
-                    errors.warn("consider using when statement to test for multiple values", expr.position)
+                    errors.warn("consider using 'in' or 'when' to test for multiple values", expr.position)
                 }
             }
         }
@@ -124,4 +126,76 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
         }
         return noModifications
     }
+
+    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
+        // replace trivial containment checks with just false or a single comparison
+        fun replaceWithEquals(value: NumericLiteralValue): Iterable<IAstModification> {
+            errors.warn("containment could be written as just a single comparison", containment.position)
+            val equals = BinaryExpression(containment.element, "==", value, containment.position)
+            return listOf(IAstModification.ReplaceNode(containment, equals, parent))
+        }
+
+        fun replaceWithFalse(): Iterable<IAstModification> {
+            errors.warn("condition is always false", containment.position)
+            return listOf(IAstModification.ReplaceNode(containment, NumericLiteralValue.fromBoolean(false, containment.position), parent))
+        }
+
+        fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
+            if(array.isEmpty())
+                return replaceWithFalse()
+            if(array.size==1) {
+                val constVal = array[0].constValue(program)
+                if(constVal!=null)
+                    return replaceWithEquals(constVal)
+            }
+            return noModifications
+        }
+
+        fun checkString(stringVal: StringLiteralValue): Iterable<IAstModification> {
+            if(stringVal.value.isEmpty())
+                return replaceWithFalse()
+            if(stringVal.value.length==1) {
+                val string = program.encoding.encodeString(stringVal.value, stringVal.altEncoding)
+                return replaceWithEquals(NumericLiteralValue(DataType.UBYTE, string[0].toDouble(), stringVal.position))
+            }
+            return noModifications
+        }
+
+        when(containment.iterable) {
+            is ArrayLiteralValue -> {
+                val array = (containment.iterable as ArrayLiteralValue).value
+                return checkArray(array)
+            }
+            is IdentifierReference -> {
+                val variable = (containment.iterable as IdentifierReference).targetVarDecl(program)!!
+                when(variable.datatype) {
+                    DataType.STR -> {
+                        val stringVal = (variable.value as StringLiteralValue)
+                        return checkString(stringVal)
+                    }
+                    in ArrayDatatypes -> {
+                        val array = (variable.value as ArrayLiteralValue).value
+                        return checkArray(array)
+                    }
+                    else -> {}
+                }
+            }
+            is RangeExpr -> {
+                val constValues = (containment.iterable as RangeExpr).toConstantIntegerRange()
+                if(constValues!=null) {
+                    if (constValues.isEmpty())
+                        return replaceWithFalse()
+                    if (constValues.count()==1)
+                        return replaceWithEquals(NumericLiteralValue.optimalNumeric(constValues.first, containment.position))
+                }
+            }
+            is StringLiteralValue -> {
+                val stringVal = containment.iterable as StringLiteralValue
+                return checkString(stringVal)
+            }
+            else -> {}
+        }
+        return noModifications
+    }
 }
+

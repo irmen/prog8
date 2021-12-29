@@ -67,7 +67,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                 && !assignment.target.isIOAddress(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
 
-            if(binExpr!=null && binExpr.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
+            if(binExpr!=null && binExpr.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
                 return noModifications
 
             if (binExpr != null && binExpr.operator !in ComparisonOperators) {
@@ -270,10 +270,10 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         }
         if(separateRightExpr) {
             val name = when {
-                rightDt.istype(DataType.UBYTE) -> listOf("prog8_lib","retval_interm_ub")
-                rightDt.istype(DataType.UWORD) -> listOf("prog8_lib","retval_interm_uw")
-                rightDt.istype(DataType.BYTE) -> listOf("prog8_lib","retval_interm_b2")
-                rightDt.istype(DataType.WORD) -> listOf("prog8_lib","retval_interm_w2")
+                rightDt istype DataType.UBYTE -> listOf("prog8_lib","retval_interm_ub")
+                rightDt istype DataType.UWORD -> listOf("prog8_lib","retval_interm_uw")
+                rightDt istype DataType.BYTE -> listOf("prog8_lib","retval_interm_b2")
+                rightDt istype DataType.WORD -> listOf("prog8_lib","retval_interm_w2")
                 else -> throw AssemblyError("invalid dt")
             }
             rightOperandReplacement = IdentifierReference(name, expr.position)

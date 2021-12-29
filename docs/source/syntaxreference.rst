@@ -497,6 +497,24 @@ range creation:  ``to``
 			; i loops 0, 1, 2, ... 127
 		}
 
+containment check:  ``in``
+    Tests if a value is present in a list of values, which can be a string or an array.
+    The result is a simple boolean ``true`` or ``false``.
+    Consider using this instead of chaining multiple value tests with ``or``, because the
+    containment check is more efficient.
+    Examples::
+
+        ubyte cc
+        if cc in [' ', '@', 0] {
+            txt.print("cc is one of the values")
+        }
+
+        str  email_address = "?????????"
+        if '@' in email_address {
+            txt.print("email address seems ok")
+        }
+
+
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
@@ -799,4 +817,3 @@ case you have to use { } to enclose them::
         }
         else -> txt.print("don't know")
     }
-

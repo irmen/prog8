@@ -3,11 +3,7 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-add "if X in [1,2,3] {...}" syntax , as an alternative to when X { 1,2,3-> {...} }
-if the array is not a literal, do a normal containment test instead in an array or string or range
-change "consider using when statement..." to "consider using if X in [..] or when statement..."
-also add to the docs!
-
+...
 
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -20,6 +16,7 @@ Future
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
+- make (an option) to let 64tass produce a listing file as well as output.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - get rid of all TODO's in the code
 - improve testability further, add more tests

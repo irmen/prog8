@@ -26,6 +26,11 @@ interface IAstVisitor {
     fun visit(directive: Directive) {
     }
 
+    fun visit(containment: ContainmentCheck) {
+        containment.element.accept(this)
+        containment.iterable?.accept(this)
+    }
+
     fun visit(block: Block) {
         block.statements.forEach { it.accept(this) }
     }

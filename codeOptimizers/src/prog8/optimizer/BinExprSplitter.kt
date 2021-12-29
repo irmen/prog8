@@ -22,7 +22,7 @@ class BinExprSplitter(private val program: Program, private val options: Compila
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
 
-        if(assignment.value.inferType(program).istype(DataType.FLOAT) && !options.optimizeFloatExpressions)
+        if(assignment.value.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
             return noModifications
 
         val binExpr = assignment.value as? BinaryExpression

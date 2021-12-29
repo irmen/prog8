@@ -12,8 +12,6 @@ import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
-import prog8.compilerinterface.size
-import prog8.compilerinterface.toConstantIntegerRange
 import prog8tests.helpers.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
@@ -308,8 +306,10 @@ class TestCompilerOnRanges: FunSpec({
             main {
                 sub start() {
                     ubyte xx
+                    uword ww
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]
+                    uword[] wvalues = [1000,2000,3000]
             
                     for xx in name {
                         xx++
@@ -330,19 +330,48 @@ class TestCompilerOnRanges: FunSpec({
                     for xx in [2,4,6,8] {
                         xx++
                     }
+                    
+                    for ww in [9999,8888,7777] {
+                        xx++
+                    }
+
+                    for ww in wvalues {
+                        xx++
+                    }
                 }
-            }""").assertSuccess()
+            }""", writeAssembly = true).assertSuccess()
     }
 
-    // TODO enable this after this if-syntax is implemented
-    xtest("if containment check on all possible iterable expressions") {
+    test("if containment check on all possible iterable expressions") {
         compileText(C64Target, false, """
             main {
                 sub start() {
                     ubyte xx
+                    uword ww
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]
+                    uword[] wvalues = [1000,2000,3000]
             
+                    if 'm' in name {
+                        xx++
+                    }
+            
+                    if 5 in values {
+                        xx++
+                    }
+            
+                    if 16 in 10 to 20 step 3 {
+                        xx++
+                    }
+            
+                    if 'b' in "abcdef" {
+                        xx++
+                    }
+            
+                    if 8 in [2,4,6,8] {
+                        xx++
+                    }
+
                     if xx in name {
                         xx++
                     }
@@ -362,7 +391,41 @@ class TestCompilerOnRanges: FunSpec({
                     if xx in [2,4,6,8] {
                         xx++
                     }
+                    
+                    if ww in [9999,8888,7777] {
+                        xx++
+                    }
+
+                    if ww in wvalues {
+                        xx++
+                    }                    
                 }
-            }""").assertSuccess()
+            }""", writeAssembly = true).assertSuccess()
+    }
+
+    test("containment check in expressions") {
+        compileText(C64Target, false, """
+            main {
+                sub start() {
+                    ubyte xx
+                    uword ww
+                    str name = "irmen"
+                    ubyte[] values = [1,2,3,4,5,6,7]
+                    uword[] wvalues = [1000,2000,3000]
+            
+                    xx = 'm' in name
+                    xx = 5 in values
+                    xx = 16 in 10 to 20 step 3
+                    xx = 'b' in "abcdef"
+                    xx = 8 in [2,4,6,8]
+                    xx = xx in name
+                    xx = xx in values
+                    xx = xx in 10 to 20 step 3
+                    xx = xx in "abcdef"
+                    xx = xx in [2,4,6,8]
+                    xx = ww in [9000,8000,7000]
+                    xx = ww in wvalues
+                }
+            }""", writeAssembly = true).assertSuccess()
     }
 })

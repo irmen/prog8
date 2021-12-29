@@ -9,8 +9,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.size
-import prog8.compilerinterface.toConstantIntegerRange
 
 // Fix up the literal value's type to match that of the vardecl
 //   (also check range literal operands types before they get expanded into arrays for instance)

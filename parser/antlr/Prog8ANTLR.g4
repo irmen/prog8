@@ -167,6 +167,7 @@ expression :
 	| left = expression EOL? bop = '|' EOL? right = expression
 	| left = expression EOL? bop = ('==' | '!=') EOL? right = expression
 	| rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
+	| left = expression EOL? bop = 'in' EOL? right = expression
 	| prefix = 'not' expression
 	| left = expression EOL? bop = 'and' EOL? right = expression
 	| left = expression EOL? bop = 'or' EOL? right = expression

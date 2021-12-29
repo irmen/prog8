@@ -4,9 +4,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.RangeExpr
 import prog8.ast.statements.AssignTarget
-import kotlin.math.abs
 
 fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
     val memAddr = memoryAddress
@@ -48,40 +46,4 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
         }
         else -> return false
     }
-}
-
-fun RangeExpr.toConstantIntegerRange(): IntProgression? {
-
-    fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
-        return when {
-            fromVal <= toVal -> when {
-                stepVal <= 0 -> IntRange.EMPTY
-                stepVal == 1 -> fromVal..toVal
-                else -> fromVal..toVal step stepVal
-            }
-            else -> when {
-                stepVal >= 0 -> IntRange.EMPTY
-                stepVal == -1 -> fromVal downTo toVal
-                else -> fromVal downTo toVal step abs(stepVal)
-            }
-        }
-    }
-
-    val fromLv = from as? NumericLiteralValue
-    val toLv = to as? NumericLiteralValue
-    val stepLv = step as? NumericLiteralValue
-    if(fromLv==null || toLv==null || stepLv==null)
-        return null
-    val fromVal = fromLv.number.toInt()
-    val toVal = toLv.number.toInt()
-    val stepVal = stepLv.number.toInt()
-    return makeRange(fromVal, toVal, stepVal)
-}
-
-fun RangeExpr.size(): Int? {
-    val fromLv = (from as? NumericLiteralValue)
-    val toLv = (to as? NumericLiteralValue)
-    if(fromLv==null || toLv==null)
-        return null
-    return toConstantIntegerRange()?.count()
 }

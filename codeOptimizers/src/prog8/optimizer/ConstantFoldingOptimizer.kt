@@ -23,6 +23,13 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             noModifications
     }
 
+    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
+        val result = containment.constValue(program)
+        if(result!=null)
+            return listOf(IAstModification.ReplaceNode(containment, result, parent))
+        return noModifications
+    }
+
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         // Try to turn a unary prefix expression into a single constant value.
         // Compile-time constant sub expressions will be evaluated on the spot.
