@@ -344,6 +344,25 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         return noModifications
     }
 
+    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
+        val range = containment.iterable as? RangeExpr
+        if(range!=null && range.step.constValue(program)?.number==1.0) {
+            val from = range.from.constValue(program)
+            val to = range.to.constValue(program)
+            val value = containment.element
+            if(from!=null && to!=null && value.isSimple) {
+                if(to.number-from.number>6.0) {
+                    // replace containment test with X>=from and X<=to
+                    val left = BinaryExpression(value, ">=", from, containment.position)
+                    val right = BinaryExpression(value.copy(), "<=", to, containment.position)
+                    val comparison = BinaryExpression(left, "and", right, containment.position)
+                    return listOf(IAstModification.ReplaceNode(containment, comparison, parent))
+                }
+            }
+        }
+        return noModifications
+    }
+
     private fun determineY(x: Expression, subBinExpr: BinaryExpression): Expression? {
         return when {
             subBinExpr.left isSameAs x -> subBinExpr.right

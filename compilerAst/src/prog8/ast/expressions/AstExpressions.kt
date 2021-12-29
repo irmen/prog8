@@ -7,6 +7,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.round
 
 val AssociativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
@@ -219,6 +220,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "<=", ">=",
             "==", "!=" -> InferredTypes.knownFor(DataType.UBYTE)
             "<<", ">>" -> leftDt
+            "in" -> InferredTypes.knownFor(DataType.UBYTE)
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
@@ -801,6 +803,42 @@ class RangeExpr(var from: Expression,
         return "RangeExpr(from $from, to $to, step $step, pos=$position)"
     }
 
+    fun toConstantIntegerRange(): IntProgression? {
+
+        fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
+            return when {
+                fromVal <= toVal -> when {
+                    stepVal <= 0 -> IntRange.EMPTY
+                    stepVal == 1 -> fromVal..toVal
+                    else -> fromVal..toVal step stepVal
+                }
+                else -> when {
+                    stepVal >= 0 -> IntRange.EMPTY
+                    stepVal == -1 -> fromVal downTo toVal
+                    else -> fromVal downTo toVal step abs(stepVal)
+                }
+            }
+        }
+
+        val fromLv = from as? NumericLiteralValue
+        val toLv = to as? NumericLiteralValue
+        val stepLv = step as? NumericLiteralValue
+        if(fromLv==null || toLv==null || stepLv==null)
+            return null
+        val fromVal = fromLv.number.toInt()
+        val toVal = toLv.number.toInt()
+        val stepVal = stepLv.number.toInt()
+        return makeRange(fromVal, toVal, stepVal)
+    }
+
+
+    fun size(): Int? {
+        val fromLv = (from as? NumericLiteralValue)
+        val toLv = (to as? NumericLiteralValue)
+        if(fromLv==null || toLv==null)
+            return null
+        return toConstantIntegerRange()?.count()
+    }
 }
 
 
@@ -947,6 +985,90 @@ class FunctionCallExpr(override var target: IdentifierReference,
             }
             else -> return InferredTypes.unknown()
         }
+    }
+}
+
+
+class ContainmentCheck(var element: Expression,
+                       var iterable: Expression,
+                       override val position: Position): Expression() {
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        element.parent = this
+        iterable.linkParents(this)
+    }
+
+    override val isSimple: Boolean = false
+    override fun copy() = ContainmentCheck(element.copy(), iterable.copy(), position)
+    override fun constValue(program: Program): NumericLiteralValue? {
+        val elementConst = element.constValue(program)
+        if(elementConst!=null) {
+            when(iterable){
+                is ArrayLiteralValue -> {
+                    val exists = (iterable as ArrayLiteralValue).value.any { it.constValue(program)==elementConst }
+                    return NumericLiteralValue.fromBoolean(exists, position)
+                }
+                is RangeExpr -> {
+                    val intRange = (iterable as RangeExpr).toConstantIntegerRange()
+                    if(intRange!=null && elementConst.type in IntegerDatatypes) {
+                        val exists = elementConst.number.toInt() in intRange
+                        return NumericLiteralValue.fromBoolean(exists, position)
+                    }
+                }
+                is StringLiteralValue -> {
+                    if(elementConst.type in ByteDatatypes) {
+                        val stringval = iterable as StringLiteralValue
+                        val exists = program.encoding.encodeString(stringval.value, stringval.altEncoding).contains(elementConst.number.toInt().toUByte() )
+                        return NumericLiteralValue.fromBoolean(exists, position)
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        when(iterable){
+            is ArrayLiteralValue -> {
+                val array= iterable as ArrayLiteralValue
+                if(array.value.isEmpty())
+                    return NumericLiteralValue.fromBoolean(false, position)
+            }
+            is RangeExpr -> {
+                val size = (iterable as RangeExpr).size()
+                if(size!=null && size==0)
+                    return NumericLiteralValue.fromBoolean(false, position)
+            }
+            is StringLiteralValue -> {
+                if((iterable as StringLiteralValue).value.isEmpty())
+                    return NumericLiteralValue.fromBoolean(false, position)
+            }
+            else -> {}
+        }
+
+        return null
+    }
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean {
+        if(element is IdentifierReference)
+            return element.referencesIdentifier(nameInSource)
+        return iterable?.referencesIdentifier(nameInSource) ?: false
+    }
+
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(replacement !is Expression)
+            throw FatalAstException("invalid replace")
+        if(node===element)
+            element=replacement
+        else if(node===iterable)
+            iterable=replacement
+        else
+            throw FatalAstException("invalid replace")
     }
 }
 

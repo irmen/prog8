@@ -278,7 +278,7 @@ class TestOptimization: FunSpec({
 
         wwAssign.target.identifier?.nameInSource shouldBe listOf("ww")
         expr.type shouldBe DataType.UWORD
-        expr.expression.inferType(result.program).istype(DataType.UBYTE) shouldBe true
+        expr.expression.inferType(result.program) istype DataType.UBYTE shouldBe true
     }
 
     test("intermediate assignment steps have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {

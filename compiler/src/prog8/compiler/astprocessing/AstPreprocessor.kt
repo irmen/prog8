@@ -2,21 +2,15 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.NumericDatatypes
-import prog8.ast.base.SyntaxError
-import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.expressions.RangeExpr
-import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.VarDecl
+import prog8.ast.base.*
+import prog8.ast.expressions.*
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.IErrorReporter
 
 
-class AstPreprocessor(val program: Program) : AstWalker() {
+class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWalker() {
 
     override fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
@@ -79,6 +73,15 @@ class AstPreprocessor(val program: Program) : AstWalker() {
                 }
             }
             return movements + replacements
+        }
+        return noModifications
+    }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        // this has to be done here becuse otherwise the string / range literal values will have been replaced by variables
+        if(expr.operator=="in") {
+            val containment = ContainmentCheck(expr.left, expr.right, expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
         return noModifications
     }

@@ -37,9 +37,11 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCallExpr -> translateFunctionCallResultOntoStack(expression)
+            is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpr -> throw AssemblyError("range expression should have been changed into array values")
             is CharLiteral -> throw AssemblyError("charliteral should have been replaced by ubyte using certain encoding")
+            else -> TODO("missing expression asmgen for $expression")
         }
     }
 

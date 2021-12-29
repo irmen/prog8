@@ -283,6 +283,8 @@ It's possible to assign a new array to another array, this will overwrite all el
 array with those in the value array. The number and types of elements have to match.
 For large arrays this is a slow operation because every element is copied over. It should probably be avoided.
 
+Using the ``in`` operator you can easily check if a value is present in an array,
+example: ``if choice in [1,2,3,4] {....}``
 
 **Arrays at a specific memory location:**
 Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.
@@ -331,6 +333,11 @@ There are several 'escape sequences' to help you put special characters into str
 as newlines, quote characters themselves, and so on. The ones used most often are
 ``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
 read the syntax reference on strings.
+
+Using the ``in`` operator you can easily check if a characater is present in a string,
+example: ``if '@' in email_address {....}`` (however this gives no clue about the location
+in the string where the character is present, if you need that, use the ``string.find()``
+library function instead)
 
 .. hint::
     Strings/arrays and uwords (=memory address) can often be interchanged.
@@ -542,6 +549,9 @@ The when-*value* can be any expression but the choice values have to evaluate to
 compile-time constant integers (bytes or words). They also have to be the same
 datatype as the when-value, otherwise no efficient comparison can be done.
 
+.. note::
+    Instead of chaining several value equality checks together using ``or`` (ex.: ``if x==1 or xx==5 or xx==9``),
+    consider using a ``when`` statement or ``in`` containment check instead. These are more efficient.
 
 Assignments
 -----------
@@ -586,6 +596,9 @@ Expressions that cannot be compile-time evaluated will result in code that calcu
 Expressions can contain procedure and function calls.
 There are various built-in functions such as sin(), cos(), min(), max() that can be used in expressions (see :ref:`builtinfunctions`).
 You can also reference idendifiers defined elsewhere in your code.
+
+Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
+
 
 .. attention::
     **Floating points used in expressions:**

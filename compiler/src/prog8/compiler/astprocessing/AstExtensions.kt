@@ -72,8 +72,8 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.preprocessAst(program: Program) {
-    val transforms = AstPreprocessor(program)
+internal fun Program.preprocessAst(program: Program, errors: IErrorReporter) {
+    val transforms = AstPreprocessor(program, errors)
     transforms.visit(this)
     var mods = transforms.applyModifications()
     while(mods>0)
@@ -91,7 +91,8 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, program: Program, 
         transforms.applyModifications()
         val lit2decl = LiteralsToAutoVars(this)
         lit2decl.visit(this)
-        lit2decl.applyModifications()
+        if(errors.noErrors())
+            lit2decl.applyModifications()
     }
 }
 

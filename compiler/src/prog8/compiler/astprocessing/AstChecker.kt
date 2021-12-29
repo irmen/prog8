@@ -874,6 +874,7 @@ internal class AstChecker(private val program: Program,
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     errors.err("bitwise operator can only be used on integer operands", expr.right.position)
             }
+            "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
         }
 
         if(leftDt !in NumericDatatypes && leftDt != DataType.STR)
@@ -1204,6 +1205,17 @@ internal class AstChecker(private val program: Program,
                 errors.err("else choice must be the last one", whenChoice.position)
         }
         super.visit(whenChoice)
+    }
+
+    override fun visit(containment: ContainmentCheck) {
+        if(!containment.iterable.inferType(program).isIterable)
+            errors.err("value set for containment check must be an iterable type", containment.iterable.position)
+        if(containment.parent is BinaryExpression)
+            errors.err("containment check is currently not supported in complex expressions", containment.position)
+
+        // TODO check that iterable contains the same types as the element that is searched
+
+        super.visit(containment)
     }
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {

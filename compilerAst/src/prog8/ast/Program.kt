@@ -4,6 +4,7 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
@@ -82,7 +83,7 @@ class Program(val name: String,
         // Move a string literal into the internal, deduplicated, string pool
         // replace it with a variable declaration that points to the entry in the pool.
 
-        if(string.parent is VarDecl) {
+        if(string.parent is VarDecl || string.parent is ContainmentCheck) {
             // deduplication can only be performed safely for known-const strings (=string literals OUTSIDE OF A VARDECL)!
             throw FatalAstException("cannot intern a string literal that's part of a vardecl")
         }
