@@ -18,6 +18,7 @@ Future
 - fix the asm-labels problem (github issue #62)
 - make (an option) to let 64tass produce a listing file as well as output.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
+- simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar
 - get rid of all TODO's in the code
 - improve testability further, add more tests
 - use more of Result<> and Either<> to handle errors/ nulls better
@@ -39,7 +40,8 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements
+- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
+-
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
