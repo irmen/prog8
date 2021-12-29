@@ -3,7 +3,8 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+- make (an option) to let 64tass produce a listing file as well as output.
+
 
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -16,7 +17,6 @@ Future
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
-- make (an option) to let 64tass produce a listing file as well as output.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar
 - get rid of all TODO's in the code
