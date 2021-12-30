@@ -233,7 +233,7 @@ abstract class AstWalker {
     fun visit(containment: ContainmentCheck, parent: Node) {
         track(before(containment, parent), containment, parent)
         containment.element.accept(this, containment)
-        containment.iterable?.accept(this, containment)
+        containment.iterable.accept(this, containment)
         track(after(containment, parent), containment, parent)
     }
 
