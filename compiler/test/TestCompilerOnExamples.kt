@@ -30,6 +30,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         writeAssembly = true,
         slowCodegenWarnings = false,
         quietAssembler = true,
+        asmListfile = false,
         compilationTarget = target.name,
         outputDir = outputDir
     )

@@ -5,6 +5,7 @@ For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
 
+
 Blocked by an official Commander-x16 v39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
@@ -13,10 +14,10 @@ Blocked by an official Commander-x16 v39 release
 
 Future
 ^^^^^^
+- make some sort of "porting guide" with things required to support a new target platform
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
-- make (an option) to let 64tass produce a listing file as well as output.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar
 - get rid of all TODO's in the code
@@ -41,7 +42,6 @@ Future
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
--
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'

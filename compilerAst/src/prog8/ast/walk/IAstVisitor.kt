@@ -28,7 +28,7 @@ interface IAstVisitor {
 
     fun visit(containment: ContainmentCheck) {
         containment.element.accept(this)
-        containment.iterable?.accept(this)
+        containment.iterable.accept(this)
     }
 
     fun visit(block: Block) {
@@ -172,9 +172,9 @@ interface IAstVisitor {
     fun visit(nop: Nop) {
     }
 
-    fun visit(`when`: When) {
-        `when`.condition.accept(this)
-        `when`.choices.forEach { it.accept(this) }
+    fun visit(whenStmt: When) {
+        whenStmt.condition.accept(this)
+        whenStmt.choices.forEach { it.accept(this) }
     }
 
     fun visit(whenChoice: WhenChoice) {

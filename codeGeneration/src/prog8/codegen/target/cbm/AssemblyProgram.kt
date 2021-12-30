@@ -14,7 +14,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-internal const val viceMonListPostfix = "vice-mon-list"
+internal fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"
 
 class AssemblyProgram(
         override val valid: Boolean,
@@ -25,16 +25,21 @@ class AssemblyProgram(
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")
     private val binFile = outputDir.resolve("$name.bin")
-    private val viceMonListFile = outputDir.resolve("$name.$viceMonListPostfix")
+    private val viceMonListFile = outputDir.resolve(viceMonListName(name))
+    private val listFile = outputDir.resolve("$name.list")
 
-    override fun assemble(quiet: Boolean, options: CompilationOptions): Int {
+    override fun assemble(options: CompilationOptions): Int {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                 "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
-                "--dump-labels", "--vice-labels", "-l", viceMonListFile.toString(), "--no-monitor")
+                "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
+            )
 
-        if(quiet)
+        if(options.asmQuiet)
             command.add("--quiet")
+
+        if(options.asmListfile)
+            command.add("--list=$listFile")
 
         val outFile = when (options.output) {
             OutputType.PRG -> {

@@ -8,7 +8,7 @@
 main {
 
     sub start() {
-        cx16.screen_set_mode(0)
+        void cx16.screen_set_mode(0)
         txt.plot(14,14)
         txt.print("raster bars!")
 

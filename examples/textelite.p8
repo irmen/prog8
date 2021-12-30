@@ -870,7 +870,7 @@ planet {
                             ubyte ni
                             for ni in 1 to len(name) {
                                 ubyte cc = name[ni]
-                                if cc=='e' or cc=='o' or cc==0
+                                if cc in ['e', 'o', 0]
                                     break
                                 else {
                                     @(result_ptr) = cc

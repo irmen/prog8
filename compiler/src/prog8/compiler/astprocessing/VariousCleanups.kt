@@ -99,7 +99,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
             val rightBinExpr = expr.right as? BinaryExpression
             if(leftBinExpr!=null && leftBinExpr.operator=="==" && rightBinExpr!=null && rightBinExpr.operator=="==") {
                 if(leftBinExpr.right is NumericLiteralValue && rightBinExpr.right is NumericLiteralValue) {
-                    errors.warn("consider using 'in' or 'when' to test for multiple values", expr.position)
+                    if(leftBinExpr.left isSameAs rightBinExpr.left)
+                        errors.warn("consider using 'in' or 'when' to test for multiple values", expr.position)
                 }
             }
         }

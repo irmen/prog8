@@ -37,7 +37,8 @@ What does Prog8 provide?
 - small program boilerplate/compilersupport overhead
 - programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - conditional branches
-- 'when' statement to provide a concise jump table alternative to if/elseif chains
+- ``when`` statement to provide a concise jump table alternative to if/elseif chains
+- ``in`` expression for concise and efficient multi-value/containment check 
 - many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
 - various powerful built-in libraries to do I/O, number conversions, graphics and more  
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses

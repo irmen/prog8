@@ -28,5 +28,7 @@ class CompilationOptions(val output: OutputType,
                          // these are set based on command line arguments:
                          var slowCodegenWarnings: Boolean = false,
                          var optimize: Boolean = false,
-                         var optimizeFloatExpressions: Boolean = false
+                         var optimizeFloatExpressions: Boolean = false,
+                         var asmQuiet: Boolean = false,
+                         var asmListfile: Boolean = false
 )

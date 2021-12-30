@@ -37,7 +37,8 @@ class RequestParser : Take {
             writeAssembly = true,
             slowCodegenWarnings = true,
             compilationTarget = "c64",
-            quietAssembler = false
+            quietAssembler = false,
+            asmListfile = false
         )
         val compilationResult = compileProgram(args)
         return RsJson(Jsonding())
