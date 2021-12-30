@@ -5,11 +5,16 @@ For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
 
+Need help with
+^^^^^^^^^^^^^^
+- c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
+- other targets such as Atari 800XL: all required details about the machine, I have no clue whatsoever
 
-Blocked by an official Commander-x16 v39 release
+
+Blocked by an official Commander-x16 r39 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
-  (I hope this will still be included into the final v39 roms release for the cx16)
+  (I hope this will be included into the r39 roms when they get released)
 
 
 Future
