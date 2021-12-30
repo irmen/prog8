@@ -574,6 +574,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  eor  $name |  sta  $name")
             }
+            "==" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            "!=" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    beq  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -631,6 +651,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&", "and" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
             "|", "or" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
             "^", "xor" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
+            "==" -> {
+                asmgen.out("""
+                    lda  $otherName
+                    cmp  $name
+                    beq  +
+                    lda  #0
+                    bne  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  $otherName
+                    cmp  $name
+                    beq  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -702,6 +742,26 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "&", "and" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
             "|", "or" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
             "^", "xor" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+            "==" -> {
+                asmgen.out("""
+                    lda  #$value
+                    cmp  $name
+                    beq  +
+                    lda  #0
+                    bne  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  #$value
+                    cmp  $name
+                    beq  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }

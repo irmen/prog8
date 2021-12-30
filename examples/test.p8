@@ -3,11 +3,13 @@
 
 main {
     sub start() {
-        ubyte xx
-        ubyte yy
+        ubyte @shared xx
+        ubyte @shared yy
 
-        if xx==0 or xx==4 {
+        yy = xx==7
+        if xx==99 {
             xx++
+            yy++
         }
         txt.nl()
     }

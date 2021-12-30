@@ -448,8 +448,6 @@ internal class StatementReorderer(val program: Program,
             return noModifications
         } else {
             // clobber risk; evaluate the arguments on the CPU stack first (in reverse order)...
-            if (options.slowCodegenWarnings)
-                errors.warn("slow argument passing used to avoid register clobbering", call.position)
             val argOrder = options.compTarget.asmsubArgsEvalOrder(function)
             val scope = AnonymousScope(mutableListOf(), call.position)
             if(function.shouldSaveX()) {
