@@ -25,7 +25,6 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
             ZeropageType.FULL -> {
                 // TODO all c128 usable zero page locations, except the ones used by the system's IRQ routine
                 free.addAll(0x0au..0xffu)       // TODO c128 what about $02-$09?
-                free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1+1u, SCRATCH_W2, SCRATCH_W2+1u))
                 // TODO c128  free.removeAll(setOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
             }
             ZeropageType.KERNALSAFE,

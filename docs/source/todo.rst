@@ -19,7 +19,6 @@ Blocked by an official Commander-x16 r39 release
 
 Future
 ^^^^^^
-- make some sort of "porting guide" with things required to support a new target platform
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)

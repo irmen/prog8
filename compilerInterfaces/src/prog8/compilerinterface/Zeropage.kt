@@ -9,7 +9,7 @@ class ZeropageDepletedError(message: String) : Exception(message)
 abstract class Zeropage(protected val options: CompilationOptions) {
 
     abstract val SCRATCH_B1 : UInt      // temp storage for a single byte
-    abstract val SCRATCH_REG : UInt     // temp storage for a register
+    abstract val SCRATCH_REG : UInt     // temp storage for a register, must be B1+1
     abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 

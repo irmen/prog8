@@ -199,6 +199,7 @@ using the ``-emu`` or ``-emu2`` command line options)
     libraries.rst
     targetsystem.rst
     technical.rst
+    portingguide.rst
     todo.rst
 
 

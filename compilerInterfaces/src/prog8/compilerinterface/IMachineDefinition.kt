@@ -18,7 +18,6 @@ interface IMachineDefinition {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int
-    val POINTER_MEM_SIZE: Int
     val ESTACK_LO: UInt
     val ESTACK_HI: UInt
     val BASIC_LOAD_ADDRESS : UInt

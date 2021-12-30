@@ -16,9 +16,9 @@ with Prog8 are written like this.
 You can ``%import`` and use these modules explicitly, but the compiler may also import one or more
 of these library modules automatically as required.
 
-For full details on what is available in the libraries, look at their source code here:
-https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib
-
+.. note::
+    For full details on what is available in the libraries, please study their source code here:
+    https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib
 
 .. caution::
     The resulting compiled binary program *only works on the target machine it was compiled for*.

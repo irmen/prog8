@@ -36,9 +36,8 @@ object Cx16Target: ICompilationTarget {
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
             in ByteDatatypes -> 1
-            in WordDatatypes -> 2
+            in WordDatatypes, in PassByReferenceDatatypes -> 2
             DataType.FLOAT -> machine.FLOAT_MEM_SIZE
-            in PassByReferenceDatatypes -> machine.POINTER_MEM_SIZE
             else -> Int.MIN_VALUE
         }
     }

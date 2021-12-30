@@ -15,7 +15,6 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
-    override val POINTER_MEM_SIZE = 2
     override val BASIC_LOAD_ADDRESS = 0x0801u
     override val RAW_LOAD_ADDRESS = 0xc000u
 
