@@ -144,6 +144,9 @@ One or more .p8 module files
 ``-quietasm``
     Don't print assembler output results.
 
+``-asmlist``
+    Generate an assembler listing file as well.
+
 
 Module source code files
 ------------------------

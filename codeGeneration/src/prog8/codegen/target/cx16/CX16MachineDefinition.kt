@@ -2,7 +2,7 @@ package prog8.codegen.target.cx16
 
 import prog8.ast.base.DataType
 import prog8.codegen.target.cbm.Mflpt5
-import prog8.codegen.target.cbm.viceMonListPostfix
+import prog8.codegen.target.cbm.viceMonListName
 import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path
@@ -44,7 +44,7 @@ class CX16MachineDefinition: IMachineDefinition {
             }
             2 -> {
                 emulatorName = "box16"
-                extraArgs = listOf("-sym", "${programNameWithPath}.$viceMonListPostfix")
+                extraArgs = listOf("-sym", viceMonListName(programNameWithPath.toString()))
             }
             else -> {
                 System.err.println("Cx16 target only supports x16emu and box16 emulators.")

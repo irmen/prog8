@@ -51,6 +51,7 @@ internal fun compileFile(
         writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
         quietAssembler = true,
+        asmListfile = false,
         platform.name,
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests()

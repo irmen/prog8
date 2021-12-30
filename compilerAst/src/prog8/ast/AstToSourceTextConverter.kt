@@ -428,12 +428,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputlni("}}")
     }
 
-    override fun visit(`when`: When) {
+    override fun visit(whenStmt: When) {
         output("when ")
-        `when`.condition.accept(this)
+        whenStmt.condition.accept(this)
         outputln(" {")
         scopelevel++
-        `when`.choices.forEach { it.accept(this) }
+        whenStmt.choices.forEach { it.accept(this) }
         scopelevel--
         outputlni("}")
     }

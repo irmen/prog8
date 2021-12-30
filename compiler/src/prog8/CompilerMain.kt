@@ -40,6 +40,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
+    val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler, currently '${C64Target.name}' and '${Cx16Target.name}' available").default(C64Target.name)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
@@ -88,6 +89,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     dontWriteAssembly != true,
                     slowCodegenWarnings == true,
                     quietAssembler == true,
+                    asmListfile == true,
                     compilationTarget,
                     srcdirs,
                     outputPath
@@ -136,6 +138,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     dontWriteAssembly != true,
                     slowCodegenWarnings == true,
                     quietAssembler == true,
+                    asmListfile == true,
                     compilationTarget,
                     srcdirs,
                     outputPath

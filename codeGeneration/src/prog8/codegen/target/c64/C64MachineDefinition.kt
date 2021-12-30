@@ -2,7 +2,7 @@ package prog8.codegen.target.c64
 
 import prog8.ast.base.DataType
 import prog8.codegen.target.cbm.Mflpt5
-import prog8.codegen.target.cbm.viceMonListPostfix
+import prog8.codegen.target.cbm.viceMonListName
 import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path
@@ -42,7 +42,8 @@ class C64MachineDefinition: IMachineDefinition {
 
         for(emulator in listOf("x64sc", "x64")) {
             println("\nStarting C-64 emulator $emulator...")
-            val cmdline = listOf(emulator, "-silent", "-moncommands", "${programNameWithPath}.$viceMonListPostfix",
+            val viceMonlist = viceMonListName(programNameWithPath.toString())
+            val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
                     "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()
             val process: Process

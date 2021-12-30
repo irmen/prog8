@@ -34,6 +34,7 @@ class CompilerArguments(val filepath: Path,
                         val writeAssembly: Boolean,
                         val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
+                        val asmListfile: Boolean,
                         val compilationTarget: String,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -59,9 +60,11 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
             // import main module and everything it needs
             val (programresult, compilationOptions, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
             with(compilationOptions) {
-                this.slowCodegenWarnings = args.slowCodegenWarnings
-                this.optimize = args.optimize
-                this.optimizeFloatExpressions = optimizeFloatExpr
+                slowCodegenWarnings = args.slowCodegenWarnings
+                optimize = args.optimize
+                optimizeFloatExpressions = optimizeFloatExpr
+                asmQuiet = args.quietAssembler
+                asmListfile = args.asmListfile
             }
             program = programresult
             importedFiles = imported
@@ -84,7 +87,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 //            printProgram(program)
 
             if (args.writeAssembly) {
-                when (val result = writeAssembly(program, args.errors, args.outputDir, args.quietAssembler, compilationOptions)) {
+                when (val result = writeAssembly(program, args.errors, args.outputDir, compilationOptions)) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
@@ -326,7 +329,6 @@ private sealed class WriteAssemblyResult {
 private fun writeAssembly(program: Program,
                           errors: IErrorReporter,
                           outputDir: Path,
-                          quietAssembler: Boolean,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
@@ -346,7 +348,7 @@ private fun writeAssembly(program: Program,
     errors.report()
 
     return if(assembly.valid && errors.noErrors()) {
-        val assemblerReturnStatus = assembly.assemble(quietAssembler, compilerOptions)
+        val assemblerReturnStatus = assembly.assemble(compilerOptions)
         if(assemblerReturnStatus!=0)
             WriteAssemblyResult.Fail("assembler step failed with return code $assemblerReturnStatus")
         else {

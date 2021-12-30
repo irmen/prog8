@@ -262,19 +262,19 @@ internal class StatementReorderer(val program: Program,
         return noModifications
     }
 
-    override fun after(`when`: When, parent: Node): Iterable<IAstModification> {
-        val lastChoiceValues = `when`.choices.lastOrNull()?.values
+    override fun after(whenStmt: When, parent: Node): Iterable<IAstModification> {
+        val lastChoiceValues = whenStmt.choices.lastOrNull()?.values
         if(lastChoiceValues?.isNotEmpty()==true) {
-            val elseChoice = `when`.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
+            val elseChoice = whenStmt.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
             if(elseChoice>=0)
-                errors.err("else choice must be the last one", `when`.choices[elseChoice].position)
+                errors.err("else choice must be the last one", whenStmt.choices[elseChoice].position)
         }
 
-        val choices = `when`.choiceValues(program).sortedBy {
+        val choices = whenStmt.choiceValues(program).sortedBy {
             it.first?.first() ?: Int.MAX_VALUE
         }
-        `when`.choices.clear()
-        choices.mapTo(`when`.choices) { it.second }
+        whenStmt.choices.clear()
+        choices.mapTo(whenStmt.choices) { it.second }
         return noModifications
     }
 

@@ -1055,7 +1055,7 @@ class ContainmentCheck(var element: Expression,
     override fun referencesIdentifier(nameInSource: List<String>): Boolean {
         if(element is IdentifierReference)
             return element.referencesIdentifier(nameInSource)
-        return iterable?.referencesIdentifier(nameInSource) ?: false
+        return iterable.referencesIdentifier(nameInSource)
     }
 
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)

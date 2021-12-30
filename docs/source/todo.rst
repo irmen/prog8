@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- make (an option) to let 64tass produce a listing file as well as output.
+...
 
 
 Blocked by an official Commander-x16 v39 release
