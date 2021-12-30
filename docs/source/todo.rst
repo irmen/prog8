@@ -14,6 +14,7 @@ Blocked by an official Commander-x16 v39 release
 
 Future
 ^^^^^^
+- make some sort of "porting guide" with things required to support a new target platform
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
@@ -41,7 +42,6 @@ Future
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
--
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
