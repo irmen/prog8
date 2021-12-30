@@ -18,6 +18,7 @@ This CPU is from the late 1970's and early 1980's and was used in many home comp
 such as the `Commodore-64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
+You can compile programs for various machines with this CPU such as the Commodore-64 and Commodore-128, and the Commander X16.
 
 
 Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
@@ -64,8 +65,8 @@ Language features
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
-- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the C64.
-- If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the other machines.
+- If you only use standard kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)!
 
 
 Code example
