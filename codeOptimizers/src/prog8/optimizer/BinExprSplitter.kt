@@ -45,7 +45,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
 
  */
-            if(binExpr.operator in AugmentAssignmentOperators && isSimpleTarget(assignment.target)) {
+            if(binExpr.operator in AugmentAssignmentOperators + listOf("==", "!=") && isSimpleTarget(assignment.target)) {
                 if(assignment.target isSameAs binExpr.right)
                     return noModifications
                 if(assignment.target isSameAs binExpr.left) {
@@ -71,6 +71,15 @@ X =      BinExpr                                    X   =   LeftExpr
 //                        IAstModification.InsertBefore(assignment, assignTempVar, assignment.parent as IStatementContainer),
 //                        IAstModification.ReplaceNode(binExpr.right, tempVar.copy(), binExpr)
 //                    )
+                }
+
+                if(binExpr.operator == "==" || binExpr.operator == "!=") {
+                    // don't split if the operand(s) don't fit the type of the resulting variable
+                    val targetDt = assignment.target.inferType(program)
+                    val leftDt = binExpr.left.inferType(program)
+                    val rightDt = binExpr.right.inferType(program)
+                    if(leftDt isNotAssignableTo targetDt || rightDt isNotAssignableTo targetDt)
+                        return noModifications
                 }
 
                 if(binExpr.right.isSimple) {

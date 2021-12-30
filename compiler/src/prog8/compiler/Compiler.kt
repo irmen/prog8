@@ -66,7 +66,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
             program = programresult
             importedFiles = imported
             processAst(program, args.errors, compilationOptions)
-            if (compilationOptions.optimize)
+            if (compilationOptions.optimize) {
+//                println("*********** AST RIGHT BEFORE OPTIMIZING *************")
+//                printProgram(program)
+
                 optimizeAst(
                     program,
                     compilationOptions,
@@ -74,6 +77,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                     BuiltinFunctionsFacade(BuiltinFunctions),
                     compTarget
                 )
+            }
             postprocessAst(program, args.errors, compilationOptions)
 
 //            println("*********** AST BEFORE ASSEMBLYGEN *************")
