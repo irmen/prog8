@@ -1128,13 +1128,13 @@ class AsmGen(private val program: Program,
     }
 
     private fun translate(stmt: RepeatLoop) {
-        val repeatLabel = makeLabel("repeat")
         val endLabel = makeLabel("repeatend")
         loopEndLabels.push(endLabel)
 
         when (stmt.iterations) {
             null -> {
                 // endless loop
+                val repeatLabel = makeLabel("repeat")
                 out(repeatLabel)
                 translate(stmt.body)
                 jmp(repeatLabel)
@@ -1146,13 +1146,11 @@ class AsmGen(private val program: Program,
                     throw AssemblyError("invalid number of iterations")
                 when {
                     iterations == 0 -> {}
-                    iterations <= 256 -> {
-                        out("  lda  #${iterations and 255}")
-                        repeatByteCountInA(iterations, repeatLabel, endLabel, stmt)
-                    }
+                    iterations == 1 -> translate(stmt.body)
+                    iterations <= 256 -> repeatByteCount(iterations, stmt)
                     else -> {
                         out("  lda  #<${iterations} |  ldy  #>${iterations}")
-                        repeatWordCountInAY(iterations, repeatLabel, endLabel, stmt)
+                        repeatWordCountInAY(iterations, endLabel, stmt)
                     }
                 }
             }
@@ -1161,12 +1159,12 @@ class AsmGen(private val program: Program,
                 val name = asmVariableName(stmt.iterations as IdentifierReference)
                 when(vardecl.datatype) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        assignVariableToRegister(name, RegisterOrPair.A)
-                        repeatByteCountInA(null, repeatLabel, endLabel, stmt)
+                        assignVariableToRegister(name, RegisterOrPair.Y)
+                        repeatCountInY(stmt, endLabel)
                     }
                     DataType.UWORD, DataType.WORD -> {
                         assignVariableToRegister(name, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt)
+                        repeatWordCountInAY(null, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -1177,12 +1175,12 @@ class AsmGen(private val program: Program,
                     throw AssemblyError("unknown dt")
                 when (dt.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> {
-                        assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.A)
-                        repeatByteCountInA(null, repeatLabel, endLabel, stmt)
+                        assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.Y)
+                        repeatCountInY(stmt, endLabel)
                     }
                     in WordDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, repeatLabel, endLabel, stmt)
+                        repeatWordCountInAY(null, endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
                 }
@@ -1192,13 +1190,14 @@ class AsmGen(private val program: Program,
         loopEndLabels.pop()
     }
 
-    private fun repeatWordCountInAY(constIterations: Int?, repeatLabel: String, endLabel: String, stmt: RepeatLoop) {
+    private fun repeatWordCountInAY(constIterations: Int?, endLabel: String, stmt: RepeatLoop) {
         // note: A/Y must have been loaded with the number of iterations!
         if(constIterations==0)
             return
         // no need to explicitly test for 0 iterations as this is done in the countdown logic below
 
-        val counterVar: String = createRepeatCounterVar(DataType.UWORD, constIterations, stmt)
+        val repeatLabel = makeLabel("repeat")
+        val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)!!
         out("""
                 sta  $counterVar
                 sty  $counterVar+1
@@ -1216,23 +1215,58 @@ $repeatLabel    lda  $counterVar
         out(endLabel)
     }
 
-    private fun repeatByteCountInA(constIterations: Int?, repeatLabel: String, endLabel: String, stmt: RepeatLoop) {
-        // note: A must be loaded with the number of iterations!
-        if(constIterations==0)
-            return
-
-        if(constIterations==null)
-            out("  beq  $endLabel   ; skip loop if zero iters")
-        val counterVar = createRepeatCounterVar(DataType.UBYTE, constIterations, stmt)
-        out("  sta  $counterVar")
-        out(repeatLabel)
-        translate(stmt.body)
-        out("  dec  $counterVar |  bne  $repeatLabel")
-        if(constIterations==null)
-            out(endLabel)
+    private fun repeatByteCount(count: Int, stmt: RepeatLoop) {
+        require(count in 2..256)
+        val repeatLabel = makeLabel("repeat")
+        if(isTargetCpu(CpuType.CPU65c02)) {
+            val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
+            if(counterVar!=null) {
+                out("  lda  #${count and 255} |  sta  $counterVar")
+                out(repeatLabel)
+                translate(stmt.body)
+                out("  dec  $counterVar |  bne  $repeatLabel")
+            } else {
+                out("  ldy  #${count and 255}")
+                out("$repeatLabel        phy")
+                translate(stmt.body)
+                out("  ply |  dey |  bne  $repeatLabel")
+            }
+        } else {
+            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)
+            out("  lda  #${count and 255} |  sta  $counterVar")
+            out(repeatLabel)
+            translate(stmt.body)
+            out("  dec  $counterVar |  bne  $repeatLabel")
+        }
     }
 
-    private fun createRepeatCounterVar(dt: DataType, constIterations: Int?, stmt: RepeatLoop): String {
+    private fun repeatCountInY(stmt: RepeatLoop, endLabel: String) {
+        // note: Y must just have been loaded with the (variable) number of loops to be performed!
+        val repeatLabel = makeLabel("repeat")
+        if(isTargetCpu(CpuType.CPU65c02)) {
+            val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
+            if(counterVar!=null) {
+                out("  beq  $endLabel |  sty  $counterVar")
+                out(repeatLabel)
+                translate(stmt.body)
+                out("  dec  $counterVar |  bne  $repeatLabel")
+            } else {
+                out("  beq  $endLabel")
+                out("$repeatLabel        phy")
+                translate(stmt.body)
+                out("  ply |  dey |  bne  $repeatLabel")
+            }
+        } else {
+            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)!!
+            out("  beq  $endLabel |  sty  $counterVar")
+            out(repeatLabel)
+            translate(stmt.body)
+            out("  dec  $counterVar |  bne  $repeatLabel")
+        }
+        out(endLabel)
+    }
+
+    private fun createRepeatCounterVar(dt: DataType, mustBeInZeropage: Boolean, stmt: RepeatLoop): String? {
         val asmInfo = stmt.definingSubroutine!!.asmGenInfo
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
@@ -1245,27 +1279,33 @@ $repeatLabel    lda  $counterVar
         if(!isNested) {
             // we can re-use a counter var from the subroutine if it already has one for that datatype
             val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt }
-            if(existingVar!=null)
-                return existingVar.second
+            if(existingVar!=null) {
+                if(!mustBeInZeropage || existingVar.third!=null)
+                    return existingVar.second
+            }
         }
 
-        val counterVar = makeLabel("repeatcounter")
+        val counterVar = makeLabel("counter")
         when(dt) {
             DataType.UBYTE -> {
-                if(constIterations!=null && constIterations>=16 && zeropage.hasByteAvailable()) {
+                if(zeropage.hasByteAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, stmt.position, errors)
                     asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, zpAddr))
                 } else {
+                    if(mustBeInZeropage)
+                        return null
                     asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, null))
                 }
             }
             DataType.UWORD -> {
-                if(constIterations!=null && constIterations>=16 && zeropage.hasWordAvailable()) {
+                if(zeropage.hasWordAvailable()) {
                     // allocate count var on ZP
                     val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, stmt.position, errors)
                     asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, zpAddr))
                 } else {
+                    if(mustBeInZeropage)
+                        return null
                     asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, null))
                 }
             }

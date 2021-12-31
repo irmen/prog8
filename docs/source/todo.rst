@@ -3,12 +3,14 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+see if the 16 bit repeat code can be optimized on 65c02 a bit more as well, like the 8 bit
+
 
 Need help with
 ^^^^^^^^^^^^^^
 - c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
 - other targets such as Atari 800XL: all required details about the machine, I have no clue whatsoever
+- see the Porting Guide in the documentation for this.
 
 
 Blocked by an official Commander-x16 r39 release
@@ -45,6 +47,7 @@ Future
 
 More code optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- if a for loop's loopvariable isn't referenced in the body, replace by a repeatloop
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
    for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
