@@ -8,7 +8,8 @@ Answers to the questions below are used to configure the new target and supporti
 
 CPU
 ---
-#. 6502 or 65C02? (or something else? would require a new code generation backend though)
+#. 6502 or 65C02? (or strictly compatible with one of these)
+#. can the **64tass** cross assembler create programs for the system?  (if not, bad luck atm)
 
 Memory Map
 ----------
