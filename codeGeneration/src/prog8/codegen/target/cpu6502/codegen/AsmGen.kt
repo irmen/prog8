@@ -1142,16 +1142,12 @@ class AsmGen(private val program: Program,
             }
             is NumericLiteralValue -> {
                 val iterations = (stmt.iterations as NumericLiteralValue).number.toInt()
-                if(iterations<0 || iterations > 65535)
-                    throw AssemblyError("invalid number of iterations")
                 when {
                     iterations == 0 -> {}
                     iterations == 1 -> translate(stmt.body)
+                    iterations<0 || iterations>65535 -> throw AssemblyError("invalid number of iterations")
                     iterations <= 256 -> repeatByteCount(iterations, stmt)
-                    else -> {
-                        out("  lda  #<${iterations} |  ldy  #>${iterations}")
-                        repeatWordCountInAY(iterations, endLabel, stmt)
-                    }
+                    else -> repeatWordCount(iterations, stmt)
                 }
             }
             is IdentifierReference -> {
@@ -1164,7 +1160,7 @@ class AsmGen(private val program: Program,
                     }
                     DataType.UWORD, DataType.WORD -> {
                         assignVariableToRegister(name, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, endLabel, stmt)
+                        repeatWordCountInAY(endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
                 }
@@ -1180,7 +1176,7 @@ class AsmGen(private val program: Program,
                     }
                     in WordDatatypes -> {
                         assignExpressionToRegister(stmt.iterations!!, RegisterOrPair.AY)
-                        repeatWordCountInAY(null, endLabel, stmt)
+                        repeatWordCountInAY(endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop expression datatype $dt")
                 }
@@ -1190,12 +1186,67 @@ class AsmGen(private val program: Program,
         loopEndLabels.pop()
     }
 
-    private fun repeatWordCountInAY(constIterations: Int?, endLabel: String, stmt: RepeatLoop) {
-        // note: A/Y must have been loaded with the number of iterations!
-        if(constIterations==0)
-            return
-        // no need to explicitly test for 0 iterations as this is done in the countdown logic below
+    private fun repeatWordCount(count: Int, stmt: RepeatLoop) {
+        require(count in 257..65535)
+        val repeatLabel = makeLabel("repeat")
+        if(isTargetCpu(CpuType.CPU65c02)) {
+            val counterVar = createRepeatCounterVar(DataType.UWORD, true, stmt)
+            if(counterVar!=null) {
+                out("""
+                    lda  #<$count
+                    ldy  #>$count
+                    sta  $counterVar
+                    sty  $counterVar+1
+$repeatLabel""")
+                    translate(stmt.body)
+                    out("""
+                    lda  $counterVar
+                    bne  +
+                    dec  $counterVar+1
++                   dec  $counterVar
+                    lda  $counterVar
+                    ora  $counterVar+1
+                    bne  $repeatLabel""")
+            } else {
+                out("""
+                    lda  #<$count
+                    ldy  #>$count
+$repeatLabel        pha
+                    phy""")
+                    translate(stmt.body)
+                    out("""
+                    ply
+                    pla
+                    bne  +
+                    dey
++                   dea
+                    bne  $repeatLabel
+                    cpy  #0
+                    bne  $repeatLabel""")
+            }
+        } else {
+            val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
+            out("""
+                lda  #<$count
+                ldy  #>$count
+                sta  $counterVar
+                sty  $counterVar+1
+$repeatLabel""")
+            translate(stmt.body)
+            out("""
+                lda  $counterVar
+                bne  +
+                dec  $counterVar+1
++               dec  $counterVar
+                lda  $counterVar
+                ora  $counterVar+1
+                bne  $repeatLabel""")
+        }
+    }
 
+    private fun repeatWordCountInAY(endLabel: String, stmt: RepeatLoop) {
+        // note: A/Y must have been loaded with the number of iterations!
+        // no need to explicitly test for 0 iterations as this is done in the countdown logic below
         val repeatLabel = makeLabel("repeat")
         val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)!!
         out("""

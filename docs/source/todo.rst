@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-see if the 16 bit repeat code can be optimized on 65c02 a bit more as well, like the 8 bit
+...
 
 
 Need help with
