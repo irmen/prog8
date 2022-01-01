@@ -34,6 +34,7 @@ class RequestParser : Take {
             Path.of(a),
             optimize = true,
             optimizeFloatExpressions = false,
+            dontReinitGlobals = false,
             writeAssembly = true,
             slowCodegenWarnings = true,
             compilationTarget = "c64",

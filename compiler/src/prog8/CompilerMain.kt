@@ -37,6 +37,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
+    val dontReinitGlobals by cli.option(ArgType.Boolean, fullName = "noreinit", description = "don't create code to reinitialize globals on multiple runs of the program (experimental!)")
     val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watches for file changes), greatly increases compilation speed")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
@@ -87,6 +88,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     filepath,
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
+                    dontReinitGlobals == true,
                     dontWriteAssembly != true,
                     slowCodegenWarnings == true,
                     quietAssembler == true,
@@ -136,6 +138,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     filepath,
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
+                    dontReinitGlobals == true,
                     dontWriteAssembly != true,
                     slowCodegenWarnings == true,
                     quietAssembler == true,

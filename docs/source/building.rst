@@ -124,6 +124,13 @@ One or more .p8 module files
     Don't perform any code optimizations.
     Useful for debugging or faster compilation cycles.
 
+``-noreinit``
+    Don't create code to reinitialize the global (block level) variables on every run of the program.
+    Also means that all such variables are no longer placed in the zero page.
+    Sometimes the program will be a lot shorter when using this, but sometimes the opposite happens.
+    When using this option, it is no longer be possible to run the program correctly more than once!
+    *Experimental feature*: still has some problems!
+
 ``-optfloatx``
     Also optimize float expressions if optimizations are enabled.
     Warning: can increase program size significantly if a lot of floating point expressions are used.

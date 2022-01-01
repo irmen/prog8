@@ -32,6 +32,7 @@ class CompilationResult(val success: Boolean,
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val optimizeFloatExpressions: Boolean,
+                        val dontReinitGlobals: Boolean,
                         val writeAssembly: Boolean,
                         val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
@@ -65,6 +66,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                 slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
                 optimizeFloatExpressions = optimizeFloatExpr
+                dontReinitGlobals = args.dontReinitGlobals
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
             }

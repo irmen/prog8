@@ -27,6 +27,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         filepath,
         optimize,
         optimizeFloatExpressions = true,
+        dontReinitGlobals = false,
         writeAssembly = true,
         slowCodegenWarnings = false,
         quietAssembler = true,

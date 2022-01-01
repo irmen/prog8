@@ -173,7 +173,7 @@ enum class ZeropageWish {
 
 class VarDecl(val type: VarDeclType,
                    private val declaredDatatype: DataType,
-                   val zeropage: ZeropageWish,
+                   var zeropage: ZeropageWish,
                    var arraysize: ArrayIndex?,
                    override val name: String,
                    var value: Expression?,

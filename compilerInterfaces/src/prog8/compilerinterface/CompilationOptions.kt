@@ -29,6 +29,7 @@ class CompilationOptions(val output: OutputType,
                          var slowCodegenWarnings: Boolean = false,
                          var optimize: Boolean = false,
                          var optimizeFloatExpressions: Boolean = false,
+                         var dontReinitGlobals: Boolean = false,
                          var asmQuiet: Boolean = false,
                          var asmListfile: Boolean = false
 )

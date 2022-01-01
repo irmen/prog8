@@ -67,7 +67,6 @@ class AsmGen(private val program: Program,
             throw AssemblyError("first block should be 'main'")
 
         for(b in program.allBlocks) {
-            b.statements.removeAll(blockVariableInitializers.getValue(b))  // no longer output the initialization assignments as regular statements in the block!
             block2asm(b)
         }
 
@@ -216,10 +215,30 @@ class AsmGen(private val program: Program,
 
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
+        if(options.dontReinitGlobals) {
+            block.statements.filterIsInstance<VarDecl>().forEach {
+                it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
+                val init = it.nextSibling() as? Assignment
+                if(init?.target?.identifier?.targetVarDecl(program) === it) {
+                    // put the init value back into the vardecl
+                    it.value = init.value
+                }
+            }
+        }
+
+        // no longer output the initialization assignments as regular statements in the block!
+        block.statements.removeAll(blockVariableInitializers.getValue(block))
+
         outputSourceLine(block)
         zeropagevars2asm(block.statements, block)
         memdefs2asm(block.statements, block)
         vardecls2asm(block.statements, block)
+
+        block.statements.filterIsInstance<VarDecl>().forEach {
+            if(it.type==VarDeclType.VAR && it.datatype in NumericDatatypes)
+                it.value=null
+        }
+
         out("\n; subroutines in this block")
 
         // first translate regular statements, and then put the subroutines at the end.
@@ -227,12 +246,14 @@ class AsmGen(private val program: Program,
         stmts.forEach { translate(it) }
         subroutine.forEach { translateSubroutine(it as Subroutine) }
 
-        // generate subroutine to initialize block-level variables
-        val initializers = blockVariableInitializers.getValue(block)
-        if(initializers.isNotEmpty()) {
-            out("prog8_init_vars\t.proc\n")
-            initializers.forEach { assign -> translate(assign) }
-            out("  rts\n  .pend")
+        if(!options.dontReinitGlobals) {
+            // generate subroutine to initialize block-level (global) variables
+            val initializers = blockVariableInitializers.getValue(block)
+            if (initializers.isNotEmpty()) {
+                out("prog8_init_vars\t.proc\n")
+                initializers.forEach { assign -> translate(assign) }
+                out("  rts\n  .pend")
+            }
         }
 
         out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
@@ -291,12 +312,34 @@ class AsmGen(private val program: Program,
 
     private fun vardecl2asm(decl: VarDecl) {
         val name = decl.name
+        val value = decl.value
+        val staticValue: Number =
+            if(value!=null) {
+                if(value is NumericLiteralValue) {
+                    if(value.type==DataType.FLOAT)
+                        value.number
+                    else
+                        value.number.toInt()
+                } else {
+                    if(decl.datatype in NumericDatatypes)
+                        throw AssemblyError("can only deal with constant numeric values for global vars $value at ${decl.position}")
+                    else 0
+                }
+            } else 0
+
         when (decl.datatype) {
-            DataType.UBYTE -> out("$name\t.byte  0")
-            DataType.BYTE -> out("$name\t.char  0")
-            DataType.UWORD -> out("$name\t.word  0")
-            DataType.WORD -> out("$name\t.sint  0")
-            DataType.FLOAT -> out("$name\t.byte  0,0,0,0,0  ; float")
+            DataType.UBYTE -> out("$name\t.byte  ${staticValue.toHex()}")
+            DataType.BYTE -> out("$name\t.char  $staticValue")
+            DataType.UWORD -> out("$name\t.word  ${staticValue.toHex()}")
+            DataType.WORD -> out("$name\t.sint  $staticValue")
+            DataType.FLOAT -> {
+                if(staticValue==0) {
+                    out("$name\t.byte  0,0,0,0,0  ; float")
+                } else {
+                    val floatFill = compTarget.machine.getFloat(staticValue).makeFloatFillAsm()
+                    out("$name\t.byte  $floatFill  ; float $staticValue")
+                }
+            }
             DataType.STR -> {
                 val str = decl.value as StringLiteralValue
                 outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte()))
@@ -1001,9 +1044,11 @@ class AsmGen(private val program: Program,
             if(sub.name=="start" && sub.definingBlock.name=="main") {
                 out("; program startup initialization")
                 out("  cld")
-                blockVariableInitializers.forEach {
-                    if(it.value.isNotEmpty())
-                        out("  jsr  ${it.key.name}.prog8_init_vars")
+                if(!options.dontReinitGlobals) {
+                    blockVariableInitializers.forEach {
+                        if (it.value.isNotEmpty())
+                            out("  jsr  ${it.key.name}.prog8_init_vars")
+                    }
                 }
                 out("""
                     tsx
