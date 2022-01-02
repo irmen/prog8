@@ -145,6 +145,19 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
                     errors.err("invalid number of arguments", pos)
                 }
+                if(func.name=="memory") {
+                    val name = call.args[0] as? StringLiteralValue
+                    if(name!=null) {
+                        val processed = name.value.map {
+                            if(it.isLetterOrDigit())
+                                it
+                            else
+                                '_'
+                        }.joinToString("")
+                        call.args[0] = StringLiteralValue(processed, false, name.position)
+                        call.args[0].linkParents(call as Node)
+                    }
+                }
             }
             is Label -> {
                 if(call.args.isNotEmpty()) {

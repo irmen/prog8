@@ -3,6 +3,8 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- fix that memory("name", ...)  allocates a STR variable with contents "name" in the assembly source
+- make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
 ...
 
 
@@ -21,6 +23,7 @@ Blocked by an official Commander-x16 r39 release
 
 Future
 ^^^^^^
+- add pipe operator ``|>`` ?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)

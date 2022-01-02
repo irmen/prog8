@@ -418,6 +418,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val nameRef = fcall.args[0] as IdentifierReference
         val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
+        require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
         val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
 
         val existingSize = asmgen.slabs[name]

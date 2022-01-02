@@ -16,9 +16,11 @@ import prog8.compiler.printProgram
 import prog8.codegen.target.C64Target
 import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
+import prog8tests.helpers.*
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.compileText
 
 
 class TestMemory: FunSpec({
@@ -219,5 +221,16 @@ class TestMemory: FunSpec({
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
         target.isIOAddress(C64Target.machine) shouldBe true
+    }
+
+
+    test("memory() with spaces in name works") {
+        val result = compileText(C64Target, false, """
+            main {
+                sub start() {
+                    uword @shared mem = memory("a b c", 100)
+                }
+            }
+        """, writeAssembly = true).assertSuccess()
     }
 })
