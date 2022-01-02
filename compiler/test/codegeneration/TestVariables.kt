@@ -15,13 +15,13 @@ class TestVariables: FunSpec({
         val text = """
             main {
                 sub start() {
-                    ubyte[] @shared array = [1,2,3,4]
-                    str @shared name = "test"
+                    ubyte[] @shared arrayvar = [1,2,3,4]
+                    str @shared stringvar = "test"
                     ubyte @shared bytevar = 0
             
                     %asm {{
-                        lda  array
-                        lda  name
+                        lda  arrayvar
+                        lda  stringvar
                         lda  bytevar
                     }}
                 }

@@ -8,6 +8,10 @@ main {
     sub start() {
         txt.print_uwhex(buffer, true)
         txt.print_uwhex(buffer2, true)
+        txt.print_uwhex("zzzz", true)
+        str xyz = "irmen"
+        xyz="2342344234"
+        txt.print_uwhex(xyz, true)
     }
 
 }

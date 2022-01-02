@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.6)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix that memory("name", ...)  allocates a STR variable with contents "name" in the assembly source
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
 ...
 

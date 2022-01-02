@@ -341,8 +341,9 @@ class AsmGen(private val program: Program,
                 }
             }
             DataType.STR -> {
-                val str = decl.value as StringLiteralValue
-                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte()))
+                throw AssemblyError("all string vars should have been interned")
+//                val str = decl.value as StringLiteralValue
+//                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte()))
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -435,7 +436,7 @@ class AsmGen(private val program: Program,
         val vars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
 
         val encodedstringVars = vars
-                .filter {it.datatype == DataType.STR }
+                .filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
                 .map {
                     val str = it.value as StringLiteralValue
                     it to compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte())
@@ -454,6 +455,17 @@ class AsmGen(private val program: Program,
                     vardecl2asm(it)
             }
         }
+    }
+
+    private fun shouldActuallyOutputStringVar(strvar: VarDecl): Boolean {
+        if(strvar.sharedWithAsm)
+            return true
+        val uses = callGraph.usages(strvar)
+        val onlyInMemoryFuncs = uses.all {
+            val builtinfunc = (it.parent as? IFunctionCall)?.target?.targetStatement(program) as? BuiltinFunctionPlaceholder
+            builtinfunc?.name=="memory"
+        }
+        return !onlyInMemoryFuncs
     }
 
     private fun outputStringvar(strdecl: VarDecl, bytes: List<UByte>) {
