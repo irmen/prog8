@@ -20,3 +20,9 @@ html {
 p {
     font-size: 13pt;
 }
+
+.rst-content .linenodiv pre,
+.rst-content div[class^=highlight] pre,
+.rst-content pre.literal-block {
+    font-size: 11pt;
+}
