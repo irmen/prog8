@@ -185,7 +185,7 @@ using the ``-emu`` or ``-emu2`` command line options)
     For this to work you should make sure that the program is not using floating point, nor the ram/rom bank switching logic provided by the libraries.
     You can also choose to just stick with Prog8 6.4 (which still targets cx16 v38) and wait it out till
     the emulator r39 is officially released - but you won't be able to benefit from the compiler improvements
-    made since the previous release of prog8.
+    made since that old release of prog8.
 
 
 

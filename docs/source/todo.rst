@@ -1,9 +1,9 @@
 TODO
 ====
 
-For next compiler release (7.6)
+For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+...tbd
 
 
 Need help with
@@ -19,9 +19,9 @@ Blocked by an official Commander-x16 r39 release
   (I hope this will be included into the r39 roms when they get released)
 
 
-Future
-^^^^^^
-- add pipe operator ``|>`` ?
+Future Things and Ideas
+^^^^^^^^^^^^^^^^^^^^^^^
+- pipe operator ``|>``
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)
@@ -29,7 +29,7 @@ Future
   but this requires all identifiers in the inlined expression to be changed to fully scoped names
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar
-- get rid of all TODO's in the code
+- consider adding McCarthy evaluation to shortcircuit and and or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - improve testability further, add more tests
 - use more of Result<> and Either<> to handle errors/ nulls better
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
@@ -41,18 +41,20 @@ Future
 - add a diskio.f_seek() routine for the Cx16 that uses its seek dos api?
 - make it possible for diskio to read and write from more than one file at the same time (= use multiple io channels)?
 - fix problems in c128 target
+- add (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
+- get rid of all TODO's in the code ;)
 
 
-More code optimization ideas
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+More optimization ideas
+^^^^^^^^^^^^^^^^^^^^^^^
 - if a for loop's loopvariable isn't referenced in the body, replace by a repeatloop
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
 - byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
-   for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
+  for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4

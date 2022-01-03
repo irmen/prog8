@@ -481,6 +481,12 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
 	(which in reality is just a byte value of 1 or 0).
 
+	.. note::
+		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation
+		for the ``and`` and ``or`` operators at this time. This means that prog8 currently always evaluates
+		all operands from these logical expressions, even when one of them already determines the outcome.
+		This may be changed in a future language version.
+
 range creation:  ``to``
 	Creates a range of values from the LHS value to the RHS value, inclusive.
 	These are mainly used in for loops to set the loop range. Example::
