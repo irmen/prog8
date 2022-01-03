@@ -12,3 +12,11 @@
     max-width: 100%;
     overflow: visible;
 }
+
+html {
+    font-size: 13pt;
+}
+
+p {
+    font-size: 13pt;
+}
