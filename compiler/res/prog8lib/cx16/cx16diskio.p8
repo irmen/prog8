@@ -7,7 +7,7 @@
 cx16diskio {
 
     ; Use kernal LOAD routine to load the given program file in memory.
-    ; This mimimics Basic's  LOAD "filename",drive  /  LOAD "filename",drive,1
+    ; This is similar to Basic's  LOAD "filename",drive  /  LOAD "filename",drive,1
     ; If you don't give an address_override, the location in memory is taken from the 2-byte file header.
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.

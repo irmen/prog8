@@ -136,6 +136,15 @@ Provides several routines that deal with disk drive I/O, such as:
 - load and save data from and to the disk
 - delete and rename files on the disk
 
+.. attention::
+    **CX16 specific note**
+    The cx16 emulators provide a convenience feature called 'host filesystem passthrough' where basically
+    the directory on your host system is treated as the "disk drive" in the emulator.
+    In this mode, most of the I/O routines in the machine's kernal, and by extension the ones in this
+    module, *don't work*.  You have to use a sd-card mounted disk image to be able to use all routines.
+    Regular ``load()`` (but not ``load_raw()``) works just fine even with the host filesystem.
+    Another thing to pay attention to is the capitalization of filenames due to the petscii translation involved.
+
 
 string
 ------
@@ -206,6 +215,24 @@ That also means though that it is constrained to 320*200 resolution on the Cx16 
 Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing.
 
 
+math
+----
+Low level math routines. You should not normally have to bother with this directly.
+The compiler needs it to implement most of the math operations in your programs.
+
+
+cx16logo
+--------
+A 'fun' module that contains the Commander X16 logo and that allows you
+to print it anywhere on the screen.
+
+
+prog8_lib
+---------
+Low level language support. You should not normally have to bother with this directly.
+The compiler needs it for verious built-in system routines.
+
+
 gfx2  (cx16 only)
 -----------------
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
@@ -226,19 +253,11 @@ because the Commander X16's default colors for this (the first 16 colors) are to
 and are quite different than how they looked on a VIC-II chip in a C-64.
 
 
-math
-----
-Low level math routines. You should not normally have to bother with this directly.
-The compiler needs it to implement most of the math operations in your programs.
+cx16diskio  (cx16 only)
+-----------------------
+Available for the Cx16 target. Contains extensions to the load and load_raw routines from the regular
+diskio module, to deal with loading of potentially large files in to banked ram (HiRam).
+Also contains a helper function to calculate the file size of a loaded file (although that is truncated
+to 16 bits, 64Kb)
 
 
-cx16logo
---------
-A 'fun' module that contains the Commander X16 logo and that allows you
-to print it anywhere on the screen.
-
-
-prog8_lib
----------
-Low level language support. You should not normally have to bother with this directly.
-The compiler needs it for verious built-in system routines.
