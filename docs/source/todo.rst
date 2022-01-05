@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...tbd
+- add unit tests for correctly parsing the "in" operator
 
 
 Need help with
@@ -22,6 +22,7 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - pipe operator ``|>``
+- can we promise a left-to-right function call argument evaluation? without sacrificing performance
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)

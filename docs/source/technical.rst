@@ -64,10 +64,11 @@ regular subroutines
 - subroutine parameters are just variables scoped to the subroutine.
 - the arguments passed in a call are evaluated (using the eval-stack if needed) and then
   copied into those variables.
-  This sometimes can seem inefficient but it's required to allow subroutines to work locally
+  Using variables for this sometimes can seem inefficient but it's required to allow subroutines to work locally
   with their parameters and allow them to modify them as required, without changing the
   variables used in the call's arguments.  If you want to get rid of this overhead you'll
   have to make an ``asmsub`` routine in assembly instead.
+- the order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
 - the return value is passed back to the caller via cpu register(s):
   Byte values will be put in ``A`` .
   Word values will be put in ``A`` + ``Y`` register pair.

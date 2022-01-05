@@ -599,9 +599,15 @@ You can also reference idendifiers defined elsewhere in your code.
 
 Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
 
+.. note::
+    **Order of evaluation:**
+
+    The order of evaluation of expression operands is *unspecified* and should not be relied upon.
+    There is no guarantee of a left-to-right or right-to-left evaluation. But don't confuse this with
+    operator precedence order (multiplication comes before addition etcetera).
 
 .. attention::
-    **Floating points used in expressions:**
+    **Floating point values used in expressions:**
 
     When a floating point value is used in a calculation, the result will be a floating point, and byte or word values
     will be automatically converted into floats in this case. The compiler will issue a warning though when this happens, because floating
@@ -678,6 +684,12 @@ Calling a subroutine
 The arguments in parentheses after the function name, should match the parameters in the subroutine definition.
 If you want to ignore a return value of a subroutine, you should prefix the call with the ``void`` keyword.
 Otherwise the compiler will issue a warning about discarding a result value.
+
+.. note::
+    **Order of evaluation:**
+
+    The order of evaluation of arguments is *unspecified* and should not be relied upon.
+    There is no guarantee of a left-to-right or right-to-left evaluation of the call arguments.
 
 .. caution::
     Note that due to the way parameters are processed by the compiler,
