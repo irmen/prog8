@@ -3,8 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- add unit tests for correctly parsing the "in" operator
-
+...
 
 Need help with
 ^^^^^^^^^^^^^^

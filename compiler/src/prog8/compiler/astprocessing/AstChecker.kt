@@ -1208,12 +1208,26 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(containment: ContainmentCheck) {
-        if(!containment.iterable.inferType(program).isIterable)
-            errors.err("value set for containment check must be an iterable type", containment.iterable.position)
+        val elementDt = containment.element.inferType(program)
+        val iterableDt = containment.iterable.inferType(program)
+
         if(containment.parent is BinaryExpression)
             errors.err("containment check is currently not supported in complex expressions", containment.position)
 
-        // TODO check that iterable contains the same types as the element that is searched
+        if(iterableDt.isIterable) {
+            val iterableEltDt = ArrayToElementTypes.getValue(iterableDt.getOr(DataType.UNDEFINED))
+            val invalidDt = if (elementDt.isBytes) {
+                iterableEltDt !in ByteDatatypes
+            } else if (elementDt.isWords) {
+                iterableEltDt !in WordDatatypes
+            } else {
+                false
+            }
+            if (invalidDt)
+                errors.err("element datatype doesn't match iterable datatype", containment.position)
+        } else {
+            errors.err("value set for containment check must be an iterable type", containment.iterable.position)
+        }
 
         super.visit(containment)
     }

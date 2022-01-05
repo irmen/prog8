@@ -800,4 +800,50 @@ class TestProg8Parser: FunSpec( {
         val encodedletter = Petscii.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
         letter.value shouldBe NumericLiteralValue(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
+
+    test("`in` containment checks") {
+        val text="""
+            main {
+                sub start() {
+                    str string = "hello"
+                    ubyte[] array = [1,2,3,4]
+                    
+                    ubyte cc
+                    if cc in [' ', '@', 0] {
+                    }
+                    
+                    if cc in "email" {
+                    }
+                    
+                    cc = 99 in array
+                    cc = '@' in string
+                }
+            }
+        """
+        val result = compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        val start = result.program.entrypoint
+        val containmentChecks = start.statements.takeLast(4)
+        (containmentChecks[0] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
+        (containmentChecks[1] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
+        (containmentChecks[2] as Assignment).value shouldBe instanceOf<ContainmentCheck>()
+        (containmentChecks[3] as Assignment).value shouldBe instanceOf<ContainmentCheck>()
+    }
+
+    test("invalid `in` containment checks") {
+        val text="""
+            main {
+                sub start() {
+                    ubyte cc
+                    ubyte[] array = [1,2,3]
+                    cc = 99 in 12345
+                    cc = 9999 in array
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target,  false, text, writeAssembly = false, errors = errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "must be an iterable type"
+        errors.errors[1] shouldContain "datatype doesn't match"
+    }
 })
