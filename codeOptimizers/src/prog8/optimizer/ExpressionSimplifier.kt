@@ -8,12 +8,10 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
-import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.IfElse
-import prog8.ast.statements.Jump
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.IErrorReporter
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -26,7 +24,7 @@ import kotlin.math.pow
  */
 
 
-class ExpressionSimplifier(private val program: Program) : AstWalker() {
+class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
@@ -359,6 +357,24 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     return listOf(IAstModification.ReplaceNode(containment, comparison, parent))
                 }
             }
+        }
+        return noModifications
+    }
+
+    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
+        val firstValue = pipe.expressions.first()
+        if(firstValue.isSimple) {
+            val funcname = pipe.expressions[1] as IdentifierReference
+            val first = FunctionCallExpr(funcname.copy(), mutableListOf(firstValue), firstValue.position)
+            val newExprs = mutableListOf<Expression>(first)
+            newExprs.addAll(pipe.expressions.drop(2))
+            return listOf(IAstModification.ReplaceNode(pipe, Pipe(newExprs, pipe.position), parent))
+        }
+        val singleExpr = pipe.expressions.singleOrNull()
+        if(singleExpr!=null) {
+            val callExpr = singleExpr as FunctionCallExpr
+            val call = FunctionCallStatement(callExpr.target, callExpr.args, true, callExpr.position)
+            return listOf(IAstModification.ReplaceNode(pipe, call, parent))
         }
         return noModifications
     }

@@ -5,9 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.FunctionCallExpr
-import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 
@@ -120,6 +118,21 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(inlineAssembly: InlineAssembly) {
         allAssemblyNodes.add(inlineAssembly)
+    }
+
+    override fun visit(pipe: Pipe) {
+        pipe.expressions.forEach {
+            if(it is IdentifierReference){
+                val otherSub = it.targetSubroutine(program)
+                if(otherSub!=null) {
+                    pipe.definingSubroutine?.let { thisSub ->
+                        calls[thisSub] = calls.getValue(thisSub) + otherSub
+                        calledBy[otherSub] = calledBy.getValue(otherSub) + pipe
+                    }
+                }
+            }
+        }
+        super.visit(pipe)
     }
 
     fun checkRecursiveCalls(errors: IErrorReporter) {

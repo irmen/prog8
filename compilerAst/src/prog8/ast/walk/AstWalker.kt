@@ -120,6 +120,7 @@ abstract class AstWalker {
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(pipe: Pipe, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
@@ -163,6 +164,7 @@ abstract class AstWalker {
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
 
@@ -456,6 +458,12 @@ abstract class AstWalker {
         whenChoice.values?.forEach { it.accept(this, whenChoice) }
         whenChoice.statements.accept(this, whenChoice)
         track(after(whenChoice, parent), whenChoice, parent)
+    }
+
+    fun visit(pipe: Pipe, parent: Node) {
+        track(before(pipe, parent), pipe, parent)
+        pipe.expressions.forEach { it.accept(this, pipe) }
+        track(after(pipe, parent), pipe, parent)
     }
 }
 

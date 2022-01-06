@@ -181,4 +181,8 @@ interface IAstVisitor {
         whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
+
+    fun visit(pipe: Pipe) {
+        pipe.expressions.forEach { it.accept(this) }
+    }
 }

@@ -685,6 +685,9 @@ The arguments in parentheses after the function name, should match the parameter
 If you want to ignore a return value of a subroutine, you should prefix the call with the ``void`` keyword.
 Otherwise the compiler will issue a warning about discarding a result value.
 
+Deeply nested function calls can be rewritten as a chain using the *pipe operator* ``|>`` as long as they
+are unary functions (taking a single argument).
+
 .. note::
     **Order of evaluation:**
 

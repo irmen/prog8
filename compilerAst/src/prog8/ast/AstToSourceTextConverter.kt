@@ -457,4 +457,16 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             whenChoice.statements.accept(this)
         outputln("")
     }
+
+    override fun visit(pipe: Pipe) {
+        pipe.expressions.first().accept(this)
+        outputln("")
+        scopelevel++
+        pipe.expressions.drop(1).forEach {
+            outputi("|> ")
+            it.accept(this)
+            outputln("")
+        }
+        scopelevel--
+    }
 }

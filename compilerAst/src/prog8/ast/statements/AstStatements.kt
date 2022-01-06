@@ -1014,3 +1014,27 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun copy() = DirectMemoryWrite(addressExpression.copy(), position)
 }
+
+
+class Pipe(val expressions: MutableList<Expression>, override val position: Position): Statement() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        expressions.forEach { it.linkParents(this) }
+    }
+
+    override fun copy() = Pipe(expressions.map { it.copy() }.toMutableList(), position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node)  = visitor.visit(this, parent)
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(node is Expression)
+        require(replacement is Expression)
+        val idx = expressions.indexOf(node)
+        expressions[idx] = replacement
+    }
+
+    fun valueDatatype(program: Program): DataType =
+        expressions.first().inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+}

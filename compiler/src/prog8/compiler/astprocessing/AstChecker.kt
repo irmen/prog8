@@ -1,12 +1,10 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.INameScope
-import prog8.ast.IStatementContainer
-import prog8.ast.Module
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.*
 import java.io.CharConversionException
@@ -1231,6 +1229,64 @@ internal class AstChecker(private val program: Program,
 
         super.visit(containment)
     }
+
+    override fun visit(pipe: Pipe) {
+        // first expression is just any expression producing a value
+        // all other expressions should be the name of a unary function that returns a single value
+        // the last expression should be the name of a unary function whose return value we don't care about.
+        if (pipe.expressions.size < 2) {
+            errors.err("pipe is missing one or more expressions", pipe.position)
+        } else {
+            // invalid size and other issues will be handled by the ast checker later.
+            var valueDt = pipe.expressions[0].inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+
+            for(expr in pipe.expressions.drop(1)) {         // just keep the first expression value as-is
+                val functionName = expr as? IdentifierReference
+                val function = functionName?.targetStatement(program)
+                if(functionName!=null && function!=null) {
+                    when (function) {
+                        is BuiltinFunctionPlaceholder -> {
+                            val func = BuiltinFunctions.getValue(function.name)
+                            if(func.parameters.size!=1)
+                                errors.err("can only use unary function", expr.position)
+                            else if(func.known_returntype==null && expr !== pipe.expressions.last())
+                                errors.err("function must return a single value", expr.position)
+
+                            val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
+                            if(paramDts!=null && !paramDts.any { valueDt isAssignableTo it })
+                                errors.err("pipe value datatype $valueDt incompatible withfunction argument ${paramDts.toList()}", functionName.position)
+
+                            valueDt = func.known_returntype!!
+                        }
+                        is Subroutine -> {
+                            if(function.parameters.size!=1)
+                                errors.err("can only use unary function", expr.position)
+                            else if(function.returntypes.size!=1 && expr !== pipe.expressions.last())
+                                errors.err("function must return a single value", expr.position)
+
+                            val paramDt = function.parameters.firstOrNull()?.type
+                            if(paramDt!=null && !(valueDt isAssignableTo paramDt))
+                                errors.err("pipe value datatype $valueDt incompatible with function argument $paramDt", functionName.position)
+
+                            if(function.returntypes.isNotEmpty())
+                                valueDt = function.returntypes.single()
+                        }
+                        else -> {
+                            throw FatalAstException("weird function")
+                        }
+                    }
+                } else {
+                    if(expr is IFunctionCall)
+                        errors.err("use only the name of the function, not a call", expr.position)
+                    else
+                        errors.err("can only use unary function", expr.position)
+                }
+            }
+        }
+
+        return super.visit(pipe)
+    }
+
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {

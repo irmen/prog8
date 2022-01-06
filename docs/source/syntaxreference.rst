@@ -520,6 +520,25 @@ containment check:  ``in``
             txt.print("email address seems ok")
         }
 
+pipe: ``|>``
+    Used as an alternative to nesting function calls. The pipe operator is used to 'pipe' the value
+    into the next function. It only works on unary functions (taking a single argument), because you just
+    specify the *name* of the function that the value has to be piped into. The resulting value will be piped
+    into the next function as long as there are chained pipes.
+    For example, this: ``txt.print_uw(add_bonus(determine_score(get_player(1))))``
+    can be rewritten as::
+
+        get_player(1)
+            |> determine_score
+            |> add_bonus
+            |> txt.print_uw
+
+    or even::
+
+        1 |> get_player
+              |> determine_score
+              |> add_bonus
+              |> txt.print_uw
 
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.

@@ -282,7 +282,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.addTypecasts(errors, compilerOptions)
     errors.report()
-    program.variousCleanups(program, errors)
+    program.variousCleanups(program, errors, compilerOptions)
     errors.report()
     program.checkValid(errors, compilerOptions)
     errors.report()
@@ -300,7 +300,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions()
+        val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.splitBinaryExpressions(compilerOptions, compTarget)
         val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
@@ -315,7 +315,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.desugaring(errors)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
-    program.variousCleanups(program, errors)
+    program.variousCleanups(program, errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
     errors.report()

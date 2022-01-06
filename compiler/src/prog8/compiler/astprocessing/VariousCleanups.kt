@@ -10,10 +10,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
 
 
-internal class VariousCleanups(val program: Program, val errors: IErrorReporter): AstWalker() {
+internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {
 
     override fun before(nop: Nop, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(nop, parent as IStatementContainer))
@@ -197,6 +198,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter)
             else -> {}
         }
         return noModifications
+    }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        return replaceCallByGosub(functionCallStatement, parent, program, options)
     }
 }
 

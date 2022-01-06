@@ -24,6 +24,7 @@ syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
 syn match prog8Function "\(romsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
 syn keyword prog8Statement break goto return asmsub sub inline
+syn match prog8Statement "|>"
 syn match prog8Statement "\<\(asm\|rom\)\?sub\>"
 syn keyword prog8Conditional if else when
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz

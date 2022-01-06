@@ -58,6 +58,7 @@ Language features
 - Conditional branches to map directly on processor branch instructions
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
+- pipe operator ``|>`` to rewrite nested function call expressions in a more readable chained form
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Floating point math also supported if the target system provides floating point library routines (C64 and Cx16 both do).

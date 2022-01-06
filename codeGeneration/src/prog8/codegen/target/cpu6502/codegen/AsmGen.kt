@@ -616,6 +616,16 @@ class AsmGen(private val program: Program,
     fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
     fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
 
+    fun getTempVarName(dt: DataType): List<String> {
+        return when(dt) {
+            DataType.UBYTE -> listOf("cx16", "r9L")
+            DataType.BYTE -> listOf("cx16", "r9sL")
+            DataType.UWORD -> listOf("cx16", "r9")
+            DataType.WORD -> listOf("cx16", "r9s")
+            DataType.FLOAT -> listOf("floats", "tempvar_swap_float")      // defined in floats.p8
+            else -> throw FatalAstException("invalid dt $dt")
+        }
+    }
 
     internal fun loadByteFromPointerIntoA(pointervar: IdentifierReference): String {
         // returns the source name of the zero page pointervar if it's already in the ZP,
@@ -840,6 +850,7 @@ class AsmGen(private val program: Program,
             is RepeatLoop -> translate(stmt)
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
+            is Pipe -> translate(stmt)
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
             is WhileLoop -> throw AssemblyError("while should have been converted to jumps")
@@ -1612,6 +1623,53 @@ $label              nop""")
     private fun translate(asm: InlineAssembly) {
         val assembly = asm.assembly.trimEnd().trimStart('\n')
         assemblyLines.add(assembly)
+    }
+
+    private fun translate(pipe: Pipe) {
+
+        // TODO more efficient code generation to avoid needless assignments to the temp var
+
+        var valueDt = pipe.valueDatatype(program)
+        var valueVar = getTempVarName(valueDt)
+        val subroutine = pipe.definingSubroutine
+        assignExpressionToVariable(pipe.expressions.first(), valueVar.joinToString("."), valueDt, subroutine)
+        pipe.expressions.drop(1).dropLast(1).forEach {
+            val callName = it as IdentifierReference
+            val args = mutableListOf<Expression>(IdentifierReference(valueVar, it.position))
+            val call = FunctionCallExpr(callName, args,it.position)
+            call.linkParents(pipe)
+            valueDt = call.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+            valueVar = getTempVarName(valueDt)
+            assignExpressionToVariable(call, valueVar.joinToString("."), valueDt, subroutine)
+        }
+        // the last term in the pipe:
+        val callName = pipe.expressions.last() as IdentifierReference
+        val callTarget = callName.targetStatement(program)!!
+        when (callTarget) {
+            is BuiltinFunctionPlaceholder -> {
+                val args = mutableListOf<Expression>(IdentifierReference(valueVar, callName.position))
+                val call = FunctionCallStatement(callName, args, true, callName.position)
+                call.linkParents(pipe)
+                translate(call)
+            }
+            is Subroutine -> {
+                if(callTarget.isAsmSubroutine) {
+                    val args = mutableListOf<Expression>(IdentifierReference(valueVar, callName.position))
+                    val call = FunctionCallStatement(callName, args, true, callName.position)
+                    call.linkParents(pipe)
+                    translate(call)
+                } else {
+                    // have to use GoSub and manual parameter assignment, because no codegen for FunctionCallStmt here
+                    val param = callTarget.parameters.single()
+                    val paramName = callTarget.scopedName.joinToString(".") + ".${param.name}"
+                    val tempvar = IdentifierReference(valueVar, callName.position)
+                    tempvar.linkParents(pipe)
+                    assignExpressionToVariable(tempvar, paramName, param.type, subroutine)
+                    out("  jsr  ${asmSymbolName(callName)}")
+                }
+            }
+            else -> throw AssemblyError("invalid call target")
+        }
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {

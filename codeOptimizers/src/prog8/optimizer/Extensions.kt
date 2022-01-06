@@ -57,8 +57,8 @@ fun Program.optimizeStatements(errors: IErrorReporter,
     return optimizationCount
 }
 
-fun Program.simplifyExpressions() : Int {
-    val opti = ExpressionSimplifier(this)
+fun Program.simplifyExpressions(errors: IErrorReporter) : Int {
+    val opti = ExpressionSimplifier(this, errors)
     opti.visit(this)
     return opti.applyModifications()
 }
