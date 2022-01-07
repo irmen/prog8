@@ -485,19 +485,11 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-// target type check is already done at the Assignment:
-//        val targetDt = assignTarget.inferType(program, assignment).typeOrElse(DataType.STR)
-//        if(targetDt in IterableDatatypes)
-//            errors.err("cannot assign to a string or array type", assignTarget.position)
-
         if (assignment is Assignment) {
-
             val targetDatatype = assignTarget.inferType(program)
             if (targetDatatype.isKnown) {
                 val constVal = assignment.value.constValue(program)
-                if (constVal != null) {
-                    checkValueTypeAndRange(targetDatatype.getOr(DataType.BYTE), constVal)
-                } else {
+                if(constVal==null) {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
                         if (assignment.value !is FunctionCallExpression)
@@ -896,6 +888,9 @@ internal class AstChecker(private val program: Program,
 
         if(!typecast.expression.inferType(program).isKnown)
             errors.err("this expression doesn't return a value", typecast.expression.position)
+
+        if(typecast.expression is NumericLiteralValue)
+            errors.err("can't cast the value to the requested target type", typecast.expression.position)
 
         super.visit(typecast)
     }

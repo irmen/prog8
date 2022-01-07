@@ -431,7 +431,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
         else {
             val rounded = round(numbervalue)
             if(rounded != numbervalue)
-                throw ExpressionError("refused silent rounding of float to avoid loss of precision", position)
+                throw ExpressionError("refused rounding of float to avoid loss of precision", position)
             rounded
         }
     }
@@ -569,14 +569,18 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
                     return CastValue(true, NumericLiteralValue(targettype, number, position))
             }
             DataType.FLOAT -> {
-                if (targettype == DataType.BYTE && number >= -128 && number <=127)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
-                if (targettype == DataType.UBYTE && number >=0 && number <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
-                if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
-                if (targettype == DataType.UWORD && number >=0 && number <= 65535)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                try {
+                    if (targettype == DataType.BYTE && number >= -128 && number <= 127)
+                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
+                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
+                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
+                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                } catch (x: ExpressionError) {
+                    return CastValue(false, null)
+                }
             }
             else -> {}
         }
