@@ -167,7 +167,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val dt = value.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, dt, array = value)
                 }
-                is FunctionCallExpr -> {
+                is FunctionCallExpression -> {
                     when (val sub = value.target.targetStatement(program)) {
                         is Subroutine -> {
                             val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first

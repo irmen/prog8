@@ -956,10 +956,10 @@ class AsmGen(private val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpr, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
 
-    internal fun translateFunctionCall(functionCallExpr: FunctionCallExpr, isExpression: Boolean) =
+    internal fun translateFunctionCall(functionCallExpr: FunctionCallExpression, isExpression: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
 
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
@@ -1636,7 +1636,7 @@ $label              nop""")
         pipe.expressions.drop(1).dropLast(1).forEach {
             val callName = it as IdentifierReference
             val args = mutableListOf<Expression>(IdentifierReference(valueVar, it.position))
-            val call = FunctionCallExpr(callName, args,it.position)
+            val call = FunctionCallExpression(callName, args,it.position)
             call.linkParents(pipe)
             valueDt = call.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
             valueVar = getTempVarName(valueDt)
@@ -1880,7 +1880,7 @@ $label              nop""")
                 }
                 if(dt==DataType.UBYTE) {
                     assignExpressionToRegister(left, RegisterOrPair.A, false)
-                    if (left is FunctionCallExpr && !left.isSimple)
+                    if (left is FunctionCallExpression && !left.isSimple)
                         out("  cmp  #0")
                 } else {
                     assignExpressionToRegister(left, RegisterOrPair.AY, false)
@@ -1896,7 +1896,7 @@ $label              nop""")
             }
             DataType.BYTE -> {
                 assignExpressionToRegister(left, RegisterOrPair.A, true)
-                if (left is FunctionCallExpr && !left.isSimple)
+                if (left is FunctionCallExpression && !left.isSimple)
                     out("  cmp  #0")
                 when (operator) {
                     "==" -> out("  bne  $jumpIfFalseLabel")

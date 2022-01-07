@@ -94,7 +94,7 @@ abstract class AstWalker {
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
@@ -109,7 +109,7 @@ abstract class AstWalker {
     open fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(program: Program): Iterable<IAstModification> = noModifications
-    open fun before(range: RangeExpr, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
@@ -138,7 +138,7 @@ abstract class AstWalker {
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
@@ -153,7 +153,7 @@ abstract class AstWalker {
     open fun after(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(program: Program): Iterable<IAstModification> = noModifications
-    open fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
@@ -258,7 +258,7 @@ abstract class AstWalker {
         track(after(subroutine, parent), subroutine, parent)
     }
 
-    fun visit(functionCallExpr: FunctionCallExpr, parent: Node) {
+    fun visit(functionCallExpr: FunctionCallExpression, parent: Node) {
         track(before(functionCallExpr, parent), functionCallExpr, parent)
         functionCallExpr.target.accept(this, functionCallExpr)
         functionCallExpr.args.forEach { it.accept(this, functionCallExpr) }
@@ -304,7 +304,7 @@ abstract class AstWalker {
         track(after(branch, parent), branch, parent)
     }
 
-    fun visit(range: RangeExpr, parent: Node) {
+    fun visit(range: RangeExpression, parent: Node) {
         track(before(range, parent), range, parent)
         range.from.accept(this, range)
         range.to.accept(this, range)

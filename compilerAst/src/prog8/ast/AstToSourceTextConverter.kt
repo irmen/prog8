@@ -201,7 +201,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(functionCallExpr: FunctionCallExpr) {
+    override fun visit(functionCallExpr: FunctionCallExpression) {
         printout(functionCallExpr as IFunctionCall)
     }
 
@@ -262,7 +262,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(range: RangeExpr) {
+    override fun visit(range: RangeExpression) {
         range.from.accept(this)
         output(" to ")
         range.to.accept(this)

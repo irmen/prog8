@@ -17,7 +17,7 @@ class StatementOptimizer(private val program: Program,
                                   private val compTarget: ICompilationTarget
 ) : AstWalker() {
 
-    override fun before(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         // if the first instruction in the called subroutine is a return statement with a simple value,
         // remove the jump altogeter and inline the returnvalue directly.
 
@@ -177,7 +177,7 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        val range = forLoop.iterable as? RangeExpr
+        val range = forLoop.iterable as? RangeExpression
         if(range!=null) {
             if (range.size() == 1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away

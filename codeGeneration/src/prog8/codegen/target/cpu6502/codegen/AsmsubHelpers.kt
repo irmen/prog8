@@ -44,7 +44,7 @@ internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
                     it.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
                 }
             }
-            is FunctionCallExpr -> {
+            is FunctionCallExpression -> {
                 if (expr.target.nameInSource == listOf("lsb") || expr.target.nameInSource == listOf("msb"))
                     return isClobberRisk(expr.args[0])
                 if (expr.target.nameInSource == listOf("mkword"))

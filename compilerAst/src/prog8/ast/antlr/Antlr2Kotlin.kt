@@ -283,12 +283,12 @@ private fun Prog8ANTLRParser.Functioncall_stmtContext.toAst(): Statement {
         FunctionCallStatement(location, expression_list().toAst().toMutableList(), void, toPosition())
 }
 
-private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCallExpr {
+private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCallExpression {
     val location = scoped_identifier().toAst()
     return if(expression_list() == null)
-        FunctionCallExpr(location, mutableListOf(), toPosition())
+        FunctionCallExpression(location, mutableListOf(), toPosition())
     else
-        FunctionCallExpr(location, expression_list().toAst().toMutableList(), toPosition())
+        FunctionCallExpression(location, expression_list().toAst().toMutableList(), toPosition())
 }
 
 private fun Prog8ANTLRParser.InlineasmContext.toAst(): InlineAssembly {
@@ -463,7 +463,7 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
         val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep.toDouble(), toPosition())
-        return RangeExpr(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
+        return RangeExpression(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")

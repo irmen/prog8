@@ -182,8 +182,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     else -> {}
                 }
             }
-            is RangeExpr -> {
-                val constValues = (containment.iterable as RangeExpr).toConstantIntegerRange()
+            is RangeExpression -> {
+                val constValues = (containment.iterable as RangeExpression).toConstantIntegerRange()
                 if(constValues!=null) {
                     if (constValues.isEmpty())
                         return replaceWithFalse()

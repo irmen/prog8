@@ -40,7 +40,7 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
         return noModifications
     }
 
-    override fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> {
+    override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         val from = range.from.constValue(program)?.number
         val to = range.to.constValue(program)?.number
         val step = range.step.constValue(program)?.number
@@ -139,7 +139,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     }
                 }
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    val rangeExpr = decl.value as? RangeExpr
+                    val rangeExpr = decl.value as? RangeExpression
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array
                         val declArraySize = decl.arraysize?.constIndex()
@@ -193,7 +193,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     }
                 }
                 DataType.ARRAY_F -> {
-                    val rangeExpr = decl.value as? RangeExpr
+                    val rangeExpr = decl.value as? RangeExpression
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array of floats
                         val declArraySize = decl.arraysize?.constIndex()

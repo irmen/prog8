@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.*
 import java.io.CharConversionException
@@ -86,7 +85,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(forLoop: ForLoop) {
 
-        fun checkUnsignedLoopDownto0(range: RangeExpr?) {
+        fun checkUnsignedLoopDownto0(range: RangeExpression?) {
             if(range==null)
                 return
             val step = range.step.constValue(program)?.number ?: 1.0
@@ -98,7 +97,7 @@ internal class AstChecker(private val program: Program,
         }
 
         val iterableDt = forLoop.iterable.inferType(program).getOr(DataType.BYTE)
-        if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpr) {
+        if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpression) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
             val loopvar = forLoop.loopVar.targetVarDecl(program)
@@ -110,14 +109,14 @@ internal class AstChecker(private val program: Program,
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
 
-                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpr)
+                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
                     DataType.UWORD -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
                                 iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
-                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpr)
+                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
                     DataType.BYTE -> {
                         if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
@@ -138,7 +137,7 @@ internal class AstChecker(private val program: Program,
                 }
                 if(errors.noErrors()) {
                     // check loop range values
-                    val range = forLoop.iterable as? RangeExpr
+                    val range = forLoop.iterable as? RangeExpression
                     if(range!=null) {
                         val from = range.from as? NumericLiteralValue
                         val to = range.to as? NumericLiteralValue
@@ -501,7 +500,7 @@ internal class AstChecker(private val program: Program,
                 } else {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCallExpr)
+                        if (assignment.value !is FunctionCallExpression)
                             errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
@@ -556,7 +555,7 @@ internal class AstChecker(private val program: Program,
                 err("unsized array declaration cannot use a single literal initialization value")
                 return
             }
-            if(decl.value is RangeExpr)
+            if(decl.value is RangeExpression)
                 throw FatalAstException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
         }
 
@@ -566,7 +565,7 @@ internal class AstChecker(private val program: Program,
                     null -> {
                         // a vardecl without an initial value, don't bother with it
                     }
-                    is RangeExpr -> throw FatalAstException("range expression should have been converted to a true array value")
+                    is RangeExpression -> throw FatalAstException("range expression should have been converted to a true array value")
                     is StringLiteralValue -> {
                         checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
                     }
@@ -901,7 +900,7 @@ internal class AstChecker(private val program: Program,
         super.visit(typecast)
     }
 
-    override fun visit(range: RangeExpr) {
+    override fun visit(range: RangeExpression) {
         fun err(msg: String) {
             errors.err(msg, range.position)
         }
@@ -934,7 +933,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun visit(functionCallExpr: FunctionCallExpr) {
+    override fun visit(functionCallExpr: FunctionCallExpression) {
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
@@ -1079,8 +1078,8 @@ internal class AstChecker(private val program: Program,
                     var ident: IdentifierReference? = null
                     if(arg.value is IdentifierReference)
                         ident = arg.value as IdentifierReference
-                    else if(arg.value is FunctionCallExpr) {
-                        val fcall = arg.value as FunctionCallExpr
+                    else if(arg.value is FunctionCallExpression) {
+                        val fcall = arg.value as FunctionCallExpression
                         if(fcall.target.nameInSource == listOf("lsb") || fcall.target.nameInSource == listOf("msb"))
                             ident = fcall.args[0] as? IdentifierReference
                     }
@@ -1473,7 +1472,7 @@ internal class AstChecker(private val program: Program,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
 
-        if(sourceValue is RangeExpr)
+        if(sourceValue is RangeExpression)
             errors.err("can't assign a range value to something else", position)
 
         val result =  when(targetDatatype) {

@@ -12,7 +12,7 @@ import prog8.compilerinterface.IErrorReporter
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWalker() {
 
-    override fun after(range: RangeExpr, parent: Node): Iterable<IAstModification> {
+    override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
         val modifications = mutableListOf<IAstModification>()
         if(range.from !is NumericLiteralValue) {

@@ -64,11 +64,11 @@ sealed class Expression: Node {
             is AddressOf -> {
                 (other is AddressOf && other.identifier.nameInSource == identifier.nameInSource)
             }
-            is RangeExpr -> {
-                (other is RangeExpr && other.from==from && other.to==to && other.step==step)
+            is RangeExpression -> {
+                (other is RangeExpression && other.from==from && other.to==to && other.step==step)
             }
-            is FunctionCallExpr -> {
-                (other is FunctionCallExpr && other.target.nameInSource == target.nameInSource
+            is FunctionCallExpression -> {
+                (other is FunctionCallExpression && other.target.nameInSource == target.nameInSource
                         && other.args.size == args.size
                         && other.args.zip(args).all { it.first isSameAs it.second } )
             }
@@ -747,10 +747,10 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
     }
 }
 
-class RangeExpr(var from: Expression,
-                var to: Expression,
-                var step: Expression,
-                override val position: Position) : Expression() {
+class RangeExpression(var from: Expression,
+                      var to: Expression,
+                      var step: Expression,
+                      override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -773,7 +773,7 @@ class RangeExpr(var from: Expression,
         replacement.parent = this
     }
 
-    override fun copy() = RangeExpr(from.copy(), to.copy(), step.copy(), position)
+    override fun copy() = RangeExpression(from.copy(), to.copy(), step.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -906,9 +906,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 }
 
-class FunctionCallExpr(override var target: IdentifierReference,
-                       override var args: MutableList<Expression>,
-                       override val position: Position) : Expression(), IFunctionCall {
+class FunctionCallExpression(override var target: IdentifierReference,
+                             override var args: MutableList<Expression>,
+                             override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -917,7 +917,7 @@ class FunctionCallExpr(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = FunctionCallExpr(target.copy(), args.map { it.copy() }.toMutableList(), position)
+    override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
     override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -1011,8 +1011,8 @@ class ContainmentCheck(var element: Expression,
                     val exists = (iterable as ArrayLiteralValue).value.any { it.constValue(program)==elementConst }
                     return NumericLiteralValue.fromBoolean(exists, position)
                 }
-                is RangeExpr -> {
-                    val intRange = (iterable as RangeExpr).toConstantIntegerRange()
+                is RangeExpression -> {
+                    val intRange = (iterable as RangeExpression).toConstantIntegerRange()
                     if(intRange!=null && elementConst.type in IntegerDatatypes) {
                         val exists = elementConst.number.toInt() in intRange
                         return NumericLiteralValue.fromBoolean(exists, position)
@@ -1035,8 +1035,8 @@ class ContainmentCheck(var element: Expression,
                 if(array.value.isEmpty())
                     return NumericLiteralValue.fromBoolean(false, position)
             }
-            is RangeExpr -> {
-                val size = (iterable as RangeExpr).size()
+            is RangeExpression -> {
+                val size = (iterable as RangeExpression).size()
                 if(size!=null && size==0)
                     return NumericLiteralValue.fromBoolean(false, position)
             }

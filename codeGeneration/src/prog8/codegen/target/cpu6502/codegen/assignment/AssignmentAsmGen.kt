@@ -159,7 +159,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
-                    is FunctionCallExpr -> {
+                    is FunctionCallExpression -> {
                         when (val sub = value.target.targetStatement(program)) {
                             is Subroutine -> {
                                 asmgen.saveXbeforeCall(value)
@@ -300,7 +300,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
 
     private fun containmentCheckIntoA(containment: ContainmentCheck) {
         val elementDt = containment.element.inferType(program)
-        val range = containment.iterable as? RangeExpr
+        val range = containment.iterable as? RangeExpression
         if(range!=null) {
             val constRange = range.toConstantIntegerRange()
             if(constRange!=null)
@@ -596,7 +596,7 @@ $containsLabel      lda  #1
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {
-        val lsb = FunctionCallExpr(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
+        val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
         lsb.linkParents(value.parent)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, target, false, program.memsizer, value.position)

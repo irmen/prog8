@@ -44,7 +44,7 @@ interface IAstVisitor {
         subroutine.statements.forEach { it.accept(this) }
     }
 
-    fun visit(functionCallExpr: FunctionCallExpr) {
+    fun visit(functionCallExpr: FunctionCallExpression) {
         functionCallExpr.target.accept(this)
         functionCallExpr.args.forEach { it.accept(this) }
     }
@@ -76,7 +76,7 @@ interface IAstVisitor {
         branch.elsepart.accept(this)
     }
 
-    fun visit(range: RangeExpr) {
+    fun visit(range: RangeExpression) {
         range.from.accept(this)
         range.to.accept(this)
         range.step.accept(this)

@@ -310,7 +310,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         return noModifications
     }
 
-    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         // the args of a fuction are constfolded via recursion already.
         val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
@@ -320,7 +320,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     }
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
-        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpr): RangeExpr? {
+        fun adjustRangeDt(rangeFrom: NumericLiteralValue, targetDt: DataType, rangeTo: NumericLiteralValue, stepLiteral: NumericLiteralValue?, range: RangeExpression): RangeExpression? {
             val fromCast = rangeFrom.cast(targetDt)
             val toCast = rangeTo.cast(targetDt)
             if(!fromCast.isValid || !toCast.isValid)
@@ -337,11 +337,11 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                     range.step
                 }
 
-            return RangeExpr(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
+            return RangeExpression(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.
-        val iterableRange = forLoop.iterable as? RangeExpr ?: return noModifications
+        val iterableRange = forLoop.iterable as? RangeExpression ?: return noModifications
         val rangeFrom = iterableRange.from as? NumericLiteralValue
         val rangeTo = iterableRange.to as? NumericLiteralValue
         if(rangeFrom==null || rangeTo==null) return noModifications

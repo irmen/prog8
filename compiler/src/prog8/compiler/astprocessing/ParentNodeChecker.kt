@@ -161,7 +161,7 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(range: RangeExpr, parent: Node): Iterable<IAstModification> {
+    override fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         if(range.parent!==parent)
             throw FatalAstException("parent node mismatch at $range")
         return noModifications
@@ -221,7 +221,7 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         if(functionCallExpr.parent!==parent)
             throw FatalAstException("parent node mismatch at $functionCallExpr")
         return noModifications

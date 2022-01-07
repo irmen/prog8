@@ -234,7 +234,7 @@ class UnusedCodeRemover(private val program: Program,
                                 is PrefixExpression,
                                 is BinaryExpression,
                                 is TypecastExpression,
-                                is FunctionCallExpr -> { /* don't remove */ }
+                                is FunctionCallExpression -> { /* don't remove */ }
                                 else -> linesToRemove.add(assign1)
                             }
                     }

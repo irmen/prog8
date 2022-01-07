@@ -4,7 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.Position
-import prog8.ast.expressions.FunctionCallExpr
+import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -128,7 +128,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(string)
     }
 
-    override fun visit(functionCallExpr: FunctionCallExpr) =  visitFunctionCall(functionCallExpr)
+    override fun visit(functionCallExpr: FunctionCallExpression) =  visitFunctionCall(functionCallExpr)
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
 
     private fun visitFunctionCall(call: IFunctionCall) {

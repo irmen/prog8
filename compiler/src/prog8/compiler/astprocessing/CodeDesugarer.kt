@@ -117,7 +117,7 @@ _after:
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node) =
         before(functionCallStatement as IFunctionCall, parent, functionCallStatement.position)
 
-    override fun before(functionCallExpr: FunctionCallExpr, parent: Node) =
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node) =
         before(functionCallExpr as IFunctionCall, parent, functionCallExpr.position)
 
     private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<IAstModification> {

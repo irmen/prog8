@@ -5,7 +5,7 @@ import prog8.ast.base.ArrayToElementTypes
 import prog8.ast.base.DataType
 import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.RangeExpr
+import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
 import prog8.codegen.target.AssemblyError
@@ -18,10 +18,10 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
         if(!iterableDt.isKnown)
             throw AssemblyError("unknown dt")
         when(stmt.iterable) {
-            is RangeExpr -> {
-                val range = (stmt.iterable as RangeExpr).toConstantIntegerRange()
+            is RangeExpression -> {
+                val range = (stmt.iterable as RangeExpression).toConstantIntegerRange()
                 if(range==null) {
-                    translateForOverNonconstRange(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, stmt.iterable as RangeExpr)
+                    translateForOverNonconstRange(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, stmt.iterable as RangeExpression)
                 } else {
                     translateForOverConstRange(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, range)
                 }
@@ -33,7 +33,7 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
         }
     }
 
-    private fun translateForOverNonconstRange(stmt: ForLoop, iterableDt: DataType, range: RangeExpr) {
+    private fun translateForOverNonconstRange(stmt: ForLoop, iterableDt: DataType, range: RangeExpression) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         val modifiedLabel = asmgen.makeLabel("for_modified")
@@ -587,7 +587,7 @@ $loopLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun assignLoopvar(stmt: ForLoop, range: RangeExpr) =
+    private fun assignLoopvar(stmt: ForLoop, range: RangeExpression) =
         asmgen.assignExpressionToVariable(
             range.from,
             asmgen.asmVariableName(stmt.loopVar),

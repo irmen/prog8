@@ -4,7 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.FunctionCallExpr
+import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -13,7 +13,7 @@ import prog8.compilerinterface.InternalCompilerException
 
 internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
 
-    override fun visit(functionCallExpr: FunctionCallExpr) {
+    override fun visit(functionCallExpr: FunctionCallExpression) {
         val error = checkTypes(functionCallExpr as IFunctionCall, program)
         if(error!=null)
             throw InternalCompilerException(error)

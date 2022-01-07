@@ -512,22 +512,22 @@ class TestProg8Parser: FunSpec( {
 
             iterables.size shouldBe 5
 
-            val it0 = iterables[0] as RangeExpr
+            val it0 = iterables[0] as RangeExpression
             it0.from shouldBe instanceOf<StringLiteralValue>()
             it0.to shouldBe instanceOf<StringLiteralValue>()
 
             val it1 = iterables[1] as StringLiteralValue
             it1.value shouldBe "something"
 
-            val it2 = iterables[2] as RangeExpr
+            val it2 = iterables[2] as RangeExpression
             it2.from shouldBe instanceOf<CharLiteral>()
             it2.to shouldBe instanceOf<CharLiteral>()
 
-            val it3 = iterables[3] as RangeExpr
+            val it3 = iterables[3] as RangeExpression
             it3.from shouldBe instanceOf<NumericLiteralValue>()
             it3.to shouldBe instanceOf<NumericLiteralValue>()
 
-            val it4 = iterables[4] as RangeExpr
+            val it4 = iterables[4] as RangeExpression
             it4.from shouldBe instanceOf<NumericLiteralValue>()
             it4.to shouldBe instanceOf<NumericLiteralValue>()
         }

@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.expressions.FunctionCallExpr
+import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.Pipe
 import prog8.codegen.target.C64Target
@@ -45,12 +45,12 @@ class TestPipes: FunSpec({
         stmts.size shouldBe 3
         val pipef = stmts[0] as Pipe
         pipef.expressions.size shouldBe 2
-        pipef.expressions[0] shouldBe instanceOf<FunctionCallExpr>()
+        pipef.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
         pipef.expressions[1] shouldBe instanceOf<IdentifierReference>()
 
         val pipew = stmts[1] as Pipe
         pipew.expressions.size shouldBe 2
-        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpr>()
+        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
         pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
     }
 

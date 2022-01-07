@@ -209,7 +209,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // signedw < 0 -->  msb(signedw) & $80
                     return listOf(IAstModification.ReplaceNode(
                             expr,
-                            BinaryExpression(FunctionCallExpr(IdentifierReference(listOf("msb"), expr.position),
+                            BinaryExpression(FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position),
                                     mutableListOf(expr.left),
                                     expr.position
                             ), "&", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
@@ -299,7 +299,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return noModifications
     }
 
-    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         if(functionCallExpr.target.nameInSource == listOf("lsb")) {
             val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
@@ -343,7 +343,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
-        val range = containment.iterable as? RangeExpr
+        val range = containment.iterable as? RangeExpression
         if(range!=null && range.step.constValue(program)?.number==1.0) {
             val from = range.from.constValue(program)
             val to = range.to.constValue(program)
@@ -365,14 +365,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val firstValue = pipe.expressions.first()
         if(firstValue.isSimple) {
             val funcname = pipe.expressions[1] as IdentifierReference
-            val first = FunctionCallExpr(funcname.copy(), mutableListOf(firstValue), firstValue.position)
+            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
             val newExprs = mutableListOf<Expression>(first)
             newExprs.addAll(pipe.expressions.drop(2))
             return listOf(IAstModification.ReplaceNode(pipe, Pipe(newExprs, pipe.position), parent))
         }
         val singleExpr = pipe.expressions.singleOrNull()
         if(singleExpr!=null) {
-            val callExpr = singleExpr as FunctionCallExpr
+            val callExpr = singleExpr as FunctionCallExpression
             val call = FunctionCallStatement(callExpr.target, callExpr.args, true, callExpr.position)
             return listOf(IAstModification.ReplaceNode(pipe, call, parent))
         }
@@ -490,7 +490,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 0.5 -> {
                     // sqrt(left)
-                    return FunctionCallExpr(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
+                    return FunctionCallExpression(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
                 }
                 1.0 -> {
                     // left
@@ -683,12 +683,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if (amount >= 16) {
                     return NumericLiteralValue(targetDt, 0.0, expr.position)
                 } else if (amount >= 8) {
-                    val lsb = FunctionCallExpr(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
-                        return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
+                        return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                     }
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
-                    return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
+                    return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                 }
             }
             else -> {
@@ -725,11 +725,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 }
                 else if (amount >= 8) {
-                    val msb = FunctionCallExpr(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     if (amount == 8) {
                         // mkword(0, msb(v))
                         val zero = NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
-                        return FunctionCallExpr(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
+                        return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
                     }
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
                 }

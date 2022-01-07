@@ -3,9 +3,12 @@
 
 main {
     sub start() {
-        9 + 3
-            |> add_one    |> times_two
-            |> txt.print_uw
+        times_two(554 as ubyte)
+;        txt.print_uw(times_two(add_one(9+3)))
+;        txt.nl()
+;        9 + 3
+;            |> add_one    |> times_two
+;            |> txt.print_uw
     }
 
     sub add_one(ubyte input) -> ubyte {

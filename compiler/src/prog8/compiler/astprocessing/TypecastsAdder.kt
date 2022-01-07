@@ -135,7 +135,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return afterFunctionCallArgs(functionCallStatement)
     }
 
-    override fun after(functionCallExpr: FunctionCallExpr, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         return afterFunctionCallArgs(functionCallExpr)
     }
 

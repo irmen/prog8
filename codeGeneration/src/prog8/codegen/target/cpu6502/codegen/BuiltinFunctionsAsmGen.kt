@@ -19,7 +19,7 @@ import prog8.compilerinterface.subroutineFloatEvalResultVar2
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCallExpr, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+    internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
     }
 
@@ -414,7 +414,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
     }
 
     private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        if(discardResult || fcall !is FunctionCallExpr)
+        if(discardResult || fcall !is FunctionCallExpression)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val nameRef = fcall.args[0] as IdentifierReference
         val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
