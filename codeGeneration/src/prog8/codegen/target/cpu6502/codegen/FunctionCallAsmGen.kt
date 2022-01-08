@@ -11,6 +11,7 @@ import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.codegen.target.cpu6502.codegen.assignment.TargetStorageKind
+import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 
 
@@ -126,9 +127,53 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
     }
 
+    internal fun translateFunctionCall(target: IdentifierReference, args: Iterable<Expression>, scope: Node): DataType {
+        when(val targetStmt = target.targetStatement(program)!!) {
+            is BuiltinFunctionPlaceholder -> {
+                val call = FunctionCallExpression(target, args.toMutableList(), scope.position)
+                call.linkParents(scope)
+                val signature = BuiltinFunctions.getValue(targetStmt.name)
+                asmgen.translateBuiltinFunctionCallExpression(call, signature, false, null)
+                return signature.known_returntype!!
+            }
+            is Subroutine -> {
+                val call = FunctionCallExpression(target, args.toMutableList(), scope.position)
+                call.linkParents(scope)
+                translateFunctionCall(call, true)
+                return call.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+            }
+            else -> throw AssemblyError("invalid call target")
+        }
+    }
+
+    internal fun translateFunctionCallStatement(target: IdentifierReference, args: Iterable<Expression>, scope: Node) {
+        when(val targetStmt = target.targetStatement(program)!!) {
+            is BuiltinFunctionPlaceholder -> {
+                val call = FunctionCallStatement(target, args.toMutableList(), true, scope.position)
+                call.linkParents(scope)
+                val signature = BuiltinFunctions.getValue(targetStmt.name)
+                asmgen.translateBuiltinFunctionCallStatement(call, signature)
+            }
+            is Subroutine -> {
+                if(targetStmt.isAsmSubroutine) {
+                    val call = FunctionCallStatement(target, args.toMutableList(), true, scope.position)
+                    call.linkParents(scope)
+                    translateFunctionCallStatement(call)
+                } else {
+                    // have to use manual parameter assignment and jsr, because no codegen for FunctionCallStmt here
+                    val tempVar = args.single()
+                    tempVar.linkParents(scope)
+                    argumentViaVariable(targetStmt, targetStmt.parameters.single(), tempVar)
+                    asmgen.out("  jsr  ${asmgen.asmSymbolName(target)}")
+                }
+            }
+            else -> throw AssemblyError("invalid call target")
+        }
+    }
+
     private fun argumentsViaVariables(sub: Subroutine, call: IFunctionCall) {
         for(arg in sub.parameters.withIndex().zip(call.args))
-            argumentViaVariable(sub, arg.first, arg.second)
+            argumentViaVariable(sub, arg.first.value, arg.second)
     }
 
     private fun argumentsViaRegisters(sub: Subroutine, call: IFunctionCall) {
@@ -272,15 +317,15 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             asmgen.out("  plp")       // set the carry flag back to correct value
     }
 
-    private fun argumentViaVariable(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression) {
+    private fun argumentViaVariable(sub: Subroutine, parameter: SubroutineParameter, value: Expression) {
         // pass parameter via a regular variable (not via registers)
         val valueIDt = value.inferType(program)
         val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
-        if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
+        if(!isArgumentTypeCompatible(valueDt, parameter.type))
             throw AssemblyError("argument type incompatible")
 
-        val varName = asmgen.asmVariableName(sub.scopedName + parameter.value.name)
-        asmgen.assignExpressionToVariable(value, varName, parameter.value.type, sub)
+        val varName = asmgen.asmVariableName(sub.scopedName + parameter.name)
+        asmgen.assignExpressionToVariable(value, varName, parameter.type, sub)
     }
 
     private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression, registerOverride: RegisterOrPair? = null) {

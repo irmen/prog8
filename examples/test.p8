@@ -1,22 +1,33 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 main {
     sub start() {
-        times_two(554 as ubyte)
-;        txt.print_uw(times_two(add_one(9+3)))
-;        txt.nl()
-;        9 + 3
-;            |> add_one    |> times_two
-;            |> txt.print_uw
+        1.234 |> addfloat |> addfloat |> floats.print_f
+        txt.nl()
+          9 * 3 |> assemblything
+            |> sin8u
+            |> add_one    |> times_two
+            |> txt.print_uw
     }
 
+    sub addfloat(float fl) -> float {
+        return fl+1.11
+    }
     sub add_one(ubyte input) -> ubyte {
         return input+1
     }
 
     sub times_two(ubyte input) -> uword {
         return input*$0002
+    }
+
+    asmsub assemblything(ubyte input @A) -> ubyte @A {
+        %asm {{
+            asl a
+            rts
+        }}
     }
 }
 

@@ -959,6 +959,9 @@ class AsmGen(private val program: Program,
     internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
 
+    internal fun translateBuiltinFunctionCallStatement(functionCallStmt: FunctionCallStatement, signature: FSignature) =
+            builtinFunctionsAsmGen.translateFunctioncallStatement(functionCallStmt, signature)
+
     internal fun translateFunctionCall(functionCallExpr: FunctionCallExpression, isExpression: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
 
@@ -1634,40 +1637,31 @@ $label              nop""")
         val subroutine = pipe.definingSubroutine
         assignExpressionToVariable(pipe.expressions.first(), valueVar.joinToString("."), valueDt, subroutine)
         pipe.expressions.drop(1).dropLast(1).forEach {
-            val callName = it as IdentifierReference
-            val args = mutableListOf<Expression>(IdentifierReference(valueVar, it.position))
-            val call = FunctionCallExpression(callName, args,it.position)
-            call.linkParents(pipe)
-            valueDt = call.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+            valueDt = functioncallAsmGen.translateFunctionCall(it as IdentifierReference, listOf(IdentifierReference(valueVar, it.position)), pipe)
+            // assign result value from the functioncall back to the temp var:
             valueVar = getTempVarName(valueDt)
-            assignExpressionToVariable(call, valueVar.joinToString("."), valueDt, subroutine)
+            val valueVarTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, valueDt, subroutine, variableAsmName = valueVar.joinToString("."))
+            val returnRegister = returnRegisterOfFunction(it)!!
+            assignRegister(returnRegister, valueVarTarget)
         }
-        // the last term in the pipe:
-        val callName = pipe.expressions.last() as IdentifierReference
-        val callTarget = callName.targetStatement(program)!!
-        when (callTarget) {
+        // the last term in the pipe, don't care about return var:
+        functioncallAsmGen.translateFunctionCallStatement(
+            pipe.expressions.last() as IdentifierReference,
+            listOf(IdentifierReference(valueVar, pipe.expressions.last().position)),
+            pipe
+        )
+    }
+
+    private fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair? {
+        return when (val targetRoutine = it.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
-                val args = mutableListOf<Expression>(IdentifierReference(valueVar, callName.position))
-                val call = FunctionCallStatement(callName, args, true, callName.position)
-                call.linkParents(pipe)
-                translate(call)
-            }
-            is Subroutine -> {
-                if(callTarget.isAsmSubroutine) {
-                    val args = mutableListOf<Expression>(IdentifierReference(valueVar, callName.position))
-                    val call = FunctionCallStatement(callName, args, true, callName.position)
-                    call.linkParents(pipe)
-                    translate(call)
-                } else {
-                    // have to use GoSub and manual parameter assignment, because no codegen for FunctionCallStmt here
-                    val param = callTarget.parameters.single()
-                    val paramName = callTarget.scopedName.joinToString(".") + ".${param.name}"
-                    val tempvar = IdentifierReference(valueVar, callName.position)
-                    tempvar.linkParents(pipe)
-                    assignExpressionToVariable(tempvar, paramName, param.type, subroutine)
-                    out("  jsr  ${asmSymbolName(callName)}")
+                when (BuiltinFunctions.getValue(targetRoutine.name).known_returntype) {
+                    in ByteDatatypes -> RegisterOrPair.A
+                    in WordDatatypes -> RegisterOrPair.AY
+                    else -> return null
                 }
             }
+            is Subroutine -> targetRoutine.asmReturnvaluesRegisters.single().registerOrPair!!
             else -> throw AssemblyError("invalid call target")
         }
     }
