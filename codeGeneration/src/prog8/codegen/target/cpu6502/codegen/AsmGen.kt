@@ -3413,7 +3413,6 @@ $label              nop""")
     }
 
     internal fun translatePipeExpression(expressions: Iterable<Expression>, scope: Node, isStatement: Boolean, pushResultOnEstack: Boolean) {
-        // NOTE:
 
         // TODO more efficient code generation to avoid needless assignments to the temp var
 

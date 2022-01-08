@@ -276,12 +276,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         assignRegisterByte(assign.target, CpuRegister.A)
                     }
                     is PipeExpression -> {
-                        // TODO NOT VIA STACK!!
-                        asmgen.translateExpression(value)
-                        if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
-                            asmgen.signExtendStackLsb(assign.source.datatype)
-                        if(assign.target.kind!=TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
-                            assignStackValue(assign.target)
+                        asmgen.translatePipeExpression(value.expressions, value, false, false)
+                        val resultDt = value.inferType(program)
+                        val register =
+                            if(resultDt.isBytes) RegisterOrPair.A
+                            else if(resultDt.isWords) RegisterOrPair.AY
+                            else if(resultDt istype DataType.FLOAT) RegisterOrPair.FAC1
+                            else throw AssemblyError("invalid dt")
+                        asmgen.assignRegister(register, assign.target)
                     }
                     else -> {
                         // Everything else just evaluate via the stack.

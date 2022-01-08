@@ -5,11 +5,11 @@
 
 main {
     sub start() {
-;        float @shared f1
-;
-;        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned
-;        floats.print_f(f1)
-;        txt.nl()
+        float @shared f1
+
+        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned
+        floats.print_f(f1)
+        txt.nl()
 ;        1.234 |> addfloat1
 ;            |> addfloat2 |> addfloat3 |> floats.print_f
 ;        txt.nl()
