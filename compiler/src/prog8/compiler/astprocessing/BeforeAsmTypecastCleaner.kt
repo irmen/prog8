@@ -1,4 +1,4 @@
-package prog8.compiler
+package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
@@ -13,7 +13,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.astprocessing.isSubroutineParameter
 import prog8.compilerinterface.IErrorReporter
 
 internal class BeforeAsmTypecastCleaner(val program: Program,

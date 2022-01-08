@@ -14,19 +14,14 @@ import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.printProgram
 import prog8.codegen.target.C64Target
-import prog8.compiler.BeforeAsmGenerationAstChanger
-import prog8.compiler.BeforeAsmTypecastCleaner
-import prog8.compilerinterface.*
+import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
+import prog8.compiler.printProgram
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.LauncherType
+import prog8.compilerinterface.OutputType
+import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.*
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
-import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertSuccess
-import prog8tests.helpers.compileText
-import prog8tests.helpers.generateAssembly
 
 class TestOptimization: FunSpec({
     test("remove empty subroutine except start") {
@@ -305,16 +300,8 @@ class TestOptimization: FunSpec({
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target)
-        val changer = BeforeAsmGenerationAstChanger(result.program, options, ErrorReporterForTests())
-        changer.visit(result.program)
-        while(changer.applyModifications()>0) {
-            changer.visit(result.program)
-        }
-        val cleaner = BeforeAsmTypecastCleaner(result.program, ErrorReporterForTests())
-        cleaner.visit(result.program)
-        while(cleaner.applyModifications()>0) {
-            cleaner.visit(result.program)
-        }
+        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
+
         // assignment is now split into:
         //     bb =  not bb
         //     bb = (bb or  not ww)

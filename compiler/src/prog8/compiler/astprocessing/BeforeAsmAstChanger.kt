@@ -1,4 +1,4 @@
-package prog8.compiler
+package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
@@ -16,8 +16,8 @@ import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.isIOAddress
 import prog8.optimizer.getTempVarName
 
-internal class BeforeAsmGenerationAstChanger(val program: Program, private val options: CompilationOptions,
-                                             private val errors: IErrorReporter
+internal class BeforeAsmAstChanger(val program: Program, private val options: CompilationOptions,
+                                   private val errors: IErrorReporter
 ) : AstWalker() {
 
     private val subroutineVariables = mutableMapOf<Subroutine, MutableList<Pair<String, VarDecl>>>()

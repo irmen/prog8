@@ -9,8 +9,6 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compiler.BeforeAsmGenerationAstChanger
-import prog8.compiler.BeforeAsmTypecastCleaner
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
@@ -24,7 +22,7 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
 }
 
 internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
-    val fixer = BeforeAsmGenerationAstChanger(this, compilerOptions, errors)
+    val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while(errors.noErrors() && fixer.applyModifications()>0) {
         fixer.visit(this)
