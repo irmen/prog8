@@ -275,6 +275,14 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                         containmentCheckIntoA(value)
                         assignRegisterByte(assign.target, CpuRegister.A)
                     }
+                    is PipeExpression -> {
+                        // TODO NOT VIA STACK!!
+                        asmgen.translateExpression(value)
+                        if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
+                            asmgen.signExtendStackLsb(assign.source.datatype)
+                        if(assign.target.kind!=TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
+                            assignStackValue(assign.target)
+                    }
                     else -> {
                         // Everything else just evaluate via the stack.
                         // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,

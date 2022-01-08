@@ -23,7 +23,7 @@ main {
 
         test_stack.test()
          ; TODO fix that the value is actually returned (398) and that X register is preserved:
-        uword @shared uw = 9+3 |> assemblything
+        uword @shared uw=  9+3 |> assemblything
                              |> sin8u
                              |> add_one
                              |> times_two
@@ -52,8 +52,9 @@ main {
         return input*$0002
     }
 
-    asmsub assemblything(ubyte input @A) -> ubyte @A {
+    asmsub assemblything(ubyte input @A) clobbers(X,Y) -> ubyte @A {
         %asm {{
+            ldx #0
             asl a
             rts
         }}

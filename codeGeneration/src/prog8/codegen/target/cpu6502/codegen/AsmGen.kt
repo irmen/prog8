@@ -850,7 +850,7 @@ class AsmGen(private val program: Program,
             is RepeatLoop -> translate(stmt)
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
-            is Pipe -> expressionsAsmGen.translatePipeExpression(stmt.expressions, stmt,true)
+            is Pipe -> translatePipeExpression(stmt.expressions, stmt, true, false)
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
             is WhileLoop -> throw AssemblyError("while should have been converted to jumps")
@@ -3411,4 +3411,54 @@ $label              nop""")
             else -> return false
         }
     }
+
+    internal fun translatePipeExpression(expressions: Iterable<Expression>, scope: Node, isStatement: Boolean, pushResultOnEstack: Boolean) {
+        // NOTE:
+
+        // TODO more efficient code generation to avoid needless assignments to the temp var
+
+        val subroutine = scope.definingSubroutine
+        var valueDt = expressions.first().inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+        var valueVar = getTempVarName(valueDt)
+        assignExpressionToVariable(expressions.first(), asmVariableName(valueVar), valueDt, subroutine)
+        expressions.drop(1).dropLast(1).forEach {
+            valueDt = functioncallAsmGen.translateFunctionCall(it as IdentifierReference, listOf(IdentifierReference(valueVar, it.position)), scope)
+            // assign result value from the functioncall back to the temp var:
+            valueVar = getTempVarName(valueDt)
+            val valueVarTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, valueDt, subroutine, variableAsmName = valueVar.joinToString("."))
+            val returnRegister = returnRegisterOfFunction(it)!!
+            assignRegister(returnRegister, valueVarTarget)
+        }
+
+        if(isStatement) {
+            // the last term in the pipe, don't care about return var:
+            functioncallAsmGen.translateFunctionCallStatement(
+                expressions.last() as IdentifierReference,
+                listOf(IdentifierReference(valueVar, expressions.last().position)),
+                scope
+            )
+        } else {
+            // the last term in the pipe, regular function call with returnvalue:
+            valueDt = functioncallAsmGen.translateFunctionCall(
+                expressions.last() as IdentifierReference,
+                listOf(IdentifierReference(valueVar, expressions.last().position)),
+                scope
+            )
+            if(pushResultOnEstack) {
+                when (valueDt) {
+                    in ByteDatatypes -> {
+                        out("  sta  P8ESTACK_LO,x |  dex")
+                    }
+                    in WordDatatypes -> {
+                        out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+                    }
+                    DataType.FLOAT -> {
+                        out("  jsr  floats.push_fac1")
+                    }
+                    else -> throw AssemblyError("invalid dt")
+                }
+            }
+        }
+    }
+
 }

@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix codegen bug for pipe expressions to actually return correct value and not corrupt X register
 - why is wormfood 40 bytes larger now since 7.6???
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 - copying floats around: do it with a subroutine rather than 5 lda/sta pairs .
