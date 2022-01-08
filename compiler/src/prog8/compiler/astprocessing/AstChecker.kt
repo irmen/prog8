@@ -1224,17 +1224,44 @@ internal class AstChecker(private val program: Program,
         super.visit(containment)
     }
 
+    override fun visit(pipe: PipeExpression) {
+        processPipe(pipe.expressions, pipe)
+        val last = pipe.expressions.last() as IdentifierReference
+        val target = last.targetStatement(program)!!
+        when(target) {
+            is BuiltinFunctionPlaceholder -> {
+                if(BuiltinFunctions.getValue(target.name).known_returntype==null)
+                    errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+            }
+            is Subroutine -> {
+                if(target.returntypes.isEmpty())
+                    errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+                else if(target.returntypes.size!=1)
+                    errors.err("invalid pipe expression; last term doesn't return a single value", last.position)
+            }
+            else -> errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+        }
+        super.visit(pipe)
+    }
+
     override fun visit(pipe: Pipe) {
+        processPipe(pipe.expressions, pipe)
+        super.visit(pipe)
+    }
+
+    private fun processPipe(expressions: List<Expression>, scope: Node) {
         // first expression is just any expression producing a value
         // all other expressions should be the name of a unary function that returns a single value
         // the last expression should be the name of a unary function whose return value we don't care about.
-        if (pipe.expressions.size < 2) {
-            errors.err("pipe is missing one or more expressions", pipe.position)
+        if (expressions.size < 2) {
+            errors.err("pipe is missing one or more expressions", scope.position)
         } else {
             // invalid size and other issues will be handled by the ast checker later.
-            var valueDt = pipe.expressions[0].inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+            var valueDt = expressions[0].inferType(program).getOrElse {
+                throw FatalAstException("invalid dt ${expressions[0]} @ ${scope.position}")
+            }
 
-            for(expr in pipe.expressions.drop(1)) {         // just keep the first expression value as-is
+            for(expr in expressions.drop(1)) {         // just keep the first expression value as-is
                 val functionName = expr as? IdentifierReference
                 val function = functionName?.targetStatement(program)
                 if(functionName!=null && function!=null) {
@@ -1243,7 +1270,7 @@ internal class AstChecker(private val program: Program,
                             val func = BuiltinFunctions.getValue(function.name)
                             if(func.parameters.size!=1)
                                 errors.err("can only use unary function", expr.position)
-                            else if(func.known_returntype==null && expr !== pipe.expressions.last())
+                            else if(func.known_returntype==null && expr !== expressions.last())
                                 errors.err("function must return a single value", expr.position)
 
                             val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
@@ -1255,7 +1282,7 @@ internal class AstChecker(private val program: Program,
                         is Subroutine -> {
                             if(function.parameters.size!=1)
                                 errors.err("can only use unary function", expr.position)
-                            else if(function.returntypes.size!=1 && expr !== pipe.expressions.last())
+                            else if(function.returntypes.size!=1 && expr !== expressions.last())
                                 errors.err("function must return a single value", expr.position)
 
                             val paramDt = function.parameters.firstOrNull()?.type
@@ -1277,10 +1304,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-
-        return super.visit(pipe)
     }
-
 
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {

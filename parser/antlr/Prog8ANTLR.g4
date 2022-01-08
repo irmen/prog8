@@ -101,8 +101,8 @@ statement :
 	| repeatloop
 	| whenstmt
 	| breakstmt
-	| pipestmt
 	| labeldef
+	| pipestmt
 	;
 
 
@@ -160,7 +160,8 @@ assign_target:
 postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
-	functioncall
+	'(' expression ')'
+	| functioncall
 	| <assoc=right> prefix = ('+'|'-'|'~') expression
 	| left = expression EOL? bop = '**' EOL? right = expression
 	| left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
@@ -183,12 +184,11 @@ expression :
 	| directmemory
 	| addressof
 	| expression typecast
-	| '(' expression ')'
+    | pipesource = expression EOL? pipe=PIPE EOL? pipetarget = expression
 	;
 
 
 typecast : 'as' datatype;
-
 
 arrayindexed :  scoped_identifier arrayindex  ;
 
@@ -208,6 +208,8 @@ expression_list :
 returnstmt : 'return' expression? ;
 
 breakstmt : 'break';
+
+pipestmt:  source=expression pipe=PIPE EOL? target=expression ;
 
 identifier :  NAME ;
 
@@ -300,5 +302,3 @@ repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 
 when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
-
-pipestmt: expression EOL? PIPE expression ( EOL? PIPE expression)* ;

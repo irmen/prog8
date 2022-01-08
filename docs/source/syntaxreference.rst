@@ -533,12 +533,11 @@ pipe: ``|>``
             |> add_bonus
             |> txt.print_uw
 
-    or even::
+    It also works for expressions that return a value, for example ``uword score = add_bonus(determine_score(get_player(1)))`` ::
 
-        1 |> get_player
-              |> determine_score
-              |> add_bonus
-              |> txt.print_uw
+        uword score = get_player(1)
+                        |> determine_score
+                        |> add_bonus
 
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.

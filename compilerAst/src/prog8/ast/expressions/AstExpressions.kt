@@ -1076,6 +1076,52 @@ class ContainmentCheck(var element: Expression,
     }
 }
 
+class PipeExpression(val expressions: MutableList<Expression>, override val position: Position): Expression() {
+    override lateinit var parent: Node
+
+    constructor(source: Expression, target: Expression, position: Position) : this(mutableListOf(), position) {
+        if(source is PipeExpression) {
+            expressions.addAll(source.expressions)
+            expressions.add(target)
+        } else {
+            expressions.add(source)
+            expressions.add(target)
+        }
+    }
+
+    override val isSimple = false
+    override fun linkParents(parent: Node) {
+        this.parent=parent
+        expressions.forEach { it.linkParents(this) }
+    }
+    override fun copy(): PipeExpression = PipeExpression(expressions.map {it.copy()}.toMutableList(), position)
+    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>) =
+        expressions.any { it.referencesIdentifier(nameInSource) }
+
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val last = expressions.last()
+        val type = last.inferType(program)
+        if(type.isKnown)
+            return type
+        val identifier = last as? IdentifierReference
+        if(identifier!=null) {
+            val call = FunctionCallExpression(identifier, mutableListOf(), identifier.position)
+            return call.inferType(program)
+        }
+        return InferredTypes.InferredType.unknown()
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        require(node is Expression)
+        require(replacement is Expression)
+        val idx = expressions.indexOf(node)
+        expressions[idx] = replacement
+    }
+}
+
 
 fun invertCondition(cond: Expression): BinaryExpression? {
     if(cond is BinaryExpression) {

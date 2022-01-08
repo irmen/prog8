@@ -9,7 +9,6 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compiler.printProgram
 import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure

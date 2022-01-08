@@ -9,6 +9,7 @@ import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
+import kotlin.math.exp
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -481,6 +482,9 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if(addressof()!=null)
         return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
 
+    if(pipe!=null)
+        return PipeExpression(pipesource.toAst(), pipetarget.toAst(), toPosition())
+
     throw FatalAstException(text)
 }
 
@@ -617,6 +621,7 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(): VarDecl {
 }
 
 private fun Prog8ANTLRParser.PipestmtContext.toAst(): Pipe {
-    val expressions = expression().map { it.toAst() }
-    return Pipe(expressions.toMutableList(), toPosition())
+    val source = this.source.toAst()
+    val target = this.target.toAst()
+    return Pipe(source, target, toPosition())
 }

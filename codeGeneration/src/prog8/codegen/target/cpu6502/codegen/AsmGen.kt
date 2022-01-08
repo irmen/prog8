@@ -47,7 +47,7 @@ class AsmGen(private val program: Program,
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val expressionsAsmGen = ExpressionsAsmGen(program, this)
+    private val expressionsAsmGen = ExpressionsAsmGen(program, this, functioncallAsmGen)
     private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
@@ -850,7 +850,7 @@ class AsmGen(private val program: Program,
             is RepeatLoop -> translate(stmt)
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
-            is Pipe -> translate(stmt)
+            is Pipe -> expressionsAsmGen.translatePipeExpression(stmt.expressions, stmt,true)
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
             is WhileLoop -> throw AssemblyError("while should have been converted to jumps")
@@ -1628,31 +1628,7 @@ $label              nop""")
         assemblyLines.add(assembly)
     }
 
-    private fun translate(pipe: Pipe) {
-
-        // TODO more efficient code generation to avoid needless assignments to the temp var
-
-        var valueDt = pipe.valueDatatype(program)
-        var valueVar = getTempVarName(valueDt)
-        val subroutine = pipe.definingSubroutine
-        assignExpressionToVariable(pipe.expressions.first(), valueVar.joinToString("."), valueDt, subroutine)
-        pipe.expressions.drop(1).dropLast(1).forEach {
-            valueDt = functioncallAsmGen.translateFunctionCall(it as IdentifierReference, listOf(IdentifierReference(valueVar, it.position)), pipe)
-            // assign result value from the functioncall back to the temp var:
-            valueVar = getTempVarName(valueDt)
-            val valueVarTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, valueDt, subroutine, variableAsmName = valueVar.joinToString("."))
-            val returnRegister = returnRegisterOfFunction(it)!!
-            assignRegister(returnRegister, valueVarTarget)
-        }
-        // the last term in the pipe, don't care about return var:
-        functioncallAsmGen.translateFunctionCallStatement(
-            pipe.expressions.last() as IdentifierReference,
-            listOf(IdentifierReference(valueVar, pipe.expressions.last().position)),
-            pipe
-        )
-    }
-
-    private fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair? {
+    internal fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair? {
         return when (val targetRoutine = it.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
                 when (BuiltinFunctions.getValue(targetRoutine.name).known_returntype) {

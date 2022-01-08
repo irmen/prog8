@@ -361,16 +361,36 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return noModifications
     }
 
-    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
-        val firstValue = pipe.expressions.first()
+    override fun after(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
+        val expressions = pipeExpr.expressions
+        val firstValue = expressions.first()
         if(firstValue.isSimple) {
-            val funcname = pipe.expressions[1] as IdentifierReference
+            val funcname = expressions[1] as IdentifierReference
             val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
             val newExprs = mutableListOf<Expression>(first)
-            newExprs.addAll(pipe.expressions.drop(2))
+            newExprs.addAll(expressions.drop(2))
+            return listOf(IAstModification.ReplaceNode(pipeExpr, PipeExpression(newExprs, pipeExpr.position), parent))
+        }
+        val singleExpr = expressions.singleOrNull()
+        if(singleExpr!=null) {
+            val callExpr = singleExpr as FunctionCallExpression
+            val call = FunctionCallExpression(callExpr.target, callExpr.args, callExpr.position)
+            return listOf(IAstModification.ReplaceNode(pipeExpr, call, parent))
+        }
+        return noModifications
+    }
+
+    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
+        val expressions = pipe.expressions
+        val firstValue = expressions.first()
+        if(firstValue.isSimple) {
+            val funcname = expressions[1] as IdentifierReference
+            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
+            val newExprs = mutableListOf<Expression>(first)
+            newExprs.addAll(expressions.drop(2))
             return listOf(IAstModification.ReplaceNode(pipe, Pipe(newExprs, pipe.position), parent))
         }
-        val singleExpr = pipe.expressions.singleOrNull()
+        val singleExpr = expressions.singleOrNull()
         if(singleExpr!=null) {
             val callExpr = singleExpr as FunctionCallExpression
             val call = FunctionCallStatement(callExpr.target, callExpr.args, true, callExpr.position)

@@ -459,10 +459,18 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(pipe: Pipe) {
-        pipe.expressions.first().accept(this)
+        printPipe(pipe.expressions)
+    }
+
+    override fun visit(pipe: PipeExpression) {
+        printPipe(pipe.expressions)
+    }
+
+    private fun printPipe(expressions: Iterable<Expression>) {
+        expressions.first().accept(this)
         outputln("")
         scopelevel++
-        pipe.expressions.drop(1).forEach {
+        expressions.drop(1).forEach {
             outputi("|> ")
             it.accept(this)
             outputln("")

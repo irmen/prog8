@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- make pipe statement an expression so that it DOES return a result value (possibly) so you can assign it ??
+- make pipe statement also an expression so that it can return a result value
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 - copying floats around: do it with a subroutine rather than 5 lda/sta pairs .
   is slower but floats are very slow already anyway and this should take a lot less program size.
@@ -25,7 +25,7 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance
-- for the pipe operator: recognise a placeholder (? or % or _) in a non-unary function call to allow things as 4 |> mkword(?, $44) |> print_uw
+- for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow things as ``4 |> mkword(?, $44) |> print_uw``
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - fix the asm-labels problem (github issue #62)

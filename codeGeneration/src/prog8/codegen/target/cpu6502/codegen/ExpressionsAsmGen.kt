@@ -1,5 +1,6 @@
 package prog8.codegen.target.cpu6502.codegen
 
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
@@ -7,11 +8,13 @@ import prog8.ast.statements.BuiltinFunctionPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.codegen.target.AssemblyError
+import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignTarget
+import prog8.codegen.target.cpu6502.codegen.assignment.TargetStorageKind
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue
 
-internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val functioncallAsmGen: FunctionCallAsmGen) {
 
     @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression:Expression) {
@@ -37,6 +40,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
             is NumericLiteralValue -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCallExpression -> translateFunctionCallResultOntoStack(expression)
+            is PipeExpression -> translatePipeExpression(expression.expressions,  expression,false)
             is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
             is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpression -> throw AssemblyError("range expression should have been changed into array values")
@@ -788,5 +792,39 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
 +               sta  P8ESTACK_LO,x""")
         }
         asmgen.out("  dex")
+    }
+
+    internal fun translatePipeExpression(expressions: Iterable<Expression>, scope: Node, isStatement: Boolean) {
+
+        // TODO more efficient code generation to avoid needless assignments to the temp var
+
+        val subroutine = scope.definingSubroutine
+        var valueDt = expressions.first().inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+        var valueVar = asmgen.getTempVarName(valueDt)
+        asmgen.assignExpressionToVariable(expressions.first(), valueVar.joinToString("."), valueDt, subroutine)
+        expressions.drop(1).dropLast(1).forEach {
+            valueDt = functioncallAsmGen.translateFunctionCall(it as IdentifierReference, listOf(IdentifierReference(valueVar, it.position)), scope)
+            // assign result value from the functioncall back to the temp var:
+            valueVar = asmgen.getTempVarName(valueDt)
+            val valueVarTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, valueDt, subroutine, variableAsmName = valueVar.joinToString("."))
+            val returnRegister = asmgen.returnRegisterOfFunction(it)!!
+            asmgen.assignRegister(returnRegister, valueVarTarget)
+        }
+
+        if(isStatement) {
+            // the last term in the pipe, don't care about return var:
+            functioncallAsmGen.translateFunctionCallStatement(
+                expressions.last() as IdentifierReference,
+                listOf(IdentifierReference(valueVar, expressions.last().position)),
+                scope
+            )
+        } else {
+            // the last term in the pipe, regular function call with returnvalue:
+            functioncallAsmGen.translateFunctionCall(
+                expressions.last() as IdentifierReference,
+                listOf(IdentifierReference(valueVar, expressions.last().position)),
+                scope
+            )
+        }
     }
 }

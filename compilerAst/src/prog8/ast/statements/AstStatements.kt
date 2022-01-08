@@ -1019,6 +1019,18 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 class Pipe(val expressions: MutableList<Expression>, override val position: Position): Statement() {
     override lateinit var parent: Node
 
+    constructor(source: Expression, target: Expression, position: Position) : this(mutableListOf(), position) {
+        if(source is PipeExpression)
+            expressions.addAll(source.expressions)
+        else
+            expressions.add(source)
+
+        if(target is PipeExpression)
+            expressions.addAll(target.expressions)
+        else
+            expressions.add(target)
+    }
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         expressions.forEach { it.linkParents(this) }
@@ -1034,7 +1046,4 @@ class Pipe(val expressions: MutableList<Expression>, override val position: Posi
         val idx = expressions.indexOf(node)
         expressions[idx] = replacement
     }
-
-    fun valueDatatype(program: Program): DataType =
-        expressions.first().inferType(program).getOrElse { throw FatalAstException("invalid dt") }
 }

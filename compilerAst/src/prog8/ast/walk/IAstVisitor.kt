@@ -185,4 +185,8 @@ interface IAstVisitor {
     fun visit(pipe: Pipe) {
         pipe.expressions.forEach { it.accept(this) }
     }
+
+    fun visit(pipe: PipeExpression) {
+        pipe.expressions.forEach { it.accept(this) }
+    }
 }

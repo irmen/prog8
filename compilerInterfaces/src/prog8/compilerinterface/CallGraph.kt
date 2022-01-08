@@ -120,8 +120,18 @@ class CallGraph(private val program: Program) : IAstVisitor {
         allAssemblyNodes.add(inlineAssembly)
     }
 
+    override fun visit(pipe: PipeExpression) {
+        processPipe(pipe.expressions, pipe)
+        super.visit(pipe)
+    }
+
     override fun visit(pipe: Pipe) {
-        pipe.expressions.forEach {
+        processPipe(pipe.expressions, pipe)
+        super.visit(pipe)
+    }
+
+    private fun processPipe(expressions: Iterable<Expression>, pipe: Node) {
+        expressions.forEach {
             if(it is IdentifierReference){
                 val otherSub = it.targetSubroutine(program)
                 if(otherSub!=null) {
@@ -132,7 +142,6 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 }
             }
         }
-        super.visit(pipe)
     }
 
     fun checkRecursiveCalls(errors: IErrorReporter) {
