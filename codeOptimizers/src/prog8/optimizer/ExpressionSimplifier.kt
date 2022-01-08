@@ -196,28 +196,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 // unsigned < 0 --> false
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(false, expr.position), parent))
             }
-            when(leftDt) {
-                DataType.BYTE -> {
-                    // signed < 0  -->  signed & $80
-                    return listOf(IAstModification.ReplaceNode(
-                            expr,
-                            BinaryExpression(expr.left, "&", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
-                            parent
-                    ))
-                }
-                DataType.WORD -> {
-                    // signedw < 0 -->  msb(signedw) & $80
-                    return listOf(IAstModification.ReplaceNode(
-                            expr,
-                            BinaryExpression(FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position),
-                                    mutableListOf(expr.left),
-                                    expr.position
-                            ), "&", NumericLiteralValue.optimalInteger(0x80, expr.position), expr.position),
-                            parent
-                    ))
-                }
-                else -> {}
-            }
         }
 
         // simplify when a term is constant and directly determines the outcome

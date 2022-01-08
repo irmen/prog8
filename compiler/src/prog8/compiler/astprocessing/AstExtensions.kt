@@ -10,6 +10,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compiler.BeforeAsmGenerationAstChanger
+import prog8.compiler.BeforeAsmTypecastCleaner
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
@@ -27,6 +28,11 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     fixer.visit(this)
     while(errors.noErrors() && fixer.applyModifications()>0) {
         fixer.visit(this)
+    }
+    val cleaner = BeforeAsmTypecastCleaner(this, errors)
+    cleaner.visit(this)
+    while(errors.noErrors() && cleaner.applyModifications()>0) {
+        cleaner.visit(this)
     }
 }
 

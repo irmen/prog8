@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.codegen.target.C64Target
+import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
 import prog8tests.helpers.assertSuccess
@@ -106,5 +107,82 @@ class TestTypecasts: FunSpec({
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
+    }
+
+    test("correct implicit casts of signed number comparison and logical expressions") {
+        val text = """
+            %import floats
+            
+            main {
+                sub start() {
+                    byte bb = -10
+                    word ww = -1000
+                    
+                    if bb>0 {
+                        bb++
+                    }
+                    if bb < 0 {
+                        bb ++
+                    }
+                    if bb & 1 {
+                        bb++
+                    }
+                    if bb & 128 {
+                        bb++
+                    }
+                    if bb & 255 {
+                        bb++
+                    }
+
+                    if ww>0 {
+                        ww++
+                    }
+                    if ww < 0 {
+                        ww ++
+                    }
+                    if ww & 1 {
+                        ww++
+                    }
+                    if ww & 32768 {
+                        ww++
+                    }
+                    if ww & 65535 {
+                        ww++
+                    }
+                }
+            }
+        """
+        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        printProgram(result.program)
+        val statements = result.program.entrypoint.statements
+        statements.size shouldBe 27
+    }
+
+    test("cast to unsigned in conditional") {
+        val text = """
+            main {
+                sub start() {
+                    byte bb
+                    word ww
+            
+                    ubyte iteration_in_progress
+                    uword num_bytes
+
+                    if not iteration_in_progress or not num_bytes {
+                        num_bytes++
+                    }
+        
+                    if bb as ubyte  {
+                        bb++
+                    }
+                    if ww as uword  {
+                        ww++
+                    }
+                }
+            }"""
+        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        printProgram(result.program)
+        val statements = result.program.entrypoint.statements
+        statements.size shouldBe 16
     }
 })

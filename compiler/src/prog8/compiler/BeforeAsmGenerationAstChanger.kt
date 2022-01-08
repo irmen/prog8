@@ -10,14 +10,15 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.compiler.astprocessing.isSubroutineParameter
 import prog8.codegen.target.AssemblyError
-import prog8.compilerinterface.*
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.isIOAddress
 import prog8.optimizer.getTempVarName
 
-
 internal class BeforeAsmGenerationAstChanger(val program: Program, private val options: CompilationOptions,
-                                             private val errors: IErrorReporter) : AstWalker() {
+                                             private val errors: IErrorReporter
+) : AstWalker() {
 
     private val subroutineVariables = mutableMapOf<Subroutine, MutableList<Pair<String, VarDecl>>>()
 
@@ -52,7 +53,7 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
+        if(decl.type== VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
             throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         rememberSubroutineVar(decl)
         return noModifications
@@ -63,8 +64,8 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         // this triggers the more efficent augmented assignment code generation more often.
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
         if(!assignment.isAugmentable
-                && assignment.target.identifier != null
-                && !assignment.target.isIOAddress(options.compTarget.machine)) {
+            && assignment.target.identifier != null
+            && !assignment.target.isIOAddress(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
 
             if(binExpr!=null && binExpr.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
@@ -79,20 +80,28 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
                             // A = <something-without-A>  <associativeoperator>  <otherthing-with-A>
                             // use the other part of the expression to split.
                             val sourceDt = binExpr.right.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
-                            val (_, right) = binExpr.right.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError("unknown dt") }, sourceDt, implicit=true)
+                            val (_, right) = binExpr.right.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError(
+                                "unknown dt"
+                            )
+                            }, sourceDt, implicit=true)
                             val assignRight = Assignment(assignment.target, right, assignment.position)
                             return listOf(
-                                    IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
-                                    IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
-                                    IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+                                IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
+                                IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
+                                IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr)
+                            )
                         }
                     } else {
                         val sourceDt = binExpr.left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
-                        val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError("unknown dt") }, sourceDt, implicit=true)
+                        val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError(
+                            "unknown dt"
+                        )
+                        }, sourceDt, implicit=true)
                         val assignLeft = Assignment(assignment.target, left, assignment.position)
                         return listOf(
-                                IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
-                                IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr))
+                            IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
+                            IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr)
+                        )
                     }
                 }
             }
@@ -126,9 +135,9 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         if (subroutine.asmAddress == null && !subroutine.inline) {
             if(subroutine.statements.isEmpty() ||
                 (subroutine.amountOfRtsInAsm() == 0
-                && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
-                && subroutine.statements.last() !is Subroutine)) {
-                    mods += IAstModification.InsertLast(returnStmt, subroutine)
+                        && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
+                        && subroutine.statements.last() !is Subroutine)) {
+                mods += IAstModification.InsertLast(returnStmt, subroutine)
             }
         }
 
@@ -138,73 +147,39 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val subroutineStmtIdx = outerStatements.indexOf(subroutine)
         if (subroutineStmtIdx > 0) {
             val prevStmt = outerStatements[subroutineStmtIdx-1]
-                if(outerScope !is Block
-                    && (prevStmt !is Jump)
-                    && prevStmt !is Subroutine
-                    && prevStmt !is Return) {
+            if(outerScope !is Block
+                && (prevStmt !is Jump)
+                && prevStmt !is Subroutine
+                && prevStmt !is Return
+            ) {
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
             }
         }
         return mods
     }
 
-    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        // see if we can remove redundant typecasts (outside of expressions)
-        // such as casting byte<->ubyte,  word<->uword
-        // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
-        //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
-        val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
-        if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
-                || typecast.type in WordDatatypes && sourceDt in WordDatatypes) {
-            if(typecast.parent !is Expression) {
-                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
-            }
-        }
-
-        if(sourceDt in PassByReferenceDatatypes) {
-            if(typecast.type==DataType.UWORD) {
-                val identifier = typecast.expression as? IdentifierReference
-                if(identifier!=null) {
-                    return if(identifier.isSubroutineParameter(program)) {
-                        listOf(IAstModification.ReplaceNode(
-                            typecast,
-                            typecast.expression,
-                            parent
-                        ))
-                    } else {
-                        listOf(IAstModification.ReplaceNode(
-                            typecast,
-                            AddressOf(identifier, typecast.position),
-                            parent
-                        ))
-                    }
-                } else if(typecast.expression is IFunctionCall) {
-                    return listOf(IAstModification.ReplaceNode(
-                            typecast,
-                            typecast.expression,
-                            parent
-                    ))
-                }
-            } else {
-                errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
-            }
-        }
-
-        return noModifications
-    }
-
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
         val prefixExpr = ifElse.condition as? PrefixExpression
         if(prefixExpr!=null && prefixExpr.operator=="not") {
             // if not x -> if x==0
-            val booleanExpr = BinaryExpression(prefixExpr.expression, "==", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            val booleanExpr = BinaryExpression(
+                prefixExpr.expression,
+                "==",
+                NumericLiteralValue.optimalInteger(0, ifElse.condition.position),
+                ifElse.condition.position
+            )
             return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
         val binExpr = ifElse.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
-            val booleanExpr = BinaryExpression(ifElse.condition, "!=", NumericLiteralValue.optimalInteger(0, ifElse.condition.position), ifElse.condition.position)
+            val booleanExpr = BinaryExpression(
+                ifElse.condition,
+                "!=",
+                NumericLiteralValue.optimalInteger(0, ifElse.condition.position),
+                ifElse.condition.position
+            )
             return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
@@ -219,11 +194,19 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val modifications = mutableListOf<IAstModification>()
         if(simplify.rightVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifElse, simplify.rightVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(
+                ifElse,
+                simplify.rightVarAssignment,
+                parent as IStatementContainer
+            )
         }
         if(simplify.leftVarAssignment!=null) {
             modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(ifElse, simplify.leftVarAssignment, parent as IStatementContainer)
+            modifications += IAstModification.InsertBefore(
+                ifElse,
+                simplify.leftVarAssignment,
+                parent as IStatementContainer
+            )
         }
 
         return modifications
@@ -299,13 +282,13 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
             if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications
-                val (replaced, cast) = arg1.typecastTo(if(dt1==DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
+                val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg1, cast, functionCallStatement))
             } else {
                 if(dt2 in WordDatatypes)
                     return noModifications
-                val (replaced, cast) = arg2.typecastTo(if(dt2==DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
+                val (replaced, cast) = arg2.typecastTo(if(dt2== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg2, cast, functionCallStatement))
             }
@@ -372,10 +355,17 @@ internal class BeforeAsmGenerationAstChanger(val program: Program, private val o
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
         val tempvar = if(dt.isBytes) listOf("prog8_lib","retval_interm_ub") else listOf("prog8_lib","retval_interm_b")
-        val target = AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
+        val target =
+            AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
-        modifications.add(IAstModification.ReplaceNode(expr.indexer.indexExpr, target.identifier!!.copy(), expr.indexer))
+        modifications.add(
+            IAstModification.ReplaceNode(
+                expr.indexer.indexExpr,
+                target.identifier!!.copy(),
+                expr.indexer
+            )
+        )
         return modifications
     }
 

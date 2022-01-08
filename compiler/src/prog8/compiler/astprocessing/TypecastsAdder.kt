@@ -64,7 +64,29 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         NumericLiteralValue(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
                         expr))
                 }
+
+                if(leftDt istype DataType.BYTE && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                    // cast left to unsigned
+                    val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
+                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                }
+                if(leftDt istype DataType.WORD && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                    // cast left to unsigned
+                    val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
+                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                }
+                if(rightDt istype DataType.BYTE && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                    // cast right to unsigned
+                    val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                }
+                if(rightDt istype DataType.WORD && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                    // cast right to unsigned
+                    val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                }
             }
+
 
             // determine common datatype and add typecast as required to make left and right equal types
             val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.operator, expr.right)

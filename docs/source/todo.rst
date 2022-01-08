@@ -3,7 +3,8 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- make pipe statement also an expression so that it can return a result value
+- fix codegen bug for pipe expressions to actually return correct value and not corrupt X register
+- why is wormfood 40 bytes larger now since 7.6???
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 - copying floats around: do it with a subroutine rather than 5 lda/sta pairs .
   is slower but floats are very slow already anyway and this should take a lot less program size.
@@ -25,6 +26,7 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance
+- unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow things as ``4 |> mkword(?, $44) |> print_uw``
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
