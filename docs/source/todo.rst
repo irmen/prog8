@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- don't remove dead variable assignment if it contains a function call
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 - why is this using stack evaluation:  bb = ww>0  (if ww>0 is not using stack!)
 

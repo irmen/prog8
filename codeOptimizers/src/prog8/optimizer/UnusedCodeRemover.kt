@@ -107,22 +107,20 @@ class UnusedCodeRemover(private val program: Program,
                 if (usages.isEmpty()) {
                     errors.warn("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
-                } else {
-                    // if all usages are just an assignment to this vardecl,
-                    // and it is in regular RAM, then remove the var as well including all assignments
-                    val assignTargets = usages.mapNotNull {
-                        it.parent as? AssignTarget
-                    }.filter {
-                        !it.isIOAddress(compTarget.machine)
-                    }
-                    if(assignTargets.size==usages.size) {
-                        errors.warn("removing unused variable '${decl.name}'", decl.position)
-                        val assignmentsToRemove = assignTargets.map { it.parent to it.parent.parent as IStatementContainer}.toSet()
-                        return assignmentsToRemove.map {
-                            IAstModification.Remove(it.first, it.second)
-                        } + listOf(
-                            IAstModification.Remove(decl, parent as IStatementContainer)
-                        )
+                }
+                else {
+                    if(usages.size==1) {
+                        val singleUse = usages[0].parent
+                        if(singleUse is AssignTarget) {
+                            val assignment = singleUse.parent as Assignment
+                            if(assignment.value !is IFunctionCall) {
+                                errors.warn("removing unused variable '${decl.name}'", decl.position)
+                                return listOf(
+                                    IAstModification.Remove(decl, parent as IStatementContainer),
+                                    IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -132,7 +130,7 @@ class UnusedCodeRemover(private val program: Program,
     }
 
     private fun deduplicateAssignments(statements: List<Statement>, scope: IStatementContainer): List<IAstModification> {
-        // removes 'duplicate' assignments that assign the same target directly after another
+        // removes 'duplicate' assignments that assign the same target directly after another, unless it is a function call
         val linesToRemove = mutableListOf<Assignment>()
         val modifications = mutableListOf<IAstModification>()
 
@@ -235,7 +233,10 @@ class UnusedCodeRemover(private val program: Program,
                                 is BinaryExpression,
                                 is TypecastExpression,
                                 is FunctionCallExpression -> { /* don't remove */ }
-                                else -> linesToRemove.add(assign1)
+                                else -> {
+                                    if(assign1.value !is IFunctionCall)
+                                        linesToRemove.add(assign1)
+                                }
                             }
                     }
                 }

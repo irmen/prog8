@@ -391,25 +391,20 @@ class TestOptimization: FunSpec({
         val src="""
             main {
                 sub start() {
-                    ubyte unused
+                    ubyte unused                        ; removed
                     ubyte @shared unused_but_shared     ; this one should remain
-                    ubyte usedvar_only_written
+                    ubyte usedvar_only_written          ; not removed because has multiple assignments
                     usedvar_only_written=2
                     usedvar_only_written++
-                    ubyte usedvar                       ; and this one too
+                    ubyte usedvar                       ; and this one remains too
                     usedvar = msb(usedvar)
                 }
             }
         """
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
-        result.program.entrypoint.statements.size shouldBe 4       // unused_but_shared decl, unused_but_shared=0,  usedvar decl, usedvar assign
-        val (decl, assign, decl2, assign2) = result.program.entrypoint.statements
-        decl shouldBe instanceOf<VarDecl>()
-        (decl as VarDecl).name shouldBe "unused_but_shared"
-        assign shouldBe instanceOf<Assignment>()
-        decl2 shouldBe instanceOf<VarDecl>()
-        (decl2 as VarDecl).name shouldBe "usedvar"
-        assign2 shouldBe instanceOf<Assignment>()
+        result.program.entrypoint.statements.size shouldBe 7
+        val alldecls = result.program.entrypoint.allDefinedSymbols
+        alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
 
     test("unused variable removal from subscope") {
@@ -417,20 +412,20 @@ class TestOptimization: FunSpec({
             main {
                 sub start()  {
                     if cx16.r0 {
-                        uword xx = 42       ; to be removed
-                        xx=99               ; to be removed
+                        uword xx            ; to be removed
                         cx16.r0 = 0
                     }
                     func2()
             
                     sub func2() {
-                         uword yy = 33      ; to be removed
+                         uword yy           ; to be removed
                          yy=99              ; to be removed
                          cx16.r0 = 0
                     }
                 }
             }"""
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printProgram(result.program)
         result.program.entrypoint.statements.size shouldBe 3
         val ifstmt = result.program.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1

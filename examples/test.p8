@@ -5,16 +5,15 @@
 
 main {
     sub start() {
-        float fl = 64
-        float[] farr =[1.111,2.222,3.333]
-        fl = farr[0]
-        floats.print_f(fl)
-        fl = farr[1]
-        floats.print_f(fl)
-        farr[0] = 9.999
-        fl = farr[0]
-        floats.print_f(fl)
-
+        ubyte dead
+        dead = 1
+        dead = func()
+        dead = 2
+        dead = func()
+        dead = 3
+        dead = func()
+        dead = 4
+        dead = func()
 
 ;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
 ;        floats.print_f(fl)
@@ -38,6 +37,11 @@ main {
 ;        txt.print_uw(uw)
 ;        txt.nl()
 ;        test_stack.test()
+    }
+
+    sub func() -> ubyte {
+        txt.print("func!\n")
+        return 99
     }
 
     sub addfloat1(float fl) -> float {

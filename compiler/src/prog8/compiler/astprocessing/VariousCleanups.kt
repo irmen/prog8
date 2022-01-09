@@ -1,5 +1,6 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
@@ -63,7 +64,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         val nextAssign = assignment.nextSibling() as? Assignment
         if(nextAssign!=null && nextAssign.target.isSameAs(assignment.target, program)) {
-            if(nextAssign.value isSameAs assignment.value)
+            if(nextAssign.value isSameAs assignment.value && assignment.value !is IFunctionCall)    // don't remove function calls even when they're duplicates
                 return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
         }
 
