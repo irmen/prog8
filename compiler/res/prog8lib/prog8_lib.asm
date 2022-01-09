@@ -4,6 +4,8 @@
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 
+orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
+
 read_byte_from_address_on_stack	.proc
 	; -- read the byte from the memory address on the top of the stack, return in A (stack remains unchanged)
 		lda  P8ESTACK_LO+1,x
@@ -683,8 +685,106 @@ shiftright_b	.proc
 		.pend
 
 
-orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
+equalzero_b	.proc
+		lda  P8ESTACK_LO+1,x
+		beq  _true
+		bne  _false
+_true		lda  #1
+		sta  P8ESTACK_LO+1,x
+		rts
+_false		lda  #0
+		sta  P8ESTACK_LO+1,x
+		rts
+		.pend
 
+equalzero_w	.proc
+		lda  P8ESTACK_LO+1,x
+		ora  P8ESTACK_HI+1,x
+		beq  equalzero_b._true
+		bne  equalzero_b._false
+		.pend
+
+notequalzero_b	.proc
+		lda  P8ESTACK_LO+1,x
+		beq  equalzero_b._false
+		bne  equalzero_b._true
+		.pend
+
+notequalzero_w	.proc
+		lda  P8ESTACK_LO+1,x
+		ora  P8ESTACK_HI+1,x
+		beq  equalzero_b._false
+		bne  equalzero_b._true
+		.pend
+
+lesszero_b	.proc
+		lda  P8ESTACK_LO+1,x
+		bmi  equalzero_b._true
+		jmp  equalzero_b._false
+		.pend
+
+lesszero_w	.proc
+		lda  P8ESTACK_HI+1,x
+		bmi  equalzero_b._true
+		jmp  equalzero_b._false
+		.pend
+
+greaterzero_ub	.proc
+		lda  P8ESTACK_LO+1,x
+		bne  equalzero_b._true
+		beq  equalzero_b._false
+		.pend
+
+greaterzero_sb	.proc
+		lda  P8ESTACK_LO+1,x
+		beq  equalzero_b._false
+		bpl  equalzero_b._true
+		bmi  equalzero_b._false
+		.pend
+
+greaterzero_uw	.proc
+		lda  P8ESTACK_LO+1,x
+		ora  P8ESTACK_HI+1,x
+		bne  equalzero_b._true
+		beq  equalzero_b._false
+		.pend
+
+greaterzero_sw	.proc
+		lda  P8ESTACK_HI+1,x
+		bmi  equalzero_b._false
+		ora  P8ESTACK_LO+1,x
+		beq  equalzero_b._false
+		bne  equalzero_b._true
+		.pend
+
+lessequalzero_sb	.proc
+		lda  P8ESTACK_LO+1,x
+		bmi  equalzero_b._true
+		beq  equalzero_b._true
+		bne  equalzero_b._false
+		.pend
+
+lessequalzero_sw	.proc
+		lda  P8ESTACK_HI+1,x
+		bmi  equalzero_b._true
+		ora  P8ESTACK_LO+1,x
+		beq  equalzero_b._true
+		bne  equalzero_b._false
+		.pend
+
+greaterequalzero_sb	.proc
+		lda  P8ESTACK_LO+1,x
+	    	bpl  equalzero_b._true
+	    	bmi  equalzero_b._false
+		.pend
+
+greaterequalzero_sw	.proc
+		lda  P8ESTACK_HI+1,x
+		bmi  equalzero_b._false
+		ora  P8ESTACK_LO+1,x
+		beq  equalzero_b._true
+		bne  equalzero_b._false
+		.pend
 
 
 memcopy16_up	.proc

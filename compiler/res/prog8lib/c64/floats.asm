@@ -678,3 +678,54 @@ set_array_float		.proc
 		.pend
 
 
+equal_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		beq  _true
+		bne  _false
+_true		lda  #1
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+_false		lda  #0
+		sta  P8ESTACK_LO,x
+		dex
+		rts
+		.pend
+
+notequal_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		bne  equal_zero._true
+		beq  equal_zero._false
+		.pend
+
+greater_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		beq  equal_zero._false
+		bpl  equal_zero._true
+		jmp  equal_zero._false
+		.pend
+
+less_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		bmi  equal_zero._true
+		jmp  equal_zero._false
+		.pend
+
+greaterequal_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		bpl  equal_zero._true
+		jmp  equal_zero._false
+		.pend
+
+lessequal_zero	.proc
+		jsr  floats.pop_float_fac1
+		jsr  floats.SIGN
+		beq  equal_zero._true
+		bmi  equal_zero._true
+		jmp  equal_zero._false
+		.pend

@@ -5,11 +5,37 @@
 
 main {
     sub start() {
-        float @shared f1
+        byte bb = 0
+        word ww = 0
+        float fl = 0
 
-        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned
-        floats.print_f(f1)
-        txt.nl()
+        if fl< 0 {
+            txt.print("wrong fl\n")
+        }
+        fl=-1.111
+        if 0>fl or fl==2 {
+            txt.print("good fl\n")
+        }
+
+        if ww< 0 {
+            txt.print("wrong ww\n")
+        }
+        if bb<0 {
+            txt.print("wrong bb\n")
+        }
+        bb = -1
+        ww = -1111
+        if 0>ww or ww==2 {
+            txt.print("good ww\n")
+        }
+        if 0>bb or bb==2 {
+            txt.print("good bb\n")
+        }
+;        float @shared f1
+;
+;        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned
+;        floats.print_f(f1)
+;        txt.nl()
 ;        1.234 |> addfloat1
 ;            |> addfloat2 |> addfloat3 |> floats.print_f
 ;        txt.nl()
@@ -21,15 +47,15 @@ main {
 ;            |> txt.print_uw
 ;        txt.nl()
 
-        test_stack.test()
-         ; TODO fix that the value is actually returned (398) and that X register is preserved:
-        uword @shared uw=  9+3 |> assemblything
-                             |> sin8u
-                             |> add_one
-                             |> times_two
-        txt.print_uw(uw)
-        txt.nl()
-        test_stack.test()
+;        test_stack.test()
+;         ; TODO fix that the value is actually returned (398) and that X register is preserved:
+;        uword @shared uw=  9+3 |> assemblything
+;                             |> sin8u
+;                             |> add_one
+;                             |> times_two
+;        txt.print_uw(uw)
+;        txt.nl()
+;        test_stack.test()
     }
 
     sub addfloat1(float fl) -> float {

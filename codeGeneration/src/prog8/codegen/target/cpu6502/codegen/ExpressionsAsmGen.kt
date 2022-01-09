@@ -540,6 +540,13 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     }
                 }
             }
+            in ComparisonOperators -> {
+                if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
+                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    if(rightVal==0)
+                        return translateComparisonWithZero(expr.left, leftDt, expr.operator)
+                }
+            }
         }
 
         if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
@@ -559,6 +566,69 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
                 else -> throw AssemblyError("non-numerical datatype")
             }
+        }
+    }
+
+    private fun translateComparisonWithZero(expr: Expression, dt: DataType, operator: String) {
+        translateExpressionInternal(expr)
+        when(operator) {
+            "==" -> {
+                when(dt) {
+                    DataType.UBYTE, DataType.BYTE -> asmgen.out("  jsr  prog8_lib.equalzero_b")
+                    DataType.UWORD, DataType.WORD -> asmgen.out("  jsr  prog8_lib.equalzero_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.equal_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            "!=" -> {
+                when(dt) {
+                    DataType.UBYTE, DataType.BYTE -> asmgen.out("  jsr  prog8_lib.notequalzero_b")
+                    DataType.UWORD, DataType.WORD -> asmgen.out("  jsr  prog8_lib.notequalzero_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.notequal_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            "<" -> {
+                if(dt==DataType.UBYTE || dt==DataType.UWORD)
+                    return translateExpressionInternal(NumericLiteralValue.fromBoolean(false, expr.position))
+                when(dt) {
+                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lesszero_b")
+                    DataType.WORD -> asmgen.out("  jsr  prog8_lib.lesszero_w")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.less_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            ">" -> {
+                when(dt) {
+                    DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.greaterzero_ub")
+                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.greaterzero_sb")
+                    DataType.UWORD -> asmgen.out("  jsr  prog8_lib.greaterzero_uw")
+                    DataType.WORD -> asmgen.out("  jsr  prog8_lib.greaterzero_sw")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.greater_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            "<=" -> {
+                when(dt) {
+                    DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.equalzero_b")
+                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lessequalzeros_b")
+                    DataType.UWORD -> asmgen.out("  jsr  prog8_lib.equalzero_w")
+                    DataType.WORD -> asmgen.out("  jsr  prog8_lib.lessequalzero_sw")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.lessequal_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            ">=" -> {
+                if(dt==DataType.UBYTE || dt==DataType.UWORD)
+                    return translateExpressionInternal(NumericLiteralValue.fromBoolean(true, expr.position))
+                when(dt) {
+                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sb")
+                    DataType.WORD -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sw")
+                    DataType.FLOAT -> asmgen.out("  jsr  floats.greaterequal_zero")
+                    else -> throw AssemblyError("wrong dt")
+                }
+            }
+            else -> throw AssemblyError("invalid comparison operator")
         }
     }
 
