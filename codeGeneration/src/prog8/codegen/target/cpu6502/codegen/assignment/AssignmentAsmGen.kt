@@ -285,16 +285,42 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             else throw AssemblyError("invalid dt")
                         asmgen.assignRegister(register, assign.target)
                     }
+                    is BinaryExpression -> {
+                        if(value.operator in ComparisonOperators) {
+                            // TODO real optimized code for comparison expressions
+                            // for now generate code for this:  assign-false; if expr { assign-true }
+                            translateNormalAssignment(
+                                AsmAssignment(
+                                    AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, DataType.UBYTE, number=NumericLiteralValue.fromBoolean(false, assign.position)),
+                                    assign.target, false, program.memsizer, assign.position
+                                )
+                            )
+                            val origTarget = assign.target.origAstTarget
+                            if(origTarget!=null) {
+                                val assignTrue = AnonymousScope(mutableListOf(
+                                    Assignment(origTarget, NumericLiteralValue.fromBoolean(true, assign.position), assign.position)
+                                ), assign.position)
+                                val assignFalse = AnonymousScope(mutableListOf(), assign.position)
+                                val ifelse = IfElse(value.copy(), assignTrue, assignFalse, assign.position)
+                                ifelse.linkParents(value)
+                                asmgen.translate(ifelse)
+                            }
+                            else {
+                                // no orig ast assign target, can't use the workaround, so fallback to stack eval
+                                fallbackToStackEval(value, assign)
+                            }
+                        } else {
+                            // Everything else just evaluate via the stack.
+                            // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
+                            // because the code here is the implementation of exactly that...)
+                            fallbackToStackEval(value, assign)
+                        }
+                    }
                     else -> {
                         // Everything else just evaluate via the stack.
                         // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                         // because the code here is the implementation of exactly that...)
-                        // TODO DON'T STACK-EVAL THIS... by using a temp var? so that it becomes augmentable assignment expression?
-                        asmgen.translateExpression(value)
-                        if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
-                            asmgen.signExtendStackLsb(assign.source.datatype)
-                        if(assign.target.kind!=TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
-                            assignStackValue(assign.target)
+                        fallbackToStackEval(value, assign)
                     }
                 }
             }
@@ -306,6 +332,15 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     assignStackValue(assign.target)
             }
         }
+    }
+
+    private fun fallbackToStackEval(value: Expression, assign: AsmAssignment) {
+        // TODO DON'T STACK-EVAL THIS... by using a temp var? so that it becomes augmentable assignment expression?
+        asmgen.translateExpression(value)
+        if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
+            asmgen.signExtendStackLsb(assign.source.datatype)
+        if (assign.target.kind != TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
+            assignStackValue(assign.target)
     }
 
     private fun containmentCheckIntoA(containment: ContainmentCheck) {

@@ -5,15 +5,14 @@
 
 main {
     sub start() {
-        ubyte dead
-        dead = 1
-        dead = func()
-        dead = 2
-        dead = func()
-        dead = 3
-        dead = func()
-        dead = 4
-        dead = func()
+        uword ww
+        ubyte bb
+
+        bb = ww==0
+        bb++
+        if ww==0 {
+            bb++
+        }
 
 ;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
 ;        floats.print_f(fl)
