@@ -2822,6 +2822,7 @@ $label              nop""")
                     if(rightConstVal.number.toInt()!=0) {
                         assignExpressionToRegister(left, RegisterOrPair.AY)
                         code("#>${rightConstVal.number.toInt()}", "#<${rightConstVal.number.toInt()}")
+                        return
                     }
                 }
             }

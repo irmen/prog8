@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- perhaps also optimize testNonzeroComparisonAndJump() ?
 - copying floats around: do it with a subroutine rather than 5 lda/sta pairs .
   is slower but floats are very slow already anyway and this should take a lot less program size.
   -> assignVariableFloat()  + assignConstantFloat()
