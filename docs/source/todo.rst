@@ -3,11 +3,13 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- optimize (u)word comparison against 0 to use MSB only if possible
+- perhaps also optimize testNonzeroComparisonAndJump() ?
 - copying floats around: do it with a subroutine rather than 5 lda/sta pairs .
   is slower but floats are very slow already anyway and this should take a lot less program size.
+  -> assignVariableFloat()  + assignConstantFloat()
+- don't remove dead variable assignment if it contains a function call
 - optimize codegen of pipe operator to avoid needless assigns to temp var
-
+- why is this using stack evaluation:  bb = ww>0  (if ww>0 is not using stack!)
 
 Need help with
 ^^^^^^^^^^^^^^

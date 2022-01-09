@@ -9,28 +9,49 @@ main {
         word ww = 0
         float fl = 0
 
-        if fl< 0 {
-            txt.print("wrong fl\n")
+        ubyte @shared ub
+
+        if ww==0 {
+            ub++
         }
-        fl=-1.111
-        if 0>fl or fl==2 {
-            txt.print("good fl\n")
+        if ww!=0 {
+            ub++
+        }
+        if ww>0 {
+            ub++
+        }
+        if ww<0 {
+            ub++
+        }
+        if ww<=0 {
+            ub++
+        }
+        if ww>=0 {
+            ub++
         }
 
-        if ww< 0 {
-            txt.print("wrong ww\n")
-        }
-        if bb<0 {
-            txt.print("wrong bb\n")
-        }
-        bb = -1
-        ww = -1111
-        if 0>ww or ww==2 {
-            txt.print("good ww\n")
-        }
-        if 0>bb or bb==2 {
-            txt.print("good bb\n")
-        }
+;        if fl< 0 {
+;            txt.print("wrong fl\n")
+;        }
+;        fl=-1.111
+;        if 0>fl or fl==2 {
+;            txt.print("good fl\n")
+;        }
+;
+;        if ww< 0 {
+;            txt.print("wrong ww\n")
+;        }
+;        if bb<0 {
+;            txt.print("wrong bb\n")
+;        }
+;        bb = -1
+;        ww = -1111
+;        if 0>ww or ww==2 {
+;            txt.print("good ww\n")
+;        }
+;        if 0>bb or bb==2 {
+;            txt.print("good bb\n")
+;        }
 ;        float @shared f1
 ;
 ;        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned

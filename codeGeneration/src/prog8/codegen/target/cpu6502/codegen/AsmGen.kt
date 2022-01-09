@@ -1840,7 +1840,11 @@ $label              nop""")
         operator: String,
         jumpIfFalseLabel: String
     ) {
-        when(val dt = left.inferType(program).getOr(DataType.UNDEFINED)) {
+        val dt = left.inferType(program).getOr(DataType.UNDEFINED)
+        if(dt in IntegerDatatypes && left is IdentifierReference)
+            return testVariableZeroAndJump(left, dt, operator, jumpIfFalseLabel)
+
+        when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
                 if(operator=="<") {
                     out("  jmp  $jumpIfFalseLabel")
@@ -1921,6 +1925,66 @@ $label              nop""")
             else -> {
                 throw AssemblyError("invalid dt")
             }
+        }
+    }
+
+    private fun testVariableZeroAndJump(variable: IdentifierReference, dt: DataType, operator: String, jumpIfFalseLabel: String) {
+        // optimized code if the expression is just an identifier (variable)
+        val varname = asmVariableName(variable)
+        when(dt) {
+            DataType.UBYTE -> when(operator) {
+                "==" -> out("  lda  $varname |  bne  $jumpIfFalseLabel")
+                "!=" -> out("  lda  $varname |  beq  $jumpIfFalseLabel")
+                ">"  -> out("  lda  $varname |  beq  $jumpIfFalseLabel")
+                "<"  -> out("  bra  $jumpIfFalseLabel")
+                ">=" -> {}
+                "<=" -> out("  lda  $varname |  bne  $jumpIfFalseLabel")
+                else -> throw AssemblyError("invalid operator")
+            }
+            DataType.BYTE -> when(operator) {
+                "==" -> out("  lda  $varname |  bne  $jumpIfFalseLabel")
+                "!=" -> out("  lda  $varname |  beq  $jumpIfFalseLabel")
+                ">"  -> out("  lda  $varname |  beq  $jumpIfFalseLabel |  bmi  $jumpIfFalseLabel")
+                "<"  -> out("  lda  $varname |  bpl  $jumpIfFalseLabel")
+                ">=" -> out("  lda  $varname |  bmi  $jumpIfFalseLabel")
+                "<=" -> out("""
+                            lda  $varname
+                            beq  +
+                            bpl  $jumpIfFalseLabel
+                      +     """)
+                else -> throw AssemblyError("invalid operator")
+            }
+            DataType.UWORD -> when(operator) {
+                "==" -> out("  lda  $varname |  ora  $varname+1 |  bne  $jumpIfFalseLabel")
+                "!=" -> out("  lda  $varname |  ora  $varname+1 |  beq  $jumpIfFalseLabel")
+                ">"  -> out("  lda  $varname |  ora  $varname+1 |  beq  $jumpIfFalseLabel")
+                "<"  -> out("  bra  $jumpIfFalseLabel")
+                ">=" -> {}
+                "<=" -> out("  lda  $varname |  ora  $varname+1 |  bne  $jumpIfFalseLabel")
+                else -> throw AssemblyError("invalid operator")
+            }
+            DataType.WORD -> when (operator) {
+                "==" -> out("  lda  $varname |  bne  $jumpIfFalseLabel |  lda  $varname+1  |  bne  $jumpIfFalseLabel")
+                "!=" -> out("  lda  $varname |  ora  $varname+1 |  beq  $jumpIfFalseLabel")
+                ">"  -> out("""
+                            lda  $varname+1
+                            bmi  $jumpIfFalseLabel
+                            bne  +
+                            lda  $varname
+                            beq  $jumpIfFalseLabel
+                        +   """)
+                "<"  -> out("  lda  $varname+1 |  bpl  $jumpIfFalseLabel")
+                ">=" -> out("  lda  $varname+1 |  bmi  $jumpIfFalseLabel")
+                "<=" -> out("""
+                            lda  $varname+1
+                            bmi  +
+                            bne  $jumpIfFalseLabel
+                            lda  $varname
+                            bne  $jumpIfFalseLabel
+                        +   """)
+                else -> throw AssemblyError("invalid comparison operator $operator")
+            }
+            else -> throw AssemblyError("invalid dt")
         }
     }
 
