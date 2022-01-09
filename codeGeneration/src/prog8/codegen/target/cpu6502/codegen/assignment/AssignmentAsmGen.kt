@@ -88,7 +88,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
                         DataType.FLOAT -> {
-                            asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue")
+                            asmgen.out("  lda  #<($arrayVarName+$indexValue) |  ldy  #>($arrayVarName+$indexValue)")
                             assignFloatFromAY(assign.target)
                         }
                         else ->
@@ -950,8 +950,8 @@ $containsLabel      lda  #1
                         }
                         DataType.FLOAT -> {
                             asmgen.out("""
-                                lda  #<${target.asmVarname}+$scaledIdx
-                                ldy  #>${target.asmVarname}+$scaledIdx
+                                lda  #<(${target.asmVarname}+$scaledIdx)
+                                ldy  #>(${target.asmVarname}+$scaledIdx)
                                 jsr  floats.pop_float
                             """)
                         }
@@ -1163,8 +1163,8 @@ $containsLabel      lda  #1
                                 ldy  #>$sourceName
                                 sta  P8ZP_SCRATCH_W1
                                 sty  P8ZP_SCRATCH_W1+1
-                                lda  #<${target.asmVarname}+$scaledIdx
-                                ldy  #>${target.asmVarname}+$scaledIdx
+                                lda  #<(${target.asmVarname}+$scaledIdx)
+                                ldy  #>(${target.asmVarname}+$scaledIdx)
                                 jsr  floats.copy_float
                             """)
                         }
@@ -1316,17 +1316,13 @@ $containsLabel      lda  #1
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                    lda  $sourceName
-                    sta  ${target.asmVarname}
-                    lda  $sourceName+1
-                    sta  ${target.asmVarname}+1
-                    lda  $sourceName+2
-                    sta  ${target.asmVarname}+2
-                    lda  $sourceName+3
-                    sta  ${target.asmVarname}+3
-                    lda  $sourceName+4
-                    sta  ${target.asmVarname}+4
-                """)
+                    lda  #<$sourceName
+                    ldy  #>$sourceName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<${target.asmVarname}
+                    ldy  #>${target.asmVarname}
+                    jsr  floats.copy_float""")
             }
             TargetStorageKind.ARRAY -> {
                 asmgen.out("""
@@ -2047,17 +2043,13 @@ $containsLabel      lda  #1
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
-                            lda  $constFloat
-                            sta  ${target.asmVarname}
-                            lda  $constFloat+1
-                            sta  ${target.asmVarname}+1
-                            lda  $constFloat+2
-                            sta  ${target.asmVarname}+2
-                            lda  $constFloat+3
-                            sta  ${target.asmVarname}+3
-                            lda  $constFloat+4
-                            sta  ${target.asmVarname}+4
-                        """)
+                        lda  #<$constFloat
+                        ldy  #>$constFloat
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<${target.asmVarname}
+                        ldy  #>${target.asmVarname}
+                        jsr  floats.copy_float""")
                 }
                 TargetStorageKind.ARRAY -> {
                     val arrayVarName = target.asmVarname
@@ -2065,17 +2057,13 @@ $containsLabel      lda  #1
                     if (constIndex!=null) {
                         val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
                         asmgen.out("""
-                            lda  $constFloat
-                            sta  $arrayVarName+$indexValue
-                            lda  $constFloat+1
-                            sta  $arrayVarName+$indexValue+1
-                            lda  $constFloat+2
-                            sta  $arrayVarName+$indexValue+2
-                            lda  $constFloat+3
-                            sta  $arrayVarName+$indexValue+3
-                            lda  $constFloat+4
-                            sta  $arrayVarName+$indexValue+4
-                        """)
+                            lda  #<$constFloat
+                            ldy  #>$constFloat
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<($arrayVarName+$indexValue)
+                            ldy  #>($arrayVarName+$indexValue)
+                            jsr  floats.copy_float""")
                     } else {
                         val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
                         asmgen.out("""

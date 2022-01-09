@@ -83,7 +83,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
 """)
                         }
                         DataType.FLOAT -> {
-                            asmgen.out("  lda  #<$asmArrayvarname+$indexValue |  ldy  #>$asmArrayvarname+$indexValue")
+                            asmgen.out("  lda  #<($asmArrayvarname+$indexValue) |  ldy  #>($asmArrayvarname+$indexValue)")
                             asmgen.out(if(incr) "  jsr  floats.inc_var_f" else "  jsr  floats.dec_var_f")
                         }
                         else -> throw AssemblyError("need numeric type")

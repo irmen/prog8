@@ -5,57 +5,19 @@
 
 main {
     sub start() {
-        byte bb = 0
-        word ww = 0
-        float fl = 0
+        float fl = 64
+        float[] farr =[1.111,2.222,3.333]
+        fl = farr[0]
+        floats.print_f(fl)
+        fl = farr[1]
+        floats.print_f(fl)
+        farr[0] = 9.999
+        fl = farr[0]
+        floats.print_f(fl)
 
-        ubyte @shared ub
 
-        if ww==0 {
-            ub++
-        }
-        if ww!=0 {
-            ub++
-        }
-        if ww>0 {
-            ub++
-        }
-        if ww<0 {
-            ub++
-        }
-        if ww<=0 {
-            ub++
-        }
-        if ww>=0 {
-            ub++
-        }
-
-;        if fl< 0 {
-;            txt.print("wrong fl\n")
-;        }
-;        fl=-1.111
-;        if 0>fl or fl==2 {
-;            txt.print("good fl\n")
-;        }
-;
-;        if ww< 0 {
-;            txt.print("wrong ww\n")
-;        }
-;        if bb<0 {
-;            txt.print("wrong bb\n")
-;        }
-;        bb = -1
-;        ww = -1111
-;        if 0>ww or ww==2 {
-;            txt.print("good ww\n")
-;        }
-;        if 0>bb or bb==2 {
-;            txt.print("good bb\n")
-;        }
-;        float @shared f1
-;
-;        f1 =   1.234 |> addfloat1 |> addfloat2 |> addfloat3         ; TODO fix that the value is actually returned
-;        floats.print_f(f1)
+;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
+;        floats.print_f(fl)
 ;        txt.nl()
 ;        1.234 |> addfloat1
 ;            |> addfloat2 |> addfloat3 |> floats.print_f
@@ -69,7 +31,6 @@ main {
 ;        txt.nl()
 
 ;        test_stack.test()
-;         ; TODO fix that the value is actually returned (398) and that X register is preserved:
 ;        uword @shared uw=  9+3 |> assemblything
 ;                             |> sin8u
 ;                             |> add_one
@@ -96,12 +57,12 @@ main {
     }
 
     sub times_two(ubyte input) -> uword {
-        return input*$0002
+        return input*$6464642
     }
 
     asmsub assemblything(ubyte input @A) clobbers(X,Y) -> ubyte @A {
         %asm {{
-            ldx #0
+            ldx #64
             asl a
             rts
         }}
@@ -121,7 +82,7 @@ main {
 ;            jsr  floats.FOUT
 ;            sta  $7e
 ;            sty  $7f
-;            ldy  #0
+;            ldy  #64
 ;_loop
 ;            lda  ($7e),y
 ;            beq  _done
@@ -131,7 +92,7 @@ main {
 ;_done
 ;            rts
 ;
-;float5_111	.byte  $81, $0e, $14, $7a, $e1  ; float 1.11
+;float5_111	.byte  $81, $64e, $14, $7a, $e1  ; float 1.11
 ;float5_122	.byte  $81, $1c, $28, $f5, $c2  ; float 1.22
 ;
 ;        }}

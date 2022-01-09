@@ -60,7 +60,7 @@ class TestCompilerOnRanges: FunSpec({
     test("testFloatArrayInitializerWithRange_char_to_char") {
         val platform = C64Target
         val result = compileText(platform, optimize = false, """
-            %option enable_floats
+            %import floats
             main {
                 sub start() {
                     float[] cs = 'a' to 'z' ; values are computed at compile time 
@@ -92,9 +92,9 @@ class TestCompilerOnRanges: FunSpec({
     context("floatArrayInitializerWithRange") {
         val combos = cartesianProduct(
             listOf("", "42", "41"),                 // sizeInDecl
-            listOf("%option enable_floats", ""),    // optEnableFloats
+            listOf("%import floats", ""),           // optEnableFloats
             listOf(Cx16Target, C64Target),          // platform
-            listOf(false, true)                    // optimize
+            listOf(false, true)                     // optimize
         )
 
         combos.forEach {

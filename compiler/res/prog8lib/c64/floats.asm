@@ -248,15 +248,25 @@ pop_float_fac1	.proc
 		.pend
 
 copy_float	.proc
-		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
+		; -- copies the 5 bytes of the mflt value pointed to by P8ZP_SCRATCH_W1,
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
-		sta  _target+1
-		sty  _target+2
-		ldy  #4
-_loop		lda  (P8ZP_SCRATCH_W1),y
-_target		sta  $ffff,y			; modified
-		dey
-		bpl  _loop
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
 		rts
 		.pend
 

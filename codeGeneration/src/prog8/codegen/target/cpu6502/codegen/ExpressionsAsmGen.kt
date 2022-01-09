@@ -702,7 +702,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                     asmgen.out("  lda  $arrayVarName+$indexValue |  sta  P8ESTACK_LO,x |  lda  $arrayVarName+$indexValue+1 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 DataType.FLOAT -> {
-                    asmgen.out("  lda  #<$arrayVarName+$indexValue |  ldy  #>$arrayVarName+$indexValue |  jsr  floats.push_float")
+                    asmgen.out("  lda  #<($arrayVarName+$indexValue) |  ldy  #>($arrayVarName+$indexValue) |  jsr  floats.push_float")
                 }
                 else -> throw AssemblyError("weird element type")
             }
