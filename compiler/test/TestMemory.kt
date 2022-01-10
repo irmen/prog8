@@ -37,49 +37,49 @@ class TestMemory: FunSpec({
 
         var memexpr = NumericLiteralValue.optimalInteger(0x0002, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0x9fff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0xa000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0xc000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0xcfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0xeeee, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = NumericLiteralValue.optimalInteger(0xffff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
     }
@@ -88,25 +88,25 @@ class TestMemory: FunSpec({
 
         var memexpr = NumericLiteralValue.optimalInteger(0x0000, Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe true
 
         memexpr = NumericLiteralValue.optimalInteger(0x0001, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe true
 
         memexpr = NumericLiteralValue.optimalInteger(0xd000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe true
 
         memexpr = NumericLiteralValue.optimalInteger(0xdfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe true
     }
@@ -115,7 +115,7 @@ class TestMemory: FunSpec({
         val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, null, Position.DUMMY)
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(decl, assignment))
         return target
     }
@@ -138,13 +138,13 @@ class TestMemory: FunSpec({
     test("memory expression mapped to IO memory on C64") {
         var memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0x1000, Position.DUMMY), Position.DUMMY)
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        var assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         target.isIOAddress(C64Target.machine) shouldBe false
 
         memexpr = PrefixExpression("+", NumericLiteralValue.optimalInteger(0xd020, Position.DUMMY), Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
-        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        assign = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
         printProgram(target.definingModule.program)
         target.isIOAddress(C64Target.machine) shouldBe true
@@ -153,7 +153,7 @@ class TestMemory: FunSpec({
     test("regular variable not in mapped IO ram on C64") {
         val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", null, false, false, null, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -165,7 +165,7 @@ class TestMemory: FunSpec({
         val address = 0x1000u
         val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, null, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -177,7 +177,7 @@ class TestMemory: FunSpec({
         val address = 0xd020u
         val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, null, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -189,7 +189,7 @@ class TestMemory: FunSpec({
         val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", null, false, false, null, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -202,7 +202,7 @@ class TestMemory: FunSpec({
         val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, null, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
@@ -215,7 +215,7 @@ class TestMemory: FunSpec({
         val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", NumericLiteralValue.optimalInteger(address, Position.DUMMY), false, false, null, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
-        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), Position.DUMMY)
+        val assignment = Assignment(target, NumericLiteralValue.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, mutableListOf(decl, assignment), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)

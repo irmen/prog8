@@ -73,7 +73,7 @@ internal class StatementReorderer(val program: Program,
                             // Add assignment to initialize with zero
                             // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
                             val identifier = IdentifierReference(listOf(decl.name), decl.position)
-                            val assignzero = Assignment(AssignTarget(identifier, null, null, decl.position), decl.zeroElementValue(), decl.position)
+                            val assignzero = Assignment(AssignTarget(identifier, null, null, decl.position), decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
                             return listOf(IAstModification.InsertAfter(
                                 decl, assignzero, parent as IStatementContainer
                             ))
@@ -85,7 +85,7 @@ internal class StatementReorderer(val program: Program,
                     // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
                     val pos = decl.value!!.position
                     val identifier = IdentifierReference(listOf(decl.name), pos)
-                    val assign = Assignment(AssignTarget(identifier, null, null, pos), decl.value!!, pos)
+                    val assign = Assignment(AssignTarget(identifier, null, null, pos), decl.value!!, AssignmentOrigin.VARINIT, pos)
                     decl.value = null
                     return listOf(IAstModification.InsertAfter(
                         decl, assign, parent as IStatementContainer
@@ -443,7 +443,7 @@ private fun replaceCallSubStatementWithGosub(function: Subroutine, call: Functio
                 if(argumentValue is IdentifierReference)
                     argumentValue = AddressOf(argumentValue, argumentValue.position)
             }
-            Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, argumentValue.position)
+            Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, AssignmentOrigin.PARAMETERASSIGN, argumentValue.position)
         }
     val scope = AnonymousScope(assignParams.toMutableList(), call.position)
     scope.statements += GoSub(null, call.target, null, call.position)

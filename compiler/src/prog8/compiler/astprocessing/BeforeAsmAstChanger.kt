@@ -84,7 +84,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                                 "unknown dt"
                             )
                             }, sourceDt, implicit=true)
-                            val assignRight = Assignment(assignment.target, right, assignment.position)
+                            val assignRight = Assignment(assignment.target, right, AssignmentOrigin.BEFOREASMGEN, assignment.position)
                             return listOf(
                                 IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
                                 IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
@@ -97,7 +97,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             "unknown dt"
                         )
                         }, sourceDt, implicit=true)
-                        val assignLeft = Assignment(assignment.target, left, assignment.position)
+                        val assignLeft = Assignment(assignment.target, left, AssignmentOrigin.BEFOREASMGEN, assignment.position)
                         return listOf(
                             IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
                             IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr)
@@ -248,7 +248,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
                 expr.left,
-                expr.position
+                AssignmentOrigin.BEFOREASMGEN, expr.position
             )
         }
         if(separateRightExpr) {
@@ -263,7 +263,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             rightAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
                 expr.right,
-                expr.position
+                AssignmentOrigin.BEFOREASMGEN, expr.position
             )
         }
         return CondExprSimplificationResult(
@@ -355,9 +355,8 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
         val tempvar = if(dt.isBytes) listOf("prog8_lib","retval_interm_ub") else listOf("prog8_lib","retval_interm_b")
-        val target =
-            AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
-        val assign = Assignment(target, expr.indexer.indexExpr, expr.indexer.position)
+        val target = AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
+        val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.BEFOREASMGEN, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(
             IAstModification.ReplaceNode(

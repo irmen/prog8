@@ -119,7 +119,7 @@ private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
     if(vardecl!=null) return vardecl
 
     assignment()?.let {
-        return Assignment(it.assign_target().toAst(), it.expression().toAst(), it.toPosition())
+        return Assignment(it.assign_target().toAst(), it.expression().toAst(), AssignmentOrigin.USERCODE, it.toPosition())
     }
 
     augassignment()?.let {
@@ -127,7 +127,7 @@ private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
         val target = it.assign_target().toAst()
         val oper = it.operator.text.substringBefore('=')
         val expression = BinaryExpression(target.toExpression(), oper, it.expression().toAst(), it.expression().toPosition())
-        return Assignment(it.assign_target().toAst(), expression, it.toPosition())
+        return Assignment(it.assign_target().toAst(), expression, AssignmentOrigin.USERCODE, it.toPosition())
     }
 
     postincrdecr()?.let {
@@ -230,8 +230,7 @@ private class AsmSubroutineParameter(name: String,
 
 private class AsmSubroutineReturn(val type: DataType,
                                   val registerOrPair: RegisterOrPair?,
-                                  val statusflag: Statusflag?,
-                                  val position: Position)
+                                  val statusflag: Statusflag?)
 
 private fun Prog8ANTLRParser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
         = asmsub_return().map {
@@ -248,8 +247,7 @@ private fun Prog8ANTLRParser.Asmsub_returnsContext.toAst(): List<AsmSubroutineRe
             AsmSubroutineReturn(
                     it.datatype().toAst(),
                     registerorpair,
-                    statusregister,
-                    toPosition())
+                    statusregister)
         }
 
 private fun Prog8ANTLRParser.Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>

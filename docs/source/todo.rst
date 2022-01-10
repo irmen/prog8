@@ -3,6 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- use the assignment origin? in codegen? (origin VARINIT)
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 
 
@@ -21,7 +22,6 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- mark the initialization assignment to a vardecl as such
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow things as ``4 |> mkword(?, $44) |> print_uw``

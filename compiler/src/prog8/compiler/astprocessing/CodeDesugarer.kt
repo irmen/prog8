@@ -129,7 +129,7 @@ _after:
         if(functionCall.target.nameInSource==listOf("poke")) {
             // poke(a, v) is synonymous with @(a) = v
             val tgt = AssignTarget(null, null, DirectMemoryWrite(functionCall.args[0], position), position)
-            val assign = Assignment(tgt, functionCall.args[1], position)
+            val assign = Assignment(tgt, functionCall.args[1], AssignmentOrigin.OPTIMIZER, position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
         }
         return noModifications

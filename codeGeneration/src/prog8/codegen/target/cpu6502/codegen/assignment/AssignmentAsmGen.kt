@@ -298,7 +298,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                             val origTarget = assign.target.origAstTarget
                             if(origTarget!=null) {
                                 val assignTrue = AnonymousScope(mutableListOf(
-                                    Assignment(origTarget, NumericLiteralValue.fromBoolean(true, assign.position), assign.position)
+                                    Assignment(origTarget, NumericLiteralValue.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
                                 ), assign.position)
                                 val assignFalse = AnonymousScope(mutableListOf(), assign.position)
                                 val ifelse = IfElse(value.copy(), assignTrue, assignFalse, assign.position)

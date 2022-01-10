@@ -62,7 +62,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
                 } else {
                     if(decl.value!=null && decl.datatype in NumericDatatypes) {
                         val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                        val assign = Assignment(target, decl.value!!, decl.position)
+                        val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                         replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
                         decl.value = null
                         decl.allowInitializeWithZero = false

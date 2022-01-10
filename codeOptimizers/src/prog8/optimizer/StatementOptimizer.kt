@@ -120,7 +120,7 @@ class StatementOptimizer(private val program: Program,
             if(!arg.isSimple && arg !is TypecastExpression && arg !is IFunctionCall) {
                 val name = getTempVarName(arg.inferType(program))
                 val tempvar = IdentifierReference(name, functionCallStatement.position)
-                val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, functionCallStatement.position)
+                val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
                 return listOf(
                     IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
                     IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
@@ -183,7 +183,7 @@ class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), range.from, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -198,7 +198,7 @@ class StatementOptimizer(private val program: Program,
                     val character = compTarget.encodeString(sv.value, sv.altEncoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -212,7 +212,7 @@ class StatementOptimizer(private val program: Program,
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
                                 AssignTarget(forLoop.loopVar, null, null, forLoop.position), NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
-                                forLoop.position))
+                                AssignmentOrigin.OPTIMIZER, forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                     }
@@ -323,7 +323,7 @@ class StatementOptimizer(private val program: Program,
                                 val addConstant = Assignment(
                                         assignment.target.copy(),
                                         BinaryExpression(binExpr.left.copy(), "+", rExpr.right, rExpr.position),
-                                        assignment.position
+                                        AssignmentOrigin.OPTIMIZER, assignment.position
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
@@ -334,7 +334,7 @@ class StatementOptimizer(private val program: Program,
                                 val subConstant = Assignment(
                                         assignment.target.copy(),
                                         BinaryExpression(binExpr.left.copy(), "-", rExpr.right, rExpr.position),
-                                        assignment.position
+                                        AssignmentOrigin.OPTIMIZER, assignment.position
                                 )
                                 return listOf(
                                         IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
@@ -375,7 +375,7 @@ class StatementOptimizer(private val program: Program,
                 if(bexpr.right isSameAs assignment.target) {
                     // X = value - X  -->  X = -X ; X += value  (to avoid need of stack-evaluation)
                     val negation = PrefixExpression("-", bexpr.right.copy(), bexpr.position)
-                    val addValue = Assignment(assignment.target.copy(), BinaryExpression(bexpr.right, "+", bexpr.left, bexpr.position), assignment.position)
+                    val addValue = Assignment(assignment.target.copy(), BinaryExpression(bexpr.right, "+", bexpr.left, bexpr.position), AssignmentOrigin.OPTIMIZER, assignment.position)
                     return listOf(
                         IAstModification.ReplaceNode(bexpr, negation, assignment),
                         IAstModification.InsertAfter(assignment, addValue, parent as IStatementContainer)
@@ -454,7 +454,7 @@ class StatementOptimizer(private val program: Program,
                 }
                 val returnValueIntermediary = IdentifierReference(listOf("prog8_lib", returnVarName), returnStmt.position)
                 val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
-                val assign = Assignment(tgt, value, returnStmt.position)
+                val assign = Assignment(tgt, value, AssignmentOrigin.OPTIMIZER, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary.copy(), returnStmt.position)
                 return listOf(
                     IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),

@@ -11,6 +11,7 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.expressions.AugmentAssignmentOperators
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.CompilationOptions
@@ -83,7 +84,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 }
 
                 if(binExpr.right.isSimple) {
-                    val firstAssign = Assignment(assignment.target.copy(), binExpr.left, binExpr.left.position)
+                    val firstAssign = Assignment(assignment.target.copy(), binExpr.left, AssignmentOrigin.OPTIMIZER, binExpr.left.position)
                     val targetExpr = assignment.target.toExpression()
                     val augExpr = BinaryExpression(targetExpr, binExpr.operator, binExpr.right, binExpr.right.position)
                     return listOf(
@@ -116,7 +117,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 }
                 val assignTempVar = Assignment(
                     AssignTarget(IdentifierReference(tempVar, typecast.position), null, null, typecast.position),
-                    typecast.expression, typecast.position
+                    typecast.expression, AssignmentOrigin.OPTIMIZER, typecast.position
                 )
                 return listOf(
                     IAstModification.InsertBefore(assignment, assignTempVar, parent as IStatementContainer),

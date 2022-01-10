@@ -178,6 +178,7 @@ enum class VarDeclOrigin {
     ARRAYLITERAL
 }
 
+
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
               private val declaredDatatype: DataType,
@@ -305,7 +306,16 @@ class ArrayIndex(var indexExpr: Expression,
     override fun copy() = ArrayIndex(indexExpr.copy(), position)
 }
 
-class Assignment(var target: AssignTarget, var value: Expression, override val position: Position) : Statement() {
+enum class AssignmentOrigin {
+    USERCODE,
+    VARINIT,
+    PARAMETERASSIGN,
+    OPTIMIZER,
+    BEFOREASMGEN,
+    ASMGEN,
+}
+
+class Assignment(var target: AssignTarget, var value: Expression, var origin: AssignmentOrigin, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -323,7 +333,7 @@ class Assignment(var target: AssignTarget, var value: Expression, override val p
         replacement.parent = this
     }
 
-    override fun copy()= Assignment(target.copy(), value.copy(), position)
+    override fun copy()= Assignment(target.copy(), value.copy(), origin, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "Assignment(target: $target, value: $value, pos=$position)"
