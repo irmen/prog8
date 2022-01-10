@@ -218,7 +218,7 @@ class AsmGen(private val program: Program,
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
         if(options.dontReinitGlobals) {
-            block.statements.filterIsInstance<VarDecl>().forEach {
+            block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
                 it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
                 val init = it.nextSibling() as? Assignment
                 if(init?.target?.identifier?.targetVarDecl(program) === it) {
@@ -236,7 +236,7 @@ class AsmGen(private val program: Program,
         memdefs2asm(block.statements, block)
         vardecls2asm(block.statements, block)
 
-        block.statements.filterIsInstance<VarDecl>().forEach {
+        block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
             if(it.type==VarDeclType.VAR && it.datatype in NumericDatatypes)
                 it.value=null
         }
@@ -285,7 +285,7 @@ class AsmGen(private val program: Program,
 
     private fun zeropagevars2asm(statements: List<Statement>, inBlock: Block?) {
         out("; vars allocated on zeropage")
-        val variables = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
+        val variables = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
         val blockname = inBlock?.name
         for(variable in variables) {
             if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
@@ -414,7 +414,7 @@ class AsmGen(private val program: Program,
         val blockname = inBlock?.name
 
         out("\n; memdefs and kernal subroutines")
-        val memvars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
+        val memvars = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
         for(m in memvars) {
             if(blockname!="prog8_lib" || !m.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
                 if(m.value is NumericLiteralValue)
@@ -422,7 +422,7 @@ class AsmGen(private val program: Program,
                 else
                     out("  ${m.name} = ${asmVariableName((m.value as AddressOf).identifier)}")
         }
-        val asmSubs = statements.filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
+        val asmSubs = statements.asSequence().filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
         for(sub in asmSubs) {
             val addr = sub.asmAddress
             if(addr!=null) {
@@ -435,7 +435,7 @@ class AsmGen(private val program: Program,
 
     private fun vardecls2asm(statements: List<Statement>, inBlock: Block?) {
         out("\n; non-zeropage variables")
-        val vars = statements.filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
+        val vars = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
 
         val encodedstringVars = vars
                 .filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }

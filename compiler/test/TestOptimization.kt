@@ -403,7 +403,7 @@ class TestOptimization: FunSpec({
         """
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
         result.program.entrypoint.statements.size shouldBe 7
-        val alldecls = result.program.entrypoint.allDefinedSymbols
+        val alldecls = result.program.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
 

@@ -31,7 +31,7 @@ internal class StatementReorderer(val program: Program,
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MAX_VALUE }).toMutableList()
 
-        val mainBlock = module.statements.filterIsInstance<Block>().firstOrNull { it.name=="main" }
+        val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" }
         if(mainBlock!=null && mainBlock.address==null) {
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)
@@ -118,7 +118,7 @@ internal class StatementReorderer(val program: Program,
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         if(subroutine.name=="start" && parent is Block) {
-            if(parent.statements.filterIsInstance<Subroutine>().first().name!="start") {
+            if(parent.statements.asSequence().filterIsInstance<Subroutine>().first().name!="start") {
                 return listOf(
                         IAstModification.Remove(subroutine, parent),
                         IAstModification.InsertFirst(subroutine, parent)
@@ -150,6 +150,7 @@ internal class StatementReorderer(val program: Program,
             varsChanges +=
                 if(stringParamsByNames.isNotEmpty()) {
                     subroutine.statements
+                        .asSequence()
                         .filterIsInstance<VarDecl>()
                         .filter { it.subroutineParameter!=null && it.name in stringParamsByNames }
                         .map {
@@ -166,7 +167,7 @@ internal class StatementReorderer(val program: Program,
                             IAstModification.ReplaceNode(it, newvar, subroutine)
                         }
                 }
-                else emptyList()
+                else emptySequence()
         }
 
         return modifications + parameterChanges + varsChanges

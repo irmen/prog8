@@ -49,7 +49,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
 
         // move vardecls in Anonymous scope up to the containing subroutine
         // and add initialization assignment in its place if needed
-        val vars = scope.statements.filterIsInstance<VarDecl>()
+        val vars = scope.statements.asSequence().filterIsInstance<VarDecl>()
         val parentscope = scope.definingScope
         if(vars.any() && parentscope !== parent) {
             val movements = mutableListOf<IAstModification>()

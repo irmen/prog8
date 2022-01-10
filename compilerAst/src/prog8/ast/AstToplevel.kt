@@ -133,9 +133,9 @@ interface IStatementContainer {
         return null
     }
 
-    val allDefinedSymbols: List<Pair<String, Statement>>
+    val allDefinedSymbols: Sequence<Pair<String, Statement>>
         get() {
-            return statements.filterIsInstance<INamedStatement>().map { Pair(it.name, it as Statement) }
+            return statements.asSequence().filterIsInstance<INamedStatement>().map { Pair(it.name, it as Statement) }
         }
 }
 

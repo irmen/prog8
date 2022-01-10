@@ -21,7 +21,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
             if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
-                val vars = subroutine.statements.filterIsInstance<VarDecl>().map { it.name }.toSet()
+                val vars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
                 if(!vars.containsAll(subroutine.parameters.map{it.name})) {
                     return subroutine.parameters
                             .filter { it.name !in namesInSub }

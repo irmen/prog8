@@ -97,19 +97,19 @@ class TestAsmGenSymbols: StringSpec({
         val sub = program.entrypoint
 
         // local variable
-        val localvarIdent = sub.statements.filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
+        val localvarIdent = sub.statements.asSequence().filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
         asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
-        val localvarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "start", "localvar") }.value as AddressOf).identifier
+        val localvarIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "start", "localvar") }.value as AddressOf).identifier
         asmgen.asmSymbolName(localvarIdentScoped) shouldBe "main.start.localvar"
         asmgen.asmVariableName(localvarIdentScoped) shouldBe "main.start.localvar"
 
         // variable from outer scope (note that for Variables, no scoping prefix symbols are required,
         //   because they're not outputted as locally scoped symbols for the assembler
-        val scopedVarIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
+        val scopedVarIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdent) shouldBe "var_outside"
-        val scopedVarIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
+        val scopedVarIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
     }
@@ -120,24 +120,24 @@ class TestAsmGenSymbols: StringSpec({
         val sub = program.entrypoint
 
         // local label
-        val localLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
+        val localLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
         asmgen.asmSymbolName(localLabelIdent) shouldBe "_locallabel"
         withClue("as a variable it uses different naming rules (no underscore prefix)") {
             asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
         }
-        val localLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
+        val localLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
         asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start._locallabel"
         withClue("as a variable it uses different naming rules (no underscore prefix)") {
             asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
         }
 
         // label from outer scope needs sope prefixes because it is outputted as a locally scoped symbol for the assembler
-        val scopedLabelIdent = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
+        val scopedLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main._label_outside"
         withClue("as a variable it uses different naming rules (no underscore prefix)") {
             asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
         }
-        val scopedLabelIdentScoped = (sub.statements.filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
+        val scopedLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main._label_outside"
         withClue("as a variable it uses different naming rules (no underscore prefix)") {
             asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"

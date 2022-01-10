@@ -43,7 +43,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
     if (target == Cx16Target) {
         searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
     }
-    val filepath = searchIn
+    val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }
         .map { it.normalize().absolute() }
         .map { workingDir.relativize(it) }
