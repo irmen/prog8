@@ -9,7 +9,6 @@ import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
-import kotlin.math.exp
 
 
 /***************** Antlr Extension methods to create AST ****************/
@@ -56,14 +55,13 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
     varinitializer()?.let {
         val vd = it.vardecl()
         return VarDecl(
-                VarDeclType.VAR,
+                VarDeclType.VAR, VarDeclOrigin.USERCODE,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 it.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                false,
                 vd.SHARED()!=null,
                 null,
                 it.toPosition()
@@ -74,14 +72,13 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
         val cvarinit = it.varinitializer()
         val vd = cvarinit.vardecl()
         return VarDecl(
-                VarDeclType.CONST,
+                VarDeclType.CONST, VarDeclOrigin.USERCODE,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 cvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                false,
                 vd.SHARED() != null,
                 null,
                 cvarinit.toPosition()
@@ -92,14 +89,13 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
         val mvarinit = it.varinitializer()
         val vd = mvarinit.vardecl()
         return VarDecl(
-                VarDeclType.MEMORY,
+                VarDeclType.MEMORY, VarDeclOrigin.USERCODE,
                 vd.datatype()?.toAst() ?: DataType.UNDEFINED,
                 if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
                 vd.arrayindex()?.toAst(),
                 vd.varname.text,
                 mvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                false,
                 vd.SHARED()!=null,
                 null,
                 mvarinit.toPosition()
@@ -606,14 +602,13 @@ private fun Prog8ANTLRParser.When_choiceContext.toAst(): WhenChoice {
 
 private fun Prog8ANTLRParser.VardeclContext.toAst(): VarDecl {
     return VarDecl(
-            VarDeclType.VAR,
+            VarDeclType.VAR, VarDeclOrigin.USERCODE,
             datatype()?.toAst() ?: DataType.UNDEFINED,
             if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
             arrayindex()?.toAst(),
             varname.text,
             null,
             ARRAYSIG() != null || arrayindex() != null,
-            false,
             SHARED()!=null,
             null,
             toPosition()

@@ -8,10 +8,15 @@ main {
         uword ww
         ubyte bb
 
+        derp("aaaa")
         bb = ww==0
         bb++
         if ww==0 {
             bb++
+        }
+
+        sub derp(str name) {
+            txt.print(name)
         }
 
 ;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3

@@ -94,7 +94,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             )
 
         tests.forEach {
-            val (where, p8Str, binStr) = it
+            val (where, p8Str, _) = it
             test("%asmbinary from ${where}folder") {
                 val p8Path = assumeReadableFile(fixturesDir, p8Str)
                 // val binPath = assumeReadableFile(fixturesDir, binStr)
