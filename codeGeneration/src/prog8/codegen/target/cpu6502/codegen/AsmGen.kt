@@ -61,6 +61,9 @@ class AsmGen(private val program: Program,
 
         println("Generating assembly code... ")
 
+        val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
+        require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
+
         header()
         val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
@@ -78,18 +81,17 @@ class AsmGen(private val program: Program,
         slaballocations()
         footer()
 
+        val output = outputDir.resolve("${program.name}.asm")
         if(options.optimize) {
-            val separateLines = assemblyLines.flatMap { it.split('\n') }
+            val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
             assemblyLines.clear()
-            assemblyLines.addAll(separateLines)
-            require(assemblyLines.all { !it.contains('\n') })
-            var optimizationsDone = 1
-            while (optimizationsDone > 0) {
-                optimizationsDone = optimizeAssembly(assemblyLines, options.compTarget.machine, program)
+            while(optimizeAssembly(separateLines, options.compTarget.machine, program)>0) {
+                // optimize the assembly source code
             }
+            output.writeLines(separateLines)
+        } else {
+            output.writeLines(assemblyLines)
         }
-
-        outputDir.resolve("${program.name}.asm").writeLines(assemblyLines)
 
         return if(errors.noErrors())
             AssemblyProgram(true, program.name, outputDir, compTarget.name)
