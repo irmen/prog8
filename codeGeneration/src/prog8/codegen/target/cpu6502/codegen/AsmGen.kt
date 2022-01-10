@@ -220,11 +220,7 @@ class AsmGen(private val program: Program,
         if(options.dontReinitGlobals) {
             block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
                 it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
-                val init = it.nextSibling() as? Assignment
-                if(init?.target?.identifier?.targetVarDecl(program) === it) {
-                    // put the init value back into the vardecl
-                    it.value = init.value
-                }
+                it.findInitializer(program)?.let { initializer -> it.value = initializer.value }    // put the init value back into the vardecl
             }
         }
 

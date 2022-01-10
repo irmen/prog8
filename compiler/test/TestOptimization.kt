@@ -604,24 +604,26 @@ class TestOptimization: FunSpec({
                 uword @shared zz
                 zz += 60            ; NOT ok to remove initializer, should evaluate to 60
                 ubyte @shared xx
-                xx = 6+sin8u(xx)     ; NOT ok to remove initializer
+                xx = 6+sin8u(xx)     ; is not an initializer because it references xx
             }
         }
         """
         val result = compileText(C64Target, optimize=true, src, writeAssembly=false).assertSuccess()
+        printProgram(result.program)
         /* expected result:
         uword yy
         yy = 20
         uword zz
         zz = 60
         ubyte xx
+        xx = 0
         xx = sin8u(xx)
         xx += 6
          */
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
-        stmts.filterIsInstance<Assignment>().size shouldBe 4
+        stmts.filterIsInstance<Assignment>().size shouldBe 5
     }
 
     test("only substitue assignments with 0 after a =0 initializer if it is the same variable") {

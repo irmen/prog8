@@ -3,7 +3,6 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- use the assignment origin? in codegen? (origin VARINIT)
 - optimize codegen of pipe operator to avoid needless assigns to temp var
 
 

@@ -10,7 +10,6 @@ import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.ast.statements.Assignment
 import prog8.codegen.target.Cx16Target
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
@@ -76,7 +75,7 @@ class TestCompilerOnCharLit: FunSpec({
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
         }
-        val assignInitialValue = decl.nextSibling() as Assignment
+        val assignInitialValue = decl.findInitializer(program)!!
         assignInitialValue.target.identifier!!.nameInSource shouldBe listOf("ch")
         withClue("char literal should have been replaced by ubyte literal") {
             assignInitialValue.value shouldBe instanceOf<NumericLiteralValue>()

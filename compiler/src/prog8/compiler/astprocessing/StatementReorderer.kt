@@ -58,16 +58,9 @@ internal class StatementReorderer(val program: Program,
                             // no need to zero out the special internal returnvalue intermediates.
                             return noModifications
                         }
-                        val nextStmt  = decl.nextSibling()
-                        val nextAssign = nextStmt as? Assignment
-                        if(nextAssign!=null && !nextAssign.isAugmentable) {
-                            val target = nextAssign.target.identifier?.targetStatement(program)
-                            if(target === decl) {
-                                // an initializer assignment for a vardecl is already here
-                                return noModifications
-                            }
-                        }
-                        val nextFor = nextStmt as? ForLoop
+                        if(decl.findInitializer(program)!=null)
+                            return noModifications   // an initializer assignment for a vardecl is already here
+                        val nextFor = decl.nextSibling() as? ForLoop
                         val hasNextForWithThisLoopvar = nextFor?.loopVar?.nameInSource==listOf(decl.name)
                         if (!hasNextForWithThisLoopvar) {
                             // Add assignment to initialize with zero

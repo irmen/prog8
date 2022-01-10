@@ -272,6 +272,12 @@ class VarDecl(val type: VarDeclType,
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
+
+    fun findInitializer(program: Program): Assignment? =
+        (parent as IStatementContainer).statements
+        .asSequence()
+        .filterIsInstance<Assignment>()
+        .singleOrNull { it.origin==AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === this }
 }
 
 class ArrayIndex(var indexExpr: Expression,
@@ -399,6 +405,12 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
 
             return false
         }
+
+    fun initializerFor(program: Program) =
+            if(origin==AssignmentOrigin.VARINIT)
+                target.identifier!!.targetVarDecl(program)
+            else
+                null
 }
 
 data class AssignTarget(var identifier: IdentifierReference?,
