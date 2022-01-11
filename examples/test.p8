@@ -5,42 +5,39 @@
 
 main {
     sub start() {
-        uword ww
-        ubyte bb
+        float fl
+        test_stack.test()
 
-        derp("aaaa")
-        bb = ww==0
-        bb++
-        if ww==0 {
-            bb++
-        }
+        fl = addfloat3(addfloat2(addfloat1(1.234)))
+        floats.print_f(fl)
+        txt.nl()
 
-        sub derp(str name) {
-            txt.print(name)
-        }
+        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
+        floats.print_f(fl)
+        txt.nl()
+        1.234 |> addfloat1
+            |> addfloat2 |> addfloat3 |> floats.print_f
+        txt.nl()
 
-;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
-;        floats.print_f(fl)
-;        txt.nl()
-;        1.234 |> addfloat1
-;            |> addfloat2 |> addfloat3 |> floats.print_f
-;        txt.nl()
-;
-;          9+3 |> assemblything
-;            |> sin8u
-;            |> add_one
-;            |> times_two
-;            |> txt.print_uw
-;        txt.nl()
+        txt.print_uw(times_two(add_one(sin8u(add_one(assemblything(9+3))))))
+        txt.nl()
 
-;        test_stack.test()
-;        uword @shared uw=  9+3 |> assemblything
-;                             |> sin8u
-;                             |> add_one
-;                             |> times_two
-;        txt.print_uw(uw)
-;        txt.nl()
-;        test_stack.test()
+          9+3 |> assemblything
+            |> add_one
+            |> sin8u
+            |> add_one
+            |> times_two
+            |> txt.print_uw
+        txt.nl()
+
+        uword @shared uw=  9+3 |> assemblything
+                             |> add_one
+                             |> sin8u
+                             |> add_one
+                             |> times_two
+        txt.print_uw(uw)
+        txt.nl()
+        test_stack.test()
     }
 
     sub func() -> ubyte {
@@ -65,7 +62,7 @@ main {
     }
 
     sub times_two(ubyte input) -> uword {
-        return input*$6464642
+        return input*$0002
     }
 
     asmsub assemblything(ubyte input @A) clobbers(X,Y) -> ubyte @A {

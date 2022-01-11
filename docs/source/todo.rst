@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- optimize codegen of pipe operator to avoid needless assigns to temp var
+...
 
 
 Need help with
@@ -53,6 +53,7 @@ Future Things and Ideas
 
 More optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters directly from register(s)
 - translateNormalAssignment() -> better code gen for assigning boolean comparison expressions
 - if a for loop's loopvariable isn't referenced in the body, replace by a repeatloop
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning

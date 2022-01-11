@@ -4,14 +4,16 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.*
-import prog8.ast.expressions.*
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.codegen.target.AssemblyError
 import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignSource
 import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignTarget
 import prog8.codegen.target.cpu6502.codegen.assignment.AsmAssignment
 import prog8.codegen.target.cpu6502.codegen.assignment.TargetStorageKind
-import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 
 
@@ -127,45 +129,59 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
     }
 
-    internal fun translateFunctionCall(target: IdentifierReference, args: Iterable<Expression>, scope: Node): DataType {
+    internal fun translateUnaryFunctionCallWithArgSource(target: IdentifierReference, arg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
         when(val targetStmt = target.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
-                val call = FunctionCallExpression(target, args.toMutableList(), scope.position)
-                call.linkParents(scope)
-                val signature = BuiltinFunctions.getValue(targetStmt.name)
-                asmgen.translateBuiltinFunctionCallExpression(call, signature, false, null)
-                return signature.known_returntype!!
-            }
-            is Subroutine -> {
-                val call = FunctionCallExpression(target, args.toMutableList(), scope.position)
-                call.linkParents(scope)
-                translateFunctionCall(call, true)
-                return call.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
-            }
-            else -> throw AssemblyError("invalid call target")
-        }
-    }
-
-    internal fun translateFunctionCallStatement(target: IdentifierReference, args: Iterable<Expression>, scope: Node) {
-        when(val targetStmt = target.targetStatement(program)!!) {
-            is BuiltinFunctionPlaceholder -> {
-                val call = FunctionCallStatement(target, args.toMutableList(), true, scope.position)
-                call.linkParents(scope)
-                val signature = BuiltinFunctions.getValue(targetStmt.name)
-                asmgen.translateBuiltinFunctionCallStatement(call, signature)
-            }
-            is Subroutine -> {
-                if(targetStmt.isAsmSubroutine) {
-                    val call = FunctionCallStatement(target, args.toMutableList(), true, scope.position)
-                    call.linkParents(scope)
-                    translateFunctionCallStatement(call)
+                return if(isStatement) {
+                    asmgen.translateBuiltinFunctionCallStatement(targetStmt.name, listOf(arg), scope)
+                    DataType.UNDEFINED
                 } else {
-                    // have to use manual parameter assignment and jsr, because no codegen for FunctionCallStmt here
-                    val tempVar = args.single()
-                    tempVar.linkParents(scope)
-                    argumentViaVariable(targetStmt, targetStmt.parameters.single(), tempVar)
-                    asmgen.out("  jsr  ${asmgen.asmSymbolName(target)}")
+                    asmgen.translateBuiltinFunctionCallExpression(targetStmt.name, listOf(arg), scope)
                 }
+            }
+            is Subroutine -> {
+                val argDt = targetStmt.parameters.single().type
+                if(targetStmt.isAsmSubroutine) {
+                    // argument via registers
+                    val argRegister = targetStmt.asmParameterRegisters.single().registerOrPair!!
+                    val assignArgument = AsmAssignment(
+                        arg,
+                        AsmAssignTarget.fromRegisters(argRegister, argDt in SignedDatatypes, scope, program, asmgen),
+                        false, program.memsizer, target.position
+                    )
+                    asmgen.translateNormalAssignment(assignArgument)
+                } else {
+                    val assignArgument: AsmAssignment =
+                        if(optimizeIntArgsViaRegisters(targetStmt)) {
+                            // argument goes via registers as optimization
+                            val paramReg: RegisterOrPair = when(argDt) {
+                                in ByteDatatypes -> RegisterOrPair.A
+                                in WordDatatypes -> RegisterOrPair.AY
+                                DataType.FLOAT -> RegisterOrPair.FAC1
+                                else -> throw AssemblyError("invalid dt")
+                            }
+                            AsmAssignment(
+                                arg,
+                                AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, argDt, scope, register = paramReg),
+                                false, program.memsizer, target.position
+                            )
+                        } else {
+                            // arg goes via parameter variable
+                            val argVarName = asmgen.asmVariableName(targetStmt.scopedName + targetStmt.parameters.single().name)
+                            AsmAssignment(
+                                arg,
+                                AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, argDt, scope, argVarName),
+                                false, program.memsizer, target.position
+                            )
+                        }
+                    asmgen.translateNormalAssignment(assignArgument)
+                }
+                if(targetStmt.shouldSaveX())
+                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
+                asmgen.out("  jsr  ${asmgen.asmSymbolName(target)}")
+                if(targetStmt.shouldSaveX())
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+                return if(isStatement) DataType.UNDEFINED else targetStmt.returntypes.single()
             }
             else -> throw AssemblyError("invalid call target")
         }

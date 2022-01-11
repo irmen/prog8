@@ -13,6 +13,7 @@ import prog8.ast.toHex
 import prog8.codegen.target.AssemblyError
 import prog8.codegen.target.Cx16Target
 import prog8.codegen.target.cpu6502.codegen.assignment.*
+import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.FSignature
 import prog8.compilerinterface.subroutineFloatEvalResultVar2
@@ -25,6 +26,36 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
 
     internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FSignature) {
         translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
+    }
+
+    internal fun translateFunctioncall(name: String, args: List<AsmAssignSource>, isStatement: Boolean, scope: Subroutine): DataType {
+        val func = BuiltinFunctions.getValue(name)
+        val argExpressions = args.map { src ->
+            when(src.kind) {
+                SourceStorageKind.LITERALNUMBER -> src.number!!
+                SourceStorageKind.EXPRESSION -> src.expression!!
+                SourceStorageKind.ARRAY -> src.array!!
+                else -> {
+                    // TODO make it so that we can assign efficiently from something else as an expression....namely: register(s)
+                    // but for now, first assign it to a temporary variable
+                    val tempvar = asmgen.getTempVarName(src.datatype)
+                    val assignTempvar = AsmAssignment(
+                        src,
+                        AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, src.datatype, scope, variableAsmName = asmgen.asmVariableName(tempvar)),
+                        false, program.memsizer, Position.DUMMY
+                    )
+                    assignAsmGen.translateNormalAssignment(assignTempvar)
+                    // now use an expression to assign this tempvar
+                    val ident = IdentifierReference(tempvar, Position.DUMMY)
+                    ident.linkParents(scope)
+                    ident
+                }
+            }
+        }.toMutableList()
+        val fcall = FunctionCallExpression(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
+        fcall.linkParents(scope)
+        translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)
+        return if(isStatement) DataType.UNDEFINED else func.known_returntype!!
     }
 
     private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {

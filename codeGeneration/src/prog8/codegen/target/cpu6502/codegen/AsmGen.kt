@@ -957,8 +957,11 @@ class AsmGen(private val program: Program,
     internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
 
-    internal fun translateBuiltinFunctionCallStatement(functionCallStmt: FunctionCallStatement, signature: FSignature) =
-            builtinFunctionsAsmGen.translateFunctioncallStatement(functionCallStmt, signature)
+    internal fun translateBuiltinFunctionCallExpression(name: String, args: List<AsmAssignSource>, scope: Subroutine): DataType =
+            builtinFunctionsAsmGen.translateFunctioncall(name, args, false, scope)
+
+    internal fun translateBuiltinFunctionCallStatement(name: String, args: List<AsmAssignSource>, scope: Subroutine) =
+            builtinFunctionsAsmGen.translateFunctioncall(name, args, true, scope)
 
     internal fun translateFunctionCall(functionCallExpr: FunctionCallExpression, isExpression: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
@@ -1626,13 +1629,14 @@ $label              nop""")
         assemblyLines.add(assembly)
     }
 
-    internal fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair? {
+    internal fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair {
         return when (val targetRoutine = it.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
                 when (BuiltinFunctions.getValue(targetRoutine.name).known_returntype) {
                     in ByteDatatypes -> RegisterOrPair.A
                     in WordDatatypes -> RegisterOrPair.AY
-                    else -> return null
+                    DataType.FLOAT -> RegisterOrPair.FAC1
+                    else -> throw AssemblyError("weird returntype")
                 }
             }
             is Subroutine -> targetRoutine.asmReturnvaluesRegisters.single().registerOrPair!!
@@ -3479,33 +3483,36 @@ $label              nop""")
 
         // TODO more efficient code generation to avoid needless assignments to the temp var
 
-        val subroutine = scope.definingSubroutine
-        var valueDt = expressions.first().inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-        var valueVar = getTempVarName(valueDt)
-        assignExpressionToVariable(expressions.first(), asmVariableName(valueVar), valueDt, subroutine)
+        // the first term: an expression (could be anything) producing a value.
+        val subroutine = scope.definingSubroutine!!
+        val firstTerm = expressions.first()
+        var valueDt = firstTerm.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+        var valueSource: AsmAssignSource =
+            if(firstTerm is IFunctionCall) {
+                val resultReg = returnRegisterOfFunction(firstTerm.target)
+                assignExpressionToRegister(firstTerm, resultReg, valueDt in listOf(DataType.BYTE, DataType.WORD, DataType.FLOAT))
+                AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
+            } else {
+                AsmAssignSource.fromAstSource(firstTerm, program, this)
+            }
+
+        // the 2nd to N-1 terms: unary function calls taking a single param and producing a value.
+        //   directly assign their argument from the previous call's returnvalue.
         expressions.drop(1).dropLast(1).forEach {
-            valueDt = functioncallAsmGen.translateFunctionCall(it as IdentifierReference, listOf(IdentifierReference(valueVar, it.position)), scope)
-            // assign result value from the functioncall back to the temp var:
-            valueVar = getTempVarName(valueDt)
-            val valueVarTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, valueDt, subroutine, variableAsmName = valueVar.joinToString("."))
-            val returnRegister = returnRegisterOfFunction(it)!!
-            assignRegister(returnRegister, valueVarTarget)
+            valueDt = functioncallAsmGen.translateUnaryFunctionCallWithArgSource(it as IdentifierReference, valueSource, false, subroutine)
+            val resultReg = returnRegisterOfFunction(it)
+            valueSource = AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
         }
 
+        // the last term: unary function call taking a single param and optionally producing a result value.
         if(isStatement) {
             // the last term in the pipe, don't care about return var:
-            functioncallAsmGen.translateFunctionCallStatement(
-                expressions.last() as IdentifierReference,
-                listOf(IdentifierReference(valueVar, expressions.last().position)),
-                scope
-            )
+            functioncallAsmGen.translateUnaryFunctionCallWithArgSource(
+                expressions.last() as IdentifierReference, valueSource, true, subroutine)
         } else {
             // the last term in the pipe, regular function call with returnvalue:
-            valueDt = functioncallAsmGen.translateFunctionCall(
-                expressions.last() as IdentifierReference,
-                listOf(IdentifierReference(valueVar, expressions.last().position)),
-                scope
-            )
+            valueDt = functioncallAsmGen.translateUnaryFunctionCallWithArgSource(
+                expressions.last() as IdentifierReference, valueSource, false, subroutine)
             if(pushResultOnEstack) {
                 when (valueDt) {
                     in ByteDatatypes -> {
