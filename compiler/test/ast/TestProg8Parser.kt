@@ -846,4 +846,37 @@ class TestProg8Parser: FunSpec( {
         errors.errors[0] shouldContain "must be an iterable type"
         errors.errors[1] shouldContain "datatype doesn't match"
     }
+
+    test("vardecl options any order okay") {
+        val text="""
+            main {
+                %option force_output
+                sub start() {
+                    ubyte @zp @shared var1
+                    ubyte @shared @zp var2
+                    ubyte @zp var3
+                    ubyte @shared var4
+                    ubyte var5
+                }
+            }
+        """
+        val result = compileText(C64Target,  false, text, writeAssembly = false).assertSuccess()
+        val stmt = result.program.entrypoint.statements
+        stmt.size shouldBe 10
+        val var1 = stmt[0] as VarDecl
+        var1.sharedWithAsm shouldBe true
+        var1.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
+        val var2 = stmt[2] as VarDecl
+        var2.sharedWithAsm shouldBe true
+        var2.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
+        val var3 = stmt[4] as VarDecl
+        var3.sharedWithAsm shouldBe false
+        var3.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
+        val var4 = stmt[6] as VarDecl
+        var4.sharedWithAsm shouldBe true
+        var4.zeropage shouldBe ZeropageWish.DONTCARE
+        val var5 = stmt[8] as VarDecl
+        var5.sharedWithAsm shouldBe false
+        var5.zeropage shouldBe ZeropageWish.DONTCARE
+    }
 })

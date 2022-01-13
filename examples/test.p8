@@ -4,40 +4,53 @@
 %zeropage basicsafe
 
 main {
+    %option force_output
+
     sub start() {
-        float fl
-        test_stack.test()
 
-        fl = addfloat3(addfloat2(addfloat1(1.234)))
-        floats.print_f(fl)
-        txt.nl()
+        ubyte foobar = 2
+        str @shared @zp name = "irmen"
+        ubyte[] @shared @zp array = [1,2,3,4]
 
-        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
-        floats.print_f(fl)
+        txt.print_uwhex(&name, true)
         txt.nl()
-        1.234 |> addfloat1
-            |> addfloat2 |> addfloat3 |> floats.print_f
+        txt.print_uwhex(&name, true)
+        txt.print_ub(foobar)
         txt.nl()
 
-        txt.print_uw(times_two(add_one(sin8u(add_one(assemblything(9+3))))))
-        txt.nl()
-
-          9+3 |> assemblything
-            |> add_one
-            |> sin8u
-            |> add_one
-            |> times_two
-            |> txt.print_uw
-        txt.nl()
-
-        uword @shared uw=  9+3 |> assemblything
-                             |> add_one
-                             |> sin8u
-                             |> add_one
-                             |> times_two
-        txt.print_uw(uw)
-        txt.nl()
-        test_stack.test()
+;        float fl
+;        test_stack.test()
+;
+;        fl = addfloat3(addfloat2(addfloat1(1.234)))
+;        floats.print_f(fl)
+;        txt.nl()
+;
+;        fl =   1.234 |> addfloat1 |> addfloat2 |> addfloat3
+;        floats.print_f(fl)
+;        txt.nl()
+;        1.234 |> addfloat1
+;            |> addfloat2 |> addfloat3 |> floats.print_f
+;        txt.nl()
+;
+;        txt.print_uw(times_two(add_one(sin8u(add_one(assemblything(9+3))))))
+;        txt.nl()
+;
+;          9+3 |> assemblything
+;            |> add_one
+;            |> sin8u
+;            |> add_one
+;            |> times_two
+;            |> txt.print_uw
+;        txt.nl()
+;
+;        uword @shared uw=  9+3 |> assemblything
+;                             |> add_one
+;                             |> sin8u
+;                             |> add_one
+;                             |> times_two
+;        txt.print_uw(uw)
+;        txt.nl()
+;        test_stack.test()
     }
 
     sub func() -> ubyte {

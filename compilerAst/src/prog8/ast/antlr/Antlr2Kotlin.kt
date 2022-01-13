@@ -62,7 +62,7 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
                 vd.varname.text,
                 it.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED()!=null,
+                vd.SHARED().isNotEmpty(),
                 null,
                 it.toPosition()
         )
@@ -79,7 +79,7 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
                 vd.varname.text,
                 cvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED() != null,
+                vd.SHARED().isNotEmpty(),
                 null,
                 cvarinit.toPosition()
         )
@@ -96,7 +96,7 @@ private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
                 vd.varname.text,
                 mvarinit.expression().toAst(),
                 vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED()!=null,
+                vd.SHARED().isNotEmpty(),
                 null,
                 mvarinit.toPosition()
         )
@@ -607,7 +607,7 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(): VarDecl {
             varname.text,
             null,
             ARRAYSIG() != null || arrayindex() != null,
-            SHARED()!=null,
+            SHARED().isNotEmpty(),
             null,
             toPosition()
     )

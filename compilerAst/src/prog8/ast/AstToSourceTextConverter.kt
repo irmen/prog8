@@ -122,6 +122,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
         if(decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
             output(" @zp")
+        if(decl.sharedWithAsm)
+            output(" @shared")
         output(" ${decl.name} ")
         if(decl.value!=null) {
             output("= ")

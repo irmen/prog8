@@ -104,4 +104,15 @@ class TestAstToSourceText: AnnotationSpec() {
         txt shouldContain Regex("ubyte +cAlt += +@'x'")
     }
 
+    @Test
+    fun testVar_withZpAndShared() {
+        val orig = SourceCode.Text("""
+            main {
+                ubyte @shared @zp qq
+            }
+        """)
+        val (txt, _) = roundTrip(parseModule(orig))
+        txt shouldContain Regex("ubyte +@zp +@shared +qq")
+    }
+
 }
