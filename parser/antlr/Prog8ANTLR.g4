@@ -45,13 +45,11 @@ SINGLECHAR :
 	'\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f'] ) '\''
 	;
 
-ZEROPAGE :
-    '@zp'
-    ;
+ZEROPAGE : '@zp' ;
 
-SHARED :
-    '@shared'
-    ;
+ZEROPAGEREQUIRE : '@requirezp' ;
+
+SHARED : '@shared' ;
 
 ARRAYSIG :
     '[]'
@@ -133,7 +131,9 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex | ARRAYSIG)? SHARED? ZEROPAGE? SHARED? varname=identifier ;
+vardecl: datatype (arrayindex | ARRAYSIG)? decloptions varname=identifier ;
+
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE)* ;
 
 varinitializer : vardecl '=' expression ;
 

@@ -1,5 +1,8 @@
 package prog8.compilerinterface
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import prog8.ast.base.*
 
 
@@ -17,8 +20,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     private val allocations = mutableMapOf<UInt, Pair<String, DataType>>()
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
-    val allowedDatatypes = NumericDatatypes
-
     fun removeReservedFromFreePool() {
         for (reserved in options.zpReserved)
             reserve(reserved)
@@ -35,7 +36,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(scopedname: String, datatype: DataType, position: Position?, errors: IErrorReporter): UInt {
+    fun allocate(scopedname: String, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageDepletedError> {
         require(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
@@ -43,49 +44,65 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
         val size: Int =
                 when (datatype) {
-                    in ByteDatatypes -> 1
-                    in WordDatatypes -> 2
+                    in IntegerDatatypes -> options.compTarget.memorySize(datatype)
+                    DataType.STR, in ArrayDatatypes  -> {
+                        val memsize = arraySize!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(datatype))
+                        if(position!=null)
+                            errors.warn("allocating a large value in zeropage; str/array $memsize bytes", position)
+                        else
+                            errors.warn("$scopedname: allocating a large value in zeropage; str/array $memsize bytes", Position.DUMMY)
+                        memsize
+                    }
                     DataType.FLOAT -> {
                         if (options.floats) {
+                            val memsize = options.compTarget.memorySize(DataType.FLOAT)
                             if(position!=null)
-                                errors.warn("allocated a large value (float) in zeropage", position)
+                                errors.warn("allocating a large value in zeropage; float $memsize bytes", position)
                             else
-                                errors.warn("$scopedname: allocated a large value (float) in zeropage", Position.DUMMY)
-                            options.compTarget.machine.FLOAT_MEM_SIZE
+                                errors.warn("$scopedname: allocating a large value in zeropage; float $memsize bytes", Position.DUMMY)
+                            memsize
                         } else throw InternalCompilerException("floating point option not enabled")
                     }
                     else -> throw InternalCompilerException("cannot put datatype $datatype in zeropage")
                 }
 
-        if(free.size > 0) {
-            if(size==1) {
-                for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
-                    if(loneByte(candidate))
-                        return makeAllocation(candidate, 1, datatype, scopedname)
+        synchronized(this) {
+            if(free.size > 0) {
+                if(size==1) {
+                    for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
+                        if(oneSeparateByteFree(candidate))
+                            return Ok(Pair(makeAllocation(candidate, 1, datatype, scopedname), 1))
+                    }
+                    return Ok(Pair(makeAllocation(free[0], 1, datatype, scopedname), 1))
                 }
-                return makeAllocation(free[0], 1, datatype, scopedname)
-            }
-            for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
-                if (sequentialFree(candidate, size))
-                    return makeAllocation(candidate, size, datatype, scopedname)
+                for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
+                    if (sequentialFree(candidate, size))
+                        return Ok(Pair(makeAllocation(candidate, size, datatype, scopedname), size))
+                }
             }
         }
 
-        throw ZeropageDepletedError("ERROR: no free space in ZP to allocate $size sequential bytes")
+        return Err(ZeropageDepletedError("no more free space in ZP to allocate $size sequential bytes"))
     }
 
-    protected fun reserve(range: UIntRange) = free.removeAll(range)
+    private fun reserve(range: UIntRange) = free.removeAll(range)
 
     private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: String?): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
         allocations[address] = (name ?: "<unnamed>") to datatype
+        if(name!=null)
+            allocatedVariables[name] = (address to size) to datatype
         return address
     }
 
-    private fun loneByte(address: UInt) = address in free && address-1u !in free && address+1u !in free
+    private fun oneSeparateByteFree(address: UInt) = address in free && address-1u !in free && address+1u !in free
     private fun sequentialFree(address: UInt, size: Int): Boolean {
         require(size>0)
         return free.containsAll((address until address+size.toUInt()).toList())
     }
+
+    fun allocatedZeropageVariable(scopedname: String): Pair<Pair<UInt, Int>, DataType>? = allocatedVariables[scopedname]
+
+    private val allocatedVariables = mutableMapOf<String, Pair<Pair<UInt, Int>, DataType>>()
 }

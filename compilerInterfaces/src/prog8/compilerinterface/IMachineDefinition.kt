@@ -33,5 +33,4 @@ interface IMachineDefinition {
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
     fun isIOAddress(address: UInt): Boolean
-    fun getPreallocatedZeropageVars(): Map<String, Pair<UInt, DataType>>
 }

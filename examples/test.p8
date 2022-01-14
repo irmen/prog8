@@ -1,38 +1,47 @@
 %import textio
 %import floats
 %import test_stack
-%zeropage basicsafe
+%zeropage floatsafe
 
 main {
     %option force_output
 
     sub start() {
-        uword b1
-        b1 = 'a'
-        b1 = b1=='z'    ; TODO fix code generation!
-        txt.print("should print 0: ")
-        txt.print_ub(b1)
-        txt.nl()
-        b1 = 'a'
-        b1 = b1!='z'    ; TODO fix code generation!
-        txt.print("should print 1: ")
-        txt.print_ub(b1)
-        txt.nl()
 
-;        str text = "???????????"
-;        void txt.input_chars(text)
-;        txt.print("\ninput=")
-;        txt.print(text)
-;        txt.nl()
-;        b1 = text[0]=='z'
-;        txt.print_ub(b1)
-;        txt.nl()
-;
-;        if text[0]=='z' {
-;            txt.print("z!\n")
-;        }
-;
-;        test(text[0]=='z')
+        ubyte @requirezp foobar = 2
+        uword @requirezp foobar2 = 2
+        uword @requirezp foobar3 = 2
+        uword @requirezp foobar4 = 2
+        uword @requirezp foobar5 = 2
+        uword @requirezp foobar6 = 2
+        uword @requirezp foobar7 = 2
+        uword @requirezp foobar8 = 2
+        uword @requirezp foobar9 = 2
+        uword @requirezp foobar10 = 2
+        uword @requirezp foobar11 = 2
+        uword @requirezp foobar12 = 2
+        uword @requirezp foobar13 = 2
+        uword @requirezp foobar14 = 2
+        uword @requirezp foobar15 = 2
+        float @shared @requirezp myfloat=1.23456789
+        str @shared @requirezp name = "irmen"
+        ubyte[] @shared @requirezp array = [1,2,3]
+
+        txt.print(name)
+        txt.nl()
+        txt.print_ub(array[0])
+        txt.spc()
+        txt.print_ub(array[1])
+        txt.spc()
+        txt.print_ub(array[2])
+        txt.nl()
+        txt.print_uwhex(&name, true)
+        txt.nl()
+        txt.print_uwhex(&array, true)
+        txt.nl()
+        txt.print_ub(foobar)
+        txt.nl()
+        floats.print_f(myfloat)
 
 ;        float fl
 ;        test_stack.test()
@@ -67,12 +76,9 @@ main {
 ;        txt.print_uw(uw)
 ;        txt.nl()
 ;        test_stack.test()
-    }
 
-    sub test(ubyte what) {
-        txt.print("test: what=")
-        txt.print_ub(what)
-        txt.nl()
+        repeat {
+        }
     }
 
     sub func() -> ubyte {

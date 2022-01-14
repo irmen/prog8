@@ -201,8 +201,8 @@ Values will usually be part of an expression or assignment statement::
 
 *zeropage tag:*
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
-when selecting variables to put into zero page. If there are enough free locations in the zeropage,
-it will then try to fill it with as much other variables as possible (before they will be put in regular memory pages).
+when selecting variables to put into zero page (but no guarantees). If there are enough free locations in the zeropage,
+it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
 Example::
 
     byte  @zp  zeropageCounter = 42

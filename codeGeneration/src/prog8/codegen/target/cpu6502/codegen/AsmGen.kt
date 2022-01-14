@@ -1,6 +1,7 @@
 package prog8.codegen.target.cpu6502.codegen
 
 import com.github.michaelbull.result.fold
+import com.github.michaelbull.result.onFailure
 import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
@@ -42,7 +43,6 @@ class AsmGen(private val program: Program,
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
-    private val allocatedZeropageVariables = compTarget.machine.getPreallocatedZeropageVars().toMutableMap()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
@@ -69,34 +69,80 @@ class AsmGen(private val program: Program,
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
 
-        for(b in program.allBlocks) {
-            block2asm(b)
-        }
+        allocateAllZeropageVariables()
+        if(errors.noErrors())  {
+            program.allBlocks.forEach { block2asm(it) }
 
-        for(removal in removals.toList()) {
-            removal.second.remove(removal.first)
-            removals.remove(removal)
-        }
-
-        slaballocations()
-        footer()
-
-        val output = outputDir.resolve("${program.name}.asm")
-        if(options.optimize) {
-            val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
-            assemblyLines.clear()
-            while(optimizeAssembly(separateLines, options.compTarget.machine, program)>0) {
-                // optimize the assembly source code
+            for(removal in removals.toList()) {
+                removal.second.remove(removal.first)
+                removals.remove(removal)
             }
-            output.writeLines(separateLines)
-        } else {
-            output.writeLines(assemblyLines)
+
+            slaballocations()
+            footer()
+
+            val output = outputDir.resolve("${program.name}.asm")
+            if(options.optimize) {
+                val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
+                assemblyLines.clear()
+                while(optimizeAssembly(separateLines, options.compTarget.machine, program)>0) {
+                    // optimize the assembly source code
+                }
+                output.writeLines(separateLines)
+            } else {
+                output.writeLines(assemblyLines)
+            }
         }
 
         return if(errors.noErrors())
             AssemblyProgram(true, program.name, outputDir, compTarget.name)
         else {
+            errors.report()
             AssemblyProgram(false, "<error>", outputDir, compTarget.name)
+        }
+    }
+
+    private fun allocateAllZeropageVariables() {
+        if(options.zeropage==ZeropageType.DONTUSE)
+            return
+        val allVariables = this.callGraph.allIdentifiers.asSequence()
+            .map { it.value }
+            .filterIsInstance<VarDecl>()
+            .filter { it.type==VarDeclType.VAR }
+            .toSet()
+            .map { it to it.scopedName.joinToString(".") }
+        val varsRequiringZp = allVariables.filter { it.first.zeropage==ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariables
+            .filter { it.first.zeropage==ZeropageWish.PREFER_ZEROPAGE }
+            .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
+
+        for ((vardecl, scopedname) in varsRequiringZp) {
+            val arraySize: Int? = when(vardecl.datatype) {
+                DataType.STR -> {
+                    (vardecl.value as StringLiteralValue).value.length
+                }
+                in ArrayDatatypes -> {
+                    vardecl.arraysize!!.constIndex()
+                }
+                else -> null
+            }
+            val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
+            result.onFailure { errors.err(it.message!!, vardecl.position) }
+        }
+        if(errors.noErrors()) {
+            varsPreferringZp.forEach { (vardecl, scopedname) ->
+                val arraySize: Int? = when (vardecl.datatype) {
+                    DataType.STR -> {
+                        (vardecl.value as StringLiteralValue).value.length
+                    }
+                    in ArrayDatatypes -> {
+                        vardecl.arraysize!!.constIndex()
+                    }
+                    else -> null
+                }
+                zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
+                //  no need to check for error, if there is one, just allocate in normal system ram later.
+            }
         }
     }
 
@@ -287,23 +333,28 @@ class AsmGen(private val program: Program,
             if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
                 continue       // the "hooks" to the temp vars are not generated as new variables
             val fullName = variable.scopedName.joinToString(".")
-            val zpVar = allocatedZeropageVariables[fullName]
-            if(zpVar==null) {
-                // This var is not on the ZP yet. Attempt to move it there (if it's not a float, those take up too much space)
+            val zpAlloc = zeropage.allocatedZeropageVariable(fullName)
+            if (zpAlloc == null) {
+                // This var is not on the ZP yet. Attempt to move it there if it's an integer type
                 if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
-                        variable.datatype in zeropage.allowedDatatypes
-                        && variable.datatype != DataType.FLOAT
-                        && options.zeropage != ZeropageType.DONTUSE) {
-                    try {
-                        val address = zeropage.allocate(fullName, variable.datatype, null, errors)
-                        errors.report()
-                        out("${variable.name} = $address\t; auto zp ${variable.datatype}")
-                        // make sure we add the var to the set of zpvars for this block
-                        allocatedZeropageVariables[fullName] = address to variable.datatype
-                    } catch (x: ZeropageDepletedError) {
-                        // leave it as it is.
-                    }
+                    variable.datatype in IntegerDatatypes
+                    && options.zeropage != ZeropageType.DONTUSE) {
+                    val result = zeropage.allocate(fullName, variable.datatype, null, null, errors)
+                    errors.report()
+                    result.fold(
+                        success = { address -> out("${variable.name} = $address\t; zp ${variable.datatype}") },
+                        failure = { /* leave it as it is, not on zeropage. */ }
+                    )
                 }
+            } else {
+                // Var has been placed in ZP, just output the address
+                val lenspec = when(zpAlloc.second) {
+                    DataType.FLOAT,
+                    DataType.STR,
+                    in ArrayDatatypes -> " ${zpAlloc.first.second} bytes"
+                    else -> ""
+                }
+                out("${variable.name} = ${zpAlloc.first.first}\t; zp ${variable.datatype} $lenspec")
             }
         }
     }
@@ -339,9 +390,7 @@ class AsmGen(private val program: Program,
                 }
             }
             DataType.STR -> {
-                throw AssemblyError("all string vars should have been interned")
-//                val str = decl.value as StringLiteralValue
-//                outputStringvar(decl, compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte()))
+                throw AssemblyError("all string vars should have been interned into prog")
             }
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(decl)
@@ -431,7 +480,11 @@ class AsmGen(private val program: Program,
 
     private fun vardecls2asm(statements: List<Statement>, inBlock: Block?) {
         out("\n; non-zeropage variables")
-        val vars = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
+        val vars = statements.asSequence()
+            .filterIsInstance<VarDecl>()
+            .filter {
+                it.type==VarDeclType.VAR && zeropage.allocatedZeropageVariable(it.scopedName.joinToString("."))==null
+            }
 
         val encodedstringVars = vars
                 .filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
@@ -448,7 +501,7 @@ class AsmGen(private val program: Program,
 
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
             val scopedname = it.scopedName.joinToString(".")
-            if(scopedname !in allocatedZeropageVariables) {
+            if(!isZpVar(scopedname)) {
                 if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
                     vardecl2asm(it)
             }
@@ -1410,31 +1463,27 @@ $repeatLabel    lda  $counterVar
 
         val counterVar = makeLabel("counter")
         when(dt) {
-            DataType.UBYTE -> {
-                if(zeropage.hasByteAvailable()) {
-                    // allocate count var on ZP
-                    val zpAddr = zeropage.allocate(counterVar, DataType.UBYTE, stmt.position, errors)
-                    asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, zpAddr))
-                } else {
-                    if(mustBeInZeropage)
-                        return null
-                    asmInfo.extraVars.add(Triple(DataType.UBYTE, counterVar, null))
-                }
-            }
-            DataType.UWORD -> {
-                if(zeropage.hasWordAvailable()) {
-                    // allocate count var on ZP
-                    val zpAddr = zeropage.allocate(counterVar, DataType.UWORD, stmt.position, errors)
-                    asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, zpAddr))
-                } else {
-                    if(mustBeInZeropage)
-                        return null
-                    asmInfo.extraVars.add(Triple(DataType.UWORD, counterVar, null))
-                }
+            DataType.UBYTE, DataType.UWORD -> {
+                val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
+                return result.fold(
+                    success = { zpvar ->
+                        asmInfo.extraVars.add(Triple(dt, counterVar, zpvar.first))
+                        counterVar
+                    },
+                    failure = { zpError ->
+                        if(mustBeInZeropage) {
+                            errors.err(zpError.message!!, stmt.position)
+                            null
+                        } else {
+                            // allocate normally
+                            asmInfo.extraVars.add(Triple(dt, counterVar, null))
+                            counterVar
+                        }
+                    }
+                )
             }
             else -> throw AssemblyError("invalidt dt")
         }
-        return counterVar
     }
 
     private fun translate(stmt: When) {
@@ -1689,11 +1738,11 @@ $label              nop""")
     }
 
     internal fun isZpVar(scopedName: String): Boolean =
-        scopedName in allocatedZeropageVariables
+        zeropage.allocatedZeropageVariable(scopedName)!=null
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
-        return vardecl.scopedName.joinToString(".") in allocatedZeropageVariables
+        return zeropage.allocatedZeropageVariable(vardecl.scopedName.joinToString("."))!=null
     }
 
     internal fun jmp(asmLabel: String) {

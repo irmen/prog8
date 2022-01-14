@@ -1,5 +1,6 @@
 package prog8.codegen.target.cpu6502.codegen
 
+import com.github.michaelbull.result.fold
 import prog8.ast.Program
 import prog8.ast.base.ArrayToElementTypes
 import prog8.ast.base.DataType
@@ -289,9 +290,13 @@ $loopLabel          sty  $indexVar
                         beq  $endLabel""")
                 }
                 if(length>=16 && asmgen.zeropage.hasByteAvailable()) {
+                    // TODO don't check for byte avail first, just use allocate and handle error
                     // allocate index var on ZP
-                    val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
-                    asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
+                    val result = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { zpAddr-> asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""") },
+                        failure = { /*TODO regular allocation */}
+                    )
                 } else {
                     asmgen.out("""
 $indexVar           .byte  0""")
@@ -328,9 +333,13 @@ $loopLabel          sty  $indexVar
                         beq  $endLabel""")
                 }
                 if(length>=16 && asmgen.zeropage.hasByteAvailable()) {
+                    // TODO don't check for byte avail first, just use allocate and handle error
                     // allocate index var on ZP
-                    val zpAddr = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, stmt.position, asmgen.errors)
-                    asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""")
+                    val result = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { zpAddr-> asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""") },
+                        failure = { /*TODO regular allocation */}
+                    )
                 } else {
                     asmgen.out("""
 $indexVar           .byte  0""")

@@ -58,7 +58,6 @@ class C128MachineDefinition: IMachineDefinition {
     }
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu
-    override fun getPreallocatedZeropageVars(): Map<String, Pair<UInt, DataType>> = emptyMap()
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = C128Zeropage(compilerOptions)

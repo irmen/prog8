@@ -3,7 +3,11 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+- fix array and string initialization in zeropage
+- fix cx16 zeropage preallocated vars (virtual regs)
+- fix ForloopAsmGen zp allocation handling
+- document check: arrays and strings can also be placed in zeropage (but almost never should, due to size!)
+- document @requirezp and add to syntax def files and IDEA
 
 
 Need help with

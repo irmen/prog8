@@ -852,20 +852,21 @@ class TestProg8Parser: FunSpec( {
             main {
                 %option force_output
                 sub start() {
-                    ubyte @zp @shared var1
+                    ubyte @zp @shared @requirezp var1
                     ubyte @shared @zp var2
                     ubyte @zp var3
                     ubyte @shared var4
-                    ubyte var5
+                    ubyte @requirezp var5
+                    ubyte var6
                 }
             }
         """
         val result = compileText(C64Target,  false, text, writeAssembly = false).assertSuccess()
         val stmt = result.program.entrypoint.statements
-        stmt.size shouldBe 10
+        stmt.size shouldBe 12
         val var1 = stmt[0] as VarDecl
         var1.sharedWithAsm shouldBe true
-        var1.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
+        var1.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
         val var2 = stmt[2] as VarDecl
         var2.sharedWithAsm shouldBe true
         var2.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
@@ -877,6 +878,9 @@ class TestProg8Parser: FunSpec( {
         var4.zeropage shouldBe ZeropageWish.DONTCARE
         val var5 = stmt[8] as VarDecl
         var5.sharedWithAsm shouldBe false
-        var5.zeropage shouldBe ZeropageWish.DONTCARE
+        var5.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
+        val var6 = stmt[10] as VarDecl
+        var6.sharedWithAsm shouldBe false
+        var6.zeropage shouldBe ZeropageWish.DONTCARE
     }
 })

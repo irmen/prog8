@@ -266,7 +266,8 @@ Variables should be declared with their exact type and size so the compiler can 
 for them. You can give them an initial value as well. That value can be a simple literal value,
 or an expression. If you don't provide an intial value yourself, zero will be used.
 You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
-when selecting variables to be put into zeropage.
+when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
+the variable will be allocated in normal memory elsewhere.
 You can add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
 with some assembly code and that it should not be optimized away if not used elsewhere.
 The syntax is::

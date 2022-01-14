@@ -1,5 +1,10 @@
 package prog8tests
 
+import com.github.michaelbull.result.expect
+import com.github.michaelbull.result.get
+import com.github.michaelbull.result.getOrElse
+import com.github.michaelbull.result.onFailure
+import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -89,26 +94,29 @@ class TestC64Zeropage: FunSpec({
     test("testNames") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
 
-        zp.allocate("", DataType.UBYTE, null, errors)
-        zp.allocate("", DataType.UBYTE, null, errors)
-        zp.allocate("varname", DataType.UBYTE, null, errors)
-        shouldThrow<IllegalArgumentException> {
-            zp.allocate("varname", DataType.UBYTE, null, errors)
-        }
-        zp.allocate("varname2", DataType.UBYTE, null, errors)
+        var result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        result.onFailure { fail(it.toString()) }
+        result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        result.onFailure { fail(it.toString()) }
+        result = zp.allocate("varname", DataType.UBYTE, null, null, errors)
+        result.onFailure { fail(it.toString()) }
+        result = zp.allocate("varname", DataType.UBYTE, null, null, errors)
+        result.onFailure { fail(it.toString()) }    // TODO SHOULD ACTUALLY BE ERROR
+        result = zp.allocate("varname2", DataType.UBYTE, null, null, errors)
+        result.onFailure { fail(it.toString()) }
     }
 
     test("testZpFloatEnable") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         shouldThrow<InternalCompilerException> {
-            zp.allocate("", DataType.FLOAT, null, errors)
+            zp.allocate("", DataType.FLOAT, null, null, errors)
         }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, C64Target))
         shouldThrow<InternalCompilerException> {
-            zp2.allocate("", DataType.FLOAT, null, errors)
+            zp2.allocate("", DataType.FLOAT, null, null, errors)
         }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
-        zp3.allocate("", DataType.FLOAT, null, errors)
+        zp3.allocate("", DataType.FLOAT, null, null, errors)
     }
 
     test("testZpModesWithFloats") {
@@ -131,7 +139,7 @@ class TestC64Zeropage: FunSpec({
         println(zp.free)
         zp.availableBytes() shouldBe 0
         shouldThrow<InternalCompilerException> {
-            zp.allocate("", DataType.BYTE, null, errors)
+            zp.allocate("", DataType.BYTE, null, null, errors)
         }
     }
 
@@ -144,9 +152,9 @@ class TestC64Zeropage: FunSpec({
         zp3.availableBytes() shouldBe 125
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         zp4.availableBytes() shouldBe 239
-        zp4.allocate("test", DataType.UBYTE, null, errors)
+        zp4.allocate("test", DataType.UBYTE, null, null, errors)
         zp4.availableBytes() shouldBe 238
-        zp4.allocate("test2", DataType.UBYTE, null, errors)
+        zp4.allocate("test2", DataType.UBYTE, null, null, errors)
         zp4.availableBytes() shouldBe 237
     }
 
@@ -179,21 +187,21 @@ class TestC64Zeropage: FunSpec({
 
         shouldThrow<ZeropageDepletedError> {
             // in regular zp there aren't 5 sequential bytes free
-            zp.allocate("", DataType.FLOAT, null, errors)
+            zp.allocate("", DataType.FLOAT, null, null, errors)
         }
 
         for (i in 0 until zp.availableBytes()) {
-            val loc = zp.allocate("", DataType.UBYTE, null, errors)
-            loc shouldBeGreaterThan 0u
+            val result = zp.allocate("", DataType.UBYTE, null, null, errors)
+            result.getOrElse { throw it }
         }
         zp.availableBytes() shouldBe 0
         zp.hasByteAvailable() shouldBe false
         zp.hasWordAvailable() shouldBe false
         shouldThrow<ZeropageDepletedError> {
-            zp.allocate("", DataType.UBYTE, null, errors)
+            zp.allocate("", DataType.UBYTE, null, null, errors)
         }
         shouldThrow<ZeropageDepletedError> {
-            zp.allocate("", DataType.UWORD, null, errors)
+            zp.allocate("", DataType.UWORD, null, null, errors)
         }
     }
 
@@ -202,23 +210,24 @@ class TestC64Zeropage: FunSpec({
         zp.availableBytes() shouldBe 239
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
-        val loc = zp.allocate("", DataType.UWORD, null, errors)
+        val result = zp.allocate("", DataType.UWORD, null, null, errors)
+        val loc = result.getOrElse { throw it } .first
         loc shouldBeGreaterThan 3u
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
 
         for(i in 0..num-3) {
-            zp.allocate("", DataType.UWORD, null, errors)
+            zp.allocate("", DataType.UWORD, null, null, errors)
         }
         zp.availableBytes() shouldBe 5
 
         shouldThrow<ZeropageDepletedError> {
             // can't allocate because no more sequential bytes, only fragmented
-            zp.allocate("", DataType.UWORD, null, errors)
+            zp.allocate("", DataType.UWORD, null, null, errors)
         }
 
         for(i in 0..4) {
-            zp.allocate("", DataType.UBYTE, null, errors)
+            zp.allocate("", DataType.UBYTE, null, null, errors)
         }
 
         zp.availableBytes() shouldBe 0
@@ -226,25 +235,25 @@ class TestC64Zeropage: FunSpec({
         zp.hasWordAvailable() shouldBe false
         shouldThrow<ZeropageDepletedError> {
             // no more space
-            zp.allocate("", DataType.UBYTE, null, errors)
+            zp.allocate("", DataType.UBYTE, null, null, errors)
         }
     }
 
     test("testEfficientAllocation") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, C64Target))
         zp.availableBytes() shouldBe 18
-        zp.allocate("", DataType.WORD, null, errors) shouldBe 0x04u
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x06u
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0au
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9bu
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0x9eu
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xa5u
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xb0u
-        zp.allocate("", DataType.UWORD, null, errors) shouldBe 0xbeu
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x0eu
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x92u
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0x96u
-        zp.allocate("", DataType.UBYTE, null, errors) shouldBe 0xf9u
+        zp.allocate("", DataType.WORD, null, null, errors) shouldBe 0x04u
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0x06u
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0x0au
+        zp.allocate("", DataType.UWORD, null, null, errors) shouldBe 0x9bu
+        zp.allocate("", DataType.UWORD, null, null, errors) shouldBe 0x9eu
+        zp.allocate("", DataType.UWORD, null, null, errors) shouldBe 0xa5u
+        zp.allocate("", DataType.UWORD, null, null, errors) shouldBe 0xb0u
+        zp.allocate("", DataType.UWORD, null, null, errors) shouldBe 0xbeu
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0x0eu
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0x92u
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0x96u
+        zp.allocate("", DataType.UBYTE, null, null, errors) shouldBe 0xf9u
         zp.availableBytes() shouldBe 0
     }
 
@@ -274,9 +283,9 @@ class TestCx16Zeropage: FunSpec({
         zp2.availableBytes() shouldBe 175
         val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
         zp3.availableBytes() shouldBe 216
-        zp3.allocate("test", DataType.UBYTE, null, errors)
+        zp3.allocate("test", DataType.UBYTE, null, null, errors)
         zp3.availableBytes() shouldBe 215
-        zp3.allocate("test2", DataType.UBYTE, null, errors)
+        zp3.allocate("test2", DataType.UBYTE, null, null, errors)
         zp3.availableBytes() shouldBe 214
     }
 

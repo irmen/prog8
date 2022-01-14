@@ -523,14 +523,6 @@ internal class AstChecker(private val program: Program,
                 err("const modifier can only be used on numeric types (byte, word, float)")
         }
 
-        // @zp can only occur on integers
-        if(decl.datatype !in IntegerDatatypes) {
-            if(decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)
-                errors.warn("this datatype can't be placed in zeropage", decl.position)
-            if(decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
-                errors.err("this datatype can't be placed in zeropage", decl.position)
-        }
-
         // FLOATS enabled?
         if(!compilerOptions.floats && decl.datatype.oneOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")

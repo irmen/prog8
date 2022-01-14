@@ -23,6 +23,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         visit(program)
     }
 
+    val allIdentifiers: Map<Pair<IdentifierReference, Position>, Statement> = allIdentifiersAndTargets
+
     private val usedSubroutines: Set<Subroutine> by lazy {
         calledBy.keys + program.entrypoint
     }

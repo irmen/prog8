@@ -50,56 +50,22 @@ private fun Prog8ANTLRParser.Statement_blockContext.toAst(): MutableList<Stateme
         statement().asSequence().map { it.toAst() }.toMutableList()
 
 private fun Prog8ANTLRParser.VariabledeclarationContext.toAst() : Statement {
-    vardecl()?.let { return it.toAst() }
+    vardecl()?.let {
+        return it.toAst(VarDeclType.VAR, null)
+    }
 
     varinitializer()?.let {
-        val vd = it.vardecl()
-        return VarDecl(
-                VarDeclType.VAR, VarDeclOrigin.USERCODE,
-                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
-                if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(),
-                vd.varname.text,
-                it.expression().toAst(),
-                vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED().isNotEmpty(),
-                null,
-                it.toPosition()
-        )
+        return it.vardecl().toAst(VarDeclType.VAR, it.expression().toAst())
     }
 
     constdecl()?.let {
         val cvarinit = it.varinitializer()
-        val vd = cvarinit.vardecl()
-        return VarDecl(
-                VarDeclType.CONST, VarDeclOrigin.USERCODE,
-                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
-                if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(),
-                vd.varname.text,
-                cvarinit.expression().toAst(),
-                vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED().isNotEmpty(),
-                null,
-                cvarinit.toPosition()
-        )
+        return cvarinit.vardecl().toAst(VarDeclType.CONST, cvarinit.expression().toAst())
     }
 
     memoryvardecl()?.let {
         val mvarinit = it.varinitializer()
-        val vd = mvarinit.vardecl()
-        return VarDecl(
-                VarDeclType.MEMORY, VarDeclOrigin.USERCODE,
-                vd.datatype()?.toAst() ?: DataType.UNDEFINED,
-                if (vd.ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
-                vd.arrayindex()?.toAst(),
-                vd.varname.text,
-                mvarinit.expression().toAst(),
-                vd.ARRAYSIG() != null || vd.arrayindex() != null,
-                vd.SHARED().isNotEmpty(),
-                null,
-                mvarinit.toPosition()
-        )
+        return mvarinit.vardecl().toAst(VarDeclType.MEMORY, mvarinit.expression().toAst())
     }
 
     throw FatalAstException("weird variable decl $this")
@@ -598,16 +564,23 @@ private fun Prog8ANTLRParser.When_choiceContext.toAst(): WhenChoice {
     return WhenChoice(values?.toMutableList(), scope, toPosition())
 }
 
-private fun Prog8ANTLRParser.VardeclContext.toAst(): VarDecl {
+private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
+    val options = decloptions()
+    val zp = when {
+        options.ZEROPAGEREQUIRE().isNotEmpty() -> ZeropageWish.REQUIRE_ZEROPAGE
+        options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
+        else -> ZeropageWish.DONTCARE
+    }
+    val shared = options.SHARED().isNotEmpty()
     return VarDecl(
-            VarDeclType.VAR, VarDeclOrigin.USERCODE,
+            type, VarDeclOrigin.USERCODE,
             datatype()?.toAst() ?: DataType.UNDEFINED,
-            if(ZEROPAGE() != null) ZeropageWish.PREFER_ZEROPAGE else ZeropageWish.DONTCARE,
+            zp,
             arrayindex()?.toAst(),
             varname.text,
-            null,
+            value,
             ARRAYSIG() != null || arrayindex() != null,
-            SHARED().isNotEmpty(),
+            shared,
             null,
             toPosition()
     )
