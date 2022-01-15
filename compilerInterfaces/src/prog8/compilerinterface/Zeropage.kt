@@ -6,7 +6,7 @@ import com.github.michaelbull.result.Result
 import prog8.ast.base.*
 
 
-class ZeropageDepletedError(message: String) : Exception(message)
+class ZeropageAllocationError(message: String) : Exception(message)
 
 
 abstract class Zeropage(protected val options: CompilationOptions) {
@@ -36,11 +36,11 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(scopedname: String, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageDepletedError> {
+    fun allocate(scopedname: String, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
         require(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
-            throw InternalCompilerException("zero page usage has been disabled")
+            return Err(ZeropageAllocationError("zero page usage has been disabled"))
 
         val size: Int =
                 when (datatype) {
@@ -61,9 +61,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             else
                                 errors.warn("$scopedname: allocating a large value in zeropage; float $memsize bytes", Position.DUMMY)
                             memsize
-                        } else throw InternalCompilerException("floating point option not enabled")
+                        } else return Err(ZeropageAllocationError("floating point option not enabled"))
                     }
-                    else -> throw InternalCompilerException("cannot put datatype $datatype in zeropage")
+                    else -> return Err(ZeropageAllocationError("cannot put datatype $datatype in zeropage"))
                 }
 
         synchronized(this) {
@@ -82,7 +82,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
             }
         }
 
-        return Err(ZeropageDepletedError("no more free space in ZP to allocate $size sequential bytes"))
+        return Err(ZeropageAllocationError("no more free space in ZP to allocate $size sequential bytes"))
     }
 
     private fun reserve(range: UIntRange) = free.removeAll(range)

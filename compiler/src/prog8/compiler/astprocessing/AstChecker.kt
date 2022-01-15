@@ -1311,12 +1311,21 @@ internal class AstChecker(private val program: Program,
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteralValue) : Boolean {
         return if (targetDt == DataType.STR) {
-            if (value.value.length > 255) {
-                errors.err("string length must be 0-255", value.position)
-                false
+            when {
+                value.value.length > 255 -> {
+                    errors.err("string length must be 0-255", value.position)
+                    false
+                }
+                value.value.isEmpty() -> {
+                    val decl = value.parent as? VarDecl
+                    if(decl!=null && (decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage==ZeropageWish.PREFER_ZEROPAGE)) {
+                        errors.err("string in Zeropage must be non-empty", value.position)
+                        false
+                    }
+                    else true
+                }
+                else -> true
             }
-            else
-                true
         }
         else false
     }

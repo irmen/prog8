@@ -1465,22 +1465,11 @@ $repeatLabel    lda  $counterVar
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
                 val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
-                return result.fold(
-                    success = { zpvar ->
-                        asmInfo.extraVars.add(Triple(dt, counterVar, zpvar.first))
-                        counterVar
-                    },
-                    failure = { zpError ->
-                        if(mustBeInZeropage) {
-                            errors.err(zpError.message!!, stmt.position)
-                            null
-                        } else {
-                            // allocate normally
-                            asmInfo.extraVars.add(Triple(dt, counterVar, null))
-                            counterVar
-                        }
-                    }
+                result.fold(
+                    success = { zpvar -> asmInfo.extraVars.add(Triple(dt, counterVar, zpvar.first)) },
+                    failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
                 )
+                return counterVar
             }
             else -> throw AssemblyError("invalidt dt")
         }
