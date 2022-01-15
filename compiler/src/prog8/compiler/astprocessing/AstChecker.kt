@@ -676,6 +676,8 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur at module level")
                 if(directive.args.size!=2 || directive.args[0].int==null || directive.args[1].int==null)
                     err("requires two addresses (start, end)")
+                if(directive.args[0].int!! > 255u || directive.args[1].int!! > 255u)
+                    err("start and end addresss must be in Zeropage so 0..255")
             }
             "%address" -> {
                 if(directive.parent !is Module)

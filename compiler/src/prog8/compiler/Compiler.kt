@@ -235,6 +235,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         .asSequence()
         .filter { it is Directive && it.directive == "%zpreserved" }
         .map { (it as Directive).args }
+        .filter { it.size==2 && it[0].int!=null && it[1].int!=null }
         .map { it[0].int!!..it[1].int!! }
         .toList()
 
