@@ -44,7 +44,7 @@ syn region prog8ArrayType matchgroup=prog8Type
             \ start="\<\%(u\?byte\|u\?word\|float\|str\)\[" end="\]"
             \ transparent
 syn keyword prog8StorageClass const
-syn match prog8StorageClass "\(^\|\s\)\(@zp\|@shared\)\>"
+syn match prog8StorageClass "\(^\|\s\)\(@zp\|@shared\|@requirezp\)\>"
 
 syn region prog8Block start="{" end="}" transparent
 syn region prog8Expression start="(" end=")" transparent
