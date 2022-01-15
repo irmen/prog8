@@ -11,6 +11,7 @@ import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.collections.shouldNotBeIn
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.ast.base.DataType
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
@@ -286,5 +287,16 @@ class TestCx16Zeropage: FunSpec({
         0xffu shouldBeIn zp1.free
         0x02u shouldNotBeIn zp1.free
         0x21u shouldNotBeIn zp1.free
+    }
+
+    test("preallocated zp vars") {
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
+        zp1.allocatedZeropageVariable("test") shouldBe null
+        zp1.allocatedZeropageVariable("cx16.r0") shouldNotBe null
+        zp1.allocatedZeropageVariable("cx16.r15") shouldNotBe null
+        zp1.allocatedZeropageVariable("cx16.r0L") shouldNotBe null
+        zp1.allocatedZeropageVariable("cx16.r15L") shouldNotBe null
+        zp1.allocatedZeropageVariable("cx16.r0sH") shouldNotBe null
+        zp1.allocatedZeropageVariable("cx16.r15sH") shouldNotBe null
     }
 })

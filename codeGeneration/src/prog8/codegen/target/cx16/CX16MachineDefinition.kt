@@ -68,21 +68,6 @@ class CX16MachineDefinition: IMachineDefinition {
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0x9f00u..0x9fffu
 
-
-    // TODO integrate this in the internal list of allocated zp variables:
-//    override fun getPreallocatedZeropageVars(): Map<String, Pair<UInt, DataType>> {
-//        val vars = mutableMapOf<String, Pair<UInt, DataType>>()
-//        for(reg in 0..15) {
-//            vars["cx16.r${reg}"] = (2+reg*2).toUInt() to DataType.UWORD        // cx16.r0 .. cx16.r15
-//            vars["cx16.r${reg}s"] = (2+reg*2).toUInt() to DataType.WORD        // cx16.r0s .. cx16.r15s
-//            vars["cx16.r${reg}L"] = (2+reg*2).toUInt() to DataType.UBYTE       // cx16.r0L .. cx16.r15L
-//            vars["cx16.r${reg}H"] = (3+reg*2).toUInt() to DataType.UBYTE       // cx16.r0H .. cx16.r15H
-//            vars["cx16.r${reg}sL"] = (2+reg*2).toUInt() to DataType.BYTE       // cx16.r0sL .. cx16.r15sL
-//            vars["cx16.r${reg}sH"] = (3+reg*2).toUInt() to DataType.BYTE       // cx16.r0sH .. cx16.r15sH
-//        }
-//        return vars
-//    }
-
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)
     }

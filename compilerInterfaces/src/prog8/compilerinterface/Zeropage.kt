@@ -104,5 +104,5 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     fun allocatedZeropageVariable(scopedname: String): Pair<Pair<UInt, Int>, DataType>? = allocatedVariables[scopedname]
 
-    private val allocatedVariables = mutableMapOf<String, Pair<Pair<UInt, Int>, DataType>>()
+    protected val allocatedVariables = mutableMapOf<String, Pair<Pair<UInt, Int>, DataType>>()
 }
