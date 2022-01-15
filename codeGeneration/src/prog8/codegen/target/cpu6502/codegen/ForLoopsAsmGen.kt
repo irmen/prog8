@@ -289,17 +289,15 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16 && asmgen.zeropage.hasByteAvailable()) {
-                    // TODO don't check for byte avail first, just use allocate and handle error
-                    // allocate index var on ZP
+                if(length>=16) {
+                    // allocate index var on ZP if possible
                     val result = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { zpAddr-> asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""") },
-                        failure = { /*TODO regular allocation */}
+                        failure = { asmgen.out("$indexVar    .byte  0") }
                     )
                 } else {
-                    asmgen.out("""
-$indexVar           .byte  0""")
+                    asmgen.out("$indexVar    .byte  0")
                 }
                 asmgen.out(endLabel)
             }
@@ -332,17 +330,15 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16 && asmgen.zeropage.hasByteAvailable()) {
-                    // TODO don't check for byte avail first, just use allocate and handle error
-                    // allocate index var on ZP
+                if(length>=16) {
+                    // allocate index var on ZP if possible
                     val result = asmgen.zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { zpAddr-> asmgen.out("""$indexVar = $zpAddr  ; auto zp UBYTE""") },
-                        failure = { /*TODO regular allocation */}
+                        failure = { asmgen.out("$indexVar    .byte  0") }
                     )
                 } else {
-                    asmgen.out("""
-$indexVar           .byte  0""")
+                    asmgen.out("$indexVar    .byte  0")
                 }
                 asmgen.out(endLabel)
             }
