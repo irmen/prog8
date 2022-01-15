@@ -97,6 +97,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
             "peekw" -> funcPeekW(fcall, resultToStack, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
+            "pokemon" -> { /* meme function */ }
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "push", "pushw" -> funcPush(fcall, func)
             "pop", "popw" -> funcPop(fcall, func)

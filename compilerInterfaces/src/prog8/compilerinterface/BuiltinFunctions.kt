@@ -141,6 +141,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UBYTE),
     FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
     FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
+    FSignature("pokemon"     , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
     FSignature("pokew"       , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UWORD))), null),
     FSignature("pop"         , false, listOf(FParam("target", ByteDatatypes)), null),
     FSignature("popw"        , false, listOf(FParam("target", WordDatatypes)), null),

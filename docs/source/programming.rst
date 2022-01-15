@@ -896,6 +896,10 @@ poke(address, value)
 pokew(address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
+pokemon(address, value)
+    Attempts to write a byte to a ROM at a location in machine language monitor bank.
+    Doesn't have anything to do with a certain video game.
+
 push(value)
     pushes a byte value on the CPU hardware stack. Lowlevel function that should normally not be used.
 
