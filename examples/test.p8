@@ -7,6 +7,7 @@ main {
     %option force_output
 
     sub start() {
+        test_stack.test()
 
         ubyte @requirezp foobar = 2
         uword @requirezp foobar2 = 2
@@ -25,6 +26,7 @@ main {
         uword @requirezp foobar15 = 2
         float @shared @requirezp myfloat=1.23456789
         str @shared @requirezp name = "irmen"
+        str @shared name2 = "hello"
         ubyte[] @shared @requirezp array = [1,2,3]
 
         txt.print(name)
@@ -75,8 +77,8 @@ main {
 ;                             |> times_two
 ;        txt.print_uw(uw)
 ;        txt.nl()
-;        test_stack.test()
 
+        test_stack.test()
         repeat {
         }
     }

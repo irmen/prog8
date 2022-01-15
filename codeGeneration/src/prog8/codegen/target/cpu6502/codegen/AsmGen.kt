@@ -1,7 +1,7 @@
 package prog8.codegen.target.cpu6502.codegen
 
 import com.github.michaelbull.result.fold
-import com.github.michaelbull.result.onFailure
+import com.github.michaelbull.result.onSuccess
 import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
@@ -102,6 +102,8 @@ class AsmGen(private val program: Program,
         }
     }
 
+    private val varsInZeropage = mutableSetOf<VarDecl>()
+
     private fun allocateAllZeropageVariables() {
         if(options.zeropage==ZeropageType.DONTUSE)
             return
@@ -127,7 +129,10 @@ class AsmGen(private val program: Program,
                 else -> null
             }
             val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
-            result.onFailure { errors.err(it.message!!, vardecl.position) }
+            result.fold(
+                success = { varsInZeropage.add(vardecl) },
+                failure = { errors.err(it.message!!, vardecl.position) }
+            )
         }
         if(errors.noErrors()) {
             varsPreferringZp.forEach { (vardecl, scopedname) ->
@@ -140,7 +145,8 @@ class AsmGen(private val program: Program,
                     }
                     else -> null
                 }
-                zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
+                val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
+                result.onSuccess { varsInZeropage.add(vardecl) }
                 //  no need to check for error, if there is one, just allocate in normal system ram later.
             }
         }
@@ -359,8 +365,8 @@ class AsmGen(private val program: Program,
         }
     }
 
-    private fun vardecl2asm(decl: VarDecl) {
-        val name = decl.name
+    private fun vardecl2asm(decl: VarDecl, nameOverride: String?=null) {
+        val name = nameOverride ?: decl.name
         val value = decl.value
         val staticValue: Number =
             if(value!=null) {
@@ -486,15 +492,8 @@ class AsmGen(private val program: Program,
                 it.type==VarDeclType.VAR && zeropage.allocatedZeropageVariable(it.scopedName)==null
             }
 
-        val encodedstringVars = vars
-                .filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
-                .map {
-                    val str = it.value as StringLiteralValue
-                    it to compTarget.encodeString(str.value, str.altEncoding).plus(0.toUByte())
-                }
-        for((decl, variables) in encodedstringVars) {
-            outputStringvar(decl, variables)
-        }
+        vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
+            .forEach { outputStringvar(it) }
 
         // non-string variables
         val blockname = inBlock?.name
@@ -518,10 +517,12 @@ class AsmGen(private val program: Program,
         return !onlyInMemoryFuncs
     }
 
-    private fun outputStringvar(strdecl: VarDecl, bytes: List<UByte>) {
+    private fun outputStringvar(strdecl: VarDecl, nameOverride: String?=null) {
+        val varname = nameOverride ?: strdecl.name
         val sv = strdecl.value as StringLiteralValue
         val altEncoding = if(sv.altEncoding) "@" else ""
-        out("${strdecl.name}\t; ${strdecl.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
+        out("$varname\t; ${strdecl.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
+        val bytes = compTarget.encodeString(sv.value, sv.altEncoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             out("  .byte  " + chunk.joinToString())
@@ -1118,22 +1119,8 @@ class AsmGen(private val program: Program,
             memdefs2asm(sub.statements, null)
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
-            if(sub.name=="start" && sub.definingBlock.name=="main") {
-                out("; program startup initialization")
-                out("  cld")
-                if(!options.dontReinitGlobals) {
-                    blockVariableInitializers.forEach {
-                        if (it.value.isNotEmpty())
-                            out("  jsr  ${it.key.name}.prog8_init_vars")
-                    }
-                }
-                out("""
-                    tsx
-                    stx  prog8_lib.orig_stackpointer    ; required for sys.exit()                    
-                    ldx  #255       ; init estack ptr
-                    clv
-                    clc""")
-            }
+            if(sub.name=="start" && sub.definingBlock.name=="main")
+                entrypointInitialization()
 
             if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
                 out("; simple int arg(s) passed via register(s)")
@@ -1189,6 +1176,63 @@ class AsmGen(private val program: Program,
             vardecls2asm(sub.statements, null)
             out("  .pend\n")
         }
+    }
+
+    private fun entrypointInitialization() {
+        out("; program startup initialization")
+        out("  cld")
+        if(!options.dontReinitGlobals) {
+            blockVariableInitializers.forEach {
+                if (it.value.isNotEmpty())
+                    out("  jsr  ${it.key.name}.prog8_init_vars")
+            }
+        }
+
+        // string and array variables in zeropage that have initializer value, should be initialized
+        val stringVarsInZp = varsInZeropage.filter { it.datatype==DataType.STR && it.value!=null }
+        val arrayVarsInZp = varsInZeropage.filter { it.datatype in ArrayDatatypes && it.value!=null }
+        if(stringVarsInZp.isNotEmpty() || arrayVarsInZp.isNotEmpty()) {
+            out("; zp str and array initializations")
+            stringVarsInZp.forEach {
+                out("""
+                    lda  #<${it.name}
+                    ldy  #>${it.name}
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<${it.name}_init_value
+                    ldy  #>${it.name}_init_value
+                    jsr  prog8_lib.strcpy""")
+            }
+            arrayVarsInZp.forEach {
+                val numelements = (it.value as ArrayLiteralValue).value.size
+                out("""
+                    lda  #<${it.name}_init_value
+                    ldy  #>${it.name}_init_value
+                    sta  cx16.r0L
+                    sty  cx16.r0H
+                    lda  #<${it.name}
+                    ldy  #>${it.name}
+                    sta  cx16.r1L
+                    sty  cx16.r1H
+                    lda  #<$numelements
+                    ldy  #>$numelements
+                    jsr  sys.memcopy""")
+            }
+            out("  jmp  +")
+        }
+
+        stringVarsInZp.forEach {
+            outputStringvar(it, it.name+"_init_value")
+        }
+        arrayVarsInZp.forEach {
+            vardecl2asm(it, it.name+"_init_value")
+        }
+
+        out("""+       tsx
+                    stx  prog8_lib.orig_stackpointer    ; required for sys.exit()                    
+                    ldx  #255       ; init estack ptr
+                    clv
+                    clc""")
     }
 
     private fun branchInstruction(condition: BranchCondition, complement: Boolean) =
