@@ -110,7 +110,7 @@ class AsmGen(private val program: Program,
             .filterIsInstance<VarDecl>()
             .filter { it.type==VarDeclType.VAR }
             .toSet()
-            .map { it to it.scopedName.joinToString(".") }
+            .map { it to it.scopedName }
         val varsRequiringZp = allVariables.filter { it.first.zeropage==ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables
             .filter { it.first.zeropage==ZeropageWish.PREFER_ZEROPAGE }
@@ -332,14 +332,14 @@ class AsmGen(private val program: Program,
         for(variable in variables) {
             if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
                 continue       // the "hooks" to the temp vars are not generated as new variables
-            val fullName = variable.scopedName.joinToString(".")
-            val zpAlloc = zeropage.allocatedZeropageVariable(fullName)
+            val scopedName = variable.scopedName
+            val zpAlloc = zeropage.allocatedZeropageVariable(scopedName)
             if (zpAlloc == null) {
                 // This var is not on the ZP yet. Attempt to move it there if it's an integer type
                 if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
                     variable.datatype in IntegerDatatypes
                     && options.zeropage != ZeropageType.DONTUSE) {
-                    val result = zeropage.allocate(fullName, variable.datatype, null, null, errors)
+                    val result = zeropage.allocate(scopedName, variable.datatype, null, null, errors)
                     errors.report()
                     result.fold(
                         success = { address -> out("${variable.name} = $address\t; zp ${variable.datatype}") },
@@ -483,7 +483,7 @@ class AsmGen(private val program: Program,
         val vars = statements.asSequence()
             .filterIsInstance<VarDecl>()
             .filter {
-                it.type==VarDeclType.VAR && zeropage.allocatedZeropageVariable(it.scopedName.joinToString("."))==null
+                it.type==VarDeclType.VAR && zeropage.allocatedZeropageVariable(it.scopedName)==null
             }
 
         val encodedstringVars = vars
@@ -500,8 +500,7 @@ class AsmGen(private val program: Program,
         val blockname = inBlock?.name
 
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            val scopedname = it.scopedName.joinToString(".")
-            if(!isZpVar(scopedname)) {
+            if(!isZpVar(it.scopedName)) {
                 if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
                     vardecl2asm(it)
             }
@@ -689,9 +688,8 @@ class AsmGen(private val program: Program,
             }
             is VarDecl -> {
                 val sourceName = asmVariableName(pointervar)
-                val scopedName = target.scopedName.joinToString(".")
                 if (isTargetCpu(CpuType.CPU65c02)) {
-                    return if (isZpVar(scopedName)) {
+                    return if (isZpVar(target.scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
                         sourceName
@@ -705,7 +703,7 @@ class AsmGen(private val program: Program,
                         "P8ZP_SCRATCH_W1"
                     }
                 } else {
-                    return if (isZpVar(scopedName)) {
+                    return if (isZpVar(target.scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
                         sourceName
@@ -728,9 +726,8 @@ class AsmGen(private val program: Program,
     internal fun storeAIntoPointerVar(pointervar: IdentifierReference) {
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program)!!
-        val scopedName = vardecl.scopedName.joinToString(".")
         if (isTargetCpu(CpuType.CPU65c02)) {
-            if (isZpVar(scopedName)) {
+            if (isZpVar(vardecl.scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  sta  ($sourceName)")
             } else {
@@ -742,7 +739,7 @@ class AsmGen(private val program: Program,
                     sta  (P8ZP_SCRATCH_W2)""")
             }
         } else {
-            if (isZpVar(scopedName)) {
+            if (isZpVar(vardecl.scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out(" ldy  #0 |  sta  ($sourceName),y")
             } else {
@@ -1464,7 +1461,7 @@ $repeatLabel    lda  $counterVar
         val counterVar = makeLabel("counter")
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
-                val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
+                val result = zeropage.allocate(listOf(counterVar), dt, null, stmt.position, errors)
                 result.fold(
                     success = { zpvar -> asmInfo.extraVars.add(Triple(dt, counterVar, zpvar.first)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
@@ -1726,12 +1723,12 @@ $label              nop""")
         }
     }
 
-    internal fun isZpVar(scopedName: String): Boolean =
+    internal fun isZpVar(scopedName: List<String>): Boolean =
         zeropage.allocatedZeropageVariable(scopedName)!=null
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
-        return zeropage.allocatedZeropageVariable(vardecl.scopedName.joinToString("."))!=null
+        return zeropage.allocatedZeropageVariable(vardecl.scopedName)!=null
     }
 
     internal fun jmp(asmLabel: String) {

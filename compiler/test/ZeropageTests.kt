@@ -95,26 +95,26 @@ class TestC64Zeropage: FunSpec({
     test("testNames") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, C64Target))
 
-        var result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        var result = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         result.onFailure { fail(it.toString()) }
-        result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        result = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         result.onFailure { fail(it.toString()) }
-        result = zp.allocate("varname", DataType.UBYTE, null, null, errors)
+        result = zp.allocate(listOf("varname"), DataType.UBYTE, null, null, errors)
         result.onFailure { fail(it.toString()) }
-        shouldThrow<IllegalArgumentException> {  zp.allocate("varname", DataType.UBYTE, null, null, errors) }
-        result = zp.allocate("varname2", DataType.UBYTE, null, null, errors)
+        shouldThrow<IllegalArgumentException> {  zp.allocate(listOf("varname"), DataType.UBYTE, null, null, errors) }
+        result = zp.allocate(listOf("varname2"), DataType.UBYTE, null, null, errors)
         result.onFailure { fail(it.toString()) }
     }
 
     test("testZpFloatEnable") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
-        var result = zp.allocate("", DataType.FLOAT, null, null, errors)
+        var result = zp.allocate(emptyList(), DataType.FLOAT, null, null, errors)
         result.expectError { "should be allocation error due to disabled floats" }
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, C64Target))
-        result = zp2.allocate("", DataType.FLOAT, null, null, errors)
+        result = zp2.allocate(emptyList(), DataType.FLOAT, null, null, errors)
         result.expectError { "should be allocation error due to disabled ZP use" }
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, C64Target))
-        zp3.allocate("", DataType.FLOAT, null, null, errors)
+        zp3.allocate(emptyList(), DataType.FLOAT, null, null, errors)
     }
 
     test("testZpModesWithFloats") {
@@ -136,7 +136,7 @@ class TestC64Zeropage: FunSpec({
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, C64Target))
         println(zp.free)
         zp.availableBytes() shouldBe 0
-        val result = zp.allocate("", DataType.BYTE, null, null, errors)
+        val result = zp.allocate(emptyList(), DataType.BYTE, null, null, errors)
         result.expectError { "expected error due to disabled ZP use" }
     }
 
@@ -149,9 +149,9 @@ class TestC64Zeropage: FunSpec({
         zp3.availableBytes() shouldBe 125
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, C64Target))
         zp4.availableBytes() shouldBe 239
-        zp4.allocate("test", DataType.UBYTE, null, null, errors)
+        zp4.allocate(listOf("test"), DataType.UBYTE, null, null, errors)
         zp4.availableBytes() shouldBe 238
-        zp4.allocate("test2", DataType.UBYTE, null, null, errors)
+        zp4.allocate(listOf("test2"), DataType.UBYTE, null, null, errors)
         zp4.availableBytes() shouldBe 237
     }
 
@@ -182,19 +182,19 @@ class TestC64Zeropage: FunSpec({
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
 
-        var result = zp.allocate("", DataType.FLOAT, null, null, errors)
+        var result = zp.allocate(emptyList(), DataType.FLOAT, null, null, errors)
         result.expectError { "expect allocation error: in regular zp there aren't 5 sequential bytes free" }
 
         for (i in 0 until zp.availableBytes()) {
-            val result = zp.allocate("", DataType.UBYTE, null, null, errors)
-            result.getOrElse { throw it }
+            val alloc = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
+            alloc.getOrElse { throw it }
         }
         zp.availableBytes() shouldBe 0
         zp.hasByteAvailable() shouldBe false
         zp.hasWordAvailable() shouldBe false
-        result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        result = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         result.expectError { "expected allocation error" }
-        result = zp.allocate("", DataType.UWORD, null, null, errors)
+        result = zp.allocate(emptyList(), DataType.UWORD, null, null, errors)
         result.expectError { "expected allocation error" }
     }
 
@@ -203,47 +203,47 @@ class TestC64Zeropage: FunSpec({
         zp.availableBytes() shouldBe 239
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
-        var result = zp.allocate("", DataType.UWORD, null, null, errors)
+        var result = zp.allocate(emptyList(), DataType.UWORD, null, null, errors)
         val loc = result.getOrElse { throw it } .first
         loc shouldBeGreaterThan 3u
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
 
         for(i in 0..num-3) {
-            zp.allocate("", DataType.UWORD, null, null, errors)
+            zp.allocate(emptyList(), DataType.UWORD, null, null, errors)
         }
         zp.availableBytes() shouldBe 5
 
         // can't allocate because no more sequential bytes, only fragmented
-        result = zp.allocate("", DataType.UWORD, null, null, errors)
+        result = zp.allocate(emptyList(), DataType.UWORD, null, null, errors)
         result.expectError { "should give allocation error" }
 
         for(i in 0..4) {
-            zp.allocate("", DataType.UBYTE, null, null, errors)
+            zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         }
 
         zp.availableBytes() shouldBe 0
         zp.hasByteAvailable() shouldBe false
         zp.hasWordAvailable() shouldBe false
-        result = zp.allocate("", DataType.UBYTE, null, null, errors)
+        result = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         result.expectError { "should give allocation error" }
     }
 
     test("testEfficientAllocation") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, C64Target))
         zp.availableBytes() shouldBe 18
-        zp.allocate("", DataType.WORD, null, null, errors ).getOrElse{throw it}.first shouldBe 0x04u
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x06u
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x0au
-        zp.allocate("", DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0x9bu
-        zp.allocate("", DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0x9eu
-        zp.allocate("", DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xa5u
-        zp.allocate("", DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xb0u
-        zp.allocate("", DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xbeu
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x0eu
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x92u
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x96u
-        zp.allocate("", DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0xf9u
+        zp.allocate(emptyList(), DataType.WORD, null, null, errors ).getOrElse{throw it}.first shouldBe 0x04u
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x06u
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x0au
+        zp.allocate(emptyList(), DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0x9bu
+        zp.allocate(emptyList(), DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0x9eu
+        zp.allocate(emptyList(), DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xa5u
+        zp.allocate(emptyList(), DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xb0u
+        zp.allocate(emptyList(), DataType.UWORD, null, null, errors).getOrElse{throw it}.first shouldBe 0xbeu
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x0eu
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x92u
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x96u
+        zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0xf9u
         zp.availableBytes() shouldBe 0
     }
 
@@ -273,9 +273,9 @@ class TestCx16Zeropage: FunSpec({
         zp2.availableBytes() shouldBe 175
         val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
         zp3.availableBytes() shouldBe 216
-        zp3.allocate("test", DataType.UBYTE, null, null, errors)
+        zp3.allocate(listOf("test"), DataType.UBYTE, null, null, errors)
         zp3.availableBytes() shouldBe 215
-        zp3.allocate("test2", DataType.UBYTE, null, null, errors)
+        zp3.allocate(listOf("test2"), DataType.UBYTE, null, null, errors)
         zp3.availableBytes() shouldBe 214
     }
 
@@ -291,12 +291,12 @@ class TestCx16Zeropage: FunSpec({
 
     test("preallocated zp vars") {
         val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, Cx16Target))
-        zp1.allocatedZeropageVariable("test") shouldBe null
-        zp1.allocatedZeropageVariable("cx16.r0") shouldNotBe null
-        zp1.allocatedZeropageVariable("cx16.r15") shouldNotBe null
-        zp1.allocatedZeropageVariable("cx16.r0L") shouldNotBe null
-        zp1.allocatedZeropageVariable("cx16.r15L") shouldNotBe null
-        zp1.allocatedZeropageVariable("cx16.r0sH") shouldNotBe null
-        zp1.allocatedZeropageVariable("cx16.r15sH") shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("test")) shouldBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r0")) shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r15")) shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r0L")) shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r15L")) shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r0sH")) shouldNotBe null
+        zp1.allocatedZeropageVariable(listOf("cx16", "r15sH")) shouldNotBe null
     }
 })

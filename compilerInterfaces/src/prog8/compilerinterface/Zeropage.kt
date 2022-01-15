@@ -17,7 +17,12 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 
 
-    private val allocations = mutableMapOf<UInt, Pair<String, DataType>>()
+    // the variables allocated into Zeropage.
+    // name (scoped) ==> pair of (address and bytesize) and DataType
+    // TODO switch the pair around
+    protected val allocatedVariables = mutableMapOf<List<String>, Pair<Pair<UInt, Int>, DataType>>()
+    private val allocations = mutableMapOf<UInt, Pair<List<String>, DataType>>()
+
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
     fun removeReservedFromFreePool() {
@@ -36,8 +41,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(scopedname: String, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
-        require(scopedname.isEmpty() || !allocations.values.any { it.first==scopedname } ) {"scopedname can't be allocated twice"}
+    fun allocate(name: List<String>, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+        require(name.isEmpty() || !allocations.values.any { it.first==name } ) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
             return Err(ZeropageAllocationError("zero page usage has been disabled"))
@@ -50,7 +55,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                         if(position!=null)
                             errors.warn("allocating a large value in zeropage; str/array $memsize bytes", position)
                         else
-                            errors.warn("$scopedname: allocating a large value in zeropage; str/array $memsize bytes", Position.DUMMY)
+                            errors.warn("$name: allocating a large value in zeropage; str/array $memsize bytes", Position.DUMMY)
                         memsize
                     }
                     DataType.FLOAT -> {
@@ -59,7 +64,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             if(position!=null)
                                 errors.warn("allocating a large value in zeropage; float $memsize bytes", position)
                             else
-                                errors.warn("$scopedname: allocating a large value in zeropage; float $memsize bytes", Position.DUMMY)
+                                errors.warn("$name: allocating a large value in zeropage; float $memsize bytes", Position.DUMMY)
                             memsize
                         } else return Err(ZeropageAllocationError("floating point option not enabled"))
                     }
@@ -71,13 +76,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))
-                            return Ok(Pair(makeAllocation(candidate, 1, datatype, scopedname), 1))
+                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name), 1))
                     }
-                    return Ok(Pair(makeAllocation(free[0], 1, datatype, scopedname), 1))
+                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name), 1))
                 }
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                     if (sequentialFree(candidate, size))
-                        return Ok(Pair(makeAllocation(candidate, size, datatype, scopedname), size))
+                        return Ok(Pair(makeAllocation(candidate, size, datatype, name), size))
                 }
             }
         }
@@ -87,11 +92,11 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
 
-    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: String?): UInt {
+    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
-        allocations[address] = (name ?: "<unnamed>") to datatype
-        if(name!=null)
+        allocations[address] = name to datatype
+        if(name.isNotEmpty())
             allocatedVariables[name] = (address to size) to datatype
         return address
     }
@@ -102,7 +107,5 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.containsAll((address until address+size.toUInt()).toList())
     }
 
-    fun allocatedZeropageVariable(scopedname: String): Pair<Pair<UInt, Int>, DataType>? = allocatedVariables[scopedname]
-
-    protected val allocatedVariables = mutableMapOf<String, Pair<Pair<UInt, Int>, DataType>>()
+    fun allocatedZeropageVariable(name: List<String>): Pair<Pair<UInt, Int>, DataType>? = allocatedVariables[name]
 }

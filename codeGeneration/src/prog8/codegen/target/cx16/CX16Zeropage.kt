@@ -40,12 +40,12 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
         removeReservedFromFreePool()
 
         for(reg in 0..15) {
-            allocatedVariables["cx16.r${reg}"] = ((2+reg*2).toUInt() to 2) to DataType.UWORD        // cx16.r0 .. cx16.r15
-            allocatedVariables["cx16.r${reg}s"] = ((2+reg*2).toUInt() to 2) to DataType.WORD        // cx16.r0s .. cx16.r15s
-            allocatedVariables["cx16.r${reg}L"] = ((2+reg*2).toUInt() to 1) to DataType.UBYTE       // cx16.r0L .. cx16.r15L
-            allocatedVariables["cx16.r${reg}H"] = ((3+reg*2).toUInt() to 1) to DataType.UBYTE       // cx16.r0H .. cx16.r15H
-            allocatedVariables["cx16.r${reg}sL"] = ((2+reg*2).toUInt() to 1) to DataType.BYTE       // cx16.r0sL .. cx16.r15sL
-            allocatedVariables["cx16.r${reg}sH"] = ((3+reg*2).toUInt() to 1) to DataType.BYTE       // cx16.r0sH .. cx16.r15sH
+            allocatedVariables[listOf("cx16", "r${reg}")] = ((2+reg*2).toUInt() to 2) to DataType.UWORD        // cx16.r0 .. cx16.r15
+            allocatedVariables[listOf("cx16", "r${reg}s")] = ((2+reg*2).toUInt() to 2) to DataType.WORD        // cx16.r0s .. cx16.r15s
+            allocatedVariables[listOf("cx16", "r${reg}L")] = ((2+reg*2).toUInt() to 1) to DataType.UBYTE       // cx16.r0L .. cx16.r15L
+            allocatedVariables[listOf("cx16", "r${reg}H")] = ((3+reg*2).toUInt() to 1) to DataType.UBYTE       // cx16.r0H .. cx16.r15H
+            allocatedVariables[listOf("cx16", "r${reg}sL")] = ((2+reg*2).toUInt() to 1) to DataType.BYTE       // cx16.r0sL .. cx16.r15sL
+            allocatedVariables[listOf("cx16", "r${reg}sH")] = ((3+reg*2).toUInt() to 1) to DataType.BYTE       // cx16.r0sH .. cx16.r15sH
         }
 
     }
