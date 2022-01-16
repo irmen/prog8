@@ -89,7 +89,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
 
             // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.operator, expr.right)
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
             if(toFix!=null) {
                 val modifications = mutableListOf<IAstModification>()
                 when {

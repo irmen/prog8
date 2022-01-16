@@ -744,18 +744,18 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             "^", "xor" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "==" -> {
                 asmgen.out("""
-                    lda  #$value
-                    cmp  $name
+                    lda  $name
+                    cmp  #$value
                     beq  +
                     lda  #0
-                    bne  ++
+                    beq  ++
 +                   lda  #1
 +                   sta  $name""")
             }
             "!=" -> {
                 asmgen.out("""
-                    lda  #$value
-                    cmp  $name
+                    lda  $name
+                    cmp  #$value
                     beq  +
                     lda  #1
                     bne  ++

@@ -7,16 +7,32 @@ main {
     %option force_output
 
     sub start() {
-
-        ubyte foobar = 2
-        str @shared @zp name = "irmen"
-        ubyte[] @shared @zp array = [1,2,3,4]
-
-        txt.print_uwhex(&name, true)
+        uword b1
+        b1 = 'a'
+        b1 = b1=='z'    ; TODO fix code generation!
+        txt.print("should print 0: ")
+        txt.print_ub(b1)
         txt.nl()
-        txt.print_uwhex(&name, true)
-        txt.print_ub(foobar)
+        b1 = 'a'
+        b1 = b1!='z'    ; TODO fix code generation!
+        txt.print("should print 1: ")
+        txt.print_ub(b1)
         txt.nl()
+
+;        str text = "???????????"
+;        void txt.input_chars(text)
+;        txt.print("\ninput=")
+;        txt.print(text)
+;        txt.nl()
+;        b1 = text[0]=='z'
+;        txt.print_ub(b1)
+;        txt.nl()
+;
+;        if text[0]=='z' {
+;            txt.print("z!\n")
+;        }
+;
+;        test(text[0]=='z')
 
 ;        float fl
 ;        test_stack.test()
@@ -51,6 +67,12 @@ main {
 ;        txt.print_uw(uw)
 ;        txt.nl()
 ;        test_stack.test()
+    }
+
+    sub test(ubyte what) {
+        txt.print("test: what=")
+        txt.print_ub(what)
+        txt.nl()
     }
 
     sub func() -> ubyte {

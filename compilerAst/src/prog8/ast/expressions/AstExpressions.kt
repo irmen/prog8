@@ -204,7 +204,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
                             commonDatatype(
                                 leftDt.getOr(DataType.BYTE),
                                 rightDt.getOr(DataType.BYTE),
-                                null, "", null
+                                null, null
                             ).first
                         )
                     } catch (x: FatalAstException) {
@@ -227,7 +227,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
 
     companion object {
         fun commonDatatype(leftDt: DataType, rightDt: DataType,
-                           left: Expression?, operator: String, right: Expression?): Pair<DataType, Expression?> {
+                           left: Expression?, right: Expression?): Pair<DataType, Expression?> {
             // byte + byte -> byte
             // byte + word -> word
             // word + byte -> word
