@@ -640,6 +640,9 @@ internal class AstChecker(private val program: Program,
                 err("string var can only be initialized with a string literal")
         }
 
+        if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
+            err("zeropage usage has been disabled by options")
+
         super.visit(decl)
     }
 

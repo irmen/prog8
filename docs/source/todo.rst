@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- if zp option = dontuse, give error if any variable has @requirezp
+...
 
 Need help with
 ^^^^^^^^^^^^^^
