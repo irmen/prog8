@@ -18,9 +18,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
 
     // the variables allocated into Zeropage.
-    // name (scoped) ==> pair of (address and bytesize) and DataType
-    // TODO switch the pair around
-    protected val allocatedVariables = mutableMapOf<List<String>, Pair<Pair<UInt, Int>, DataType>>()
+    // name (scoped) ==> pair of address to (Datatype + bytesize)
+    protected val allocatedVariables = mutableMapOf<List<String>, Pair<UInt, Pair<DataType, Int>>>()
     private val allocations = mutableMapOf<UInt, Pair<List<String>, DataType>>()
 
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
@@ -97,7 +96,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         free.removeAll(address until address+size.toUInt())
         allocations[address] = name to datatype
         if(name.isNotEmpty())
-            allocatedVariables[name] = (address to size) to datatype
+            allocatedVariables[name] = address to (datatype to size)
         return address
     }
 
@@ -107,5 +106,5 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.containsAll((address until address+size.toUInt()).toList())
     }
 
-    fun allocatedZeropageVariable(name: List<String>): Pair<Pair<UInt, Int>, DataType>? = allocatedVariables[name]
+    fun allocatedZeropageVariable(name: List<String>): Pair<UInt, Pair<DataType, Int>>? = allocatedVariables[name]
 }

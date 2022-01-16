@@ -348,19 +348,19 @@ class AsmGen(private val program: Program,
                     val result = zeropage.allocate(scopedName, variable.datatype, null, null, errors)
                     errors.report()
                     result.fold(
-                        success = { address -> out("${variable.name} = $address\t; zp ${variable.datatype}") },
+                        success = { (address, _) -> out("${variable.name} = $address\t; zp ${variable.datatype}") },
                         failure = { /* leave it as it is, not on zeropage. */ }
                     )
                 }
             } else {
                 // Var has been placed in ZP, just output the address
-                val lenspec = when(zpAlloc.second) {
+                val lenspec = when(zpAlloc.second.first) {
                     DataType.FLOAT,
                     DataType.STR,
-                    in ArrayDatatypes -> " ${zpAlloc.first.second} bytes"
+                    in ArrayDatatypes -> " ${zpAlloc.second.second} bytes"
                     else -> ""
                 }
-                out("${variable.name} = ${zpAlloc.first.first}\t; zp ${variable.datatype} $lenspec")
+                out("${variable.name} = ${zpAlloc.first}\t; zp ${variable.datatype} $lenspec")
             }
         }
     }
@@ -1507,7 +1507,7 @@ $repeatLabel    lda  $counterVar
             DataType.UBYTE, DataType.UWORD -> {
                 val result = zeropage.allocate(listOf(counterVar), dt, null, stmt.position, errors)
                 result.fold(
-                    success = { zpvar -> asmInfo.extraVars.add(Triple(dt, counterVar, zpvar.first)) },
+                    success = { (address, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
                 )
                 return counterVar
