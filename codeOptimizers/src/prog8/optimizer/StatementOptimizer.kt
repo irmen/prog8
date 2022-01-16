@@ -275,14 +275,9 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun after(jump: Jump, parent: Node): Iterable<IAstModification> {
-        // if the jump is to the next statement, remove the jump
-        val scope = jump.parent as IStatementContainer
-        val label = jump.identifier?.targetStatement(program)
-        if (label != null && scope.statements.indexOf(label) == scope.statements.indexOf(jump) + 1)
-            return listOf(IAstModification.Remove(jump, scope))
-        return noModifications
-    }
+
+    // NOTE: do NOT remove a jump to the next statement, because this will lead to wrong code when this occurs at the end of a subroutine
+    // if we want to optimize this away, it can be done later at code generation time.
 
     override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
         // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
