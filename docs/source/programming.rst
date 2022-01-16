@@ -199,13 +199,19 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
-*zeropage tag:*
+*putting a variable in zeropage:*
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
 when selecting variables to put into zero page (but no guarantees). If there are enough free locations in the zeropage,
 it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
+Use ``@requirezp`` tag to *force* the variable into zeropage, but if there is no more free space the compilation will fail.
+It's possible to put strings, arrays and floats into zeropage too, however because Zp space is really scarce
+this is not advised as they will eat up the available space very quickly. It's best to only put byte or word
+variables in Zeropage.
+
 Example::
 
-    byte  @zp  zeropageCounter = 42
+    byte   @zp  smallcounter = 42
+    uword  @requirezp  zppointer = $4000
 
 
 *shared tag:*

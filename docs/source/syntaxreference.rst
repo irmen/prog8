@@ -268,11 +268,13 @@ or an expression. If you don't provide an intial value yourself, zero will be us
 You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
 the variable will be allocated in normal memory elsewhere.
+Use the ``@requirezp`` tag to force the variable in zeropage, but if the ZP is full,
+the compilation will fail.
 You can add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
 with some assembly code and that it should not be optimized away if not used elsewhere.
 The syntax is::
 
-	<datatype>  [ @shared ] [ @zp ]  <variable name>   [ = <initial value> ]
+	<datatype>  [ @shared ] [ @zp ] [ @requirezp ]  <variable name>   [ = <initial value> ]
 
 Various examples::
 
@@ -287,7 +289,8 @@ Various examples::
     byte[5]     values                  ; array of 5 bytes, initially set to zero
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
-    word  @zp     zpword = 9999         ; prioritize this when selecting vars for zeropage storage
+    word  @zp         zpword = 9999     ; prioritize this when selecting vars for zeropage storage
+    uword @requirezp  zpaddr = $3000    ; we require this variable in Zeropage
     word  @shared asmvar                ; variable is used in assembly code but not elsewhere
 
 

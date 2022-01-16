@@ -3,9 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- check all examples if they still run correctly (c64 + cx16)
-- document that arrays and strings can also be placed in zeropage (but almost never should, due to size!)
-- document @requirezp
+...
 
 
 Need help with
