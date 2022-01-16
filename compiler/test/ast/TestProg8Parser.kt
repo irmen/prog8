@@ -796,7 +796,7 @@ class TestProg8Parser: FunSpec( {
         val ff = start.statements[4] as Assignment
         ff.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
         val letter = start.statements[6] as Assignment
-        // TODO characters should not be encoded until code generation, like strings...
+        // TODO characters should perhaps not be encoded until code generation, like strings... however this will prevent optimizing expressions with characters
         val encodedletter = Petscii.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
         letter.value shouldBe NumericLiteralValue(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }

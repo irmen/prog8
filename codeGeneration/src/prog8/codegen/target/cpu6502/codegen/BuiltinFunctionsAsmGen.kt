@@ -37,7 +37,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 SourceStorageKind.ARRAY -> src.array!!
                 else -> {
                     // TODO make it so that we can assign efficiently from something else as an expression....namely: register(s)
-                    // but for now, first assign it to a temporary variable
+                    //      this is useful in pipe expressions for instance, to skip the use of a temporary variable
+                    //      but for now, just assign it to a temporary variable and use that as a source
                     val tempvar = asmgen.getTempVarName(src.datatype)
                     val assignTempvar = AsmAssignment(
                         src,

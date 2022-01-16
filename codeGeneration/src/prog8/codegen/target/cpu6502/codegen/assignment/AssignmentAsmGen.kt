@@ -287,7 +287,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     }
                     is BinaryExpression -> {
                         if(value.operator in ComparisonOperators) {
-                            // TODO real optimized code for comparison expressions
+                            // TODO real optimized code for comparison expressions that yield a boolean result value
                             // for now generate code for this:  assign-false; if expr { assign-true }
                             translateNormalAssignment(
                                 AsmAssignment(

@@ -52,12 +52,11 @@ Future Things and Ideas
 
 More optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters directly from register(s)
+- translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
 - translateNormalAssignment() -> better code gen for assigning boolean comparison expressions
-- if a for loop's loopvariable isn't referenced in the body, replace by a repeatloop
-- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning
-- byte typed expressions should be evaluated in the accumulator where possible, without (temp)var
-  for instance  value = otherbyte >> 1   -->  lda otherbite ; lsr a; sta value
-- rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'
+- when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
+- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
+- rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'?
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
+  and perhaps as well the assignment splitting in  BeforeAsmAstChanger too
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
