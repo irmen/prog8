@@ -3,8 +3,6 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- fix crash after enter in bdmusic (caused by ZP branch)
-- fix crash in sorting (caused by ZP branch)
 - if zp option = dontuse, give error if any variable has @requirezp
 
 Need help with
