@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-check AsmGen translate(stmt: Directive) breakpoint nop issue
+...
 
 
 Need help with

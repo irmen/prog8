@@ -10,7 +10,12 @@ foo_bar:
 
 	sub start() {
 	    txt.print(myBar)
-	    txt.print(&foo_bar)
+
+	    %breakpoint
+
+	    txt.print_uwhex(&foo_bar, true)
+
+	    %breakpoint
 	    return
 	}
 }

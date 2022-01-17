@@ -1622,12 +1622,7 @@ $repeatLabel    lda  $counterVar
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
                 breakpointLabels.add(label)
-
-                // TODO still need 2 nops to make 64tass generate correc breakpoint list for vice???
-
-                out("""
-                    nop
-$label              nop""")
+                out(label)
             }
         }
     }
