@@ -29,6 +29,11 @@ import kotlin.io.path.writeLines
 import kotlin.math.absoluteValue
 
 
+const val generatedLabelPrefix = "prog8_label_"
+const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
+const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
+
+
 class AsmGen(private val program: Program,
                       val errors: IErrorReporter,
                       val zeropage: Zeropage,
@@ -196,9 +201,9 @@ class AsmGen(private val program: Program,
                 out("* = ${program.actualLoadAddress.toHex()}")
                 val year = LocalDate.now().year
                 out("  .word  (+), $year")
-                out("  .null  $9e, format(' %d ', _prog8_entrypoint), $3a, $8f, ' prog8'")
+                out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
                 out("+\t.word  0")
-                out("_prog8_entrypoint\t; assembly code starts here\n")
+                out("prog8_entrypoint\t; assembly code starts here\n")
                 if(!options.noSysInit)
                     out("  jsr  ${compTarget.name}.init_system")
                 out("  jsr  ${compTarget.name}.init_system_phase2")
@@ -620,34 +625,16 @@ class AsmGen(private val program: Program,
                 return identifier.nameInSource.joinToString(".")
 
             val tgt2 = identifier.targetStatement(program)
-            if (tgt2 == null && (identifier.nameInSource[0].startsWith("_prog8") || identifier.nameInSource[0].startsWith(
-                    "prog8"
-                ))
-            )
+            if (tgt2 == null && (identifier.nameInSource[0].startsWith("prog8")))
                 return identifier.nameInSource.joinToString(".")
 
             val target = identifier.targetStatement(program)!!
             val targetScope = target.definingSubroutine
             val identScope = identifier.definingSubroutine
-            return if (targetScope !== identScope) {
-                val scopedName = (target as INamedStatement).scopedName
-                if (target is Label) {
-                    // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
-                    val newName = scopedName.dropLast(1) + ("_${scopedName.last()}")
-                    fixNameSymbols(newName.joinToString("."))
-                }
-                else {
-                    fixNameSymbols(scopedName.joinToString("."))
-                }
-            } else {
-                if (target is Label) {
-                    // make labels locally scoped in the asm. Is slightly problematic, see GitHub issue #62
-                    val scopedName = identifier.nameInSource.toMutableList()
-                    val last = scopedName.removeLast()
-                    scopedName.add("_$last")
-                    fixNameSymbols(scopedName.joinToString("."))
-                } else fixNameSymbols(identifier.nameInSource.joinToString("."))
-            }
+            return if (targetScope !== identScope)
+                fixNameSymbols((target as INamedStatement).scopedName.joinToString("."))
+            else
+                fixNameSymbols(identifier.nameInSource.joinToString("."))
         }
 
         return fixNameSymbols(internalName())
@@ -789,11 +776,11 @@ class AsmGen(private val program: Program,
                     out("  pha")
                 }
                 CpuRegister.X -> {
-                    out("  stx  _prog8_regsaveX")
+                    out("  stx  prog8_regsaveX")
                     scope.asmGenInfo.usedRegsaveX = true
                 }
                 CpuRegister.Y -> {
-                    out("  sty  _prog8_regsaveY")
+                    out("  sty  prog8_regsaveY")
                     scope.asmGenInfo.usedRegsaveY = true
                 }
             }
@@ -836,8 +823,8 @@ class AsmGen(private val program: Program,
         } else {
             when (register) {
                 CpuRegister.A -> out("  pla")   // this just used the stack but only for A
-                CpuRegister.X -> out("  ldx  _prog8_regsaveX")
-                CpuRegister.Y -> out("  ldy  _prog8_regsaveY")
+                CpuRegister.X -> out("  ldx  prog8_regsaveX")
+                CpuRegister.Y -> out("  ldy  prog8_regsaveY")
             }
         }
     }
@@ -1163,12 +1150,12 @@ class AsmGen(private val program: Program,
                     else -> throw AssemblyError("weird dt")
                 }
             }
-            if(sub.asmGenInfo.usedRegsaveA)
-                out("_prog8_regsaveA     .byte  0")
+            if(sub.asmGenInfo.usedRegsaveA)      // will probably never occur
+                out("prog8_regsaveA     .byte  0")
             if(sub.asmGenInfo.usedRegsaveX)
-                out("_prog8_regsaveX     .byte  0")
+                out("prog8_regsaveX     .byte  0")
             if(sub.asmGenInfo.usedRegsaveY)
-                out("_prog8_regsaveY     .byte  0")
+                out("prog8_regsaveY     .byte  0")
             if(sub.asmGenInfo.usedFloatEvalResultVar1)
                 out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(sub.asmGenInfo.usedFloatEvalResultVar2)
@@ -1561,8 +1548,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: Label) {
-        // underscore prefix to make sure it's a local label. Is slightly problematic, see GitHub issue #62
-        out("_${stmt.name}")
+        out(stmt.name)
     }
 
     private fun translate(scope: AnonymousScope) {
@@ -1636,6 +1622,9 @@ $repeatLabel    lda  $counterVar
             "%breakpoint" -> {
                 val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
                 breakpointLabels.add(label)
+
+                // TODO still need 2 nops to make 64tass generate correc breakpoint list for vice???
+
                 out("""
                     nop
 $label              nop""")

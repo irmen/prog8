@@ -242,18 +242,18 @@ close_end:
         void c64.CHKIN(11)        ; use #11 as input channel again
         %asm {{
             lda  bufferpointer
-            sta  _in_buffer+1
+            sta  m_in_buffer+1
             lda  bufferpointer+1
-            sta  _in_buffer+2
+            sta  m_in_buffer+2
         }}
         repeat num_bytes {
             %asm {{
                 jsr  c64.CHRIN
                 sta  cx16.r5
-_in_buffer      sta  $ffff
-                inc  _in_buffer+1
+m_in_buffer     sta  $ffff
+                inc  m_in_buffer+1
                 bne  +
-                inc  _in_buffer+2
+                inc  m_in_buffer+2
 +               inc  list_blocks
                 bne  +
                 inc  list_blocks+1

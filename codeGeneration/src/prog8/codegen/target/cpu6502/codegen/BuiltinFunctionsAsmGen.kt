@@ -16,7 +16,7 @@ import prog8.codegen.target.cpu6502.codegen.assignment.*
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.FSignature
-import prog8.compilerinterface.subroutineFloatEvalResultVar2
+
 
 internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
 

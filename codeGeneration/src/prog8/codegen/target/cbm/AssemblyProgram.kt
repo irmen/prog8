@@ -3,10 +3,10 @@ package prog8.codegen.target.cbm
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
+import prog8.codegen.target.cpu6502.codegen.generatedLabelPrefix
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IAssemblyProgram
 import prog8.compilerinterface.OutputType
-import prog8.compilerinterface.generatedLabelPrefix
 import prog8.parser.SourceCode
 import java.io.File
 import java.nio.file.Path

@@ -3,7 +3,8 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+check AsmGen translate(stmt: Directive) breakpoint nop issue
+
 
 Need help with
 ^^^^^^^^^^^^^^
@@ -25,7 +26,6 @@ Future Things and Ideas
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow things as ``4 |> mkword(?, $44) |> print_uw``
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
-- fix the asm-labels problem (github issue #62)
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation

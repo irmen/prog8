@@ -1,6 +1,5 @@
 package prog8tests.codegeneration
 
-import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import prog8.ast.Module
@@ -121,27 +120,19 @@ class TestAsmGenSymbols: StringSpec({
 
         // local label
         val localLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(localLabelIdent) shouldBe "_locallabel"
-        withClue("as a variable it uses different naming rules (no underscore prefix)") {
-            asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
-        }
+        asmgen.asmSymbolName(localLabelIdent) shouldBe "locallabel"
+        asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
         val localLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start._locallabel"
-        withClue("as a variable it uses different naming rules (no underscore prefix)") {
-            asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
-        }
+        asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start.locallabel"
+        asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
 
         // label from outer scope needs sope prefixes because it is outputted as a locally scoped symbol for the assembler
         val scopedLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main._label_outside"
-        withClue("as a variable it uses different naming rules (no underscore prefix)") {
-            asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
-        }
+        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main.label_outside"
+        asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
         val scopedLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main._label_outside"
-        withClue("as a variable it uses different naming rules (no underscore prefix)") {
-            asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
-        }
+        asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main.label_outside"
+        asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
     }
 
     "asm names for hooks to zp temp vars" {

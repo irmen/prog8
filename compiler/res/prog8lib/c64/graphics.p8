@@ -163,7 +163,7 @@ graphics {
                 lda  addr+1
                 sta  P8ZP_SCRATCH_W1+1
                 ldy  separate_pixels
-                lda  _filled_right,y
+                lda  hline_filled_right,y
                 eor  #255
                 ldy  #0
                 ora  (P8ZP_SCRATCH_W1),y
@@ -207,18 +207,18 @@ _modified       stx  $ffff      ; modified
 _zero           ldx  P8ZP_SCRATCH_REG
 
                 ldy  separate_pixels
-                beq  _zero2
+                beq  hline_zero2
                 lda  _modified+1
                 sta  P8ZP_SCRATCH_W1
                 lda  _modified+2
                 sta  P8ZP_SCRATCH_W1+1
-                lda  _filled_right,y
+                lda  hline_filled_right,y
                 ldy  #0
                 ora  (P8ZP_SCRATCH_W1),y
                 sta  (P8ZP_SCRATCH_W1),y
-                jmp  _zero2
-_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110
-_zero2
+                jmp  hline_zero2
+hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110
+hline_zero2
             }}
         }
     }
