@@ -169,12 +169,17 @@ sub color2 (ubyte txtcol, ubyte bgcol) {
 }
 
 sub lowercase() {
-    cx16.screen_set_charset(3, 0)  ; lowercase charset
+    cx16.screen_set_charset(3, 0)  ; lowercase petscii charset
 }
 
 sub uppercase() {
-    cx16.screen_set_charset(2, 0)  ; uppercase charset
+    cx16.screen_set_charset(2, 0)  ; uppercase petscii charset
 }
+
+sub iso() {
+    cx16.screen_set_charset(1, 0)  ; iso charset
+}
+
 
 asmsub  scroll_left() clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
