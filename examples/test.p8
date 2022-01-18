@@ -1,21 +1,41 @@
 %import textio
+%zeropage basicsafe
 
 main {
-    str myBar = "main.bar"
+    str s1 = "Irmen_"
+    str s2 = @"IRMEN_"
+    ;str s3 = iso:"Irmen_~"
 
-foo_bar:
-    %asm {{
-        nop
-    }}
+    sub start() {
+        txt.lowercase()
+        txt.nl()
+        txt.nl()
+        txt.nl()
+        txt.nl()
+        txt.nl()
+        txt.print(s1)
+        txt.nl()
+        txt.print(s2)
+        txt.nl()
+;        txt.print(s3)
+;        txt.nl()
 
-	sub start() {
-	    txt.print(myBar)
+        sc(1, s1)
+        sc(2, s2)
+        ; sc(3, s3)
+    }
 
-	    %breakpoint
-
-	    txt.print_uwhex(&foo_bar, true)
-
-	    %breakpoint
-	    return
-	}
+    sub sc(ubyte row, str text) {
+        uword addr = 1024+row*40
+        ubyte ix = 0
+        ubyte ss
+        repeat {
+            ss = text[ix]
+            if not ss
+                return
+            @(addr) = ss
+            addr++
+            ix++
+        }
+    }
 }

@@ -12,6 +12,7 @@ import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
+import prog8.compilerinterface.Encoding
 import prog8tests.helpers.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.assertFailure
@@ -44,8 +45,8 @@ class TestCompilerOnRanges: FunSpec({
         val rhsValues = (decl.value as ArrayLiteralValue)
             .value // Array<Expression>
             .map { (it as NumericLiteralValue).number.toInt() }
-        val expectedStart = platform.encodeString("a", true)[0].toInt()
-        val expectedEnd = platform.encodeString("z", false)[0].toInt()
+        val expectedStart = platform.encodeString("a", Encoding.SCREENCODES)[0].toInt()
+        val expectedEnd = platform.encodeString("z", Encoding.PETSCII)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val actualStr = "${rhsValues.first()} .. ${rhsValues.last()}"
@@ -76,8 +77,8 @@ class TestCompilerOnRanges: FunSpec({
         val rhsValues = (decl.value as ArrayLiteralValue)
             .value // Array<Expression>
             .map { (it as NumericLiteralValue).number.toInt() }
-        val expectedStart = platform.encodeString("a", false)[0].toInt()
-        val expectedEnd = platform.encodeString("z", false)[0].toInt()
+        val expectedStart = platform.encodeString("a", Encoding.PETSCII)[0].toInt()
+        val expectedEnd = platform.encodeString("z", Encoding.PETSCII)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val actualStr = "${rhsValues.first()} .. ${rhsValues.last()}"
@@ -147,8 +148,8 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }[0]
         val rangeExpr = iterable as RangeExpression
 
-        val expectedStart = platform.encodeString("a", true)[0].toInt()
-        val expectedEnd = platform.encodeString("f", false)[0].toInt()
+        val expectedStart = platform.encodeString("a", Encoding.SCREENCODES)[0].toInt()
+        val expectedEnd = platform.encodeString("f", Encoding.PETSCII)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val intProgression = rangeExpr.toConstantIntegerRange()

@@ -49,7 +49,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 val amount = expr.right.constValue(program)
                 if(amount!=null) {
                     val string = leftStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteralValue(string, leftStr.altEncoding, expr.position)
+                    val strval = StringLiteralValue(string, leftStr.encoding, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, strval, parent))
                 }
             }
@@ -57,7 +57,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 val amount = expr.right.constValue(program)
                 if(amount!=null) {
                     val string = rightStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteralValue(string, rightStr.altEncoding, expr.position)
+                    val strval = StringLiteralValue(string, rightStr.encoding, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, strval, parent))
                 }
             }
@@ -80,17 +80,17 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 if(subStrVal==null)
                     null
                 else
-                    StringLiteralValue("${subStrVal.value}${rightStrval.value}", subStrVal.altEncoding, rightStrval.position)
+                    StringLiteralValue("${subStrVal.value}${rightStrval.value}", subStrVal.encoding, rightStrval.position)
             }
             expr.right is BinaryExpression && leftStrval!=null -> {
                 val subStrVal = concatString(expr.right as BinaryExpression)
                 if(subStrVal==null)
                     null
                 else
-                    StringLiteralValue("${leftStrval.value}${subStrVal.value}", subStrVal.altEncoding, leftStrval.position)
+                    StringLiteralValue("${leftStrval.value}${subStrVal.value}", subStrVal.encoding, leftStrval.position)
             }
             leftStrval!=null && rightStrval!=null -> {
-                StringLiteralValue("${leftStrval.value}${rightStrval.value}", leftStrval.altEncoding, leftStrval.position)
+                StringLiteralValue("${leftStrval.value}${rightStrval.value}", leftStrval.encoding, leftStrval.position)
             }
             else -> null
         }

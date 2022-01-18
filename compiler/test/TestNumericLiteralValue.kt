@@ -12,6 +12,7 @@ import prog8.ast.expressions.ArrayLiteralValue
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.expressions.StringLiteralValue
+import prog8.compilerinterface.Encoding
 
 class TestNumericLiteralValue: FunSpec({
 
@@ -94,11 +95,11 @@ class TestNumericLiteralValue: FunSpec({
     }
 
     test("testEqualsRef") {
-        (StringLiteralValue("hello", false, dummyPos) == StringLiteralValue("hello", false, dummyPos)) shouldBe true
-        (StringLiteralValue("hello", false, dummyPos) != StringLiteralValue("bye", false, dummyPos)) shouldBe true
-        (StringLiteralValue("hello", true, dummyPos) == StringLiteralValue("hello", true, dummyPos)) shouldBe true
-        (StringLiteralValue("hello", true, dummyPos) != StringLiteralValue("bye", true, dummyPos)) shouldBe true
-        (StringLiteralValue("hello", true, dummyPos) != StringLiteralValue("hello", false, dummyPos)) shouldBe true
+        (StringLiteralValue("hello", Encoding.PETSCII, dummyPos) == StringLiteralValue("hello", Encoding.PETSCII, dummyPos)) shouldBe true
+        (StringLiteralValue("hello", Encoding.PETSCII, dummyPos) != StringLiteralValue("bye", Encoding.PETSCII, dummyPos)) shouldBe true
+        (StringLiteralValue("hello", Encoding.SCREENCODES, dummyPos) == StringLiteralValue("hello", Encoding.SCREENCODES, dummyPos)) shouldBe true
+        (StringLiteralValue("hello", Encoding.SCREENCODES, dummyPos) != StringLiteralValue("bye", Encoding.SCREENCODES, dummyPos)) shouldBe true
+        (StringLiteralValue("hello", Encoding.SCREENCODES, dummyPos) != StringLiteralValue("hello", Encoding.PETSCII, dummyPos)) shouldBe true
 
         val lvOne = NumericLiteralValue(DataType.UBYTE, 1.0, dummyPos)
         val lvTwo = NumericLiteralValue(DataType.UBYTE, 2.0, dummyPos)

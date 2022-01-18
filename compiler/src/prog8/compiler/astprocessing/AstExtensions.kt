@@ -51,7 +51,7 @@ internal fun Program.charLiteralsToUByteLiterals(enc: IStringEncoding) {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
             return listOf(IAstModification.ReplaceNode(
                 char,
-                NumericLiteralValue(DataType.UBYTE, enc.encodeString(char.value.toString(), char.altEncoding)[0].toDouble(), char.position),
+                NumericLiteralValue(DataType.UBYTE, enc.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
                 parent
             ))
         }

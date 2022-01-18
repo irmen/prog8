@@ -21,6 +21,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.cbm.Petscii
+import prog8.compilerinterface.Encoding
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
@@ -413,7 +414,7 @@ class TestProg8Parser: FunSpec( {
             char.value shouldBe '\n'
         }
 
-        test("on rhs of block-level var decl, no AltEnc") {
+        test("on rhs of block-level var decl, default encoding") {
             val src = SourceCode.Text("""
                 main {
                     ubyte c = 'x'
@@ -425,11 +426,11 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.PETSCII
             rhs.value shouldBe 'x'
-            rhs.altEncoding shouldBe false
         }
 
-        test("on rhs of block-level const decl, with AltEnc") {
+        test("on rhs of block-level const decl, with screencode enc (old syntax)") {
             val src = SourceCode.Text("""
                 main {
                     const ubyte c = @'x'
@@ -441,11 +442,44 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.SCREENCODES
             rhs.value shouldBe 'x'
-            rhs.altEncoding shouldBe true
         }
 
-        test("on rhs of subroutine-level var decl, no AltEnc") {
+        xtest("on rhs of block-level const decl, with screencode enc (new syntax)") {
+            val src = SourceCode.Text("""
+                main {
+                    const ubyte c = sc:'x'
+                }
+            """)
+            val module = parseModule(src)
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+
+            val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.SCREENCODES
+            rhs.value shouldBe 'x'
+        }
+
+        xtest("on rhs of block-level const decl, with iso encoding") {
+            val src = SourceCode.Text("""
+                main {
+                    const ubyte c = iso:'_'
+                }
+            """)
+            val module = parseModule(src)
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+
+            val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.ISO
+            rhs.value shouldBe '_'
+        }
+
+
+        test("on rhs of subroutine-level var decl, default encoding") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -461,10 +495,10 @@ class TestProg8Parser: FunSpec( {
 
             val rhs = decl.value as CharLiteral
             rhs.value shouldBe 'x'
-            rhs.altEncoding shouldBe false
+            rhs.encoding shouldBe Encoding.PETSCII
         }
 
-        test("on rhs of subroutine-level const decl, with AltEnc") {
+        test("on rhs of subroutine-level const decl, screencode (old syntax)") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -479,9 +513,54 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.SCREENCODES
             rhs.value shouldBe 'x'
-            rhs.altEncoding shouldBe true
         }
+
+        xtest("on rhs of subroutine-level const decl, screencode (new syntax)") {
+            val src = SourceCode.Text("""
+                main {
+                    sub start() {
+                        const ubyte c = sc:'x'
+                    }
+                }
+            """)
+            val module = parseModule(src)
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<Subroutine>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+
+            val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.SCREENCODES
+            rhs.value shouldBe 'x'
+        }
+
+        xtest("on rhs of subroutine-level const decl, iso encoding") {
+            val src = SourceCode.Text("""
+                main {
+                    sub start() {
+                        const ubyte c = iso:'_'
+                    }
+                }
+            """)
+            val module = parseModule(src)
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<Subroutine>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+
+            val rhs = decl.value as CharLiteral
+            rhs.encoding shouldBe Encoding.ISO
+            rhs.value shouldBe '_'
+        }
+    }
+
+    context("Strings") {
+
+        // TODO test encoding in all available encodings
+        // check that '~' cant be encoded in petscii and screencode
+        // check that '~' CAN be encoded correctly in iso
     }
 
     context("Ranges") {
@@ -534,12 +613,14 @@ class TestProg8Parser: FunSpec( {
     }
 
     test("testCharLiteralConstValue") {
-        val char1 = CharLiteral('A', false, Position.DUMMY)
-        val char2 = CharLiteral('z', true, Position.DUMMY)
+        val char1 = CharLiteral('A', Encoding.PETSCII, Position.DUMMY)
+        val char2 = CharLiteral('z', Encoding.SCREENCODES, Position.DUMMY)
+        val char3 = CharLiteral('_', Encoding.ISO, Position.DUMMY)
 
         val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
         char1.constValue(program).number.toInt() shouldBe 65
         char2.constValue(program).number.toInt() shouldBe 122
+        char3.constValue(program).number.toInt() shouldBe 95
     }
 
     test("testLiteralValueComparisons") {
@@ -560,8 +641,8 @@ class TestProg8Parser: FunSpec( {
         (ten <= ten) shouldBe true
         (ten < ten) shouldBe false
 
-        val abc = StringLiteralValue("abc", false, Position.DUMMY)
-        val abd = StringLiteralValue("abd", false, Position.DUMMY)
+        val abc = StringLiteralValue("abc", Encoding.PETSCII, Position.DUMMY)
+        val abd = StringLiteralValue("abd", Encoding.PETSCII, Position.DUMMY)
         abc shouldBe abc
         (abc!=abd) shouldBe true
         (abc!=abc) shouldBe false
@@ -725,7 +806,6 @@ class TestProg8Parser: FunSpec( {
         val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
         ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
     }
-
 
     test("assignment isAugmented correctness") {
         val src = SourceCode.Text("""

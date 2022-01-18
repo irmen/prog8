@@ -361,7 +361,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
                     DataType.STR -> {
                         require(elementDt.isBytes)
                         val stringVal = variable.value as StringLiteralValue
-                        val encoded = program.encoding.encodeString(stringVal.value, stringVal.altEncoding)
+                        val encoded = program.encoding.encodeString(stringVal.value, stringVal.encoding)
                         return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), encoded.map { it.toInt() })
                     }
                     DataType.ARRAY_F -> {
@@ -410,7 +410,7 @@ internal class AssignmentAsmGen(private val program: Program, private val asmgen
         val stringVal = containment.iterable as? StringLiteralValue
         if(stringVal!=null) {
             require(elementDt.isBytes)
-            val encoded = program.encoding.encodeString(stringVal.value, stringVal.altEncoding)
+            val encoded = program.encoding.encodeString(stringVal.value, stringVal.encoding)
             return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), encoded.map { it.toInt() })
         }
         val arrayVal = containment.iterable as? ArrayLiteralValue

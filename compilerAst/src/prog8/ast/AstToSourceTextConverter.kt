@@ -2,11 +2,13 @@ package prog8.ast
 
 import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.Encoding
 
 
 /**
@@ -286,15 +288,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(char: CharLiteral) {
-        if (char.altEncoding)
-            output("@")
-        output("'${escape(char.value.toString())}'")
+        output("${char.encoding.prefix}:'${escape(char.value.toString())}'")
     }
 
     override fun visit(string: StringLiteralValue) {
-        if (string.altEncoding)
-            output("@")
-        output("\"${escape(string.value)}\"")
+        output("${string.encoding.prefix}:\"${escape(string.value)}\"")
     }
 
     override fun visit(array: ArrayLiteralValue) {

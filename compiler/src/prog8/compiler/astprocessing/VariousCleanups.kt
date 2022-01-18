@@ -158,7 +158,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
-                val string = program.encoding.encodeString(stringVal.value, stringVal.altEncoding)
+                val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
                 return replaceWithEquals(NumericLiteralValue(DataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications

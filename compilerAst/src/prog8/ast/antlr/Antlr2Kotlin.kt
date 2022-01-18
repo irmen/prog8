@@ -5,6 +5,7 @@ import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compilerinterface.Encoding
 import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
 import java.nio.file.Path
@@ -450,12 +451,16 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
 private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
     val text = this.SINGLECHAR().text
-    return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], this.ALT_STRING_ENCODING() != null, toPosition())
+    // TODO ISO-encoding, alternative encoding syntax
+    val encoding = if(ALT_STRING_ENCODING()==null) Encoding.PETSCII else Encoding.SCREENCODES
+    return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], encoding, toPosition())
 }
 
 private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue {
     val text=this.STRING().text
-    return StringLiteralValue(unescape(text.substring(1, text.length-1), toPosition()), ALT_STRING_ENCODING() != null, toPosition())
+    // TODO ISO-encoding, alternative encoding syntax
+    val encoding = if(ALT_STRING_ENCODING()==null) Encoding.PETSCII else Encoding.SCREENCODES
+    return StringLiteralValue(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
 }
 
 private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {

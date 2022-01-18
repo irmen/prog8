@@ -9,6 +9,7 @@ import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
@@ -154,7 +155,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                             else
                                 '_'
                         }.joinToString("")
-                        call.args[0] = StringLiteralValue(processed, false, name.position)
+                        call.args[0] = StringLiteralValue(processed, Encoding.PETSCII, name.position)
                         call.args[0].linkParents(call as Node)
                     }
                 }

@@ -6,8 +6,9 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
+import prog8.ast.statements.RegisterOrStatusflag
+import prog8.ast.statements.Subroutine
+import prog8.compilerinterface.*
 
 internal val DummyFunctions = object : IBuiltinFunctions {
     override val names: Set<String> = emptySet()
@@ -26,19 +27,46 @@ internal val DummyMemsizer = object : IMemSizer {
 }
 
 internal val DummyStringEncoder = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
+    override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         return emptyList()
     }
 
-    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
+    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
         return ""
     }
 }
 
 internal val AsciiStringEncoder = object : IStringEncoding {
-    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> = str.map { it.code.toUByte() }
+    override fun encodeString(str: String, encoding: Encoding): List<UByte> = str.map { it.code.toUByte() }
 
-    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
+    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
         return bytes.joinToString()
+    }
+}
+
+internal val DummyCompilationTarget = object : ICompilationTarget {
+    override val name: String = "dummy"
+    override val machine: IMachineDefinition
+        get() = throw NotImplementedError("dummy")
+
+    override fun encodeString(str: String, encoding: Encoding): List<UByte> {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>,
+                                                   paramRegisters: List<RegisterOrStatusflag>): Boolean {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun memorySize(dt: DataType): Int {
+        throw NotImplementedError("dummy")
     }
 }

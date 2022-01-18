@@ -9,21 +9,32 @@ import prog8.codegen.target.c64.C64MachineDefinition
 import prog8.codegen.target.cbm.Petscii
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
+import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 
 
 object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition()
-    override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
-        val coded = if (altEncoding) Petscii.encodeScreencode(str, true) else Petscii.encodePetscii(str, true)
+    override fun encodeString(str: String, encoding: Encoding): List<UByte> {
+        val coded = when(encoding) {
+            Encoding.PETSCII -> Petscii.encodePetscii(str, true)
+            Encoding.SCREENCODES -> Petscii.encodeScreencode(str, true)
+            else -> throw FatalAstException("unsupported encoding $encoding")
+        }
         return coded.fold(
             failure = { throw it },
             success = { it }
         )
     }
-    override fun decodeString(bytes: List<UByte>, altEncoding: Boolean) =
-        if (altEncoding) Petscii.decodeScreencode(bytes, true) else Petscii.decodePetscii(bytes, true)
+    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+        return when(encoding) {
+            Encoding.PETSCII -> Petscii.decodePetscii(bytes, true)
+            Encoding.SCREENCODES -> Petscii.decodeScreencode(bytes, true)
+            else -> throw FatalAstException("unsupported encoding $encoding")
+        }
+    }
+
 
     override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> =
         asmsub6502ArgsEvalOrder(sub)

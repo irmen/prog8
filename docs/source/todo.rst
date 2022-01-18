@@ -3,7 +3,9 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
+- implement iso encoding and alternate encoding syntax
+- document new encoding syntax
+
 
 
 Need help with

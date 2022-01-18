@@ -6,6 +6,7 @@ import prog8.ast.base.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.Encoding
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.round
@@ -589,8 +590,8 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
 }
 
 class CharLiteral(val value: Char,
-                 val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
-                 override val position: Position) : Expression() {
+                  val encoding: Encoding,
+                  override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -603,10 +604,10 @@ class CharLiteral(val value: Char,
         throw FatalAstException("can't replace here")
     }
 
-    override fun copy() = CharLiteral(value, altEncoding, position)
+    override fun copy() = CharLiteral(value, encoding, position)
     override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program): NumericLiteralValue {
-        val bytevalue = program.encoding.encodeString(value.toString(), altEncoding).single()
+        val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
         return NumericLiteralValue(DataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -615,16 +616,16 @@ class CharLiteral(val value: Char,
     override fun toString(): String = "'${escape(value.toString())}'"
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
     operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
-    override fun hashCode(): Int = Objects.hash(value, altEncoding)
+    override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if (other == null || other !is CharLiteral)
             return false
-        return value == other.value && altEncoding == other.altEncoding
+        return value == other.value && encoding == other.encoding
     }
 }
 
 class StringLiteralValue(val value: String,
-                         val altEncoding: Boolean,          // such as: screencodes instead of Petscii for the C64
+                         val encoding: Encoding,
                          override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -633,7 +634,7 @@ class StringLiteralValue(val value: String,
     }
 
     override val isSimple = true
-    override fun copy() = StringLiteralValue(value, altEncoding, position)
+    override fun copy() = StringLiteralValue(value, encoding, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")
@@ -647,11 +648,11 @@ class StringLiteralValue(val value: String,
     override fun toString(): String = "'${escape(value)}'"
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.STR)
     operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
-    override fun hashCode(): Int = Objects.hash(value, altEncoding)
+    override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is StringLiteralValue)
             return false
-        return value==other.value && altEncoding == other.altEncoding
+        return value==other.value && encoding == other.encoding
     }
 }
 
@@ -1025,7 +1026,7 @@ class ContainmentCheck(var element: Expression,
                 is StringLiteralValue -> {
                     if(elementConst.type in ByteDatatypes) {
                         val stringval = iterable as StringLiteralValue
-                        val exists = program.encoding.encodeString(stringval.value, stringval.altEncoding).contains(elementConst.number.toInt().toUByte() )
+                        val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteralValue.fromBoolean(exists, position)
                     }
                 }

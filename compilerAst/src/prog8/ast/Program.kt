@@ -7,6 +7,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
+import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
 import prog8.parser.SourceCode
@@ -74,7 +75,7 @@ class Program(val name: String,
         get() = toplevelModule.loadAddress
 
     var actualLoadAddress = 0u
-    private val internedStringsUnique = mutableMapOf<Pair<String, Boolean>, List<String>>()
+    private val internedStringsUnique = mutableMapOf<Pair<String, Encoding>, List<String>>()
 
     fun internString(string: StringLiteralValue): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
@@ -99,7 +100,7 @@ class Program(val name: String,
             return listOf(internedStringsModuleName, decl.name)
         }
 
-        val key = Pair(string.value, string.altEncoding)
+        val key = Pair(string.value, string.encoding)
         val existing = internedStringsUnique[key]
         if (existing != null)
             return existing

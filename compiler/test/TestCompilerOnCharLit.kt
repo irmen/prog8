@@ -11,6 +11,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.codegen.target.Cx16Target
+import prog8.compilerinterface.Encoding
 import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
@@ -42,7 +43,7 @@ class TestCompilerOnCharLit: FunSpec({
         }
         val arg = funCall.args[0] as NumericLiteralValue
         arg.type shouldBe DataType.UBYTE
-        arg.number shouldBe platform.encodeString("\n", false)[0].toDouble()
+        arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
     test("testCharVarAsRomsubArg") {
@@ -82,7 +83,7 @@ class TestCompilerOnCharLit: FunSpec({
         }
         val initializerValue = assignInitialValue.value as NumericLiteralValue
         initializerValue.type shouldBe DataType.UBYTE
-        initializerValue.number shouldBe platform.encodeString("\n", false)[0].toDouble()
+        initializerValue.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
     test("testCharConstAsRomsubArg") {
@@ -107,10 +108,10 @@ class TestCompilerOnCharLit: FunSpec({
                 val decl = arg.targetVarDecl(program)!!
                 decl.type shouldBe VarDeclType.CONST
                 decl.datatype shouldBe DataType.UBYTE
-                (decl.value as NumericLiteralValue).number shouldBe platform.encodeString("\n", false)[0]
+                (decl.value as NumericLiteralValue).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]
             }
             is NumericLiteralValue -> {
-                arg.number shouldBe platform.encodeString("\n", false)[0].toDouble()
+                arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
             }
             else -> fail("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail
         }

@@ -525,9 +525,8 @@ class AsmGen(private val program: Program,
     private fun outputStringvar(strdecl: VarDecl, nameOverride: String?=null) {
         val varname = nameOverride ?: strdecl.name
         val sv = strdecl.value as StringLiteralValue
-        val altEncoding = if(sv.altEncoding) "@" else ""
-        out("$varname\t; ${strdecl.datatype} $altEncoding\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
-        val bytes = compTarget.encodeString(sv.value, sv.altEncoding).plus(0.toUByte())
+        out("$varname\t; ${strdecl.datatype} ${sv.encoding}:\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
+        val bytes = compTarget.encodeString(sv.value, sv.encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             out("  .byte  " + chunk.joinToString())

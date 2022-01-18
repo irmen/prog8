@@ -77,7 +77,7 @@ class StatementOptimizer(private val program: Program,
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {
-                        val firstCharEncoded = compTarget.encodeString(string.value, string.altEncoding)[0]
+                        val firstCharEncoded = compTarget.encodeString(string.value, string.encoding)[0]
                         val chrout = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
                             mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
@@ -85,7 +85,7 @@ class StatementOptimizer(private val program: Program,
                         )
                         return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
                     } else if (string.value.length == 2) {
-                        val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.altEncoding)
+                        val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.encoding)
                         val chrout1 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
                             mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toDouble(), pos)),
@@ -195,7 +195,7 @@ class StatementOptimizer(private val program: Program,
                 val size = sv.value.length
                 if(size==1) {
                     // loop over string of length 1 -> just assign the single character
-                    val character = compTarget.encodeString(sv.value, sv.altEncoding)[0]
+                    val character = compTarget.encodeString(sv.value, sv.encoding)[0]
                     val byte = NumericLiteralValue(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))

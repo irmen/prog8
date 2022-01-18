@@ -13,47 +13,17 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.base.DataType
-import prog8.ast.expressions.Expression
-import prog8.ast.statements.RegisterOrStatusflag
-import prog8.ast.statements.Subroutine
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
 import prog8.codegen.target.c64.C64Zeropage
 import prog8.codegen.target.cx16.CX16Zeropage
 import prog8.compilerinterface.*
+import prog8tests.helpers.DummyCompilationTarget
 import prog8tests.helpers.ErrorReporterForTests
 import java.lang.IllegalArgumentException
 
 
 class TestAbstractZeropage: FunSpec({
-
-    class DummyCompilationTarget: ICompilationTarget {
-        override val name: String = "dummy"
-        override val machine: IMachineDefinition
-            get() = throw NotImplementedError("dummy")
-
-        override fun encodeString(str: String, altEncoding: Boolean): List<UByte> {
-            throw NotImplementedError("dummy")
-        }
-
-        override fun decodeString(bytes: List<UByte>, altEncoding: Boolean): String {
-            throw NotImplementedError("dummy")
-        }
-
-        override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> {
-            throw NotImplementedError("dummy")
-        }
-
-        override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>,
-                                                       paramRegisters: List<RegisterOrStatusflag>): Boolean {
-            throw NotImplementedError("dummy")
-        }
-
-        override fun memorySize(dt: DataType): Int {
-            throw NotImplementedError("dummy")
-        }
-
-    }
 
     class DummyZeropage(options: CompilationOptions) : Zeropage(options) {
         override val SCRATCH_B1 = 0x10u
@@ -70,7 +40,6 @@ class TestAbstractZeropage: FunSpec({
 
 
     test("testAbstractZeropage") {
-        val compTarget = DummyCompilationTarget()
         val zp = DummyZeropage(
             CompilationOptions(
                 OutputType.RAW,
@@ -79,7 +48,7 @@ class TestAbstractZeropage: FunSpec({
                 listOf((0x50u..0x5fu)),
                 false,
                 false,
-                compTarget
+                DummyCompilationTarget
             )
         )
         zp.free.size shouldBe 256-6-16
