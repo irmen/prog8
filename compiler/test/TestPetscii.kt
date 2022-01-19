@@ -16,8 +16,8 @@ class TestStringEncodings: FunSpec({
         test("testZero") {
             Petscii.encodePetscii("\u0000", true) shouldBe Ok(listOf<UByte>(0u))
             Petscii.encodePetscii("\u0000", false) shouldBe Ok(listOf<UByte>(0u))
-            Petscii.decodePetscii(listOf(0u), true) shouldBe "\u0000"
-            Petscii.decodePetscii(listOf(0u), false) shouldBe "\u0000"
+            Petscii.decodePetscii(listOf(0u), true) shouldBe Ok("\u0000")
+            Petscii.decodePetscii(listOf(0u), false) shouldBe Ok("\u0000")
         }
 
         test("testLowercase") {
@@ -30,7 +30,7 @@ class TestStringEncodings: FunSpec({
                 Petscii.encodePetscii("♥", true) shouldBe Ok(listOf<UByte>(0xd3u))
             }
 
-            Petscii.decodePetscii(listOf(72u, 0xd7u, 0x5cu, 0xfau, 0x12u), true) shouldBe "hW£✓\uF11A"
+            Petscii.decodePetscii(listOf(72u, 0xd7u, 0x5cu, 0xfau, 0x12u), true) shouldBe Ok("hW£✓\uF11A")
         }
 
         test("testUppercase") {
@@ -43,7 +43,7 @@ class TestStringEncodings: FunSpec({
                 Petscii.encodePetscii("✓") shouldBe Ok(listOf<UByte>(250u))
             }
 
-            Petscii.decodePetscii(listOf(72u, 0x5cu, 0xd3u, 0xffu)) shouldBe "H£♥π"
+            Petscii.decodePetscii(listOf(72u, 0x5cu, 0xd3u, 0xffu)) shouldBe Ok("H£♥π")
         }
 
         test("testScreencodeLowercase") {
@@ -55,7 +55,7 @@ class TestStringEncodings: FunSpec({
                 Petscii.encodeScreencode("π", true) shouldBe Ok(listOf<UByte>(94u))
             }
 
-            Petscii.decodeScreencode(listOf(0x08u, 0x57u, 0x1cu, 0x7au), true) shouldBe "hW£✓"
+            Petscii.decodeScreencode(listOf(0x08u, 0x57u, 0x1cu, 0x7au), true) shouldBe Ok("hW£✓")
         }
 
         test("testScreencodeUppercase") {
@@ -69,7 +69,7 @@ class TestStringEncodings: FunSpec({
                 Petscii.encodeScreencode("✓") shouldBe Ok(listOf<UByte>(122u))
             }
 
-            Petscii.decodeScreencode(listOf(0x17u, 0x1cu, 0x53u, 0x5eu)) shouldBe "W£♥π"
+            Petscii.decodeScreencode(listOf(0x17u, 0x1cu, 0x53u, 0x5eu)) shouldBe Ok("W£♥π")
         }
 
         test("testErrorCases") {
@@ -154,24 +154,24 @@ class TestStringEncodings: FunSpec({
 
         test("testBoxDrawingCharsDecoding") {
             // ─    0xC0 -> BOX DRAWINGS LIGHT HORIZONTAL
-            Petscii.decodePetscii(listOf(195u), false).single() shouldBe '\uf13b' //"BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)"
-            Petscii.decodePetscii(listOf(195u), true).single() shouldBe 'C'
-            Petscii.decodePetscii(listOf(192u), false).single() shouldBe '─'
-            Petscii.decodePetscii(listOf(192u), true).single() shouldBe '─'
-            Petscii.decodeScreencode(listOf(67u), false).single() shouldBe '\uf13b' //"BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)"
-            Petscii.decodeScreencode(listOf(67u), true).single() shouldBe 'C'
-            Petscii.decodeScreencode(listOf(64u), false).single() shouldBe '─'
-            Petscii.decodeScreencode(listOf(64u), true).single() shouldBe '─'
+            Petscii.decodePetscii(listOf(195u), false).getOrElse { throw it }.single() shouldBe '\uf13b' //"BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)"
+            Petscii.decodePetscii(listOf(195u), true).getOrElse { throw it }.single() shouldBe 'C'
+            Petscii.decodePetscii(listOf(192u), false).getOrElse { throw it }.single() shouldBe '─'
+            Petscii.decodePetscii(listOf(192u), true).getOrElse { throw it }.single() shouldBe '─'
+            Petscii.decodeScreencode(listOf(67u), false).getOrElse { throw it }.single() shouldBe '\uf13b' //"BOX DRAWINGS LIGHT HORIZONTAL ONE EIGHTH UP (CUS)"
+            Petscii.decodeScreencode(listOf(67u), true).getOrElse { throw it }.single() shouldBe 'C'
+            Petscii.decodeScreencode(listOf(64u), false).getOrElse { throw it }.single() shouldBe '─'
+            Petscii.decodeScreencode(listOf(64u), true).getOrElse { throw it }.single() shouldBe '─'
 
             // │    0x62 -> BOX DRAWINGS LIGHT VERTICAL
-            Petscii.decodePetscii(listOf(125u), false).single() shouldBe '│'
-            Petscii.decodePetscii(listOf(125u), true).single() shouldBe '│'
-            Petscii.decodePetscii(listOf(221u), false).single() shouldBe '│'
-            Petscii.decodePetscii(listOf(221u), true).single() shouldBe '│'
-            Petscii.decodeScreencode(listOf(93u), false).single() shouldBe '│'
-            Petscii.decodeScreencode(listOf(93u), true).single() shouldBe '│'
-            Petscii.decodeScreencode(listOf(66u), false).single() shouldBe '\uf13c' // "BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)"
-            Petscii.decodeScreencode(listOf(66u), true).single() shouldBe 'B'
+            Petscii.decodePetscii(listOf(125u), false).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodePetscii(listOf(125u), true).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodePetscii(listOf(221u), false).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodePetscii(listOf(221u), true).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodeScreencode(listOf(93u), false).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodeScreencode(listOf(93u), true).getOrElse { throw it }.single() shouldBe '│'
+            Petscii.decodeScreencode(listOf(66u), false).getOrElse { throw it }.single() shouldBe '\uf13c' // "BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)"
+            Petscii.decodeScreencode(listOf(66u), true).getOrElse { throw it }.single() shouldBe 'B'
         }
     }
 

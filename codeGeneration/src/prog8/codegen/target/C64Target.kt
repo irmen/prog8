@@ -16,7 +16,7 @@ import prog8.compilerinterface.ICompilationTarget
 object C64Target: ICompilationTarget {
     override val name = "c64"
     override val machine = C64MachineDefinition()
-    override fun encodeString(str: String, encoding: Encoding): List<UByte> {
+    override fun encodeString(str: String, encoding: Encoding): List<UByte> {               // TODO use Result
         val coded = when(encoding) {
             Encoding.PETSCII -> Petscii.encodePetscii(str, true)
             Encoding.SCREENCODES -> Petscii.encodeScreencode(str, true)
@@ -27,12 +27,16 @@ object C64Target: ICompilationTarget {
             success = { it }
         )
     }
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
-        return when(encoding) {
+    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {             // TODO use Result
+        val decoded = when(encoding) {
             Encoding.PETSCII -> Petscii.decodePetscii(bytes, true)
             Encoding.SCREENCODES -> Petscii.decodeScreencode(bytes, true)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
+        return decoded.fold(
+            failure = { throw it },
+            success = { it }
+        )
     }
 
 

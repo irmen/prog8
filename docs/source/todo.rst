@@ -4,8 +4,6 @@ TODO
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - document new string encoding syntax
-- fix petscii decode  methods that still throw an exception rather than Result
-
 
 
 Need help with

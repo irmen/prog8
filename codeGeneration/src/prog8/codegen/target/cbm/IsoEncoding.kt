@@ -14,8 +14,11 @@ object IsoEncoding {
         }
     }
 
-    fun decode(bytes: List<UByte>): String {
-        // TODO use Result
-        return String(bytes.map { it.toByte() }.toByteArray(), Charsets.ISO_8859_1)
+    fun decode(bytes: List<UByte>): Result<String, CharConversionException> {
+        return try {
+            Ok(String(bytes.map { it.toByte() }.toByteArray(), Charsets.ISO_8859_1))
+        } catch (ce: CharConversionException) {
+            Err(ce)
+        }
     }
 }
