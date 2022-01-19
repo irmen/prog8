@@ -282,8 +282,7 @@ Various examples::
     byte        counter = len([1, 2, 3]) * 20
     byte        age     = 2018 - 1974
     float       wallet  = 55.25
-    str         name    = "my name is Irmen"
-    str         name    = @"my name is Irmen"           ; string with alternative byte encoding
+    str         name    = "my name is Alice"
     uword       address = &counter
     byte[]      values  = [11, 22, 33, 44, 55]
     byte[5]     values                  ; array of 5 bytes, initially set to zero
@@ -432,10 +431,23 @@ memory at the given index. See :ref:`pointervars`
 
 String
 ^^^^^^
+.. sidebar::
+    Deprecated ``@`` prefix
 
-``"hello"``   is a string translated into the default character encoding (PETSCII)
+    In older versions of the language, the ``@`` prefix was used to specify the
+    CBM screencode encoding. This syntax is still supported for now, but will be removed
+    in a future language version.
 
-``@"hello"``  is a string translated into the alternate character encoding (Screencodes/pokes)
+A string literal can occur with or without an encoding prefix (encoding followed by ':' followed by the string itself).
+When this is omitted, the string is stored in the machine's default character encoding (which is PETSCII on the CBM machines).
+You can choose to store the string in other encodings such as ``sc`` (screencodes) or ``iso`` (iso-8859-15).
+Here are several examples:
+
+    - ``"hello"``   a string translated into the default character encoding (PETSCII)
+    - ``petscii:"hello"``   same as the above, on CBM machines.
+    - ``sc:"my name is Alice"``      string with screencode encoding (new syntax)
+    - ``iso:"Ich heiße François"``   string in iso encoding
+
 
 There are several escape sequences available to put special characters into your string value:
 

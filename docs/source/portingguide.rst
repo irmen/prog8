@@ -36,10 +36,10 @@ RAM, ROM, I/O
 #. what part(s) of the address space is memory mapped I/O registers?
 #. is there a banking system? How does it work (how do you select Ram/Rom banks)? How is the default bank configuration set?
 
-Screen and Character encodings
-------------------------------
+Character encodings
+-------------------
 #. provide the primary character encoding table that the system uses (i.e. how is text represented in memory)
-#. provide alternate character encoding table (if any)
+#. provide alternate character encodings (if any)
 #. what are the system's character screen dimensions?
 #. is there a screen matrix directly accessible in Ram? Provide addresses of the character matrix and color attributes matrix, if any.
 

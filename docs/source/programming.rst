@@ -193,8 +193,9 @@ Values will usually be part of an expression or assignment statement::
     -33.456e52            ; floating point number
     "Hi, I am a string"   ; text string, encoded with compiler target default encoding
     'a'                   ; byte value (ubyte) for the letter a
-    @"Alternate"          ; text string, encoded with alternate encoding
-    @'a'                  ; byte value of the letter a, using alternate encoding
+    @"Alternate"          ; text string, encoded with alternate encoding (old deprecated syntax)
+    sc:"Alternate"        ; text string, encoded with c64 screencode encoding (current syntax)
+    sc:'a'                ; byte value of the letter a in c64 screencode encoding
 
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
@@ -314,12 +315,28 @@ Strings
 Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
-Strings in your source code files will be encoded (translated from ASCII/UTF-8) into bytes via the
-default encoding that is used on the target platform. For the C-64, this is CBM PETSCII.
-Alternate-encoding strings (prefixed with ``@``) will be encoded via the alternate encoding for the
-platform (if defined). For the C-64, that is SCREEN CODES (also known as POKE codes).
-This @-prefix can also be used for character byte values.
+Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
+*default encoding* for the target platform. On the CBM machines, this is CBM PETSCII.
 
+.. sidebar::
+    Deprecated ``@`` prefix
+
+    In older versions of the language, the ``@`` prefix was used to specify the
+    CBM screencode encoding. This syntax is still supported for now, but will be removed
+    in a future language version.
+
+Alternative encodings can be specified with a ``encodingname:`` prefix to the string or character literal.
+The following encodings are currently recognised:
+
+    - ``petscii``  Petscii, the default encoding on CBM machines (c64, c128, cx16)
+    - ``sc``  CBM-screencodes aka 'poke' codes (c64, c128, cx16)
+    - ``iso``  iso-8859-15 text (supported on cx16)
+
+So the following is a string literal that will be encoded into memory bytes using the iso encoding.
+It can be correctly displayed on the screen only if a iso-8859-15 charset has been activated first
+(the Commander X16 has this feature built in)::
+
+    iso:"Käse, Straße"
 
 You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
