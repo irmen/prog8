@@ -1,8 +1,8 @@
 TODO
 ====
 
-For next compiler release (7.7)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For next release
+^^^^^^^^^^^^^^^^
 ...
 
 

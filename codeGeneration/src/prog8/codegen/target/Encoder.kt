@@ -11,7 +11,7 @@ internal object Encoder: IStringEncoding {
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {              // TODO use Result
         val coded = when(encoding) {
             Encoding.PETSCII -> PetsciiEncoding.encodePetscii(str, true)
-            Encoding.SCREENCODES -> PetsciiEncoding.encodePetscii(str, true)
+            Encoding.SCREENCODES -> PetsciiEncoding.encodeScreencode(str, true)
             Encoding.ISO -> IsoEncoding.encode(str)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
@@ -23,7 +23,7 @@ internal object Encoder: IStringEncoding {
     override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {            // TODO use Result
         val decoded = when(encoding) {
             Encoding.PETSCII -> PetsciiEncoding.decodePetscii(bytes, true)
-            Encoding.SCREENCODES -> PetsciiEncoding.decodePetscii(bytes, true)
+            Encoding.SCREENCODES -> PetsciiEncoding.decodeScreencode(bytes, true)
             Encoding.ISO -> IsoEncoding.decode(bytes)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
