@@ -6,10 +6,10 @@ import com.github.michaelbull.result.Result
 import prog8.ast.antlr.escape
 import java.io.CharConversionException
 
-object Petscii {
+object PetsciiEncoding {
 
     // decoding:  from Petscii/Screencodes (0-255) to unicode
-    // character tables used from https://github.com/dj51d/cbmcodecs
+    // character tables used from https://github.com/irmen/cbmcodecs2
 
     private val decodingPetsciiLowercase = charArrayOf(
         '\u0000',    //       0x00 -> \u0000

@@ -20,7 +20,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
-import prog8.codegen.target.cbm.Petscii
+import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8.compilerinterface.Encoding
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
@@ -923,7 +923,7 @@ class TestProg8Parser: FunSpec( {
         ff.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
         val letter = start.statements[6] as Assignment
         // TODO characters should perhaps not be encoded until code generation, like strings... however this will prevent optimizing expressions with characters
-        val encodedletter = Petscii.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
+        val encodedletter = PetsciiEncoding.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
         letter.value shouldBe NumericLiteralValue(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
 

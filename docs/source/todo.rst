@@ -3,7 +3,7 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- make 'petscii' not hardcoded default but specified in machinedefinition
+...
 
 
 Need help with

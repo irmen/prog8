@@ -1,47 +1,22 @@
 package prog8.codegen.target
 
-import com.github.michaelbull.result.fold
-import prog8.ast.base.*
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.PassByReferenceDatatypes
+import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
-import prog8.codegen.target.cbm.IsoEncoding
-import prog8.codegen.target.cbm.Petscii
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.codegen.target.cx16.CX16MachineDefinition
-import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IStringEncoding
 
 
-object Cx16Target: ICompilationTarget {
+object Cx16Target: ICompilationTarget, IStringEncoding by Encoder {
     override val name = "cx16"
     override val machine = CX16MachineDefinition()
-    override fun encodeString(str: String, encoding: Encoding): List<UByte> {              // TODO use Result
-        val coded = when(encoding) {
-            Encoding.PETSCII -> Petscii.encodePetscii(str, true)
-            Encoding.SCREENCODES -> Petscii.encodeScreencode(str, true)
-            Encoding.ISO -> IsoEncoding.encode(str)
-            else -> throw FatalAstException("unsupported encoding $encoding")
-        }
-        return coded.fold(
-            failure = { throw it },
-            success = { it }
-        )
-    }
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {            // TODO use Result
-        val decoded = when(encoding) {
-            Encoding.PETSCII -> Petscii.decodePetscii(bytes, true)
-            Encoding.SCREENCODES -> Petscii.decodeScreencode(bytes, true)
-            Encoding.ISO -> IsoEncoding.decode(bytes)
-            else -> throw FatalAstException("unsupported encoding $encoding")
-        }
-        return decoded.fold(
-            failure = { throw it },
-            success = { it }
-        )
-    }
-
 
     override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> =
         asmsub6502ArgsEvalOrder(sub)
