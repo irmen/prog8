@@ -1099,7 +1099,7 @@ object Petscii {
         return petscii.map {
             val code = it.toInt()
             if(code<0 || code>= decodingPetsciiLowercase.size)
-                throw CharConversionException("petscii $code out of range 0..${decodingPetsciiLowercase.size-1}")
+                throw CharConversionException("petscii $code out of range 0..${decodingPetsciiLowercase.size-1}")       // TODO don't throw, use Result
             if(lowercase) decodingPetsciiLowercase[code] else decodingPetsciiUppercase[code]
         }.joinToString("")
     }
@@ -1138,7 +1138,7 @@ object Petscii {
         return screencode.map {
             val code = it.toInt()
             if(code<0 || code>= decodingScreencodeLowercase.size)
-                throw CharConversionException("screencode $code out of range 0..${decodingScreencodeLowercase.size-1}")
+                throw CharConversionException("screencode $code out of range 0..${decodingScreencodeLowercase.size-1}")     // TODO don't throw, use Result
             if (lowercase) decodingScreencodeLowercase[code] else decodingScreencodeUppercase[code]
         }.joinToString("")
     }

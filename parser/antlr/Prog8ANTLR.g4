@@ -28,7 +28,6 @@ DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
 BIN_INTEGER :  '%' ('0' | '1')+ ;
 ADDRESS_OF: '&';
-ALT_STRING_ENCODING: '@';
 
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? FNUMBER)? ;	// sign comes later from unary expression
 fragment FNUMBER :  ('0' .. '9') + ('.' ('0' .. '9') +)? ;
@@ -221,9 +220,9 @@ booleanliteral :  'true' | 'false' ;
 
 arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the values over several lines
 
-stringliteral : ALT_STRING_ENCODING? STRING ;
+stringliteral : (old_alt_encoding='@' | encoding=NAME ':')? STRING ;
 
-charliteral : ALT_STRING_ENCODING? SINGLECHAR ;
+charliteral : (old_alt_encoding='@' | encoding=NAME ':')? SINGLECHAR ;
 
 floatliteral :  FLOAT_NUMBER ;
 

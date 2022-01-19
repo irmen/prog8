@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.Petscii
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cpu6502.codegen.asmsub6502ArgsHaveRegisterClobberRisk
@@ -20,7 +21,7 @@ object Cx16Target: ICompilationTarget {
         val coded = when(encoding) {
             Encoding.PETSCII -> Petscii.encodePetscii(str, true)
             Encoding.SCREENCODES -> Petscii.encodeScreencode(str, true)
-            Encoding.ISO -> TODO("cx16 iso-encoding")
+            Encoding.ISO -> IsoEncoding.encode(str)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
         return coded.fold(
@@ -32,7 +33,7 @@ object Cx16Target: ICompilationTarget {
         return when(encoding) {
             Encoding.PETSCII -> Petscii.decodePetscii(bytes, true)
             Encoding.SCREENCODES -> Petscii.decodeScreencode(bytes, true)
-            Encoding.ISO -> TODO("cx16 iso-encoding")
+            Encoding.ISO -> IsoEncoding.decode(bytes)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
     }

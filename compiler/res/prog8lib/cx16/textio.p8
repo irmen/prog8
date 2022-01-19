@@ -169,15 +169,23 @@ sub color2 (ubyte txtcol, ubyte bgcol) {
 }
 
 sub lowercase() {
-    cx16.screen_set_charset(3, 0)  ; lowercase petscii charset
+    c64.CHROUT($0e)
+    ; this is not 100% compatible: cx16.screen_set_charset(3, 0)  ; lowercase petscii charset
 }
 
 sub uppercase() {
-    cx16.screen_set_charset(2, 0)  ; uppercase petscii charset
+    c64.CHROUT($8e)
+    ; this is not 100% compatible: cx16.screen_set_charset(2, 0)  ; uppercase petscii charset
 }
 
 sub iso() {
-    cx16.screen_set_charset(1, 0)  ; iso charset
+    c64.CHROUT($0f)
+    ; This doesn't enable it completely: cx16.screen_set_charset(1, 0)  ; iso charset
+}
+
+sub iso_off() {
+    ; -- you have to call this first when switching back from iso charset to regular charset.
+    c64.CHROUT($8f)
 }
 
 

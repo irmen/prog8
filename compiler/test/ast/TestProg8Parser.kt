@@ -446,7 +446,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe 'x'
         }
 
-        xtest("on rhs of block-level const decl, with screencode enc (new syntax)") {
+        test("on rhs of block-level const decl, with screencode enc (new syntax)") {
             val src = SourceCode.Text("""
                 main {
                     const ubyte c = sc:'x'
@@ -462,7 +462,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe 'x'
         }
 
-        xtest("on rhs of block-level const decl, with iso encoding") {
+        test("on rhs of block-level const decl, with iso encoding") {
             val src = SourceCode.Text("""
                 main {
                     const ubyte c = iso:'_'
@@ -517,7 +517,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe 'x'
         }
 
-        xtest("on rhs of subroutine-level const decl, screencode (new syntax)") {
+        test("on rhs of subroutine-level const decl, screencode (new syntax)") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -536,7 +536,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe 'x'
         }
 
-        xtest("on rhs of subroutine-level const decl, iso encoding") {
+        test("on rhs of subroutine-level const decl, iso encoding") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -558,9 +558,55 @@ class TestProg8Parser: FunSpec( {
 
     context("Strings") {
 
-        // TODO test encoding in all available encodings
-        // check that '~' cant be encoded in petscii and screencode
-        // check that '~' CAN be encoded correctly in iso
+        test("default encoding") {
+            val source = """
+                main {
+                    str name = "name"
+                }"""
+            val module = parseModule(SourceCode.Text(source))
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+            val rhs = decl.value as StringLiteralValue
+            rhs.encoding shouldBe Encoding.PETSCII
+            rhs.value shouldBe "name"
+        }
+
+        test("old syntax alt encoding") {
+            val source = """
+                main {
+                    str name = @"name"
+                }"""
+            val module = parseModule(SourceCode.Text(source))
+            val decl = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<VarDecl>()[0]
+            val rhs = decl.value as StringLiteralValue
+            rhs.encoding shouldBe Encoding.SCREENCODES
+            rhs.value shouldBe "name"
+        }
+
+        test("new syntax encodings") {
+            val source = """
+                main {
+                    str name1 = petscii:"Name"
+                    str name2 = sc:"Name"
+                    str name3 = iso:"Name"
+                }"""
+            val module = parseModule(SourceCode.Text(source))
+            val (decl1, decl2, decl3) = module
+                .statements.filterIsInstance<Block>()[0]
+                .statements.filterIsInstance<VarDecl>()
+            val rhs1 = decl1.value as StringLiteralValue
+            val rhs2 = decl2.value as StringLiteralValue
+            val rhs3 = decl3.value as StringLiteralValue
+            rhs1.encoding shouldBe Encoding.PETSCII
+            rhs1.value shouldBe "Name"
+            rhs2.encoding shouldBe Encoding.SCREENCODES
+            rhs2.value shouldBe "Name"
+            rhs3.encoding shouldBe Encoding.ISO
+            rhs3.value shouldBe "Name"
+        }
     }
 
     context("Ranges") {

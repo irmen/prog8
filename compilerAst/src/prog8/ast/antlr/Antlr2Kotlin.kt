@@ -321,8 +321,10 @@ internal fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
 
 private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
-    if(str?.ALT_STRING_ENCODING() != null)
-        throw SyntaxError("can't use alternate string s for directive arguments", toPosition())
+    val oldenc = str?.old_alt_encoding?.text
+    val enc = str?.encoding?.text
+    if(oldenc!=null || enc !=null)
+        throw SyntaxError("can't use alternate string encoding for directive arguments", toPosition())
     return DirectiveArg(str?.text?.substring(1, text.length-1), identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
 }
 
@@ -451,15 +453,29 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
 private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
     val text = this.SINGLECHAR().text
-    // TODO ISO-encoding, alternative encoding syntax
-    val encoding = if(ALT_STRING_ENCODING()==null) Encoding.PETSCII else Encoding.SCREENCODES
+    val enc = this.encoding?.text
+    val encoding =
+        if(old_alt_encoding!=null)
+            Encoding.SCREENCODES
+        else if(enc!=null)
+            Encoding.values().singleOrNull { it.prefix == enc }
+                ?: throw SyntaxError("invalid encoding", toPosition())
+        else
+            Encoding.PETSCII
     return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], encoding, toPosition())
 }
 
 private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue {
     val text=this.STRING().text
-    // TODO ISO-encoding, alternative encoding syntax
-    val encoding = if(ALT_STRING_ENCODING()==null) Encoding.PETSCII else Encoding.SCREENCODES
+    val enc = encoding?.text
+    val encoding =
+        if(old_alt_encoding!=null)
+            Encoding.SCREENCODES
+        else if(enc!=null)
+            Encoding.values().singleOrNull { it.prefix == enc }
+                ?: throw SyntaxError("invalid encoding", toPosition())
+        else
+            Encoding.PETSCII
     return StringLiteralValue(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
 }
 

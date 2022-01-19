@@ -61,47 +61,80 @@ class TestAstToSourceText: AnnotationSpec() {
 
 
     @Test
-    fun testStringLiteral_noAlt() {
+    fun testStringLiteral_DefaultEnc() {
         val orig = SourceCode.Text("""
             main {
                 str s = "fooBar\n"
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("str +s += +\"fooBar\\\\n\"")
+        txt shouldContain Regex("str +s += +petscii:\"fooBar\\\\n\"")
     }
 
     @Test
-    fun testStringLiteral_withAlt() {
+    fun testStringLiteral_withSc() {
+        val orig = SourceCode.Text("""
+            main {
+                str sAlt = sc:"fooBar\n"
+            }
+        """)
+        val (txt, _) = roundTrip(parseModule(orig))
+        txt shouldContain Regex("str +sAlt += +sc:\"fooBar\\\\n\"")
+    }
+
+    @Test
+    fun testStringLiteral_withOldSc() {
         val orig = SourceCode.Text("""
             main {
                 str sAlt = @"fooBar\n"
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("str +sAlt += +@\"fooBar\\\\n\"")
+        txt shouldContain Regex("str +sAlt += +sc:\"fooBar\\\\n\"")
     }
 
     @Test
-    fun testCharLiteral_noAlt() {
+    fun testStringLiteral_withIso() {
+        val orig = SourceCode.Text("""
+            main {
+                str sAlt = iso:"fooBar\n"
+            }
+        """)
+        val (txt, _) = roundTrip(parseModule(orig))
+        txt shouldContain Regex("str +sAlt += +iso:\"fooBar\\\\n\"")
+    }
+
+    @Test
+    fun testCharLiteral_defaultEnc() {
         val orig = SourceCode.Text("""
             main {
                 ubyte c = 'x'
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("ubyte +c += +'x'")
+        txt shouldContain Regex("ubyte +c += +petscii:'x'")
     }
 
     @Test
-    fun testCharLiteral_withAlt() {
+    fun testCharLiteral_OldSc() {
         val orig = SourceCode.Text("""
             main {
                 ubyte cAlt = @'x'
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("ubyte +cAlt += +@'x'")
+        txt shouldContain Regex("ubyte +cAlt += +sc:'x'")
+    }
+
+    @Test
+    fun testCharLiteral_Sc() {
+        val orig = SourceCode.Text("""
+            main {
+                ubyte cAlt = sc:'x'
+            }
+        """)
+        val (txt, _) = roundTrip(parseModule(orig))
+        txt shouldContain Regex("ubyte +cAlt += +sc:'x'")
     }
 
     @Test

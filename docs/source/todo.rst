@@ -3,8 +3,8 @@ TODO
 
 For next compiler release (7.7)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- implement iso encoding and alternate encoding syntax
-- document new encoding syntax
+- document new string encoding syntax
+- fix petscii decode  methods that still throw an exception rather than Result
 
 
 
