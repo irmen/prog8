@@ -307,12 +307,24 @@ romsub $ff7d = primm()
 romsub $ff44 = macptr()  clobbers(A,X,Y)
 romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)  clobbers(A,X,Y)
 romsub $ff68 = mouse_config(ubyte shape @A, ubyte scale @X)  clobbers (A, X, Y)
-romsub $ff6b = mouse_get(ubyte zpdataptr @X)  clobbers(A)
+romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
+
+asmsub mouse_pos() -> ubyte @A {
+    ; -- short wrapper around mouse_get() kernal routine:
+    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
+    %asm {{
+        phx
+        ldx  #cx16.r0
+        jsr  cx16.mouse_get
+        plx
+        rts
+    }}
+}
 
 
 ; It's not documented what registers are clobbered, so we assume the worst for all following kernal routines...:
