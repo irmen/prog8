@@ -341,7 +341,7 @@ It can be correctly displayed on the screen only if a iso-8859-15 charset has be
 You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
 of the total string still cannot exceed 255 characaters.
-A string literal can also be repeated a given number of times using '*'.
+A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
 And a new string value can be assigned to another string, but no bounds check is done
 so be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
 

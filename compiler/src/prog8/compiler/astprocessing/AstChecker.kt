@@ -636,8 +636,6 @@ internal class AstChecker(private val program: Program,
                 if(parameter==null)
                     err("string var must be initialized with a string literal")
             }
-            else if (decl.type==VarDeclType.VAR && decl.value !is StringLiteralValue)
-                err("string var can only be initialized with a string literal")
         }
 
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
@@ -869,8 +867,15 @@ internal class AstChecker(private val program: Program,
             errors.err("left operand is not numeric or str", expr.left.position)
         if(rightDt!in NumericDatatypes && rightDt != DataType.STR)
             errors.err("right operand is not numeric or str", expr.right.position)
-        if(leftDt!=rightDt)
-            errors.err("left and right operands aren't the same type", expr.left.position)
+        if(leftDt!=rightDt) {
+            if(leftDt==DataType.STR && rightDt in IntegerDatatypes) {
+                // only exception allowed: str * constvalue
+                if(expr.right.constValue(program)!=null)
+                    errors.err("can only use string repeat with a constant number value", expr.left.position)
+            } else {
+                errors.err("left and right operands aren't the same type", expr.left.position)
+            }
+        }
 
         if(expr.operator !in ComparisonOperators) {
             if (leftDt == DataType.STR && rightDt == DataType.STR || leftDt in ArrayDatatypes && rightDt in ArrayDatatypes) {

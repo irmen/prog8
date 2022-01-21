@@ -267,8 +267,8 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
     println("Processing for target ${compilerOptions.compTarget.name}...")
-    program.preprocessAst(program, errors)
-    program.checkIdentifiers(errors, program, compilerOptions)
+    program.preprocessAst(errors)
+    program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
     //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
@@ -283,11 +283,11 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.addTypecasts(errors, compilerOptions)
     errors.report()
-    program.variousCleanups(program, errors, compilerOptions)
+    program.variousCleanups(errors, compilerOptions)
     errors.report()
     program.checkValid(errors, compilerOptions)
     errors.report()
-    program.checkIdentifiers(errors, program, compilerOptions)
+    program.checkIdentifiers(errors, compilerOptions)
     errors.report()
 }
 
@@ -316,7 +316,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.desugaring(errors)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
-    program.variousCleanups(program, errors, compilerOptions)
+    program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
     errors.report()

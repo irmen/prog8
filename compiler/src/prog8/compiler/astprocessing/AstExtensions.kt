@@ -77,17 +77,17 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.preprocessAst(program: Program, errors: IErrorReporter) {
-    val transforms = AstPreprocessor(program, errors)
+internal fun Program.preprocessAst(errors: IErrorReporter) {
+    val transforms = AstPreprocessor(this, errors)
     transforms.visit(this)
     var mods = transforms.applyModifications()
     while(mods>0)
         mods = transforms.applyModifications()
 }
 
-internal fun Program.checkIdentifiers(errors: IErrorReporter, program: Program, options: CompilationOptions) {
+internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
 
-    val checker2 = AstIdentifiersChecker(errors, program, options.compTarget)
+    val checker2 = AstIdentifiersChecker(errors, this, options.compTarget)
     checker2.visit(this)
 
     if(errors.noErrors()) {
@@ -101,8 +101,8 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, program: Program, 
     }
 }
 
-internal fun Program.variousCleanups(program: Program, errors: IErrorReporter, options: CompilationOptions) {
-    val process = VariousCleanups(program, errors, options)
+internal fun Program.variousCleanups(errors: IErrorReporter, options: CompilationOptions) {
+    val process = VariousCleanups(this, errors, options)
     process.visit(this)
     if(errors.noErrors())
         process.applyModifications()
