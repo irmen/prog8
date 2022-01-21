@@ -784,9 +784,14 @@ of a label or subroutine::
 	goto  $c000		; address
 	goto  name		; label or subroutine
 
+    uword address = $4000
+    goto  address   ; jump via address variable
 
 Notice that this is a valid way to end a subroutine (you can either ``return`` from it, or jump
 to another piece of code that eventually returns).
+
+If you jump to an address variable (uword), it is doing an 'indirect' jump: the jump will be done
+to the address that's currently in the variable.
 
 
 Conditional execution

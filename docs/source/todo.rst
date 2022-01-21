@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- allow  goto pointervar    (goto $a000 already works...)  then use this in cx16assem's run_file()
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - is * lower prio than bitwise & ?   fix prios if so!
 

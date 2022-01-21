@@ -875,7 +875,10 @@ class AsmGen(private val program: Program,
                 }
             }
             is Assignment -> assignmentAsmGen.translate(stmt)
-            is Jump -> jmp(getJumpTarget(stmt))
+            is Jump -> {
+                val (asmLabel, indirect) = getJumpTarget(stmt)
+                jmp(asmLabel, indirect)
+            }
             is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
@@ -1563,7 +1566,17 @@ $repeatLabel    lda  $counterVar
         if(jump!=null) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
-            out("  $instruction  ${getJumpTarget(jump)}")
+            val (asmLabel, indirect) = getJumpTarget(jump)
+            if(indirect) {
+                val complementedInstruction = branchInstruction(stmt.condition, true)
+                out("""
+                    $complementedInstruction +
+                    jmp  ($asmLabel)
++""")
+            }
+            else {
+                out("  $instruction  $asmLabel")
+            }
             translate(stmt.elsepart)
         } else {
             if(stmt.elsepart.isEmpty()) {
@@ -1638,15 +1651,22 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun getJumpTarget(jump: Jump): String {
+    private fun getJumpTarget(jump: Jump): Pair<String, Boolean> {
         val ident = jump.identifier
         val label = jump.generatedLabel
         val addr = jump.address
         return when {
-            ident!=null -> asmSymbolName(ident)
-            label!=null -> label
-            addr!=null -> addr.toHex()
-            else -> "????"
+            ident!=null -> {
+                // can be a label, or a pointer variable
+                val target = ident.targetVarDecl(program)
+                if(target!=null)
+                    Pair(asmSymbolName(ident), true)        // indirect
+                else
+                    Pair(asmSymbolName(ident), false)
+            }
+            label!=null -> Pair(label, false)
+            addr!=null -> Pair(addr.toHex(), false)
+            else -> Pair("????", false)
         }
     }
 
@@ -1758,11 +1778,15 @@ $repeatLabel    lda  $counterVar
         return zeropage.allocatedZeropageVariable(vardecl.scopedName)!=null
     }
 
-    internal fun jmp(asmLabel: String) {
-        if(isTargetCpu(CpuType.CPU65c02))
-            out("  bra  $asmLabel")     // note: 64tass will convert this automatically to a jmp if the relative distance is too large
-        else
-            out("  jmp  $asmLabel")
+    internal fun jmp(asmLabel: String, indirect: Boolean=false) {
+        if(indirect) {
+            out("  jmp  ($asmLabel)")
+        } else {
+            if (isTargetCpu(CpuType.CPU65c02))
+                out("  bra  $asmLabel")     // note: 64tass will convert this automatically to a jmp if the relative distance is too large
+            else
+                out("  jmp  $asmLabel")
+        }
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: Expression): Pair<Expression, Expression>? {

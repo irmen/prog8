@@ -332,4 +332,57 @@ class TestScoping: FunSpec({
         errors.errors[3] shouldContain "undefined symbol: routine.nested.nestedvalue"
         errors.errors[4] shouldContain "undefined symbol: nested.nestedvalue"
     }
+
+    test("various good goto targets") {
+        val text="""
+            main {
+                sub start() {
+                    uword address = $4000
+                    
+                    goto ${'$'}c000
+                    goto address        ; indirect jump
+                    goto main.routine
+                    goto main.jumplabel
+                    
+                    if_cc
+                        goto ${'$'}c000
+                    if_cc
+                        goto address        ; indirect jump
+                    if_cc
+                        goto main.routine
+                    if_cc
+                        goto main.jumplabel
+                }
+
+            jumplabel:
+                %asm {{
+                    rts
+                }}
+                sub routine() {
+                }
+            }
+        """
+        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+    }
+
+    test("various wrong goto targets") {
+        val text = """
+            main {
+                sub start() {
+                    byte wrongaddress = 100
+                    
+                    goto wrongaddress   ; must be uword
+                    goto main.routine   ; can't take args
+                }
+
+                sub routine(ubyte arg) {
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors = errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "wrong address"
+        errors.errors[1] shouldContain "takes parameters"
+    }
 })

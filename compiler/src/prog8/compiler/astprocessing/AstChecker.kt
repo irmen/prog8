@@ -1308,8 +1308,18 @@ internal class AstChecker(private val program: Program,
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {
             is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
-            null -> errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", statement.position)
-            else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", statement.position)
+            is VarDecl -> {
+                if(statement is Jump) {
+                    if (targetStatement.datatype == DataType.UWORD)
+                        return targetStatement
+                    else
+                        errors.err("wrong address variable datatype, expected uword", target.position)
+                }
+                else
+                    errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
+            }
+            null -> errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", target.position)
+            else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
         }
         return null
     }

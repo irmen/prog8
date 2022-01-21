@@ -527,7 +527,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
     override fun toString() = "PostIncrDecr(op: $operator, target: $target, pos=$position)"
 }
 
-class Jump(val address: UInt?,
+class Jump(var address: UInt?,
            val identifier: IdentifierReference?,
            val generatedLabel: String?,             // can be used in code generation scenarios
            override val position: Position) : Statement() {
@@ -538,7 +538,13 @@ class Jump(val address: UInt?,
         identifier?.linkParents(this)
     }
 
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===identifier && replacement is NumericLiteralValue) {
+            address = replacement.number.toUInt()
+        }
+        else
+            throw FatalAstException("can't replace $node")
+    }
     override fun copy() = Jump(address, identifier?.copy(), generatedLabel, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
