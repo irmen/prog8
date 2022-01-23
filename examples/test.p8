@@ -3,7 +3,15 @@
 
 main {
     sub start() {
-        uword @shared qq = $2ff33
-        cx16.r0 = $1fc0f
+
+label:
+        uword @shared addr
+        addr = label
+        addr = thing
+        addr = &label
+        addr = &thing
+    }
+
+    sub thing() {
     }
 }

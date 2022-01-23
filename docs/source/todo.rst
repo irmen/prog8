@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Fix:  uword addr = label    ; addr will be 0!  required to use &label!
 - Fix compiler stack overflow crash:
     sub sprite_y_for_row(ubyte row) -> word {
         return (8-row as byte)
@@ -44,6 +43,7 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- Fix: don't report as recursion if code assign address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes

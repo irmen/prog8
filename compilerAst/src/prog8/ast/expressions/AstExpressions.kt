@@ -896,7 +896,6 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program)) {
             is VarDecl -> InferredTypes.knownFor(targetStmt.datatype)
-            is Label -> InferredTypes.InferredType.known(DataType.UWORD)
             else -> InferredTypes.InferredType.unknown()
         }
     }

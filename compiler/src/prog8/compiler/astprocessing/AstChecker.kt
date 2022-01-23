@@ -497,7 +497,7 @@ internal class AstChecker(private val program: Program,
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
                         if (assignment.value !is FunctionCallExpression)
-                            errors.err("assignment value is invalid or has no proper datatype", assignment.value.position)
+                            errors.err("assignment value is invalid or has no proper datatype, maybe forgot '&' (address-of)", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
                                 sourceDatatype.getOr(DataType.BYTE), assignment.value)
