@@ -494,7 +494,9 @@ class AsmGen(private val program: Program,
         val vars = statements.asSequence()
             .filterIsInstance<VarDecl>()
             .filter {
-                it.type==VarDeclType.VAR && zeropage.allocatedZeropageVariable(it.scopedName)==null
+                it.type==VarDeclType.VAR
+                        && it.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE
+                        && zeropage.allocatedZeropageVariable(it.scopedName)==null
             }
 
         vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
@@ -504,6 +506,7 @@ class AsmGen(private val program: Program,
         val blockname = inBlock?.name
 
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
+            require(it.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE)
             if(!isZpVar(it.scopedName)) {
                 if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
                     vardecl2asm(it)

@@ -16,7 +16,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
-    private val allIdentifiersAndTargets = mutableMapOf<Pair<IdentifierReference, Position>, Statement>()
+    private val allIdentifiersAndTargets = mutableMapOf<Pair<IdentifierReference, Position>, Statement>()       // note: identifier+location as key, because currently identifier equality is only on name
     private val allAssemblyNodes = mutableListOf<InlineAssembly>()
 
     init {
