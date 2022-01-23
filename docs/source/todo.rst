@@ -3,7 +3,31 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- FIx: cx16.r0 = $1fc0f    compiler crash
+- Fix:  uword addr = label    ; addr will be 0!  required to use &label!
+- Fix compiler stack overflow crash:
+    sub sprite_y_for_row(ubyte row) -> word {
+        return (8-row as byte)
+    }
+- fix crash:
+        word[33] sprites_x = sprites.sprites_x
+        word[33] sprites_y = sprites.sprites_y
+- fix assignment code generated for:   (memcopying manuall does work correctly)
+        word[33] sprites_x
+        word[33] sprites_y
+        sprites_x = sprites.sprites_x
+        sprites_y = sprites.sprites_y
+- Fix: better error message for len() in:
+    ubyte[64] chessboard
+    sub init() {
+        ubyte xx=len(board)
+        sys.memset(chessboard, len(board), 0)
+    }
+- move vload() to cx16diskio module
+- nameInAssemblyCode() should search smarter
+- if char in "string"   should fall back to string.find if string is longer than... 12?
+   also.. is "string" removed from the interned strings?
+- add option to memory() to get aligned memory block (word, page aligned)
 
 
 Need help with

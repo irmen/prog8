@@ -222,7 +222,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key.first }
     }
 
-    private fun nameInAssemblyCode(name: String) = allAssemblyNodes.any { it.assembly.contains(name) }
+    private fun nameInAssemblyCode(name: String) =
+        allAssemblyNodes.any { it.assembly.contains(name) }     // TODO be smarter about what to search in assembly (only labels starting in column 0?)
 
     inline fun unused(label: Label) = false   // just always output labels
 
