@@ -44,45 +44,65 @@ internal class StatementReorderer(val program: Program,
     private val declsProcessedWithInitAssignment = mutableSetOf<VarDecl>()
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.type == VarDeclType.VAR && decl.datatype in NumericDatatypes) {
-            if(decl !in declsProcessedWithInitAssignment) {
-                declsProcessedWithInitAssignment.add(decl)
-                if (decl.value == null) {
-                    if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {
-                        // A numeric vardecl without an initial value is initialized with zero,
-                        // unless there's already an assignment below it, that initializes the value (or a for loop that uses it as loopvar).
-                        // This allows you to restart the program and have the same starting values of the variables
-                        // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
+        if (decl.type == VarDeclType.VAR) {
+            if (decl.datatype in NumericDatatypes) {
+                if(decl !in declsProcessedWithInitAssignment) {
+                    declsProcessedWithInitAssignment.add(decl)
+                    if (decl.value == null) {
+                        if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {
+                            // A numeric vardecl without an initial value is initialized with zero,
+                            // unless there's already an assignment below it, that initializes the value (or a for loop that uses it as loopvar).
+                            // This allows you to restart the program and have the same starting values of the variables
+                            // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
+                            decl.value = null
+                            if(decl.name.startsWith("retval_interm_") && decl.definingScope.name=="prog8_lib") {
+                                // no need to zero out the special internal returnvalue intermediates.
+                                return noModifications
+                            }
+                            if(decl.findInitializer(program)!=null)
+                                return noModifications   // an initializer assignment for a vardecl is already here
+                            val nextFor = decl.nextSibling() as? ForLoop
+                            val hasNextForWithThisLoopvar = nextFor?.loopVar?.nameInSource==listOf(decl.name)
+                            if (!hasNextForWithThisLoopvar) {
+                                // Add assignment to initialize with zero
+                                // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
+                                val identifier = IdentifierReference(listOf(decl.name), decl.position)
+                                val assignzero = Assignment(AssignTarget(identifier, null, null, decl.position), decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
+                                return listOf(IAstModification.InsertAfter(
+                                    decl, assignzero, parent as IStatementContainer
+                                ))
+                            }
+                        }
+                    } else {
+                        // Transform the vardecl with initvalue to a plain vardecl + assignment
+                        // this allows for other optimizations to kick in.
+                        // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
+                        val pos = decl.value!!.position
+                        val identifier = IdentifierReference(listOf(decl.name), pos)
+                        val assign = Assignment(AssignTarget(identifier, null, null, pos), decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
-                        if(decl.name.startsWith("retval_interm_") && decl.definingScope.name=="prog8_lib") {
-                            // no need to zero out the special internal returnvalue intermediates.
-                            return noModifications
-                        }
-                        if(decl.findInitializer(program)!=null)
-                            return noModifications   // an initializer assignment for a vardecl is already here
-                        val nextFor = decl.nextSibling() as? ForLoop
-                        val hasNextForWithThisLoopvar = nextFor?.loopVar?.nameInSource==listOf(decl.name)
-                        if (!hasNextForWithThisLoopvar) {
-                            // Add assignment to initialize with zero
-                            // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
-                            val identifier = IdentifierReference(listOf(decl.name), decl.position)
-                            val assignzero = Assignment(AssignTarget(identifier, null, null, decl.position), decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
-                            return listOf(IAstModification.InsertAfter(
-                                decl, assignzero, parent as IStatementContainer
-                            ))
-                        }
+                        return listOf(IAstModification.InsertAfter(
+                            decl, assign, parent as IStatementContainer
+                        ))
                     }
-                } else {
-                    // Transform the vardecl with initvalue to a plain vardecl + assignment
-                    // this allows for other optimizations to kick in.
-                    // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
-                    val pos = decl.value!!.position
-                    val identifier = IdentifierReference(listOf(decl.name), pos)
-                    val assign = Assignment(AssignTarget(identifier, null, null, pos), decl.value!!, AssignmentOrigin.VARINIT, pos)
-                    decl.value = null
-                    return listOf(IAstModification.InsertAfter(
-                        decl, assign, parent as IStatementContainer
-                    ))
+                }
+            }
+            else if(decl.datatype in ArrayDatatypes) {
+                // only if the initializer expression is a reference to another array, split it into a separate assignment.
+                // this is so that it later can be changed into a memcopy.
+                // (that code only triggers on regular assignment, not on variable initializers)
+                val ident = decl.value as? IdentifierReference
+                if(ident!=null) {
+                    val target = ident.targetVarDecl(program)
+                    if(target!=null && target.isArray) {
+                        val pos = decl.value!!.position
+                        val identifier = IdentifierReference(listOf(decl.name), pos)
+                        val assign = Assignment(AssignTarget(identifier, null, null, pos), decl.value!!, AssignmentOrigin.VARINIT, pos)
+                        decl.value = null
+                        return listOf(IAstModification.InsertAfter(
+                            decl, assign, parent as IStatementContainer
+                        ))
+                    }
                 }
             }
         }
@@ -349,8 +369,10 @@ internal class StatementReorderer(val program: Program,
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program)!!
 
-        if(targetVar.arraysize==null)
+        if(targetVar.arraysize==null) {
             errors.err("array has no defined size", assign.position)
+            return noModifications
+        }
 
         if(assign.value !is IdentifierReference) {
             errors.err("invalid array value to assign to other array", assign.value.position)

@@ -571,8 +571,11 @@ class AsmGen(private val program: Program,
 
     private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
         val array =
-                if(decl.value!=null)
+                if(decl.value!=null) {
+                    if(decl.value !is ArrayLiteralValue)
+                        throw AssemblyError("can only use array literal values as array initializer value")
                     (decl.value as ArrayLiteralValue).value
+                }
                 else {
                     // no array init value specified, use a list of zeros
                     val zero = decl.zeroElementValue()

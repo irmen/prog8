@@ -29,4 +29,28 @@ class TestVariables: FunSpec({
         """
         compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
     }
+
+    test("array initialization with array literal") {
+        val text = """
+            main {
+                sub start() {
+                    ubyte[] @shared arrayvar = [1,2,3,4]
+                }
+            }
+        """
+        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+    }
+
+    test("array initialization with array var assignment") {
+        val text = """
+            main {
+                sub start() {
+                    ubyte[3] @shared arrayvar = main.values
+                }
+                
+                ubyte[] values = [1,2,3]
+            }
+        """
+        compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+    }
 })

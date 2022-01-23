@@ -7,9 +7,6 @@ For next release
     sub sprite_y_for_row(ubyte row) -> word {
         return (8-row as byte)
     }
-- fix crash:
-        word[33] sprites_x = sprites.sprites_x
-        word[33] sprites_y = sprites.sprites_y
 - Fix: better error message for len() in:
     ubyte[64] chessboard
     sub init() {
