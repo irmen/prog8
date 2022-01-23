@@ -2,12 +2,20 @@
 %zeropage basicsafe
 
 main {
-
     sub start() {
-        byte[3] @shared sprites_x = values
-
+        word ww
+        ww = calculate(6)
+        txt.print_w(ww)
+        txt.nl()
+        ww = calculate(8)
+        txt.print_w(ww)
+        txt.nl()
+        ww = calculate(10)
+        txt.print_w(ww)
+        txt.nl()
     }
 
-    byte[3] values = [1,2,3]
-
+    sub calculate(ubyte row) -> word {
+        return 8-(row as byte)
+    }
 }

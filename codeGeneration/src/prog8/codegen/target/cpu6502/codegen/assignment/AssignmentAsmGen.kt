@@ -609,6 +609,11 @@ $containsLabel      lda  #1
             }
         }
 
+        if(target.kind==TargetStorageKind.REGISTER) {
+            assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+            return
+        }
+
         if(targetDt==DataType.FLOAT && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
             when(valueDt) {
                 DataType.UBYTE -> {

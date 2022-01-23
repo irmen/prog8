@@ -3,17 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- BUGFIX RELEASE: Fix compiler stack overflow crash:
-    sub sprite_y_for_row(ubyte row) -> word {
-        return (8-row as byte)
-    }
-
-- move vload() to cx16diskio module
-- nameInAssemblyCode() should search smarter
-- if char in "string"   should fall back to string.find if string is longer than... 12?
-   also.. is "string" removed from the interned strings?
-- add option to memory() to get aligned memory block (word, page aligned)
-
+...
 
 Need help with
 ^^^^^^^^^^^^^^
@@ -30,6 +20,16 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- why does this use stack eval on return:
+    sub sprite_y_for_row(ubyte row) -> word {
+        return (8-row as byte)
+    }
+- move vload() to cx16diskio module
+- nameInAssemblyCode() should search smarter
+- if char in "string"   should fall back to string.find if string is longer than... 16?
+   also.. is "string" removed from the interned strings?
+- add option to memory() to get aligned memory block (word, page aligned)
+- Typecastexpression.isSimple: make it 'expression.isSimple' rather than always false. (this breaks some things atm)
 - IdentifierReference: fix equality to also include position. CallGraph can then also only store IdentifierRef instead of pair(ident, position) as keys.
 - Fix: don't report as recursion if code assign address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)

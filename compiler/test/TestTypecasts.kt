@@ -185,4 +185,19 @@ class TestTypecasts: FunSpec({
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 16
     }
+
+    test("no infinite typecast loop in assignment asmgen") {
+        val text = """
+            main {
+                sub start() {
+                    word @shared qq = calculate(33)
+                }
+            
+                sub calculate(ubyte row) -> word {
+                    return (8-(row as byte))
+                }
+            }
+        """
+        compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+    }
 })
