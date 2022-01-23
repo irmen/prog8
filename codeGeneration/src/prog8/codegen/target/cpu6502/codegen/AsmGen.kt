@@ -124,16 +124,16 @@ class AsmGen(private val program: Program,
             .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
 
         for ((vardecl, scopedname) in varsRequiringZp) {
-            val arraySize: Int? = when(vardecl.datatype) {
+            val numElements: Int? = when(vardecl.datatype) {
                 DataType.STR -> {
                     (vardecl.value as StringLiteralValue).value.length
                 }
                 in ArrayDatatypes -> {
-                    vardecl.arraysize!!.constIndex()        // TODO wrong size for non-byte arrays??????? or does datatype get taken into account below
+                    vardecl.arraysize!!.constIndex()
                 }
                 else -> null
             }
-            val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
+            val result = zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.position, errors)
             result.fold(
                 success = { varsInZeropage.add(vardecl) },
                 failure = { errors.err(it.message!!, vardecl.position) }
@@ -1193,7 +1193,8 @@ class AsmGen(private val program: Program,
                     jsr  prog8_lib.strcpy""")
             }
             arrayVarsInZp.forEach {
-                val numelements = (it.value as ArrayLiteralValue).value.size        // TODO wrong size for word/float arrays!???
+                val numelements = (it.value as ArrayLiteralValue).value.size
+                val size = numelements * program.memsizer.memorySize(ArrayToElementTypes.getValue(it.datatype))
                 out("""
                     lda  #<${it.name}_init_value
                     ldy  #>${it.name}_init_value
@@ -1203,8 +1204,8 @@ class AsmGen(private val program: Program,
                     ldy  #>${it.name}
                     sta  cx16.r1L
                     sty  cx16.r1H
-                    lda  #<$numelements
-                    ldy  #>$numelements
+                    lda  #<$size
+                    ldy  #>$size
                     jsr  sys.memcopy""")
             }
             out("  jmp  +")

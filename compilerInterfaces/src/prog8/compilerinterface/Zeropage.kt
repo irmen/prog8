@@ -40,7 +40,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(name: List<String>, datatype: DataType, arraySize: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+    fun allocate(name: List<String>, datatype: DataType, numElements: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
         require(name.isEmpty() || !allocations.values.any { it.first==name } ) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
@@ -50,7 +50,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 when (datatype) {
                     in IntegerDatatypes -> options.compTarget.memorySize(datatype)
                     DataType.STR, in ArrayDatatypes  -> {
-                        val memsize = arraySize!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(datatype))
+                        val memsize = numElements!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(datatype))
                         if(position!=null)
                             errors.warn("allocating a large value in zeropage; str/array $memsize bytes", position)
                         else

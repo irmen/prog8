@@ -1,21 +1,18 @@
 %import textio
-%zeropage basicsafe
+%import floats
 
 main {
+    ubyte[4] @shared @requirezp arr1 = [1,2,3,4]
+    uword[2] @shared @requirezp arr2 = [111,222]
+    float[2] @shared @requirezp arr3 = [1.111, 2.222]
     sub start() {
-        word[3] @shared sprites_x   ; = sprites.sprites_x
-        sprites_x = sprites.sprites_x
-        word[3] @shared sprites_y  ; = sprites.sprites_y
-        sprites_y = sprites.sprites_y
-
-        txt.print_w(sprites.sprites_x[2])
-        txt.nl()
-        txt.print_w(sprites.sprites_y[2])
-        txt.nl()
-        txt.print_w(sprites_x[2])
-        txt.nl()
-        txt.print_w(sprites_y[2])
-        txt.nl()
+        txt.print_ub(arr1[3])
+        txt.spc()
+        txt.print_uw(arr2[1])
+        txt.spc()
+        floats.print_f(arr3[1])
+        repeat {
+        }
     }
 }
 
