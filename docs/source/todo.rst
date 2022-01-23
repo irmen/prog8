@@ -3,16 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Fix compiler stack overflow crash:
+- BUGFIX RELEASE: Fix compiler stack overflow crash:
     sub sprite_y_for_row(ubyte row) -> word {
         return (8-row as byte)
     }
-- Fix: better error message for len() in:
-    ubyte[64] chessboard
-    sub init() {
-        ubyte xx=len(board)
-        sys.memset(chessboard, len(board), 0)
-    }
+
 - move vload() to cx16diskio module
 - nameInAssemblyCode() should search smarter
 - if char in "string"   should fall back to string.find if string is longer than... 12?

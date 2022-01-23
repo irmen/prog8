@@ -233,9 +233,24 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
             }
         }
         "len" -> {
-            // a length can be >255 so in that case, the result is an UWORD instead of an UBYTE
-            // but to avoid a lot of code duplication we simply assume UWORD in all cases for now
-            return InferredTypes.knownFor(DataType.UWORD)
+            when(args.single().inferType(program).getOr(DataType.UNDEFINED)) {
+                in ArrayDatatypes -> {
+                    val value = args.single() as? ArrayLiteralValue
+                    if(value!=null) {
+                        return if(value.value.size<256) InferredTypes.knownFor(DataType.UBYTE) else InferredTypes.knownFor(DataType.UWORD)
+                    } else {
+                        val targetVar = (args.single() as? IdentifierReference)?.targetVarDecl(program)
+                        if (targetVar?.isArray == true) {
+                            val length = targetVar.arraysize?.constIndex()
+                            if(length!=null)
+                                return if(length<256) InferredTypes.knownFor(DataType.UBYTE) else InferredTypes.knownFor(DataType.UWORD)
+                        }
+                    }
+                    return InferredTypes.knownFor(DataType.UWORD)
+                }
+                DataType.STR -> return InferredTypes.knownFor(DataType.UBYTE)
+                else -> InferredTypes.unknown()
+            }
         }
         else -> return InferredTypes.unknown()
     }

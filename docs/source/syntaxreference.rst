@@ -441,6 +441,7 @@ String
 A string literal can occur with or without an encoding prefix (encoding followed by ':' followed by the string itself).
 When this is omitted, the string is stored in the machine's default character encoding (which is PETSCII on the CBM machines).
 You can choose to store the string in other encodings such as ``sc`` (screencodes) or ``iso`` (iso-8859-15).
+String length is limited to 255 characters.
 Here are several examples:
 
     - ``"hello"``   a string translated into the default character encoding (PETSCII)
