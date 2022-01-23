@@ -134,7 +134,7 @@ _startloop	dey
         ; Locates the first position of the given character in the string,
         ;  returns the string starting with this character or $0000 if the character is not found.
         %asm {{
-                ; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+                ; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
                 sta  P8ZP_SCRATCH_B1
 		lda  cx16.r0
 		ldy  cx16.r0+1

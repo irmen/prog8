@@ -3,7 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- why does this use stack eval on return:
+    sub sprite_y_for_row(ubyte row) -> word {
+        return (8-row as byte)
+    }
+
 
 Need help with
 ^^^^^^^^^^^^^^
@@ -20,18 +24,14 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- why does this use stack eval on return:
-    sub sprite_y_for_row(ubyte row) -> word {
-        return (8-row as byte)
-    }
 - move vload() to cx16diskio module
 - nameInAssemblyCode() should search smarter
+- string.find should return index of found character + carry set if found, carry clear if not found. (fix cx16assem, it uses current behavior. Also fix docs!)
 - if char in "string"   should fall back to string.find if string is longer than... 16?
-   also.. is "string" removed from the interned strings?
 - add option to memory() to get aligned memory block (word, page aligned)
 - Typecastexpression.isSimple: make it 'expression.isSimple' rather than always false. (this breaks some things atm)
 - IdentifierReference: fix equality to also include position. CallGraph can then also only store IdentifierRef instead of pair(ident, position) as keys.
-- Fix: don't report as recursion if code assign address of its own subroutine to something, rather than calling it
+- Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
@@ -43,8 +43,7 @@ Future Things and Ideas
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar
 - consider adding McCarthy evaluation to shortcircuit and and or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
-- improve testability further, add more tests
-- use more of Result<> and Either<> to handle errors/ nulls better
+- use more of Result<> and Either<> to handle errors/ nulls better?
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
