@@ -451,6 +451,10 @@ internal class AstChecker(private val program: Program,
                 errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
         }
 
+        val numvalue = assignment.value.constValue(program)
+        if(numvalue!=null && targetDt.isKnown)
+            checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
+
         super.visit(assignment)
     }
 

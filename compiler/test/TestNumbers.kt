@@ -145,11 +145,40 @@ class TestNumbers: FunSpec({
                 }
             }
         """
-        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val errors = ErrorReporterForTests()
         compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "converted to float"
         errors.errors[1] shouldContain "converted to float"
+    }
+
+    test("out of range number assignments") {
+        val src="""
+            main {
+                sub start() {
+                    uword @shared qq = ${'$'}2ff33
+                    cx16.r0 = ${'$'}1fc0f
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 2
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "out of range"
+        errors.errors[1] shouldContain "out of range"
+    }
+
+    test("big numbers okay in const expressions if result fits") {
+        val src="""
+            main {
+                sub start() {
+                    uword @shared qq = ${'$'}2ff33 >> 4
+                    cx16.r0 = ${'$'}1fc0f >> 4
+                }
+            }
+        """
+        compileText(C64Target, true, src, writeAssembly = false).assertSuccess()
     }
 })

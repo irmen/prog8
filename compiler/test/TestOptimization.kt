@@ -573,8 +573,9 @@ class TestOptimization: FunSpec({
         """
         val errors = ErrorReporterForTests()
         compileText(C64Target, optimize=true, src, writeAssembly=false, errors = errors).assertFailure()
-        errors.errors.size shouldBe 1
+        errors.errors.size shouldBe 2
         errors.errors[0] shouldContain  "type of value BYTE doesn't match target UBYTE"
+        errors.errors[1] shouldContain  "out of range"
     }
 
     test("test augmented expression asmgen") {

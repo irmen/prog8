@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- FIx: cx16.r0 = $1fc0f    compiler crash
 - Fix:  uword addr = label    ; addr will be 0!  required to use &label!
 - Fix compiler stack overflow crash:
     sub sprite_y_for_row(ubyte row) -> word {
