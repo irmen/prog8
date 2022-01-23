@@ -370,11 +370,13 @@ internal class StatementReorderer(val program: Program,
         if(!errors.noErrors())
             return noModifications
 
+        val numelements = targetVar.arraysize!!.constIndex()!!
+        val eltsize = program.memsizer.memorySize(ArrayToElementTypes.getValue(sourceVar.datatype))
         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),
             mutableListOf(
                 AddressOf(sourceIdent, assign.position),
                 AddressOf(identifier, assign.position),
-                NumericLiteralValue.optimalInteger(targetVar.arraysize!!.constIndex()!!, assign.position)
+                NumericLiteralValue.optimalInteger(numelements*eltsize, assign.position)
             ),
             true,
             assign.position

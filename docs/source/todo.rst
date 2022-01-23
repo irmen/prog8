@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- check/fix allocateAllZeropageVariables() for wrong array byte size?
+- check/fix entrypointInitialization() for non-byte arrays in ZP, memcopy size wrong?
 - Fix compiler stack overflow crash:
     sub sprite_y_for_row(ubyte row) -> word {
         return (8-row as byte)
@@ -10,11 +12,6 @@ For next release
 - fix crash:
         word[33] sprites_x = sprites.sprites_x
         word[33] sprites_y = sprites.sprites_y
-- fix assignment code generated for:   (memcopying manuall does work correctly)
-        word[33] sprites_x
-        word[33] sprites_y
-        sprites_x = sprites.sprites_x
-        sprites_y = sprites.sprites_y
 - Fix: better error message for len() in:
     ubyte[64] chessboard
     sub init() {

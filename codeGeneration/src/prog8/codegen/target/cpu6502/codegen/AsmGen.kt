@@ -129,7 +129,7 @@ class AsmGen(private val program: Program,
                     (vardecl.value as StringLiteralValue).value.length
                 }
                 in ArrayDatatypes -> {
-                    vardecl.arraysize!!.constIndex()
+                    vardecl.arraysize!!.constIndex()        // TODO wrong size for non-byte arrays??????? or does datatype get taken into account below
                 }
                 else -> null
             }
@@ -1193,7 +1193,7 @@ class AsmGen(private val program: Program,
                     jsr  prog8_lib.strcpy""")
             }
             arrayVarsInZp.forEach {
-                val numelements = (it.value as ArrayLiteralValue).value.size
+                val numelements = (it.value as ArrayLiteralValue).value.size        // TODO wrong size for word/float arrays!???
                 out("""
                     lda  #<${it.name}_init_value
                     ldy  #>${it.name}_init_value
