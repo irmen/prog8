@@ -456,7 +456,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()
 
         val existing = asmgen.slabs[name]
-        if(existing!=null && (existing.first!=size || existing.second!=size))
+        if(existing!=null && (existing.first!=size || existing.second!=align))
             throw AssemblyError("memory slab '$name' already exists with a different size or alignment at ${fcall.position}")
 
         val slabname = IdentifierReference(listOf("prog8_slabs", name), fcall.position)
