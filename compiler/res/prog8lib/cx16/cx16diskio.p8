@@ -34,4 +34,42 @@ cx16diskio {
     sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
+
+    asmsub vload(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command VLOAD "filename",device,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        %asm {{
+            ; -- load a file into video ram
+            phx
+            pha
+            tya
+            tax
+            lda  #1
+            ldy  #0
+            jsr  c64.SETLFS
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            jsr  prog8_lib.strlen
+            tya
+            ldx  cx16.r0
+            ldy  cx16.r0+1
+            jsr  c64.SETNAM
+            pla
+            clc
+            adc  #2
+            ldx  cx16.r1
+            ldy  cx16.r1+1
+            stz  P8ZP_SCRATCH_B1
+            jsr  c64.LOAD
+            bcs  +
+            inc  P8ZP_SCRATCH_B1
+    +       jsr  c64.CLRCHN
+            lda  #1
+            jsr  c64.CLOSE
+            plx
+            lda  P8ZP_SCRATCH_B1
+            rts
+        }}
+    }
+
 }

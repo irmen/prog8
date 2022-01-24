@@ -533,45 +533,6 @@ asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) 
     }}
 }
 
-asmsub vload(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
-    ; -- like the basic command VLOAD "filename",device,bank,address
-    ;    loads a file into video memory in the given bank:address, returns success in A
-    ;    !! NOTE !! the V38 ROMs contain a bug in the LOAD code that makes the load address not work correctly,
-    ;               it works fine when loading from local filesystem
-    %asm {{
-        ; -- load a file into video ram
-        phx
-        pha
-        tya
-        tax
-        lda  #1
-        ldy  #0
-        jsr  c64.SETLFS
-        lda  cx16.r0
-        ldy  cx16.r0+1
-        jsr  prog8_lib.strlen
-        tya
-        ldx  cx16.r0
-        ldy  cx16.r0+1
-        jsr  c64.SETNAM
-        pla
-        clc
-        adc  #2
-        ldx  cx16.r1
-        ldy  cx16.r1+1
-        stz  P8ZP_SCRATCH_B1
-        jsr  c64.LOAD
-        bcs  +
-        inc  P8ZP_SCRATCH_B1
-+       jsr  c64.CLRCHN
-        lda  #1
-        jsr  c64.CLOSE
-        plx
-        lda  P8ZP_SCRATCH_B1
-        rts
-    }}
-}
-
 inline asmsub joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX  {
     ; convenience routine to get the joystick state without requiring inline assembly that deals with the multiple return values.
     ; Also disables interrupts to avoid the IRQ race condition mentioned here: https://github.com/commanderx16/x16-rom/issues/203
