@@ -979,9 +979,12 @@ sizeof(name)
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
 
-memory(name, size)
+memory(name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
-    with the given name. Requesting the address of such a named memory block again later with
+    with the given name.  If you specify an alignment value >1, it means the block of memory will
+    be aligned to such a dividable address in memory, for instance an alignment of $100 means the
+    memory block is aligned on a page boundary, and $2 means word aligned (even addresses).
+    Requesting the address of such a named memory block again later with
     the same name, will result in the same address as before.
     When reusing blocks in that way, it is required that the size argument is the same,
     otherwise you'll get a compilation error.

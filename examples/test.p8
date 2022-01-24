@@ -4,20 +4,11 @@
 
 main {
     sub start() {
-        word  ww = calculate(6)
-        txt.print_w(ww)
+        uword m1 = memory("mem1", 123, $100)
+        uword m2 = memory("mem2", 999, 2)
+        txt.print_uwhex(m1, true)
         txt.nl()
-        ubyte bb = calculate2(6)
-        txt.print_ub(bb)
+        txt.print_uwhex(m2, true)
         txt.nl()
-    }
-
-    sub calculate2(ubyte row) -> ubyte {
-        return 8+row
-    }
-
-
-    sub calculate(ubyte row) -> word {
-        return 8+row
     }
 }

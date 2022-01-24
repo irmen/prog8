@@ -8,8 +8,8 @@
 main {
     const ubyte database_size = 100
 
-    uword animal_names_buf = memory("animalnames", 500)
-    uword questions_buf = memory("questions", 2000)
+    uword animal_names_buf = memory("animalnames", 500, 0)
+    uword questions_buf = memory("questions", 2000, 0)
     uword animal_names_ptr
     uword questions_ptr
 

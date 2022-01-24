@@ -18,12 +18,9 @@ main {
     }
 
     sub demo1() {
-        uword pixels = memory("pixels", 320)
         uword yy = 10
         uword xx
-        uword pp
         uword cnt
-        pp=pixels
 
         gfx2.monochrome_stipple(true)
         gfx2.disc(320,240,200,1)
@@ -32,11 +29,6 @@ main {
         }
         for xx in 0 to 639 {
             gfx2.vertical_line(xx, 0, 480, 0)
-        }
-
-        for cnt in 0 to 319 {
-            @(pp) = 255
-            pp++
         }
 
         xx=gfx2.width/2

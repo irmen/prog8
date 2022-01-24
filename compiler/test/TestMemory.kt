@@ -228,9 +228,19 @@ class TestMemory: FunSpec({
         compileText(C64Target, false, """
             main {
                 sub start() {
-                    uword @shared mem = memory("a b c", 100)
+                    uword @shared mem = memory("a b c", 100, $100)
                 }
             }
         """, writeAssembly = true).assertSuccess()
+    }
+
+    test("memory() with invalid argument") {
+        compileText(C64Target, false, """
+            main {
+                sub start() {
+                    uword @shared mem1 = memory("abc", 100, -2)
+                }
+            }
+        """, writeAssembly = true).assertFailure()
     }
 })

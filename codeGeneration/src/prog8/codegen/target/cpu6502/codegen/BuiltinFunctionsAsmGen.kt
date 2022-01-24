@@ -453,10 +453,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
         val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
+        val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()
 
-        val existingSize = asmgen.slabs[name]
-        if(existingSize!=null && existingSize!=size)
-            throw AssemblyError("memory slab '$name' already exists with a different size ($size) at ${fcall.position}")
+        val existing = asmgen.slabs[name]
+        if(existing!=null && (existing.first!=size || existing.second!=size))
+            throw AssemblyError("memory slab '$name' already exists with a different size or alignment at ${fcall.position}")
 
         val slabname = IdentifierReference(listOf("prog8_slabs", name), fcall.position)
         slabname.linkParents(fcall)
@@ -468,7 +469,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, null, program, asmgen)
         val assign = AsmAssignment(src, target, false, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign)
-        asmgen.slabs[name] = size
+        asmgen.slabs[name] = Pair(size, align)
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {

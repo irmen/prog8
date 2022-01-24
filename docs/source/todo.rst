@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- string.find should return index of found character + carry set if found, carry clear if not found. (fix cx16assem, it uses current behavior. Also fix docs!)
+- if char in "string"   should fall back to string.find if string is longer than... 16?
 ...
 
 
@@ -22,9 +24,6 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - nameInAssemblyCode() should search smarter
-- string.find should return index of found character + carry set if found, carry clear if not found. (fix cx16assem, it uses current behavior. Also fix docs!)
-- if char in "string"   should fall back to string.find if string is longer than... 16?
-- add option to memory() to get aligned memory block (word, page aligned)
 - Typecastexpression.isSimple: make it 'expression.isSimple' rather than always false. (this breaks some things atm)
 - IdentifierReference: fix equality to also include position. CallGraph can then also only store IdentifierRef instead of pair(ident, position) as keys.
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it

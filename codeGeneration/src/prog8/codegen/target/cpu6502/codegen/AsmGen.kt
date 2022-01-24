@@ -56,7 +56,7 @@ class AsmGen(private val program: Program,
     private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     internal val loopEndLabels = ArrayDeque<String>()
-    internal val slabs = mutableMapOf<String, UInt>()
+    internal val slabs = mutableMapOf<String, Pair<UInt, UInt>>()
     internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
@@ -245,8 +245,11 @@ class AsmGen(private val program: Program,
     private fun slaballocations() {
         out("; memory slabs")
         out("prog8_slabs\t.block")
-        for((name, size) in slabs)
-            out("$name\t.fill  $size")
+        for((name, info) in slabs) {
+            if(info.second>1u)
+                out("\t.align  ${info.second.toHex()}")
+            out("$name\t.fill  ${info.first}")
+        }
         out("\t.bend")
     }
 
