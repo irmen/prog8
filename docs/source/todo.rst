@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- str s1, ubyte ff,  txt.print_uwhex(s1+ff, true)        ; TODO fix compiler crash on s1+ff.   why no crash when using 1-argument functioncall?
-
 ...
 
 

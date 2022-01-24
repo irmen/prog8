@@ -835,6 +835,13 @@ internal class AstChecker(private val program: Program,
         val leftDt = leftIDt.getOr(DataType.UNDEFINED)
         val rightDt = rightIDt.getOr(DataType.UNDEFINED)
 
+        if(expr.operator=="+" || expr.operator=="-") {
+            if(leftDt == DataType.STR || rightDt == DataType.STR || leftDt in ArrayDatatypes || rightDt in ArrayDatatypes) {
+                errors.err("missing & (address-of) on the string operand", expr.position)
+                return
+            }
+        }
+
         when(expr.operator){
             "/", "%" -> {
                 val constvalRight = expr.right.constValue(program)

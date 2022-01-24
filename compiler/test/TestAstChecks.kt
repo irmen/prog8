@@ -56,4 +56,45 @@ class TestAstChecks: FunSpec({
         errors.errors[0] shouldContain ":7:28) assignment value is invalid"
         errors.errors[1] shouldContain ":8:28) assignment value is invalid"
     }
+
+    test("can't do str or array expression without using address-of") {
+        val text = """
+            %import textio
+            main {
+                sub start() {
+                    ubyte[] array = [1,2,3,4]
+                    str s1 = "test"
+                    ubyte ff = 1
+                    txt.print(s1+ff)
+                    txt.print(array+ff)
+                    txt.print_uwhex(s1+ff, true)
+                    txt.print_uwhex(array+ff, true)
+                }
+            }
+            """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.filter { it.contains("missing &") }.size shouldBe 4
+    }
+
+    test("str or array expression with address-of") {
+        val text = """
+            %import textio
+            main {
+                sub start() {
+                    ubyte[] array = [1,2,3,4]
+                    str s1 = "test"
+                    ubyte ff = 1
+                    txt.print(&s1+ff)
+                    txt.print(&array+ff)
+                    txt.print_uwhex(&s1+ff, true)
+                    txt.print_uwhex(&array+ff, true)
+                    ; also good:
+                    ff = (s1 == "derp")
+                    ff = (s1 != "derp")
+                }
+            }
+            """
+        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+    }
 })
