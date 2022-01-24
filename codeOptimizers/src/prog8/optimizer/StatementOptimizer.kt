@@ -459,10 +459,14 @@ class StatementOptimizer(private val program: Program,
             return null
         }
 
-        if(returnStmt.value is BinaryExpression) {
-            val mod = returnViaIntermediaryVar(returnStmt.value!!)
-            if(mod!=null)
-                return mod
+        // TODO decision when to use intermediary variable to calculate returnvalue seems a bit arbitrary...
+        val returnvalue = returnStmt.value
+        if (returnvalue!=null) {
+            if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
+                val mod = returnViaIntermediaryVar(returnvalue)
+                if(mod!=null)
+                    return mod
+            }
         }
 
         return noModifications

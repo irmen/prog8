@@ -3,10 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- why does this use stack eval on return:
-    sub sprite_y_for_row(ubyte row) -> word {
-        return (8-row as byte)
-    }
+...
 
 
 Need help with
