@@ -1006,6 +1006,10 @@ class ContainmentCheck(var element: Expression,
         iterable.linkParents(this)
     }
 
+    companion object {
+        const val max_inlined_string_length = 16
+    }
+
     override val isSimple: Boolean = false
     override fun copy() = ContainmentCheck(element.copy(), iterable.copy(), position)
     override fun constValue(program: Program): NumericLiteralValue? {

@@ -81,7 +81,7 @@ class Program(val name: String,
         // Move a string literal into the internal, deduplicated, string pool
         // replace it with a variable declaration that points to the entry in the pool.
 
-        if(string.parent is VarDecl || string.parent is ContainmentCheck) {
+        if(string.parent is VarDecl) {
             // deduplication can only be performed safely for known-const strings (=string literals OUTSIDE OF A VARDECL)!
             throw FatalAstException("cannot intern a string literal that's part of a vardecl")
         }

@@ -16,7 +16,9 @@ import prog8.ast.walk.IAstModification
 internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
 
     override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
-        if(string.parent !is VarDecl && string.parent !is WhenChoice && string.parent !is ContainmentCheck) {
+        if(string.parent !is VarDecl
+            && string.parent !is WhenChoice
+            && (string.parent !is ContainmentCheck || string.value.length>ContainmentCheck.max_inlined_string_length)) {
             // replace the literal string by an identifier reference to the interned string
             val scopedName = program.internString(string)
             val identifier = IdentifierReference(scopedName, string.position)
@@ -36,7 +38,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
             }
         } else {
-            if(array.parent is ContainmentCheck)
+            if(array.parent is ContainmentCheck && array.value.size<ContainmentCheck.max_inlined_string_length)
                 return noModifications
 
             val arrayDt = array.guessDatatype(program)

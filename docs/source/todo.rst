@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- if char in "string"   should fall back to string.find if string is longer than... 16?
+- str s1, ubyte ff,  txt.print_uwhex(s1+ff, true)        ; TODO fix compiler crash on s1+ff.   why no crash when using 1-argument functioncall?
+
 ...
 
 
