@@ -130,9 +130,9 @@ _startloop	dey
         }}
     }
 
-    asmsub find(uword string @R0, ubyte character @A) -> uword @AY {
+    asmsub find(uword string @R0, ubyte character @A) -> ubyte @A, ubyte @Pc {
         ; Locates the first position of the given character in the string,
-        ;  returns the string starting with this character or $0000 if the character is not found.
+        ; returns Carry set if found + index in A, or Carry clear if not found.
         %asm {{
                 ; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
                 sta  P8ZP_SCRATCH_B1
@@ -147,18 +147,11 @@ _startloop	dey
 		beq  _found
 		iny
 		bne  -
-_notfound	lda  #0
-		ldy  #0
+_notfound	clc
 		rts
-_found		sty  P8ZP_SCRATCH_B1
-		ldy  P8ZP_SCRATCH_W1+1
-		lda  P8ZP_SCRATCH_W1
-		clc
-		adc  P8ZP_SCRATCH_B1
-		bcc  +
-		iny
-+		rts
-
+_found		tya
+                sec
+                rts
         }}
     }
 

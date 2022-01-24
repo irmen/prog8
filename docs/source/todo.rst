@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- string.find should return index of found character + carry set if found, carry clear if not found. (fix cx16assem, it uses current behavior. Also fix docs!)
 - if char in "string"   should fall back to string.find if string is longer than... 16?
 ...
 

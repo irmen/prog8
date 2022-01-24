@@ -174,9 +174,9 @@ Provides string manipulation routines.
     Also, you have to make sure yourself that start and length are within bounds of the strings.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-``find(string, char) -> uword address``
-    Locates the first position of the given character in the string, returns the string starting
-    with this character or $0000 if the character is not found.
+``find(string, char) -> ubyte index + carry bit``
+    Locates the first position of the given character in the string, returns carry bit set if found
+    and the index in the string. Or carry bit clear if the character was not found.
 
 ``compare(string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
