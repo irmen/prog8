@@ -76,7 +76,8 @@ io_error:
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
-        uword names_buffer = memory("filenames", 512, 0)
+        const uword names_buf_size = 800
+        uword names_buffer = memory("filenames", names_buf_size, 0)
         uword buffer_start = names_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern_ptr) {
@@ -87,7 +88,7 @@ io_error:
                 name_ptrs++
                 names_buffer += string.copy(diskio.list_filename, names_buffer) + 1
                 files_found++
-                if names_buffer - buffer_start > 512-18
+                if names_buffer - buffer_start > names_buf_size-18
                     break
                 if files_found == max_names
                     break
