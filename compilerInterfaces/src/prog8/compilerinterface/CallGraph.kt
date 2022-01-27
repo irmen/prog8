@@ -16,14 +16,14 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
-    private val allIdentifiersAndTargets = mutableMapOf<Pair<IdentifierReference, Position>, Statement>()       // note: identifier+location as key, because currently identifier equality is only on name
+    private val allIdentifiersAndTargets = mutableMapOf<IdentifierReference, Statement>()
     private val allAssemblyNodes = mutableListOf<InlineAssembly>()
 
     init {
         visit(program)
     }
 
-    val allIdentifiers: Map<Pair<IdentifierReference, Position>, Statement> = allIdentifiersAndTargets
+    val allIdentifiers: Map<IdentifierReference, Statement> = allIdentifiersAndTargets
 
     private val usedSubroutines: Set<Subroutine> by lazy {
         calledBy.keys + program.entrypoint
@@ -35,7 +35,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val used = mutableSetOf<Block>()
 
         allIdentifiersAndTargets.forEach {
-            if(it.key.first.definingBlock in blocksFromSubroutines) {
+            if(it.key.definingBlock in blocksFromSubroutines) {
                 val target = it.value.definingBlock
                 used.add(target)
             }
@@ -115,7 +115,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(identifier: IdentifierReference) {
-        allIdentifiersAndTargets[Pair(identifier, identifier.position)] = identifier.targetStatement(program)!!
+        allIdentifiersAndTargets[identifier] = identifier.targetStatement(program)!!
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
@@ -219,7 +219,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         if(decl.definingBlock !in usedBlocks)
             return emptyList()
 
-        return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key.first }
+        return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key }
     }
 
     private fun nameInAssemblyCode(name: String) =

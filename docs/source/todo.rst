@@ -38,7 +38,6 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - nameInAssemblyCode() should search smarter
-- IdentifierReference: fix equality to also include position. CallGraph can then also only store IdentifierRef instead of pair(ident, position) as keys.
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance

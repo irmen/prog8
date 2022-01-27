@@ -313,16 +313,16 @@ class TestOptimization: FunSpec({
         bbAssigns[0].target.identifier!!.nameInSource shouldBe listOf("bb")
         bbAssigns[0].value shouldBe instanceOf<PrefixExpression>()
         (bbAssigns[0].value as PrefixExpression).operator shouldBe "not"
-        (bbAssigns[0].value as PrefixExpression).expression shouldBe IdentifierReference(listOf("bb"), Position.DUMMY)
+        ((bbAssigns[0].value as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("bb")
         bbAssigns[0].value.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         bbAssigns[1].target.identifier!!.nameInSource shouldBe listOf("bb")
         val bbAssigns1expr = bbAssigns[1].value as BinaryExpression
         bbAssigns1expr.operator shouldBe "or"
-        bbAssigns1expr.left shouldBe IdentifierReference(listOf("bb"), Position.DUMMY)
+        (bbAssigns1expr.left as? IdentifierReference)?.nameInSource shouldBe listOf("bb")
         bbAssigns1expr.right shouldBe instanceOf<PrefixExpression>()
         (bbAssigns1expr.right as PrefixExpression).operator shouldBe "not"
-        (bbAssigns1expr.right as PrefixExpression).expression shouldBe IdentifierReference(listOf("ww"), Position.DUMMY)
+        ((bbAssigns1expr.right as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val asm = generateAssembly(result.program, options)
@@ -380,7 +380,7 @@ class TestOptimization: FunSpec({
         assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
         val value = assignFF.value as BinaryExpression
         value.operator shouldBe "+"
-        value.left shouldBe IdentifierReference(listOf("ff"), Position.DUMMY)
+        (value.left as? IdentifierReference)?.nameInSource shouldBe listOf("ff")
         value.right shouldBe instanceOf<TypecastExpression>()
 
         val asm = generateAssembly(result.program)
@@ -496,12 +496,12 @@ class TestOptimization: FunSpec({
         z4decl.name shouldBe "z4"
         z4init.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
         z5decl.name shouldBe "z5"
-        z5init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        (z5init.value as? IdentifierReference)?.nameInSource shouldBe listOf("z1")
         z5plus.isAugmentable shouldBe true
         (z5plus.value as BinaryExpression).operator shouldBe "+"
         (z5plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
         z6decl.name shouldBe "z6"
-        z6init.value shouldBe IdentifierReference(listOf("z1"), Position.DUMMY)
+        (z6init.value as? IdentifierReference)?.nameInSource shouldBe listOf("z1")
         z6plus.isAugmentable shouldBe true
         (z6plus.value as BinaryExpression).operator shouldBe "-"
         (z6plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
@@ -663,7 +663,7 @@ class TestOptimization: FunSpec({
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
-        xxValue.left shouldBe IdentifierReference(listOf("xx"), Position.DUMMY)
+        (xxValue.left as? IdentifierReference)?.nameInSource shouldBe listOf("xx")
         xxValue.right shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
     }
 })

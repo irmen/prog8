@@ -2,6 +2,7 @@ package prog8tests
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
@@ -94,5 +95,30 @@ class TestCallgraph: FunSpec({
         withClue( "start doesn't get called (except as entrypoint ofc.)") {
             graph.calledBy shouldNotContainKey startSub
         }
+    }
+
+    test("allIdentifiers separates for different positions of the IdentifierReferences") {
+        val sourcecode = """
+            main {
+                sub start() {
+                    uword x1 = &empty
+                    uword x2 = &empty
+                    empty()
+                }
+                sub empty() {
+                    %asm {{
+                        nop
+                    }}
+                }
+            }
+        """
+        val result = compileText(C64Target, false, sourcecode).assertSuccess()
+        val graph = CallGraph(result.program)
+        graph.allIdentifiers.size shouldBeGreaterThanOrEqual 9
+        val empties = graph.allIdentifiers.keys.filter { it.nameInSource==listOf("empty") }
+        empties.size shouldBe 3
+        empties[0].position.line shouldBe 4
+        empties[1].position.line shouldBe 5
+        empties[2].position.line shouldBe 6
     }
 })
