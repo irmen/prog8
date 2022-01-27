@@ -43,9 +43,9 @@ main {
 
         for pixelxb in 0 to 255 {
             pixelyw = cos16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, lsb(pixelyw))
+            graphics.plot(pixelxb, pixelyw)
             pixelyw = sin16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, lsb(pixelyw))
+            graphics.plot(pixelxb, pixelyw)
         }
     }
 
@@ -65,9 +65,9 @@ main {
 
         for pixelxb in 0 to 179 {
             pixelyw = cosr16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, lsb(pixelyw))
+            graphics.plot(pixelxb, pixelyw)
             pixelyw = sinr16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, lsb(pixelyw))
+            graphics.plot(pixelxb, pixelyw)
         }
     }
 

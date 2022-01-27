@@ -1520,7 +1520,7 @@ $containsLabel      lda  #1
                         pha
                         ora  #$7f
                         bmi  +
-                        ldx  #0
+                        lda  #0
 +                       tax
                         pla""")
                     RegisterOrPair.AY -> asmgen.out("""
@@ -1528,7 +1528,7 @@ $containsLabel      lda  #1
                         pha
                         ora  #$7f
                         bmi  +
-                        ldy  #0
+                        lda  #0
 +                       tay
                         pla""")
                     RegisterOrPair.XY -> asmgen.out("""
@@ -1536,9 +1536,19 @@ $containsLabel      lda  #1
                         tax 
                         ora  #$7f
                         bmi  +
-                        ldy  #0
+                        lda  #0
 +                       tay""")
-                    else -> throw AssemblyError("only reg pairs are words")
+                    in Cx16VirtualRegisters -> {
+                        val regname = wordtarget.register.name.lowercase()
+                        asmgen.out("""
+                            lda  $sourceName
+                            sta  cx16.$regname
+                            ora  #$7f
+                            bmi  +
+                            lda  #0
++                           sta  cx16.$regname+1""")
+                    }
+                    else -> throw AssemblyError("only reg pairs allowed as word target ${wordtarget.register}")
                 }
             }
             TargetStorageKind.STACK -> {
@@ -1589,7 +1599,14 @@ $containsLabel      lda  #1
                     RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
                     RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
-                    else -> throw AssemblyError("only reg pairs are words")
+                    in Cx16VirtualRegisters -> {
+                        val regname = wordtarget.register.name.lowercase()
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                        else
+                            asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                    }
+                    else -> throw AssemblyError("only reg pairs allowed as word target")
                 }
             }
             TargetStorageKind.STACK -> {

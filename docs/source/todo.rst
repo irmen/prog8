@@ -3,6 +3,22 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+fix the value of ww being wrong (with optimizations enabled) in :
+    sub start() {
+        byte ub1 = -50
+        byte ub2 = -51
+        byte ub3 = -52
+        byte ub4 = -53
+        word ww = func(ub1, ub2, ub3, ub4)
+        txt.print_w(ww)
+    }
+
+    sub func(word x1, word y1, word x2, word y2) -> word {
+        return x1
+    }
+
+- optimize  w=msb(w),  w=lsb(w)
+
 ...
 
 
@@ -22,7 +38,6 @@ Blocked by an official Commander-x16 r39 release
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - nameInAssemblyCode() should search smarter
-- Typecastexpression.isSimple: make it 'expression.isSimple' rather than always false. (this breaks some things atm)
 - IdentifierReference: fix equality to also include position. CallGraph can then also only store IdentifierRef instead of pair(ident, position) as keys.
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)

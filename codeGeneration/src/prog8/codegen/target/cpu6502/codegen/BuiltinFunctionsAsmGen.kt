@@ -1584,6 +1584,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+1")
                     RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+1")
                     RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+1")
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+1 |  ldx  #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+1 |  ldy  #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+1 |  ldy  #0")
+                    in Cx16VirtualRegisters -> {
+                        val regname = resultRegister.name.lowercase()
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                        else
+                            asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                    }
                     else -> throw AssemblyError("invalid reg")
                 }
             }
@@ -1629,6 +1639,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
                     RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
                     RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
+                    RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
+                    RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                    in Cx16VirtualRegisters -> {
+                        val regname = resultRegister.name.lowercase()
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                        else
+                            asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                    }
                     else -> throw AssemblyError("invalid reg")
                 }
             }

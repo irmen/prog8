@@ -181,9 +181,8 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
-        printProgram(result.program)
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 16
+        statements.size shouldBe 14
     }
 
     test("no infinite typecast loop in assignment asmgen") {
@@ -199,5 +198,53 @@ class TestTypecasts: FunSpec({
             }
         """
         compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+    }
+
+    test("(u)byte extend to word parameters") {
+        val text = """
+            main {
+                sub start() {
+                    byte ub1 = -50
+                    byte ub2 = -51
+                    byte ub3 = -52
+                    byte ub4 = 100
+                    word @shared ww = func(ub1, ub2, ub3, ub4)
+                    ww = func(ub4, ub2, ub3, ub1)
+                    ww=afunc(ub1, ub2, ub3, ub4)
+                    ww=afunc(ub4, ub2, ub3, ub1)
+                }
+            
+                sub func(word x1, word y1, word x2, word y2) -> word {
+                    return x1
+                }
+            
+                asmsub afunc(word x1 @R0, word y1 @R1, word x2 @R2, word y2 @R3) -> word @AY {
+                    %asm {{
+                        lda  cx16.r0
+                        ldy  cx16.r0+1
+                        rts
+                    }}
+                }
+            }"""
+        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+    }
+
+    test("lsb msb used as args with word types") {
+        val text = """
+            main {
+                sub start() {
+                    uword xx=${'$'}ea31
+                    uword @shared ww = plot(lsb(xx), msb(xx))
+                }
+            
+                inline asmsub  plot(uword plotx @R0, uword ploty @R1) -> uword @AY{
+                    %asm {{
+                        lda  cx16.r0
+                        ldy  cx16.r1
+                        rts
+                    }}
+                }
+            }"""
+        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
     }
 })

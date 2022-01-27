@@ -338,7 +338,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         expression.linkParents(this)
     }
 
-    override val isSimple = false
+    override val isSimple = expression.isSimple
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===expression)

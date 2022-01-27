@@ -4,19 +4,20 @@
 
 main {
     sub start() {
-        str s1 = "irmen"
-        ubyte ff = 1
-        txt.print(&s1+ff)
-        txt.nl()
-        txt.print(&s1+ff)
-        txt.nl()
-        txt.print_uwhex(&s1+ff, true)
-
-
-        ubyte[] array = [1,2,3,4]
-        txt.print_uwhex(&array+ff, true)
-        txt.nl()
-        txt.print_uwhex(&array+ff, true)
-        txt.nl()
+        uword xx=$ea31
+        xx = lsb(xx)
+        uword ww = plot(lsb(xx), msb(xx))
+        ww=msb(ww)
+        txt.print_uwhex(ww, true)
     }
+
+    inline asmsub  plot(uword plotx @R0, uword ploty @R1) -> uword @AY{
+        %asm {{
+            lda  cx16.r0
+            ldy  cx16.r1
+            rts
+        }}
+    }
+
+
 }
