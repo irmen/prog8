@@ -16,9 +16,10 @@
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
     <orderEntry type="module" module-name="codeOptimizers" />
     <orderEntry type="module" module-name="compilerInterfaces" />
-    <orderEntry type="module" module-name="codeGeneration" />
+    <orderEntry type="module" module-name="codeGenTargets" />
     <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
     <orderEntry type="library" name="antlr.antlr4" level="project" />
+    <orderEntry type="module" module-name="codeGenCpu6502" />
   </component>
 </module>

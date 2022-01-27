@@ -9,9 +9,9 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
+import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage
-import prog8.codegen.target.cpu6502.codegen.AsmGen
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions

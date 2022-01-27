@@ -30,7 +30,8 @@ dependencies {
     implementation project(':compilerInterfaces')
     implementation project(':codeOptimizers')
     implementation project(':compilerAst')
-    implementation project(':codeGeneration')
+    implementation project(':codeGenTargets')
+    implementation project(':codeGenCpu6502')
     implementation 'org.antlr:antlr4-runtime:4.9.2'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"

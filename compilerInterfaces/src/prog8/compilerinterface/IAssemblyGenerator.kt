@@ -9,3 +9,5 @@ interface IAssemblyProgram {
     val name: String
     fun assemble(options: CompilationOptions): Int
 }
+
+fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"

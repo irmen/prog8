@@ -3,7 +3,8 @@ include(
     ':compilerInterfaces',
     ':compilerAst',
     ':codeOptimizers',
-    ':codeGeneration',
+    ':codeGenTargets',
+    ':codeGenCpu6502',
     ':compiler',
     ':dbusCompilerService',
     ':httpCompilerService'
