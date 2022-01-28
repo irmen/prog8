@@ -64,6 +64,10 @@ fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, pr
     return numberOfOptimizations
 }
 
+private fun String.isBranch() = this.startsWith("b")
+private fun String.isStoreReg() = this.startsWith("sta") || this.startsWith("sty") || this.startsWith("stx")
+private fun String.isLoadReg() = this.startsWith("lda") || this.startsWith("ldy") || this.startsWith("ldx")
+
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
 
 private fun apply(modifications: List<Modification>, lines: MutableList<String>) {
@@ -196,9 +200,9 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         sta  A1
         sty  A2
          */
-        if(first.startsWith("st") && second.startsWith("st")
-            && third.startsWith("ld") && fourth.startsWith("ld")
-            && fifth.startsWith("st") && sixth.startsWith("st")) {
+        if(first.isStoreReg() && second.isStoreReg()
+            && third.isLoadReg() && fourth.isLoadReg()
+            && fifth.isStoreReg() && sixth.isStoreReg()) {
             val reg1 = first[2]
             val reg2 = second[2]
             val reg3 = third[2]
@@ -227,8 +231,8 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         lda  A1     ; can be removed
         ldy  A2     ; can be removed if not followed by a branch instuction
          */
-        if(!overlappingMods && first.startsWith("st") && second.startsWith("st")
-            && third.startsWith("ld") && fourth.startsWith("ld")) {
+        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()
+            && third.isLoadReg() && fourth.isLoadReg()) {
             val reg1 = first[2]
             val reg2 = second[2]
             val reg3 = third[2]
@@ -254,8 +258,8 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         sty  A2
         lda  A1     ; can be removed if not followed by a branch instruction
          */
-        if(!overlappingMods && first.startsWith("st") && second.startsWith("st")
-            && third.startsWith("ld") && !fourth.startsWith("b")) {
+        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()
+            && third.isLoadReg() && !fourth.isBranch()) {
             val reg1 = first[2]
             val reg3 = third[2]
             if(reg1==reg3) {
@@ -276,7 +280,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         ldy  A1     ; make tay
         sta  A1     ; remove
          */
-        if(!overlappingMods && first.startsWith("sta") && second.startsWith("ld")
+        if(!overlappingMods && first.startsWith("sta") && second.isLoadReg()
             && third.startsWith("sta") && second.length>4) {
             val firstvalue = first.substring(4)
             val secondvalue = second.substring(4)
@@ -296,7 +300,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         sta  A
         sta  A
          */
-        if(!overlappingMods && first.startsWith("st") && second.startsWith("st")) {
+        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()) {
             if(first[2]==second[2]) {
                 val firstvalue = first.substring(4)
                 val secondvalue = second.substring(4)
@@ -333,7 +337,7 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>,
         ) {
             val third = lines[3].value.trimStart()
             val attemptRemove =
-                if(third.startsWith("b")) {
+                if(third.isBranch()) {
                     // a branch instruction follows, we can only remove the load instruction if
                     // another load instruction of the same register precedes the store instruction
                     // (otherwise wrong cpu flags are used)
