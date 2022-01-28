@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- optimize  w=msb(w)  =>  w >>=8,  w=lsb(w) ==> w &= $00ff
-
 fix the value of ww being wrong (with optimizations enabled) in :
     sub start() {
         byte ub1 = -50
@@ -18,9 +16,6 @@ fix the value of ww being wrong (with optimizations enabled) in :
     sub func(word x1, word y1, word x2, word y2) -> word {
         return x1
     }
-
-
-...
 
 
 Need help with

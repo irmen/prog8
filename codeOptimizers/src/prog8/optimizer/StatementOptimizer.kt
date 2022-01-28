@@ -431,6 +431,28 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        // word = msb(word) , word=lsb(word)
+        if(assignment.target.inferType(program).isWords) {
+            var fcall = assignment.value as? FunctionCallExpression
+            if (fcall == null)
+                fcall = (assignment.value as? TypecastExpression)?.expression as? FunctionCallExpression
+            if (fcall != null && (fcall.target.nameInSource == listOf("lsb") || fcall.target.nameInSource == listOf("msb"))) {
+                if (fcall.args.single() isSameAs assignment.target) {
+                    return if (fcall.target.nameInSource == listOf("lsb")) {
+                        // optimize word=lsb(word) ==>  word &= $00ff
+                        val and255 = BinaryExpression(fcall.args[0], "&", NumericLiteralValue(DataType.UWORD, 255.0, fcall.position), fcall.position)
+                        val newAssign = Assignment(assignment.target, and255, AssignmentOrigin.OPTIMIZER, fcall.position)
+                        listOf(IAstModification.ReplaceNode(assignment, newAssign, parent))
+                    } else {
+                        // optimize word=msb(word) ==>  word >>= 8
+                        val shift8 = BinaryExpression(fcall.args[0], ">>", NumericLiteralValue(DataType.UBYTE, 8.0, fcall.position), fcall.position)
+                        val newAssign = Assignment(assignment.target, shift8, AssignmentOrigin.OPTIMIZER, fcall.position)
+                        listOf(IAstModification.ReplaceNode(assignment, newAssign, parent))
+                    }
+                }
+            }
+        }
+
         return noModifications
     }
 
