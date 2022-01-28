@@ -680,11 +680,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             DataType.UWORD, DataType.WORD -> {
                 if (amount >= 16) {
                     return NumericLiteralValue(targetDt, 0.0, expr.position)
-                } else if (amount >= 8) {
+                } else if (amount > 8) {
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
-                    if (amount == 8) {
-                        return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
-                    }
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
                     return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
                 }
@@ -722,13 +719,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if (amount >= 16) {
                     return NumericLiteralValue.optimalInteger(0, expr.position)
                 }
-                else if (amount >= 8) {
+                else if (amount > 8) {
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    if (amount == 8) {
-                        // mkword(0, msb(v))
-                        val zero = NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
-                        return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(zero, msb), expr.position)
-                    }
                     return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
                 }
             }

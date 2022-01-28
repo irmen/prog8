@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix optimization of w >>= 8 , it generates bad code when opt=on, ok when opt=off
-- fix w <<= 8 generates weird code with pha/pla in it when opt=on, ok when opt=off
 - optimize  w=msb(w)  =>  w >>=8,  w=lsb(w) ==> w &= $00ff
 
 fix the value of ww being wrong (with optimizations enabled) in :
