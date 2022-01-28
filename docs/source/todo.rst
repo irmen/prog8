@@ -3,19 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-fix the value of ww being wrong (with optimizations enabled) in :
-    sub start() {
-        byte ub1 = -50
-        byte ub2 = -51
-        byte ub3 = -52
-        byte ub4 = -53
-        word ww = func(ub1, ub2, ub3, ub4)
-        txt.print_w(ww)
-    }
-
-    sub func(word x1, word y1, word x2, word y2) -> word {
-        return x1
-    }
+- Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
+- nameInAssemblyCode() should search smarter (only labels in column 0? only full words, not part of a larger word? use regex? )
 
 
 Need help with
@@ -33,12 +22,10 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- nameInAssemblyCode() should search smarter (only labels in column 0? only full words, not part of a larger word?)
-- Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
-- can we promise a left-to-right function call argument evaluation? without sacrificing performance
+- can we promise a left-to-right function call argument evaluation? without sacrificing performance. note: C/C++ don't guarantee anything about this
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
-- for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow things as ``4 |> mkword(?, $44) |> print_uw``
+- for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)

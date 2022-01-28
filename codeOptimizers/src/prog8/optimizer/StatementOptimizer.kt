@@ -18,7 +18,7 @@ class StatementOptimizer(private val program: Program,
 ) : AstWalker() {
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        // if the first instruction in the called subroutine is a return statement with a simple value,
+        // if the first instruction in the called subroutine is a return statement with a simple value (NOT being a parameter),
         // remove the jump altogeter and inline the returnvalue directly.
 
         fun scopePrefix(variable: IdentifierReference): IdentifierReference {
@@ -41,7 +41,12 @@ class StatementOptimizer(private val program: Program,
                             else -> return noModifications
                         }
                     }
-                    is IdentifierReference -> scopePrefix(orig)
+                    is IdentifierReference -> {
+                        if(orig.targetVarDecl(program)?.origin == VarDeclOrigin.SUBROUTINEPARAM)
+                            return noModifications
+                        else
+                            scopePrefix(orig)
+                    }
                     is NumericLiteralValue -> orig.copy()
                     is StringLiteralValue -> orig.copy()
                     else -> return noModifications
@@ -51,8 +56,6 @@ class StatementOptimizer(private val program: Program,
         }
         return noModifications
     }
-
-
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.targetStatement(program) is BuiltinFunctionPlaceholder) {
