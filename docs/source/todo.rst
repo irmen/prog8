@@ -3,6 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix optimization of w >>= 8 , it generates bad code when opt=on, ok when opt=off
+- fix w <<= 8 generates weird code with pha/pla in it when opt=on, ok when opt=off
+- optimize  w=msb(w)  =>  w >>=8,  w=lsb(w) ==> w &= $00ff
+
 fix the value of ww being wrong (with optimizations enabled) in :
     sub start() {
         byte ub1 = -50
@@ -17,7 +21,6 @@ fix the value of ww being wrong (with optimizations enabled) in :
         return x1
     }
 
-- optimize  w=msb(w),  w=lsb(w)
 
 ...
 
@@ -37,7 +40,7 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- nameInAssemblyCode() should search smarter
+- nameInAssemblyCode() should search smarter (only labels in column 0? only full words, not part of a larger word?)
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance

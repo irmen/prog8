@@ -1066,6 +1066,18 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         else
                             asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
                     }
+                    value == 0x00ff -> {
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  $name+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name+1")
+                    }
+                    value == 0xff00 -> {
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  $name")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name")
+                    }
                     value and 255 == 0 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  stz  $name")

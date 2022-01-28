@@ -1,23 +1,25 @@
 %import textio
-%import string
 %zeropage basicsafe
 
 main {
     sub start() {
-        uword xx=$ea31
-        xx = lsb(xx)
-        uword ww = plot(lsb(xx), msb(xx))
-        ww=msb(ww)
-        txt.print_uwhex(ww, true)
+        uword @shared xx=$ea31
+        xx &= $00ff
+        ;xx = lsb(xx)
+        txt.print_uwhex(xx, true)
+        xx = $ea31
+        xx &= $ff00
+        ; xx = msb(xx)
+;        %asm {{
+;            nop
+;            nop
+;        }}
+;        xx >>= 8
+;        %asm {{
+;            nop
+;            nop
+;        }}
+;        xx <<= 8
+        txt.print_uwhex(xx, true)
     }
-
-    inline asmsub  plot(uword plotx @R0, uword ploty @R1) -> uword @AY{
-        %asm {{
-            lda  cx16.r0
-            ldy  cx16.r1
-            rts
-        }}
-    }
-
-
 }
