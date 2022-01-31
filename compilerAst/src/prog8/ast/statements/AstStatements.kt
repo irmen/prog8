@@ -612,10 +612,17 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
 
     override fun copy() = throw NotImplementedError("no support for duplicating a InlineAssembly")
 
-
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
+    val names: Set<String> by lazy {
+        // A cache of all the words (identifiers) present in this block of assembly code
+        // this is used when checking if prog8 names are referenced from assembly code
+        // TODO: smarter pattern; don't include words in comments
+        val wordPattern = Regex("""\b([_a-zA-Z][_a-zA-Z0-9]+?)\b""", RegexOption.MULTILINE)
+        wordPattern.findAll(assembly).map { it.value }.toSet()
+    }
 }
 
 class AnonymousScope(override var statements: MutableList<Statement>,

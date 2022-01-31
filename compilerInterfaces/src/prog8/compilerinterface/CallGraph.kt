@@ -3,7 +3,6 @@ package prog8.compilerinterface
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -222,8 +221,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key }
     }
 
-    private fun nameInAssemblyCode(name: String) =
-        allAssemblyNodes.any { it.assembly.contains(name) }     // TODO be smarter about what to search in assembly (only labels starting in column 0?)
+    private fun nameInAssemblyCode(name: String) = allAssemblyNodes.any { name in it.names }
 
     inline fun unused(label: Label) = false   // just always output labels
 

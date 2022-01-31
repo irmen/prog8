@@ -4,7 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
-- nameInAssemblyCode() should search smarter (only labels in column 0? only full words, not part of a larger word? use regex? )
 
 Need help with
 ^^^^^^^^^^^^^^

@@ -6,12 +6,14 @@ import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
+import prog8.ast.Program
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.codegen.target.C64Target
 import prog8.compilerinterface.CallGraph
-import prog8tests.helpers.assertSuccess
-import prog8tests.helpers.compileText
+import prog8.parser.Prog8Parser.parseModule
+import prog8.parser.SourceCode
+import prog8tests.helpers.*
 
 class TestCallgraph: FunSpec({
     test("testGraphForEmptySubs") {
@@ -120,5 +122,61 @@ class TestCallgraph: FunSpec({
         empties[0].position.line shouldBe 4
         empties[1].position.line shouldBe 5
         empties[2].position.line shouldBe 6
+    }
+
+    test("checking block and subroutine names usage in assembly code") {
+        val source = """
+            main {
+                sub start() {
+                    %asm {{
+                        lda  #<blockname
+                        lda  #<blockname.subroutine
+            correctlabel:
+                        nop
+                    }}
+                }
+            
+            }
+            
+            blockname {
+                sub subroutine() {
+                    @(1000) = 0
+                }
+            
+                sub correctlabel() {
+                    @(1000) = 0
+                }
+            }
+            
+            ; all block and subroutines below should NOT be found in asm because they're only substrings of the names in there
+            locknam {
+                sub rout() {
+                    @(1000) = 0
+                }
+            
+                sub orrectlab() {
+                    @(1000) = 0
+                }
+            }"""
+        val module = parseModule(SourceCode.Text(source))
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program.addModule(module)
+        val callgraph = CallGraph(program)
+        val blockMain = program.allBlocks.single { it.name=="main" }
+        val blockBlockname = program.allBlocks.single { it.name=="blockname" }
+        val blockLocknam = program.allBlocks.single { it.name=="locknam" }
+        val subStart = blockMain.statements.filterIsInstance<Subroutine>().single { it.name == "start" }
+        val subSubroutine = blockBlockname.statements.filterIsInstance<Subroutine>().single { it.name == "subroutine" }
+        val subCorrectlabel = blockBlockname.statements.filterIsInstance<Subroutine>().single { it.name == "correctlabel" }
+        val subRout = blockLocknam.statements.filterIsInstance<Subroutine>().single { it.name == "rout" }
+        val subOrrectlab = blockLocknam.statements.filterIsInstance<Subroutine>().single { it.name == "orrectlab" }
+        callgraph.unused(blockMain) shouldBe false
+        callgraph.unused(blockBlockname) shouldBe false
+        callgraph.unused(blockLocknam) shouldBe true
+        callgraph.unused(subStart) shouldBe false
+        callgraph.unused(subSubroutine) shouldBe false
+        callgraph.unused(subCorrectlabel) shouldBe false
+        callgraph.unused(subRout) shouldBe true
+        callgraph.unused(subOrrectlab) shouldBe true
     }
 })
