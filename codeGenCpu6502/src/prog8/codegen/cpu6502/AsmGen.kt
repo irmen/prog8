@@ -617,30 +617,6 @@ class AsmGen(private val program: Program,
         return newName
     }
 
-    fun asmSymbolName(identifier: IdentifierReference): String {
-        fun internalName(): String {
-            if (identifier.nameInSource.size == 2 && identifier.nameInSource[0] == "prog8_slabs")
-                return identifier.nameInSource.joinToString(".")
-
-            val tgt2 = identifier.targetStatement(program)
-            if (tgt2 == null && (identifier.nameInSource[0].startsWith("prog8")))
-                return identifier.nameInSource.joinToString(".")
-
-            val target = identifier.targetStatement(program)!!
-            val targetScope = target.definingSubroutine
-            val identScope = identifier.definingSubroutine
-            return if (targetScope !== identScope)
-                fixNameSymbols((target as INamedStatement).scopedName.joinToString("."))
-            else
-                fixNameSymbols(identifier.nameInSource.joinToString("."))
-        }
-
-        return fixNameSymbols(internalName())
-    }
-
-    fun asmVariableName(identifier: IdentifierReference) =
-        fixNameSymbols(identifier.nameInSource.joinToString("."))
-
     fun asmSymbolName(regs: RegisterOrPair): String =
         if (regs in Cx16VirtualRegisters)
             "cx16." + regs.toString().lowercase()
@@ -651,6 +627,8 @@ class AsmGen(private val program: Program,
     fun asmVariableName(name: String) = fixNameSymbols(name)
     fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
     fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
+    fun asmSymbolName(identifier: IdentifierReference) = asmSymbolName(identifier.nameInSource)
+    fun asmVariableName(identifier: IdentifierReference) = asmVariableName(identifier.nameInSource)
 
     fun getTempVarName(dt: DataType): List<String> {
         return when(dt) {

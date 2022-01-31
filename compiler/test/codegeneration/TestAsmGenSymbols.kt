@@ -95,7 +95,6 @@ class TestAsmGenSymbols: StringSpec({
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
-        // local variable
         val localvarIdent = sub.statements.asSequence().filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
         asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
@@ -103,10 +102,8 @@ class TestAsmGenSymbols: StringSpec({
         asmgen.asmSymbolName(localvarIdentScoped) shouldBe "main.start.localvar"
         asmgen.asmVariableName(localvarIdentScoped) shouldBe "main.start.localvar"
 
-        // variable from outer scope (note that for Variables, no scoping prefix symbols are required,
-        //   because they're not outputted as locally scoped symbols for the assembler
         val scopedVarIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
+        asmgen.asmSymbolName(scopedVarIdent) shouldBe "var_outside"
         asmgen.asmVariableName(scopedVarIdent) shouldBe "var_outside"
         val scopedVarIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
@@ -118,7 +115,6 @@ class TestAsmGenSymbols: StringSpec({
         val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
-        // local label
         val localLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
         asmgen.asmSymbolName(localLabelIdent) shouldBe "locallabel"
         asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
@@ -126,9 +122,8 @@ class TestAsmGenSymbols: StringSpec({
         asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start.locallabel"
         asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
 
-        // label from outer scope needs sope prefixes because it is outputted as a locally scoped symbol for the assembler
         val scopedLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main.label_outside"
+        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "label_outside"
         asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
         val scopedLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
         asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main.label_outside"

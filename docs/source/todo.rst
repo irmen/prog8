@@ -6,7 +6,6 @@ For next release
 - Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
 - nameInAssemblyCode() should search smarter (only labels in column 0? only full words, not part of a larger word? use regex? )
 
-
 Need help with
 ^^^^^^^^^^^^^^
 - c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
@@ -22,12 +21,11 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- remove support for old @"screencodes" string encoding syntax (parser+code+docs)
 - allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
 - can we promise a left-to-right function call argument evaluation? without sacrificing performance. note: C/C++ don't guarantee anything about this
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
-- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``v_``
-  then we can get rid of the instruction lists in the machinedefinitions as well?
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
@@ -36,6 +34,8 @@ Future Things and Ideas
 - use more of Result<> and Either<> to handle errors/ nulls better?
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
+- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
+  then we can get rid of the instruction lists in the machinedefinitions as well?
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
