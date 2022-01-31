@@ -2,13 +2,11 @@ package prog8.ast
 
 import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
-import prog8.ast.base.FatalAstException
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.Encoding
 
 
 /**
@@ -259,7 +257,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(branch: Branch) {
+    override fun visit(branch: ConditionalBranch) {
         output("if_${branch.condition.toString().lowercase()} ")
         branch.truepart.accept(this)
         if(branch.elsepart.statements.isNotEmpty()) {

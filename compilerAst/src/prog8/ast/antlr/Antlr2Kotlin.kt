@@ -518,14 +518,14 @@ private fun Prog8ANTLRParser.Else_partContext.toAst(): MutableList<Statement> {
     return statement_block()?.toAst() ?: mutableListOf(statement().toAst())
 }
 
-private fun Prog8ANTLRParser.Branch_stmtContext.toAst(): Branch {
+private fun Prog8ANTLRParser.Branch_stmtContext.toAst(): ConditionalBranch {
     val branchcondition = branchcondition().toAst()
     val trueStatements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val elseStatements = else_part()?.toAst() ?: mutableListOf()
     val trueScope = AnonymousScope(trueStatements, statement_block()?.toPosition()
             ?: statement().toPosition())
     val elseScope = AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
-    return Branch(branchcondition, trueScope, elseScope, toPosition())
+    return ConditionalBranch(branchcondition, trueScope, elseScope, toPosition())
 }
 
 private fun Prog8ANTLRParser.BranchconditionContext.toAst() = BranchCondition.valueOf(

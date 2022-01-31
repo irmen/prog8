@@ -17,10 +17,6 @@ import prog8.compilerinterface.IErrorReporter
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {
 
-    override fun before(nop: Nop, parent: Node): Iterable<IAstModification> {
-        return listOf(IAstModification.Remove(nop, parent as IStatementContainer))
-    }
-
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         return if(parent is IStatementContainer)
             listOf(ScopeFlatten(scope, parent as IStatementContainer))

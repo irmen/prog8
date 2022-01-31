@@ -71,7 +71,7 @@ interface IAstVisitor {
         ifElse.elsepart.accept(this)
     }
 
-    fun visit(branch: Branch) {
+    fun visit(branch: ConditionalBranch) {
         branch.truepart.accept(this)
         branch.elsepart.accept(this)
     }
@@ -167,9 +167,6 @@ interface IAstVisitor {
     }
 
     fun visit(inlineAssembly: InlineAssembly) {
-    }
-
-    fun visit(nop: Nop) {
     }
 
     fun visit(whenStmt: When) {

@@ -639,19 +639,6 @@ class AnonymousScope(override var statements: MutableList<Statement>,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class Nop(override val position: Position): Statement() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = Nop(position)
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-}
-
 class AsmGenInfo {
     // This class contains various attributes that influence the assembly code generator.
     // Conceptually it should be part of any INameScope.
@@ -818,10 +805,10 @@ class IfElse(var condition: Expression,
 
 }
 
-class Branch(var condition: BranchCondition,
-             var truepart: AnonymousScope,
-             var elsepart: AnonymousScope,
-             override val position: Position) : Statement() {
+class ConditionalBranch(var condition: BranchCondition,
+                        var truepart: AnonymousScope,
+                        var elsepart: AnonymousScope,
+                        override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

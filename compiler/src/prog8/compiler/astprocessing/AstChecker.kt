@@ -205,8 +205,7 @@ internal class AstChecker(private val program: Program,
                 is Label,
                 is VarDecl,
                 is InlineAssembly,
-                is IStatementContainer,
-                is Nop -> true
+                is IStatementContainer -> true
                 is Assignment -> {
                     val target = statement.target.identifier!!.targetStatement(program)
                     target === statement.previousSibling()      // an initializer assignment is okay

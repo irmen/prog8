@@ -92,7 +92,7 @@ interface IStatementContainer {
                     if(found!=null)
                         return found
                 }
-                is Branch -> {
+                is ConditionalBranch -> {
                     val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
                     if(found!=null)
                         return found

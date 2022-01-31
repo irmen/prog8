@@ -837,7 +837,6 @@ class AsmGen(private val program: Program,
         outputSourceLine(stmt)
         when(stmt) {
             is VarDecl -> translate(stmt)
-            is Nop -> {}
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> translateSubroutine(stmt)
@@ -859,7 +858,7 @@ class AsmGen(private val program: Program,
             is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
-            is Branch -> translate(stmt)
+            is ConditionalBranch -> translate(stmt)
             is IfElse -> translate(stmt)
             is ForLoop -> forloopsAsmGen.translate(stmt)
             is RepeatLoop -> translate(stmt)
@@ -1536,7 +1535,7 @@ $repeatLabel    lda  $counterVar
         scope.statements.forEach{ translate(it) }
     }
 
-    private fun translate(stmt: Branch) {
+    private fun translate(stmt: ConditionalBranch) {
         if(stmt.truepart.isEmpty() && stmt.elsepart.isNotEmpty())
             throw AssemblyError("only else part contains code, shoud have been switched already")
 

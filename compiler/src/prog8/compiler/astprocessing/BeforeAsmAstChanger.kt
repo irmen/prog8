@@ -324,7 +324,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     complexArrayIndexedExpressions.add(arrayIndexedExpression)
             }
 
-            override fun visit(branch: Branch) {}
+            override fun visit(branch: ConditionalBranch) {}
 
             override fun visit(forLoop: ForLoop) {}
 

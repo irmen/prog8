@@ -85,7 +85,7 @@ abstract class AstWalker {
     open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
@@ -105,7 +105,6 @@ abstract class AstWalker {
     open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(nop: Nop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(program: Program): Iterable<IAstModification> = noModifications
@@ -129,7 +128,7 @@ abstract class AstWalker {
     open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(branch: Branch, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(builtinFunctionPlaceholder: BuiltinFunctionPlaceholder, parent: Node): Iterable<IAstModification> = noModifications
@@ -150,7 +149,6 @@ abstract class AstWalker {
     open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(nop: Nop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(program: Program): Iterable<IAstModification> = noModifications
@@ -299,7 +297,7 @@ abstract class AstWalker {
         track(after(ifElse, parent), ifElse, parent)
     }
 
-    fun visit(branch: Branch, parent: Node) {
+    fun visit(branch: ConditionalBranch, parent: Node) {
         track(before(branch, parent), branch, parent)
         branch.truepart.accept(this, branch)
         branch.elsepart.accept(this, branch)
@@ -441,11 +439,6 @@ abstract class AstWalker {
     fun visit(inlineAssembly: InlineAssembly, parent: Node) {
         track(before(inlineAssembly, parent), inlineAssembly, parent)
         track(after(inlineAssembly, parent), inlineAssembly, parent)
-    }
-
-    fun visit(nop: Nop, parent: Node) {
-        track(before(nop, parent), nop, parent)
-        track(after(nop, parent), nop, parent)
     }
 
     fun visit(whenStmt: When, parent: Node) {
