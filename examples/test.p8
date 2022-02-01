@@ -1,33 +1,11 @@
 main {
     sub start() {
-        %asm {{
-            lda  #<blockname
-            lda  #<blockname.subroutine
-correctlabel:
-            nop     ; rout orrectlab locknam
-        }}
+        recurse1()
     }
-
-}
-
-blockname {
-    sub subroutine() {
-        @($c000) = 0
+    sub recurse1() {
+        recurse2()
     }
-
-    sub correctlabel() {
-        @($c000) = 0
+    sub recurse2() {
+        uword @shared address = &start
     }
 }
-
-; all block and subroutines below should NOT be found in asm because they're only substrings of the names in there, or in a comment
-locknam {
-    sub rout() {
-        @($c000) = 0
-    }
-
-    sub orrectlab() {
-        @($c000) = 0
-    }
-}
-

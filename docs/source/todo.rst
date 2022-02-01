@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Fix: don't report as recursion if code assigns address of its own subroutine to something, rather than calling it
+...
 
 Need help with
 ^^^^^^^^^^^^^^

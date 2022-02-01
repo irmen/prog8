@@ -15,6 +15,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
+    val notCalledButReferenced = mutableSetOf<Subroutine>()
     private val allIdentifiersAndTargets = mutableMapOf<IdentifierReference, Statement>()
     private val allAssemblyNodes = mutableListOf<InlineAssembly>()
 
@@ -25,7 +26,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val allIdentifiers: Map<IdentifierReference, Statement> = allIdentifiersAndTargets
 
     private val usedSubroutines: Set<Subroutine> by lazy {
-        calledBy.keys + program.entrypoint
+        calledBy.keys + program.entrypoint + notCalledButReferenced
     }
 
     private val usedBlocks: Set<Block> by lazy {
@@ -81,13 +82,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(addressOf: AddressOf) {
-        val otherSub = addressOf.identifier.targetSubroutine(program)
-        if(otherSub!=null) {
-            addressOf.definingSubroutine?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub) + otherSub
-                calledBy[otherSub] = calledBy.getValue(otherSub) + thisSub
-            }
-        }
+        addressOf.identifier.targetSubroutine(program)?.let { notCalledButReferenced.add(it) }
         super.visit(addressOf)
     }
 

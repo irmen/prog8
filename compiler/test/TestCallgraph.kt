@@ -3,9 +3,9 @@ package prog8tests
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
-import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
@@ -55,7 +55,7 @@ class TestCallgraph: FunSpec({
         }
     }
 
-    test("testGraphForEmptyButReferencedSub") {
+    test("reference to empty sub") {
         val sourcecode = """
             %import string
             main {
@@ -85,14 +85,10 @@ class TestCallgraph: FunSpec({
         val startSub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="start"}
         val emptySub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="empty"}
 
-        withClue("start 'calls' (references) empty") {
-            graph.calls shouldContainKey startSub
-        }
+        graph.calls shouldNotContainKey startSub
+        graph.calledBy shouldNotContainKey emptySub
         withClue("empty doesn't call anything") {
             graph.calls shouldNotContainKey emptySub
-        }
-        withClue("empty gets 'called'") {
-            graph.calledBy shouldContainKey emptySub
         }
         withClue( "start doesn't get called (except as entrypoint ofc.)") {
             graph.calledBy shouldNotContainKey startSub
@@ -178,5 +174,55 @@ class TestCallgraph: FunSpec({
         callgraph.unused(subCorrectlabel) shouldBe false
         callgraph.unused(subRout) shouldBe true
         callgraph.unused(subOrrectlab) shouldBe true
+    }
+
+    test("recursion detection") {
+        val source="""
+            main {
+                sub start() {
+                    recurse1()
+                }
+                sub recurse1() {
+                    recurse2()
+                }
+                sub recurse2() {
+                    start()
+                }
+            }"""
+        val module = parseModule(SourceCode.Text(source))
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program.addModule(module)
+        val callgraph = CallGraph(program)
+        val errors = ErrorReporterForTests()
+        callgraph.checkRecursiveCalls(errors)
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 4
+        errors.warnings[0] shouldContain "contains recursive subroutine calls"
+        errors.warnings[1] shouldContain "start at"
+        errors.warnings[2] shouldContain "recurse1 at"
+        errors.warnings[3] shouldContain "recurse2 at"
+    }
+
+    test("no recursion warning if reference isn't a call") {
+        val source="""
+            main {
+                sub start() {
+                    recurse1()
+                }
+                sub recurse1() {
+                    recurse2()
+                }
+                sub recurse2() {
+                    uword @shared address = &start
+                }
+            }"""
+        val module = parseModule(SourceCode.Text(source))
+        val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
+        program.addModule(module)
+        val callgraph = CallGraph(program)
+        val errors = ErrorReporterForTests()
+        callgraph.checkRecursiveCalls(errors)
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
     }
 })
