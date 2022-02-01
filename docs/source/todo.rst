@@ -9,7 +9,7 @@ Need help with
 ^^^^^^^^^^^^^^
 - c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
 - other targets such as Atari 800XL: all required details about the machine, I have no clue whatsoever
-- see the Porting Guide in the documentation for this.
+- see the :ref:`portingguide` for details on what information is needed.
 
 
 Blocked by an official Commander-x16 r39 release
