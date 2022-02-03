@@ -1158,20 +1158,6 @@ sign_extend_stack_byte	.proc
 		rts
 		.pend
 
-
-sign_extend_AY_byte	.proc
-	; -- sign extend the (signed) byte in AY to full 16 bits
-		pha
-		and  #$80
-		beq  +
-		ldy  #$ff
-		pla
-		rts
-+		ldy  #0
-		pla
-		rts
-		.pend
-
 strlen          .proc
         ; -- returns the number of bytes in the string in AY, in Y.
 		sta  P8ZP_SCRATCH_W1

@@ -1707,7 +1707,13 @@ $repeatLabel    lda  $counterVar
         // sign extend signed byte in A to full word in AY
         when(valueDt) {
             DataType.UBYTE -> out("  ldy  #0")
-            DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_AY_byte")
+            DataType.BYTE -> out("""
+                ldy  #0
+                cmp  #$80
+                bcc  +
+                dey
++
+            """)
             else -> throw AssemblyError("need byte type")
         }
     }
