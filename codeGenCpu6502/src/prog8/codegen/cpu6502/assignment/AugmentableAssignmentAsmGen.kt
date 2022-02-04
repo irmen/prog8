@@ -1157,17 +1157,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         else
                             asmgen.out("""
-                                ldy  #0
+                                ldy  #255
                                 lda  $otherName
                                 bpl  +
-                                dey     ; sign extend
-+                               sty  P8ZP_SCRATCH_B1
-                                lda  $name
+                                iny     ; sign extend
++                               eor  #255
                                 sec
-                                sbc  $otherName
+                                adc  $name
                                 sta  $name
-                                lda  $name+1
-                                sbc  P8ZP_SCRATCH_B1
+                                tya
+                                adc  $name+1
                                 sta  $name+1""")
                     }
                     "*" -> {
@@ -1439,29 +1438,28 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sta  $name+1""")
                     }
                     "-" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_REG", valueDt, null)
+                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt, null)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
                                 lda  $name
                                 sec
-                                sbc  P8ZP_SCRATCH_REG
+                                sbc  P8ZP_SCRATCH_B1
                                 sta  $name
                                 bcs  +
                                 dec  $name+1
 +""")
                         else
                             asmgen.out("""
-                                ldy  #0
-                                lda  P8ZP_SCRATCH_REG
+                                ldy  #255
+                                lda  P8ZP_SCRATCH_B1
                                 bpl  +
-                                dey         ; sign extend
-+                               sty  P8ZP_SCRATCH_B1
-                                lda  $name
+                                iny         ; sign extend
++                               eor  #255
                                 sec
-                                sbc  P8ZP_SCRATCH_REG
+                                adc  $name
                                 sta  $name
-                                lda  $name+1
-                                sbc  P8ZP_SCRATCH_B1
+                                tya
+                                adc  $name+1
                                 sta  $name+1""")
                     }
                     "*" -> {
@@ -2098,40 +2096,38 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         when(target.register!!) { //P8ZP_SCRATCH_REG
                             RegisterOrPair.AX -> {
                                 asmgen.out("""
-                                    sta  P8ZP_SCRATCH_REG
-                                    stx  P8ZP_SCRATCH_REG+1
-                                    lda  #0
                                     sec
-                                    sbc  P8ZP_SCRATCH_REG
+                                    eor  #255
+                                    adc  #0
                                     pha
-                                    lda  #0
-                                    sbc  P8ZP_SCRATCH_REG+1
+                                    txa
+                                    eor  #255
+                                    adc  #0
                                     tax
                                     pla""")
                             }
                             RegisterOrPair.AY -> {
                                 asmgen.out("""
-                                    sta  P8ZP_SCRATCH_REG
-                                    sty  P8ZP_SCRATCH_REG+1
-                                    lda  #0
                                     sec
-                                    sbc  P8ZP_SCRATCH_REG
+                                    eor  #255
+                                    adc  #0
                                     pha
-                                    lda  #0
-                                    sbc  P8ZP_SCRATCH_REG+1
+                                    tya
+                                    eor  #255
+                                    adc  #0
                                     tay
                                     pla""")
                             }
                             RegisterOrPair.XY -> {
                                 asmgen.out("""
-                                    stx  P8ZP_SCRATCH_REG
-                                    sty  P8ZP_SCRATCH_REG+1
-                                    lda  #0
                                     sec
-                                    sbc  P8ZP_SCRATCH_REG
+                                    txa
+                                    eor  #255
+                                    adc  #0
                                     tax
-                                    lda  #0
-                                    sbc  P8ZP_SCRATCH_REG+1
+                                    tya
+                                    eor  #255
+                                    adc  #0
                                     tay""")
                             }
                             in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
