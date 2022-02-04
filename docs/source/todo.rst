@@ -5,6 +5,7 @@ For next release
 ^^^^^^^^^^^^^^^^
 ...
 
+
 Need help with
 ^^^^^^^^^^^^^^
 - c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
@@ -20,11 +21,26 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+Ast modifications done in AsmGen, that should be done BEFORE calling asmgen (so that it doesn't have to modify the Ast any longer):
+
+- translateSubroutine:
+    if subroutine marked as inline but optimizations are disabled, make sure the NOT INLINED subroutine actually has a Return statement at the end
+
+- block2asm:
+    if(options.dontReinitGlobals) -> currently modifies the zeropage and init value of vardecl's.
+    it removes init-assignments to no longer output the initialization assignments as regular statements (is done separately in block initialization routine)
+    after vardecls2asm it clears the vardecl.value of all variables (why?)
+
+- Maybe don't rely on vardecls at all any longer but figure out the variable allocations (including ZP allocations) beforehand
+  and pass that via a new datastructure to asmgen?  So that asmgen is no longer tasked with doing the allocations.
+  This could perhaps make it easer for the codegen as well to deal with sections, if any, in the future.
+
+
 - remove support for old @"screencodes" string encoding syntax (parser+code+docs)
-- allow "xxx" * constexpr  (where constexpr is not a number literal, now gives expression error not same type)
-- can we promise a left-to-right function call argument evaluation? without sacrificing performance. note: C/C++ don't guarantee anything about this
-- unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement, may require moving Expression/Statement into interfaces instead of abstract base classes
+- allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
+- unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement classes, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
+- for the pipe operator: make it 100% syntactic sugar so there's no need for asm codegen like translatePipeExpression
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation
@@ -57,6 +73,7 @@ More optimization ideas
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'?
+  these variables have to be unique for each subroutine because they could otherwise be interfered with from irq routines etc.
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
   and perhaps as well the assignment splitting in  BeforeAsmAstChanger too
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4

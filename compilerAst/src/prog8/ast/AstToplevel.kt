@@ -21,10 +21,7 @@ interface IFunctionCall {
 }
 
 interface IStatementContainer {
-    val position: Position
-    val parent: Node
     val statements: MutableList<Statement>
-    fun linkParents(parent: Node)
 
     fun remove(stmt: Statement) {
         if(!statements.remove(stmt))
@@ -309,8 +306,5 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
 
 internal object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
-    override val position = Position("<<placeholder>>", 0, 0, 0)
     override var statements = mutableListOf<Statement>()
-    override var parent: Node = ParentSentinel
-    override fun linkParents(parent: Node) {}
 }
