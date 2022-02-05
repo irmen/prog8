@@ -62,7 +62,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             val (programresult, compilationOptions, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
-            println("${args.filepath} parsed.\u001B[0K")
+            print("Parsed ${args.filepath}")
+            ModuleImporter.ansiEraseRestOfLine(true)
+
             with(compilationOptions) {
                 slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
@@ -175,7 +177,7 @@ fun parseImports(filepath: Path,
                  errors: IErrorReporter,
                  compTarget: ICompilationTarget,
                  sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
-    println("Compiler target: ${compTarget.name}. Parsing...")
+    println("Compiler target: ${compTarget.name}")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program

@@ -39,9 +39,8 @@ class ModuleImporter(private val program: Program,
             else -> candidates.first()  // when more candiates, pick the one from the first location
         }
 
-        print(" importing '${filePath.nameWithoutExtension}' (from file $srcPath)\r")
-        val module = importModule(SourceCode.File(srcPath))
-        return Ok(module)
+        val source = SourceCode.File(srcPath)
+        return Ok(importModule(source))
     }
 
     fun importLibraryModule(name: String): Module? {
@@ -52,6 +51,7 @@ class ModuleImporter(private val program: Program,
     }
 
     private fun importModule(src: SourceCode) : Module {
+        printImportingMessage(src.name, src.origin)
         val moduleAst = Prog8Parser.parseModule(src)
         program.addModule(moduleAst)
 
@@ -89,7 +89,6 @@ class ModuleImporter(private val program: Program,
         val importedModule =
             moduleResourceSrc.fold(
                 success = {
-                    print(" importing '$moduleName' (from internal ${it.origin})\r")
                     importModule(it)
                 },
                 failure = {
@@ -97,7 +96,6 @@ class ModuleImporter(private val program: Program,
                     val moduleSrc = getModuleFromFile(moduleName, importingModule)
                     moduleSrc.fold(
                         success = {
-                            print(" importing '$moduleName' (from file ${it.origin})\r")
                             importModule(it)
                         },
                         failure = {
@@ -149,5 +147,19 @@ class ModuleImporter(private val program: Program,
         }
 
         return Err(NoSuchFileException(File("name")))
+    }
+
+    fun printImportingMessage(module: String, origin: String) {
+        print(" importing '$module'  (from ${origin})")
+        ansiEraseRestOfLine(false)
+        print("\r")
+    }
+
+    companion object {
+        fun ansiEraseRestOfLine(newline: Boolean) {
+            print("\u001b[0K")
+            if(newline)
+                println()
+        }
     }
 }

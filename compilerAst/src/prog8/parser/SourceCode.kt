@@ -4,7 +4,9 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.name
 import kotlin.io.path.readText
+import kotlin.io.path.toPath
 
 /**
  * Encapsulates - and ties together - actual source code (=text) and its [origin].
@@ -20,6 +22,11 @@ sealed class SourceCode {
      * Whether this [SourceCode] instance was created as a [File]
      */
     abstract val isFromFilesystem: Boolean
+
+    /**
+     * The logical name of the source code unit. Usually the module's name.
+     */
+    abstract val name: String
 
     /**
      * Where this [SourceCode] instance came from.
@@ -61,6 +68,7 @@ sealed class SourceCode {
         override val isFromResources = false
         override val isFromFilesystem = false
         override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
+        override val name = "<unnamed-text>"
     }
 
     /**
@@ -74,6 +82,7 @@ sealed class SourceCode {
     class File(path: Path): SourceCode() {
         override val text: String
         override val origin: String
+        override val name: String
         override val isFromResources = false
         override val isFromFilesystem = true
 
@@ -82,6 +91,7 @@ sealed class SourceCode {
             origin = relative(normalized).toString()
             try {
                 text = normalized.readText()
+                name = normalized.toFile().nameWithoutExtension
             } catch (nfx: java.nio.file.NoSuchFileException) {
                 throw NoSuchFileException(normalized.toFile()).also { it.initCause(nfx) }
             } catch (iox: IOException) {
@@ -100,6 +110,7 @@ sealed class SourceCode {
         override val isFromFilesystem = false
         override val origin = "$libraryFilePrefix$normalized"
         override val text: String
+        override val name: String
 
         init {
             val rscURL = object {}.javaClass.getResource(normalized)
@@ -112,6 +123,7 @@ sealed class SourceCode {
             }
             val stream = object {}.javaClass.getResourceAsStream(normalized)
             text = stream!!.reader().use { it.readText() }
+            name = Path.of(pathString).toFile().nameWithoutExtension
         }
     }
 
@@ -122,6 +134,7 @@ sealed class SourceCode {
         override val isFromResources: Boolean = false
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
+        override val name: String = name
         override val text: String = "<generated code node, no text representation>"
     }
 }
