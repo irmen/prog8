@@ -1,6 +1,9 @@
 package prog8.ast
 
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.ParentSentinel
+import prog8.ast.base.Position
+import prog8.ast.base.findParentNode
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*

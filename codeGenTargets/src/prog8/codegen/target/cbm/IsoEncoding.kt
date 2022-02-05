@@ -1,8 +1,8 @@
 package prog8.codegen.target.cbm
 
-import com.github.michaelbull.result.Result
-import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import java.io.CharConversionException
 import java.nio.charset.Charset
 

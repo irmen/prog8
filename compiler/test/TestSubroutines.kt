@@ -7,7 +7,10 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
-import prog8.ast.expressions.*
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests

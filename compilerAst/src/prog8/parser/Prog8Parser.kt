@@ -14,7 +14,7 @@ object Prog8Parser {
 
     fun parseModule(src: SourceCode): Module {
         val antlrErrorListener = AntlrErrorListener(src)
-        val lexer = Prog8ANTLRLexer(src.getCharStream())
+        val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
         lexer.removeErrorListeners()
         lexer.addErrorListener(antlrErrorListener)
         val tokens = CommonTokenStream(lexer)

@@ -4,7 +4,6 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
 import prog8.compilerinterface.Encoding

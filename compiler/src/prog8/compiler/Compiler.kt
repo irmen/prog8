@@ -1,6 +1,6 @@
 package prog8.compiler
 
-import com.github.michaelbull.result.*
+import com.github.michaelbull.result.onFailure
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
@@ -11,9 +11,9 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C128Target
-import prog8.compiler.astprocessing.*
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
+import prog8.compiler.astprocessing.*
 import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError

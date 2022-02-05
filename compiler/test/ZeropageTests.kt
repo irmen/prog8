@@ -20,7 +20,6 @@ import prog8.codegen.target.cx16.CX16Zeropage
 import prog8.compilerinterface.*
 import prog8tests.helpers.DummyCompilationTarget
 import prog8tests.helpers.ErrorReporterForTests
-import java.lang.IllegalArgumentException
 
 
 class TestAbstractZeropage: FunSpec({

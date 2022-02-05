@@ -6,11 +6,14 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
-import prog8.ast.expressions.*
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.FunctionCallExpression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.*
+import prog8.compilerinterface.IErrorReporter
 
 
 internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {

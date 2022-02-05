@@ -2,7 +2,6 @@ package prog8.ast.antlr
 
 import prog8.ast.base.Position
 import prog8.ast.base.SyntaxError
-import kotlin.NumberFormatException
 
 fun escape(str: String): String {
     val es = str.map {

@@ -1,7 +1,10 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.base.ArrayDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.IntegerDatatypes
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker

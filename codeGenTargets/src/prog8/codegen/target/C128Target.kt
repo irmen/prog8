@@ -7,9 +7,9 @@ import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.codegen.target.c128.C128MachineDefinition
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
-import prog8.codegen.target.c128.C128MachineDefinition
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IStringEncoding
 

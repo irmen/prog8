@@ -1,6 +1,5 @@
 package prog8.compilerinterface
 
-import prog8.ast.base.DataType
 import java.nio.file.Path
 
 

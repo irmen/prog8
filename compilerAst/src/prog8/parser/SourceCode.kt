@@ -1,25 +1,15 @@
 package prog8.parser
 
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CharStreams
 import java.io.File
 import java.io.IOException
-import java.nio.channels.Channels
-import java.nio.charset.CodingErrorAction
 import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.readText
 
 /**
- * Encapsulates - and ties together - actual source code (=text)
- * and its [origin].
+ * Encapsulates - and ties together - actual source code (=text) and its [origin].
  */
 sealed class SourceCode {
-
-    /**
-     * To be used *only* by the parser (as input to a TokenStream).
-     * DO NOT mess around with!
-     */
-    internal abstract fun getCharStream(): CharStream
 
     /**
      * Whether this [SourceCode] instance was created as a [Resource]
@@ -43,11 +33,10 @@ sealed class SourceCode {
     /**
      * The source code as plain string.
      */
-    abstract fun readText(): String
+    abstract val text: String
 
     /**
-     * Deliberately does NOT return the actual text.
-     * For this - if at all - use [getCharStream].
+     * Printable representation, deliberately does NOT return the actual text.
      */
     final override fun toString() = "${this.javaClass.name}[${this.origin}]"
 
@@ -68,43 +57,37 @@ sealed class SourceCode {
      * Turn a plain String into a [SourceCode] object.
      * [origin] will be something like `$stringSourcePrefix44c56085>`.
      */
-    class Text(val text: String): SourceCode() {
+    class Text(override val text: String): SourceCode() {
         override val isFromResources = false
         override val isFromFilesystem = false
         override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
-        public override fun getCharStream(): CharStream = CharStreams.fromString(text, origin)
-        override fun readText() = text
     }
 
     /**
      * Get [SourceCode] from the file represented by the specified Path.
-     * This does not actually *access* the file, but it does check
-     * whether it
-     * * exists
-     * * is a regular file (ie: not a directory)
-     * * and is actually readable
+     * This immediately reads the file fully into memory.
      *
      * [origin] will be the given path in absolute and normalized form.
      * @throws NoSuchFileException if the file does not exist
-     * @throws AccessDeniedException if the given path points to a directory or the file is non-readable for some other reason
+     * @throws FileSystemException if the file cannot be read
      */
     class File(path: Path): SourceCode() {
-        private val normalized = path.normalize()
-        init {
-            val file = normalized.toFile()
-            if (!path.exists())
-                throw NoSuchFileException(file)
-            if (path.isDirectory())
-                throw AccessDeniedException(file, reason = "Not a file but a directory")
-            if (!path.isReadable())
-                throw AccessDeniedException(file, reason = "Is not readable")
-        }
-
+        override val text: String
+        override val origin: String
         override val isFromResources = false
         override val isFromFilesystem = true
-        override val origin = relative(normalized).toString()
-        override fun getCharStream(): CharStream = CharStreams.fromPath(normalized)
-        override fun readText() = normalized.readText()
+
+        init {
+            val normalized = path.normalize()
+            origin = relative(normalized).toString()
+            try {
+                text = normalized.readText()
+            } catch (nfx: java.nio.file.NoSuchFileException) {
+                throw NoSuchFileException(normalized.toFile()).also { it.initCause(nfx) }
+            } catch (iox: IOException) {
+                throw FileSystemException(normalized.toFile()).also { it.initCause(iox) }
+            }
+        }
     }
 
     /**
@@ -112,6 +95,11 @@ sealed class SourceCode {
      */
     class Resource(pathString: String): SourceCode() {
         private val normalized = "/" + Path.of(pathString).normalize().toMutableList().joinToString("/")
+
+        override val isFromResources = true
+        override val isFromFilesystem = false
+        override val origin = "$libraryFilePrefix$normalized"
+        override val text: String
 
         init {
             val rscURL = object {}.javaClass.getResource(normalized)
@@ -122,21 +110,8 @@ sealed class SourceCode {
                     reason = "looked in resources rooted at $rscRoot"
                 )
             }
-        }
-
-        override val isFromResources = true
-        override val isFromFilesystem = false
-        override val origin = "$libraryFilePrefix$normalized"
-        public override fun getCharStream(): CharStream {
-            val inpStr = object {}.javaClass.getResourceAsStream(normalized)!!
-            // CharStreams.fromStream() doesn't allow us to set the stream name properly, so we use a lower level api
-            val channel = Channels.newChannel(inpStr)
-            return CharStreams.fromChannel(channel, Charsets.UTF_8, 4096, CodingErrorAction.REPLACE, origin, -1)
-        }
-
-        override fun readText(): String {
             val stream = object {}.javaClass.getResourceAsStream(normalized)
-            return stream!!.bufferedReader().use { r -> r.readText() }
+            text = stream!!.reader().use { it.readText() }
         }
     }
 
@@ -144,10 +119,9 @@ sealed class SourceCode {
      * SourceCode for internally generated nodes (usually Modules)
      */
     class Generated(name: String) : SourceCode() {
-        override fun getCharStream(): CharStream = throw IOException("generated code nodes doesn't have a stream to read")
         override val isFromResources: Boolean = false
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
-        override fun readText() = throw IOException("generated code nodes don't have a text representation")
+        override val text: String = "<generated code node, no text representation>"
     }
 }

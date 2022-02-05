@@ -7,17 +7,16 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.expressions.*
+import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
 import prog8.compilerinterface.Encoding
 import prog8tests.helpers.*
-import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
-import prog8tests.helpers.compileText
 
 
 /**

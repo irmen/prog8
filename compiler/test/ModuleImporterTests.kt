@@ -2,13 +2,6 @@ package prog8tests
 
 import com.github.michaelbull.result.getErrorOrElse
 import com.github.michaelbull.result.getOrElse
-import prog8.ast.Program
-import prog8.ast.internedStringsModuleName
-import prog8.compiler.ModuleImporter
-import prog8.compilerinterface.IErrorReporter
-import prog8.parser.ParseError
-import prog8.parser.SourceCode
-import kotlin.io.path.*
 import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -16,11 +9,14 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import prog8.ast.Program
+import prog8.ast.internedStringsModuleName
+import prog8.compiler.ModuleImporter
+import prog8.compilerinterface.IErrorReporter
+import prog8.parser.ParseError
+import prog8.parser.SourceCode
 import prog8tests.helpers.*
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
-import prog8tests.helpers.ErrorReporterForTests
+import kotlin.io.path.*
 
 
 class TestModuleImporter: FunSpec({
@@ -71,7 +67,7 @@ class TestModuleImporter: FunSpec({
                 val searchIn = Path(".", "$srcPathRel").invariantSeparatorsPathString
                 val importer = makeImporter(null, searchIn)
 
-                shouldThrow<AccessDeniedException> { importer.importModule(srcPathRel) }
+                shouldThrow<FileSystemException> { importer.importModule(srcPathRel) }
                     .let {
                         withClue(".file should be normalized") {
                             "${it.file}" shouldBe "${it.file.normalize()}"
@@ -82,7 +78,7 @@ class TestModuleImporter: FunSpec({
                     }
                 program.modules.size shouldBe 1
 
-                shouldThrow<AccessDeniedException> { importer.importModule(srcPathAbs) }
+                shouldThrow<FileSystemException> { importer.importModule(srcPathAbs) }
                     .let {
                         withClue(".file should be normalized") {
                             "${it.file}" shouldBe "${it.file.normalize()}"

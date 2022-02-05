@@ -11,11 +11,6 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.*
-import prog8.codegen.cpu6502.assignment.AsmAssignSource
-import prog8.codegen.cpu6502.assignment.AsmAssignTarget
-import prog8.codegen.cpu6502.assignment.AsmAssignment
-import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
-import prog8.codegen.cpu6502.assignment.SourceStorageKind
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType

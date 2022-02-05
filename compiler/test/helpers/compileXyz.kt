@@ -4,11 +4,11 @@ import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import prog8.ast.Program
 import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.c64.C64Zeropage
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8.codegen.target.C64Target
-import prog8.codegen.target.c64.C64Zeropage
 import prog8.compilerinterface.*
 import java.nio.file.Path
 import kotlin.io.path.name

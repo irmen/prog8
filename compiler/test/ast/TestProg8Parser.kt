@@ -26,7 +26,6 @@ import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
 import prog8tests.helpers.*
-import prog8tests.helpers.DummyFunctions
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name

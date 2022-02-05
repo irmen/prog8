@@ -94,13 +94,13 @@ class AssemblyProgram(
 internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
     return if (filename.startsWith(SourceCode.libraryFilePrefix)) {
         return com.github.michaelbull.result.runCatching {
-            SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").readText()
+            SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").text
         }.mapError { NoSuchFileException(File(filename)) }
     } else {
         val sib = Path(source.origin).resolveSibling(filename)
         if (sib.isRegularFile())
-            Ok(SourceCode.File(sib).readText())
+            Ok(SourceCode.File(sib).text)
         else
-            Ok(SourceCode.File(Path(filename)).readText())
+            Ok(SourceCode.File(Path(filename)).text)
     }
 }

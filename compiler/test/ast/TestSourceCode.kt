@@ -21,10 +21,9 @@ class TestSourceCode: AnnotationSpec() {
             main { }
         """
         val src = SourceCode.Text(text)
-        val actualText = src.getCharStream().toString()
 
         src.origin shouldContain Regex("^<String@[0-9a-f\\-]+>$")
-        actualText shouldBe text
+        src.text shouldBe text
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe false
         src.toString().startsWith("prog8.parser.SourceCode") shouldBe true
@@ -46,7 +45,7 @@ class TestSourceCode: AnnotationSpec() {
 
     @Test
     fun testFromPathWithDirectory() {
-        shouldThrow<AccessDeniedException> { SourceCode.File(fixturesDir) }
+        shouldThrow<FileSystemException> { SourceCode.File(fixturesDir) }
     }
 
     @Test
@@ -56,7 +55,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
-        src.readText() shouldBe path.toFile().readText()
+        src.text shouldBe path.toFile().readText()
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe true
     }
@@ -69,7 +68,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
     }
 
     @Test
@@ -79,7 +78,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/$pathString"
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
         src.isFromResources shouldBe true
         src.isFromFilesystem shouldBe false
     }
@@ -91,7 +90,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix$pathString"
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
     }
 
     @Test
@@ -101,7 +100,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/$pathString"
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
         src.isFromResources shouldBe true
     }
 
@@ -112,7 +111,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix$pathString"
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
     }
 
     @Test
@@ -122,7 +121,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/prog8lib/math.p8"
-        src.readText() shouldBe srcFile.readText()
+        src.text shouldBe srcFile.readText()
         src.isFromResources shouldBe true
     }
 
