@@ -1121,17 +1121,15 @@ strcmp_mem	.proc
 		;      Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-_loop		ldy  #0
-		lda  (P8ZP_SCRATCH_W1),y
+		ldy  #0
+_loop		lda  (P8ZP_SCRATCH_W1),y
 		bne  +
 		lda  (P8ZP_SCRATCH_W2),y
 		bne  _return_minusone
 		beq  _return
-+		lda  (P8ZP_SCRATCH_W2),y
-		sec
-		sbc  (P8ZP_SCRATCH_W1),y
-		bmi  _return_one
-		bne  _return_minusone
++		cmp  (P8ZP_SCRATCH_W2),y
+		bcc  _return_minusone
+		bne  _return_one
 		inc  P8ZP_SCRATCH_W1
 		bne  +
 		inc  P8ZP_SCRATCH_W1+1
@@ -1155,20 +1153,6 @@ sign_extend_stack_byte	.proc
 		bmi  +
 		lda  #0
 +		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-
-sign_extend_AY_byte	.proc
-	; -- sign extend the (signed) byte in AY to full 16 bits
-		pha
-		and  #$80
-		beq  +
-		ldy  #$ff
-		pla
-		rts
-+		ldy  #0
-		pla
 		rts
 		.pend
 
