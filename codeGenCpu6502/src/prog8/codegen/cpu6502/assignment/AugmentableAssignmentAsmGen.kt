@@ -173,7 +173,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
                             memread != null -> inplaceModification_byte_memread_to_variable(target.asmVarname, target.datatype, operator, memread)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value)
@@ -185,7 +185,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, ident)
                             memread != null -> inplaceModification_word_memread_to_variable(target.asmVarname, target.datatype, operator, memread)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator))
+                                    return
                                 inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value)
                             }
                             else -> inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value)
@@ -196,7 +197,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, valueLv.toDouble(), target.scope!!)
                             ident != null -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, ident, target.scope!!)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                 inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope!!)
                             }
                             else -> inplaceModification_float_value_to_variable(target.asmVarname, operator, value, target.scope!!)
@@ -216,7 +217,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, ident)
                             memread != null -> inplaceModification_byte_memread_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value)
@@ -228,7 +229,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             valueLv != null -> inplaceModification_byte_litval_to_pointer(pointer, operator, valueLv.toInt())
                             ident != null -> inplaceModification_byte_variable_to_pointer(pointer, operator, ident)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_pointer(pointer, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_pointer(pointer, operator, value)
@@ -243,7 +244,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             ident != null -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, ident)
                             memread != null -> inplaceModification_byte_memread_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, memread)
                             value is TypecastExpression -> {
-                                if (tryRemoveRedundantCast(value, target, operator)) return
+                                if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                 inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
                             }
                             else -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value)
@@ -266,7 +267,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         ident != null -> inplaceModification_byte_variable_to_variable(targetVarName, target.datatype, operator, ident)
                                         memread != null -> inplaceModification_byte_memread_to_variable(targetVarName, target.datatype, operator, memread)
                                         value is TypecastExpression -> {
-                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                             inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value)
                                         }
                                         else -> inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value)
@@ -278,7 +279,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         ident != null -> inplaceModification_word_variable_to_variable(targetVarName, target.datatype, operator, ident)
                                         memread != null -> inplaceModification_word_memread_to_variable(targetVarName, target.datatype, operator, memread)
                                         value is TypecastExpression -> {
-                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                             inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value)
                                         }
                                         else -> inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value)
@@ -289,7 +290,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         valueLv != null -> inplaceModification_float_litval_to_variable(targetVarName, operator, valueLv.toDouble(), target.scope!!)
                                         ident != null -> inplaceModification_float_variable_to_variable(targetVarName, operator, ident, target.scope!!)
                                         value is TypecastExpression -> {
-                                            if (tryRemoveRedundantCast(value, target, operator)) return
+                                            if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator)) return
                                             inplaceModification_float_value_to_variable(targetVarName, operator, value, target.scope!!)
                                         }
                                         else -> inplaceModification_float_value_to_variable(targetVarName, operator, value, target.scope!!)
@@ -348,7 +349,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun tryRemoveRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
+    private fun tryInplaceModifyWithRemovedRedundantCast(value: TypecastExpression, target: AsmAssignTarget, operator: String): Boolean {
         if (target.datatype == value.type) {
             val childIDt = value.expression.inferType(program)
             val childDt = childIDt.getOrElse { throw AssemblyError("unknown dt") }
@@ -1171,19 +1172,25 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  P8ZP_SCRATCH_W1+1")
-                        else
-                            asmgen.out("  lda  #0 |  sta  P8ZP_SCRATCH_W1+1")
+                        if(valueDt==DataType.UBYTE) {
+                            asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
+                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                asmgen.out("  stz  P8ZP_SCRATCH_W1+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  P8ZP_SCRATCH_W1+1")
+                        } else {
+                            asmgen.out("  lda  $otherName")
+                            asmgen.signExtendAYlsb(valueDt)
+                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                        }
                         asmgen.out("""
-                            lda  $name
-                            ldy  $name+1
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            sta  $name
-                            lda  math.multiply_words.result+1
-                            sta  $name+1""")
+                                lda  $name
+                                ldy  $name+1
+                                jsr  math.multiply_words
+                                lda  math.multiply_words.result
+                                sta  $name
+                                lda  math.multiply_words.result+1
+                                sta  $name+1""")
                     }
                     "/" -> {
                         if(dt==DataType.UWORD) {

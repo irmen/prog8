@@ -1,11 +1,13 @@
+%import textio
+
 main {
     sub start() {
-        recurse1()
-    }
-    sub recurse1() {
-        recurse2()
-    }
-    sub recurse2() {
-        uword @shared address = &start
+        word w1 = 10
+        byte bb = -2
+        w1 *= bb
+        txt.print_w(w1)
+        txt.nl()
+
+        sys.wait(999)
     }
 }
