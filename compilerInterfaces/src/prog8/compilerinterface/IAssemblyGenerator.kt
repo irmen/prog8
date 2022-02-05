@@ -1,13 +1,13 @@
 package prog8.compilerinterface
 
+
 interface IAssemblyGenerator {
-    fun compileToAssembly(): IAssemblyProgram
+    fun compileToAssembly(): IAssemblyProgram?
 }
 
 interface IAssemblyProgram {
-    val valid: Boolean
     val name: String
-    fun assemble(options: CompilationOptions): Int
+    fun assemble(options: CompilationOptions): Boolean
 }
 
 fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"

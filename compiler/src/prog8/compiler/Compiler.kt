@@ -9,7 +9,8 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502
+import prog8.codegen.experimental6502.ExperimentalAsmGen6502
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -37,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
+                        val experimentalCodegen: Boolean,
                         val compilationTarget: String,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -72,6 +74,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                 dontReinitGlobals = args.dontReinitGlobals
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
+                experimentalCodegen = args.experimentalCodegen
             }
             program = programresult
             importedFiles = imported
@@ -347,21 +350,18 @@ private fun writeAssembly(program: Program,
 //    printProgram(program)
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
-    val assembly = asmGeneratorFor(compilerOptions.compTarget,
+    val assembly = asmGeneratorFor(
             program,
             errors,
-            compilerOptions.compTarget.machine.zeropage,
             compilerOptions,
             outputDir).compileToAssembly()
     errors.report()
 
-    return if(assembly.valid && errors.noErrors()) {
-        val assemblerReturnStatus = assembly.assemble(compilerOptions)
-        if(assemblerReturnStatus!=0)
-            WriteAssemblyResult.Fail("assembler step failed with return code $assemblerReturnStatus")
-        else {
+    return if(assembly!=null && errors.noErrors()) {
+        if(assembly.assemble(compilerOptions)) {
             WriteAssemblyResult.Ok(assembly.name)
-        }
+        } else
+            WriteAssemblyResult.Fail("assembler step failed")
     } else {
         WriteAssemblyResult.Fail("compiler failed with errors")
     }
@@ -375,14 +375,19 @@ fun printProgram(program: Program) {
 }
 
 internal fun asmGeneratorFor(
-    compTarget: ICompilationTarget,
     program: Program,
     errors: IErrorReporter,
-    zp: Zeropage,
     options: CompilationOptions,
     outputDir: Path
 ): IAssemblyGenerator
 {
-    // at the moment we only have one code generation backend (for 6502 and 65c02)
-    return AsmGen(program, errors, zp, options, compTarget, outputDir)
+    if(options.experimentalCodegen) {
+        if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+            return ExperimentalAsmGen6502(program, errors, options, outputDir)
+    } else {
+        if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+            return AsmGen6502(program, errors, options, outputDir)
+    }
+
+    throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")
 }

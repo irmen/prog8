@@ -17,7 +17,7 @@ import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.FSignature
 
 
-internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
+internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen6502, private val assignAsmGen: AssignmentAsmGen) {
 
     internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)

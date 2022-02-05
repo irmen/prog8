@@ -11,7 +11,7 @@ import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue
 
-internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val functioncallAsmGen: FunctionCallAsmGen) {
+internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen6502, private val functioncallAsmGen: FunctionCallAsmGen) {
 
     @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression:Expression) {

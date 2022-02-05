@@ -31,6 +31,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         slowCodegenWarnings = false,
         quietAssembler = true,
         asmListfile = false,
+        experimentalCodegen = false,
         compilationTarget = target.name,
         outputDir = outputDir
     )

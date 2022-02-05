@@ -17,7 +17,7 @@ import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.CpuType
 
 
-internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen6502) {
 
     internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
         saveXbeforeCall(stmt)

@@ -5,14 +5,14 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.builtinFunctionReturnType
 
 
-internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen6502) {
 
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
 

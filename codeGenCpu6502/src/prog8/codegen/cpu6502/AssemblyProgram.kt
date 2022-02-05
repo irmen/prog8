@@ -15,7 +15,6 @@ import kotlin.io.path.isRegularFile
 
 
 class AssemblyProgram(
-        override val valid: Boolean,
         override val name: String,
         outputDir: Path,
         private val compTarget: String) : IAssemblyProgram {
@@ -26,7 +25,7 @@ class AssemblyProgram(
     private val viceMonListFile = outputDir.resolve(viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
 
-    override fun assemble(options: CompilationOptions): Int {
+    override fun assemble(options: CompilationOptions): Boolean {
         // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
         val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                 "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
@@ -59,7 +58,7 @@ class AssemblyProgram(
             removeGeneratedLabelsFromMonlist()
             generateBreakpointList()
         }
-        return result
+        return result==0
     }
 
     private fun removeGeneratedLabelsFromMonlist() {

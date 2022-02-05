@@ -21,5 +21,6 @@
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
     <orderEntry type="library" name="antlr.antlr4" level="project" />
     <orderEntry type="module" module-name="codeGenCpu6502" />
+    <orderEntry type="module" module-name="codeGenExperimental6502" />
   </component>
 </module>

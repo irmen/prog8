@@ -5,6 +5,7 @@ include(
     ':codeOptimizers',
     ':codeGenTargets',
     ':codeGenCpu6502',
+    ':codeGenExperimental6502',
     ':compiler',
     ':dbusCompilerService',
     ':httpCompilerService'

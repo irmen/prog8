@@ -154,6 +154,9 @@ One or more .p8 module files
 ``-asmlist``
     Generate an assembler listing file as well.
 
+``-expericodegen``
+    Use experimental code generation backend (*incomplete*).
+
 
 Module source code files
 ------------------------

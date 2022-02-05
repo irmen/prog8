@@ -24,17 +24,17 @@ const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 
-class AsmGen(private val program: Program,
-                      val errors: IErrorReporter,
-                      val zeropage: Zeropage,
-                      val options: CompilationOptions,
-                      private val compTarget: ICompilationTarget,
-                      private val outputDir: Path): IAssemblyGenerator {
+class AsmGen6502(internal val program: Program,
+                 internal val errors: IErrorReporter,
+                 internal val options: CompilationOptions,
+                 internal val outputDir: Path): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     private val callGraph = CallGraph(program)
+    private val compTarget = options.compTarget
+    internal val zeropage = compTarget.machine.zeropage
 
     private val assemblyLines = mutableListOf<String>()
     private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -50,7 +50,7 @@ class AsmGen(private val program: Program,
     internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
-    override fun compileToAssembly(): IAssemblyProgram {
+    override fun compileToAssembly(): IAssemblyProgram? {
         assemblyLines.clear()
         loopEndLabels.clear()
 
@@ -90,10 +90,10 @@ class AsmGen(private val program: Program,
         }
 
         return if(errors.noErrors())
-            AssemblyProgram(true, program.name, outputDir, compTarget.name)
+            AssemblyProgram(program.name, outputDir, compTarget.name)
         else {
             errors.report()
-            AssemblyProgram(false, "<error>", outputDir, compTarget.name)
+            return null
         }
     }
 

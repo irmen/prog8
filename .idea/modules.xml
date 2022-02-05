@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />
+      <module fileurl="file://$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" filepath="$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenTargets/codeGenTargets.iml" filepath="$PROJECT_DIR$/codeGenTargets/codeGenTargets.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" filepath="$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />

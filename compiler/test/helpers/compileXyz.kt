@@ -3,7 +3,7 @@ package prog8tests.helpers
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import prog8.ast.Program
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage
 import prog8.compiler.CompilationResult
@@ -53,6 +53,7 @@ internal fun compileFile(
         slowCodegenWarnings = false,
         quietAssembler = true,
         asmListfile = false,
+        experimentalCodegen = false,
         platform.name,
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests()
@@ -83,10 +84,9 @@ internal fun compileText(
 internal fun generateAssembly(
     program: Program,
     options: CompilationOptions? = null
-): IAssemblyProgram {
+): IAssemblyProgram? {
     val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, true, C64Target)
-    val zp = C64Zeropage(coptions)
-    coptions.compTarget.machine.zeropage=zp
-    val asmgen = AsmGen(program, ErrorReporterForTests(), zp, coptions, C64Target, outputDir)
+    coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
+    val asmgen = AsmGen6502(program, ErrorReporterForTests(), coptions, outputDir)
     return asmgen.compileToAssembly()
 }

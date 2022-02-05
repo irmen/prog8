@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotBeBlank
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Program
@@ -326,7 +327,8 @@ class TestOptimization: FunSpec({
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val asm = generateAssembly(result.program, options)
-        asm.valid shouldBe true
+        asm shouldNotBe null
+        asm!!.name.shouldNotBeBlank()
     }
 
     test("intermediate assignment steps generated for typecasted expression") {
@@ -384,7 +386,8 @@ class TestOptimization: FunSpec({
         value.right shouldBe instanceOf<TypecastExpression>()
 
         val asm = generateAssembly(result.program)
-        asm.valid shouldBe true
+        asm shouldNotBe null
+        asm!!.name.shouldNotBeBlank()
     }
 
     test("unused variable removal") {

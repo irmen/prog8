@@ -4,7 +4,7 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.IMemSizer
 
@@ -29,7 +29,7 @@ internal enum class SourceStorageKind {
 
 internal class AsmAssignTarget(val kind: TargetStorageKind,
                                private val program: Program,
-                               private val asmgen: AsmGen,
+                               private val asmgen: AsmGen6502,
                                val datatype: DataType,
                                val scope: Subroutine?,
                                private val variableAsmName: String? = null,
@@ -56,7 +56,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
-        fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget {
+        fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen6502): AsmAssignTarget {
             with(assign.target) {
                 val idt = inferType(program)
                 val dt = idt.getOrElse { throw AssemblyError("unknown dt") }
@@ -82,7 +82,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             }
         }
 
-        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: Subroutine?, program: Program, asmgen: AsmGen): AsmAssignTarget =
+        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: Subroutine?, program: Program, asmgen: AsmGen6502): AsmAssignTarget =
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
@@ -114,7 +114,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 
 internal class AsmAssignSource(val kind: SourceStorageKind,
                                private val program: Program,
-                               private val asmgen: AsmGen,
+                               private val asmgen: AsmGen6502,
                                val datatype: DataType,
                                private val variableAsmName: String? = null,
                                val array: ArrayIndexedExpression? = null,
@@ -134,9 +134,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
             asmgen.asmVariableName(array.arrayvar)
 
     companion object {
-        fun fromAstSource(indexer: ArrayIndex, program: Program, asmgen: AsmGen): AsmAssignSource = fromAstSource(indexer.indexExpr, program, asmgen)
+        fun fromAstSource(indexer: ArrayIndex, program: Program, asmgen: AsmGen6502): AsmAssignSource = fromAstSource(indexer.indexExpr, program, asmgen)
 
-        fun fromAstSource(value: Expression, program: Program, asmgen: AsmGen): AsmAssignSource {
+        fun fromAstSource(value: Expression, program: Program, asmgen: AsmGen6502): AsmAssignSource {
             val cv = value.constValue(program)
             if(cv!=null)
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
