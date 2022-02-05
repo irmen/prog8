@@ -10,6 +10,9 @@ import java.io.CharConversionException
 import java.io.File
 import kotlin.io.path.Path
 
+/**
+ * Semantic analysis.
+ */
 internal class AstChecker(private val program: Program,
                           private val errors: IErrorReporter,
                           private val compilerOptions: CompilationOptions

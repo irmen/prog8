@@ -35,7 +35,6 @@ Ast modifications done in AsmGen, that should be done BEFORE calling asmgen (so 
   and pass that via a new datastructure to asmgen?  So that asmgen is no longer tasked with doing the allocations.
   This could perhaps make it easer for the codegen as well to deal with sections, if any, in the future.
 
-
 - remove support for old @"screencodes" string encoding syntax (parser+code+docs)
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement classes, may require moving Expression/Statement into interfaces instead of abstract base classes
@@ -73,6 +72,7 @@ More optimization ideas
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'?
+  "Three address code" was mentioned.  https://en.wikipedia.org/wiki/Three-address_code
   these variables have to be unique for each subroutine because they could otherwise be interfered with from irq routines etc.
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
   and perhaps as well the assignment splitting in  BeforeAsmAstChanger too
