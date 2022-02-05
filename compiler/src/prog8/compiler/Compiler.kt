@@ -62,6 +62,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
             val (programresult, compilationOptions, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
+            println("${args.filepath} parsed.\u001B[0K")
             with(compilationOptions) {
                 slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
@@ -266,7 +267,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     // perform initial syntax checks and processings
-    println("Processing for target ${compilerOptions.compTarget.name}...")
+    println("Analyzing code...")
     program.preprocessAst(errors)
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()

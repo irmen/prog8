@@ -39,9 +39,7 @@ class ModuleImporter(private val program: Program,
             else -> candidates.first()  // when more candiates, pick the one from the first location
         }
 
-        val logMsg = "importing '${filePath.nameWithoutExtension}' (from file $srcPath)"
-        println(logMsg)
-
+        print(" importing '${filePath.nameWithoutExtension}' (from file $srcPath)\r")
         val module = importModule(SourceCode.File(srcPath))
         return Ok(module)
     }
@@ -91,7 +89,7 @@ class ModuleImporter(private val program: Program,
         val importedModule =
             moduleResourceSrc.fold(
                 success = {
-                    println("importing '$moduleName' (from internal ${it.origin})")
+                    print(" importing '$moduleName' (from internal ${it.origin})\r")
                     importModule(it)
                 },
                 failure = {
@@ -99,7 +97,7 @@ class ModuleImporter(private val program: Program,
                     val moduleSrc = getModuleFromFile(moduleName, importingModule)
                     moduleSrc.fold(
                         success = {
-                            println("importing '$moduleName' (from file ${it.origin})")
+                            print(" importing '$moduleName' (from file ${it.origin})\r")
                             importModule(it)
                         },
                         failure = {
