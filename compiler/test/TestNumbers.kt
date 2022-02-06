@@ -126,7 +126,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertSuccess()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertSuccess()
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 2
         errors.warnings[0] shouldContain "converted to float"
@@ -146,7 +146,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "converted to float"
@@ -163,7 +163,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, true, src, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "out of range"
@@ -179,6 +179,6 @@ class TestNumbers: FunSpec({
                 }
             }
         """
-        compileText(C64Target, true, src, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), true, src, writeAssembly = false).assertSuccess()
     }
 })

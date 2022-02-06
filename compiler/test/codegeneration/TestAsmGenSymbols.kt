@@ -77,7 +77,7 @@ class TestAsmGenSymbols: StringSpec({
 
     fun createTestAsmGen(program: Program): AsmGen6502 {
         val errors = ErrorReporterForTests()
-        val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target)
+        val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target())
         options.compTarget.machine.zeropage = C64Zeropage(options)
         val asmgen = AsmGen6502(program, errors, options)
         return asmgen

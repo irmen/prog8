@@ -40,7 +40,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
 
 private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompilationTarget): Pair<String, Path> {
     val searchIn = mutableListOf(examplesDir)
-    if (target == Cx16Target) {
+    if (target is Cx16Target) {
         searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
     }
     val filepath = searchIn.asSequence()
@@ -72,9 +72,10 @@ class TestCompilerOnExamplesC64: FunSpec({
 
     onlyC64.forEach {
         val (source, optimize) = it
-        val (displayName, filepath) = prepareTestFiles(source, optimize, C64Target)
+        val target = C64Target()
+        val (displayName, filepath) = prepareTestFiles(source, optimize, target)
         test(displayName) {
-            compileTheThing(filepath, optimize, C64Target).assertSuccess()
+            compileTheThing(filepath, optimize, target).assertSuccess()
         }
     }
 })
@@ -103,9 +104,10 @@ class TestCompilerOnExamplesCx16: FunSpec({
 
     onlyCx16.forEach {
         val (source, optimize) = it
-        val (displayName, filepath) = prepareTestFiles(source, optimize, Cx16Target)
+        val target = Cx16Target()
+        val (displayName, filepath) = prepareTestFiles(source, optimize, target)
         test(displayName) {
-            compileTheThing(filepath, optimize, Cx16Target).assertSuccess()
+            compileTheThing(filepath, optimize, target).assertSuccess()
         }
     }
 })
@@ -141,13 +143,15 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
     bothCx16AndC64.forEach {
         val (source, optimize) = it
-        val (displayNameC64, filepathC64) = prepareTestFiles(source, optimize, C64Target)
-        val (displayNameCx16, filepathCx16) = prepareTestFiles(source, optimize, Cx16Target)
+        val c64target = C64Target()
+        val cx16target = Cx16Target()
+        val (displayNameC64, filepathC64) = prepareTestFiles(source, optimize, c64target)
+        val (displayNameCx16, filepathCx16) = prepareTestFiles(source, optimize, cx16target)
         test(displayNameC64) {
-            compileTheThing(filepathC64, optimize, C64Target).assertSuccess()
+            compileTheThing(filepathC64, optimize, c64target).assertSuccess()
         }
         test(displayNameCx16) {
-            compileTheThing(filepathCx16, optimize, Cx16Target).assertSuccess()
+            compileTheThing(filepathCx16, optimize, cx16target).assertSuccess()
         }
     }
 })

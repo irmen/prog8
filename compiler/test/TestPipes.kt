@@ -42,7 +42,7 @@ class TestPipes: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 3
         val pipef = stmts[0] as Pipe
@@ -76,7 +76,7 @@ class TestPipes: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "incompatible"
     }
@@ -104,7 +104,7 @@ class TestPipes: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 5
         val assignf = stmts[1] as Assignment
@@ -139,7 +139,7 @@ class TestPipes: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "incompatible"
     }

@@ -54,9 +54,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 
     val compTarget =
         when(args.compilationTarget) {
-            C64Target.name -> C64Target
-            C128Target.name -> C128Target
-            Cx16Target.name -> Cx16Target
+            C64Target.NAME -> C64Target()
+            C128Target.NAME -> C128Target()
+            Cx16Target.NAME -> Cx16Target()
             else -> throw IllegalArgumentException("invalid compilation target")
         }
 
@@ -233,7 +233,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
                 // error will be printed by the astchecker
             }
 
-    if (zpType == ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.name) {
+    if (zpType == ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.NAME) {
         System.err.println("Warning: zp option floatsafe changed to basicsafe for cx16 target")
         zpType = ZeropageType.BASICSAFE
     }

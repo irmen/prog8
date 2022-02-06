@@ -24,7 +24,7 @@ import prog8tests.helpers.compileText
 class TestCompilerOnCharLit: FunSpec({
 
     test("testCharLitAsRomsubArg") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
                 romsub ${"$"}FFD2 = chrout(ubyte ch @ A)
@@ -47,7 +47,7 @@ class TestCompilerOnCharLit: FunSpec({
     }
 
     test("testCharVarAsRomsubArg") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
                 romsub ${"$"}FFD2 = chrout(ubyte ch @ A)
@@ -87,7 +87,7 @@ class TestCompilerOnCharLit: FunSpec({
     }
 
     test("testCharConstAsRomsubArg") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
                 romsub ${"$"}FFD2 = chrout(ubyte ch @ A)

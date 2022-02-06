@@ -27,7 +27,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
         val module = result.program.toplevelModule
         module.parent shouldBe instanceOf<GlobalNamespace>()
         module.program shouldBeSameInstanceAs result.program
@@ -46,7 +46,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target, false, src, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
         val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
@@ -120,7 +120,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target, false, src, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, src, writeAssembly = true).assertSuccess()
         val module = result.program.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
@@ -145,7 +145,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 
     test("wrong subroutine call without qualified names") {
@@ -161,7 +161,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors = errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors = errors).assertFailure()
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "undefined symbol: routine2"
     }
@@ -181,7 +181,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 
     test("wrong subroutine calls with qualified names (not from root)") {
@@ -200,7 +200,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "undefined symbol: start.routine2"
         errors.errors[1] shouldContain "undefined symbol: wrong.start.routine2"
@@ -232,7 +232,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 
     test("wrong variables without qualified names") {
@@ -264,7 +264,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 5
         errors.errors[0] shouldContain "undefined symbol: v3"
         errors.errors[1] shouldContain "undefined symbol: v4"
@@ -297,7 +297,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 
     test("wrong variable refs with qualified names 1 (not from root)") {
@@ -324,7 +324,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 5
         errors.errors[0] shouldContain "undefined symbol: routine.value"
         errors.errors[1] shouldContain "undefined symbol: routine.arg"
@@ -362,7 +362,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 
     test("various wrong goto targets") {
@@ -380,7 +380,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors = errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors = errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "wrong address"
         errors.errors[1] shouldContain "takes parameters"

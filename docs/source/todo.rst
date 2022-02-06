@@ -3,8 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-fix the concurrent modification issue on zeropage when running unit tests in parallel -> don't use static objects anymore
-
+...
 
 Need help with
 ^^^^^^^^^^^^^^

@@ -27,7 +27,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val filepath = assumeReadableFile(fixturesDir, "importFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.p8")
 
-            val platform = Cx16Target
+            val platform = Cx16Target()
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
@@ -50,7 +50,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val filepath = assumeReadableFile(fixturesDir, "asmIncludeFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.asm")
 
-            val platform = Cx16Target
+            val platform = Cx16Target()
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
                 .assertSuccess()
 
@@ -76,7 +76,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonExisting.p8")
             assumeNotExists(fixturesDir, "i_do_not_exist.bin")
 
-            compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
                 .assertFailure()
         }
 
@@ -84,7 +84,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonReadable.p8")
             assumeDirectory(fixturesDir, "subFolder")
 
-            compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
                 .assertFailure()
         }
 
@@ -104,7 +104,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                     outputDir.normalize().toAbsolutePath() shouldNotBe workingDir.normalize().toAbsolutePath()
                 }
 
-                compileFile(Cx16Target, false, p8Path.parent, p8Path.name, outputDir)
+                compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
                     .assertSuccess(
                         "argument to assembler directive .binary " +
                                 "should be relative to the generated .asm file (in output dir), " +

@@ -26,7 +26,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, false, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), false, sourcecode).assertSuccess()
         val graph = CallGraph(result.program)
 
         graph.imports.size shouldBe 1
@@ -67,7 +67,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, false, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), false, sourcecode).assertSuccess()
         val graph = CallGraph(result.program)
 
         graph.imports.size shouldBe 1
@@ -110,7 +110,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, false, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), false, sourcecode).assertSuccess()
         val graph = CallGraph(result.program)
         graph.allIdentifiers.size shouldBeGreaterThanOrEqual 9
         val empties = graph.allIdentifiers.keys.filter { it.nameInSource==listOf("empty") }

@@ -24,7 +24,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
     }
 
     test("array initialization with array literal") {
@@ -35,7 +35,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
     }
 
     test("array initialization with array var assignment") {
@@ -48,6 +48,6 @@ class TestVariables: FunSpec({
                 ubyte[] values = [1,2,3]
             }
         """
-        compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
     }
 })

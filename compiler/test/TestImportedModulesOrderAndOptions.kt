@@ -18,7 +18,7 @@ import prog8tests.helpers.outputDir
 class TestImportedModulesOrderAndOptions: FunSpec({
 
     test("testImportedModuleOrderAndMainModuleCorrect") {
-        val result = compileText(C64Target, false, """
+        val result = compileText(C64Target(), false, """
 %import textio
 %import floats
 
@@ -49,7 +49,7 @@ main {
     }
 
     test("testCompilationOptionsCorrectFromMain") {
-        val result = compileText(C64Target, false, """
+        val result = compileText(C64Target(), false, """
 %import textio
 %import floats
 %zeropage dontuse
@@ -62,7 +62,7 @@ main {
 }
 """).assertSuccess()
         result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
-        val options = determineCompilationOptions(result.program, C64Target)
+        val options = determineCompilationOptions(result.program, C64Target())
         options.floats shouldBe true
         options.zeropage shouldBe ZeropageType.DONTUSE
         options.noSysInit shouldBe true
@@ -85,7 +85,7 @@ main {
         val filenameBase = "on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16)
         val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
-        val (program, options, importedfiles) = parseImports(filepath, errors, C64Target, emptyList())
+        val (program, options, importedfiles) = parseImports(filepath, errors, C64Target(), emptyList())
 
         program.toplevelModule.name shouldBe filenameBase
         withClue("all imports other than the test source must have been internal resources library files") {

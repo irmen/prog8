@@ -25,7 +25,7 @@ class TestAstChecks: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target, true, text, writeAssembly = true, errors=errors).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors).assertSuccess()
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 2
         errors.warnings[0] shouldContain "converted to float"
@@ -50,7 +50,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, true, text, writeAssembly = true, errors=errors).assertFailure()
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain ":7:28) assignment value is invalid"
@@ -73,7 +73,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.filter { it.contains("missing &") }.size shouldBe 4
     }
 
@@ -95,6 +95,6 @@ class TestAstChecks: FunSpec({
                 }
             }
             """
-        compileText(C64Target, false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
     }
 })

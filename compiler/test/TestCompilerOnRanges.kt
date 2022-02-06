@@ -27,7 +27,7 @@ import prog8tests.helpers.*
 class TestCompilerOnRanges: FunSpec({
 
     test("testUByteArrayInitializerWithRange_char_to_char") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
                 sub start() {
@@ -58,7 +58,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testFloatArrayInitializerWithRange_char_to_char") {
-        val platform = C64Target
+        val platform = C64Target()
         val result = compileText(platform, optimize = false, """
             %import floats
             main {
@@ -93,7 +93,7 @@ class TestCompilerOnRanges: FunSpec({
         val combos = cartesianProduct(
             listOf("", "42", "41"),                 // sizeInDecl
             listOf("%import floats", ""),           // optEnableFloats
-            listOf(Cx16Target, C64Target),          // platform
+            listOf(Cx16Target(), C64Target()),          // platform
             listOf(false, true)                     // optimize
         )
 
@@ -128,7 +128,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testForLoopWithRange_char_to_char") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, optimize = true, """
             main {
                 sub start() {
@@ -162,7 +162,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testForLoopWithRange_bool_to_bool") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, optimize = true, """
             main {
                 sub start() {
@@ -188,7 +188,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testForLoopWithRange_ubyte_to_ubyte") {
-        val platform = Cx16Target
+        val platform = Cx16Target()
         val result = compileText(platform, optimize = true, """
             main {
                 sub start() {
@@ -215,7 +215,7 @@ class TestCompilerOnRanges: FunSpec({
 
     test("testForLoopWithRange_str_downto_str") {
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target, true, """
+        compileText(Cx16Target(), true, """
             main {
                 sub start() {
                     ubyte i
@@ -231,7 +231,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testForLoopWithIterable_str") {
-        val result = compileText(Cx16Target, false, """
+        val result = compileText(Cx16Target(), false, """
             main {
                 sub start() {
                     ubyte i
@@ -263,7 +263,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("range with negative step should be constvalue") {
-        val result = compileText(C64Target, false, """
+        val result = compileText(C64Target(), false, """
             main {
                 sub start() {
                     ubyte[] array = 100 to 50 step -2
@@ -283,7 +283,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("range with start/end variables should be ok") {
-        val result = compileText(C64Target, false, """
+        val result = compileText(C64Target(), false, """
             main {
                 sub start() {
                     byte from = 100
@@ -302,7 +302,7 @@ class TestCompilerOnRanges: FunSpec({
 
 
     test("for statement on all possible iterable expressions") {
-        compileText(C64Target, false, """
+        compileText(C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx
@@ -343,7 +343,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("if containment check on all possible iterable expressions") {
-        compileText(C64Target, false, """
+        compileText(C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx
@@ -404,7 +404,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("containment check in expressions") {
-        compileText(C64Target, false, """
+        compileText(C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx

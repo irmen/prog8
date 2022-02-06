@@ -12,9 +12,13 @@ import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
 
 
-object C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by CbmMemorySizer {
-    override val name = "c64"
+class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by CbmMemorySizer {
+    override val name = NAME
     override val machine = C64MachineDefinition()
+
+    companion object {
+        const val NAME = "c64"
+    }
 
     override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> =
         asmsub6502ArgsEvalOrder(sub)

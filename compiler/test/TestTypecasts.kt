@@ -32,7 +32,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
         result.program.entrypoint.statements.size shouldBe 13
     }
 
@@ -54,7 +54,7 @@ class TestTypecasts: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, writeAssembly = true, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = true, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -70,7 +70,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -87,7 +87,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "in-place makes no sense"
     }
@@ -103,7 +103,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target, false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -152,7 +152,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
         printProgram(result.program)
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 27
@@ -180,7 +180,7 @@ class TestTypecasts: FunSpec({
                     }
                 }
             }"""
-        val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 14
     }
@@ -197,7 +197,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
     }
 
     test("(u)byte extend to word parameters") {
@@ -226,7 +226,7 @@ class TestTypecasts: FunSpec({
                     }}
                 }
             }"""
-        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
     }
 
     test("lsb msb used as args with word types") {
@@ -245,6 +245,6 @@ class TestTypecasts: FunSpec({
                     }}
                 }
             }"""
-        compileText(C64Target, true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
     }
 })
