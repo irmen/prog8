@@ -3,10 +3,7 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IAssemblyProgram
-import prog8.compilerinterface.OutputType
-import prog8.compilerinterface.viceMonListName
+import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import java.io.File
 import java.nio.file.Path
@@ -17,7 +14,7 @@ import kotlin.io.path.isRegularFile
 class AssemblyProgram(
         override val name: String,
         outputDir: Path,
-        private val compTarget: String) : IAssemblyProgram {
+        private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")
@@ -41,12 +38,12 @@ class AssemblyProgram(
         val outFile = when (options.output) {
             OutputType.PRG -> {
                 command.add("--cbm-prg")
-                println("\nCreating prg for target $compTarget.")
+                println("\nCreating prg for target ${compTarget.name}.")
                 prgFile
             }
             OutputType.RAW -> {
                 command.add("--nostart")
-                println("\nCreating raw binary for target $compTarget.")
+                println("\nCreating raw binary for target ${compTarget.name}.")
                 binFile
             }
         }

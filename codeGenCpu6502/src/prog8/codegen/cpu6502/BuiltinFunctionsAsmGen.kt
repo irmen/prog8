@@ -454,7 +454,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
         val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()
 
-        val existing = asmgen.slabs[name]
+        val existing = asmgen.getMemorySlab(name)
         if(existing!=null && (existing.first!=size || existing.second!=align))
             throw AssemblyError("memory slab '$name' already exists with a different size or alignment at ${fcall.position}")
 
@@ -468,7 +468,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, null, program, asmgen)
         val assign = AsmAssignment(src, target, false, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign)
-        asmgen.slabs[name] = Pair(size, align)
+        asmgen.allocateMemorySlab(name, size, align)
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {

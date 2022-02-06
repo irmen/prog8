@@ -1,21 +1,16 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import com.github.michaelbull.result.onSuccess
 import prog8.ast.*
-import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines
-import kotlin.math.absoluteValue
 
 
 const val generatedLabelPrefix = "prog8_label_"
@@ -28,15 +23,13 @@ class AsmGen(internal val program: Program,
              internal val variables: IVariablesAndConsts,
              internal val options: CompilationOptions): IAssemblyGenerator {
 
-    // for expressions and augmented assignments:
-    val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-    val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
-    private val callGraph = CallGraph(program)
-    private val compTarget = options.compTarget
-    internal val zeropage = compTarget.machine.zeropage
-
+    internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
+    internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
+    internal val zeropage = options.compTarget.machine.zeropage
+    internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
+    internal val loopEndLabels = ArrayDeque<String>()
+    private val memorySlabs = mutableMapOf<String, Pair<UInt, UInt>>()
     private val assemblyLines = mutableListOf<String>()
-    private val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
@@ -44,39 +37,17 @@ class AsmGen(internal val program: Program,
     private val expressionsAsmGen = ExpressionsAsmGen(program, this, functioncallAsmGen)
     private val assignmentAsmGen = AssignmentAsmGen(program, this)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    internal val loopEndLabels = ArrayDeque<String>()
-    internal val slabs = mutableMapOf<String, Pair<UInt, UInt>>()
-    internal val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
-    private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
+    private val programGen = ProgramGen(program, variables, options, errors, functioncallAsmGen, this)
+    internal val allMemorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabs
 
     override fun compileToAssembly(): IAssemblyProgram? {
         assemblyLines.clear()
         loopEndLabels.clear()
 
         println("Generating assembly code... ")
+        programGen.generate()
 
-        // TODO variables.dump(program.memsizer)
-
-        val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
-        require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
-
-        header()
-        val allBlocks = program.allBlocks
-        if(allBlocks.first().name != "main")
-            throw AssemblyError("first block should be 'main'")
-
-        allocateAllZeropageVariables()
-        if(errors.noErrors())  {
-            program.allBlocks.forEach { block2asm(it) }
-
-            for(removal in removals.toList()) {
-                removal.second.remove(removal.first)
-                removals.remove(removal)
-            }
-
-            slaballocations()
-            footer()
-
+        if(errors.noErrors()) {
             val output = options.outputDir.resolve("${program.name}.asm")
             if(options.optimize) {
                 val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
@@ -88,219 +59,25 @@ class AsmGen(internal val program: Program,
             } else {
                 output.writeLines(assemblyLines)
             }
-        }
-
-        return if(errors.noErrors())
-            AssemblyProgram(program.name, options.outputDir, compTarget.name)
-        else {
+            return AssemblyProgram(program.name, options.outputDir, options.compTarget)
+        } else {
             errors.report()
             return null
         }
     }
 
-    private val varsInZeropage = mutableSetOf<VarDecl>()
-
-    private fun allocateAllZeropageVariables() {
-        if(options.zeropage==ZeropageType.DONTUSE)
-            return
-        val allVariables = this.callGraph.allIdentifiers.asSequence()
-            .map { it.value }
-            .filterIsInstance<VarDecl>()
-            .filter { it.type==VarDeclType.VAR }
-            .toSet()
-            .map { it to it.scopedName }
-        val varsRequiringZp = allVariables.filter { it.first.zeropage==ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables
-            .filter { it.first.zeropage==ZeropageWish.PREFER_ZEROPAGE }
-            .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
-
-        for ((vardecl, scopedname) in varsRequiringZp) {
-            val numElements: Int? = when(vardecl.datatype) {
-                DataType.STR -> {
-                    (vardecl.value as StringLiteralValue).value.length
-                }
-                in ArrayDatatypes -> {
-                    vardecl.arraysize!!.constIndex()
-                }
-                else -> null
-            }
-            val result = zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.position, errors)
-            result.fold(
-                success = { varsInZeropage.add(vardecl) },
-                failure = { errors.err(it.message!!, vardecl.position) }
-            )
-        }
-        if(errors.noErrors()) {
-            varsPreferringZp.forEach { (vardecl, scopedname) ->
-                val arraySize: Int? = when (vardecl.datatype) {
-                    DataType.STR -> {
-                        (vardecl.value as StringLiteralValue).value.length
-                    }
-                    in ArrayDatatypes -> {
-                        vardecl.arraysize!!.constIndex()
-                    }
-                    else -> null
-                }
-                val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
-                result.onSuccess { varsInZeropage.add(vardecl) }
-                //  no need to check for error, if there is one, just allocate in normal system ram later.
-            }
-        }
+    internal fun getMemorySlab(name: String) = memorySlabs[name]
+    internal fun allocateMemorySlab(name: String, size: UInt, align: UInt) {
+        memorySlabs[name] = Pair(size, align)
     }
 
-    internal fun isTargetCpu(cpu: CpuType) = compTarget.machine.cpu == cpu
-    internal fun haveFPWRcall() = compTarget.name=="cx16"
+    internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
+    internal fun haveFPWRcall() = options.compTarget.name=="cx16"
 
     internal fun asmsubArgsEvalOrder(sub: Subroutine) =
-        compTarget.asmsubArgsEvalOrder(sub)
+        options.compTarget.asmsubArgsEvalOrder(sub)
     internal fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>, paramRegisters: List<RegisterOrStatusflag>) =
-        compTarget.asmsubArgsHaveRegisterClobberRisk(args, paramRegisters)
-
-    private fun header() {
-        val ourName = this.javaClass.name
-        val cpu = when(compTarget.machine.cpu) {
-            CpuType.CPU6502 -> "6502"
-            CpuType.CPU65c02 -> "w65c02"
-            else -> "unsupported"
-        }
-
-        out("; $cpu assembly code for '${program.name}'")
-        out("; generated by $ourName on ${LocalDateTime.now().withNano(0)}")
-        out("; assembler syntax is for the 64tasm cross-assembler")
-        out("; output options: output=${options.output} launcher=${options.launcher} zp=${options.zeropage}")
-        out("\n.cpu  '$cpu'\n.enc  'none'\n")
-
-        program.actualLoadAddress = program.definedLoadAddress
-        if (program.actualLoadAddress == 0u)   // fix load address
-            program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                compTarget.machine.BASIC_LOAD_ADDRESS else compTarget.machine.RAW_LOAD_ADDRESS
-
-        // the global prog8 variables needed
-        val zp = compTarget.machine.zeropage
-        out("P8ZP_SCRATCH_B1 = ${zp.SCRATCH_B1}")
-        out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
-        out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
-        out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
-        out("P8ESTACK_LO = ${compTarget.machine.ESTACK_LO.toHex()}")
-        out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
-
-        when {
-            options.launcher == LauncherType.BASIC -> {
-                if (program.actualLoadAddress != options.compTarget.machine.BASIC_LOAD_ADDRESS)
-                    throw AssemblyError("BASIC output must have correct load address")
-                out("; ---- basic program with sys call ----")
-                out("* = ${program.actualLoadAddress.toHex()}")
-                val year = LocalDate.now().year
-                out("  .word  (+), $year")
-                out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
-                out("+\t.word  0")
-                out("prog8_entrypoint\t; assembly code starts here\n")
-                if(!options.noSysInit)
-                    out("  jsr  ${compTarget.name}.init_system")
-                out("  jsr  ${compTarget.name}.init_system_phase2")
-            }
-            options.output == OutputType.PRG -> {
-                out("; ---- program without basic sys call ----")
-                out("* = ${program.actualLoadAddress.toHex()}\n")
-                if(!options.noSysInit)
-                    out("  jsr  ${compTarget.name}.init_system")
-                out("  jsr  ${compTarget.name}.init_system_phase2")
-            }
-            options.output == OutputType.RAW -> {
-                out("; ---- raw assembler program ----")
-                out("* = ${program.actualLoadAddress.toHex()}\n")
-            }
-        }
-
-        if(options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
-            out("""
-                ; zeropage is clobbered so we need to reset the machine at exit
-                lda  #>sys.reset_system
-                pha
-                lda  #<sys.reset_system
-                pha""")
-        }
-
-        // make sure that on the cx16 and c64, basic rom is banked in again when we exit the program
-        when(compTarget.name) {
-            "cx16" -> {
-                if(options.floats)
-                    out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
-                out("  jsr  main.start |  lda  #4 |  sta  $01 |  rts")
-            }
-            "c64" -> out("  jsr  main.start |  lda  #31 |  sta  $01 |  rts")
-            else -> jmp("main.start")
-        }
-    }
-
-    private fun slaballocations() {
-        out("; memory slabs")
-        out("prog8_slabs\t.block")
-        for((name, info) in slabs) {
-            if(info.second>1u)
-                out("\t.align  ${info.second.toHex()}")
-            out("$name\t.fill  ${info.first}")
-        }
-        out("\t.bend")
-    }
-
-    private fun footer() {
-        // the global list of all floating point constants for the whole program
-        out("; global float constants")
-        for (flt in globalFloatConsts) {
-            val floatFill = compTarget.machine.getFloat(flt.key).makeFloatFillAsm()
-            val floatvalue = flt.key
-            out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
-        }
-        out("prog8_program_end\t; end of program label for progend()")
-    }
-
-    private fun block2asm(block: Block) {
-        // no longer output the initialization assignments as regular statements in the block,
-        // they will be part of the prog8_init_vars init routine generated below.
-        val initializers = blockVariableInitializers.getValue(block)
-        val statements = block.statements.filterNot { it in initializers }
-
-        out("\n\n; ---- block: '${block.name}' ----")
-        if(block.address!=null)
-            out("* = ${block.address!!.toHex()}")
-        else {
-            if("align_word" in block.options())
-                out("\t.align 2")
-            else if("align_page" in block.options())
-                out("\t.align $100")
-        }
-
-        out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
-
-        outputSourceLine(block)
-        zeropagevars2asm(statements, block)
-        memdefs2asm(statements, block)
-        vardecls2asm(statements, block)
-
-        statements.asSequence().filterIsInstance<VarDecl>().forEach {
-            if(it.type==VarDeclType.VAR && it.datatype in NumericDatatypes)
-                it.value=null  // make sure every var has no init value anymore (could be set due to 'noreinit' option) because initialization is done via explicit assignment
-        }
-
-        out("\n; subroutines in this block")
-
-        // first translate regular statements, and then put the subroutines at the end.
-        val (subroutine, stmts) = statements.partition { it is Subroutine }
-        stmts.forEach { translate(it) }
-        subroutine.forEach { translate(it) }
-
-        if(!options.dontReinitGlobals) {
-            // generate subroutine to initialize block-level (global) variables
-            if (initializers.isNotEmpty()) {
-                out("prog8_init_vars\t.proc\n")
-                initializers.forEach { assign -> translate(assign) }
-                out("  rts\n  .pend")
-            }
-        }
-
-        out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
-    }
+        options.compTarget.asmsubArgsHaveRegisterClobberRisk(args, paramRegisters)
 
     private var generatedLabelSequenceNumber: Int = 0
 
@@ -309,7 +86,7 @@ class AsmGen(internal val program: Program,
         return "${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
     }
 
-    private fun outputSourceLine(node: Node) {
+    internal fun outputSourceLine(node: Node) {
         out(" ;\tsrc line: ${node.position.file}:${node.position.line}")
     }
 
@@ -322,284 +99,6 @@ class AsmGen(internal val program: Program,
                 assemblyLines.add(trimmed)
             }
         } else assemblyLines.add(fragment)
-    }
-
-    private fun zeropagevars2asm(statements: List<Statement>, inBlock: Block?) {
-        out("; vars allocated on zeropage")
-        val variables = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.VAR }
-        val blockname = inBlock?.name
-        for(variable in variables) {
-            if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
-                continue       // the "hooks" to the temp vars are not generated as new variables
-            val scopedName = variable.scopedName
-            val zpAlloc = zeropage.variables[scopedName]
-            if (zpAlloc == null) {
-                // This var is not on the ZP yet. Attempt to move it there if it's an integer type
-                if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
-                    variable.datatype in IntegerDatatypes
-                    && options.zeropage != ZeropageType.DONTUSE) {
-                    val result = zeropage.allocate(scopedName, variable.datatype, null, null, errors)
-                    errors.report()
-                    result.fold(
-                        success = { (address, _) -> out("${variable.name} = $address\t; zp ${variable.datatype}") },
-                        failure = { /* leave it as it is, not on zeropage. */ }
-                    )
-                }
-            } else {
-                // Var has been placed in ZP, just output the address
-                val lenspec = when(zpAlloc.second.first) {
-                    DataType.FLOAT,
-                    DataType.STR,
-                    in ArrayDatatypes -> " ${zpAlloc.second.second} bytes"
-                    else -> ""
-                }
-                out("${variable.name} = ${zpAlloc.first}\t; zp ${variable.datatype} $lenspec")
-            }
-        }
-    }
-
-    private fun vardecl2asm(decl: VarDecl, nameOverride: String?=null) {
-        val name = nameOverride ?: decl.name
-        val value = decl.value
-        val staticValue: Number =
-            if(value!=null) {
-                if(value is NumericLiteralValue) {
-                    if(value.type==DataType.FLOAT)
-                        value.number
-                    else
-                        value.number.toInt()
-                } else {
-                    if(decl.datatype in NumericDatatypes)
-                        throw AssemblyError("can only deal with constant numeric values for global vars $value at ${decl.position}")
-                    else 0
-                }
-            } else 0
-
-        when (decl.datatype) {
-            DataType.UBYTE -> out("$name\t.byte  ${staticValue.toHex()}")
-            DataType.BYTE -> out("$name\t.char  $staticValue")
-            DataType.UWORD -> out("$name\t.word  ${staticValue.toHex()}")
-            DataType.WORD -> out("$name\t.sint  $staticValue")
-            DataType.FLOAT -> {
-                if(staticValue==0) {
-                    out("$name\t.byte  0,0,0,0,0  ; float")
-                } else {
-                    val floatFill = compTarget.machine.getFloat(staticValue).makeFloatFillAsm()
-                    out("$name\t.byte  $floatFill  ; float $staticValue")
-                }
-            }
-            DataType.STR -> {
-                throw AssemblyError("all string vars should have been interned into prog")
-            }
-            DataType.ARRAY_UB -> {
-                val data = makeArrayFillDataUnsigned(decl)
-                if (data.size <= 16)
-                    out("$name\t.byte  ${data.joinToString()}")
-                else {
-                    out(name)
-                    for (chunk in data.chunked(16))
-                        out("  .byte  " + chunk.joinToString())
-                }
-            }
-            DataType.ARRAY_B -> {
-                val data = makeArrayFillDataSigned(decl)
-                if (data.size <= 16)
-                    out("$name\t.char  ${data.joinToString()}")
-                else {
-                    out(name)
-                    for (chunk in data.chunked(16))
-                        out("  .char  " + chunk.joinToString())
-                }
-            }
-            DataType.ARRAY_UW -> {
-                val data = makeArrayFillDataUnsigned(decl)
-                if (data.size <= 16)
-                    out("$name\t.word  ${data.joinToString()}")
-                else {
-                    out(name)
-                    for (chunk in data.chunked(16))
-                        out("  .word  " + chunk.joinToString())
-                }
-            }
-            DataType.ARRAY_W -> {
-                val data = makeArrayFillDataSigned(decl)
-                if (data.size <= 16)
-                    out("$name\t.sint  ${data.joinToString()}")
-                else {
-                    out(name)
-                    for (chunk in data.chunked(16))
-                        out("  .sint  " + chunk.joinToString())
-                }
-            }
-            DataType.ARRAY_F -> {
-                val array =
-                        if(decl.value!=null)
-                            (decl.value as ArrayLiteralValue).value
-                        else {
-                            // no init value, use zeros
-                            val zero = decl.zeroElementValue()
-                            Array(decl.arraysize!!.constIndex()!!) { zero }
-                        }
-                val floatFills = array.map {
-                    val number = (it as NumericLiteralValue).number
-                    compTarget.machine.getFloat(number).makeFloatFillAsm()
-                }
-                out(name)
-                for (f in array.zip(floatFills))
-                    out("  .byte  ${f.second}  ; float ${f.first}")
-            }
-            else -> {
-                throw AssemblyError("weird dt")
-            }
-        }
-    }
-
-    private fun memdefs2asm(statements: List<Statement>, inBlock: Block?) {
-        val blockname = inBlock?.name
-
-        out("\n; memdefs and kernal subroutines")
-        val memvars = statements.asSequence().filterIsInstance<VarDecl>().filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
-        for(m in memvars) {
-            if(blockname!="prog8_lib" || !m.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
-                if(m.value is NumericLiteralValue)
-                    out("  ${m.name} = ${(m.value as NumericLiteralValue).number.toHex()}")
-                else
-                    out("  ${m.name} = ${asmVariableName((m.value as AddressOf).identifier)}")
-        }
-        val asmSubs = statements.asSequence().filterIsInstance<Subroutine>().filter { it.isAsmSubroutine }
-        for(sub in asmSubs) {
-            val addr = sub.asmAddress
-            if(addr!=null) {
-                if(sub.statements.isNotEmpty())
-                    throw AssemblyError("kernal subroutine cannot have statements")
-                out("  ${sub.name} = ${addr.toHex()}")
-            }
-        }
-    }
-
-    private fun vardecls2asm(statements: List<Statement>, inBlock: Block?) {
-        out("\n; non-zeropage variables")
-        val vars = statements.asSequence()
-            .filterIsInstance<VarDecl>()
-            .filter {
-                it.type==VarDeclType.VAR
-                        && it.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE
-                        && it.scopedName !in zeropage.variables
-            }
-
-        vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
-            .forEach { outputStringvar(it) }
-
-        // non-string variables
-        val blockname = inBlock?.name
-
-        vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            require(it.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE)
-            if(!isZpVar(it.scopedName)) {
-                if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
-                    vardecl2asm(it)
-            }
-        }
-    }
-
-    private fun shouldActuallyOutputStringVar(strvar: VarDecl): Boolean {
-        if(strvar.sharedWithAsm)
-            return true
-        val uses = callGraph.usages(strvar)
-        val onlyInMemoryFuncs = uses.all {
-            val builtinfunc = (it.parent as? IFunctionCall)?.target?.targetStatement(program) as? BuiltinFunctionPlaceholder
-            builtinfunc?.name=="memory"
-        }
-        return !onlyInMemoryFuncs
-    }
-
-    private fun outputStringvar(strdecl: VarDecl, nameOverride: String?=null) {
-        val varname = nameOverride ?: strdecl.name
-        val sv = strdecl.value as StringLiteralValue
-        out("$varname\t; ${strdecl.datatype} ${sv.encoding}:\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
-        val bytes = compTarget.encodeString(sv.value, sv.encoding).plus(0.toUByte())
-        val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
-        for (chunk in outputBytes.chunked(16))
-            out("  .byte  " + chunk.joinToString())
-    }
-
-    private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array =
-                if(decl.value!=null)
-                    (decl.value as ArrayLiteralValue).value
-                else {
-                    // no array init value specified, use a list of zeros
-                    val zero = decl.zeroElementValue()
-                    Array(decl.arraysize!!.constIndex()!!) { zero }
-                }
-        return when (decl.datatype) {
-            DataType.ARRAY_UB ->
-                // byte array can never contain pointer-to types, so treat values as all integers
-                array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
-                    "$"+number.toString(16).padStart(2, '0')
-                }
-            DataType.ARRAY_UW -> array.map {
-                when (it) {
-                    is NumericLiteralValue -> {
-                        "$" + it.number.toInt().toString(16).padStart(4, '0')
-                    }
-                    is AddressOf -> {
-                        asmSymbolName(it.identifier)
-                    }
-                    is IdentifierReference -> {
-                        asmSymbolName(it)
-                    }
-                    else -> throw AssemblyError("weird array elt dt")
-                }
-            }
-            else -> throw AssemblyError("invalid arraysize type")
-        }
-    }
-
-    private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array =
-                if(decl.value!=null) {
-                    if(decl.value !is ArrayLiteralValue)
-                        throw AssemblyError("can only use array literal values as array initializer value")
-                    (decl.value as ArrayLiteralValue).value
-                }
-                else {
-                    // no array init value specified, use a list of zeros
-                    val zero = decl.zeroElementValue()
-                    Array(decl.arraysize!!.constIndex()!!) { zero }
-                }
-        return when (decl.datatype) {
-            DataType.ARRAY_UB ->
-                // byte array can never contain pointer-to types, so treat values as all integers
-                array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
-                    "$"+number.toString(16).padStart(2, '0')
-                }
-            DataType.ARRAY_B ->
-                // byte array can never contain pointer-to types, so treat values as all integers
-                array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
-                    val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
-                    if(number>=0)
-                        "$$hexnum"
-                    else
-                        "-$$hexnum"
-                }
-            DataType.ARRAY_UW -> array.map {
-                val number = (it as NumericLiteralValue).number.toInt()
-                "$" + number.toString(16).padStart(4, '0')
-            }
-            DataType.ARRAY_W -> array.map {
-                val number = (it as NumericLiteralValue).number.toInt()
-                val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
-                if(number>=0)
-                    "$$hexnum"
-                else
-                    "-$$hexnum"
-            }
-            else -> throw AssemblyError("invalid arraysize type ${decl.datatype}")
-        }
     }
 
     internal fun getFloatAsmConst(number: Double): String {
@@ -834,7 +333,7 @@ class AsmGen(internal val program: Program,
             is VarDecl -> translate(stmt)
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
-            is Subroutine -> translateSubroutine(stmt)
+            is Subroutine -> programGen.translateSubroutine(stmt)
             is InlineAssembly -> translate(stmt)
             is FunctionCallStatement -> {
                 val functionName = stmt.target.nameInSource.last()
@@ -878,7 +377,7 @@ class AsmGen(internal val program: Program,
         val reg = register.toString().lowercase()
         val indexnum = expr.indexer.constIndex()
         if (indexnum != null) {
-            val indexValue = indexnum * compTarget.memorySize(elementDt) + if (addOneExtra) 1 else 0
+            val indexValue = indexnum * options.compTarget.memorySize(elementDt) + if (addOneExtra) 1 else 0
             out("  ld$reg  #$indexValue")
             return
         }
@@ -909,7 +408,7 @@ class AsmGen(internal val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(compTarget.memorySize(DataType.FLOAT) == 5)
+                    require(options.compTarget.memorySize(DataType.FLOAT) == 5)
                     out(
                         """
                                 lda  $indexName
@@ -940,7 +439,7 @@ class AsmGen(internal val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(compTarget.memorySize(DataType.FLOAT) == 5)
+                    require(options.compTarget.memorySize(DataType.FLOAT) == 5)
                     out(
                         """
                                 lda  $indexName
@@ -1038,158 +537,6 @@ class AsmGen(internal val program: Program,
             }
             else -> throw AssemblyError("weird dt ${target.datatype}")
         }
-    }
-
-
-    private fun translateSubroutine(sub: Subroutine) {
-        var onlyVariables = false
-
-        if(sub.inline) {
-            if(options.optimize) {
-                if(sub.isAsmSubroutine || callGraph.unused(sub))
-                    return
-
-                // from an inlined subroutine only the local variables are generated,
-                // all other code statements are omitted in the subroutine itself
-                // (they've been inlined at the call site, remember?)
-                onlyVariables = true
-            }
-        }
-
-        out("")
-        outputSourceLine(sub)
-
-
-        if(sub.isAsmSubroutine) {
-            if(sub.asmAddress!=null)
-                return  // already done at the memvars section
-
-            // asmsub with most likely just an inline asm in it
-            out("${sub.name}\t.proc")
-            sub.statements.forEach { translate(it) }
-            out("  .pend\n")
-        } else {
-            // regular subroutine
-            out("${sub.name}\t.proc")
-            zeropagevars2asm(sub.statements, null)
-            memdefs2asm(sub.statements, null)
-
-            // the main.start subroutine is the program's entrypoint and should perform some initialization logic
-            if(sub.name=="start" && sub.definingBlock.name=="main")
-                entrypointInitialization()
-
-            if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
-                out("; simple int arg(s) passed via register(s)")
-                if(sub.parameters.size==1) {
-                    val dt = sub.parameters[0].type
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, dt, sub, variableAsmName = sub.parameters[0].name)
-                    if(dt in ByteDatatypes)
-                        assignRegister(RegisterOrPair.A, target)
-                    else
-                        assignRegister(RegisterOrPair.AY, target)
-                } else {
-                    require(sub.parameters.size==2)
-                    // 2 simple byte args, first in A, second in Y
-                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, sub.parameters[0].type, sub, variableAsmName = sub.parameters[0].name)
-                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, sub.parameters[1].type, sub, variableAsmName = sub.parameters[1].name)
-                    assignRegister(RegisterOrPair.A, target1)
-                    assignRegister(RegisterOrPair.Y, target2)
-                }
-            }
-
-            if(!onlyVariables) {
-                out("; statements")
-                sub.statements.forEach { translate(it) }
-            }
-
-            for(removal in removals.toList()) {
-                if(removal.second==sub) {
-                    removal.second.remove(removal.first)
-                    removals.remove(removal)
-                }
-            }
-
-            out("; variables")
-            for((dt, name, addr) in sub.asmGenInfo.extraVars) {
-                if(addr!=null)
-                    out("$name = $addr")
-                else when(dt) {
-                    DataType.UBYTE -> out("$name    .byte  0")
-                    DataType.UWORD -> out("$name    .word  0")
-                    else -> throw AssemblyError("weird dt")
-                }
-            }
-            if(sub.asmGenInfo.usedRegsaveA)      // will probably never occur
-                out("prog8_regsaveA     .byte  0")
-            if(sub.asmGenInfo.usedRegsaveX)
-                out("prog8_regsaveX     .byte  0")
-            if(sub.asmGenInfo.usedRegsaveY)
-                out("prog8_regsaveY     .byte  0")
-            if(sub.asmGenInfo.usedFloatEvalResultVar1)
-                out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
-            if(sub.asmGenInfo.usedFloatEvalResultVar2)
-                out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-            vardecls2asm(sub.statements, null)
-            out("  .pend\n")
-        }
-    }
-
-    private fun entrypointInitialization() {
-        out("; program startup initialization")
-        out("  cld")
-        if(!options.dontReinitGlobals) {
-            blockVariableInitializers.forEach {
-                if (it.value.isNotEmpty())
-                    out("  jsr  ${it.key.name}.prog8_init_vars")
-            }
-        }
-
-        // string and array variables in zeropage that have initializer value, should be initialized
-        val stringVarsInZp = varsInZeropage.filter { it.datatype==DataType.STR && it.value!=null }
-        val arrayVarsInZp = varsInZeropage.filter { it.datatype in ArrayDatatypes && it.value!=null }
-        if(stringVarsInZp.isNotEmpty() || arrayVarsInZp.isNotEmpty()) {
-            out("; zp str and array initializations")
-            stringVarsInZp.forEach {
-                out("""
-                    lda  #<${it.name}
-                    ldy  #>${it.name}
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #<${it.name}_init_value
-                    ldy  #>${it.name}_init_value
-                    jsr  prog8_lib.strcpy""")
-            }
-            arrayVarsInZp.forEach {
-                val numelements = (it.value as ArrayLiteralValue).value.size
-                val size = numelements * program.memsizer.memorySize(ArrayToElementTypes.getValue(it.datatype))
-                out("""
-                    lda  #<${it.name}_init_value
-                    ldy  #>${it.name}_init_value
-                    sta  cx16.r0L
-                    sty  cx16.r0H
-                    lda  #<${it.name}
-                    ldy  #>${it.name}
-                    sta  cx16.r1L
-                    sty  cx16.r1H
-                    lda  #<$size
-                    ldy  #>$size
-                    jsr  sys.memcopy""")
-            }
-            out("  jmp  +")
-        }
-
-        stringVarsInZp.forEach {
-            outputStringvar(it, it.name+"_init_value")
-        }
-        arrayVarsInZp.forEach {
-            vardecl2asm(it, it.name+"_init_value")
-        }
-
-        out("""+       tsx
-                    stx  prog8_lib.orig_stackpointer    ; required for sys.exit()                    
-                    ldx  #255       ; init estack ptr
-                    clv
-                    clc""")
     }
 
     private fun branchInstruction(condition: BranchCondition, complement: Boolean) =
@@ -1314,39 +661,21 @@ class AsmGen(internal val program: Program,
         val repeatLabel = makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UWORD, true, stmt)
-            if(counterVar!=null) {
-                out("""
-                    lda  #<$count
-                    ldy  #>$count
-                    sta  $counterVar
-                    sty  $counterVar+1
+            out("""
+                lda  #<$count
+                ldy  #>$count
+                sta  $counterVar
+                sty  $counterVar+1
 $repeatLabel""")
-                    translate(stmt.body)
-                    out("""
-                    lda  $counterVar
-                    bne  +
-                    dec  $counterVar+1
-+                   dec  $counterVar
-                    lda  $counterVar
-                    ora  $counterVar+1
-                    bne  $repeatLabel""")
-            } else {
-                out("""
-                    lda  #<$count
-                    ldy  #>$count
-$repeatLabel        pha
-                    phy""")
-                    translate(stmt.body)
-                    out("""
-                    ply
-                    pla
-                    bne  +
-                    dey
-+                   dea
-                    bne  $repeatLabel
-                    cpy  #0
-                    bne  $repeatLabel""")
-            }
+            translate(stmt.body)
+            out("""
+                lda  $counterVar
+                bne  +
+                dec  $counterVar+1
++               dec  $counterVar
+                lda  $counterVar
+                ora  $counterVar+1
+                bne  $repeatLabel""")
         } else {
             val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
             out("""
@@ -1371,7 +700,7 @@ $repeatLabel""")
         // note: A/Y must have been loaded with the number of iterations!
         // no need to explicitly test for 0 iterations as this is done in the countdown logic below
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)!!
+        val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
         out("""
                 sta  $counterVar
                 sty  $counterVar+1
@@ -1394,17 +723,10 @@ $repeatLabel    lda  $counterVar
         val repeatLabel = makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
-            if(counterVar!=null) {
-                out("  lda  #${count and 255} |  sta  $counterVar")
-                out(repeatLabel)
-                translate(stmt.body)
-                out("  dec  $counterVar |  bne  $repeatLabel")
-            } else {
-                out("  ldy  #${count and 255}")
-                out("$repeatLabel        phy")
-                translate(stmt.body)
-                out("  ply |  dey |  bne  $repeatLabel")
-            }
+            out("  lda  #${count and 255} |  sta  $counterVar")
+            out(repeatLabel)
+            translate(stmt.body)
+            out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
@@ -1419,19 +741,12 @@ $repeatLabel    lda  $counterVar
         val repeatLabel = makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
-            if(counterVar!=null) {
-                out("  beq  $endLabel |  sty  $counterVar")
-                out(repeatLabel)
-                translate(stmt.body)
-                out("  dec  $counterVar |  bne  $repeatLabel")
-            } else {
-                out("  beq  $endLabel")
-                out("$repeatLabel        phy")
-                translate(stmt.body)
-                out("  ply |  dey |  bne  $repeatLabel")
-            }
+            out("  beq  $endLabel |  sty  $counterVar")
+            out(repeatLabel)
+            translate(stmt.body)
+            out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
-            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)!!
+            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
             translate(stmt.body)
@@ -1440,7 +755,7 @@ $repeatLabel    lda  $counterVar
         out(endLabel)
     }
 
-    private fun createRepeatCounterVar(dt: DataType, mustBeInZeropage: Boolean, stmt: RepeatLoop): String? {
+    private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: RepeatLoop): String {
         val asmInfo = stmt.definingSubroutine!!.asmGenInfo
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
@@ -1454,7 +769,7 @@ $repeatLabel    lda  $counterVar
             // we can re-use a counter var from the subroutine if it already has one for that datatype
             val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt }
             if(existingVar!=null) {
-                if(!mustBeInZeropage || existingVar.third!=null)
+                if(!preferZeropage || existingVar.third!=null)
                     return existingVar.second
             }
         }
