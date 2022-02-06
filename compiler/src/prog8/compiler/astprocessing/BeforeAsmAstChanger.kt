@@ -1,9 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -18,14 +15,22 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 ) : AstWalker() {
 
     private val allBlockVars = mutableMapOf<Block, MutableSet<VarDecl>>()
+    private val allBlockConsts = mutableMapOf<Block, MutableSet<VarDecl>>()
+    private val allBlockMemoryvars = mutableMapOf<Block, MutableSet<VarDecl>>()
     private val allSubroutineVars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
-//    internal lateinit var allocation: IVariableAllocation
-//
-//    override fun after(program: Program): Iterable<IAstModification> {
-//        allocation = VariableAllocation(allBlockVars, allSubroutineVars)
-//        allocation.dump(program.memsizer)
-//        return super.after(program)
-//    }
+    private val allSubroutineConsts = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
+    private val allSubroutineMemoryvars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
+    internal lateinit var allocation: IVariableAllocation
+
+/* TODO complete the use of VariableAllocation and get rid of it from the AsmGen (and that should no longer use vardecl either):
+    override fun after(program: Program): Iterable<IAstModification> {
+        allocation = VariableAllocation(options,
+            allBlockVars, allBlockConsts, allBlockMemoryvars,
+            allSubroutineVars, allSubroutineConsts, allSubroutineMemoryvars)
+        allocation.dump(program.memsizer)
+        return super.after(program)
+    }
+*/
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw FatalAstException("break should have been replaced by goto $breakStmt")
@@ -66,24 +71,66 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
 
-        if(decl.type==VarDeclType.VAR) {
-            when(val scope=decl.definingScope) {
-                is Block -> {
-                    val blockVars = allBlockVars[scope] ?: mutableSetOf()
-                    blockVars.add(decl)
-                    allBlockVars[scope] = blockVars
+        val scope=decl.definingScope
+        when (decl.type) {
+            VarDeclType.VAR -> {
+                when(scope) {
+                    is Block -> {
+                        val decls = allBlockVars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allBlockVars[scope] = decls
+                    }
+                    is Subroutine -> {
+                        val decls = allSubroutineVars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allSubroutineVars[scope] = decls
+                    }
+                    else -> {
+                        throw FatalAstException("var can only occur in subroutine or block scope")
+                    }
                 }
-                is Subroutine -> {
-                    val subroutineVars = allSubroutineVars[scope] ?: mutableSetOf()
-                    subroutineVars.add(decl)
-                    allSubroutineVars[scope] = subroutineVars
+            }
+            VarDeclType.CONST -> {
+                when(scope) {
+                    is Block -> {
+                        val decls = allBlockConsts[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allBlockConsts[scope] = decls
+                    }
+                    is Subroutine -> {
+                        val decls = allSubroutineConsts[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allSubroutineConsts[scope] = decls
+                    }
+                    else -> {
+                        throw FatalAstException("var can only occur in subroutine or block scope")
+                    }
                 }
-                else -> {
-                    throw FatalAstException("var can only occur in subroutine or block scope")
+            }
+            VarDeclType.MEMORY -> {
+                when(scope) {
+                    is Block -> {
+                        val decls = allBlockMemoryvars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allBlockMemoryvars[scope] = decls
+                    }
+                    is Subroutine -> {
+                        val decls = allSubroutineMemoryvars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allSubroutineMemoryvars[scope] = decls
+                    }
+                    else -> {
+                        throw FatalAstException("var can only occur in subroutine or block scope")
+                    }
                 }
+            }
+            else -> {
+                throw FatalAstException("invalid var type")
             }
         }
 
+        // TODO get rid of the vardecl inside the ast - codegen should depend on the IVariableAllocation object
+        // return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
         return noModifications
     }
 
@@ -399,25 +446,154 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 }
 
 
-internal class VariableAllocation(
-    override val blockVars: Map<Block, Set<VarDecl>>,
-    override val subroutineVars: Map<Subroutine, Set<VarDecl>>) : IVariableAllocation
+internal class VariableAllocation (
+    options: CompilationOptions,
+    astBlockVars: Map<Block, Set<VarDecl>>,
+    astBlockConsts: Map<Block, Set<VarDecl>>,
+    astBlockMemvars: Map<Block, Set<VarDecl>>,
+    astSubroutineVars: Map<Subroutine, Set<VarDecl>>,
+    astSubroutineConsts: Map<Subroutine, Set<VarDecl>>,
+    astSubroutineMemvars: Map<Subroutine, Set<VarDecl>>
+) : IVariableAllocation
 {
+    override val zeropageVars: Set<IVariableAllocation.ZeropageVariable>
+    override val blockVars: Map<Block, Set<IVariableAllocation.StaticBlockVariable>>
+    override val blockConsts: Map<Block, Set<IVariableAllocation.ConstantNumberSymbol>>
+    override val blockMemvars: Map<Block, Set<IVariableAllocation.MemoryMappedSymbol>>
+    override val subroutineVars: Map<Subroutine, Set<IVariableAllocation.StaticSubroutineVariable>>
+    override val subroutineConsts: Map<Subroutine, Set<IVariableAllocation.ConstantNumberSymbol>>
+    override val subroutineMemvars: Map<Subroutine, Set<IVariableAllocation.MemoryMappedSymbol>>
+
+    init {
+        if(options.zeropage!=ZeropageType.DONTUSE)
+            allocateVarsInZeropage(options.compTarget.machine.zeropage)
+
+        val zpv = mutableSetOf<IVariableAllocation.ZeropageVariable>()
+        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariableAllocation.StaticBlockVariable>() }
+        val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariableAllocation.ConstantNumberSymbol>() }
+        val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariableAllocation.MemoryMappedSymbol>() }
+        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariableAllocation.StaticSubroutineVariable>() }
+        val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariableAllocation.ConstantNumberSymbol>() }
+        val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariableAllocation.MemoryMappedSymbol>() }
+        astBlockVars.forEach { (block, decls) ->
+            val vars = bv.getValue(block)
+            vars.addAll(decls.map {
+                // TODO make sure the zp-allocated variables are not added here
+                IVariableAllocation.StaticBlockVariable(it.datatype, it.name, it.value, it.position, it)
+            })
+        }
+        astBlockConsts.forEach { (block, decls) ->
+            bc.getValue(block).addAll(
+                decls.map {
+                    IVariableAllocation.ConstantNumberSymbol(
+                        it.datatype,
+                        it.name,
+                        (it.value as NumericLiteralValue).number,
+                        it.position
+                    )
+                })
+        }
+        astBlockMemvars.forEach { (block, decls) ->
+            bmv.getValue(block).addAll(
+                decls.map {
+                    IVariableAllocation.MemoryMappedSymbol(
+                        it.datatype,
+                        it.name,
+                        (it.value as NumericLiteralValue).number.toUInt(),
+                        it.position
+                    )
+                })
+        }
+        astSubroutineVars.forEach { (sub, decls) ->
+            val vars = sv.getValue(sub)
+            vars.addAll(decls.map {
+                // TODO make sure the zp-allocated variables are not added here
+                IVariableAllocation.StaticSubroutineVariable(it.datatype, it.name, it.position, it)
+            })
+        }
+        astSubroutineConsts.forEach { (sub, decls) ->
+            sc.getValue(sub).addAll(
+                decls.map {
+                    IVariableAllocation.ConstantNumberSymbol(
+                        it.datatype,
+                        it.name,
+                        (it.value as NumericLiteralValue).number,
+                        it.position
+                    )
+                })
+        }
+        astSubroutineMemvars.forEach { (sub, decls) ->
+            smv.getValue(sub).addAll(
+                decls.map {
+                    IVariableAllocation.MemoryMappedSymbol(
+                        it.datatype,
+                        it.name,
+                        (it.value as NumericLiteralValue).number.toUInt(),
+                        it.position
+                    )
+                })
+        }
+        zeropageVars = zpv
+        blockVars = bv
+        blockConsts = bc
+        blockMemvars = bmv
+        subroutineVars = sv
+        subroutineConsts = sc
+        subroutineMemvars = smv
+    }
+
+    private fun allocateVarsInZeropage(zeropage: Zeropage) {
+        println("TODO: allocate vars on zeropage")   // TODO
+    }
+
     override fun dump(memsizer: IMemSizer) {
-        println("ALL BLOCK VARS:")
+        println("\nALL ZEROPAGE VARS:")
+        zeropageVars.forEach {
+            println("  ${it.type}  ${it.scopedname}   ${it.position}")
+        }
+        println("\nALL BLOCK VARS:")
         blockVars.forEach { (block, vars) ->
-            val totalsize = vars.sumOf { memsizer.memorySize(it) }
+            val totalsize = vars.sumOf { memsizer.memorySize(it.origVar) }
             println("BLOCK: ${block.name} total size: $totalsize")
             vars.forEach {
-                println("  ${it.datatype}  ${it.name}  ${it.position}")
+                println("  ${it.type}  ${it.name} = ${it.initialValue}  ${it.position}")
             }
         }
-        println("ALL SUBROUTINE VARS:")
+        println("\nALL BLOCK CONSTS:")
+        blockConsts.forEach { (block, vars) ->
+            println("BLOCK: ${block.name}")
+            vars.forEach {
+                println("  ${it.type}  ${it.name} = ${it.value}  ${it.position}")
+            }
+        }
+        println("\nALL BLOCK MEMORYVARS:")
+        blockMemvars.forEach { (block, vars) ->
+            println("BLOCK: ${block.name}")
+            vars.forEach {
+                println("  ${it.type}  ${it.name} = ${it.address.toHex()}  ${it.position}")
+            }
+        }
+
+        println("\nALL SUBROUTINE VARS:")
         subroutineVars.forEach { (sub, vars) ->
-            val totalsize = vars.sumOf { memsizer.memorySize(it) }
+            val totalsize = vars.sumOf { memsizer.memorySize(it.origVar) }
             println("SUBROUTINE: ${sub.name} total size: $totalsize")
             vars.forEach {
-                println("  ${it.datatype}  ${it.name}  ${it.position}")
+                println("  ${it.type}  ${it.name}  ${it.position}")
+            }
+        }
+        println("\nALL SUBROUTINE CONSTS:")
+        subroutineConsts.forEach { (sub, vars) ->
+            println("SUBROUTINE: ${sub.name}")
+            vars.forEach {
+                println("  ${it.type}  ${it.name} = ${it.value}  ${it.position}")
+            }
+        }
+        println("\nALL SUBROUTINE MEMORYVARS:")
+        subroutineMemvars.forEach { (sub, vars) ->
+            println("SUBROUTINE: ${sub.name}")
+            vars.forEach {
+                println("  ${it.type}  ${it.name} = ${it.address.toHex()}  ${it.position}")
             }
         }
     }

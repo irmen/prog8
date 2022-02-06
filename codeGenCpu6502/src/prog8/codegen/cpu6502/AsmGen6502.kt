@@ -10,7 +10,6 @@ import prog8.ast.statements.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
-import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
@@ -330,7 +329,7 @@ class AsmGen6502(internal val program: Program,
             if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
                 continue       // the "hooks" to the temp vars are not generated as new variables
             val scopedName = variable.scopedName
-            val zpAlloc = zeropage.allocatedZeropageVariable(scopedName)
+            val zpAlloc = zeropage.variables[scopedName]
             if (zpAlloc == null) {
                 // This var is not on the ZP yet. Attempt to move it there if it's an integer type
                 if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
@@ -482,7 +481,7 @@ class AsmGen6502(internal val program: Program,
             .filter {
                 it.type==VarDeclType.VAR
                         && it.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE
-                        && zeropage.allocatedZeropageVariable(it.scopedName)==null
+                        && it.scopedName !in zeropage.variables
             }
 
         vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
@@ -1742,12 +1741,11 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun isZpVar(scopedName: List<String>): Boolean =
-        zeropage.allocatedZeropageVariable(scopedName)!=null
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.variables
 
     internal fun isZpVar(variable: IdentifierReference): Boolean {
         val vardecl = variable.targetVarDecl(program)!!
-        return zeropage.allocatedZeropageVariable(vardecl.scopedName)!=null
+        return vardecl.scopedName in zeropage.variables
     }
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false) {

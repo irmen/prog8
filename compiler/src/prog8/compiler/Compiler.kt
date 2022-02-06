@@ -343,13 +343,14 @@ private fun writeAssembly(program: Program,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
+    compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
+    // TODO do something with the VariableAllocation, pass it to the asmgenerator
 
 //    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
-    compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val assembly = asmGeneratorFor(program, errors, compilerOptions).compileToAssembly()
     errors.report()
 
