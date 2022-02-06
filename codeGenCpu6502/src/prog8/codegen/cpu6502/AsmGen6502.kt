@@ -255,6 +255,11 @@ class AsmGen6502(internal val program: Program,
     }
 
     private fun block2asm(block: Block) {
+        // no longer output the initialization assignments as regular statements in the block,
+        // they will be part of the prog8_init_vars init routine generated below.
+        val initializers = blockVariableInitializers.getValue(block)
+        val statements = block.statements.filterNot { it in initializers }
+
         out("\n\n; ---- block: '${block.name}' ----")
         if(block.address!=null)
             out("* = ${block.address!!.toHex()}")
@@ -267,36 +272,25 @@ class AsmGen6502(internal val program: Program,
 
         out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
 
-        if(options.dontReinitGlobals) {
-            block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
-                it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
-                it.findInitializer(program)?.let { initializer -> it.value = initializer.value }    // put the init value back into the vardecl
-            }
-        }
-
-        // no longer output the initialization assignments as regular statements in the block!
-        block.statements.removeAll(blockVariableInitializers.getValue(block))
-
         outputSourceLine(block)
-        zeropagevars2asm(block.statements, block)
-        memdefs2asm(block.statements, block)
-        vardecls2asm(block.statements, block)
+        zeropagevars2asm(statements, block)
+        memdefs2asm(statements, block)
+        vardecls2asm(statements, block)
 
-        block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
+        statements.asSequence().filterIsInstance<VarDecl>().forEach {
             if(it.type==VarDeclType.VAR && it.datatype in NumericDatatypes)
-                it.value=null
+                it.value=null // TODO why is this done?
         }
 
         out("\n; subroutines in this block")
 
         // first translate regular statements, and then put the subroutines at the end.
-        val (subroutine, stmts) = block.statements.partition { it is Subroutine }
+        val (subroutine, stmts) = statements.partition { it is Subroutine }
         stmts.forEach { translate(it) }
         subroutine.forEach { translateSubroutine(it as Subroutine) }
 
         if(!options.dontReinitGlobals) {
             // generate subroutine to initialize block-level (global) variables
-            val initializers = blockVariableInitializers.getValue(block)
             if (initializers.isNotEmpty()) {
                 out("prog8_init_vars\t.proc\n")
                 initializers.forEach { assign -> translate(assign) }
@@ -1058,10 +1052,6 @@ class AsmGen6502(internal val program: Program,
                 // all other code statements are omitted in the subroutine itself
                 // (they've been inlined at the call site, remember?)
                 onlyVariables = true
-            }
-            else if(sub.amountOfRtsInAsm()==0) {
-                // make sure the NOT INLINED subroutine actually does a rts at the end
-                sub.statements.add(Return(null, Position.DUMMY))
             }
         }
 

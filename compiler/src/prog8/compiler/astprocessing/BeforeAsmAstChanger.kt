@@ -49,12 +49,27 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         val subs = block.statements.filterIsInstance<Subroutine>()
         block.statements.removeAll(subs)
         block.statements.addAll(subs)
+
+        // adjust global variables initialization
+        if(options.dontReinitGlobals) {
+            block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
+                if(it.type==VarDeclType.VAR) {
+                    it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
+                    it.findInitializer(program)?.let { initializer ->
+                        it.value = initializer.value     // put the init value back into the vardecl
+                    }
+                }
+            }
+        }
+
         return noModifications
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.type== VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
-            throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        if(!options.dontReinitGlobals) {
+            if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
+                throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        }
         rememberSubroutineVar(decl)
         return noModifications
     }
@@ -116,6 +131,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        val mods = mutableListOf<IAstModification>()
         val firstDeclarations = mutableMapOf<String, VarDecl>()
         val rememberedSubroutineVars = subroutineVariables.getOrDefault(subroutine, mutableListOf())
         for(decl in rememberedSubroutineVars) {
@@ -130,9 +146,8 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
-        val mods = mutableListOf<IAstModification>()
         val returnStmt = Return(null, subroutine.position)
-        if (subroutine.asmAddress == null && !subroutine.inline) {
+        if (!subroutine.isAsmSubroutine && !subroutine.inline) {
             if(subroutine.statements.isEmpty() ||
                 (subroutine.amountOfRtsInAsm() == 0
                         && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
@@ -155,6 +170,13 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
             }
         }
+
+        if (subroutine.inline && subroutine.isAsmSubroutine && subroutine.amountOfRtsInAsm() == 0) {
+            // make sure the NOT INLINED asm subroutine actually has a rts at the end
+            // (non-asm routines get a Return statement as needed, above)
+            mods += IAstModification.InsertLast(InlineAssembly("  rts\n", Position.DUMMY), subroutine)
+        }
+
         return mods
     }
 
