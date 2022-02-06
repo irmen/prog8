@@ -17,7 +17,18 @@ main {
         txt.nl()
         txt.print_ub(startval1)
         txt.nl()
+        derp()
+        derp()
+        foobar()
         startval1++
         mainglobal1++
+    }
+
+    asmsub derp() {
+
+    }
+
+    sub foobar() {
+        txt.print("foobar\n")
     }
 }

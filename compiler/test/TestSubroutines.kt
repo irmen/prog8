@@ -85,6 +85,7 @@ class TestSubroutines: FunSpec({
                     func("text")
                     func(text)
                     func($2000)
+                    emptysub()
                 }
                 
                 asmsub asmfunc(str thing @AY) {
@@ -94,6 +95,9 @@ class TestSubroutines: FunSpec({
                     uword t2 = thing as uword
                     asmfunc(thing)
                 }
+                
+                sub emptysub() {
+                }
             }
         """
         val result = compileText(C64Target, false, text, writeAssembly = true).assertSuccess()
@@ -101,14 +105,16 @@ class TestSubroutines: FunSpec({
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
+        val emptysub = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="emptysub"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.statements.single() shouldBe instanceOf<Return>()
+        asmfunc.statements.single() shouldBe instanceOf<InlineAssembly>()
+        (asmfunc.statements.single() as InlineAssembly).assembly.trim() shouldBe "rts"
+        asmfunc.amountOfRtsInAsm() shouldBe 1
         func.isAsmSubroutine shouldBe false
         withClue("str param should have been changed to uword") {
             asmfunc.parameters.single().type shouldBe DataType.UWORD
             func.parameters.single().type shouldBe DataType.UWORD
         }
-        asmfunc.statements.last() shouldBe instanceOf<Return>()
 
         func.statements.size shouldBe 5
         func.statements[4] shouldBe instanceOf<Return>()
@@ -129,6 +135,9 @@ class TestSubroutines: FunSpec({
             call.args.single() shouldBe instanceOf<IdentifierReference>()
         }
         (call.args.single() as IdentifierReference).nameInSource.single() shouldBe "thing"
+
+        emptysub.statements.size shouldBe 1
+        emptysub.statements.single() shouldBe instanceOf<Return>()
     }
 
     test("ubyte[] array parameters") {

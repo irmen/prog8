@@ -96,8 +96,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
                 // (this condition has been enforced by an ast check earlier)
                 asmgen.out("  \t; inlined routine follows: ${sub.name}")
-                val assembly = sub.statements.single() as InlineAssembly
-                asmgen.translate(assembly)
+                sub.statements.forEach { asmgen.translate(it as InlineAssembly) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
                 asmgen.out("  jsr  $subAsmName")

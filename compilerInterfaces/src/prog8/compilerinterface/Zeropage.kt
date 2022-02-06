@@ -25,10 +25,12 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
     fun removeReservedFromFreePool() {
-        for (reserved in options.zpReserved)
-            reserve(reserved)
+        synchronized(this) {
+            for (reserved in options.zpReserved)
+                reserve(reserved)
 
-        free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u))
+            free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u))
+        }
     }
 
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size

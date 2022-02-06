@@ -146,12 +146,13 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
-        val returnStmt = Return(null, subroutine.position)
         if (!subroutine.isAsmSubroutine && !subroutine.inline) {
             if(subroutine.statements.isEmpty() ||
                 (subroutine.amountOfRtsInAsm() == 0
                         && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
-                        && subroutine.statements.last() !is Subroutine)) {
+                        && subroutine.statements.last() !is Subroutine
+                        && subroutine.statements.last() !is Return)) {
+                val returnStmt = Return(null, subroutine.position)
                 mods += IAstModification.InsertLast(returnStmt, subroutine)
             }
         }
@@ -167,14 +168,17 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 && prevStmt !is Subroutine
                 && prevStmt !is Return
             ) {
+                val returnStmt = Return(null, subroutine.position)
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
             }
         }
 
-        if (subroutine.inline && subroutine.isAsmSubroutine && subroutine.amountOfRtsInAsm() == 0) {
-            // make sure the NOT INLINED asm subroutine actually has a rts at the end
-            // (non-asm routines get a Return statement as needed, above)
-            mods += IAstModification.InsertLast(InlineAssembly("  rts\n", Position.DUMMY), subroutine)
+        if (!subroutine.inline) {
+            if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && subroutine.amountOfRtsInAsm() == 0) {
+                // make sure the NOT INLINED asm subroutine actually has a rts at the end
+                // (non-asm routines get a Return statement as needed, above)
+                mods += IAstModification.InsertLast(InlineAssembly("  rts\n", Position.DUMMY), subroutine)
+            }
         }
 
         return mods

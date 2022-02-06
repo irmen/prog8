@@ -279,7 +279,7 @@ class AsmGen6502(internal val program: Program,
 
         statements.asSequence().filterIsInstance<VarDecl>().forEach {
             if(it.type==VarDeclType.VAR && it.datatype in NumericDatatypes)
-                it.value=null // TODO why is this done?
+                it.value=null  // make sure every var has no init value anymore (could be set due to 'noreinit' option) because initialization is done via explicit assignment
         }
 
         out("\n; subroutines in this block")

@@ -23,8 +23,8 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Ast modifications done in AsmGen, that should be done BEFORE calling asmgen (so that it doesn't have to modify the Ast any longer):
 
-- block2asm: after vardecls2asm it clears the vardecl.value of all variables (why?)
 - block2asm: removes init-assignments to no longer output the initialization assignments as regular statements (is done separately in block initialization routine)
+- block2asm: after vardecls2asm it clears the vardecl.value of all variables
 - Maybe don't rely on vardecls at all any longer but figure out the variable allocations (including ZP allocations) beforehand
   and pass that via a new datastructure to asmgen?  So that asmgen is no longer tasked with doing the allocations.
   This could perhaps make it easer for the codegen as well to deal with sections, if any, in the future.
