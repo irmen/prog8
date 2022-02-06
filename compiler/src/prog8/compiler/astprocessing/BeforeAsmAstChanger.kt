@@ -20,17 +20,14 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     private val allSubroutineVars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
     private val allSubroutineConsts = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
     private val allSubroutineMemoryvars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
-    internal lateinit var allocation: IVariableAllocation
+    internal lateinit var variables: IVariablesAndConsts
 
-/* TODO complete the use of VariableAllocation and get rid of it from the AsmGen (and that should no longer use vardecl either):
     override fun after(program: Program): Iterable<IAstModification> {
-        allocation = VariableAllocation(options,
+        variables = VariablesAndConsts(
             allBlockVars, allBlockConsts, allBlockMemoryvars,
             allSubroutineVars, allSubroutineConsts, allSubroutineMemoryvars)
-        allocation.dump(program.memsizer)
         return super.after(program)
     }
-*/
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw FatalAstException("break should have been replaced by goto $breakStmt")
@@ -446,46 +443,39 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 }
 
 
-internal class VariableAllocation (
-    options: CompilationOptions,
+internal class VariablesAndConsts (
     astBlockVars: Map<Block, Set<VarDecl>>,
     astBlockConsts: Map<Block, Set<VarDecl>>,
     astBlockMemvars: Map<Block, Set<VarDecl>>,
     astSubroutineVars: Map<Subroutine, Set<VarDecl>>,
     astSubroutineConsts: Map<Subroutine, Set<VarDecl>>,
     astSubroutineMemvars: Map<Subroutine, Set<VarDecl>>
-) : IVariableAllocation
+) : IVariablesAndConsts
 {
-    override val zeropageVars: Set<IVariableAllocation.ZeropageVariable>
-    override val blockVars: Map<Block, Set<IVariableAllocation.StaticBlockVariable>>
-    override val blockConsts: Map<Block, Set<IVariableAllocation.ConstantNumberSymbol>>
-    override val blockMemvars: Map<Block, Set<IVariableAllocation.MemoryMappedSymbol>>
-    override val subroutineVars: Map<Subroutine, Set<IVariableAllocation.StaticSubroutineVariable>>
-    override val subroutineConsts: Map<Subroutine, Set<IVariableAllocation.ConstantNumberSymbol>>
-    override val subroutineMemvars: Map<Subroutine, Set<IVariableAllocation.MemoryMappedSymbol>>
+    override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticBlockVariable>>
+    override val blockConsts: Map<Block, Set<IVariablesAndConsts.ConstantNumberSymbol>>
+    override val blockMemvars: Map<Block, Set<IVariablesAndConsts.MemoryMappedVariable>>
+    override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticSubroutineVariable>>
+    override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
+    override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
 
     init {
-        if(options.zeropage!=ZeropageType.DONTUSE)
-            allocateVarsInZeropage(options.compTarget.machine.zeropage)
-
-        val zpv = mutableSetOf<IVariableAllocation.ZeropageVariable>()
-        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariableAllocation.StaticBlockVariable>() }
-        val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariableAllocation.ConstantNumberSymbol>() }
-        val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariableAllocation.MemoryMappedSymbol>() }
-        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariableAllocation.StaticSubroutineVariable>() }
-        val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariableAllocation.ConstantNumberSymbol>() }
-        val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariableAllocation.MemoryMappedSymbol>() }
+        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticBlockVariable>() }
+        val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
+        val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
+        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticSubroutineVariable>() }
+        val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
+        val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
         astBlockVars.forEach { (block, decls) ->
             val vars = bv.getValue(block)
             vars.addAll(decls.map {
-                // TODO make sure the zp-allocated variables are not added here
-                IVariableAllocation.StaticBlockVariable(it.datatype, it.name, it.value, it.position, it)
+                IVariablesAndConsts.StaticBlockVariable(it.datatype, it.name, it.value, it.position, it)
             })
         }
         astBlockConsts.forEach { (block, decls) ->
             bc.getValue(block).addAll(
                 decls.map {
-                    IVariableAllocation.ConstantNumberSymbol(
+                    IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
                         it.name,
                         (it.value as NumericLiteralValue).number,
@@ -496,7 +486,7 @@ internal class VariableAllocation (
         astBlockMemvars.forEach { (block, decls) ->
             bmv.getValue(block).addAll(
                 decls.map {
-                    IVariableAllocation.MemoryMappedSymbol(
+                    IVariablesAndConsts.MemoryMappedVariable(
                         it.datatype,
                         it.name,
                         (it.value as NumericLiteralValue).number.toUInt(),
@@ -507,14 +497,13 @@ internal class VariableAllocation (
         astSubroutineVars.forEach { (sub, decls) ->
             val vars = sv.getValue(sub)
             vars.addAll(decls.map {
-                // TODO make sure the zp-allocated variables are not added here
-                IVariableAllocation.StaticSubroutineVariable(it.datatype, it.name, it.position, it)
+                IVariablesAndConsts.StaticSubroutineVariable(it.datatype, it.name, it.position, it)
             })
         }
         astSubroutineConsts.forEach { (sub, decls) ->
             sc.getValue(sub).addAll(
                 decls.map {
-                    IVariableAllocation.ConstantNumberSymbol(
+                    IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
                         it.name,
                         (it.value as NumericLiteralValue).number,
@@ -525,7 +514,7 @@ internal class VariableAllocation (
         astSubroutineMemvars.forEach { (sub, decls) ->
             smv.getValue(sub).addAll(
                 decls.map {
-                    IVariableAllocation.MemoryMappedSymbol(
+                    IVariablesAndConsts.MemoryMappedVariable(
                         it.datatype,
                         it.name,
                         (it.value as NumericLiteralValue).number.toUInt(),
@@ -533,7 +522,6 @@ internal class VariableAllocation (
                     )
                 })
         }
-        zeropageVars = zpv
         blockVars = bv
         blockConsts = bc
         blockMemvars = bmv
@@ -542,15 +530,7 @@ internal class VariableAllocation (
         subroutineMemvars = smv
     }
 
-    private fun allocateVarsInZeropage(zeropage: Zeropage) {
-        println("TODO: allocate vars on zeropage")   // TODO
-    }
-
     override fun dump(memsizer: IMemSizer) {
-        println("\nALL ZEROPAGE VARS:")
-        zeropageVars.forEach {
-            println("  ${it.type}  ${it.scopedname}   ${it.position}")
-        }
         println("\nALL BLOCK VARS:")
         blockVars.forEach { (block, vars) ->
             val totalsize = vars.sumOf { memsizer.memorySize(it.origVar) }

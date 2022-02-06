@@ -23,9 +23,10 @@ const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 
-class AsmGen6502(internal val program: Program,
-                 internal val errors: IErrorReporter,
-                 internal val options: CompilationOptions): IAssemblyGenerator {
+class AsmGen(internal val program: Program,
+             internal val errors: IErrorReporter,
+             internal val variables: IVariablesAndConsts,
+             internal val options: CompilationOptions): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -53,6 +54,8 @@ class AsmGen6502(internal val program: Program,
         loopEndLabels.clear()
 
         println("Generating assembly code... ")
+
+        // TODO variables.dump(program.memsizer)
 
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
         require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
@@ -285,7 +288,7 @@ class AsmGen6502(internal val program: Program,
         // first translate regular statements, and then put the subroutines at the end.
         val (subroutine, stmts) = statements.partition { it is Subroutine }
         stmts.forEach { translate(it) }
-        subroutine.forEach { translateSubroutine(it as Subroutine) }
+        subroutine.forEach { translate(it) }
 
         if(!options.dontReinitGlobals) {
             // generate subroutine to initialize block-level (global) variables

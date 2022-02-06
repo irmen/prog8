@@ -12,7 +12,7 @@ import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
 import kotlin.math.absoluteValue
 
-internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen6502) {
+internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
     internal fun translate(stmt: ForLoop) {
         val iterableDt = stmt.iterable.inferType(program)

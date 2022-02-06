@@ -301,7 +301,7 @@ class TestOptimization: FunSpec({
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
-        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
+        val allocation = result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
 
         // assignment is now split into:
         //     bb =  not bb
@@ -326,7 +326,7 @@ class TestOptimization: FunSpec({
         ((bbAssigns1expr.right as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val asm = generateAssembly(result.program, options)
+        val asm = generateAssembly(result.program, allocation, options)
         asm shouldNotBe null
         asm!!.name.shouldNotBeBlank()
     }
@@ -366,7 +366,7 @@ class TestOptimization: FunSpec({
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {
         val src="""
-            %option enable_floats
+            %import floats
             
             main {
                 sub start() {
@@ -385,9 +385,7 @@ class TestOptimization: FunSpec({
         (value.left as? IdentifierReference)?.nameInSource shouldBe listOf("ff")
         value.right shouldBe instanceOf<TypecastExpression>()
 
-        val asm = generateAssembly(result.program)
-        asm shouldNotBe null
-        asm!!.name.shouldNotBeBlank()
+        compileText(C64Target(), optimize=false, src, writeAssembly = true).assertSuccess()
     }
 
     test("unused variable removal") {

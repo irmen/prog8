@@ -9,7 +9,7 @@ import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
 
 
-internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen6502) {
+internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {
     internal fun translate(stmt: PostIncrDecr) {
         val incr = stmt.operator=="++"
         val targetIdent = stmt.target.identifier

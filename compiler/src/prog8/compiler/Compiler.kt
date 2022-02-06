@@ -9,8 +9,6 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
-import prog8.codegen.cpu6502.AsmGen6502
-import prog8.codegen.experimental6502.ExperimentalAsmGen6502
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -21,6 +19,7 @@ import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
+import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
 
@@ -109,7 +108,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         }
         System.out.flush()
         System.err.flush()
-        println("\nTotal compilation+assemble time: ${totalTime / 1000.0} sec.")
+        val seconds = totalTime/1000.0
+        println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
         return CompilationResult(true, program, programName, compTarget, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\u001b[91m")  // bright red
@@ -344,14 +344,13 @@ private fun writeAssembly(program: Program,
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
-    program.processAstBeforeAsmGeneration(compilerOptions, errors)
+    val variables = program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
-    // TODO do something with the VariableAllocation, pass it to the asmgenerator
 
 //    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
-    val assembly = asmGeneratorFor(program, errors, compilerOptions).compileToAssembly()
+    val assembly = asmGeneratorFor(program, errors, variables, compilerOptions).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -371,18 +370,14 @@ fun printProgram(program: Program) {
     println()
 }
 
-internal fun asmGeneratorFor(
-    program: Program,
-    errors: IErrorReporter,
-    options: CompilationOptions,
-): IAssemblyGenerator
+internal fun asmGeneratorFor(program: Program, errors: IErrorReporter, variables: IVariablesAndConsts, options: CompilationOptions): IAssemblyGenerator
 {
     if(options.experimentalCodegen) {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return ExperimentalAsmGen6502(program, errors, options)
+            return prog8.codegen.experimental6502.AsmGen(program, errors, variables, options)
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return AsmGen6502(program, errors, options)
+            return prog8.codegen.cpu6502.AsmGen(program, errors, variables, options)
     }
 
     throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")

@@ -11,7 +11,7 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.*
 
-internal val DummyFunctions = object : IBuiltinFunctions {
+internal object DummyFunctions : IBuiltinFunctions {
     override val names: Set<String> = emptySet()
     override val purefunctionNames: Set<String> = emptySet()
     override fun constValue(
@@ -23,12 +23,12 @@ internal val DummyFunctions = object : IBuiltinFunctions {
     override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
 }
 
-internal val DummyMemsizer = object : IMemSizer {
+internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType) = 0
     override fun memorySize(decl: VarDecl) = 0
 }
 
-internal val DummyStringEncoder = object : IStringEncoding {
+internal object DummyStringEncoder : IStringEncoding {
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         return emptyList()
     }
@@ -38,7 +38,7 @@ internal val DummyStringEncoder = object : IStringEncoding {
     }
 }
 
-internal val AsciiStringEncoder = object : IStringEncoding {
+internal object AsciiStringEncoder : IStringEncoding {
     override fun encodeString(str: String, encoding: Encoding): List<UByte> = str.map { it.code.toUByte() }
 
     override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
@@ -46,7 +46,7 @@ internal val AsciiStringEncoder = object : IStringEncoding {
     }
 }
 
-internal val DummyCompilationTarget = object : ICompilationTarget {
+internal object DummyCompilationTarget : ICompilationTarget {
     override val name: String = "dummy"
     override val machine: IMachineDefinition
         get() = throw NotImplementedError("dummy")

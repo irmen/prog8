@@ -5,14 +5,14 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
-import prog8.codegen.cpu6502.AsmGen6502
+import prog8.codegen.cpu6502.AsmGen
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.CpuType
 
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
-                                           private val asmgen: AsmGen6502
+                                           private val asmgen: AsmGen
 ) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)

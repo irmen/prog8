@@ -20,12 +20,10 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-Ast modifications done in AsmGen, that should be done BEFORE calling asmgen (so that it doesn't have to modify the Ast any longer):
- - block2asm: removes init-assignments to no longer output the initialization assignments as regular statements (is done separately in block initialization routine)
+Ast modifications done in AsmGen that perhaps should not be necessary:
  - block2asm: after vardecls2asm it clears the vardecl.value of all variables
- - Maybe don't rely on vardecls at all any longer but figure out the variable allocations (including ZP allocations) beforehand
-   and pass that via a new datastructure to asmgen?  So that asmgen is no longer tasked with doing the allocations.
-   This could perhaps make it easer for the codegen as well to deal with sections, if any, in the future.
+   --> Don't rely on vardecls at all any longer but use the new IVariablesAndConsts object passed to the AsmGen, this will solve this item.
+ - block2asm: removes init-assignments to no longer output the initialization assignments as regular statements (is done separately in block initialization routine)
 
 - remove support for old @"screencodes" string encoding syntax (parser+code+docs)
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
@@ -54,6 +52,7 @@ Ast modifications done in AsmGen, that should be done BEFORE calling asmgen (so 
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
+- zig try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for this)
 - get rid of all TODO's in the code ;)
 
 
