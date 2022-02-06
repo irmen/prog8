@@ -20,18 +20,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                                    private val errors: IErrorReporter
 ) : AstWalker() {
 
-    private val subroutineVariables = mutableMapOf<Subroutine, MutableList<Pair<String, VarDecl>>>()
-
-    private fun rememberSubroutineVar(decl: VarDecl) {
-        val sub = decl.definingSubroutine ?: return
-        var varsList = subroutineVariables[sub]
-        if(varsList==null) {
-            varsList = mutableListOf()
-            subroutineVariables[sub] = varsList
-        }
-        varsList.add(decl.name to decl)
-    }
-
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw FatalAstException("break should have been replaced by goto $breakStmt")
     }
@@ -70,7 +58,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
                 throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
-        rememberSubroutineVar(decl)
         return noModifications
     }
 
@@ -132,17 +119,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
-        val firstDeclarations = mutableMapOf<String, VarDecl>()
-        val rememberedSubroutineVars = subroutineVariables.getOrDefault(subroutine, mutableListOf())
-        for(decl in rememberedSubroutineVars) {
-            val existing = firstDeclarations[decl.first]
-            if(existing!=null && existing !== decl.second) {
-                errors.err("variable ${decl.first} already defined in subroutine ${subroutine.name} at ${existing.position}", decl.second.position)
-            } else {
-                firstDeclarations[decl.first] = decl.second
-            }
-        }
-        rememberedSubroutineVars.clear()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
