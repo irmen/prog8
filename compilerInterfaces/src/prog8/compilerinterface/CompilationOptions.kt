@@ -1,5 +1,8 @@
 package prog8.compilerinterface
 
+import java.nio.file.Path
+import kotlin.io.path.Path
+
 enum class OutputType {
     RAW,
     PRG
@@ -32,5 +35,7 @@ class CompilationOptions(val output: OutputType,
                          var dontReinitGlobals: Boolean = false,
                          var asmQuiet: Boolean = false,
                          var asmListfile: Boolean = false,
-                         var experimentalCodegen: Boolean = false
-)
+                         var experimentalCodegen: Boolean = false,
+                         var outputDir: Path = Path("")
+) {
+}

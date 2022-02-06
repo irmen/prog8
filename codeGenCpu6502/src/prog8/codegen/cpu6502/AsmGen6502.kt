@@ -26,8 +26,7 @@ const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 class AsmGen6502(internal val program: Program,
                  internal val errors: IErrorReporter,
-                 internal val options: CompilationOptions,
-                 internal val outputDir: Path): IAssemblyGenerator {
+                 internal val options: CompilationOptions): IAssemblyGenerator {
 
     // for expressions and augmented assignments:
     val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -76,7 +75,7 @@ class AsmGen6502(internal val program: Program,
             slaballocations()
             footer()
 
-            val output = outputDir.resolve("${program.name}.asm")
+            val output = options.outputDir.resolve("${program.name}.asm")
             if(options.optimize) {
                 val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
                 assemblyLines.clear()
@@ -90,7 +89,7 @@ class AsmGen6502(internal val program: Program,
         }
 
         return if(errors.noErrors())
-            AssemblyProgram(program.name, outputDir, compTarget.name)
+            AssemblyProgram(program.name, options.outputDir, compTarget.name)
         else {
             errors.report()
             return null
@@ -1591,7 +1590,7 @@ $repeatLabel    lda  $counterVar
                     TODO("%asmbinary inside non-library, non-filesystem module")
                 val sourcePath = Path(stmt.definingModule.source.origin)
                 val includedPath = sourcePath.resolveSibling(includedName)
-                val pathForAssembler = outputDir // #54: 64tass needs the path *relative to the .asm file*
+                val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*
                     .toAbsolutePath()
                     .relativize(includedPath.toAbsolutePath())
                     .normalize() // avoid assembler warnings (-Wportable; only some, not all)

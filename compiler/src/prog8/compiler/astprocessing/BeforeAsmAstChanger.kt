@@ -10,15 +10,22 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.isIOAddress
+import prog8.compilerinterface.*
 import prog8.optimizer.getTempVarName
 
 internal class BeforeAsmAstChanger(val program: Program, private val options: CompilationOptions,
                                    private val errors: IErrorReporter
 ) : AstWalker() {
+
+    private val allBlockVars = mutableMapOf<Block, MutableSet<VarDecl>>()
+    private val allSubroutineVars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
+//    internal lateinit var allocation: IVariableAllocation
+//
+//    override fun after(program: Program): Iterable<IAstModification> {
+//        allocation = VariableAllocation(allBlockVars, allSubroutineVars)
+//        allocation.dump(program.memsizer)
+//        return super.after(program)
+//    }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw FatalAstException("break should have been replaced by goto $breakStmt")
@@ -58,6 +65,25 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
                 throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
+
+        if(decl.type==VarDeclType.VAR) {
+            when(val scope=decl.definingScope) {
+                is Block -> {
+                    val blockVars = allBlockVars[scope] ?: mutableSetOf()
+                    blockVars.add(decl)
+                    allBlockVars[scope] = blockVars
+                }
+                is Subroutine -> {
+                    val subroutineVars = allSubroutineVars[scope] ?: mutableSetOf()
+                    subroutineVars.add(decl)
+                    allSubroutineVars[scope] = subroutineVars
+                }
+                else -> {
+                    throw FatalAstException("var can only occur in subroutine or block scope")
+                }
+            }
+        }
+
         return noModifications
     }
 
@@ -370,4 +396,29 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         return modifications
     }
 
+}
+
+
+internal class VariableAllocation(
+    override val blockVars: Map<Block, Set<VarDecl>>,
+    override val subroutineVars: Map<Subroutine, Set<VarDecl>>) : IVariableAllocation
+{
+    override fun dump(memsizer: IMemSizer) {
+        println("ALL BLOCK VARS:")
+        blockVars.forEach { (block, vars) ->
+            val totalsize = vars.sumOf { memsizer.memorySize(it) }
+            println("BLOCK: ${block.name} total size: $totalsize")
+            vars.forEach {
+                println("  ${it.datatype}  ${it.name}  ${it.position}")
+            }
+        }
+        println("ALL SUBROUTINE VARS:")
+        subroutineVars.forEach { (sub, vars) ->
+            val totalsize = vars.sumOf { memsizer.memorySize(it) }
+            println("SUBROUTINE: ${sub.name} total size: $totalsize")
+            vars.forEach {
+                println("  ${it.datatype}  ${it.name}  ${it.position}")
+            }
+        }
+    }
 }

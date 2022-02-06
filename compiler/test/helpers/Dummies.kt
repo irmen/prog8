@@ -8,6 +8,7 @@ import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.*
 
 internal val DummyFunctions = object : IBuiltinFunctions {
@@ -24,6 +25,7 @@ internal val DummyFunctions = object : IBuiltinFunctions {
 
 internal val DummyMemsizer = object : IMemSizer {
     override fun memorySize(dt: DataType) = 0
+    override fun memorySize(decl: VarDecl) = 0
 }
 
 internal val DummyStringEncoder = object : IStringEncoding {
@@ -67,6 +69,10 @@ internal val DummyCompilationTarget = object : ICompilationTarget {
     }
 
     override fun memorySize(dt: DataType): Int {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun memorySize(decl: VarDecl): Int {
         throw NotImplementedError("dummy")
     }
 }

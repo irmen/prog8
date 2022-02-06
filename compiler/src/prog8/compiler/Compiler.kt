@@ -75,6 +75,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
+                outputDir = args.outputDir.normalize()
             }
             program = programresult
             importedFiles = imported
@@ -97,7 +98,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 //            printProgram(program)
 
             if (args.writeAssembly) {
-                when (val result = writeAssembly(program, args.errors, args.outputDir, compilationOptions)) {
+                when (val result = writeAssembly(program, args.errors, compilationOptions)) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
@@ -339,7 +340,6 @@ private sealed class WriteAssemblyResult {
 
 private fun writeAssembly(program: Program,
                           errors: IErrorReporter,
-                          outputDir: Path,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
     // asm generation directly from the Ast
@@ -350,11 +350,7 @@ private fun writeAssembly(program: Program,
 //    printProgram(program)
 
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
-    val assembly = asmGeneratorFor(
-            program,
-            errors,
-            compilerOptions,
-            outputDir).compileToAssembly()
+    val assembly = asmGeneratorFor(program, errors, compilerOptions).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -378,15 +374,14 @@ internal fun asmGeneratorFor(
     program: Program,
     errors: IErrorReporter,
     options: CompilationOptions,
-    outputDir: Path
 ): IAssemblyGenerator
 {
     if(options.experimentalCodegen) {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return ExperimentalAsmGen6502(program, errors, options, outputDir)
+            return ExperimentalAsmGen6502(program, errors, options)
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return AsmGen6502(program, errors, options, outputDir)
+            return AsmGen6502(program, errors, options)
     }
 
     throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")

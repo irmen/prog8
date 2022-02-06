@@ -22,13 +22,22 @@ main {
         foobar()
         startval1++
         mainglobal1++
+        start2()
+
+        sub start2() {
+            uword @shared startval1 = 2002
+            ubyte[2] @shared barr
+            uword[2] @shared warr
+            uword[] @shared warr2 = [1,2]
+        }
     }
 
     asmsub derp() {
-
     }
 
     sub foobar() {
+        uword @shared startval1 = 2002
+        uword @shared mainglobal1 = 2002
         txt.print("foobar\n")
     }
 }
