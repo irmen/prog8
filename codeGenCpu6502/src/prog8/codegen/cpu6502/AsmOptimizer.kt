@@ -10,7 +10,7 @@ import prog8.compilerinterface.IMachineDefinition
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
-fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, program: Program): Int {
+internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, program: Program): Int {
 
     var numberOfOptimizations = 0
 

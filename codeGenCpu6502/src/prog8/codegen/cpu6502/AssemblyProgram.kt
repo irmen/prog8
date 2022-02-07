@@ -11,7 +11,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
-class AssemblyProgram(
+internal class AssemblyProgram(
         override val name: String,
         outputDir: Path,
         private val compTarget: ICompilationTarget) : IAssemblyProgram {

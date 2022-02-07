@@ -13,9 +13,9 @@ import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 
 
-const val generatedLabelPrefix = "prog8_label_"
-const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
-const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
+internal const val generatedLabelPrefix = "prog8_label_"
+internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
+internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 
 class AsmGen(internal val program: Program,
@@ -124,7 +124,7 @@ class AsmGen(internal val program: Program,
     fun asmSymbolName(identifier: IdentifierReference) = asmSymbolName(identifier.nameInSource)
     fun asmVariableName(identifier: IdentifierReference) = asmVariableName(identifier.nameInSource)
 
-    fun getTempVarName(dt: DataType): List<String> {
+    internal fun getTempVarName(dt: DataType): List<String> {
         return when(dt) {
             DataType.UBYTE -> listOf("cx16", "r9L")
             DataType.BYTE -> listOf("cx16", "r9sL")
@@ -330,7 +330,6 @@ class AsmGen(internal val program: Program,
     internal fun translate(stmt: Statement) {
         outputSourceLine(stmt)
         when(stmt) {
-            is VarDecl -> translate(stmt)
             is Directive -> translate(stmt)
             is Return -> translate(stmt)
             is Subroutine -> programGen.translateSubroutine(stmt)
@@ -359,6 +358,7 @@ class AsmGen(internal val program: Program,
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
             is Pipe -> translatePipeExpression(stmt.expressions, stmt, true, false)
+            is VarDecl -> { /* do nothing; variables are handled elsewhere */ }
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
             is WhileLoop -> throw AssemblyError("while should have been converted to jumps")
@@ -880,12 +880,6 @@ $repeatLabel    lda  $counterVar
                 out(endLabel)
             }
         }
-    }
-
-    private fun translate(decl: VarDecl) {
-        if(decl.type==VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
-            throw AssemblyError("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
-        // at this time, nothing has to be done here anymore code-wise
     }
 
     private fun translate(stmt: Directive) {

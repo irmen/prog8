@@ -1,7 +1,6 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import com.github.michaelbull.result.onSuccess
 import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Program
@@ -28,7 +27,7 @@ internal class ProgramGen(
 ) {
     private val compTarget = options.compTarget
     private val removals = mutableListOf<Pair<Statement, IStatementContainer>>()
-    private val varsInZeropage = mutableSetOf<VarDecl>()
+    private val allocation = VariableAllocation(variables, errors)
     private val callGraph = CallGraph(program)
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
@@ -43,7 +42,7 @@ internal class ProgramGen(
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
 
-        allocateAllZeropageVariables()
+        allocation.allocateAllZeropageVariables(options, callGraph)
         if(errors.noErrors())  {
             program.allBlocks.forEach { block2asm(it) }
 
@@ -52,7 +51,7 @@ internal class ProgramGen(
                 removals.remove(removal)
             }
 
-            slaballocations()
+            memorySlabs()
             footer()
         }
     }
@@ -134,7 +133,7 @@ internal class ProgramGen(
         }
     }
 
-    private fun slaballocations() {
+    private fun memorySlabs() {
         asmgen.out("; memory slabs")
         asmgen.out("prog8_slabs\t.block")
         for((name, info) in asmgen.allMemorySlabs) {
@@ -307,8 +306,8 @@ internal class ProgramGen(
         }
 
         // string and array variables in zeropage that have initializer value, should be initialized
-        val stringVarsInZp = varsInZeropage.filter { it.datatype==DataType.STR && it.value!=null }
-        val arrayVarsInZp = varsInZeropage.filter { it.datatype in ArrayDatatypes && it.value!=null }
+        val stringVarsInZp = allocation.varsInZeropage.filter { it.datatype==DataType.STR && it.value!=null }
+        val arrayVarsInZp = allocation.varsInZeropage.filter { it.datatype in ArrayDatatypes && it.value!=null }
         if(stringVarsInZp.isNotEmpty() || arrayVarsInZp.isNotEmpty()) {
             asmgen.out("; zp str and array initializations")
             stringVarsInZp.forEach {
@@ -352,54 +351,6 @@ internal class ProgramGen(
                     ldx  #255       ; init estack ptr
                     clv
                     clc""")
-    }
-
-    private fun allocateAllZeropageVariables() {
-        if(options.zeropage==ZeropageType.DONTUSE)
-            return
-        val allVariables = this.callGraph.allIdentifiers.asSequence()
-            .map { it.value }
-            .filterIsInstance<VarDecl>()
-            .filter { it.type==VarDeclType.VAR }
-            .toSet()
-            .map { it to it.scopedName }
-        val varsRequiringZp = allVariables.filter { it.first.zeropage==ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables
-            .filter { it.first.zeropage==ZeropageWish.PREFER_ZEROPAGE }
-            .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
-
-        for ((vardecl, scopedname) in varsRequiringZp) {
-            val numElements: Int? = when(vardecl.datatype) {
-                DataType.STR -> {
-                    (vardecl.value as StringLiteralValue).value.length
-                }
-                in ArrayDatatypes -> {
-                    vardecl.arraysize!!.constIndex()
-                }
-                else -> null
-            }
-            val result = asmgen.zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.position, errors)
-            result.fold(
-                success = { varsInZeropage.add(vardecl) },
-                failure = { errors.err(it.message!!, vardecl.position) }
-            )
-        }
-        if(errors.noErrors()) {
-            varsPreferringZp.forEach { (vardecl, scopedname) ->
-                val arraySize: Int? = when (vardecl.datatype) {
-                    DataType.STR -> {
-                        (vardecl.value as StringLiteralValue).value.length
-                    }
-                    in ArrayDatatypes -> {
-                        vardecl.arraysize!!.constIndex()
-                    }
-                    else -> null
-                }
-                val result = asmgen.zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
-                result.onSuccess { varsInZeropage.add(vardecl) }
-                //  no need to check for error, if there is one, just allocate in normal system ram later.
-            }
-        }
     }
 
     private fun zeropagevars2asm(statements: List<Statement>, inBlock: Block?) {
