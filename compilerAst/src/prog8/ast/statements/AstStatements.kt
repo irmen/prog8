@@ -215,15 +215,6 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
                     isArray = true, sharedWithAsm = false, subroutineParameter = null, position = array.position)
         }
-
-        fun defaultZero(dt: DataType, position: Position) = when(dt) {
-            DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, 0.0,  position)
-            DataType.BYTE -> NumericLiteralValue(DataType.BYTE, 0.0,  position)
-            DataType.UWORD, DataType.STR -> NumericLiteralValue(DataType.UWORD, 0.0, position)
-            DataType.WORD -> NumericLiteralValue(DataType.WORD, 0.0, position)
-            DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, 0.0, position)
-            else -> throw FatalAstException("can only determine default zero value for a numeric type")
-        }
     }
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
@@ -405,12 +396,6 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
 
             return false
         }
-
-    fun initializerFor(program: Program) =
-            if(origin==AssignmentOrigin.VARINIT)
-                target.identifier!!.targetVarDecl(program)
-            else
-                null
 }
 
 data class AssignTarget(var identifier: IdentifierReference?,

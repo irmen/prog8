@@ -777,7 +777,7 @@ $repeatLabel    lda  $counterVar
         val counterVar = makeLabel("counter")
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
-                val result = zeropage.allocate(listOf(counterVar), dt, null, stmt.position, errors)
+                val result = zeropage.allocate(listOf(counterVar), dt, null, null, stmt.position, errors)
                 result.fold(
                     success = { (address, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally

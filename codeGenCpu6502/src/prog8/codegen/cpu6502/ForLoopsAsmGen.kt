@@ -291,7 +291,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(length>=16) {
                     // allocate index var on ZP if possible
-                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -332,7 +332,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(length>=16) {
                     // allocate index var on ZP if possible
-                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }

@@ -4,6 +4,9 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import prog8.ast.base.*
+import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.StringLiteralValue
 
 
 class ZeropageAllocationError(message: String) : Exception(message)
@@ -16,12 +19,17 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 
+    data class ZpAllocation(val address: UInt,
+                            val dt: DataType,
+                            val size: Int,
+                            val initialStringValue: StringLiteralValue?,
+                            val initialArrayValue: ArrayLiteralValue?)
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    protected val allocatedVariables = mutableMapOf<List<String>, Pair<UInt, Pair<DataType, Int>>>()
+    protected val allocatedVariables = mutableMapOf<List<String>, ZpAllocation>()
     private val allocations = mutableMapOf<UInt, Pair<List<String>, DataType>>()
-    public val variables: Map<List<String>, Pair<UInt, Pair<DataType, Int>>> = allocatedVariables
+    val variables: Map<List<String>, ZpAllocation> = allocatedVariables
 
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
@@ -43,7 +51,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(name: List<String>, datatype: DataType, numElements: Int?, position: Position?, errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+    fun allocate(name: List<String>,
+                 datatype: DataType,
+                 numElements: Int?,
+                 initValue: Expression?,
+                 position: Position?,
+                 errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+
         require(name.isEmpty() || !allocations.values.any { it.first==name } ) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
@@ -78,13 +92,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))
-                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name), 1))
+                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name, initValue), 1))
                     }
-                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name), 1))
+                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name, initValue), 1))
                 }
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                     if (sequentialFree(candidate, size))
-                        return Ok(Pair(makeAllocation(candidate, size, datatype, name), size))
+                        return Ok(Pair(makeAllocation(candidate, size, datatype, name, initValue), size))
                 }
             }
         }
@@ -94,12 +108,18 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
 
-    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>): UInt {
+    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>, initValue: Expression?): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
         allocations[address] = name to datatype
-        if(name.isNotEmpty())
-            allocatedVariables[name] = address to (datatype to size)
+        if(name.isNotEmpty()) {
+            allocatedVariables[name] = when(datatype) {
+                in NumericDatatypes -> ZpAllocation(address, datatype, size, null, null)        // numerical variables in zeropage never have an initial value here TODO why not?
+                DataType.STR -> ZpAllocation(address, datatype, size, initValue as? StringLiteralValue, null)
+                in ArrayDatatypes -> ZpAllocation(address, datatype, size, null, initValue as? ArrayLiteralValue)
+                else -> throw AssemblyError("invalid dt")
+            }
+        }
         return address
     }
 

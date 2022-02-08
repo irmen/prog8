@@ -32,8 +32,6 @@ internal class ProgramGen(
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
     internal fun generate() {
-        // variables.dump(program.memsizer)        // TODO
-
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
         require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
 
@@ -304,30 +302,31 @@ internal class ProgramGen(
         }
 
         // string and array variables in zeropage that have initializer value, should be initialized
-        val stringVarsInZp = allocation.varsInZeropage.filter { it.datatype==DataType.STR && it.value!=null }
-        val arrayVarsInZp = allocation.varsInZeropage.filter { it.datatype in ArrayDatatypes && it.value!=null }
-        if(stringVarsInZp.isNotEmpty() || arrayVarsInZp.isNotEmpty()) {
+        val stringVarsWithInitInZp = asmgen.zeropage.variables.filter { it.value.dt==DataType.STR && it.value.initialStringValue!=null }
+        val arrayVarsWithInitInZp = asmgen.zeropage.variables.filter { it.value.dt in ArrayDatatypes && it.value.initialArrayValue!=null }
+        if(stringVarsWithInitInZp.isNotEmpty() || arrayVarsWithInitInZp.isNotEmpty()) {
             asmgen.out("; zp str and array initializations")
-            stringVarsInZp.forEach {
+            stringVarsWithInitInZp.forEach {
+                val name = asmgen.asmVariableName(it.key)
                 asmgen.out("""
-                    lda  #<${it.name}
-                    ldy  #>${it.name}
+                    lda  #<${name}
+                    ldy  #>${name}
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
-                    lda  #<${it.name}_init_value
-                    ldy  #>${it.name}_init_value
+                    lda  #<${name}_init_value
+                    ldy  #>${name}_init_value
                     jsr  prog8_lib.strcpy""")
             }
-            arrayVarsInZp.forEach {
-                val numelements = (it.value as ArrayLiteralValue).value.size
-                val size = numelements * program.memsizer.memorySize(ArrayToElementTypes.getValue(it.datatype))
+            arrayVarsWithInitInZp.forEach {
+                val size = it.value.size
+                val name = asmgen.asmVariableName(it.key)
                 asmgen.out("""
-                    lda  #<${it.name}_init_value
-                    ldy  #>${it.name}_init_value
+                    lda  #<${name}_init_value
+                    ldy  #>${name}_init_value
                     sta  cx16.r0L
                     sty  cx16.r0H
-                    lda  #<${it.name}
-                    ldy  #>${it.name}
+                    lda  #<${name}
+                    ldy  #>${name}
                     sta  cx16.r1L
                     sty  cx16.r1H
                     lda  #<$size
@@ -337,11 +336,16 @@ internal class ProgramGen(
             asmgen.out("  jmp  +")
         }
 
-        stringVarsInZp.forEach {
-            outputStringvar(it, it.name+"_init_value")
+        stringVarsWithInitInZp.forEach {
+            val varname = asmgen.asmVariableName(it.key)+"_init_value"
+            val sv = it.value.initialStringValue!!
+            outputStringvar(varname, it.value.dt, sv.encoding, sv.value)
         }
-        arrayVarsInZp.forEach {
-            vardecl2asm(it, it.name+"_init_value")
+
+        arrayVarsWithInitInZp.forEach {
+            val varname = asmgen.asmVariableName(it.key)+"_init_value"
+            val av = it.value.initialArrayValue!!
+            arrayVardecl2asm(varname, it.value.dt, av, null)
         }
 
         asmgen.out("""+       tsx
@@ -365,7 +369,7 @@ internal class ProgramGen(
                 if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
                     variable.datatype in IntegerDatatypes
                     && options.zeropage != ZeropageType.DONTUSE) {
-                    val result = asmgen.zeropage.allocate(scopedName, variable.datatype, null, null, errors)
+                    val result = asmgen.zeropage.allocate(scopedName, variable.datatype, null, null, null, errors)
                     errors.report()
                     result.fold(
                         success = { (address, _) -> asmgen.out("${variable.name} = $address\t; zp ${variable.datatype}") },
@@ -374,13 +378,13 @@ internal class ProgramGen(
                 }
             } else {
                 // Var has been placed in ZP, just output the address
-                val lenspec = when(zpAlloc.second.first) {
+                val lenspec = when(zpAlloc.dt) {
                     DataType.FLOAT,
                     DataType.STR,
-                    in ArrayDatatypes -> " ${zpAlloc.second.second} bytes"
+                    in ArrayDatatypes -> " ${zpAlloc.size} bytes"
                     else -> ""
                 }
-                asmgen.out("${variable.name} = ${zpAlloc.first}\t; zp ${variable.datatype} $lenspec")
+                asmgen.out("${variable.name} = ${zpAlloc.address}\t; zp ${variable.datatype} $lenspec")
             }
         }
     }
@@ -418,66 +422,67 @@ internal class ProgramGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
+            in ArrayDatatypes -> arrayVardecl2asm(name, decl.datatype, decl.value as? ArrayLiteralValue, decl.arraysize?.constIndex())
+            else -> {
+                throw AssemblyError("weird dt")
+            }
+        }
+    }
+
+    private fun arrayVardecl2asm(varname: String, dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?) {
+        when(dt) {
             DataType.ARRAY_UB -> {
-                val data = makeArrayFillDataUnsigned(decl)
+                val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
-                    asmgen.out("$name\t.byte  ${data.joinToString()}")
+                    asmgen.out("$varname\t.byte  ${data.joinToString()}")
                 else {
-                    asmgen.out(name)
+                    asmgen.out(varname)
                     for (chunk in data.chunked(16))
                         asmgen.out("  .byte  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_B -> {
-                val data = makeArrayFillDataSigned(decl)
+                val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
-                    asmgen.out("$name\t.char  ${data.joinToString()}")
+                    asmgen.out("$varname\t.char  ${data.joinToString()}")
                 else {
-                    asmgen.out(name)
+                    asmgen.out(varname)
                     for (chunk in data.chunked(16))
                         asmgen.out("  .char  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_UW -> {
-                val data = makeArrayFillDataUnsigned(decl)
+                val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
-                    asmgen.out("$name\t.word  ${data.joinToString()}")
+                    asmgen.out("$varname\t.word  ${data.joinToString()}")
                 else {
-                    asmgen.out(name)
+                    asmgen.out(varname)
                     for (chunk in data.chunked(16))
                         asmgen.out("  .word  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_W -> {
-                val data = makeArrayFillDataSigned(decl)
+                val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
-                    asmgen.out("$name\t.sint  ${data.joinToString()}")
+                    asmgen.out("$varname\t.sint  ${data.joinToString()}")
                 else {
-                    asmgen.out(name)
+                    asmgen.out(varname)
                     for (chunk in data.chunked(16))
                         asmgen.out("  .sint  " + chunk.joinToString())
                 }
             }
             DataType.ARRAY_F -> {
-                val array =
-                    if(decl.value!=null)
-                        (decl.value as ArrayLiteralValue).value
-                    else {
-                        // no init value, use zeros
-                        val zero = decl.zeroElementValue()
-                        Array(decl.arraysize!!.constIndex()!!) { zero }
-                    }
+                val array = value?.value ?:
+                                Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
                 val floatFills = array.map {
                     val number = (it as NumericLiteralValue).number
                     compTarget.machine.getFloat(number).makeFloatFillAsm()
                 }
-                asmgen.out(name)
+                asmgen.out(varname)
                 for (f in array.zip(floatFills))
                     asmgen.out("  .byte  ${f.second}  ; float ${f.first}")
             }
-            else -> {
-                throw AssemblyError("weird dt")
-            }
+            else -> throw AssemblyError("require array dt")
         }
     }
 
@@ -543,23 +548,21 @@ internal class ProgramGen(
     private fun outputStringvar(strdecl: VarDecl, nameOverride: String?=null) {
         val varname = nameOverride ?: strdecl.name
         val sv = strdecl.value as StringLiteralValue
-        asmgen.out("$varname\t; ${strdecl.datatype} ${sv.encoding}:\"${escape(sv.value).replace("\u0000", "<NULL>")}\"")
-        val bytes = compTarget.encodeString(sv.value, sv.encoding).plus(0.toUByte())
+        outputStringvar(varname, strdecl.datatype, sv.encoding, sv.value)
+    }
+
+    private fun outputStringvar(varname: String, dt: DataType, encoding: Encoding, value: String) {
+        asmgen.out("$varname\t; $dt $encoding:\"${escape(value).replace("\u0000", "<NULL>")}\"")
+        val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(decl: VarDecl): List<String> {
-        val array =
-            if(decl.value!=null)
-                (decl.value as ArrayLiteralValue).value
-            else {
-                // no array init value specified, use a list of zeros
-                val zero = decl.zeroElementValue()
-                Array(decl.arraysize!!.constIndex()!!) { zero }
-            }
-        return when (decl.datatype) {
+    private fun makeArrayFillDataUnsigned(dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?): List<String> {
+        val array = value?.value ?:
+                        Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
+        return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
@@ -580,23 +583,14 @@ internal class ProgramGen(
                     else -> throw AssemblyError("weird array elt dt")
                 }
             }
-            else -> throw AssemblyError("invalid arraysize type")
+            else -> throw AssemblyError("invalid dt")
         }
     }
 
-    private fun makeArrayFillDataSigned(decl: VarDecl): List<String> {
-        val array =
-            if(decl.value!=null) {
-                if(decl.value !is ArrayLiteralValue)
-                    throw AssemblyError("can only use array literal values as array initializer value")
-                (decl.value as ArrayLiteralValue).value
-            }
-            else {
-                // no array init value specified, use a list of zeros
-                val zero = decl.zeroElementValue()
-                Array(decl.arraysize!!.constIndex()!!) { zero }
-            }
-        return when (decl.datatype) {
+    private fun makeArrayFillDataSigned(dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?): List<String> {
+        val array = value?.value ?:
+                        Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
+        return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
@@ -625,7 +619,7 @@ internal class ProgramGen(
                 else
                     "-$$hexnum"
             }
-            else -> throw AssemblyError("invalid arraysize type ${decl.datatype}")
+            else -> throw AssemblyError("invalid dt")
         }
     }
 

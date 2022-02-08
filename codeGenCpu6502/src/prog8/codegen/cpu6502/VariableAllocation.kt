@@ -1,11 +1,9 @@
 package prog8.codegen.cpu6502
 
-import com.github.michaelbull.result.fold
-import com.github.michaelbull.result.onSuccess
+import com.github.michaelbull.result.onFailure
 import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.expressions.StringLiteralValue
-import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
@@ -14,7 +12,6 @@ import prog8.compilerinterface.ZeropageType
 
 
 internal class VariableAllocation(val vars: IVariablesAndConsts, val errors: IErrorReporter) {
-    val varsInZeropage = mutableSetOf<VarDecl>()
 
     fun allocateAllZeropageVariables(options: CompilationOptions) {
         if(options.zeropage== ZeropageType.DONTUSE)
@@ -75,11 +72,8 @@ internal class VariableAllocation(val vars: IVariablesAndConsts, val errors: IEr
                 }
                 else -> null
             }
-            val result = zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.position, errors)
-            result.fold(
-                success = { varsInZeropage.add(vardecl) },
-                failure = { errors.err(it.message!!, vardecl.position) }
-            )
+            val result = zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
+            result.onFailure { errors.err(it.message!!, vardecl.position) }
         }
         if(errors.noErrors()) {
             varsPreferringZp.forEach { (vardecl, scopedname) ->
@@ -92,8 +86,7 @@ internal class VariableAllocation(val vars: IVariablesAndConsts, val errors: IEr
                     }
                     else -> null
                 }
-                val result = zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.position, errors)
-                result.onSuccess { varsInZeropage.add(vardecl) }
+                zeropage.allocate(scopedname, vardecl.datatype, arraySize, vardecl.value, vardecl.position, errors)
                 //  no need to check for error, if there is one, just allocate in normal system ram later.
             }
         }

@@ -1,6 +1,7 @@
 package prog8.ast.base
 
 import prog8.ast.Node
+import prog8.ast.expressions.NumericLiteralValue
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
 
@@ -195,4 +196,13 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
     companion object {
         val DUMMY = Position("<dummy>", 0, 0, 0)
     }
+}
+
+fun defaultZero(dt: DataType, position: Position) = when(dt) {
+    DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, 0.0,  position)
+    DataType.BYTE -> NumericLiteralValue(DataType.BYTE, 0.0,  position)
+    DataType.UWORD, DataType.STR -> NumericLiteralValue(DataType.UWORD, 0.0, position)
+    DataType.WORD -> NumericLiteralValue(DataType.WORD, 0.0, position)
+    DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, 0.0, position)
+    else -> throw FatalAstException("can only determine default zero value for a numeric type")
 }
