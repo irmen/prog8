@@ -36,7 +36,7 @@ main {
         }
         withClue("module order in parse tree") {
             moduleNames.drop(1) shouldBe listOf(
-                "prog8_interned_strings",
+                internedStringsModuleName,
                 "textio",
                 "syslib",
                 "conv",

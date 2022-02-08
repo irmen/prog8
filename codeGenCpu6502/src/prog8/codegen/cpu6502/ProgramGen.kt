@@ -218,8 +218,6 @@ internal class ProgramGen(
         }
 
         asmgen.out("")
-        asmgen.outputSourceLine(sub)
-
 
         if(sub.isAsmSubroutine) {
             if(sub.asmAddress!=null)

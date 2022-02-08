@@ -71,19 +71,21 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         val scope=decl.definingScope
         when (decl.type) {
             VarDeclType.VAR -> {
-                when(scope) {
-                    is Block -> {
-                        val decls = allBlockVars[scope] ?: mutableSetOf()
-                        decls.add(decl)
-                        allBlockVars[scope] = decls
-                    }
-                    is Subroutine -> {
-                        val decls = allSubroutineVars[scope] ?: mutableSetOf()
-                        decls.add(decl)
-                        allSubroutineVars[scope] = decls
-                    }
-                    else -> {
-                        throw FatalAstException("var can only occur in subroutine or block scope")
+                if(decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
+                    when (scope) {
+                        is Block -> {
+                            val decls = allBlockVars[scope] ?: mutableSetOf()
+                            decls.add(decl)
+                            allBlockVars[scope] = decls
+                        }
+                        is Subroutine -> {
+                            val decls = allSubroutineVars[scope] ?: mutableSetOf()
+                            decls.add(decl)
+                            allSubroutineVars[scope] = decls
+                        }
+                        else -> {
+                            throw FatalAstException("var can only occur in subroutine or block scope")
+                        }
                     }
                 }
             }
@@ -469,7 +471,7 @@ internal class VariablesAndConsts (
         astBlockVars.forEach { (block, decls) ->
             val vars = bv.getValue(block)
             vars.addAll(decls.map {
-                IVariablesAndConsts.StaticBlockVariable(it.datatype, it.name, it.value, it.position, it)
+                IVariablesAndConsts.StaticBlockVariable(it.datatype, it.name, it.value, it.zeropage, it.position, it)
             })
         }
         astBlockConsts.forEach { (block, decls) ->
@@ -497,7 +499,7 @@ internal class VariablesAndConsts (
         astSubroutineVars.forEach { (sub, decls) ->
             val vars = sv.getValue(sub)
             vars.addAll(decls.map {
-                IVariablesAndConsts.StaticSubroutineVariable(it.datatype, it.name, it.position, it)
+                IVariablesAndConsts.StaticSubroutineVariable(it.datatype, it.name, it.zeropage, it.position, it)
             })
         }
         astSubroutineConsts.forEach { (sub, decls) ->

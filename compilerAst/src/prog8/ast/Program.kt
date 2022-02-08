@@ -4,9 +4,10 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.*
-import prog8.compilerinterface.Encoding
+import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
 import prog8.parser.SourceCode
@@ -74,7 +75,8 @@ class Program(val name: String,
         get() = toplevelModule.loadAddress
 
     var actualLoadAddress = 0u
-    private val internedStringsUnique = mutableMapOf<Pair<String, Encoding>, List<String>>()
+
+    private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 
     fun internString(string: StringLiteralValue): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
@@ -85,10 +87,11 @@ class Program(val name: String,
             throw FatalAstException("cannot intern a string literal that's part of a vardecl")
         }
 
-        fun getScopedName(string: StringLiteralValue): List<String> {
-            val internedStringsBlock = modules
-                .first { it.name == internedStringsModuleName }.statements
-                .first { it is Block && it.name == internedStringsModuleName } as Block
+        val internedStringsBlock = modules
+            .first { it.name == internedStringsModuleName }.statements
+            .first { it is Block && it.name == internedStringsModuleName } as Block
+
+        fun addNewInternedStringvar(string: StringLiteralValue): Pair<List<String>, VarDecl> {
             val varName = "string_${internedStringsBlock.statements.size}"
             val decl = VarDecl(
                 VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE, null, varName, string,
@@ -96,16 +99,58 @@ class Program(val name: String,
             )
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)
-            return listOf(internedStringsModuleName, decl.name)
+            return Pair(listOf(internedStringsModuleName, decl.name), decl)
         }
 
-        val key = Pair(string.value, string.encoding)
-        val existing = internedStringsUnique[key]
-        if (existing != null)
-            return existing
-
-        val scopedName = getScopedName(string)
-        internedStringsUnique[key] = scopedName
-        return scopedName
+        val existingDecl = internedStringsBlock.statements.singleOrNull {
+            val declString = (it as VarDecl).value as StringLiteralValue
+            declString.encoding == string.encoding && declString.value == string.value
+        }
+        return if (existingDecl != null) {
+            existingDecl as VarDecl
+            internedStringsReferenceCounts[existingDecl] = internedStringsReferenceCounts.getValue(existingDecl)+1
+            existingDecl.scopedName
+        }
+        else {
+            val (newName, newDecl) = addNewInternedStringvar(string)
+            internedStringsReferenceCounts[newDecl] = 1
+            newName
+        }
     }
+
+    fun removeInternedStringsFromRemovedSubroutine(sub: Subroutine) {
+        val s = StringSearch(this)
+        sub.accept(s)
+        s.removeStrings(modules)
+    }
+
+    fun removeInternedStringsFromRemovedBlock(block: Block) {
+        val s = StringSearch(this)
+        block.accept(s)
+        s.removeStrings(modules)
+    }
+
+    private class StringSearch(val program: Program): IAstVisitor {
+        val removals = mutableListOf<List<String>>()
+        override fun visit(identifier: IdentifierReference) {
+            if(identifier.wasStringLiteral(program))
+                removals.add(identifier.nameInSource)
+        }
+
+        fun removeStrings(modules: List<Module>) {
+            if(removals.isNotEmpty()) {
+                val internedStringsBlock = modules
+                    .first { it.name == internedStringsModuleName }.statements
+                    .first { it is Block && it.name == internedStringsModuleName } as Block
+                removals.forEach { scopedname ->
+                    val decl = internedStringsBlock.statements.single { decl -> (decl as VarDecl).scopedName == scopedname } as VarDecl
+                    val numRefs = program.internedStringsReferenceCounts.getValue(decl) - 1
+                    program.internedStringsReferenceCounts[decl] = numRefs
+                    if(numRefs==0)
+                        internedStringsBlock.statements.remove(decl)
+                }
+            }
+        }
+    }
+
 }

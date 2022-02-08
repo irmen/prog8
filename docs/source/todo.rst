@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- (newvaralloc) UnusedCodeRemover after(decl: VarDecl): fix that vars defined in a library can also safely be removed if unused. Currently this breaks programs such as textelite (due to diskio.save().end_address ?)
+
 
 Need help with
 ^^^^^^^^^^^^^^

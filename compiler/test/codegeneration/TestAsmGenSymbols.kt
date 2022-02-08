@@ -79,13 +79,13 @@ class TestAsmGenSymbols: StringSpec({
             override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
             init {
                 blockVars = mutableMapOf()
-                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticBlockVariable(varInBlock.datatype, varInBlock.name, varInBlock.value, varInBlock.position, varInBlock))
+                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticBlockVariable(varInBlock.datatype, varInBlock.name, varInBlock.value, varInBlock.zeropage, varInBlock.position, varInBlock))
                 blockConsts = mutableMapOf()
                 blockMemvars = mutableMapOf()
                 subroutineVars = mutableMapOf()
                 subroutineVars[subroutine] = mutableSetOf(
-                    IVariablesAndConsts.StaticSubroutineVariable(varInSub.datatype, varInSub.name, varInSub.position, varInSub),
-                    IVariablesAndConsts.StaticSubroutineVariable(var2InSub.datatype, var2InSub.name, var2InSub.position, var2InSub)
+                    IVariablesAndConsts.StaticSubroutineVariable(varInSub.datatype, varInSub.name, var2InSub.zeropage, varInSub.position, varInSub),
+                    IVariablesAndConsts.StaticSubroutineVariable(var2InSub.datatype, var2InSub.name, var2InSub.zeropage, var2InSub.position, var2InSub)
                 )
                 subroutineConsts = mutableMapOf()
                 subroutineMemvars = mutableMapOf()

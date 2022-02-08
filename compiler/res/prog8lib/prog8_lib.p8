@@ -7,13 +7,13 @@ prog8_lib {
 	%asminclude "library:prog8_funcs.asm"
 
 	; to store intermediary expression results for return values:
-	; NOTE: these variables are used in the StatementReorderer and StatementOptimizer
-	uword @zp retval_interm_uw
-	word @zp retval_interm_w
-	ubyte @zp retval_interm_ub
-	byte @zp retval_interm_b
-	word retval_interm_w2
-	byte retval_interm_b2
+	; NOTE: these variables can be used in the StatementReorderer and StatementOptimizer
+	uword @zp @shared retval_interm_uw
+	word @zp @shared retval_interm_w
+	ubyte @zp @shared retval_interm_ub
+	byte @zp @shared retval_interm_b
+	word @shared retval_interm_w2
+	byte @shared retval_interm_b2
 
         ; prog8 "hooks" to be able to access the temporary scratch variables
         ; YOU SHOULD NOT USE THESE IN USER CODE - THESE ARE MEANT FOR INTERNAL COMPILER USE

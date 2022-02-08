@@ -69,6 +69,7 @@ class UnusedCodeRemover(private val program: Program,
             if(callgraph.unused(block)) {
                 if(block.statements.any{ it !is VarDecl || it.type==VarDeclType.VAR})
                     errors.warn("removing unused block '${block.name}'", block.position)
+                program.removeInternedStringsFromRemovedBlock(block)
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
         }
@@ -92,6 +93,7 @@ class UnusedCodeRemover(private val program: Program,
                 }
                 if(!subroutine.definingModule.isLibrary)
                     errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
+                program.removeInternedStringsFromRemovedSubroutine(subroutine)
                 return listOf(IAstModification.Remove(subroutine, parent as IStatementContainer))
             }
         }
@@ -101,11 +103,13 @@ class UnusedCodeRemover(private val program: Program,
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.type==VarDeclType.VAR) {
-            val forceOutput = "force_output" in decl.definingBlock.options()
-            if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm && !decl.definingBlock.isInLibrary) {
+            val block = decl.definingBlock
+            val forceOutput = "force_output" in block.options()
+            if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm && !block.isInLibrary) {         // TODO remove check on block.isInLibrary, but this now breaks some programs
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
-                    errors.warn("removing unused variable '${decl.name}'", decl.position)
+                    if(!decl.definingModule.isLibrary)
+                        errors.warn("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }
                 else {
@@ -113,8 +117,9 @@ class UnusedCodeRemover(private val program: Program,
                         val singleUse = usages[0].parent
                         if(singleUse is AssignTarget) {
                             val assignment = singleUse.parent as Assignment
-                            if(assignment.value !is IFunctionCall) {
-                                errors.warn("removing unused variable '${decl.name}'", decl.position)
+                            if(assignment.origin==AssignmentOrigin.VARINIT) {
+                                if(!decl.definingModule.isLibrary)
+                                    errors.warn("removing unused variable '${decl.name}'", decl.position)
                                 return listOf(
                                     IAstModification.Remove(decl, parent as IStatementContainer),
                                     IAstModification.Remove(assignment, assignment.parent as IStatementContainer)

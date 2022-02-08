@@ -6,6 +6,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
+import prog8.ast.statements.ZeropageWish
 
 /**
  * Experimental attempt for:
@@ -16,8 +17,8 @@ interface IVariablesAndConsts {
     data class ConstantNumberSymbol(val type: DataType, val name: String, val value: Double, val position: Position)
     data class MemoryMappedVariable(val type: DataType, val name: String, val address: UInt, val position: Position)
     // TODO should get rid of origVar altogether in the following two:
-    data class StaticBlockVariable(val type: DataType, val name: String, val initialValue: Expression?, val position: Position, val origVar: VarDecl)
-    data class StaticSubroutineVariable(val type: DataType, val name: String, val position: Position, val origVar: VarDecl)
+    data class StaticBlockVariable(val type: DataType, val name: String, val initialValue: Expression?, val zp: ZeropageWish, val position: Position, val origVar: VarDecl)
+    data class StaticSubroutineVariable(val type: DataType, val name: String, val zp: ZeropageWish, val position: Position, val origVar: VarDecl)
 
     fun dump(memsizer: IMemSizer)
 
