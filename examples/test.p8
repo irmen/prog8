@@ -17,6 +17,8 @@ main {
     str @requirezp zpname = "irmenzp"
 
     sub start() {
+        prog8_lib.P8ZP_SCRATCH_B1 = 1
+
         txt.print_uw(nullwords[1])
         txt.nl()
         txt.print_ub(nullbytes[1])

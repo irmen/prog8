@@ -1,6 +1,5 @@
 package prog8.codegen.cpu6502
 
-import com.github.michaelbull.result.fold
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.antlr.escape
@@ -164,9 +163,9 @@ internal class ProgramGen(
         asmgen.outputSourceLine(block)
 
         val vardecls = block.statements.filterIsInstance<VarDecl>()
-        zeropagevars2asm(vardecls, block)
+        zeropagevars2asm(vardecls)
         memdefs2asmVars(vardecls, block)
-        memdefs2asmAsmsubs(block.statements.filterIsInstance<Subroutine>(), block)
+        memdefs2asmAsmsubs(block.statements.filterIsInstance<Subroutine>())
         vardecls2asm(vardecls, block)
 
         vardecls.forEach {
@@ -226,9 +225,9 @@ internal class ProgramGen(
             // regular subroutine
             asmgen.out("${sub.name}\t.proc")
             val vardecls = sub.statements.filterIsInstance<VarDecl>()
-            zeropagevars2asm(vardecls, null)
+            zeropagevars2asm(vardecls)
             memdefs2asmVars(vardecls, null)
-            memdefs2asmAsmsubs(sub.statements.filterIsInstance<Subroutine>(), null)
+            memdefs2asmAsmsubs(sub.statements.filterIsInstance<Subroutine>())
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
             if(sub.name=="start" && sub.definingBlock.name=="main")
@@ -349,40 +348,25 @@ internal class ProgramGen(
                     clc""")
     }
 
-    private fun zeropagevars2asm(vardecls: List<VarDecl>, inBlock: Block?) {
+    private fun zeropagevars2asm(vardecls: List<VarDecl>) {
+        // TODO get list of variables directly from allocator or zeropage
         val zp = zeropage
         asmgen.out("; vars allocated on zeropage")
-        val variables = vardecls.filter { it.type==VarDeclType.VAR }
-        val blockname = inBlock?.name
-        for(variable in variables) {
-            if(blockname=="prog8_lib" && variable.name.startsWith("P8ZP_SCRATCH_"))
-                continue       // the "hooks" to the temp vars are not generated as new variables
-            val scopedName = variable.scopedName
-            val zpAlloc = zp.variables[scopedName]
-            if (zpAlloc == null) {
-                // TODO NO LONGER ALLOCATE HERE, IT'S ALL BEEN DONE IN THE VARIABLEALLOCATOR ALREADY
-                // This var is not on the ZP yet. Attempt to move it there if it's an integer type
-                if(variable.zeropage != ZeropageWish.NOT_IN_ZEROPAGE &&
-                    variable.datatype in IntegerDatatypes
-                    && options.zeropage != ZeropageType.DONTUSE) {
-                    val result = zp.allocate(scopedName, variable.datatype, null, null, null, errors)
-                    errors.report()
-                    result.fold(
-                        success = { (address, _) -> asmgen.out("${variable.name} = $address\t; zp ${variable.datatype}") },
-                        failure = { /* leave it as it is, not on zeropage. */ }
-                    )
+        vardecls
+            .filter { it.type==VarDeclType.VAR }
+            .forEach { variable ->
+                val scopedName = variable.scopedName
+                val zpAlloc = zp.variables[scopedName]
+                if (zpAlloc != null) {
+                    val lenspec = when(zpAlloc.dt) {
+                        DataType.FLOAT,
+                        DataType.STR,
+                        in ArrayDatatypes -> " ${zpAlloc.size} bytes"
+                        else -> ""
+                    }
+                    asmgen.out("${variable.name} = ${zpAlloc.address}\t; zp ${variable.datatype} $lenspec")
                 }
-            } else {
-                // Var has been placed in ZP, just output the address
-                val lenspec = when(zpAlloc.dt) {
-                    DataType.FLOAT,
-                    DataType.STR,
-                    in ArrayDatatypes -> " ${zpAlloc.size} bytes"
-                    else -> ""
-                }
-                asmgen.out("${variable.name} = ${zpAlloc.address}\t; zp ${variable.datatype} $lenspec")
             }
-        }
     }
 
     private fun vardecl2asm(decl: VarDecl, nameOverride: String?=null) {
@@ -496,7 +480,7 @@ internal class ProgramGen(
             }
     }
 
-    private fun memdefs2asmAsmsubs(subroutines: List<Subroutine>, inBlock: Block?) {
+    private fun memdefs2asmAsmsubs(subroutines: List<Subroutine>) {
         subroutines
             .filter { it.isAsmSubroutine }
             .forEach { sub->

@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.onFailure
 import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
+import prog8.ast.base.IntegerDatatypes
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
@@ -37,44 +38,6 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
             .filterNot { it.second.last() == "tbl" }   // TODO HACK -- NOT REALLY NECESSARY, BUT OLD CallGraph DIDN'T CONTAIN IT EITHER
             .filterNot { it.second.last() in setOf("retval_interm_w",  "retval_interm_b", "retval_interm_w2", "retval_interm_b2") }   // TODO HACK TO REMOVE THESE UNUSED VARS
 
-        val varsRequiringZp = allVariables
-            .filter { it.first.zeropage == ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables
-            .filter { it.first.zeropage == ZeropageWish.PREFER_ZEROPAGE }
-            .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
-        val varsDontCare = allVariables
-            .filter { it.first.zeropage == ZeropageWish.DONTCARE }
-            .sortedBy { options.compTarget.memorySize(it.first.datatype) }      // allocate the smallest DT first
-
-/*
-        // OLD CODE CHECKING:
-        if(true) {
-            val allVariablesFoundInCallgraph = callGraphForCheck.allIdentifiers.asSequence()
-                .map { it.value }
-                .filterIsInstance<VarDecl>()
-                .filter { it.type == VarDeclType.VAR && it.origin != VarDeclOrigin.SUBROUTINEPARAM }
-                .map { it.name to it.position }
-                .toSet()
-            val newAllVars = (vars.blockVars.flatMap { it.value }
-                .map { it.name to it.position } + vars.subroutineVars.flatMap { it.value }
-                .map { it.name to it.position }).toSet()
-            val extraVarsInCallgraph = allVariablesFoundInCallgraph - newAllVars
-            val extraVarsInNew = newAllVars - allVariablesFoundInCallgraph
-
-            if (extraVarsInCallgraph.any() || extraVarsInNew.any()) {
-                println("EXTRA VARS IN CALLGRAPH: ${extraVarsInCallgraph.size}")
-                extraVarsInCallgraph.forEach {
-                    println("  $it")
-                }
-                println("EXTRA VARS IN VARIABLESOBJ: ${extraVarsInNew.size}")
-                extraVarsInNew.forEach {
-                    println("  $it")
-                }
-                //TODO("fix differences")
-            }
-        }
-*/
-
         val zeropage = options.compTarget.machine.zeropage
 
         fun numArrayElements(vardecl: VarDecl): Int? = when(vardecl.datatype) {
@@ -86,6 +49,10 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
             }
             else -> null
         }
+
+        val varsRequiringZp = allVariables.filter { it.first.zeropage == ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariables.filter { it.first.zeropage == ZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare = allVariables.filter { it.first.zeropage == ZeropageWish.DONTCARE }
 
         varsRequiringZp.forEach { (vardecl, scopedname) ->
             val numElements = numArrayElements(vardecl)
@@ -100,14 +67,18 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
-            // TODO enable zp allocation here and remove it from other places
-//            if(errors.noErrors()) {
-//                varsDontCare.forEach { (vardecl, scopedname) ->
-//                    val numElements = numArrayElements(vardecl)
-//                    zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
-//                    //  no need to check for allocation error, if there is one, just allocate in normal system ram.
-//                }
-//            }
+            // try to allocate any other interger variables into the zeropage until it is full.
+            // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
+            if(errors.noErrors()) {
+                for ((vardecl, scopedname) in varsDontCare) {
+                    if(vardecl.datatype in IntegerDatatypes) {
+                        val numElements = numArrayElements(vardecl)
+                        zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
+                        if(zeropage.free.isEmpty())
+                            break
+                    }
+                }
+            }
         }
     }
 
