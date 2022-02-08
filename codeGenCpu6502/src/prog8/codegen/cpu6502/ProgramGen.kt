@@ -42,7 +42,7 @@ internal class ProgramGen(
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
 
-        allocation.allocateAllZeropageVariables(options, callGraph)
+        allocation.allocateAllZeropageVariables(options)
         if(errors.noErrors())  {
             program.allBlocks.forEach { block2asm(it) }
 

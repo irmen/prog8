@@ -681,8 +681,6 @@ galaxy {
 }
 
 planet {
-    %option force_output
-
     str[] species_sizes = ["Large", "Fierce", "Small"]
     str[] species_colors = ["Green", "Red", "Yellow", "Blue", "Black", "Harmless"]
     str[] species_looks = ["Slimy", "Bug-Eyed", "Horned", "Bony", "Fat", "Furry"]
@@ -728,7 +726,7 @@ planet {
     str[] wordsA3 = ["ice", "mud", "Zero-G", "vacuum", "\xB1 ultra"]
     str[] wordsA4 = ["hockey", "cricket", "karate", "polo", "tennis"]
 
-    uword[] wordlists = [
+    uword[] @shared wordlists = [
         words81, words82, words83, words84, words85, words86, words87, words88,
         words89, words8A, words8B, words8C, words8D, words8E, words8F, words90,
         words91, words92, words93, words94, words95, words96, words97, words98,
