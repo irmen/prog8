@@ -66,6 +66,7 @@ fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, pr
 
 private fun String.isBranch() = this.startsWith("b")
 private fun String.isStoreReg() = this.startsWith("sta") || this.startsWith("sty") || this.startsWith("stx")
+private fun String.isStoreRegOrZero() = this.isStoreReg() || this.startsWith("stz")
 private fun String.isLoadReg() = this.startsWith("lda") || this.startsWith("ldy") || this.startsWith("ldx")
 
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
@@ -253,12 +254,13 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 }
             }
         }
+
         /*
         sta  A1
-        sty  A2
+        sty  A2     ; ... or stz
         lda  A1     ; can be removed if not followed by a branch instruction
          */
-        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()
+        if(!overlappingMods && first.isStoreReg() && second.isStoreRegOrZero()
             && third.isLoadReg() && !fourth.isBranch()) {
             val reg1 = first[2]
             val reg3 = third[2]
@@ -297,10 +299,10 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
         }
 
         /*
-        sta  A
-        sta  A
+        sta  A   ; or stz     double store, remove this first one
+        sta  A   ; or stz
          */
-        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()) {
+        if(!overlappingMods && first.isStoreRegOrZero() && second.isStoreRegOrZero()) {
             if(first[2]==second[2]) {
                 val firstvalue = first.substring(4)
                 val secondvalue = second.substring(4)
@@ -308,7 +310,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                     val address = getAddressArg(first, program)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
-                        mods.add(Modification(lines[1].index, true, null))
+                        mods.add(Modification(lines[0].index, true, null))
                     }
                 }
             }
