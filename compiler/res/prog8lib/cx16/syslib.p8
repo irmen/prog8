@@ -821,11 +821,12 @@ sys {
         }}
     }
 
-    inline asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
+    asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
+        ; note: can't be inlined because is called from asm as well
         %asm {{
             sta  cx16.r2
             sty  cx16.r2+1
-            jsr  cx16.memory_copy
+            jmp  cx16.memory_copy
         }}
     }
 

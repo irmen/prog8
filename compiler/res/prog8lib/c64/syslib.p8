@@ -520,6 +520,7 @@ sys {
     }
 
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
+        ; note: can't be inlined because is called from asm as well
         %asm {{
             ldx  cx16.r0
             stx  P8ZP_SCRATCH_W1        ; source in ZP
