@@ -6,15 +6,17 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.VariableAllocator
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.builtinFunctionReturnType
 
 
-internal class AssignmentAsmGen(private val program: Program, private val asmgen: AsmGen) {
-
-    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen)
+internal class AssignmentAsmGen(private val program: Program, 
+                                private val asmgen: AsmGen, 
+                                private val allocator: VariableAllocator) {
+    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
     fun translate(assignment: Assignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
@@ -2119,7 +2121,7 @@ $containsLabel      lda  #1
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> {
-                    val floatConst = asmgen.getFloatAsmConst(float)
+                    val floatConst = allocator.getFloatAsmConst(float)
                     when(target.register!!) {
                         RegisterOrPair.FAC1 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.MOVFM")
                         RegisterOrPair.FAC2 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.CONUPK")
@@ -2127,13 +2129,13 @@ $containsLabel      lda  #1
                     }
                 }
                 TargetStorageKind.STACK -> {
-                    val floatConst = asmgen.getFloatAsmConst(float)
+                    val floatConst = allocator.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
                 }
             }
         } else {
             // non-zero value
-            val constFloat = asmgen.getFloatAsmConst(float)
+            val constFloat = allocator.getFloatAsmConst(float)
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
@@ -2176,7 +2178,7 @@ $containsLabel      lda  #1
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> {
-                    val floatConst = asmgen.getFloatAsmConst(float)
+                    val floatConst = allocator.getFloatAsmConst(float)
                     when(target.register!!) {
                         RegisterOrPair.FAC1 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.MOVFM")
                         RegisterOrPair.FAC2 -> asmgen.out("  lda  #<$floatConst  | ldy  #>$floatConst |  jsr  floats.CONUPK")
@@ -2184,7 +2186,7 @@ $containsLabel      lda  #1
                     }
                 }
                 TargetStorageKind.STACK -> {
-                    val floatConst = asmgen.getFloatAsmConst(float)
+                    val floatConst = allocator.getFloatAsmConst(float)
                     asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
                 }
             }

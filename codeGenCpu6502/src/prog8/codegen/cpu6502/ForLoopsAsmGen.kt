@@ -10,9 +10,10 @@ import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
+import prog8.compilerinterface.Zeropage
 import kotlin.math.absoluteValue
 
-internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen, private val zeropage: Zeropage) {
 
     internal fun translate(stmt: ForLoop) {
         val iterableDt = stmt.iterable.inferType(program)
@@ -291,7 +292,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(length>=16) {
                     // allocate index var on ZP if possible
-                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -332,7 +333,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(length>=16) {
                     // allocate index var on ZP if possible
-                    val result = asmgen.zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }

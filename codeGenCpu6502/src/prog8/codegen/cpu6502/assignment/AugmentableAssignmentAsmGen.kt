@@ -6,13 +6,15 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.VariableAllocator
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.CpuType
 
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,
                                            private val assignmentAsmGen: AssignmentAsmGen,
-                                           private val asmgen: AsmGen
+                                           private val asmgen: AsmGen,
+                                           private val allocator: VariableAllocator
 ) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
@@ -1718,7 +1720,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
     }
 
     private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: Subroutine) {
-        val constValueName = asmgen.getFloatAsmConst(value)
+        val constValueName = allocator.getFloatAsmConst(value)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "**" -> {

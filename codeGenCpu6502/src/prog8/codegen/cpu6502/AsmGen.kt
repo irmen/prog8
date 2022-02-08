@@ -25,20 +25,18 @@ class AsmGen(internal val program: Program,
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
-    internal val zeropage = options.compTarget.machine.zeropage
-    internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val loopEndLabels = ArrayDeque<String>()
-    private val memorySlabs = mutableMapOf<String, Pair<UInt, UInt>>()
+    private val zeropage = options.compTarget.machine.zeropage
+    private val allocator = VariableAllocator(variables, errors)
     private val assemblyLines = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
-    private val forloopsAsmGen = ForLoopsAsmGen(program, this)
+    private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val expressionsAsmGen = ExpressionsAsmGen(program, this, functioncallAsmGen)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this)
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    private val programGen = ProgramGen(program, variables, options, errors, functioncallAsmGen, this)
-    internal val allMemorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabs
+    private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
+    private val programGen = ProgramGen(program, variables, options, errors, functioncallAsmGen, this, allocator, zeropage)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
+    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen, allocator)
 
     override fun compileToAssembly(): IAssemblyProgram? {
         assemblyLines.clear()
@@ -64,11 +62,6 @@ class AsmGen(internal val program: Program,
             errors.report()
             return null
         }
-    }
-
-    internal fun getMemorySlab(name: String) = memorySlabs[name]
-    internal fun allocateMemorySlab(name: String, size: UInt, align: UInt) {
-        memorySlabs[name] = Pair(size, align)
     }
 
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
@@ -99,16 +92,6 @@ class AsmGen(internal val program: Program,
                 assemblyLines.add(trimmed)
             }
         } else assemblyLines.add(fragment)
-    }
-
-    internal fun getFloatAsmConst(number: Double): String {
-        val asmName = globalFloatConsts[number]
-        if(asmName!=null)
-            return asmName
-
-        val newName = "prog8_float_const_${globalFloatConsts.size}"
-        globalFloatConsts[number] = newName
-        return newName
     }
 
     fun asmSymbolName(regs: RegisterOrPair): String =
@@ -247,11 +230,11 @@ class AsmGen(internal val program: Program,
                 }
                 CpuRegister.X -> {
                     out("  stx  prog8_regsaveX")
-                    scope.asmGenInfo.usedRegsaveX = true
+                    allocator.subroutineExtra(scope).usedRegsaveX = true
                 }
                 CpuRegister.Y -> {
                     out("  sty  prog8_regsaveY")
-                    scope.asmGenInfo.usedRegsaveY = true
+                    allocator.subroutineExtra(scope).usedRegsaveY = true
                 }
             }
         }
@@ -756,7 +739,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: RepeatLoop): String {
-        val asmInfo = stmt.definingSubroutine!!.asmGenInfo
+        val asmInfo = allocator.subroutineExtra(stmt.definingSubroutine!!)
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
             if(parent is RepeatLoop)
@@ -1443,7 +1426,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$rightName
                 ldy  #>$rightName
@@ -1468,7 +1451,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1488,7 +1471,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$rightName
                 ldy  #>$rightName
@@ -1513,7 +1496,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1530,7 +1513,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -1558,7 +1541,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1575,7 +1558,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -1603,7 +1586,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -2518,7 +2501,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -2543,7 +2526,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -2603,7 +2586,7 @@ $repeatLabel    lda  $counterVar
         }
         else if(left is IdentifierReference && rightConstVal!=null) {
             val leftName = asmVariableName(left)
-            val rightName = getFloatAsmConst(rightConstVal.number)
+            val rightName = allocator.getFloatAsmConst(rightConstVal.number)
             out("""
                 lda  #<$leftName
                 ldy  #>$leftName
@@ -2628,7 +2611,7 @@ $repeatLabel    lda  $counterVar
                 bne  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            subroutine.asmGenInfo.usedFloatEvalResultVar1 = true
+            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""

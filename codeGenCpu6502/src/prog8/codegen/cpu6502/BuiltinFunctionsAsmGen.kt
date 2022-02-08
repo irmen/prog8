@@ -17,7 +17,10 @@ import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.FSignature
 
 
-internal class BuiltinFunctionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val assignAsmGen: AssignmentAsmGen) {
+internal class BuiltinFunctionsAsmGen(private val program: Program,
+                                      private val asmgen: AsmGen,
+                                      private val assignAsmGen: AssignmentAsmGen,
+                                      private val allocations: VariableAllocator) {
 
     internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
@@ -454,7 +457,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
         val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
         val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()
 
-        val existing = asmgen.getMemorySlab(name)
+        val existing = allocations.getMemorySlab(name)
         if(existing!=null && (existing.first!=size || existing.second!=align))
             throw AssemblyError("memory slab '$name' already exists with a different size or alignment at ${fcall.position}")
 
@@ -468,7 +471,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, null, program, asmgen)
         val assign = AsmAssignment(src, target, false, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign)
-        asmgen.allocateMemorySlab(name, size, align)
+        allocations.allocateMemorySlab(name, size, align)
     }
 
     private fun funcSqrt16(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
@@ -1715,7 +1718,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program, private val 
                     if(scope==null)
                         throw AssemblyError("cannot use float arguments outside of a subroutine scope")
 
-                    scope.asmGenInfo.usedFloatEvalResultVar2 = true
+                    allocations.subroutineExtra(scope).usedFloatEvalResultVar2 = true
                     val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar2), value.position)
                     val addr = AddressOf(variable, value.position)
                     addr.linkParents(value)

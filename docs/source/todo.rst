@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- programGen: don't generate variables from the VarDecl nodes, use allocator/zeropage tables
 - (newvaralloc) UnusedCodeRemover after(decl: VarDecl): fix that vars defined in a library can also safely be removed if unused. Currently this breaks programs such as textelite (due to diskio.save().end_address ?)
-- remove hacks in VariableAllocation
+- remove hacks in VariableAllocator
 
 
 Need help with

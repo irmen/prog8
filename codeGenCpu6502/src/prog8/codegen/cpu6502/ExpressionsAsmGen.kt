@@ -11,7 +11,9 @@ import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue
 
-internal class ExpressionsAsmGen(private val program: Program, private val asmgen: AsmGen, private val functioncallAsmGen: FunctionCallAsmGen) {
+internal class ExpressionsAsmGen(private val program: Program,
+                                 private val asmgen: AsmGen,
+                                 private val allocator: VariableAllocator) {
 
     @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression:Expression) {
@@ -223,7 +225,7 @@ internal class ExpressionsAsmGen(private val program: Program, private val asmge
                 dex
             """)
             DataType.FLOAT -> {
-                val floatConst = asmgen.getFloatAsmConst(expr.number)
+                val floatConst = allocator.getFloatAsmConst(expr.number)
                 asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
             }
             else -> throw AssemblyError("weird type")
