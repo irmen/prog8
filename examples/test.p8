@@ -6,7 +6,7 @@ main {
     ubyte @zp mainglobal1=10
     float @shared fl1 = floats.TWOPI
 
-    uword @shared m1 = memory("eee", 200, 0)
+    uword @shared m1 = memory("ee", 200, 0)
 
     uword [2] nullwords
     ubyte [2] nullbytes

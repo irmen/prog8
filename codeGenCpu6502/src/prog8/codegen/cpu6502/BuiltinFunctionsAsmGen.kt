@@ -451,8 +451,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult || fcall !is FunctionCallExpression)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
-        val nameRef = fcall.args[0] as IdentifierReference
-        val name = (nameRef.targetVarDecl(program)!!.value as StringLiteralValue).value
+        val name = (fcall.args[0] as StringLiteralValue).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
         val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
         val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()

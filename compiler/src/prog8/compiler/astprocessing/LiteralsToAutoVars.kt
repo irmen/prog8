@@ -1,5 +1,6 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -20,6 +21,14 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
             && string.parent !is WhenChoice
             && (string.parent !is ContainmentCheck || string.value.length>ContainmentCheck.max_inlined_string_length)) {
             // replace the literal string by an identifier reference to the interned string
+
+            val parentFunc = (string.parent as? IFunctionCall)?.target
+            if(parentFunc!=null) {
+                if(parentFunc.nameInSource.size==1 && parentFunc.nameInSource[0]=="memory") {
+                    // memory() builtin function just uses the string as a label name
+                    return noModifications
+                }
+            }
             val scopedName = program.internString(string)
             val identifier = IdentifierReference(scopedName, string.position)
             return listOf(IAstModification.ReplaceNode(string, identifier, parent))
