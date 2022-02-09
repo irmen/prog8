@@ -739,7 +739,8 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: RepeatLoop): String {
-        val asmInfo = allocator.subroutineExtra(stmt.definingSubroutine!!)
+        val scope = stmt.definingSubroutine!!
+        val asmInfo = allocator.subroutineExtra(scope)
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
             if(parent is RepeatLoop)
@@ -760,7 +761,7 @@ $repeatLabel    lda  $counterVar
         val counterVar = makeLabel("counter")
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
-                val result = zeropage.allocate(listOf(counterVar), dt, null, null, stmt.position, errors)
+                val result = zeropage.allocate(listOf(counterVar), dt, scope,null, null, stmt.position, errors)
                 result.fold(
                     success = { (address, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally

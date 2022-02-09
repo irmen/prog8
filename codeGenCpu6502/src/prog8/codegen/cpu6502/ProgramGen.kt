@@ -1,12 +1,10 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 import prog8.compilerinterface.*
@@ -33,12 +31,12 @@ internal class ProgramGen(
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
         require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
 
+        allocator.allocateZeropageVariables(options)
         header()
         val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
 
-        allocator.allocateZeropageVariables(options)
         if(errors.noErrors())  {
             program.allBlocks.forEach { block2asm(it) }
             memorySlabs()
@@ -162,16 +160,10 @@ internal class ProgramGen(
 
         asmgen.outputSourceLine(block)
 
-        val vardecls = block.statements.filterIsInstance<VarDecl>()
-        zeropagevars2asm(vardecls)
-        memdefs2asmVars(vardecls, block)
-        memdefs2asmAsmsubs(block.statements.filterIsInstance<Subroutine>())
-        vardecls2asm(vardecls)
-
-        vardecls.forEach {
-            if(it.type== VarDeclType.VAR && it.datatype in NumericDatatypes)
-                it.value=null  // make sure every var has no init value any longer (could be set due to 'noreinit' option) because initialization is done via explicit assignment
-        }
+        zeropagevars2asm(block)
+        memdefsAndConsts2asm(block)
+        asmsubs2asm(block.statements)
+        nonZpVariables2asm(block)
 
         asmgen.out("\n; subroutines in this block")
 
@@ -224,10 +216,9 @@ internal class ProgramGen(
         } else {
             // regular subroutine
             asmgen.out("${sub.name}\t.proc")
-            val vardecls = sub.statements.filterIsInstance<VarDecl>()
-            zeropagevars2asm(vardecls)
-            memdefs2asmVars(vardecls, null)
-            memdefs2asmAsmsubs(sub.statements.filterIsInstance<Subroutine>())
+            zeropagevars2asm(sub)
+            memdefsAndConsts2asm(sub)
+            asmsubs2asm(sub.statements)
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
             if(sub.name=="start" && sub.definingBlock.name=="main")
@@ -278,7 +269,7 @@ internal class ProgramGen(
                 asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(asmGenInfo.usedFloatEvalResultVar2)
                 asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-            vardecls2asm(vardecls)
+            nonZpVariables2asm(sub)
             asmgen.out("  .pend\n")
         }
     }
@@ -331,14 +322,13 @@ internal class ProgramGen(
 
         stringVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.key)+"_init_value"
-            val sv = it.value.initialStringValue!!
-            outputStringvar(varname, it.value.dt, sv.encoding, sv.value)
+            val stringvalue = it.value.initialStringValue!!
+            outputStringvar(varname, it.value.dt, stringvalue.encoding, stringvalue.value)
         }
 
         arrayVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.key)+"_init_value"
-            val av = it.value.initialArrayValue!!
-            arrayVardecl2asm(varname, it.value.dt, av, null)
+            arrayVardecl2asm(varname, it.value.dt, it.value.initialArrayValue!!, null)
         }
 
         asmgen.out("""+       tsx
@@ -348,25 +338,32 @@ internal class ProgramGen(
                     clc""")
     }
 
-    private fun zeropagevars2asm(vardecls: List<VarDecl>) {
-        // TODO get list of variables directly from allocator or zeropage
-        val zp = zeropage
-        asmgen.out("; vars allocated on zeropage")
-        vardecls
-            .filter { it.type==VarDeclType.VAR }
-            .forEach { variable ->
-                val scopedName = variable.scopedName
-                val zpAlloc = zp.variables[scopedName]
-                if (zpAlloc != null) {
-                    val lenspec = when(zpAlloc.dt) {
-                        DataType.FLOAT,
-                        DataType.STR,
-                        in ArrayDatatypes -> " ${zpAlloc.size} bytes"
-                        else -> ""
-                    }
-                    asmgen.out("${variable.name} = ${zpAlloc.address}\t; zp ${variable.datatype} $lenspec")
-                }
+    private fun zeropagevars2asm(scope: INameScope) {
+        val zpVariables = zeropage.variables.filter { it.value.originalScope==scope }
+        for ((scopedName, zpvar) in zpVariables) {
+            if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
+                continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
+            asmgen.out("${scopedName.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
+        }
+    }
+
+    private fun nonZpVariables2asm(scope: INameScope) {
+        asmgen.out("\n; non-zeropage variables")
+
+        val vars = scope.statements
+            .filterIsInstance<VarDecl>()
+            .filter {
+                it.type==VarDeclType.VAR && it.scopedName !in zeropage.variables
             }
+
+        vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
+            .forEach { outputStringvar(it) }
+
+        vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
+            require(it.zeropage!= ZeropageWish.REQUIRE_ZEROPAGE)
+            if(!asmgen.isZpVar(it.scopedName))
+                vardecl2asm(it)
+        }
     }
 
     private fun vardecl2asm(decl: VarDecl, nameOverride: String?=null) {
@@ -466,48 +463,40 @@ internal class ProgramGen(
         }
     }
 
-    private fun memdefs2asmVars(vardecls: List<VarDecl>, inBlock: Block?) {
-        val blockname = inBlock?.name
-        asmgen.out("\n; memdefs and kernal subroutines")
-        vardecls
-            .filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
-            .forEach { mv ->
-                if(mv.value is NumericLiteralValue)
-                    asmgen.out("  ${mv.name} = ${(mv.value as NumericLiteralValue).number.toHex()}")
-                else
-                    asmgen.out("  ${mv.name} = ${asmgen.asmVariableName((mv.value as AddressOf).identifier)}")
-            }
+    private fun memdefsAndConsts2asm(block: Block) {
+        val mvs = variables.blockMemvars[block] ?: emptySet()
+        val consts = variables.blockConsts[block] ?: emptySet()
+        memdefsAndConsts2asm(mvs, consts)
     }
 
-    private fun memdefs2asmAsmsubs(subroutines: List<Subroutine>) {
-        subroutines
-            .filter { it.isAsmSubroutine }
-            .forEach { sub->
-                val addr = sub.asmAddress
-                if(addr!=null) {
-                    if(sub.statements.isNotEmpty())
-                        throw AssemblyError("kernal subroutine cannot have statements")
-                    asmgen.out("  ${sub.name} = ${addr.toHex()}")
-                }
-            }
+    private fun memdefsAndConsts2asm(sub: Subroutine) {
+        val mvs = variables.subroutineMemvars[sub] ?: emptySet()
+        val consts = variables.subroutineConsts[sub] ?: emptySet()
+        memdefsAndConsts2asm(mvs, consts)
     }
 
-    private fun vardecls2asm(vardecls: List<VarDecl>) {
-        asmgen.out("\n; non-zeropage variables")
-        val vars = vardecls.filter {
-                it.type==VarDeclType.VAR
-                        && it.zeropage!= ZeropageWish.REQUIRE_ZEROPAGE
-                        && it.scopedName !in zeropage.variables
-            }
-
-        vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
-            .forEach { outputStringvar(it) }
-
-        vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            require(it.zeropage!= ZeropageWish.REQUIRE_ZEROPAGE)
-            if(!asmgen.isZpVar(it.scopedName))
-                vardecl2asm(it)
+    private fun memdefsAndConsts2asm(
+        memvars: Set<IVariablesAndConsts.MemoryMappedVariable>,
+        consts: Set<IVariablesAndConsts.ConstantNumberSymbol>
+    ) {
+        memvars.forEach {
+            asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
+        consts.forEach {
+            if(it.type==DataType.FLOAT)
+                asmgen.out("  ${it.name} = ${it.value}")
+            else
+                asmgen.out("  ${it.name} = ${it.value.toHex()}")
+        }
+    }
+
+    private fun asmsubs2asm(statements: List<Statement>) {
+        statements
+            .filter { it is Subroutine && it.isAsmSubroutine && it.asmAddress!=null }
+            .forEach { asmsub ->
+                asmsub as Subroutine
+                asmgen.out("  ${asmsub.name} = ${asmsub.asmAddress!!.toHex()}")
+            }
     }
 
     private fun shouldActuallyOutputStringVar(strvar: VarDecl): Boolean {
@@ -599,4 +588,11 @@ internal class ProgramGen(
         }
     }
 
+}
+
+private fun sameScope(varname: List<String>, scopename: List<String>): Boolean {
+    if(varname.size!=scopename.size+1)
+        return false
+    val pairs = scopename.zip(varname)
+    return pairs.all { it.first==it.second }
 }

@@ -1,8 +1,10 @@
+%import floats
 %import textio
 %zeropage basicsafe
 
 main {
     ubyte @zp mainglobal1=10
+    float @shared fl1 = floats.TWOPI
 
     uword [2] nullwords
     ubyte [2] nullbytes

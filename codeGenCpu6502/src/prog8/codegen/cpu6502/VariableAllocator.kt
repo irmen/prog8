@@ -14,7 +14,7 @@ import prog8.compilerinterface.IVariablesAndConsts
 import prog8.compilerinterface.ZeropageType
 
 
-internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErrorReporter) {
+internal class VariableAllocator(private val vars: IVariablesAndConsts, private val errors: IErrorReporter) {
 
     private val subroutineExtras = mutableMapOf<Subroutine, SubroutineExtraAsmInfo>()
     private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
@@ -26,6 +26,10 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
         memorySlabsInternal[name] = Pair(size, align)
     }
 
+    /**
+     * Allocate variables into the Zeropage.
+     * The result should be retrieved from the current machine's zeropage object!
+     */
     fun allocateZeropageVariables(options: CompilationOptions) {
         if(options.zeropage== ZeropageType.DONTUSE)
             return
@@ -42,14 +46,14 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
 
         varsRequiringZp.forEach { (vardecl, scopedname) ->
             val numElements = numArrayElements(vardecl)
-            val result = zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
+            val result = zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
             result.onFailure { errors.err(it.message!!, vardecl.position) }
         }
 
         if(errors.noErrors()) {
             varsPreferringZp.forEach { (vardecl, scopedname) ->
                 val numElements = numArrayElements(vardecl)
-                zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
+                zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
@@ -59,7 +63,7 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
                 for ((vardecl, scopedname) in varsDontCare) {
                     if(vardecl.datatype in IntegerDatatypes) {
                         val numElements = numArrayElements(vardecl)
-                        zeropage.allocate(scopedname, vardecl.datatype, numElements, vardecl.value, vardecl.position, errors)
+                        zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
                         if(zeropage.free.isEmpty())
                             break
                     }
