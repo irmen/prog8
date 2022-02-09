@@ -7,10 +7,7 @@ import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
-import prog8.ast.statements.VarDeclOrigin
-import prog8.ast.toHex
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IVariablesAndConsts
 
 
@@ -33,21 +30,19 @@ internal class VariableExtractor: IAstVisitor {
         val scope=decl.definingScope
         when (decl.type) {
             VarDeclType.VAR -> {
-                if(decl.origin!= VarDeclOrigin.SUBROUTINEPARAM) {
-                    when (scope) {
-                        is Block -> {
-                            val decls = allBlockVars[scope] ?: mutableSetOf()
-                            decls.add(decl)
-                            allBlockVars[scope] = decls
-                        }
-                        is Subroutine -> {
-                            val decls = allSubroutineVars[scope] ?: mutableSetOf()
-                            decls.add(decl)
-                            allSubroutineVars[scope] = decls
-                        }
-                        else -> {
-                            throw FatalAstException("var can only occur in subroutine or block scope")
-                        }
+                when (scope) {
+                    is Block -> {
+                        val decls = allBlockVars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allBlockVars[scope] = decls
+                    }
+                    is Subroutine -> {
+                        val decls = allSubroutineVars[scope] ?: mutableSetOf()
+                        decls.add(decl)
+                        allSubroutineVars[scope] = decls
+                    }
+                    else -> {
+                        throw FatalAstException("var can only occur in subroutine or block scope")
                     }
                 }
             }
@@ -102,24 +97,24 @@ internal class VariablesAndConsts (
     astSubroutineMemvars: Map<Subroutine, Set<VarDecl>>
 ) : IVariablesAndConsts
 {
-    override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticBlockVariable>>
+    override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticVariable>>
     override val blockConsts: Map<Block, Set<IVariablesAndConsts.ConstantNumberSymbol>>
     override val blockMemvars: Map<Block, Set<IVariablesAndConsts.MemoryMappedVariable>>
-    override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticSubroutineVariable>>
+    override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticVariable>>
     override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
     override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
 
     init {
-        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticBlockVariable>() }
+        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
         val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
         val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
-        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticSubroutineVariable>() }
+        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
         val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
         val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
         astBlockVars.forEach { (block, decls) ->
             val vars = bv.getValue(block)
             vars.addAll(decls.map {
-                IVariablesAndConsts.StaticBlockVariable(it.datatype, it.name, it.value, it.zeropage, it.position, it)
+                IVariablesAndConsts.StaticVariable(it.datatype, it.scopedName, it.definingScope, it.value, it.arraysize?.constIndex(), it.zeropage, it.position)
             })
         }
         astBlockConsts.forEach { (block, decls) ->
@@ -127,7 +122,7 @@ internal class VariablesAndConsts (
                 decls.map {
                     IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
-                        it.name,
+                        it.scopedName,
                         (it.value as NumericLiteralValue).number,
                         it.position
                     )
@@ -141,7 +136,7 @@ internal class VariablesAndConsts (
                     vars.add(
                         IVariablesAndConsts.MemoryMappedVariable(
                             decl.datatype,
-                            decl.name,
+                            decl.scopedName,
                             (decl.value as NumericLiteralValue).number.toUInt(),
                             decl.position
                         )
@@ -152,7 +147,7 @@ internal class VariablesAndConsts (
         astSubroutineVars.forEach { (sub, decls) ->
             val vars = sv.getValue(sub)
             vars.addAll(decls.map {
-                IVariablesAndConsts.StaticSubroutineVariable(it.datatype, it.name, it.zeropage, it.position, it)
+                IVariablesAndConsts.StaticVariable(it.datatype, it.scopedName, it.definingScope, it.value, it.arraysize?.constIndex(), it.zeropage, it.position)
             })
         }
         astSubroutineConsts.forEach { (sub, decls) ->
@@ -160,7 +155,7 @@ internal class VariablesAndConsts (
                 decls.map {
                     IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
-                        it.name,
+                        it.scopedName,
                         (it.value as NumericLiteralValue).number,
                         it.position
                     )
@@ -171,7 +166,7 @@ internal class VariablesAndConsts (
                 decls.map {
                     IVariablesAndConsts.MemoryMappedVariable(
                         it.datatype,
-                        it.name,
+                        it.scopedName,
                         (it.value as NumericLiteralValue).number.toUInt(),
                         it.position
                     )
@@ -183,53 +178,5 @@ internal class VariablesAndConsts (
         subroutineVars = sv
         subroutineConsts = sc
         subroutineMemvars = smv
-    }
-
-    override fun dump(memsizer: IMemSizer) {
-        println("\nALL BLOCK VARS:")
-        blockVars.forEach { (block, vars) ->
-            val totalsize = vars.sumOf { memsizer.memorySize(it.origVar) }
-            println("BLOCK: ${block.name} total size: $totalsize")
-            vars.forEach {
-                println("  ${it.type}  ${it.name} = ${it.initialValue}  ${it.position}")
-            }
-        }
-        println("\nALL BLOCK CONSTS:")
-        blockConsts.forEach { (block, vars) ->
-            println("BLOCK: ${block.name}")
-            vars.forEach {
-                println("  ${it.type}  ${it.name} = ${it.value}  ${it.position}")
-            }
-        }
-        println("\nALL BLOCK MEMORYVARS:")
-        blockMemvars.forEach { (block, vars) ->
-            println("BLOCK: ${block.name}")
-            vars.forEach {
-                println("  ${it.type}  ${it.name} = ${it.address.toHex()}  ${it.position}")
-            }
-        }
-
-        println("\nALL SUBROUTINE VARS:")
-        subroutineVars.forEach { (sub, vars) ->
-            val totalsize = vars.sumOf { memsizer.memorySize(it.origVar) }
-            println("SUBROUTINE: ${sub.name} total size: $totalsize")
-            vars.forEach {
-                println("  ${it.type}  ${it.name}  ${it.position}")
-            }
-        }
-        println("\nALL SUBROUTINE CONSTS:")
-        subroutineConsts.forEach { (sub, vars) ->
-            println("SUBROUTINE: ${sub.name}")
-            vars.forEach {
-                println("  ${it.type}  ${it.name} = ${it.value}  ${it.position}")
-            }
-        }
-        println("\nALL SUBROUTINE MEMORYVARS:")
-        subroutineMemvars.forEach { (sub, vars) ->
-            println("SUBROUTINE: ${sub.name}")
-            vars.forEach {
-                println("  ${it.type}  ${it.name} = ${it.address.toHex()}  ${it.position}")
-            }
-        }
     }
 }

@@ -27,7 +27,7 @@ class AsmGen(internal val program: Program,
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.machine.zeropage
-    private val allocator = VariableAllocator(variables, errors)
+    private val allocator = VariableAllocator(variables, options, errors)
     private val assemblyLines = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)
@@ -130,7 +130,7 @@ class AsmGen(internal val program: Program,
             is VarDecl -> {
                 val sourceName = asmVariableName(pointervar)
                 if (isTargetCpu(CpuType.CPU65c02)) {
-                    return if (isZpVar(target.scopedName)) {
+                    return if (allocator.isZpVar(target.scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
                         sourceName
@@ -144,7 +144,7 @@ class AsmGen(internal val program: Program,
                         "P8ZP_SCRATCH_W1"
                     }
                 } else {
-                    return if (isZpVar(target.scopedName)) {
+                    return if (allocator.isZpVar(target.scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
                         sourceName
@@ -168,7 +168,7 @@ class AsmGen(internal val program: Program,
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program)!!
         if (isTargetCpu(CpuType.CPU65c02)) {
-            if (isZpVar(vardecl.scopedName)) {
+            if (allocator.isZpVar(vardecl.scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  sta  ($sourceName)")
             } else {
@@ -180,7 +180,7 @@ class AsmGen(internal val program: Program,
                     sta  (P8ZP_SCRATCH_W2)""")
             }
         } else {
-            if (isZpVar(vardecl.scopedName)) {
+            if (allocator.isZpVar(vardecl.scopedName)) {
                 // pointervar is already in the zero page, no need to copy
                 out(" ldy  #0 |  sta  ($sourceName),y")
             } else {
@@ -1037,12 +1037,8 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.variables
-
-    internal fun isZpVar(variable: IdentifierReference): Boolean {
-        val vardecl = variable.targetVarDecl(program)!!
-        return vardecl.scopedName in zeropage.variables
-    }
+    internal fun isZpVar(variable: IdentifierReference): Boolean =
+        allocator.isZpVar(variable.targetVarDecl(program)!!.scopedName)
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false) {
         if(indirect) {

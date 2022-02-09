@@ -6,6 +6,8 @@ main {
     ubyte @zp mainglobal1=10
     float @shared fl1 = floats.TWOPI
 
+    uword @shared m1 = memory("eee", 200, 0)
+
     uword [2] nullwords
     ubyte [2] nullbytes
     uword [2] valuewords = [1111,22222]
@@ -21,7 +23,12 @@ main {
     sub start() {
         prog8_lib.P8ZP_SCRATCH_B1 = 1
         prog8_lib.P8ZP_SCRATCH_W1 = 1111
+        str alsoname = "also name"
 
+        txt.print(alsoname)
+        txt.print(zpname)
+        txt.print("internedstring")
+        txt.spc()
         txt.print_uwhex(&prog8_lib.P8ZP_SCRATCH_B1, true)
         txt.spc()
         txt.print_uwhex(&prog8_lib.P8ZP_SCRATCH_W1, true)

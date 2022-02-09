@@ -3,14 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- programGen: don't generate variables from the VarDecl nodes, use allocator/zeropage tables
-
-after that is done:
-
+- get rid of the interned string literals from memory() calls.
 - (newvaralloc) UnusedCodeRemover after(decl: VarDecl): fix that vars defined in a library can also safely be removed if unused. Currently this breaks programs such as textelite (due to diskio.save().end_address ?)
 - check that retval_interm_* are not in  the varallocation if they're not used
 - make it so that subroutine parameters as variables can again be allocated in ZP, if there's still space
-- wormfood became a lot larger??? why???  (and chess a little bit larger, but usually program size is down)
 
 
 Need help with
@@ -28,11 +24,6 @@ Blocked by an official Commander-x16 r39 release
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-Ast modifications done in AsmGen that perhaps should not be necessary:
- - block2asm: after vardecls2asm it clears the vardecl.value of all variables
-   --> Don't rely on vardecls at all any longer but use the new IVariablesAndConsts object passed to the AsmGen, this will solve this item.
- - block2asm: removes init-assignments to no longer output the initialization assignments as regular statements (is done separately in block initialization routine)
-
 - remove support for old @"screencodes" string encoding syntax (parser+code+docs)
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement classes, may require moving Expression/Statement into interfaces instead of abstract base classes
@@ -66,6 +57,7 @@ Ast modifications done in AsmGen that perhaps should not be necessary:
 
 More optimization ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
 - translateNormalAssignment() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop

@@ -6,7 +6,6 @@ import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
@@ -14,8 +13,11 @@ import prog8.compilerinterface.IVariablesAndConsts
 import prog8.compilerinterface.ZeropageType
 
 
-internal class VariableAllocator(private val vars: IVariablesAndConsts, private val errors: IErrorReporter) {
+internal class VariableAllocator(private val vars: IVariablesAndConsts,
+                                 private val options: CompilationOptions,
+                                 private val errors: IErrorReporter) {
 
+    private val zeropage = options.compTarget.machine.zeropage
     private val subroutineExtras = mutableMapOf<Subroutine, SubroutineExtraAsmInfo>()
     private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
     internal val memorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabsInternal
@@ -30,40 +32,39 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts, private 
      * Allocate variables into the Zeropage.
      * The result should be retrieved from the current machine's zeropage object!
      */
-    fun allocateZeropageVariables(options: CompilationOptions) {
+    internal fun allocateZeropageVariables() {
         if(options.zeropage== ZeropageType.DONTUSE)
             return
 
-        val zeropage = options.compTarget.machine.zeropage
         val allVariables = (
-                        vars.blockVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName} +
-                        vars.subroutineVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName})
-            .toList()
+                        vars.blockVars.asSequence().flatMap { it.value } +
+                        vars.subroutineVars.asSequence().flatMap { it.value }
+                ).toList()
 
-        val varsRequiringZp = allVariables.filter { it.first.zeropage == ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables.filter { it.first.zeropage == ZeropageWish.PREFER_ZEROPAGE }
-        val varsDontCare = allVariables.filter { it.first.zeropage == ZeropageWish.DONTCARE }
+        val varsRequiringZp = allVariables.filter { it.zp == ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariables.filter { it.zp == ZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare = allVariables.filter { it.zp == ZeropageWish.DONTCARE }
 
-        varsRequiringZp.forEach { (vardecl, scopedname) ->
-            val numElements = numArrayElements(vardecl)
-            val result = zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
-            result.onFailure { errors.err(it.message!!, vardecl.position) }
+        varsRequiringZp.forEach { variable ->
+            val numElements = numArrayElements(variable)
+            val result = zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
+            result.onFailure { errors.err(it.message!!, variable.position) }
         }
 
         if(errors.noErrors()) {
-            varsPreferringZp.forEach { (vardecl, scopedname) ->
-                val numElements = numArrayElements(vardecl)
-                zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
+            varsPreferringZp.forEach { variable ->
+                val numElements = numArrayElements(variable)
+                zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
             // try to allocate any other interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
-                for ((vardecl, scopedname) in varsDontCare) {
-                    if(vardecl.datatype in IntegerDatatypes) {
-                        val numElements = numArrayElements(vardecl)
-                        zeropage.allocate(scopedname, vardecl.datatype, vardecl.definingScope, numElements, vardecl.value, vardecl.position, errors)
+                for (variable in varsDontCare) {
+                    if(variable.type in IntegerDatatypes) {
+                        val numElements = numArrayElements(variable)
+                        zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
                         if(zeropage.free.isEmpty())
                             break
                     }
@@ -72,15 +73,14 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts, private 
         }
     }
 
-    private fun numArrayElements(vardecl: VarDecl): Int? = when(vardecl.datatype) {
-        DataType.STR -> {
-            (vardecl.value as StringLiteralValue).value.length
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.variables
+
+    private fun numArrayElements(variable: IVariablesAndConsts.StaticVariable) =
+        when(variable.type) {
+            DataType.STR -> (variable.initialValue as StringLiteralValue).value.length
+            in ArrayDatatypes -> variable.arraysize!!
+            else -> null
         }
-        in ArrayDatatypes -> {
-            vardecl.arraysize!!.constIndex()
-        }
-        else -> null
-    }
 
     fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
         var extra = subroutineExtras[sub]

@@ -31,7 +31,7 @@ internal class ProgramGen(
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
         require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
 
-        allocator.allocateZeropageVariables(options)
+        allocator.allocateZeropageVariables()
         header()
         val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
@@ -347,28 +347,31 @@ internal class ProgramGen(
         }
     }
 
-    private fun nonZpVariables2asm(scope: INameScope) {
+    private fun nonZpVariables2asm(block: Block) {
+        val variables = variables.blockVars[block]?.filter { !allocator.isZpVar(it.scopedname) } ?: emptyList()
+        nonZpVariables2asm(variables)
+    }
+
+    private fun nonZpVariables2asm(sub: Subroutine) {
+        val variables = variables.subroutineVars[sub]?.filter { !allocator.isZpVar(it.scopedname) } ?: emptyList()
+        nonZpVariables2asm(variables)
+    }
+
+    private fun nonZpVariables2asm(variables: List<IVariablesAndConsts.StaticVariable>) {
         asmgen.out("\n; non-zeropage variables")
-
-        val vars = scope.statements
-            .filterIsInstance<VarDecl>()
-            .filter {
-                it.type==VarDeclType.VAR && it.scopedName !in zeropage.variables
-            }
-
-        vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
-            .forEach { outputStringvar(it) }
-
-        vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
-            require(it.zeropage!= ZeropageWish.REQUIRE_ZEROPAGE)
-            if(!asmgen.isZpVar(it.scopedName))
-                vardecl2asm(it)
+        val (stringvars, othervars) = variables.partition { it.type==DataType.STR }
+        stringvars.forEach {
+            val stringvalue = it.initialValue as StringLiteralValue
+            outputStringvar(it.scopedname.last(), it.type, stringvalue.encoding, stringvalue.value)
+        }
+        othervars.sortedBy { it.type }.forEach {
+            vardecl2asm(it)
         }
     }
 
-    private fun vardecl2asm(decl: VarDecl, nameOverride: String?=null) {
-        val name = nameOverride ?: decl.name
-        val value = decl.value
+    private fun vardecl2asm(variable: IVariablesAndConsts.StaticVariable) {
+        val name = variable.scopedname.last()
+        val value = variable.initialValue
         val staticValue: Number =
             if(value!=null) {
                 if(value is NumericLiteralValue) {
@@ -377,13 +380,13 @@ internal class ProgramGen(
                     else
                         value.number.toInt()
                 } else {
-                    if(decl.datatype in NumericDatatypes)
-                        throw AssemblyError("can only deal with constant numeric values for global vars $value at ${decl.position}")
+                    if(variable.type in NumericDatatypes)
+                        throw AssemblyError("can only deal with constant numeric values for global vars")
                     else 0
                 }
             } else 0
 
-        when (decl.datatype) {
+        when (variable.type) {
             DataType.UBYTE -> asmgen.out("$name\t.byte  ${staticValue.toHex()}")
             DataType.BYTE -> asmgen.out("$name\t.char  $staticValue")
             DataType.UWORD -> asmgen.out("$name\t.word  ${staticValue.toHex()}")
@@ -399,7 +402,7 @@ internal class ProgramGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVardecl2asm(name, decl.datatype, decl.value as? ArrayLiteralValue, decl.arraysize?.constIndex())
+            in ArrayDatatypes -> arrayVardecl2asm(name, variable.type, value as? ArrayLiteralValue, variable.arraysize)
             else -> {
                 throw AssemblyError("weird dt")
             }
@@ -480,13 +483,13 @@ internal class ProgramGen(
         consts: Set<IVariablesAndConsts.ConstantNumberSymbol>
     ) {
         memvars.forEach {
-            asmgen.out("  ${it.name} = ${it.address.toHex()}")
+            asmgen.out("  ${it.scopedname.last()} = ${it.address.toHex()}")
         }
         consts.forEach {
             if(it.type==DataType.FLOAT)
-                asmgen.out("  ${it.name} = ${it.value}")
+                asmgen.out("  ${it.scopedname.last()} = ${it.value}")
             else
-                asmgen.out("  ${it.name} = ${it.value.toHex()}")
+                asmgen.out("  ${it.scopedname.last()} = ${it.value.toHex()}")
         }
     }
 
@@ -497,23 +500,6 @@ internal class ProgramGen(
                 asmsub as Subroutine
                 asmgen.out("  ${asmsub.name} = ${asmsub.asmAddress!!.toHex()}")
             }
-    }
-
-    private fun shouldActuallyOutputStringVar(strvar: VarDecl): Boolean {
-        if(strvar.sharedWithAsm)
-            return true
-        val uses = callGraph.usages(strvar)
-        val onlyInMemoryFuncs = uses.all {
-            val builtinfunc = (it.parent as? IFunctionCall)?.target?.targetStatement(program) as? BuiltinFunctionPlaceholder
-            builtinfunc?.name=="memory"
-        }
-        return !onlyInMemoryFuncs
-    }
-
-    private fun outputStringvar(strdecl: VarDecl, nameOverride: String?=null) {
-        val varname = nameOverride ?: strdecl.name
-        val sv = strdecl.value as StringLiteralValue
-        outputStringvar(varname, strdecl.datatype, sv.encoding, sv.value)
     }
 
     private fun outputStringvar(varname: String, dt: DataType, encoding: Encoding, value: String) {
@@ -588,11 +574,4 @@ internal class ProgramGen(
         }
     }
 
-}
-
-private fun sameScope(varname: List<String>, scopename: List<String>): Boolean {
-    if(varname.size!=scopename.size+1)
-        return false
-    val pairs = scopename.zip(varname)
-    return pairs.all { it.first==it.second }
 }

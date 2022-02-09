@@ -70,22 +70,21 @@ class TestAsmGenSymbols: StringSpec({
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder).addModule(module)
         val variables = object : IVariablesAndConsts {
-            override fun dump(memsizer: IMemSizer) { }
-            override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticBlockVariable>>
+            override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticVariable>>
             override val blockConsts: Map<Block, Set<IVariablesAndConsts.ConstantNumberSymbol>>
             override val blockMemvars: Map<Block, Set<IVariablesAndConsts.MemoryMappedVariable>>
-            override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticSubroutineVariable>>
+            override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticVariable>>
             override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
             override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
             init {
                 blockVars = mutableMapOf()
-                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticBlockVariable(varInBlock.datatype, varInBlock.name, varInBlock.value, varInBlock.zeropage, varInBlock.position, varInBlock))
+                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticVariable(varInBlock.datatype, varInBlock.scopedName, varInBlock.definingScope, varInBlock.value, varInBlock.arraysize?.constIndex(), varInBlock.zeropage, varInBlock.position))
                 blockConsts = mutableMapOf()
                 blockMemvars = mutableMapOf()
                 subroutineVars = mutableMapOf()
                 subroutineVars[subroutine] = mutableSetOf(
-                    IVariablesAndConsts.StaticSubroutineVariable(varInSub.datatype, varInSub.name, var2InSub.zeropage, varInSub.position, varInSub),
-                    IVariablesAndConsts.StaticSubroutineVariable(var2InSub.datatype, var2InSub.name, var2InSub.zeropage, var2InSub.position, var2InSub)
+                    IVariablesAndConsts.StaticVariable(varInSub.datatype, varInSub.scopedName, varInSub.definingScope, varInSub.value, varInSub.arraysize?.constIndex(), varInSub.zeropage, varInSub.position),
+                    IVariablesAndConsts.StaticVariable(var2InSub.datatype, var2InSub.scopedName, var2InSub.definingScope, var2InSub.value, var2InSub.arraysize?.constIndex(), var2InSub.zeropage, var2InSub.position)
                 )
                 subroutineConsts = mutableMapOf()
                 subroutineMemvars = mutableMapOf()
