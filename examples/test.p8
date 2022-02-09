@@ -18,6 +18,14 @@ main {
 
     sub start() {
         prog8_lib.P8ZP_SCRATCH_B1 = 1
+        prog8_lib.P8ZP_SCRATCH_W1 = 1111
+
+        txt.print_uwhex(&prog8_lib.P8ZP_SCRATCH_B1, true)
+        txt.spc()
+        txt.print_uwhex(&prog8_lib.P8ZP_SCRATCH_W1, true)
+        txt.spc()
+        txt.print_uwhex(&prog8_lib.P8ZP_SCRATCH_W2, true)
+        txt.nl()
 
         txt.print_uw(nullwords[1])
         txt.nl()

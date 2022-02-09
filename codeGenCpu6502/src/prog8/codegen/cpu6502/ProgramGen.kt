@@ -166,7 +166,7 @@ internal class ProgramGen(
         zeropagevars2asm(vardecls)
         memdefs2asmVars(vardecls, block)
         memdefs2asmAsmsubs(block.statements.filterIsInstance<Subroutine>())
-        vardecls2asm(vardecls, block)
+        vardecls2asm(vardecls)
 
         vardecls.forEach {
             if(it.type== VarDeclType.VAR && it.datatype in NumericDatatypes)
@@ -278,7 +278,7 @@ internal class ProgramGen(
                 asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(asmGenInfo.usedFloatEvalResultVar2)
                 asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-            vardecls2asm(vardecls, null)
+            vardecls2asm(vardecls)
             asmgen.out("  .pend\n")
         }
     }
@@ -472,11 +472,10 @@ internal class ProgramGen(
         vardecls
             .filter { it.type==VarDeclType.MEMORY || it.type==VarDeclType.CONST }
             .forEach { mv ->
-                if(blockname!="prog8_lib" || !mv.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
-                    if(mv.value is NumericLiteralValue)
-                        asmgen.out("  ${mv.name} = ${(mv.value as NumericLiteralValue).number.toHex()}")
-                    else
-                        asmgen.out("  ${mv.name} = ${asmgen.asmVariableName((mv.value as AddressOf).identifier)}")
+                if(mv.value is NumericLiteralValue)
+                    asmgen.out("  ${mv.name} = ${(mv.value as NumericLiteralValue).number.toHex()}")
+                else
+                    asmgen.out("  ${mv.name} = ${asmgen.asmVariableName((mv.value as AddressOf).identifier)}")
             }
     }
 
@@ -493,7 +492,7 @@ internal class ProgramGen(
             }
     }
 
-    private fun vardecls2asm(vardecls: List<VarDecl>, inBlock: Block?) {
+    private fun vardecls2asm(vardecls: List<VarDecl>) {
         asmgen.out("\n; non-zeropage variables")
         val vars = vardecls.filter {
                 it.type==VarDeclType.VAR
@@ -504,15 +503,10 @@ internal class ProgramGen(
         vars.filter { it.datatype == DataType.STR && shouldActuallyOutputStringVar(it) }
             .forEach { outputStringvar(it) }
 
-        // non-string variables
-        val blockname = inBlock?.name
-
         vars.filter{ it.datatype != DataType.STR }.sortedBy { it.datatype }.forEach {
             require(it.zeropage!= ZeropageWish.REQUIRE_ZEROPAGE)
-            if(!asmgen.isZpVar(it.scopedName)) {
-                if(blockname!="prog8_lib" || !it.name.startsWith("P8ZP_SCRATCH_"))      // the "hooks" to the temp vars are not generated as new variables
-                    vardecl2asm(it)
-            }
+            if(!asmgen.isZpVar(it.scopedName))
+                vardecl2asm(it)
         }
     }
 

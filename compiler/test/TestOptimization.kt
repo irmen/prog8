@@ -16,6 +16,7 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
+import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
 import prog8.compilerinterface.CompilationOptions
@@ -289,6 +290,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
+        val variables = VariableExtractor().extractVars(result.program)
 
         // bb = (( not bb as uword)  or  not ww)
         val bbAssign = result.program.entrypoint.statements.last() as Assignment
@@ -301,7 +303,7 @@ class TestOptimization: FunSpec({
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
-        val allocation = result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
+        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
 
         // assignment is now split into:
         //     bb =  not bb
@@ -326,7 +328,7 @@ class TestOptimization: FunSpec({
         ((bbAssigns1expr.right as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val asm = generateAssembly(result.program, allocation, options)
+        val asm = generateAssembly(result.program, variables, options)
         asm shouldNotBe null
         asm!!.name.shouldNotBeBlank()
     }

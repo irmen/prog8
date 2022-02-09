@@ -30,25 +30,11 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
         if(options.zeropage== ZeropageType.DONTUSE)
             return
 
-        val allVariables = (
-                vars.blockVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName} +
-                vars.subroutineVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName})
-            .toList()
-                // TODO now some HACKS to get rid of some unused vars in Petaxian - otherwise the executable gets larger than $45e8
-            .filterNot { it.second.last() == "tbl" }   // TODO HACK -- NOT REALLY NECESSARY, BUT OLD CallGraph DIDN'T CONTAIN IT EITHER
-            .filterNot { it.second.last() in setOf("retval_interm_w",  "retval_interm_b", "retval_interm_w2", "retval_interm_b2") }   // TODO HACK TO REMOVE THESE UNUSED VARS
-
         val zeropage = options.compTarget.machine.zeropage
-
-        fun numArrayElements(vardecl: VarDecl): Int? = when(vardecl.datatype) {
-            DataType.STR -> {
-                (vardecl.value as StringLiteralValue).value.length
-            }
-            in ArrayDatatypes -> {
-                vardecl.arraysize!!.constIndex()
-            }
-            else -> null
-        }
+        val allVariables = (
+                        vars.blockVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName} +
+                        vars.subroutineVars.asSequence().flatMap { it.value }.map {it.origVar to it.origVar.scopedName})
+            .toList()
 
         val varsRequiringZp = allVariables.filter { it.first.zeropage == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.first.zeropage == ZeropageWish.PREFER_ZEROPAGE }
@@ -80,6 +66,16 @@ internal class VariableAllocator(val vars: IVariablesAndConsts, val errors: IErr
                 }
             }
         }
+    }
+
+    private fun numArrayElements(vardecl: VarDecl): Int? = when(vardecl.datatype) {
+        DataType.STR -> {
+            (vardecl.value as StringLiteralValue).value.length
+        }
+        in ArrayDatatypes -> {
+            vardecl.arraysize!!.constIndex()
+        }
+        else -> null
     }
 
     fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {

@@ -4,11 +4,13 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - programGen: don't generate variables from the VarDecl nodes, use allocator/zeropage tables
+
+after that is done:
+
 - (newvaralloc) UnusedCodeRemover after(decl: VarDecl): fix that vars defined in a library can also safely be removed if unused. Currently this breaks programs such as textelite (due to diskio.save().end_address ?)
-- remove hacks in VariableAllocator
+- check that retval_interm_* are not in  the varallocation if they're not used
 - make it so that subroutine parameters as variables can again be allocated in ZP, if there's still space
 - wormfood became a lot larger??? why???  (and chess a little bit larger, but usually program size is down)
-- check: are prog8_lib.P8ZP_SCRATCH emitted again from prog8_lib.p8 source, or do we only have the correct hardcoded redefines.
 
 
 Need help with

@@ -83,11 +83,11 @@ internal fun compileText(
 
 internal fun generateAssembly(
     program: Program,
-    allocation: IVariablesAndConsts,
+    variables: IVariablesAndConsts,
     options: CompilationOptions? = null
 ): IAssemblyProgram? {
     val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, true, C64Target(), outputDir = outputDir)
     coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
-    val asmgen = AsmGen(program, ErrorReporterForTests(), allocation, coptions)
+    val asmgen = AsmGen(program, ErrorReporterForTests(), variables, coptions)
     return asmgen.compileToAssembly()
 }

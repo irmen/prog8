@@ -13,7 +13,6 @@ import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.IErrorReporter
 import prog8.compilerinterface.IStringEncoding
-import prog8.compilerinterface.IVariablesAndConsts
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -24,7 +23,7 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
     checker.visit(this)
 }
 
-internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter): IVariablesAndConsts {
+internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
     val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while(errors.noErrors() && fixer.applyModifications()>0) {
@@ -35,7 +34,6 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     while(errors.noErrors() && cleaner.applyModifications()>0) {
         cleaner.visit(this)
     }
-    return fixer.variables
 }
 
 internal fun Program.reorderStatements(errors: IErrorReporter, options: CompilationOptions) {
