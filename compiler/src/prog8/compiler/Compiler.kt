@@ -3,12 +3,15 @@ package prog8.compiler
 import com.github.michaelbull.result.onFailure
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
+import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteralValue
 import prog8.ast.statements.Directive
+import prog8.ast.statements.VarDecl
+import prog8.ast.walk.IAstVisitor
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -348,6 +351,12 @@ private fun writeAssembly(program: Program,
     program.processAstBeforeAsmGeneration(compilerOptions, variables, errors)
     errors.report()
 
+    // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
+    //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.
+    //      Note: we don't actually *need* to remove the VarDecl nodes, but it is nice as a temporary measure
+    //      to help clean up the code that still depends on them.
+    // removeAllVardeclsFromAst(program)
+
 //    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
@@ -362,6 +371,26 @@ private fun writeAssembly(program: Program,
     } else {
         WriteAssemblyResult.Fail("compiler failed with errors")
     }
+}
+
+private fun removeAllVardeclsFromAst(program: Program) {
+    // remove all VarDecl nodes from the AST.
+    // code generation doesn't require them anymore, it operates only on the 'variables' collection.
+
+    class SearchAndRemove: IAstVisitor {
+        private val allVars = mutableListOf<VarDecl>()
+        init {
+            visit(program)
+            for (it in allVars) {
+                require((it.parent as IStatementContainer).statements.remove(it))
+            }
+        }
+        override fun visit(decl: VarDecl) {
+            allVars.add(decl)
+        }
+    }
+
+    SearchAndRemove()
 }
 
 fun printProgram(program: Program) {

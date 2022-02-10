@@ -33,7 +33,7 @@ internal class ProgramAndVarsGen(
     private val zeropage: Zeropage
 ) {
     private val compTarget = options.compTarget
-    private val callGraph = CallGraph(program)
+    private val callGraph = CallGraph(program, true)
     private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
 
     internal fun generate() {
