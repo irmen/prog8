@@ -4,7 +4,12 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
+import prog8.ast.base.Position
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.InferredTypes
+import prog8.ast.statements.VarDecl
+import prog8.ast.statements.VarDeclOrigin
+import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
@@ -69,7 +74,7 @@ fun Program.splitBinaryExpressions(options: CompilationOptions, compTarget: ICom
     return opti.applyModifications()
 }
 
-fun getTempVarName(dt: InferredTypes.InferredType): List<String> {
+fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
     return when {
         // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
         dt istype DataType.UBYTE -> listOf("cx16", "r9L")

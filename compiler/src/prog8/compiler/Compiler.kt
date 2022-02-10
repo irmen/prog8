@@ -345,7 +345,7 @@ private fun writeAssembly(program: Program,
     // asm generation directly from the Ast
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val variables = VariableExtractor().extractVars(program)
-    program.processAstBeforeAsmGeneration(compilerOptions, errors)
+    program.processAstBeforeAsmGeneration(compilerOptions, variables, errors)
     errors.report()
 
 //    println("*********** AST RIGHT BEFORE ASM GENERATION *************")

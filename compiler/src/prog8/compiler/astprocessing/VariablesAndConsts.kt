@@ -104,18 +104,17 @@ internal class VariablesAndConsts (
     override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
     override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
 
+    private val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }.toMutableMap()
+    private val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
+    private val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
+    private val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
+    private val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
+    private val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
+
     init {
-        val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
-        val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
-        val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
-        val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
-        val sc = astSubroutineConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
-        val smv = astSubroutineMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
         astBlockVars.forEach { (block, decls) ->
             val vars = bv.getValue(block)
-            vars.addAll(decls.map {
-                IVariablesAndConsts.StaticVariable(it.datatype, it.scopedName, it.definingScope, it.value, it.arraysize?.constIndex(), it.zeropage, it.position)
-            })
+            vars.addAll(decls.map { toStatic(it) })
         }
         astBlockConsts.forEach { (block, decls) ->
             bc.getValue(block).addAll(
@@ -146,9 +145,7 @@ internal class VariablesAndConsts (
         }
         astSubroutineVars.forEach { (sub, decls) ->
             val vars = sv.getValue(sub)
-            vars.addAll(decls.map {
-                IVariablesAndConsts.StaticVariable(it.datatype, it.scopedName, it.definingScope, it.value, it.arraysize?.constIndex(), it.zeropage, it.position)
-            })
+            vars.addAll(decls.map { toStatic(it) })
         }
         astSubroutineConsts.forEach { (sub, decls) ->
             sc.getValue(sub).addAll(
@@ -178,5 +175,17 @@ internal class VariablesAndConsts (
         subroutineVars = sv
         subroutineConsts = sc
         subroutineMemvars = smv
+    }
+
+    private fun toStatic(decl: VarDecl) =
+        IVariablesAndConsts.StaticVariable(decl.datatype, decl.scopedName, decl.definingScope, decl.value, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
+
+    override fun addIfUnknown(definingBlock: Block, variable: VarDecl) {
+        var blockvars = bv[definingBlock]
+        if(blockvars==null) {
+            blockvars = mutableSetOf()
+            bv[definingBlock] = blockvars
+        }
+        blockvars.add(toStatic(variable))
     }
 }

@@ -76,6 +76,11 @@ class TestAsmGenSymbols: StringSpec({
             override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticVariable>>
             override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
             override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
+
+            override fun addIfUnknown(definingBlock: Block, variable: VarDecl) {
+                throw NotImplementedError("dummy")
+            }
+
             init {
                 blockVars = mutableMapOf()
                 blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticVariable(varInBlock.datatype, varInBlock.scopedName, varInBlock.definingScope, varInBlock.value, varInBlock.arraysize?.constIndex(), varInBlock.zeropage, varInBlock.position))

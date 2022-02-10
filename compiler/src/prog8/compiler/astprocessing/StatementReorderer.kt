@@ -55,8 +55,8 @@ internal class StatementReorderer(val program: Program,
                             // This allows you to restart the program and have the same starting values of the variables
                             // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
                             decl.value = null
-                            if(decl.name.startsWith("retval_interm_") && decl.definingScope.name=="prog8_lib") {
-                                // no need to zero out the special internal returnvalue intermediates.
+                            if(decl.name.startsWith("tempvar_") && decl.definingScope.name=="prog8_lib") {
+                                // no need to zero out the special internal temporary variables.
                                 return noModifications
                             }
                             if(decl.findInitializer(program)!=null)

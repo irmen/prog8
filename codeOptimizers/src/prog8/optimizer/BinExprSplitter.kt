@@ -4,11 +4,11 @@ import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.AugmentAssignmentOperators
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.TypecastExpression
+import prog8.ast.getTempVar
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.AssignmentOrigin
@@ -98,14 +98,7 @@ X =      BinExpr                                    X   =   LeftExpr
                 // we can see if we can unwrap the binary expression by working on a new temporary variable
                 // (that has the type of the expression), and then finally doing the typecast.
                 // Once it's outside the typecast, the regular splitting can commence.
-                val tempVar = when(val tempDt = origExpr.inferType(program).getOr(DataType.UNDEFINED)) {
-                    DataType.UBYTE -> listOf("prog8_lib", "retval_interm_ub")
-                    DataType.BYTE -> listOf("prog8_lib", "retval_interm_b")
-                    DataType.UWORD -> listOf("prog8_lib", "retval_interm_uw")
-                    DataType.WORD -> listOf("prog8_lib", "retval_interm_w")
-                    DataType.FLOAT -> listOf("floats", "tempvar_swap_float")
-                    else -> throw FatalAstException("invalid dt $tempDt")
-                }
+                val tempVar = program.getTempVar(origExpr.inferType(program).getOr(DataType.UNDEFINED))
                 val assignTempVar = Assignment(
                     AssignTarget(IdentifierReference(tempVar, typecast.position), null, null, typecast.position),
                     typecast.expression, AssignmentOrigin.OPTIMIZER, typecast.position

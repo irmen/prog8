@@ -27,4 +27,6 @@ interface IVariablesAndConsts {
     val subroutineVars: Map<Subroutine, Set<StaticVariable>>
     val subroutineConsts: Map<Subroutine, Set<ConstantNumberSymbol>>
     val subroutineMemvars: Map<Subroutine, Set<MemoryMappedVariable>>
+
+    fun addIfUnknown(definingBlock: Block, variable: VarDecl)
 }

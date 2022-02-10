@@ -303,7 +303,7 @@ class TestOptimization: FunSpec({
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
-        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
+        result.program.processAstBeforeAsmGeneration(options, DummyVarsAndConsts, ErrorReporterForTests())
 
         // assignment is now split into:
         //     bb =  not bb
@@ -357,11 +357,11 @@ class TestOptimization: FunSpec({
         st.size shouldBe 8
         st.last() shouldBe instanceOf<Return>()
         var assign = st[3] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
         assign = st[4] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
         assign = st[5] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","retval_interm_b")
+        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
         assign = st[6] as Assignment
         assign.target.identifier!!.nameInSource shouldBe listOf("bb")
     }

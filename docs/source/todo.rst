@@ -4,7 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - (newvaralloc) UnusedCodeRemover after(decl: VarDecl): fix that vars defined in a library can also safely be removed if unused. Currently this breaks programs such as textelite (due to diskio.save().end_address ?)
-- check that retval_interm_* are not in  the varallocation if they're not used
 - make it so that subroutine parameters as variables can again be allocated in ZP, if there's still space
 
 

@@ -56,7 +56,7 @@ class Program(val name: String,
     }
 
     val allBlocks: List<Block>
-        get() = modules.flatMap { it.statements.filterIsInstance<Block>() }
+        get() = modules.flatMap { it.statements.asSequence().filterIsInstance<Block>() }
 
     val entrypoint: Subroutine
         get() {

@@ -38,7 +38,8 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
             } else false
         }
         ident != null -> {
-            val decl = ident.targetVarDecl(definingModule.program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
+            val decl = ident.targetVarDecl(definingModule.program) ?:
+               throw FatalAstException("invalid identifier ${ident.nameInSource}")
             return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
                 machine.isIOAddress((decl.value as NumericLiteralValue).number.toUInt())
             else
