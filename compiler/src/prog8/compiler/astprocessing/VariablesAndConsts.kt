@@ -3,7 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
@@ -122,7 +122,7 @@ internal class VariablesAndConsts (
                     IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
                         it.scopedName,
-                        (it.value as NumericLiteralValue).number,
+                        (it.value as NumericLiteral).number,
                         it.position
                     )
                 })
@@ -136,7 +136,7 @@ internal class VariablesAndConsts (
                         IVariablesAndConsts.MemoryMappedVariable(
                             decl.datatype,
                             decl.scopedName,
-                            (decl.value as NumericLiteralValue).number.toUInt(),
+                            (decl.value as NumericLiteral).number.toUInt(),
                             decl.position
                         )
                     )
@@ -153,7 +153,7 @@ internal class VariablesAndConsts (
                     IVariablesAndConsts.ConstantNumberSymbol(
                         it.datatype,
                         it.scopedName,
-                        (it.value as NumericLiteralValue).number,
+                        (it.value as NumericLiteral).number,
                         it.position
                     )
                 })
@@ -164,7 +164,7 @@ internal class VariablesAndConsts (
                     IVariablesAndConsts.MemoryMappedVariable(
                         it.datatype,
                         it.scopedName,
-                        (it.value as NumericLiteralValue).number.toUInt(),
+                        (it.value as NumericLiteral).number.toUInt(),
                         it.position
                     )
                 })

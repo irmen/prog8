@@ -140,7 +140,7 @@ class UnusedCodeRemover(private val program: Program,
         val linesToRemove = mutableListOf<Assignment>()
         val modifications = mutableListOf<IAstModification>()
 
-        fun substituteZeroInBinexpr(expr: BinaryExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+        fun substituteZeroInBinexpr(expr: BinaryExpression, zero: NumericLiteral, assign1: Assignment, assign2: Assignment) {
             if(expr.left isSameAs assign2.target) {
                 // X = X <oper> Right
                 linesToRemove.add(assign1)
@@ -191,7 +191,7 @@ class UnusedCodeRemover(private val program: Program,
             }
         }
 
-        fun substituteZeroInPrefixexpr(expr: PrefixExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+        fun substituteZeroInPrefixexpr(expr: PrefixExpression, zero: NumericLiteral, assign1: Assignment, assign2: Assignment) {
             if(expr.expression isSameAs assign2.target) {
                 linesToRemove.add(assign1)
                 modifications.add(IAstModification.ReplaceNode(
@@ -200,7 +200,7 @@ class UnusedCodeRemover(private val program: Program,
             }
         }
 
-        fun substituteZeroInTypecast(expr: TypecastExpression, zero: NumericLiteralValue, assign1: Assignment, assign2: Assignment) {
+        fun substituteZeroInTypecast(expr: TypecastExpression, zero: NumericLiteral, assign1: Assignment, assign2: Assignment) {
             if(expr.expression isSameAs assign2.target) {
                 linesToRemove.add(assign1)
                 modifications.add(IAstModification.ReplaceNode(

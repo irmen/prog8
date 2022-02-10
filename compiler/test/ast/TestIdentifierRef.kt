@@ -7,7 +7,7 @@ import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.parser.Prog8Parser
@@ -37,7 +37,7 @@ class TestIdentifierRef: FunSpec({
         (ident1 == ident2) shouldBe false
         (ident1 == ident3) shouldBe false
 
-        val pfx = PrefixExpression("-", NumericLiteralValue.optimalInteger(1, Position.DUMMY), Position.DUMMY)
+        val pfx = PrefixExpression("-", NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY)
         (ident1 isSameAs pfx) shouldBe false
     }
 

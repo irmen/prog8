@@ -162,7 +162,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             origValue
         }
 
-        val valueLv = (value as? NumericLiteralValue)?.number
+        val valueLv = (value as? NumericLiteral)?.number
         val ident = value as? IdentifierReference
         val memread = value as? DirectMemoryRead
 
@@ -211,8 +211,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             TargetStorageKind.MEMORY -> {
                 val memory = target.memory!!
                 when (memory.addressExpression) {
-                    is NumericLiteralValue -> {
-                        val addr = (memory.addressExpression as NumericLiteralValue).number.toInt()
+                    is NumericLiteral -> {
+                        val addr = (memory.addressExpression as NumericLiteral).number.toInt()
                         // re-use code to assign a variable, instead this time, use a direct memory address
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable(addr.toHex(), DataType.UBYTE, operator, valueLv.toInt())
@@ -257,7 +257,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             TargetStorageKind.ARRAY -> {
                 with(target.array!!.indexer) {
-                    val indexNum = indexExpr as? NumericLiteralValue
+                    val indexNum = indexExpr as? NumericLiteral
                     val indexVar = indexExpr as? IdentifierReference
                     when {
                         indexNum!=null -> {
@@ -1869,8 +1869,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     TargetStorageKind.MEMORY -> {
                         val mem = target.memory!!
                         when (mem.addressExpression) {
-                            is NumericLiteralValue -> {
-                                val addr = (mem.addressExpression as NumericLiteralValue).number.toHex()
+                            is NumericLiteral -> {
+                                val addr = (mem.addressExpression as NumericLiteral).number.toHex()
                                 asmgen.out("""
                                     lda  $addr
                                     beq  +
@@ -1997,8 +1997,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     TargetStorageKind.MEMORY -> {
                         val memory = target.memory!!
                         when (memory.addressExpression) {
-                            is NumericLiteralValue -> {
-                                val addr = (memory.addressExpression as NumericLiteralValue).number.toHex()
+                            is NumericLiteral -> {
+                                val addr = (memory.addressExpression as NumericLiteral).number.toHex()
                                 asmgen.out("""
                                     lda  $addr
                                     eor  #255

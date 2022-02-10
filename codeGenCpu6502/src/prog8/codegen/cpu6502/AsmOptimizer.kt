@@ -2,7 +2,7 @@ package prog8.codegen.cpu6502
 
 import prog8.ast.Program
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.IMachineDefinition
 
@@ -406,7 +406,7 @@ private fun getAddressArg(line: String, program: Program): UInt? {
                     when(decl.type){
                         VarDeclType.VAR -> null
                         VarDeclType.CONST,
-                        VarDeclType.MEMORY -> (decl.value as NumericLiteralValue).number.toUInt()
+                        VarDeclType.MEMORY -> (decl.value as NumericLiteral).number.toUInt()
                     }
                 }
                 else null

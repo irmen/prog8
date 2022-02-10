@@ -133,8 +133,8 @@ internal class AssignmentAsmGen(private val program: Program,
 
                 val value = assign.source.memory!!
                 when (value.addressExpression) {
-                    is NumericLiteralValue -> {
-                        val address = (value.addressExpression as NumericLiteralValue).number.toUInt()
+                    is NumericLiteral -> {
+                        val address = (value.addressExpression as NumericLiteral).number.toUInt()
                         assignMemoryByte(assign.target, address, null)
                     }
                     is IdentifierReference -> {
@@ -156,7 +156,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         val sourceName = asmgen.asmSymbolName(value.identifier)
                         assignAddressOf(assign.target, sourceName)
                     }
-                    is NumericLiteralValue -> throw AssemblyError("source kind should have been literalnumber")
+                    is NumericLiteral -> throw AssemblyError("source kind should have been literalnumber")
                     is IdentifierReference -> throw AssemblyError("source kind should have been variable")
                     is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
@@ -293,14 +293,14 @@ internal class AssignmentAsmGen(private val program: Program,
                             // for now generate code for this:  assign-false; if expr { assign-true }
                             translateNormalAssignment(
                                 AsmAssignment(
-                                    AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, DataType.UBYTE, number=NumericLiteralValue.fromBoolean(false, assign.position)),
+                                    AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, DataType.UBYTE, number=NumericLiteral.fromBoolean(false, assign.position)),
                                     assign.target, false, program.memsizer, assign.position
                                 )
                             )
                             val origTarget = assign.target.origAstTarget
                             if(origTarget!=null) {
                                 val assignTrue = AnonymousScope(mutableListOf(
-                                    Assignment(origTarget, NumericLiteralValue.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
+                                    Assignment(origTarget, NumericLiteral.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
                                 ), assign.position)
                                 val assignFalse = AnonymousScope(mutableListOf(), assign.position)
                                 val ifelse = IfElse(value.copy(), assignTrue, assignFalse, assign.position)
@@ -362,7 +362,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 when(variable.datatype) {
                     DataType.STR -> {
                         require(elementDt.isBytes)
-                        val stringVal = variable.value as StringLiteralValue
+                        val stringVal = variable.value as StringLiteral
                         if(stringVal.value.length > ContainmentCheck.max_inlined_string_length) {
                             // use subroutine
                             val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
@@ -383,7 +383,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     }
                     in ArrayDatatypes -> {
                         require(elementDt.isInteger)
-                        val arrayVal = variable.value as ArrayLiteralValue
+                        val arrayVal = variable.value as ArrayLiteral
                         val dt = elementDt.getOr(DataType.UNDEFINED)
                         if(arrayVal.value.size > ContainmentCheck.max_inlined_string_length) {
                             // use subroutine
@@ -419,14 +419,14 @@ internal class AssignmentAsmGen(private val program: Program,
                     // use subroutine
                     assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                     assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                    val stringVal = variable.value as StringLiteralValue
+                    val stringVal = variable.value as StringLiteral
                     asmgen.out("  ldy  #${stringVal.value.length}")
                     asmgen.out("  jsr  prog8_lib.containment_bytearray")
                     return
                 }
                 DataType.ARRAY_F -> throw AssemblyError("containment check of floats not supported")
                 DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                    val arrayVal = variable.value as ArrayLiteralValue
+                    val arrayVal = variable.value as ArrayLiteral
                     assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                     assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
                     asmgen.out("  ldy  #${arrayVal.value.size}")
@@ -434,7 +434,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     return
                 }
                 DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                    val arrayVal = variable.value as ArrayLiteralValue
+                    val arrayVal = variable.value as ArrayLiteral
                     assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
                     assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
                     asmgen.out("  ldy  #${arrayVal.value.size}")
@@ -444,7 +444,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 else -> throw AssemblyError("invalid dt")
             }
         }
-        val stringVal = containment.iterable as? StringLiteralValue
+        val stringVal = containment.iterable as? StringLiteral
         if(stringVal!=null) {
             require(elementDt.isBytes)
             if(stringVal.value.length > ContainmentCheck.max_inlined_string_length)
@@ -452,7 +452,7 @@ internal class AssignmentAsmGen(private val program: Program,
             val encoded = program.encoding.encodeString(stringVal.value, stringVal.encoding)
             return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), encoded.map { it.toInt() })
         }
-        val arrayVal = containment.iterable as? ArrayLiteralValue
+        val arrayVal = containment.iterable as? ArrayLiteral
         if(arrayVal!=null) {
             require(elementDt.isInteger)
             if(arrayVal.value.size > ContainmentCheck.max_inlined_string_length)
@@ -547,8 +547,8 @@ $containsLabel      lda  #1
                     }
 
                     when (value.addressExpression) {
-                        is NumericLiteralValue -> {
-                            val address = (value.addressExpression as NumericLiteralValue).number.toUInt()
+                        is NumericLiteral -> {
+                            val address = (value.addressExpression as NumericLiteral).number.toUInt()
                             assignMemoryByteIntoWord(target, address, null)
                             return
                         }
@@ -570,7 +570,7 @@ $containsLabel      lda  #1
                     }
                 }
             }
-            is NumericLiteralValue -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            is NumericLiteral -> throw AssemblyError("a cast of a literal value should have been const-folded away")
             else -> {}
         }
 
@@ -2342,11 +2342,11 @@ $containsLabel      lda  #1
 
     private fun storeRegisterAInMemoryAddress(memoryAddress: DirectMemoryWrite) {
         val addressExpr = memoryAddress.addressExpression
-        val addressLv = addressExpr as? NumericLiteralValue
+        val addressLv = addressExpr as? NumericLiteral
 
         fun storeViaExprEval() {
             when(addressExpr) {
-                is NumericLiteralValue, is IdentifierReference -> {
+                is NumericLiteral, is IdentifierReference -> {
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                     asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }

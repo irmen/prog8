@@ -17,7 +17,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
         val modifications = mutableListOf<IAstModification>()
-        if(range.from !is NumericLiteralValue) {
+        if(range.from !is NumericLiteral) {
             try {
                 val constval = range.from.constValue(program)
                 if (constval != null)
@@ -26,7 +26,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
                 // syntax errors will be reported later
             }
         }
-        if(range.to !is NumericLiteralValue) {
+        if(range.to !is NumericLiteral) {
             try {
                 val constval = range.to.constValue(program)
                 if(constval!=null)
@@ -35,7 +35,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
                 // syntax errors will be reported later
             }
         }
-        if(range.step !is NumericLiteralValue) {
+        if(range.step !is NumericLiteral) {
             try {
                 val constval = range.step.constValue(program)
                 if(constval!=null)

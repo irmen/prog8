@@ -4,10 +4,10 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
@@ -16,7 +16,7 @@ import prog8.ast.walk.IAstModification
 
 internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
 
-    override fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
+    override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl
             && string.parent !is WhenChoice
             && (string.parent !is ContainmentCheck || string.value.length>ContainmentCheck.max_inlined_string_length)) {
@@ -36,7 +36,7 @@ internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
         return noModifications
     }
 
-    override fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {
+    override fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> {
         val vardecl = array.parent as? VarDecl
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess from the vardecl type)

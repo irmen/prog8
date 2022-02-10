@@ -53,7 +53,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number
                     return listOf(IAstModification.ReplaceNode(
                         expr.left,
-                        NumericLiteralValue(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
+                        NumericLiteral(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
                         expr))
                 }
                 val rightCv = expr.right.constValue(program)
@@ -61,7 +61,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
                     return listOf(IAstModification.ReplaceNode(
                         expr.right,
-                        NumericLiteralValue(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
+                        NumericLiteral(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
                         expr))
                 }
 
@@ -119,7 +119,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
                     return modifications
                 } else {
-                    fun castLiteral(cvalue2: NumericLiteralValue): List<IAstModification.ReplaceNode> {
+                    fun castLiteral(cvalue2: NumericLiteral): List<IAstModification.ReplaceNode> {
                         val cast = cvalue2.cast(targettype)
                         return if(cast.isValid)
                             listOf(IAstModification.ReplaceNode(assignment.value, cast.valueOrZero(), assignment))
@@ -184,8 +184,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                             AddressOf(identifier, pair.second.position),
                                             call as Node)
                                 }
-                            } else if(pair.second is NumericLiteralValue) {
-                                val cast = (pair.second as NumericLiteralValue).cast(requiredType)
+                            } else if(pair.second is NumericLiteral) {
+                                val cast = (pair.second as NumericLiteral).cast(requiredType)
                                 if(cast.isValid)
                                     modifications += IAstModification.ReplaceNode(
                                             pair.second,
@@ -248,7 +248,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memread.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memread.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)?.valueOrZero()
+            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
             else
@@ -262,7 +262,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memwrite.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memwrite.addressExpression as? NumericLiteralValue)?.cast(DataType.UWORD)?.valueOrZero()
+            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
             else
@@ -280,7 +280,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 val subReturnType = subroutine.returntypes.first()
                 if (returnValue.inferType(program) istype subReturnType)
                     return noModifications
-                if (returnValue is NumericLiteralValue) {
+                if (returnValue is NumericLiteral) {
                     val cast = returnValue.cast(subroutine.returntypes.single())
                     if(cast.isValid)
                         returnStmt.value = cast.valueOrZero()
@@ -303,7 +303,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val sourceDt = expressionToCast.inferType(program).getOr(DataType.UNDEFINED)
         if(sourceDt == requiredType)
             return
-        if(expressionToCast is NumericLiteralValue && expressionToCast.type!=DataType.FLOAT) { // refuse to automatically truncate floats
+        if(expressionToCast is NumericLiteral && expressionToCast.type!=DataType.FLOAT) { // refuse to automatically truncate floats
             val castedValue = expressionToCast.cast(requiredType)
             if (castedValue.isValid) {
                 modifications += IAstModification.ReplaceNode(expressionToCast, castedValue.valueOrZero(), parent)

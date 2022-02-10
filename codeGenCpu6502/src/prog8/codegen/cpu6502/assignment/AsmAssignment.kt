@@ -120,7 +120,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                                val array: ArrayIndexedExpression? = null,
                                val memory: DirectMemoryRead? = null,
                                val register: RegisterOrPair? = null,
-                               val number: NumericLiteralValue? = null,
+                               val number: NumericLiteral? = null,
                                val expression: Expression? = null
 )
 {
@@ -142,9 +142,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
 
             return when(value) {
-                is NumericLiteralValue -> throw AssemblyError("should have been constant value")
-                is StringLiteralValue -> throw AssemblyError("string literal value should not occur anymore for asm generation")
-                is ArrayLiteralValue -> throw AssemblyError("array literal value should not occur anymore for asm generation")
+                is NumericLiteral -> throw AssemblyError("should have been constant value")
+                is StringLiteral -> throw AssemblyError("string literal value should not occur anymore for asm generation")
+                is ArrayLiteral -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is IdentifierReference -> {
                     val parameter = value.targetVarDecl(program)?.subroutineParameter
                     if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine)

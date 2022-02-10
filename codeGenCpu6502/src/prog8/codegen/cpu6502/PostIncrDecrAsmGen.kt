@@ -3,7 +3,7 @@ package prog8.codegen.cpu6502
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.PostIncrDecr
 import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
@@ -41,7 +41,7 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
             }
             targetMemory!=null -> {
                 when (val addressExpr = targetMemory.addressExpression) {
-                    is NumericLiteralValue -> {
+                    is NumericLiteral -> {
                         val what = addressExpr.number.toHex()
                         asmgen.out(if(incr) "  inc  $what" else "  dec  $what")
                     }

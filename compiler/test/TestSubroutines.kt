@@ -10,7 +10,7 @@ import prog8.ast.base.DataType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
@@ -234,9 +234,9 @@ class TestSubroutines: FunSpec({
         (valueXXexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
         (valueYYexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
         (valueZZexpr.left as IdentifierReference).nameInSource shouldBe listOf("other")
-        (valueXXexpr.right as NumericLiteralValue).number.toInt() shouldBe 1
-        (valueYYexpr.right as NumericLiteralValue).number.toInt() shouldBe 2
-        (valueZZexpr.right as NumericLiteralValue).number.toInt() shouldBe 3
+        (valueXXexpr.right as NumericLiteral).number.toInt() shouldBe 1
+        (valueYYexpr.right as NumericLiteral).number.toInt() shouldBe 2
+        (valueZZexpr.right as NumericLiteral).number.toInt() shouldBe 3
     }
 
     test("uword param and normal varindexed as array work as MemoryWrite") {
@@ -260,13 +260,13 @@ class TestSubroutines: FunSpec({
         block.name shouldBe "main"
         thing.statements.size shouldBe 3   // "rr, rr assign, return void"
         val assignRR = thing.statements[1] as Assignment
-        (assignRR.value as NumericLiteralValue).number.toInt() shouldBe 42
+        (assignRR.value as NumericLiteral).number.toInt() shouldBe 42
         val memwrite = assignRR.target.memoryAddress
         memwrite shouldNotBe null
         val addressExpr = memwrite!!.addressExpression as BinaryExpression
         (addressExpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
         addressExpr.operator shouldBe "+"
-        (addressExpr.right as NumericLiteralValue).number.toInt() shouldBe 10
+        (addressExpr.right as NumericLiteral).number.toInt() shouldBe 10
     }
 
     test("invalid number of args check on normal subroutine") {

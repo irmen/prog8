@@ -10,7 +10,7 @@ import prog8.ast.base.RegisterOrPair
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
@@ -47,7 +47,7 @@ class TestAsmGenSymbols: StringSpec({
     }
 
          */
-        val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteralValue.optimalInteger(1234, Position.DUMMY), false, false, null, Position.DUMMY)
+        val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteral.optimalInteger(1234, Position.DUMMY), false, false, null, Position.DUMMY)
         val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, null, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
 

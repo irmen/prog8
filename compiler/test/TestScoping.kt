@@ -8,7 +8,7 @@ import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.GlobalNamespace
 import prog8.ast.base.ParentSentinel
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
@@ -67,7 +67,7 @@ class TestScoping: FunSpec({
             initassign?.target?.identifier?.nameInSource shouldBe listOf("xx")
         }
         withClue("vardecl in repeat should be replaced by init assignment") {
-            (initassign?.value as? NumericLiteralValue)?.number?.toInt() shouldBe 99
+            (initassign?.value as? NumericLiteral)?.number?.toInt() shouldBe 99
         }
         repeatbody.statements[1] shouldBe instanceOf<PostIncrDecr>()
     }

@@ -566,7 +566,7 @@ class TestProg8Parser: FunSpec( {
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
-            val rhs = decl.value as StringLiteralValue
+            val rhs = decl.value as StringLiteral
             rhs.encoding shouldBe Encoding.PETSCII
             rhs.value shouldBe "name"
         }
@@ -580,7 +580,7 @@ class TestProg8Parser: FunSpec( {
             val decl = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
-            val rhs = decl.value as StringLiteralValue
+            val rhs = decl.value as StringLiteral
             rhs.encoding shouldBe Encoding.SCREENCODES
             rhs.value shouldBe "name"
         }
@@ -596,9 +596,9 @@ class TestProg8Parser: FunSpec( {
             val (decl1, decl2, decl3) = module
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()
-            val rhs1 = decl1.value as StringLiteralValue
-            val rhs2 = decl2.value as StringLiteralValue
-            val rhs3 = decl3.value as StringLiteralValue
+            val rhs1 = decl1.value as StringLiteral
+            val rhs2 = decl2.value as StringLiteral
+            val rhs3 = decl3.value as StringLiteral
             rhs1.encoding shouldBe Encoding.PETSCII
             rhs1.value shouldBe "Name"
             rhs2.encoding shouldBe Encoding.SCREENCODES
@@ -637,10 +637,10 @@ class TestProg8Parser: FunSpec( {
             iterables.size shouldBe 5
 
             val it0 = iterables[0] as RangeExpression
-            it0.from shouldBe instanceOf<StringLiteralValue>()
-            it0.to shouldBe instanceOf<StringLiteralValue>()
+            it0.from shouldBe instanceOf<StringLiteral>()
+            it0.to shouldBe instanceOf<StringLiteral>()
 
-            val it1 = iterables[1] as StringLiteralValue
+            val it1 = iterables[1] as StringLiteral
             it1.value shouldBe "something"
 
             val it2 = iterables[2] as RangeExpression
@@ -648,12 +648,12 @@ class TestProg8Parser: FunSpec( {
             it2.to shouldBe instanceOf<CharLiteral>()
 
             val it3 = iterables[3] as RangeExpression
-            it3.from shouldBe instanceOf<NumericLiteralValue>()
-            it3.to shouldBe instanceOf<NumericLiteralValue>()
+            it3.from shouldBe instanceOf<NumericLiteral>()
+            it3.to shouldBe instanceOf<NumericLiteral>()
 
             val it4 = iterables[4] as RangeExpression
-            it4.from shouldBe instanceOf<NumericLiteralValue>()
-            it4.to shouldBe instanceOf<NumericLiteralValue>()
+            it4.from shouldBe instanceOf<NumericLiteral>()
+            it4.to shouldBe instanceOf<NumericLiteral>()
         }
     }
 
@@ -669,8 +669,8 @@ class TestProg8Parser: FunSpec( {
     }
 
     test("testLiteralValueComparisons") {
-        val ten = NumericLiteralValue(DataType.UWORD, 10.0, Position.DUMMY)
-        val nine = NumericLiteralValue(DataType.UBYTE, 9.0, Position.DUMMY)
+        val ten = NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
+        val nine = NumericLiteral(DataType.UBYTE, 9.0, Position.DUMMY)
         ten shouldBe ten
         nine shouldNotBe ten
         (ten != ten) shouldBe false
@@ -686,8 +686,8 @@ class TestProg8Parser: FunSpec( {
         (ten <= ten) shouldBe true
         (ten < ten) shouldBe false
 
-        val abc = StringLiteralValue("abc", Encoding.PETSCII, Position.DUMMY)
-        val abd = StringLiteralValue("abd", Encoding.PETSCII, Position.DUMMY)
+        val abc = StringLiteral("abc", Encoding.PETSCII, Position.DUMMY)
+        val abd = StringLiteral("abd", Encoding.PETSCII, Position.DUMMY)
         abc shouldBe abc
         (abc!=abd) shouldBe true
         (abc!=abc) shouldBe false
@@ -717,7 +717,7 @@ class TestProg8Parser: FunSpec( {
         withClue("\"var is still in repeat block (anonymousscope") {
             repeatbody.statements[0] shouldBe instanceOf<VarDecl>()
         }
-        val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteralValue
+        val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteral
         initvalue?.number?.toInt() shouldBe 99
         repeatbody.statements[1] shouldBe instanceOf<PostIncrDecr>()
         // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
@@ -910,20 +910,20 @@ class TestProg8Parser: FunSpec( {
         """
         val result = compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
         val start = result.program.entrypoint
-        val string = (start.statements[0] as VarDecl).value as StringLiteralValue
+        val string = (start.statements[0] as VarDecl).value as StringLiteral
         withClue("x-escapes are hacked to range 0x8000-0x80ff") {
             string.value[0].code shouldBe 0x8000
             string.value[1].code shouldBe 0x80ff
         }
         string.value[2].code shouldBe 65
         val zero = start.statements[2] as Assignment
-        zero.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+        zero.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         val ff = start.statements[4] as Assignment
-        ff.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
+        ff.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
         val letter = start.statements[6] as Assignment
         // TODO characters should perhaps not be encoded until code generation, like strings... however this will prevent optimizing expressions with characters
         val encodedletter = PetsciiEncoding.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
-        letter.value shouldBe NumericLiteralValue(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
+        letter.value shouldBe NumericLiteral(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
 
     test("`in` containment checks") {

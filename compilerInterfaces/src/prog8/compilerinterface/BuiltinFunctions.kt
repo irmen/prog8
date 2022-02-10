@@ -7,7 +7,7 @@ import prog8.ast.statements.VarDecl
 import kotlin.math.*
 
 
-private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteralValue
+private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
 class ReturnConvention(val dt: DataType, val reg: RegisterOrPair?, val floatFac1: Boolean)
 class ParamConvention(val dt: DataType, val reg: RegisterOrPair?, val variable: Boolean)
@@ -177,7 +177,7 @@ private fun builtinAll(array: List<Double>): Double = if(array.all { it!=0.0 }) 
 fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): InferredTypes.InferredType {
 
     fun datatypeFromIterableArg(arglist: Expression): DataType {
-        if(arglist is ArrayLiteralValue) {
+        if(arglist is ArrayLiteral) {
             val dt = arglist.value.map {it.inferType(program).getOr(DataType.UNDEFINED)}.toSet()
             if(dt.any { it !in NumericDatatypes }) {
                 throw FatalAstException("fuction $function only accepts array of numeric values")
@@ -235,7 +235,7 @@ fun builtinFunctionReturnType(function: String, args: List<Expression>, program:
         "len" -> {
             when(args.single().inferType(program).getOr(DataType.UNDEFINED)) {
                 in ArrayDatatypes -> {
-                    val value = args.single() as? ArrayLiteralValue
+                    val value = args.single() as? ArrayLiteral
                     if(value!=null) {
                         return if(value.value.size<256) InferredTypes.knownFor(DataType.UBYTE) else InferredTypes.knownFor(DataType.UWORD)
                     } else {
@@ -261,7 +261,7 @@ class NotConstArgumentException: AstException("not a const argument to a built-i
 class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
 
 
-private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteralValue {
+private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -269,14 +269,14 @@ private fun oneDoubleArg(args: List<Expression>, position: Position, program: Pr
     return numericLiteral(function(float), args[0].position)
 }
 
-private fun oneDoubleArgOutputWord(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Double): NumericLiteralValue {
+private fun oneDoubleArgOutputWord(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Double): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one floating point argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return NumericLiteralValue(DataType.WORD, function(constval.number), args[0].position)
+    return NumericLiteral(DataType.WORD, function(constval.number), args[0].position)
 }
 
-private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, function: (arg: Int)->Double): NumericLiteralValue {
+private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, function: (arg: Int)->Double): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
@@ -287,20 +287,20 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
     return numericLiteral(function(integer).toInt(), args[0].position)
 }
 
-private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Double): NumericLiteralValue {
+private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Double): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
 
-    val array= args[0] as? ArrayLiteralValue ?: throw NotConstArgumentException()
+    val array= args[0] as? ArrayLiteral ?: throw NotConstArgumentException()
     val constElements = array.value.map{it.constValue(program)?.number}
     if(constElements.contains(null))
         throw NotConstArgumentException()
 
-    return NumericLiteralValue.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
+    return NumericLiteral.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // 1 arg, type = float or int, result type= isSameAs as argument type
     if(args.size!=1)
         throw SyntaxError("abs requires one numeric argument", position)
@@ -313,7 +313,7 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
     }
 }
 
-private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // 1 arg, type = anything, result type = ubyte
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
@@ -332,7 +332,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 numericLiteral(program.memsizer.memorySize(elementDt) * length, position)
             }
             dt istype DataType.STR -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
-            else -> NumericLiteralValue(DataType.UBYTE, program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)).toDouble(), position)
+            else -> NumericLiteral(DataType.UBYTE, program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)).toDouble(), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)
@@ -340,7 +340,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
@@ -348,9 +348,9 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program)
     var arraySize = directMemVar?.arraysize?.constIndex()
     if(arraySize != null)
-        return NumericLiteralValue.optimalInteger(arraySize, position)
-    if(args[0] is ArrayLiteralValue)
-        return NumericLiteralValue.optimalInteger((args[0] as ArrayLiteralValue).value.size, position)
+        return NumericLiteral.optimalInteger(arraySize, position)
+    if(args[0] is ArrayLiteral)
+        return NumericLiteral.optimalInteger((args[0] as ArrayLiteral).value.size, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier", position)
     val target = (args[0] as IdentifierReference).targetVarDecl(program)
@@ -361,11 +361,11 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             arraySize = target.arraysize?.constIndex()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
-            NumericLiteralValue.optimalInteger(arraySize, args[0].position)
+            NumericLiteral.optimalInteger(arraySize, args[0].position)
         }
         DataType.STR -> {
-            val refLv = target.value as? StringLiteralValue ?: throw CannotEvaluateException("len", "stringsize unknown")
-            NumericLiteralValue.optimalInteger(refLv.value.length, args[0].position)
+            val refLv = target.value as? StringLiteral ?: throw CannotEvaluateException("len", "stringsize unknown")
+            NumericLiteral.optimalInteger(refLv.value.length, args[0].position)
         }
         in NumericDatatypes -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw InternalCompilerException("weird datatype")
@@ -374,170 +374,170 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 2)
         throw SyntaxError("mkword requires msb and lsb arguments", position)
     val constMsb = args[0].constValue(program) ?: throw NotConstArgumentException()
     val constLsb = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = (constMsb.number.toInt() shl 8) or constLsb.number.toInt()
-    return NumericLiteralValue(DataType.UWORD, result.toDouble(), position)
+    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSin8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, round(127.0 * sin(rad)), position)
+    return NumericLiteral(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSin8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
+    return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSinR8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSinR8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, round(127.0 * sin(rad)), position)
+    return NumericLiteral(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSinR8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSinR8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
+    return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCos8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, round(127.0 * cos(rad)), position)
+    return NumericLiteral(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCos8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
+    return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCosR8(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCosR8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr8 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.BYTE, round(127.0 * cos(rad)), position)
+    return NumericLiteral(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCosR8u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCosR8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr8u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
+    return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSin16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, round(32767.0 * sin(rad)), position)
+    return NumericLiteral(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSin16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSin16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
+    return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSinR16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSinR16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, round(32767.0 * sin(rad)), position)
+    return NumericLiteral(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSinR16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSinR16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
+    return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCos16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, round(32767.0 * cos(rad)), position)
+    return NumericLiteral(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCos16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCos16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number /256.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
+    return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCosR16(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCosR16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr16 requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.WORD, round(32767.0 * cos(rad)), position)
+    return NumericLiteral(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinCosR16u(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinCosR16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr16u requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     val rad = constval.number / 180.0 * 2.0 * PI
-    return NumericLiteralValue(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
+    return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
 @Suppress("UNUSED_PARAMETER")
-private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteralValue {
+private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return NumericLiteralValue(DataType.BYTE, constval.number.sign, position)
+    return NumericLiteral(DataType.BYTE, constval.number.sign, position)
 }
 
-private fun numericLiteral(value: UInt, position: Position): NumericLiteralValue = numericLiteral(value.toInt(), position)
+private fun numericLiteral(value: UInt, position: Position): NumericLiteral = numericLiteral(value.toInt(), position)
 
-private fun numericLiteral(value: Number, position: Position): NumericLiteralValue {
+private fun numericLiteral(value: Number, position: Position): NumericLiteral {
     val floatNum=value.toDouble()
     val tweakedValue: Number =
         if(floatNum== floor(floatNum) && (floatNum>=-32768 && floatNum<=65535))
@@ -546,11 +546,11 @@ private fun numericLiteral(value: Number, position: Position): NumericLiteralVal
             floatNum
 
     return when(tweakedValue) {
-        is Int -> NumericLiteralValue.optimalInteger(value.toInt(), position)
-        is Short -> NumericLiteralValue.optimalInteger(value.toInt(), position)
-        is Byte -> NumericLiteralValue(DataType.UBYTE, value.toDouble(), position)
-        is Double -> NumericLiteralValue(DataType.FLOAT, value.toDouble(), position)
-        is Float -> NumericLiteralValue(DataType.FLOAT, value.toDouble(), position)
+        is Int -> NumericLiteral.optimalInteger(value.toInt(), position)
+        is Short -> NumericLiteral.optimalInteger(value.toInt(), position)
+        is Byte -> NumericLiteral(DataType.UBYTE, value.toDouble(), position)
+        is Double -> NumericLiteral(DataType.FLOAT, value.toDouble(), position)
+        is Float -> NumericLiteral(DataType.FLOAT, value.toDouble(), position)
         else -> throw FatalAstException("invalid number type ${value::class}")
     }
 }

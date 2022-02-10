@@ -5,7 +5,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.IMemSizer
@@ -78,7 +78,7 @@ class Program(val name: String,
 
     private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 
-    fun internString(string: StringLiteralValue): List<String> {
+    fun internString(string: StringLiteral): List<String> {
         // Move a string literal into the internal, deduplicated, string pool
         // replace it with a variable declaration that points to the entry in the pool.
 
@@ -91,7 +91,7 @@ class Program(val name: String,
             .first { it.name == internedStringsModuleName }.statements
             .first { it is Block && it.name == internedStringsModuleName } as Block
 
-        fun addNewInternedStringvar(string: StringLiteralValue): Pair<List<String>, VarDecl> {
+        fun addNewInternedStringvar(string: StringLiteral): Pair<List<String>, VarDecl> {
             val varName = "string_${internedStringsBlock.statements.size}"
             val decl = VarDecl(
                 VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE, null, varName, string,
@@ -103,7 +103,7 @@ class Program(val name: String,
         }
 
         val existingDecl = internedStringsBlock.statements.singleOrNull {
-            val declString = (it as VarDecl).value as StringLiteralValue
+            val declString = (it as VarDecl).value as StringLiteral
             declString.encoding == string.encoding && declString.value == string.value
         }
         return if (existingDecl != null) {

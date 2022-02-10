@@ -596,8 +596,8 @@ class AsmGen(internal val program: Program,
                 jmp(repeatLabel)
                 out(endLabel)
             }
-            is NumericLiteralValue -> {
-                val iterations = (stmt.iterations as NumericLiteralValue).number.toInt()
+            is NumericLiteral -> {
+                val iterations = (stmt.iterations as NumericLiteral).number.toInt()
                 when {
                     iterations == 0 -> {}
                     iterations == 1 -> translate(stmt.body)
@@ -794,7 +794,7 @@ $repeatLabel    lda  $counterVar
             } else {
                 choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values!!) {
-                    val value = (cv as NumericLiteralValue).number.toInt()
+                    val value = (cv as NumericLiteral).number.toInt()
                     if(conditionDt.getOr(DataType.BYTE) in ByteDatatypes) {
                         out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
                     } else {
@@ -1066,7 +1066,7 @@ $repeatLabel    lda  $counterVar
                 // could be that the index was a constant numeric byte but converted to word, check that
                 val constIdx = pointerOffsetExpr.right.constValue(program)
                 if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
-                    return Pair(pointerOffsetExpr.left, NumericLiteralValue(DataType.UBYTE, constIdx.number, constIdx.position))
+                    return Pair(pointerOffsetExpr.left, NumericLiteral(DataType.UBYTE, constIdx.number, constIdx.position))
                 }
                 // could be that the index was typecasted into uword, check that
                 val rightTc = pointerOffsetExpr.right as? TypecastExpression
@@ -1090,8 +1090,8 @@ $repeatLabel    lda  $counterVar
                 return true
             return when(expr) {
                 is IdentifierReference -> false
-                is NumericLiteralValue -> false
-                is DirectMemoryRead -> expr.addressExpression !is IdentifierReference && expr.addressExpression !is NumericLiteralValue
+                is NumericLiteral -> false
+                is DirectMemoryRead -> expr.addressExpression !is IdentifierReference && expr.addressExpression !is NumericLiteral
                 is TypecastExpression -> evalBytevalueWillClobberA(expr.expression)
                 else -> true
             }
@@ -1346,8 +1346,8 @@ $repeatLabel    lda  $counterVar
         operator: String,
         right: Expression,
         jumpIfFalseLabel: String,
-        leftConstVal: NumericLiteralValue?,
-        rightConstVal: NumericLiteralValue?
+        leftConstVal: NumericLiteral?,
+        rightConstVal: NumericLiteral?
     ) {
         val dt = left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
 
@@ -1417,7 +1417,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1462,7 +1462,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1507,7 +1507,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1552,7 +1552,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1597,7 +1597,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bcs  $jumpIfFalseLabel")
@@ -1636,7 +1636,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(sbcOperand: String) {
             out("""
@@ -1671,7 +1671,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1708,7 +1708,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordLessJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1747,7 +1747,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("""
@@ -1787,7 +1787,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(sbcOperand: String) {
             out("""
@@ -1824,7 +1824,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1867,7 +1867,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
     }
 
-    private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCmpOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1911,7 +1911,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("""
@@ -1952,7 +1952,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         fun code(sbcOperand: String) {
             out("""
                 clc
@@ -1989,7 +1989,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2034,7 +2034,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordLessOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(leftName: String) {
             out("""
@@ -2082,7 +2082,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bcc  $jumpIfFalseLabel")
@@ -2119,7 +2119,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         fun code(sbcOperand: String) {
             out("""
                 sec
@@ -2153,7 +2153,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2189,7 +2189,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterOrEqualJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2228,7 +2228,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bne  $jumpIfFalseLabel")
         }
@@ -2264,7 +2264,7 @@ $repeatLabel    lda  $counterVar
         out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
     }
 
-    private fun translateByteNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateByteNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  beq  $jumpIfFalseLabel")
@@ -2301,7 +2301,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateWordEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -2333,7 +2333,7 @@ $repeatLabel    lda  $counterVar
         }
 
         when (right) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
                 out("""
@@ -2375,7 +2375,7 @@ $repeatLabel    lda  $counterVar
 
     }
 
-    private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateWordNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
 
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
@@ -2409,7 +2409,7 @@ $repeatLabel    lda  $counterVar
         }
 
         when (right) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
                 out("""
@@ -2453,7 +2453,7 @@ $repeatLabel    lda  $counterVar
 
     }
 
-    private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -2537,7 +2537,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteralValue?, rightConstVal: NumericLiteralValue?, jumpIfFalseLabel: String) {
+    private fun translateFloatNotEqualsJump(left: Expression, right: Expression, leftConstVal: NumericLiteral?, rightConstVal: NumericLiteral?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
@@ -2733,8 +2733,8 @@ $repeatLabel    lda  $counterVar
         }
 
         when(expr.addressExpression) {
-            is NumericLiteralValue -> {
-                val address = (expr.addressExpression as NumericLiteralValue).number.toInt()
+            is NumericLiteral -> {
+                val address = (expr.addressExpression as NumericLiteral).number.toInt()
                 out("  lda  ${address.toHex()}")
                 if(pushResultOnEstack)
                     out("  sta  P8ESTACK_LO,x |  dex")
@@ -2759,7 +2759,7 @@ $repeatLabel    lda  $counterVar
 
     private fun wordJumpForSimpleLeftOperand(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
         when (left) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 assignExpressionToRegister(right, RegisterOrPair.AY)
                 val number = left.number.toHex()
                 code("#>$number", "#<$number")
@@ -2782,7 +2782,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun byteJumpForSimpleRightOperand(left: Expression, right: Expression, code: (String)->Unit): Boolean {
-        if(right is NumericLiteralValue) {
+        if(right is NumericLiteral) {
             assignExpressionToRegister(left, RegisterOrPair.A)
             code("#${right.number.toHex()}")
             return true
@@ -2796,7 +2796,7 @@ $repeatLabel    lda  $counterVar
         if(memread==null && right is TypecastExpression)
             memread = right.expression as? DirectMemoryRead
         if(memread!=null) {
-            val address = memread.addressExpression as? NumericLiteralValue
+            val address = memread.addressExpression as? NumericLiteral
             if(address!=null) {
                 assignExpressionToRegister(left, RegisterOrPair.A)
                 code(address.number.toHex())
@@ -2808,7 +2808,7 @@ $repeatLabel    lda  $counterVar
 
     private fun wordJumpForSimpleRightOperands(left: Expression, right: Expression, code: (String, String)->Unit): Boolean {
         when (right) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
                 code("#>$number", "#<$number")

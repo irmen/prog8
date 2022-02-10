@@ -5,7 +5,7 @@ import com.github.michaelbull.result.onSuccess
 import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.CompilationOptions
@@ -124,7 +124,7 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
 
     private fun numArrayElements(variable: IVariablesAndConsts.StaticVariable) =
         when(variable.type) {
-            DataType.STR -> (variable.initialValue as StringLiteralValue).value.length
+            DataType.STR -> (variable.initialValue as StringLiteral).value.length
             in ArrayDatatypes -> variable.arraysize!!
             else -> null
         }

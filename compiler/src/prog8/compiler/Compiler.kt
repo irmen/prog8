@@ -8,7 +8,7 @@ import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
@@ -156,7 +156,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
-    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteralValue? {
+    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteral? {
         val func = BuiltinFunctions[name]
         if(func!=null) {
             val exprfunc = func.constExpressionFunc

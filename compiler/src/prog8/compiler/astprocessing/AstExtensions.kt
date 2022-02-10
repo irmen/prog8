@@ -5,7 +5,7 @@ import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
@@ -53,7 +53,7 @@ internal fun Program.charLiteralsToUByteLiterals(enc: IStringEncoding) {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
             return listOf(IAstModification.ReplaceNode(
                 char,
-                NumericLiteralValue(DataType.UBYTE, enc.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
+                NumericLiteral(DataType.UBYTE, enc.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
                 parent
             ))
         }

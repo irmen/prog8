@@ -1,7 +1,7 @@
 package prog8.codegen.target.cbm
 
 import prog8.ast.base.*
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.IMemSizer
 
@@ -22,7 +22,7 @@ internal object CbmMemorySizer: IMemSizer {
                 when(val dt = decl.datatype) {
                     in NumericDatatypes -> return memorySize(dt)
                     in ArrayDatatypes -> decl.arraysize!!.constIndex()!! * memorySize(ArrayToElementTypes.getValue(dt))
-                    DataType.STR -> (decl.value as StringLiteralValue).value.length + 1
+                    DataType.STR -> (decl.value as StringLiteral).value.length + 1
                     else -> 0
                 }
             }

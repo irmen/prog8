@@ -3,7 +3,7 @@ package prog8.compilerinterface
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.AssignTarget
 
 fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
@@ -18,8 +18,8 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
             return when (memAddr.addressExpression) {
                 is IdentifierReference -> {
                     val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(definingModule.program)
-                    val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteralValue)
-                        machine.isIOAddress((decl.value as NumericLiteralValue).number.toUInt())
+                    val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteral)
+                        machine.isIOAddress((decl.value as NumericLiteral).number.toUInt())
                     else
                         false
                     result
@@ -30,7 +30,7 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
         arrayIdx != null -> {
             val targetStmt = arrayIdx.arrayvar.targetVarDecl(definingModule.program)
             return if (targetStmt?.type == VarDeclType.MEMORY) {
-                val addr = targetStmt.value as? NumericLiteralValue
+                val addr = targetStmt.value as? NumericLiteral
                 if (addr != null)
                     machine.isIOAddress(addr.number.toUInt())
                 else
@@ -40,8 +40,8 @@ fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
         ident != null -> {
             val decl = ident.targetVarDecl(definingModule.program) ?:
                throw FatalAstException("invalid identifier ${ident.nameInSource}")
-            return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteralValue)
-                machine.isIOAddress((decl.value as NumericLiteralValue).number.toUInt())
+            return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
+                machine.isIOAddress((decl.value as NumericLiteral).number.toUInt())
             else
                 false
         }

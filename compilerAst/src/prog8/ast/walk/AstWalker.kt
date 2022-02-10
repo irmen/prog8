@@ -80,7 +80,7 @@ abstract class AstWalker {
     protected val noModifications = emptyList<IAstModification>()
 
     open fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
@@ -105,7 +105,7 @@ abstract class AstWalker {
     open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(program: Program): Iterable<IAstModification> = noModifications
     open fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -113,7 +113,7 @@ abstract class AstWalker {
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
@@ -123,7 +123,7 @@ abstract class AstWalker {
     open fun before(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
@@ -149,7 +149,7 @@ abstract class AstWalker {
     open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(program: Program): Iterable<IAstModification> = noModifications
     open fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -157,7 +157,7 @@ abstract class AstWalker {
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(string: StringLiteralValue, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
@@ -317,7 +317,7 @@ abstract class AstWalker {
         track(after(label, parent), label, parent)
     }
 
-    fun visit(numLiteral: NumericLiteralValue, parent: Node) {
+    fun visit(numLiteral: NumericLiteral, parent: Node) {
         track(before(numLiteral, parent), numLiteral, parent)
         track(after(numLiteral, parent), numLiteral, parent)
     }
@@ -327,12 +327,12 @@ abstract class AstWalker {
         track(after(char, parent), char, parent)
     }
 
-    fun visit(string: StringLiteralValue, parent: Node) {
+    fun visit(string: StringLiteral, parent: Node) {
         track(before(string, parent), string, parent)
         track(after(string, parent), string, parent)
     }
 
-    fun visit(array: ArrayLiteralValue, parent: Node) {
+    fun visit(array: ArrayLiteral, parent: Node) {
         track(before(array, parent), array, parent)
         array.value.forEach { v->v.accept(this, array) }
         track(after(array, parent), array, parent)

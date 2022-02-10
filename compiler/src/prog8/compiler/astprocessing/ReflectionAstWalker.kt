@@ -13,7 +13,7 @@ Too bad, because the code is very small
 //import prog8.ast.Program
 //import prog8.ast.base.Position
 //import prog8.ast.expressions.BinaryExpression
-//import prog8.ast.expressions.NumericLiteralValue
+//import prog8.ast.expressions.NumericLiteral
 //import kotlin.reflect.KClass
 //import kotlin.reflect.KVisibility
 //import kotlin.reflect.full.declaredMemberProperties
@@ -59,9 +59,9 @@ Too bad, because the code is very small
 //
 //fun main() {
 //    val ast = BinaryExpression(
-//            NumericLiteralValue.optimalInteger(100, Position.DUMMY),
+//            NumericLiteral.optimalInteger(100, Position.DUMMY),
 //            "+",
-//            NumericLiteralValue.optimalInteger(200, Position.DUMMY),
+//            NumericLiteral.optimalInteger(200, Position.DUMMY),
 //            Position.DUMMY
 //    )
 //

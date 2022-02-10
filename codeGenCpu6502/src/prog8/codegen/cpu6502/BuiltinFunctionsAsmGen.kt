@@ -309,7 +309,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         .byte  ${bank.toHex()}
                         sta  ${asmgen.asmVariableName(argAddrArg.identifier)}""")
                 }
-                is NumericLiteralValue -> {
+                is NumericLiteral -> {
                     asmgen.out("""
                         lda  ${argAddrArg.number.toHex()}
                         jsr  cx16.jsrfar
@@ -362,7 +362,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         pla
                         sta  $01""")
                 }
-                is NumericLiteralValue -> {
+                is NumericLiteral -> {
                     asmgen.out("""
                         lda  $01
                         pha
@@ -391,12 +391,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                         asmgen.out("  cmp  ${asmgen.asmVariableName(arg2)}")
                     }
-                    is NumericLiteralValue -> {
+                    is NumericLiteral -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                         asmgen.out("  cmp  #${arg2.number.toInt()}")
                     }
                     is DirectMemoryRead -> {
-                        if(arg2.addressExpression is NumericLiteralValue) {
+                        if(arg2.addressExpression is NumericLiteral) {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                             asmgen.out("  cmp  ${arg2.addressExpression.constValue(program)!!.number.toHex()}")
                         } else {
@@ -425,7 +425,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             cmp  ${asmgen.asmVariableName(arg2)}
 +""")
                     }
-                    is NumericLiteralValue -> {
+                    is NumericLiteral -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                         asmgen.out("""
                             cpy  #>${arg2.number.toInt()}
@@ -451,10 +451,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult || fcall !is FunctionCallExpression)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
-        val name = (fcall.args[0] as StringLiteralValue).value
+        val name = (fcall.args[0] as StringLiteral).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
-        val size = (fcall.args[1] as NumericLiteralValue).number.toUInt()
-        val align = (fcall.args[2] as NumericLiteralValue).number.toUInt()
+        val size = (fcall.args[1] as NumericLiteral).number.toUInt()
+        val align = (fcall.args[2] as NumericLiteral).number.toUInt()
 
         val existing = allocations.getMemorySlab(name)
         if(existing!=null && (existing.first!=size || existing.second!=align))
@@ -582,8 +582,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         asmgen.out("  jsr  prog8_lib.ror2_array_ub")
                     }
                     is DirectMemoryRead -> {
-                        if (what.addressExpression is NumericLiteralValue) {
-                            val number = (what.addressExpression as NumericLiteralValue).number
+                        if (what.addressExpression is NumericLiteral) {
+                            val number = (what.addressExpression as NumericLiteral).number
                             asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
                         } else {
                             asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
@@ -625,8 +625,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         asmgen.out("  jsr  prog8_lib.ror_array_ub")
                     }
                     is DirectMemoryRead -> {
-                        if (what.addressExpression is NumericLiteralValue) {
-                            val number = (what.addressExpression as NumericLiteralValue).number
+                        if (what.addressExpression is NumericLiteral) {
+                            val number = (what.addressExpression as NumericLiteral).number
                             asmgen.out("  ror  ${number.toHex()}")
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
@@ -683,8 +683,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         asmgen.out("  jsr  prog8_lib.rol2_array_ub")
                     }
                     is DirectMemoryRead -> {
-                        if (what.addressExpression is NumericLiteralValue) {
-                            val number = (what.addressExpression as NumericLiteralValue).number
+                        if (what.addressExpression is NumericLiteral) {
+                            val number = (what.addressExpression as NumericLiteral).number
                             asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
                         } else {
                             asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
@@ -726,8 +726,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         asmgen.out("  jsr  prog8_lib.rol_array_ub")
                     }
                     is DirectMemoryRead -> {
-                        if (what.addressExpression is NumericLiteralValue) {
-                            val number = (what.addressExpression as NumericLiteralValue).number
+                        if (what.addressExpression is NumericLiteral) {
+                            val number = (what.addressExpression as NumericLiteral).number
                             asmgen.out("  rol  ${number.toHex()}")
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
@@ -956,8 +956,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 
         // optimized simple case: swap two memory locations
         if(first is DirectMemoryRead && second is DirectMemoryRead) {
-            val addr1 = (first.addressExpression as? NumericLiteralValue)?.number?.toHex()
-            val addr2 = (second.addressExpression as? NumericLiteralValue)?.number?.toHex()
+            val addr1 = (first.addressExpression as? NumericLiteral)?.number?.toHex()
+            val addr2 = (second.addressExpression as? NumericLiteral)?.number?.toHex()
             val name1 = if(first.addressExpression is IdentifierReference) asmgen.asmVariableName(first.addressExpression as IdentifierReference) else null
             val name2 = if(second.addressExpression is IdentifierReference) asmgen.asmVariableName(second.addressExpression as IdentifierReference) else null
 
@@ -988,10 +988,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         if(pointerVariable != null
                             && pointerVariable isSameAs secondExpr.left
                             && firstExpr.operator == "+" && secondExpr.operator == "+"
-                            && (firstOffset is NumericLiteralValue || firstOffset is IdentifierReference || firstOffset is TypecastExpression)
-                            && (secondOffset is NumericLiteralValue || secondOffset is IdentifierReference || secondOffset is TypecastExpression)
+                            && (firstOffset is NumericLiteral || firstOffset is IdentifierReference || firstOffset is TypecastExpression)
+                            && (secondOffset is NumericLiteral || secondOffset is IdentifierReference || secondOffset is TypecastExpression)
                         ) {
-                            if(firstOffset is NumericLiteralValue && secondOffset is NumericLiteralValue) {
+                            if(firstOffset is NumericLiteral && secondOffset is NumericLiteral) {
                                 if(firstOffset!=secondOffset) {
                                     swapArrayValues(
                                         DataType.UBYTE,
@@ -1030,9 +1030,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             val elementIDt = first.inferType(program)
             val elementDt = elementIDt.getOrElse { throw AssemblyError("unknown dt") }
 
-            val firstNum = first.indexer.indexExpr as? NumericLiteralValue
+            val firstNum = first.indexer.indexExpr as? NumericLiteral
             val firstVar = first.indexer.indexExpr as? IdentifierReference
-            val secondNum = second.indexer.indexExpr as? NumericLiteralValue
+            val secondNum = second.indexer.indexExpr as? NumericLiteral
             val secondVar = second.indexer.indexExpr as? IdentifierReference
 
             if(firstNum!=null && secondNum!=null) {
@@ -1101,7 +1101,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         }
     }
 
-    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexValue2: NumericLiteralValue) {
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteral, arrayVarName2: String, indexValue2: NumericLiteral) {
         val index1 = indexValue1.number.toInt() * program.memsizer.memorySize(elementDt)
         val index2 = indexValue2.number.toInt() * program.memsizer.memorySize(elementDt)
         when(elementDt) {
@@ -1215,7 +1215,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         }
     }
 
-    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteralValue, arrayVarName2: String, indexName2: IdentifierReference) {
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteral, arrayVarName2: String, indexName2: IdentifierReference) {
         val index1 = indexValue1.number.toInt() * program.memsizer.memorySize(elementDt)
         val idxAsmName2 = asmgen.asmVariableName(indexName2)
         when(elementDt) {
@@ -1273,7 +1273,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         }
     }
 
-    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexValue2: NumericLiteralValue) {
+    private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexName1: IdentifierReference, arrayVarName2: String, indexValue2: NumericLiteral) {
         val idxAsmName1 = asmgen.asmVariableName(indexName1)
         val index2 = indexValue2.number.toInt() * program.memsizer.memorySize(elementDt)
         when(elementDt) {
@@ -1384,7 +1384,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 
     private fun funcPokeW(fcall: IFunctionCall) {
         when(val addrExpr = fcall.args[0]) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
                 val addr = addrExpr.number.toHex()
                 asmgen.out("  sta  $addr |  sty  ${addr}+1")
@@ -1415,13 +1415,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
             is BinaryExpression -> {
-                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
+                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteral) {
                     val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
                     if(asmgen.isZpVar(addrExpr.left as IdentifierReference)) {
                         // pointervar is already in the zero page, no need to copy
                         asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                         asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                        val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                        val index = (addrExpr.right as NumericLiteral).number.toHex()
                         asmgen.out("""
                             ldy  #$index
                             sta  ($varname),y
@@ -1443,7 +1443,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 
     private fun funcPeekW(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         when(val addrExpr = fcall.args[0]) {
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 val addr = addrExpr.number.toHex()
                 asmgen.out("  lda  $addr |  ldy  ${addr}+1")
             }
@@ -1473,11 +1473,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
             is BinaryExpression -> {
-                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteralValue) {
+                if(addrExpr.operator=="+" && addrExpr.left is IdentifierReference && addrExpr.right is NumericLiteral) {
                     val varname = asmgen.asmVariableName(addrExpr.left as IdentifierReference)
                     if(asmgen.isZpVar(addrExpr.left as IdentifierReference)) {
                         // pointervar is already in the zero page, no need to copy
-                        val index = (addrExpr.right as NumericLiteralValue).number.toHex()
+                        val index = (addrExpr.right as NumericLiteral).number.toHex()
                         asmgen.out("""
                             ldy  #$index
                             lda  ($varname),y
@@ -1524,14 +1524,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
             val reg = resultRegister ?: RegisterOrPair.AY
-            var needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteralValue || fcall.args[0] is IdentifierReference)
+            var needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteral || fcall.args[0] is IdentifierReference)
             if(!needAsave) {
                 val mr0 = fcall.args[0] as? DirectMemoryRead
                 val mr1 = fcall.args[1] as? DirectMemoryRead
                 if (mr0 != null)
-                    needAsave = mr0.addressExpression !is NumericLiteralValue && mr0.addressExpression !is IdentifierReference
+                    needAsave = mr0.addressExpression !is NumericLiteral && mr0.addressExpression !is IdentifierReference
                 if (mr1 != null)
-                    needAsave = needAsave or (mr1.addressExpression !is NumericLiteralValue && mr1.addressExpression !is IdentifierReference)
+                    needAsave = needAsave or (mr1.addressExpression !is NumericLiteral && mr1.addressExpression !is IdentifierReference)
             }
             when(reg) {
                 RegisterOrPair.AX -> {
@@ -1574,7 +1574,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val arg = fcall.args.single()
         if (!arg.inferType(program).isWords)
             throw AssemblyError("msb required word argument")
-        if (arg is NumericLiteralValue)
+        if (arg is NumericLiteral)
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is IdentifierReference) {
             val sourceName = asmgen.asmVariableName(arg)
@@ -1628,7 +1628,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val arg = fcall.args.single()
         if (!arg.inferType(program).isWords)
             throw AssemblyError("lsb required word argument")
-        if (arg is NumericLiteralValue)
+        if (arg is NumericLiteral)
             throw AssemblyError("lsb(const) should have been const-folded away")
 
         if (arg is IdentifierReference) {
@@ -1710,7 +1710,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     val addr = AddressOf(value, value.position)
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
-                is NumericLiteralValue -> {
+                is NumericLiteral -> {
                     throw AssemblyError("float literals should have been converted into autovar")
                 }
                 else -> {

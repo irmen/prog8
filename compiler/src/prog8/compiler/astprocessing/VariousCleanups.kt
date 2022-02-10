@@ -38,8 +38,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.expression is NumericLiteralValue) {
-            val value = (typecast.expression as NumericLiteralValue).cast(typecast.type)
+        if(typecast.expression is NumericLiteral) {
+            val value = (typecast.expression as NumericLiteral).cast(typecast.type)
             if(value.isValid)
                 return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
         }
@@ -98,7 +98,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val leftBinExpr = expr.left as? BinaryExpression
             val rightBinExpr = expr.right as? BinaryExpression
             if(leftBinExpr!=null && leftBinExpr.operator=="==" && rightBinExpr!=null && rightBinExpr.operator=="==") {
-                if(leftBinExpr.right is NumericLiteralValue && rightBinExpr.right is NumericLiteralValue) {
+                if(leftBinExpr.right is NumericLiteral && rightBinExpr.right is NumericLiteral) {
                     if(leftBinExpr.left isSameAs rightBinExpr.left)
                         errors.warn("consider using 'in' or 'when' to test for multiple values", expr.position)
                 }
@@ -130,7 +130,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
         // replace trivial containment checks with just false or a single comparison
-        fun replaceWithEquals(value: NumericLiteralValue): Iterable<IAstModification> {
+        fun replaceWithEquals(value: NumericLiteral): Iterable<IAstModification> {
             errors.warn("containment could be written as just a single comparison", containment.position)
             val equals = BinaryExpression(containment.element, "==", value, containment.position)
             return listOf(IAstModification.ReplaceNode(containment, equals, parent))
@@ -138,7 +138,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         fun replaceWithFalse(): Iterable<IAstModification> {
             errors.warn("condition is always false", containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, NumericLiteralValue.fromBoolean(false, containment.position), parent))
+            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral.fromBoolean(false, containment.position), parent))
         }
 
         fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
@@ -152,30 +152,30 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return noModifications
         }
 
-        fun checkString(stringVal: StringLiteralValue): Iterable<IAstModification> {
+        fun checkString(stringVal: StringLiteral): Iterable<IAstModification> {
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
                 val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
-                return replaceWithEquals(NumericLiteralValue(DataType.UBYTE, string[0].toDouble(), stringVal.position))
+                return replaceWithEquals(NumericLiteral(DataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications
         }
 
         when(containment.iterable) {
-            is ArrayLiteralValue -> {
-                val array = (containment.iterable as ArrayLiteralValue).value
+            is ArrayLiteral -> {
+                val array = (containment.iterable as ArrayLiteral).value
                 return checkArray(array)
             }
             is IdentifierReference -> {
                 val variable = (containment.iterable as IdentifierReference).targetVarDecl(program)!!
                 when(variable.datatype) {
                     DataType.STR -> {
-                        val stringVal = (variable.value as StringLiteralValue)
+                        val stringVal = (variable.value as StringLiteral)
                         return checkString(stringVal)
                     }
                     in ArrayDatatypes -> {
-                        val array = (variable.value as ArrayLiteralValue).value
+                        val array = (variable.value as ArrayLiteral).value
                         return checkArray(array)
                     }
                     else -> {}
@@ -187,11 +187,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     if (constValues.isEmpty())
                         return replaceWithFalse()
                     if (constValues.count()==1)
-                        return replaceWithEquals(NumericLiteralValue.optimalNumeric(constValues.first, containment.position))
+                        return replaceWithEquals(NumericLiteral.optimalNumeric(constValues.first, containment.position))
                 }
             }
-            is StringLiteralValue -> {
-                val stringVal = containment.iterable as StringLiteralValue
+            is StringLiteral -> {
+                val stringVal = containment.iterable as StringLiteral
                 return checkString(stringVal)
             }
             else -> {}

@@ -256,7 +256,7 @@ internal class StatementReorderer(val program: Program,
             // generating the wrong results later
 
             fun wrapped(expr: Expression): Expression =
-                BinaryExpression(expr, "!=", NumericLiteralValue(DataType.UBYTE, 0.0, expr.position), expr.position)
+                BinaryExpression(expr, "!=", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
 
             fun isLogicalExpr(expr: Expression?): Boolean {
                 if(expr is BinaryExpression && expr.operator in (LogicalOperators + ComparisonOperators))
@@ -306,7 +306,7 @@ internal class StatementReorderer(val program: Program,
         val targetType = assignment.target.inferType(program)
 
         if(targetType.isArray && valueType.isArray) {
-            if (assignment.value is ArrayLiteralValue) {
+            if (assignment.value is ArrayLiteral) {
                 errors.err("cannot assign array literal here, use separate assignment per element", assignment.position)
             } else {
                 return copyArrayValue(assignment)
@@ -398,7 +398,7 @@ internal class StatementReorderer(val program: Program,
             mutableListOf(
                 AddressOf(sourceIdent, assign.position),
                 AddressOf(identifier, assign.position),
-                NumericLiteralValue.optimalInteger(numelements*eltsize, assign.position)
+                NumericLiteral.optimalInteger(numelements*eltsize, assign.position)
             ),
             true,
             assign.position

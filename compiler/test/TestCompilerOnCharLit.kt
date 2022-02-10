@@ -9,7 +9,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.base.DataType
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.codegen.target.Cx16Target
 import prog8.compilerinterface.Encoding
 import prog8tests.helpers.assertSuccess
@@ -39,9 +39,9 @@ class TestCompilerOnCharLit: FunSpec({
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
         withClue("char literal should have been replaced by ubyte literal") {
-            funCall.args[0] shouldBe instanceOf<NumericLiteralValue>()
+            funCall.args[0] shouldBe instanceOf<NumericLiteral>()
         }
-        val arg = funCall.args[0] as NumericLiteralValue
+        val arg = funCall.args[0] as NumericLiteral
         arg.type shouldBe DataType.UBYTE
         arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
@@ -79,9 +79,9 @@ class TestCompilerOnCharLit: FunSpec({
         val assignInitialValue = decl.findInitializer(program)!!
         assignInitialValue.target.identifier!!.nameInSource shouldBe listOf("ch")
         withClue("char literal should have been replaced by ubyte literal") {
-            assignInitialValue.value shouldBe instanceOf<NumericLiteralValue>()
+            assignInitialValue.value shouldBe instanceOf<NumericLiteral>()
         }
-        val initializerValue = assignInitialValue.value as NumericLiteralValue
+        val initializerValue = assignInitialValue.value as NumericLiteral
         initializerValue.type shouldBe DataType.UBYTE
         initializerValue.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
@@ -108,9 +108,9 @@ class TestCompilerOnCharLit: FunSpec({
                 val decl = arg.targetVarDecl(program)!!
                 decl.type shouldBe VarDeclType.CONST
                 decl.datatype shouldBe DataType.UBYTE
-                (decl.value as NumericLiteralValue).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]
+                (decl.value as NumericLiteral).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]
             }
-            is NumericLiteralValue -> {
+            is NumericLiteral -> {
                 arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
             }
             else -> fail("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail

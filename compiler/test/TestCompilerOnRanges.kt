@@ -7,9 +7,9 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
@@ -41,9 +41,9 @@ class TestCompilerOnRanges: FunSpec({
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
-        val rhsValues = (decl.value as ArrayLiteralValue)
+        val rhsValues = (decl.value as ArrayLiteral)
             .value // Array<Expression>
-            .map { (it as NumericLiteralValue).number.toInt() }
+            .map { (it as NumericLiteral).number.toInt() }
         val expectedStart = platform.encodeString("a", Encoding.SCREENCODES)[0].toInt()
         val expectedEnd = platform.encodeString("z", Encoding.PETSCII)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
@@ -73,9 +73,9 @@ class TestCompilerOnRanges: FunSpec({
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
-        val rhsValues = (decl.value as ArrayLiteralValue)
+        val rhsValues = (decl.value as ArrayLiteral)
             .value // Array<Expression>
-            .map { (it as NumericLiteralValue).number.toInt() }
+            .map { (it as NumericLiteral).number.toInt() }
         val expectedStart = platform.encodeString("a", Encoding.PETSCII)[0].toInt()
         val expectedEnd = platform.encodeString("z", Encoding.PETSCII)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
@@ -254,9 +254,9 @@ class TestCompilerOnRanges: FunSpec({
 
     test("testRangeExprNumericSize") {
         val expr = RangeExpression(
-            NumericLiteralValue.optimalInteger(10, Position.DUMMY),
-            NumericLiteralValue.optimalInteger(20, Position.DUMMY),
-            NumericLiteralValue.optimalInteger(2, Position.DUMMY),
+            NumericLiteral.optimalInteger(10, Position.DUMMY),
+            NumericLiteral.optimalInteger(20, Position.DUMMY),
+            NumericLiteral.optimalInteger(2, Position.DUMMY),
             Position.DUMMY)
         expr.size() shouldBe 6
         expr.toConstantIntegerRange()
@@ -275,11 +275,11 @@ class TestCompilerOnRanges: FunSpec({
         """).assertSuccess()
         val statements = result.program.entrypoint.statements
         val array = (statements[0] as VarDecl).value
-        array shouldBe instanceOf<ArrayLiteralValue>()
-        (array as ArrayLiteralValue).value.size shouldBe 26
+        array shouldBe instanceOf<ArrayLiteral>()
+        (array as ArrayLiteral).value.size shouldBe 26
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteralValue(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
     }
 
     test("range with start/end variables should be ok") {
@@ -297,7 +297,7 @@ class TestCompilerOnRanges: FunSpec({
         val statements = result.program.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteralValue(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
     }
 
 

@@ -142,8 +142,8 @@ internal class AstChecker(private val program: Program,
                     // check loop range values
                     val range = forLoop.iterable as? RangeExpression
                     if(range!=null) {
-                        val from = range.from as? NumericLiteralValue
-                        val to = range.to as? NumericLiteralValue
+                        val from = range.from as? NumericLiteral
+                        val to = range.to as? NumericLiteral
                         if(from != null)
                             checkValueTypeAndRange(loopvar.datatype, from)
                         else if(range.from.inferType(program) isnot loopvar.datatype)
@@ -541,7 +541,7 @@ internal class AstChecker(private val program: Program,
                 err("array variable is missing a size specification or an initialization value")
                 return
             }
-            if(decl.value is NumericLiteralValue) {
+            if(decl.value is NumericLiteral) {
                 err("unsized array declaration cannot use a single literal initialization value")
                 return
             }
@@ -556,15 +556,15 @@ internal class AstChecker(private val program: Program,
                         // a vardecl without an initial value, don't bother with it
                     }
                     is RangeExpression -> throw FatalAstException("range expression should have been converted to a true array value")
-                    is StringLiteralValue -> {
-                        checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteralValue)
+                    is StringLiteral -> {
+                        checkValueTypeAndRangeString(decl.datatype, decl.value as StringLiteral)
                     }
-                    is ArrayLiteralValue -> {
-                        val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteralValue)
-                        checkValueTypeAndRangeArray(decl.datatype, arraySpec, decl.value as ArrayLiteralValue)
+                    is ArrayLiteral -> {
+                        val arraySpec = decl.arraysize ?: ArrayIndex.forArray(decl.value as ArrayLiteral)
+                        checkValueTypeAndRangeArray(decl.datatype, arraySpec, decl.value as ArrayLiteral)
                     }
-                    is NumericLiteralValue -> {
-                        checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteralValue)
+                    is NumericLiteral -> {
+                        checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteral)
                     }
                     else -> {
                         if(decl.type==VarDeclType.CONST) {
@@ -592,7 +592,7 @@ internal class AstChecker(private val program: Program,
                         else -> {}
                     }
                 }
-                val numvalue = decl.value as? NumericLiteralValue
+                val numvalue = decl.value as? NumericLiteral
                 if(numvalue!=null) {
                     if (numvalue.type !in IntegerDatatypes || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
                         err("memory address must be valid integer 0..\$ffff")
@@ -753,7 +753,7 @@ internal class AstChecker(private val program: Program,
             errors.err("included file not found: $filename", directive.position)
     }
 
-    override fun visit(array: ArrayLiteralValue) {
+    override fun visit(array: ArrayLiteral) {
         if(array.type.isKnown) {
             if (!compilerOptions.floats && array.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
@@ -767,11 +767,11 @@ internal class AstChecker(private val program: Program,
                 val decl = e.targetVarDecl(program)!!
                 return decl.datatype in PassByReferenceDatatypes
             }
-            return e is StringLiteralValue
+            return e is StringLiteral
         }
 
         if(array.parent is VarDecl) {
-            if (!array.value.all { it is NumericLiteralValue || it is AddressOf || isPassByReferenceElement(it) })
+            if (!array.value.all { it is NumericLiteral || it is AddressOf || isPassByReferenceElement(it) })
                 errors.err("array literal for variable initialization contains non-constant elements", array.position)
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
@@ -791,7 +791,7 @@ internal class AstChecker(private val program: Program,
         super.visit(char)
     }
 
-    override fun visit(string: StringLiteralValue) {
+    override fun visit(string: StringLiteral) {
         checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
@@ -906,7 +906,7 @@ internal class AstChecker(private val program: Program,
         if(!typecast.expression.inferType(program).isKnown)
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
-        if(typecast.expression is NumericLiteralValue)
+        if(typecast.expression is NumericLiteral)
             errors.err("can't cast the value to the requested target type", typecast.expression.position)
 
         super.visit(typecast)
@@ -1153,9 +1153,9 @@ internal class AstChecker(private val program: Program,
                 if(index!=null && (index<0 || index>=arraysize))
                     errors.err("array index out of bounds", arrayIndexedExpression.indexer.position)
             } else if(target.datatype == DataType.STR) {
-                if(target.value is StringLiteralValue) {
+                if(target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
-                    val stringLen = (target.value as StringLiteralValue).value.length
+                    val stringLen = (target.value as StringLiteral).value.length
                     val index = arrayIndexedExpression.indexer.constIndex()
                     if (index != null && (index < 0 || index >= stringLen))
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
@@ -1340,7 +1340,7 @@ internal class AstChecker(private val program: Program,
         return null
     }
 
-    private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteralValue) : Boolean {
+    private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {
         return if (targetDt == DataType.STR) {
             when {
                 value.value.length > 255 -> {
@@ -1361,7 +1361,7 @@ internal class AstChecker(private val program: Program,
         else false
     }
 
-    private fun checkValueTypeAndRangeArray(targetDt: DataType, arrayspec: ArrayIndex, value: ArrayLiteralValue) : Boolean {
+    private fun checkValueTypeAndRangeArray(targetDt: DataType, arrayspec: ArrayIndex, value: ArrayLiteral) : Boolean {
         fun err(msg: String) : Boolean {
             errors.err(msg, value.position)
             return false
@@ -1438,7 +1438,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataType, value: NumericLiteralValue) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, value: NumericLiteral) : Boolean {
         fun err(msg: String) : Boolean {
             errors.err(msg, value.position)
             return false
@@ -1482,10 +1482,10 @@ internal class AstChecker(private val program: Program,
         return true
     }
 
-    private fun checkArrayValues(value: ArrayLiteralValue, type: DataType): Boolean {
+    private fun checkArrayValues(value: ArrayLiteral, type: DataType): Boolean {
         val array = value.value.map {
             when (it) {
-                is NumericLiteralValue -> it.number.toInt()
+                is NumericLiteral -> it.number.toInt()
                 is AddressOf -> it.identifier.hashCode() and 0xffff
                 is TypecastExpression -> {
                     val constVal = it.expression.constValue(program)

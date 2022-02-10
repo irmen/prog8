@@ -5,9 +5,9 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import prog8.ast.INameScope
 import prog8.ast.base.*
-import prog8.ast.expressions.ArrayLiteralValue
+import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 
 
 class ZeropageAllocationError(message: String) : Exception(message)
@@ -24,8 +24,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             val dt: DataType,
                             val size: Int,
                             val originalScope: INameScope,
-                            val initialStringValue: StringLiteralValue?,
-                            val initialArrayValue: ArrayLiteralValue?)
+                            val initialStringValue: StringLiteral?,
+                            val initialArrayValue: ArrayLiteral?)
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
@@ -118,8 +118,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
                 in NumericDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, null)        // numerical variables in zeropage never have an initial value here TODO why not?
-                DataType.STR -> ZpAllocation(address, datatype, size, originalScope, initValue as? StringLiteralValue, null)
-                in ArrayDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, initValue as? ArrayLiteralValue)
+                DataType.STR -> ZpAllocation(address, datatype, size, originalScope, initValue as? StringLiteral, null)
+                in ArrayDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, initValue as? ArrayLiteral)
                 else -> throw AssemblyError("invalid dt")
             }
         }

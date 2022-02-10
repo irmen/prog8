@@ -164,7 +164,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             val booleanExpr = BinaryExpression(
                 prefixExpr.expression,
                 "==",
-                NumericLiteralValue.optimalInteger(0, ifElse.condition.position),
+                NumericLiteral.optimalInteger(0, ifElse.condition.position),
                 ifElse.condition.position
             )
             return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
@@ -176,14 +176,14 @@ internal class BeforeAsmAstChanger(val program: Program,
             val booleanExpr = BinaryExpression(
                 ifElse.condition,
                 "!=",
-                NumericLiteralValue.optimalInteger(0, ifElse.condition.position),
+                NumericLiteral.optimalInteger(0, ifElse.condition.position),
                 ifElse.condition.position
             )
             return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
-        if((binExpr.left as? NumericLiteralValue)?.number==0.0 &&
-            (binExpr.right as? NumericLiteralValue)?.number!=0.0)
+        if((binExpr.left as? NumericLiteral)?.number==0.0 &&
+            (binExpr.right as? NumericLiteral)?.number!=0.0)
             throw FatalAstException("0==X should have been swapped to if X==0")
 
         // simplify the conditional expression, introduce simple assignments if required.
@@ -301,7 +301,7 @@ internal class BeforeAsmAstChanger(val program: Program,
 
 
         val index = arrayIndexedExpression.indexer.indexExpr
-        if(index !is NumericLiteralValue && index !is IdentifierReference) {
+        if(index !is NumericLiteral && index !is IdentifierReference) {
             // replace complex indexing expression with a temp variable to hold the computed index first
             return getAutoIndexerVarFor(arrayIndexedExpression)
         }
@@ -315,7 +315,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             val complexArrayIndexedExpressions = mutableListOf<ArrayIndexedExpression>()
             override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
                 val ix = arrayIndexedExpression.indexer.indexExpr
-                if(ix !is NumericLiteralValue && ix !is IdentifierReference)
+                if(ix !is NumericLiteral && ix !is IdentifierReference)
                     complexArrayIndexedExpressions.add(arrayIndexedExpression)
             }
 

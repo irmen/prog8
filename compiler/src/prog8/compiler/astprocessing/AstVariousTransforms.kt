@@ -6,7 +6,7 @@ import prog8.ast.base.DataType
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.Subroutine
@@ -40,8 +40,8 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        val leftStr = expr.left as? StringLiteralValue
-        val rightStr = expr.right as? StringLiteralValue
+        val leftStr = expr.left as? StringLiteral
+        val rightStr = expr.right as? StringLiteral
         if(expr.operator == "+") {
             val concatenatedString = concatString(expr)
             if(concatenatedString!=null)
@@ -52,7 +52,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 val amount = expr.right.constValue(program)
                 if(amount!=null) {
                     val string = leftStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteralValue(string, leftStr.encoding, expr.position)
+                    val strval = StringLiteral(string, leftStr.encoding, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, strval, parent))
                 }
             }
@@ -60,7 +60,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 val amount = expr.right.constValue(program)
                 if(amount!=null) {
                     val string = rightStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteralValue(string, rightStr.encoding, expr.position)
+                    val strval = StringLiteral(string, rightStr.encoding, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, strval, parent))
                 }
             }
@@ -73,9 +73,9 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         return replacePointerVarIndexWithMemreadOrMemwrite(program, arrayIndexedExpression, parent)
     }
 
-    private fun concatString(expr: BinaryExpression): StringLiteralValue? {
-        val rightStrval = expr.right as? StringLiteralValue
-        val leftStrval = expr.left as? StringLiteralValue
+    private fun concatString(expr: BinaryExpression): StringLiteral? {
+        val rightStrval = expr.right as? StringLiteral
+        val leftStrval = expr.left as? StringLiteral
         return when {
             expr.operator!="+" -> null
             expr.left is BinaryExpression && rightStrval!=null -> {
@@ -83,17 +83,17 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
                 if(subStrVal==null)
                     null
                 else
-                    StringLiteralValue("${subStrVal.value}${rightStrval.value}", subStrVal.encoding, rightStrval.position)
+                    StringLiteral("${subStrVal.value}${rightStrval.value}", subStrVal.encoding, rightStrval.position)
             }
             expr.right is BinaryExpression && leftStrval!=null -> {
                 val subStrVal = concatString(expr.right as BinaryExpression)
                 if(subStrVal==null)
                     null
                 else
-                    StringLiteralValue("${leftStrval.value}${subStrVal.value}", subStrVal.encoding, leftStrval.position)
+                    StringLiteral("${leftStrval.value}${subStrVal.value}", subStrVal.encoding, leftStrval.position)
             }
             leftStrval!=null && rightStrval!=null -> {
-                StringLiteralValue("${leftStrval.value}${rightStrval.value}", leftStrval.encoding, leftStrval.position)
+                StringLiteral("${leftStrval.value}${rightStrval.value}", leftStrval.encoding, leftStrval.position)
             }
             else -> null
         }

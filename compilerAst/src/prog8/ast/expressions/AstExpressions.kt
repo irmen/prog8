@@ -31,7 +31,7 @@ fun invertedComparisonOperator(operator: String) =
 
 sealed class Expression: Node {
     abstract override fun copy(): Expression
-    abstract fun constValue(program: Program): NumericLiteralValue?
+    abstract fun constValue(program: Program): NumericLiteral?
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
     abstract fun referencesIdentifier(nameInSource: List<String>): Boolean
@@ -106,23 +106,23 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     }
 
     override fun copy() = PrefixExpression(operator, expression.copy(), position)
-    override fun constValue(program: Program): NumericLiteralValue? {
+    override fun constValue(program: Program): NumericLiteral? {
         val constval = expression.constValue(program) ?: return null
         val converted = when(operator) {
             "+" -> constval
             "-" -> when (constval.type) {
-                in IntegerDatatypes -> NumericLiteralValue.optimalInteger(-constval.number.toInt(), constval.position)
-                DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, -constval.number, constval.position)
+                in IntegerDatatypes -> NumericLiteral.optimalInteger(-constval.number.toInt(), constval.position)
+                DataType.FLOAT -> NumericLiteral(DataType.FLOAT, -constval.number, constval.position)
                 else -> throw ExpressionError("can only take negative of int or float", constval.position)
             }
             "~" -> when (constval.type) {
-                DataType.BYTE -> NumericLiteralValue(DataType.BYTE, constval.number.toInt().inv().toDouble(), constval.position)
-                DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
-                DataType.WORD -> NumericLiteralValue(DataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
-                DataType.UWORD -> NumericLiteralValue(DataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
+                DataType.BYTE -> NumericLiteral(DataType.BYTE, constval.number.toInt().inv().toDouble(), constval.position)
+                DataType.UBYTE -> NumericLiteral(DataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
+                DataType.WORD -> NumericLiteral(DataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
+                DataType.UWORD -> NumericLiteral(DataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
-            "not" -> NumericLiteralValue.fromBoolean(constval.number == 0.0, constval.position)
+            "not" -> NumericLiteral.fromBoolean(constval.number == 0.0, constval.position)
             else -> throw FatalAstException("invalid operator")
         }
         converted.linkParents(this.parent)
@@ -186,7 +186,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
     override val isSimple = false
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
@@ -295,7 +295,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         indexer.linkParents(this)
     }
 
-    override val isSimple = indexer.indexExpr is NumericLiteralValue || indexer.indexExpr is IdentifierReference
+    override val isSimple = indexer.indexExpr is NumericLiteral || indexer.indexExpr is IdentifierReference
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
@@ -305,7 +305,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         replacement.parent = this
     }
 
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -352,7 +352,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
 
     override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
-    override fun constValue(program: Program): NumericLiteralValue? {
+    override fun constValue(program: Program): NumericLiteral? {
         val cv = expression.constValue(program) ?: return null
         val cast = cv.cast(type)
         return if(cast.isValid) {
@@ -386,7 +386,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
     }
 
     override fun copy() = AddressOf(identifier.copy(), position)
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -401,7 +401,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
         this.addressExpression.linkParents(this)
     }
 
-    override val isSimple = addressExpression is NumericLiteralValue || addressExpression is IdentifierReference
+    override val isSimple = addressExpression is NumericLiteral || addressExpression is IdentifierReference
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && node===addressExpression)
@@ -415,16 +415,16 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
 
     override fun referencesIdentifier(nameInSource: List<String>) = addressExpression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
 
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
 }
 
-class NumericLiteralValue(val type: DataType,    // only numerical types allowed
-                          numbervalue: Double,    // can be byte, word or float depending on the type
-                          override val position: Position) : Expression() {
+class NumericLiteral(val type: DataType,    // only numerical types allowed
+                     numbervalue: Double,    // can be byte, word or float depending on the type
+                     override val position: Position) : Expression() {
     override lateinit var parent: Node
     val number: Double by lazy {
         if(type==DataType.FLOAT)
@@ -438,42 +438,42 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 
     override val isSimple = true
-    override fun copy() = NumericLiteralValue(type, number, position)
+    override fun copy() = NumericLiteral(type, number, position)
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteralValue(DataType.UBYTE, if (bool) 1.0 else 0.0, position)
+                NumericLiteral(DataType.UBYTE, if (bool) 1.0 else 0.0, position)
 
-        fun optimalNumeric(value: Number, position: Position): NumericLiteralValue {
+        fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             return if(value is Double) {
-                NumericLiteralValue(DataType.FLOAT, value, position)
+                NumericLiteral(DataType.FLOAT, value, position)
             } else {
                 val dvalue = value.toDouble()
                 when (value.toInt()) {
-                    in 0..255 -> NumericLiteralValue(DataType.UBYTE, dvalue, position)
-                    in -128..127 -> NumericLiteralValue(DataType.BYTE, dvalue, position)
-                    in 0..65535 -> NumericLiteralValue(DataType.UWORD, dvalue, position)
-                    in -32768..32767 -> NumericLiteralValue(DataType.WORD, dvalue, position)
-                    else -> NumericLiteralValue(DataType.FLOAT, dvalue, position)
+                    in 0..255 -> NumericLiteral(DataType.UBYTE, dvalue, position)
+                    in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
+                    in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
+                    in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
+                    else -> NumericLiteral(DataType.FLOAT, dvalue, position)
                 }
             }
         }
 
-        fun optimalInteger(value: Int, position: Position): NumericLiteralValue {
+        fun optimalInteger(value: Int, position: Position): NumericLiteral {
             val dvalue = value.toDouble()
             return when (value) {
-                in 0..255 -> NumericLiteralValue(DataType.UBYTE, dvalue, position)
-                in -128..127 -> NumericLiteralValue(DataType.BYTE, dvalue, position)
-                in 0..65535 -> NumericLiteralValue(DataType.UWORD, dvalue, position)
-                in -32768..32767 -> NumericLiteralValue(DataType.WORD, dvalue, position)
+                in 0..255 -> NumericLiteral(DataType.UBYTE, dvalue, position)
+                in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
+                in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
+                in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
                 else -> throw FatalAstException("integer overflow: $dvalue")
             }
         }
 
-        fun optimalInteger(value: UInt, position: Position): NumericLiteralValue {
+        fun optimalInteger(value: UInt, position: Position): NumericLiteral {
             return when (value) {
-                in 0u..255u -> NumericLiteralValue(DataType.UBYTE, value.toDouble(), position)
-                in 0u..65535u -> NumericLiteralValue(DataType.UWORD, value.toDouble(), position)
+                in 0u..255u -> NumericLiteral(DataType.UBYTE, value.toDouble(), position)
+                in 0u..65535u -> NumericLiteral(DataType.UWORD, value.toDouble(), position)
                 else -> throw FatalAstException("unsigned integer overflow: $value")
             }
         }
@@ -490,7 +490,7 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     }
 
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun constValue(program: Program): NumericLiteralValue {
+    override fun constValue(program: Program): NumericLiteral {
         return copy().also {
             if(::parent.isInitialized)
                 it.parent = parent
@@ -507,15 +507,15 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
     override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is NumericLiteralValue)
+        if(other==null || other !is NumericLiteral)
             return false
         return number==other.number
     }
 
-    operator fun compareTo(other: NumericLiteralValue): Int = number.compareTo(other.number)
+    operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
-    class CastValue(val isValid: Boolean, private val value: NumericLiteralValue?) {
-        fun valueOrZero() = if(isValid) value!! else NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+    class CastValue(val isValid: Boolean, private val value: NumericLiteral?) {
+        fun valueOrZero() = if(isValid) value!! else NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         fun linkParent(parent: Node) {
             value?.linkParents(parent)
         }
@@ -533,52 +533,52 @@ class NumericLiteralValue(val type: DataType,    // only numerical types allowed
         when(type) {
             DataType.UBYTE -> {
                 if(targettype== DataType.BYTE && number <= 127)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.WORD || targettype== DataType.UWORD)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
             }
             DataType.BYTE -> {
                 if(targettype== DataType.UBYTE && number >= 0)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UWORD && number >= 0)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.WORD)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
             }
             DataType.UWORD -> {
                 if(targettype== DataType.BYTE && number <= 127)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UBYTE && number <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.WORD && number <= 32767)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
             }
             DataType.WORD -> {
                 if(targettype== DataType.BYTE && number >= -128 && number <=127)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UBYTE && number >= 0 && number <= 255)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UWORD && number >=0)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteralValue(targettype, number, position))
+                    return CastValue(true, NumericLiteral(targettype, number, position))
             }
             DataType.FLOAT -> {
                 try {
                     if (targettype == DataType.BYTE && number >= -128 && number <= 127)
-                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                        return CastValue(true, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
-                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                        return CastValue(true, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
-                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                        return CastValue(true, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
-                        return CastValue(true, NumericLiteralValue(targettype, number, position))
+                        return CastValue(true, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
                     return CastValue(false, null)
                 }
@@ -606,9 +606,9 @@ class CharLiteral(val value: Char,
 
     override fun copy() = CharLiteral(value, encoding, position)
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun constValue(program: Program): NumericLiteralValue {
+    override fun constValue(program: Program): NumericLiteral {
         val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
-        return NumericLiteralValue(DataType.UBYTE, bytevalue.toDouble(), position)
+        return NumericLiteral(DataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -624,9 +624,9 @@ class CharLiteral(val value: Char,
     }
 }
 
-class StringLiteralValue(val value: String,
-                         val encoding: Encoding,
-                         override val position: Position) : Expression() {
+class StringLiteral(val value: String,
+                    val encoding: Encoding,
+                    override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -634,31 +634,31 @@ class StringLiteralValue(val value: String,
     }
 
     override val isSimple = true
-    override fun copy() = StringLiteralValue(value, encoding, position)
+    override fun copy() = StringLiteral(value, encoding, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")
     }
 
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun toString(): String = "'${escape(value)}'"
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.STR)
-    operator fun compareTo(other: StringLiteralValue): Int = value.compareTo(other.value)
+    operator fun compareTo(other: StringLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is StringLiteralValue)
+        if(other==null || other !is StringLiteral)
             return false
         return value==other.value && encoding == other.encoding
     }
 }
 
-class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred because not all array literals hava a known type yet
-                        val value: Array<Expression>,
-                        override val position: Position) : Expression() {
+class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because not all array literals hava a known type yet
+                   val value: Array<Expression>,
+                   override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -677,17 +677,17 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
     }
 
     override fun referencesIdentifier(nameInSource: List<String>) = value.any { it.referencesIdentifier(nameInSource) }
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun toString(): String = "$value"
     override fun inferType(program: Program): InferredTypes.InferredType = if(type.isKnown) type else guessDatatype(program)
 
-    operator fun compareTo(other: ArrayLiteralValue): Int = throw ExpressionError("cannot order compare arrays", position)
+    operator fun compareTo(other: ArrayLiteral): Int = throw ExpressionError("cannot order compare arrays", position)
     override fun hashCode(): Int = Objects.hash(value, type)
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is ArrayLiteralValue)
+        if(other==null || other !is ArrayLiteral)
             return false
         return type==other.type && value.contentEquals(other.value)
     }
@@ -726,13 +726,13 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
         }
     }
 
-    fun cast(targettype: DataType): ArrayLiteralValue? {
+    fun cast(targettype: DataType): ArrayLiteral? {
         if(type istype targettype)
             return this
         if(targettype in ArrayDatatypes) {
             val elementType = ArrayToElementTypes.getValue(targettype)
             val castArray = value.map{
-                val num = it as? NumericLiteralValue
+                val num = it as? NumericLiteral
                 if(num==null) {
                     // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be typecasted
                     if (elementType != DataType.UWORD || it !is AddressOf)
@@ -746,7 +746,7 @@ class ArrayLiteralValue(val type: InferredTypes.InferredType,     // inferred be
                         return null // can't cast a value of the array, abort
                 }
             }.toTypedArray()
-            return ArrayLiteralValue(InferredTypes.InferredType.known(targettype), castArray, position = position)
+            return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray, position = position)
         }
         return null    // invalid type conversion from $this to $targettype
     }
@@ -779,7 +779,7 @@ class RangeExpression(var from: Expression,
     }
 
     override fun copy() = RangeExpression(from.copy(), to.copy(), step.copy(), position)
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
@@ -825,9 +825,9 @@ class RangeExpression(var from: Expression,
             }
         }
 
-        val fromLv = from as? NumericLiteralValue
-        val toLv = to as? NumericLiteralValue
-        val stepLv = step as? NumericLiteralValue
+        val fromLv = from as? NumericLiteral
+        val toLv = to as? NumericLiteral
+        val stepLv = step as? NumericLiteral
         if(fromLv==null || toLv==null || stepLv==null)
             return null
         val fromVal = fromLv.number.toInt()
@@ -838,8 +838,8 @@ class RangeExpression(var from: Expression,
 
 
     fun size(): Int? {
-        val fromLv = (from as? NumericLiteralValue)
-        val toLv = (to as? NumericLiteralValue)
+        val fromLv = (from as? NumericLiteral)
+        val toLv = (to as? NumericLiteral)
         if(fromLv==null || toLv==null)
             return null
         return toConstantIntegerRange()?.count()
@@ -870,7 +870,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     override fun copy() = IdentifierReference(nameInSource, position)
-    override fun constValue(program: Program): NumericLiteralValue? {
+    override fun constValue(program: Program): NumericLiteral? {
         val node = definingScope.lookup(nameInSource) ?: throw UndefinedSymbolError(this)
         val vardecl = node as? VarDecl
         if(vardecl==null) {
@@ -933,12 +933,12 @@ class FunctionCallExpression(override var target: IdentifierReference,
 
     override fun constValue(program: Program) = constValue(program, true)
 
-    private fun constValue(program: Program, withDatatypeCheck: Boolean): NumericLiteralValue? {
+    private fun constValue(program: Program, withDatatypeCheck: Boolean): NumericLiteral? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1)
             return null
-        val resultValue: NumericLiteralValue? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
+        val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
             if(resultValue==null || resultDt istype resultValue.type)
@@ -1008,26 +1008,26 @@ class ContainmentCheck(var element: Expression,
 
     override val isSimple: Boolean = false
     override fun copy() = ContainmentCheck(element.copy(), iterable.copy(), position)
-    override fun constValue(program: Program): NumericLiteralValue? {
+    override fun constValue(program: Program): NumericLiteral? {
         val elementConst = element.constValue(program)
         if(elementConst!=null) {
             when(iterable){
-                is ArrayLiteralValue -> {
-                    val exists = (iterable as ArrayLiteralValue).value.any { it.constValue(program)==elementConst }
-                    return NumericLiteralValue.fromBoolean(exists, position)
+                is ArrayLiteral -> {
+                    val exists = (iterable as ArrayLiteral).value.any { it.constValue(program)==elementConst }
+                    return NumericLiteral.fromBoolean(exists, position)
                 }
                 is RangeExpression -> {
                     val intRange = (iterable as RangeExpression).toConstantIntegerRange()
                     if(intRange!=null && elementConst.type in IntegerDatatypes) {
                         val exists = elementConst.number.toInt() in intRange
-                        return NumericLiteralValue.fromBoolean(exists, position)
+                        return NumericLiteral.fromBoolean(exists, position)
                     }
                 }
-                is StringLiteralValue -> {
+                is StringLiteral -> {
                     if(elementConst.type in ByteDatatypes) {
-                        val stringval = iterable as StringLiteralValue
+                        val stringval = iterable as StringLiteral
                         val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
-                        return NumericLiteralValue.fromBoolean(exists, position)
+                        return NumericLiteral.fromBoolean(exists, position)
                     }
                 }
                 else -> {}
@@ -1035,19 +1035,19 @@ class ContainmentCheck(var element: Expression,
         }
 
         when(iterable){
-            is ArrayLiteralValue -> {
-                val array= iterable as ArrayLiteralValue
+            is ArrayLiteral -> {
+                val array= iterable as ArrayLiteral
                 if(array.value.isEmpty())
-                    return NumericLiteralValue.fromBoolean(false, position)
+                    return NumericLiteral.fromBoolean(false, position)
             }
             is RangeExpression -> {
                 val size = (iterable as RangeExpression).size()
                 if(size!=null && size==0)
-                    return NumericLiteralValue.fromBoolean(false, position)
+                    return NumericLiteral.fromBoolean(false, position)
             }
-            is StringLiteralValue -> {
-                if((iterable as StringLiteralValue).value.isEmpty())
-                    return NumericLiteralValue.fromBoolean(false, position)
+            is StringLiteral -> {
+                if((iterable as StringLiteral).value.isEmpty())
+                    return NumericLiteral.fromBoolean(false, position)
             }
             else -> {}
         }
@@ -1096,7 +1096,7 @@ class PipeExpression(val expressions: MutableList<Expression>, override val posi
         expressions.forEach { it.linkParents(this) }
     }
     override fun copy(): PipeExpression = PipeExpression(expressions.map {it.copy()}.toMutableList(), position)
-    override fun constValue(program: Program): NumericLiteralValue? = null
+    override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>) =

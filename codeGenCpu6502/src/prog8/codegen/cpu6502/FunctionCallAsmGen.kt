@@ -7,7 +7,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
@@ -365,7 +365,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // this param needs to be set last, right before the jsr
                 // for now, this is already enforced on the subroutine definition by the Ast Checker
                 when(value) {
-                    is NumericLiteralValue -> {
+                    is NumericLiteral -> {
                         val carrySet = value.number.toInt() != 0
                         asmgen.out(if(carrySet) "  sec" else "  clc")
                     }

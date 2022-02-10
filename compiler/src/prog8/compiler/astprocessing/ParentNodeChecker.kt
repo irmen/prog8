@@ -17,7 +17,7 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(array: ArrayLiteralValue, parent: Node): Iterable<IAstModification> {
+    override fun before(array: ArrayLiteral, parent: Node): Iterable<IAstModification> {
         if(array.parent!==parent)
             throw FatalAstException("parent node mismatch at $array")
         return noModifications
@@ -149,7 +149,7 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(numLiteral: NumericLiteralValue, parent: Node): Iterable<IAstModification> {
+    override fun before(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> {
         if(numLiteral.parent!==parent)
             throw FatalAstException("parent node mismatch at $numLiteral")
         return noModifications
@@ -185,7 +185,7 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(string: StringLiteralValue, parent: Node): Iterable<IAstModification> {
+    override fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.parent!==parent)
             throw FatalAstException("parent node mismatch at $string")
         return noModifications

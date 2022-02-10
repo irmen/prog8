@@ -75,7 +75,7 @@ class TestOptimization: FunSpec({
     }
 
     test("generated constvalue from typecast inherits proper parent linkage") {
-        val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
+        val number = NumericLiteral(DataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         tc.linkParents(ParentSentinel)
@@ -83,14 +83,14 @@ class TestOptimization: FunSpec({
         number.parent shouldNotBe null
         tc shouldBeSameInstanceAs number.parent
         val constvalue = tc.constValue(program)!!
-        constvalue shouldBe instanceOf<NumericLiteralValue>()
+        constvalue shouldBe instanceOf<NumericLiteral>()
         constvalue.number shouldBe 11.0
         constvalue.type shouldBe DataType.BYTE
         constvalue.parent shouldBeSameInstanceAs tc.parent
     }
 
     test("generated constvalue from prefixexpr inherits proper parent linkage") {
-        val number = NumericLiteralValue(DataType.UBYTE, 11.0, Position.DUMMY)
+        val number = NumericLiteral(DataType.UBYTE, 11.0, Position.DUMMY)
         val pfx = PrefixExpression("-", number, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         pfx.linkParents(ParentSentinel)
@@ -98,7 +98,7 @@ class TestOptimization: FunSpec({
         number.parent shouldNotBe null
         pfx shouldBeSameInstanceAs number.parent
         val constvalue = pfx.constValue(program)!!
-        constvalue shouldBe instanceOf<NumericLiteralValue>()
+        constvalue shouldBe instanceOf<NumericLiteral>()
         constvalue.number shouldBe -11.0
         constvalue.type shouldBe DataType.BYTE
         constvalue.parent shouldBeSameInstanceAs pfx.parent
@@ -142,23 +142,23 @@ class TestOptimization: FunSpec({
         val addR0value = (stmts[5] as Assignment).value
         val binexpr0 = addR0value as BinaryExpression
         binexpr0.operator shouldBe "+"
-        binexpr0.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+        binexpr0.right shouldBe NumericLiteral(DataType.UWORD, 10000.0, Position.DUMMY)
         val addR2value = (stmts[7] as Assignment).value
         val binexpr2 = addR2value as BinaryExpression
         binexpr2.operator shouldBe "+"
-        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 10000.0, Position.DUMMY)
+        binexpr2.right shouldBe NumericLiteral(DataType.UWORD, 10000.0, Position.DUMMY)
         val addR4value = (stmts[9] as Assignment).value
         val binexpr4 = addR4value as BinaryExpression
         binexpr4.operator shouldBe "+"
-        binexpr4.right shouldBe NumericLiteralValue(DataType.UWORD, 22.0, Position.DUMMY)
+        binexpr4.right shouldBe NumericLiteral(DataType.UWORD, 22.0, Position.DUMMY)
         val subR5value = (stmts[11] as Assignment).value
         val binexpr5 = subR5value as BinaryExpression
         binexpr5.operator shouldBe "-"
-        binexpr5.right shouldBe NumericLiteralValue(DataType.UWORD, 1899.0, Position.DUMMY)
+        binexpr5.right shouldBe NumericLiteral(DataType.UWORD, 1899.0, Position.DUMMY)
         val subR7value = (stmts[13] as Assignment).value
         val binexpr7 = subR7value as BinaryExpression
         binexpr7.operator shouldBe "+"
-        binexpr7.right shouldBe NumericLiteralValue(DataType.UWORD, 99.0, Position.DUMMY)
+        binexpr7.right shouldBe NumericLiteral(DataType.UWORD, 99.0, Position.DUMMY)
     }
 
     test("const folding multiple scenarios * and /") {
@@ -195,27 +195,27 @@ class TestOptimization: FunSpec({
         val mulR0Value = (stmts[3] as Assignment).value
         val binexpr0 = mulR0Value as BinaryExpression
         binexpr0.operator shouldBe "*"
-        binexpr0.right shouldBe NumericLiteralValue(DataType.UWORD, 180.0, Position.DUMMY)
+        binexpr0.right shouldBe NumericLiteral(DataType.UWORD, 180.0, Position.DUMMY)
         val mulR1Value = (stmts[5] as Assignment).value
         val binexpr1 = mulR1Value as BinaryExpression
         binexpr1.operator shouldBe "*"
-        binexpr1.right shouldBe NumericLiteralValue(DataType.UWORD, 180.0, Position.DUMMY)
+        binexpr1.right shouldBe NumericLiteral(DataType.UWORD, 180.0, Position.DUMMY)
         val divR2Value = (stmts[7] as Assignment).value
         val binexpr2 = divR2Value as BinaryExpression
         binexpr2.operator shouldBe "/"
-        binexpr2.right shouldBe NumericLiteralValue(DataType.UWORD, 90.0, Position.DUMMY)
+        binexpr2.right shouldBe NumericLiteral(DataType.UWORD, 90.0, Position.DUMMY)
         val mulR3Value = (stmts[9] as Assignment).value
         val binexpr3 = mulR3Value as BinaryExpression
         binexpr3.operator shouldBe "*"
-        binexpr3.right shouldBe NumericLiteralValue(DataType.UWORD, 5.0, Position.DUMMY)
+        binexpr3.right shouldBe NumericLiteral(DataType.UWORD, 5.0, Position.DUMMY)
         val mulR4Value = (stmts[11] as Assignment).value
         val binexpr4 = mulR4Value as BinaryExpression
         binexpr4.operator shouldBe "*"
-        binexpr4.right shouldBe NumericLiteralValue(DataType.UWORD, 90.0, Position.DUMMY)
+        binexpr4.right shouldBe NumericLiteral(DataType.UWORD, 90.0, Position.DUMMY)
         val divR4Value = (stmts[12] as Assignment).value
         val binexpr4b = divR4Value as BinaryExpression
         binexpr4b.operator shouldBe "/"
-        binexpr4b.right shouldBe NumericLiteralValue(DataType.UWORD, 5.0, Position.DUMMY)
+        binexpr4b.right shouldBe NumericLiteral(DataType.UWORD, 5.0, Position.DUMMY)
     }
 
     test("constantfolded and silently typecasted for initializervalues") {
@@ -243,19 +243,19 @@ class TestOptimization: FunSpec({
         val declY2 = mainsub.statements[7] as VarDecl
         val initY2 = mainsub.statements[8] as Assignment
         mainsub.statements[9] shouldBe instanceOf<Return>()
-        (declTest.value as NumericLiteralValue).number shouldBe 10.0
+        (declTest.value as NumericLiteral).number shouldBe 10.0
         declX1.value shouldBe null
         declX2.value shouldBe null
         declY1.value shouldBe null
         declY2.value shouldBe null
-        (initX1.value as NumericLiteralValue).type shouldBe DataType.BYTE
-        (initX1.value as NumericLiteralValue).number shouldBe 11.0
-        (initX2.value as NumericLiteralValue).type shouldBe DataType.BYTE
-        (initX2.value as NumericLiteralValue).number shouldBe 11.0
-        (initY1.value as NumericLiteralValue).type shouldBe DataType.UBYTE
-        (initY1.value as NumericLiteralValue).number shouldBe 11.0
-        (initY2.value as NumericLiteralValue).type shouldBe DataType.UBYTE
-        (initY2.value as NumericLiteralValue).number shouldBe 11.0
+        (initX1.value as NumericLiteral).type shouldBe DataType.BYTE
+        (initX1.value as NumericLiteral).number shouldBe 11.0
+        (initX2.value as NumericLiteral).type shouldBe DataType.BYTE
+        (initX2.value as NumericLiteral).number shouldBe 11.0
+        (initY1.value as NumericLiteral).type shouldBe DataType.UBYTE
+        (initY1.value as NumericLiteral).number shouldBe 11.0
+        (initY2.value as NumericLiteral).type shouldBe DataType.UBYTE
+        (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
     test("typecasted assignment from ubyte logical expressoin to uword var") {
@@ -310,7 +310,7 @@ class TestOptimization: FunSpec({
         //     bb = (bb or  not ww)
 
         val assigns = result.program.entrypoint.statements.filterIsInstance<Assignment>()
-        val bbAssigns = assigns.filter { it.value !is NumericLiteralValue }
+        val bbAssigns = assigns.filter { it.value !is NumericLiteral }
         bbAssigns.size shouldBe 2
 
         bbAssigns[0].target.identifier!!.nameInSource shouldBe listOf("bb")
@@ -491,23 +491,23 @@ class TestOptimization: FunSpec({
         val z6plus = statements[13] as Assignment
 
         z1decl.name shouldBe "z1"
-        z1init.value shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
+        z1init.value shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
         z2decl.name shouldBe "z2"
-        z2init.value shouldBe NumericLiteralValue(DataType.UBYTE, 255.0, Position.DUMMY)
+        z2init.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
         z3decl.name shouldBe "z3"
-        z3init.value shouldBe NumericLiteralValue(DataType.UBYTE, 1.0, Position.DUMMY)
+        z3init.value shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
         z4decl.name shouldBe "z4"
-        z4init.value shouldBe NumericLiteralValue(DataType.UBYTE, 0.0, Position.DUMMY)
+        z4init.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         z5decl.name shouldBe "z5"
         (z5init.value as? IdentifierReference)?.nameInSource shouldBe listOf("z1")
         z5plus.isAugmentable shouldBe true
         (z5plus.value as BinaryExpression).operator shouldBe "+"
-        (z5plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        (z5plus.value as BinaryExpression).right shouldBe NumericLiteral(DataType.UBYTE, 5.0, Position.DUMMY)
         z6decl.name shouldBe "z6"
         (z6init.value as? IdentifierReference)?.nameInSource shouldBe listOf("z1")
         z6plus.isAugmentable shouldBe true
         (z6plus.value as BinaryExpression).operator shouldBe "-"
-        (z6plus.value as BinaryExpression).right shouldBe NumericLiteralValue(DataType.UBYTE, 5.0, Position.DUMMY)
+        (z6plus.value as BinaryExpression).right shouldBe NumericLiteral(DataType.UBYTE, 5.0, Position.DUMMY)
     }
 
     test("force_output option should work with optimizing memwrite assignment") {
@@ -661,12 +661,12 @@ class TestOptimization: FunSpec({
         stmts.filterIsInstance<Assignment>().size shouldBe 5
         val assignXX1 = stmts[1] as Assignment
         assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
-        assignXX1.value shouldBe NumericLiteralValue(DataType.UBYTE, 20.0, Position.DUMMY)
+        assignXX1.value shouldBe NumericLiteral(DataType.UBYTE, 20.0, Position.DUMMY)
         val assignXX2 = stmts.last() as Assignment
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
         (xxValue.left as? IdentifierReference)?.nameInSource shouldBe listOf("xx")
-        xxValue.right shouldBe NumericLiteralValue(DataType.UBYTE, 10.0, Position.DUMMY)
+        xxValue.right shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
     }
 })

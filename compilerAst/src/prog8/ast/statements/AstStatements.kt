@@ -208,7 +208,7 @@ class VarDecl(val type: VarDeclType,
             )
         }
 
-        fun createAuto(array: ArrayLiteralValue): VarDecl {
+        fun createAuto(array: ArrayLiteral): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
@@ -251,7 +251,7 @@ class VarDecl(val type: VarDeclType,
     override fun toString() =
         "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
 
-    fun zeroElementValue(): NumericLiteralValue {
+    fun zeroElementValue(): NumericLiteral {
         if(allowInitializeWithZero)
             return defaultZero(declaredDatatype, position)
         else
@@ -288,8 +288,8 @@ class ArrayIndex(var indexExpr: Expression,
     }
 
     companion object {
-        fun forArray(v: ArrayLiteralValue): ArrayIndex {
-            val indexnum = NumericLiteralValue.optimalNumeric(v.value.size, v.position)
+        fun forArray(v: ArrayLiteral): ArrayIndex {
+            val indexnum = NumericLiteral.optimalNumeric(v.value.size, v.position)
             return ArrayIndex(indexnum, v.position)
         }
     }
@@ -298,7 +298,7 @@ class ArrayIndex(var indexExpr: Expression,
     fun accept(visitor: AstWalker)  = indexExpr.accept(visitor, this)
     override fun toString() = "ArrayIndex($indexExpr, pos=$position)"
 
-    fun constIndex() = (indexExpr as? NumericLiteralValue)?.number?.toInt()
+    fun constIndex() = (indexExpr as? NumericLiteral)?.number?.toInt()
 
     infix fun isSameAs(other: ArrayIndex): Boolean = indexExpr isSameAs other.indexExpr
     override fun copy() = ArrayIndex(indexExpr.copy(), position)
@@ -525,7 +525,7 @@ class Jump(var address: UInt?,
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===identifier && replacement is NumericLiteralValue) {
+        if(node===identifier && replacement is NumericLiteral) {
             address = replacement.number.toUInt()
         }
         else

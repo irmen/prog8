@@ -85,16 +85,16 @@ interface IAstVisitor {
     fun visit(label: Label) {
     }
 
-    fun visit(numLiteral: NumericLiteralValue) {
+    fun visit(numLiteral: NumericLiteral) {
     }
 
     fun visit(char: CharLiteral) {
     }
 
-    fun visit(string: StringLiteralValue) {
+    fun visit(string: StringLiteral) {
     }
 
-    fun visit(array: ArrayLiteralValue) {
+    fun visit(array: ArrayLiteral) {
         array.value.forEach { v->v.accept(this) }
     }
 

@@ -40,7 +40,7 @@ class StatementOptimizer(private val program: Program,
                     }
                     is DirectMemoryRead -> {
                         when(val expr = orig.addressExpression) {
-                            is NumericLiteralValue -> DirectMemoryRead(expr.copy(), orig.position)
+                            is NumericLiteral -> DirectMemoryRead(expr.copy(), orig.position)
                             else -> return noModifications
                         }
                     }
@@ -50,8 +50,8 @@ class StatementOptimizer(private val program: Program,
                         else
                             scopePrefix(orig)
                     }
-                    is NumericLiteralValue -> orig.copy()
-                    is StringLiteralValue -> orig.copy()
+                    is NumericLiteral -> orig.copy()
+                    is StringLiteral -> orig.copy()
                     else -> return noModifications
                 }
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, copy, parent))
@@ -79,14 +79,14 @@ class StatementOptimizer(private val program: Program,
                 arg as? IdentifierReference
             }
             if(stringVar!=null && stringVar.wasStringLiteral(program)) {
-                val string = stringVar.targetVarDecl(program)?.value as? StringLiteralValue
+                val string = stringVar.targetVarDecl(program)?.value as? StringLiteral
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {
                         val firstCharEncoded = compTarget.encodeString(string.value, string.encoding)[0]
                         val chrout = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
+                            mutableListOf(NumericLiteral(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         val stringDecl = string.parent as VarDecl
@@ -98,12 +98,12 @@ class StatementOptimizer(private val program: Program,
                         val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.encoding)
                         val chrout1 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[0].toDouble(), pos)),
+                            mutableListOf(NumericLiteral(DataType.UBYTE, firstTwoCharsEncoded[0].toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         val chrout2 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
-                            mutableListOf(NumericLiteralValue(DataType.UBYTE, firstTwoCharsEncoded[1].toDouble(), pos)),
+                            mutableListOf(NumericLiteral(DataType.UBYTE, firstTwoCharsEncoded[1].toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
                         val stringDecl = string.parent as VarDecl
@@ -203,12 +203,12 @@ class StatementOptimizer(private val program: Program,
         val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl(program)
         if(iterable!=null) {
             if(iterable.datatype==DataType.STR) {
-                val sv = iterable.value as StringLiteralValue
+                val sv = iterable.value as StringLiteral
                 val size = sv.value.length
                 if(size==1) {
                     // loop over string of length 1 -> just assign the single character
                     val character = compTarget.encodeString(sv.value, sv.encoding)[0]
-                    val byte = NumericLiteralValue(DataType.UBYTE, character.toDouble(), iterable.position)
+                    val byte = NumericLiteral(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
@@ -219,11 +219,11 @@ class StatementOptimizer(private val program: Program,
                 val size = iterable.arraysize!!.constIndex()
                 if(size==1) {
                     // loop over array of length 1 -> just assign the single value
-                    val av = (iterable.value as ArrayLiteralValue).value[0].constValue(program)?.number
+                    val av = (iterable.value as ArrayLiteral).value[0].constValue(program)?.number
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), NumericLiteralValue.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
                                 AssignmentOrigin.OPTIMIZER, forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -316,12 +316,12 @@ class StatementOptimizer(private val program: Program,
                     val op1 = binExpr.operator
                     val op2 = rExpr.operator
 
-                    if(rExpr.left is NumericLiteralValue && op2 in AssociativeOperators) {
+                    if(rExpr.left is NumericLiteral && op2 in AssociativeOperators) {
                         // associative operator, make sure the constant numeric value is second (right)
                         return listOf(IAstModification.SwapOperands(rExpr))
                     }
 
-                    val rNum = (rExpr.right as? NumericLiteralValue)?.number
+                    val rNum = (rExpr.right as? NumericLiteral)?.number
                     if(rNum!=null) {
                         if (op1 == "+" || op1 == "-") {
                             if (op2 == "+") {
@@ -452,12 +452,12 @@ class StatementOptimizer(private val program: Program,
                 if (fcall.args.single() isSameAs assignment.target) {
                     return if (fcall.target.nameInSource == listOf("lsb")) {
                         // optimize word=lsb(word) ==>  word &= $00ff
-                        val and255 = BinaryExpression(fcall.args[0], "&", NumericLiteralValue(DataType.UWORD, 255.0, fcall.position), fcall.position)
+                        val and255 = BinaryExpression(fcall.args[0], "&", NumericLiteral(DataType.UWORD, 255.0, fcall.position), fcall.position)
                         val newAssign = Assignment(assignment.target, and255, AssignmentOrigin.OPTIMIZER, fcall.position)
                         listOf(IAstModification.ReplaceNode(assignment, newAssign, parent))
                     } else {
                         // optimize word=msb(word) ==>  word >>= 8
-                        val shift8 = BinaryExpression(fcall.args[0], ">>", NumericLiteralValue(DataType.UBYTE, 8.0, fcall.position), fcall.position)
+                        val shift8 = BinaryExpression(fcall.args[0], ">>", NumericLiteral(DataType.UBYTE, 8.0, fcall.position), fcall.position)
                         val newAssign = Assignment(assignment.target, shift8, AssignmentOrigin.OPTIMIZER, fcall.position)
                         listOf(IAstModification.ReplaceNode(assignment, newAssign, parent))
                     }

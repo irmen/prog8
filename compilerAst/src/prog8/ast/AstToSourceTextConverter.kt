@@ -280,7 +280,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output("${label.name}:")
     }
 
-    override fun visit(numLiteral: NumericLiteralValue) {
+    override fun visit(numLiteral: NumericLiteral) {
         if(numLiteral.type==DataType.FLOAT)
             output(numLiteral.number.toString())
         else
@@ -291,11 +291,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output("${char.encoding.prefix}:'${escape(char.value.toString())}'")
     }
 
-    override fun visit(string: StringLiteralValue) {
+    override fun visit(string: StringLiteral) {
         output("${string.encoding.prefix}:\"${escape(string.value)}\"")
     }
 
-    override fun visit(array: ArrayLiteralValue) {
+    override fun visit(array: ArrayLiteral) {
         outputListMembers(array.value.asSequence(), '[', ']')
     }
 

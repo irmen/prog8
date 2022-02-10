@@ -375,7 +375,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; non-zeropage variables")
         val (stringvars, othervars) = variables.partition { it.type==DataType.STR }
         stringvars.forEach {
-            val stringvalue = it.initialValue as StringLiteralValue
+            val stringvalue = it.initialValue as StringLiteral
             outputStringvar(it.scopedname.last(), it.type, stringvalue.encoding, stringvalue.value)
         }
         othervars.sortedBy { it.type }.forEach {
@@ -388,7 +388,7 @@ internal class ProgramAndVarsGen(
         val value = variable.initialValue
         val staticValue: Number =
             if(value!=null) {
-                if(value is NumericLiteralValue) {
+                if(value is NumericLiteral) {
                     if(value.type== DataType.FLOAT)
                         value.number
                     else
@@ -416,14 +416,14 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.type, value as? ArrayLiteralValue, variable.arraysize)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.type, value as? ArrayLiteral, variable.arraysize)
             else -> {
                 throw AssemblyError("weird dt")
             }
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?) {
         when(dt) {
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
@@ -469,7 +469,7 @@ internal class ProgramAndVarsGen(
                 val array = value?.value ?:
                                 Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
                 val floatFills = array.map {
-                    val number = (it as NumericLiteralValue).number
+                    val number = (it as NumericLiteral).number
                     compTarget.machine.getFloat(number).makeFloatFillAsm()
                 }
                 asmgen.out(varname)
@@ -524,19 +524,19 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataUnsigned(dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?): List<String> {
         val array = value?.value ?:
                         Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
         return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
+                    val number = (it as NumericLiteral).number.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_UW -> array.map {
                 when (it) {
-                    is NumericLiteralValue -> {
+                    is NumericLiteral -> {
                         "$" + it.number.toInt().toString(16).padStart(4, '0')
                     }
                     is AddressOf -> {
@@ -552,20 +552,20 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun makeArrayFillDataSigned(dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataSigned(dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?): List<String> {
         val array = value?.value ?:
                         Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
         return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
+                    val number = (it as NumericLiteral).number.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_B ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteralValue).number.toInt()
+                    val number = (it as NumericLiteral).number.toInt()
                     val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
                     if(number>=0)
                         "$$hexnum"
@@ -573,11 +573,11 @@ internal class ProgramAndVarsGen(
                         "-$$hexnum"
                 }
             DataType.ARRAY_UW -> array.map {
-                val number = (it as NumericLiteralValue).number.toInt()
+                val number = (it as NumericLiteral).number.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
             DataType.ARRAY_W -> array.map {
-                val number = (it as NumericLiteralValue).number.toInt()
+                val number = (it as NumericLiteral).number.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)
                     "$$hexnum"

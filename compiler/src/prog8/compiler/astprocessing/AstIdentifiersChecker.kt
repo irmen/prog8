@@ -5,7 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.StringLiteralValue
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
@@ -122,7 +122,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(label)
     }
 
-    override fun visit(string: StringLiteralValue) {
+    override fun visit(string: StringLiteral) {
         if (string.value.length > 255)
             errors.err("string literal length max is 255", string.position)
 
@@ -147,7 +147,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     errors.err("invalid number of arguments", pos)
                 }
                 if(func.name=="memory") {
-                    val name = call.args[0] as? StringLiteralValue
+                    val name = call.args[0] as? StringLiteral
                     if(name!=null) {
                         val processed = name.value.map {
                             if(it.isLetterOrDigit())
@@ -155,7 +155,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                             else
                                 '_'
                         }.joinToString("")
-                        call.args[0] = StringLiteralValue(processed, Encoding.PETSCII, name.position)
+                        call.args[0] = StringLiteral(processed, Encoding.PETSCII, name.position)
                         call.args[0].linkParents(call as Node)
                     }
                 }

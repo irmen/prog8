@@ -32,7 +32,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val mods = mutableListOf<IAstModification>()
 
         // try to statically convert a literal value into one of the desired type
-        val literal = typecast.expression as? NumericLiteralValue
+        val literal = typecast.expression as? NumericLiteral
         if (literal != null) {
             val newLiteral = literal.cast(typecast.type)
             if (newLiteral.isValid && newLiteral.valueOrZero() !== literal)
@@ -142,7 +142,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue(leftDt, 1.0, y.position), y.position)
+                        val yPlus1 = BinaryExpression(y, "+", NumericLiteral(leftDt, 1.0, y.position), y.position)
                         val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
@@ -152,7 +152,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yMinus1 = BinaryExpression(y, "-", NumericLiteralValue(leftDt, 1.0, y.position), y.position)
+                        val yMinus1 = BinaryExpression(y, "-", NumericLiteral(leftDt, 1.0, y.position), y.position)
                         val newExpr = BinaryExpression(x, "*", yMinus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
@@ -164,7 +164,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val x = expr.left
                     val y = determineY(x, rightBinExpr)
                     if (y != null) {
-                        val yPlus1 = BinaryExpression(y, "+", NumericLiteralValue.optimalInteger(1, y.position), y.position)
+                        val yPlus1 = BinaryExpression(y, "+", NumericLiteral.optimalInteger(1, y.position), y.position)
                         val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
@@ -175,32 +175,32 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if(leftDt!=DataType.FLOAT && expr.operator == ">=" && rightVal?.number == 1.0) {
             // for integers: x >= 1  -->  x > 0
             expr.operator = ">"
-            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteralValue.optimalInteger(0, expr.right.position), expr))
+            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral.optimalInteger(0, expr.right.position), expr))
         }
 
         if(expr.operator == ">=" && rightVal?.number == 0.0) {
             if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
                 // unsigned >= 0 --> true
-                return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(true, expr.position), parent))
+                return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(true, expr.position), parent))
             }
         }
 
         if(leftDt!=DataType.FLOAT && expr.operator == "<" && rightVal?.number == 1.0) {
             // for integers: x < 1  -->  x <= 0
             expr.operator = "<="
-            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteralValue.optimalInteger(0, expr.right.position), expr))
+            return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral.optimalInteger(0, expr.right.position), expr))
         }
 
         if(expr.operator == "<" && rightVal?.number == 0.0) {
             if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
                 // unsigned < 0 --> false
-                return listOf(IAstModification.ReplaceNode(expr, NumericLiteralValue.fromBoolean(false, expr.position), parent))
+                return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
             }
         }
 
         // simplify when a term is constant and directly determines the outcome
-        val constTrue = NumericLiteralValue.fromBoolean(true, expr.position)
-        val constFalse = NumericLiteralValue.fromBoolean(false, expr.position)
+        val constTrue = NumericLiteral.fromBoolean(true, expr.position)
+        val constFalse = NumericLiteral.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {
             "or" -> {
                 when {
@@ -231,10 +231,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 when {
                     leftVal?.number==0.0 -> expr.right
                     rightVal?.number==0.0 -> expr.left
-                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteralValue(DataType.UBYTE, 255.0, rightVal.position)
-                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteralValue(DataType.UWORD, 65535.0, rightVal.position)
-                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteralValue(DataType.UBYTE, 255.0, leftVal.position)
-                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteralValue(DataType.UWORD, 65535.0, leftVal.position)
+                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteral(DataType.UBYTE, 255.0, rightVal.position)
+                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteral(DataType.UWORD, 65535.0, rightVal.position)
+                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteral(DataType.UBYTE, 255.0, leftVal.position)
+                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteral(DataType.UWORD, 65535.0, leftVal.position)
                     else -> null
                 }
             }
@@ -302,7 +302,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteralValue(valueDt.getOr(DataType.UBYTE), 0.0, arg.expression.position),
+                            NumericLiteral(valueDt.getOr(DataType.UBYTE), 0.0, arg.expression.position),
                             parent))
                 }
             } else {
@@ -311,7 +311,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteralValue(argDt.getOr(DataType.UBYTE), 0.0, arg.position),
+                            NumericLiteral(argDt.getOr(DataType.UBYTE), 0.0, arg.position),
                             parent))
                 }
             }
@@ -385,11 +385,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         }
     }
 
-    private fun optimizeAdd(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizeAdd(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if(expr.left.isSameAs(expr.right)) {
             // optimize X+X into X *2
             expr.operator = "*"
-            expr.right = NumericLiteralValue.optimalInteger(2, expr.right.position)
+            expr.right = NumericLiteral.optimalInteger(2, expr.right.position)
             expr.right.linkParents(expr)
             return expr
         }
@@ -400,7 +400,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val (expr2, _, rightVal2) = reorderAssociativeWithConstant(expr, leftVal)
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteralValue = rightVal2
+            val rightConst: NumericLiteral = rightVal2
             when (rightConst.number) {
                 0.0 -> {
                     // left
@@ -413,17 +413,17 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val rnum = rightVal?.number
         if(rnum!=null && rnum<0.0) {
             expr.operator = "-"
-            expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
+            expr.right = NumericLiteral(rightVal.type, -rnum, rightVal.position)
             return expr
         }
 
         return null
     }
 
-    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizeSub(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if(expr.left.isSameAs(expr.right)) {
             // optimize X-X into 0
-            return NumericLiteralValue.optimalInteger(0, expr.position)
+            return NumericLiteral.optimalInteger(0, expr.position)
         }
 
         if (leftVal == null && rightVal == null)
@@ -439,7 +439,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
             if(rnum<0.0) {
                 expr.operator = "+"
-                expr.right = NumericLiteralValue(rightVal.type, -rnum, rightVal.position)
+                expr.right = NumericLiteral(rightVal.type, -rnum, rightVal.position)
                 return expr
             }
         }
@@ -457,34 +457,34 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if (leftVal == null && rightVal == null)
             return null
 
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteralValue = rightVal
+            val rightConst: NumericLiteral = rightVal
             when (rightConst.number) {
                 -3.0 -> {
                     // -1/(left*left*left)
-                    return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
+                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
                             BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position),
                             expr.position)
                 }
                 -2.0 -> {
                     // -1/(left*left)
-                    return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
+                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
                             BinaryExpression(expr.left, "*", expr.left, expr.position),
                             expr.position)
                 }
                 -1.0 -> {
                     // -1/left
-                    return BinaryExpression(NumericLiteralValue(DataType.FLOAT, -1.0, expr.position), "/",
+                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
                             expr.left, expr.position)
                 }
                 0.0 -> {
                     // 1
-                    return NumericLiteralValue(rightConst.type, 1.0, expr.position)
+                    return NumericLiteral(rightConst.type, 1.0, expr.position)
                 }
                 0.5 -> {
                     // sqrt(left)
@@ -509,15 +509,15 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             when (leftVal.number) {
                 -1.0 -> {
                     // -1
-                    return NumericLiteralValue(DataType.FLOAT, -1.0, expr.position)
+                    return NumericLiteral(DataType.FLOAT, -1.0, expr.position)
                 }
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(leftVal.type, 0.0, expr.position)
+                    return NumericLiteral(leftVal.type, 0.0, expr.position)
                 }
                 1.0 -> {
                     //1
-                    return NumericLiteralValue(leftVal.type, 1.0, expr.position)
+                    return NumericLiteral(leftVal.type, 1.0, expr.position)
                 }
 
             }
@@ -526,7 +526,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizeRemainder(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if (leftVal == null && rightVal == null)
             return null
 
@@ -539,10 +539,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
-                    return NumericLiteralValue(idt.getOr(DataType.UNDEFINED), 0.0, expr.position)
+                    return NumericLiteral(idt.getOr(DataType.UNDEFINED), 0.0, expr.position)
                 } else if (cv in powersOfTwo) {
                     expr.operator = "&"
-                    expr.right = NumericLiteralValue.optimalInteger(cv!!.toInt()-1, expr.position)
+                    expr.right = NumericLiteral.optimalInteger(cv!!.toInt()-1, expr.position)
                     return null
                 }
             }
@@ -551,14 +551,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
     }
 
-    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizeDivision(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if (leftVal == null && rightVal == null)
             return null
 
         // cannot shuffle assiciativity with division!
         if (rightVal != null) {
             // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteralValue = rightVal
+            val rightConst: NumericLiteral = rightVal
             val cv = rightConst.number
             val leftIDt = expr.left.inferType(program)
             if (!leftIDt.isKnown)
@@ -581,25 +581,25 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     if (leftDt in IntegerDatatypes) {
                         // divided by a power of two => shift right
                         val numshifts = log2(cv).toInt()
-                        return BinaryExpression(expr.left, ">>", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
                     if (leftDt in IntegerDatatypes) {
                         // divided by a negative power of two => negate, then shift right
                         val numshifts = log2(-cv).toInt()
-                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
 
             if (leftDt == DataType.UBYTE) {
                 if (abs(rightConst.number) >= 256.0) {
-                    return NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
+                    return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
                 }
             } else if (leftDt == DataType.UWORD) {
                 if (abs(rightConst.number) >= 65536.0) {
-                    return NumericLiteralValue(DataType.UBYTE, 0.0, expr.position)
+                    return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
                 }
             }
         }
@@ -609,7 +609,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             when (leftVal.number) {
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(leftVal.type, 0.0, expr.position)
+                    return NumericLiteral(leftVal.type, 0.0, expr.position)
                 }
             }
         }
@@ -617,7 +617,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun optimizeMultiplication(expr: BinaryExpression, leftVal: NumericLiteralValue?, rightVal: NumericLiteralValue?): Expression? {
+    private fun optimizeMultiplication(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
         if (leftVal == null && rightVal == null)
             return null
 
@@ -625,7 +625,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val leftValue: Expression = expr2.left
-            val rightConst: NumericLiteralValue = rightVal2
+            val rightConst: NumericLiteral = rightVal2
             when (val cv = rightConst.number) {
                 -1.0 -> {
                     // -left
@@ -633,7 +633,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 0.0 -> {
                     // 0
-                    return NumericLiteralValue(rightConst.type, 0.0, expr.position)
+                    return NumericLiteral(rightConst.type, 0.0, expr.position)
                 }
                 1.0 -> {
                     // left
@@ -643,14 +643,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     if (leftValue.inferType(program).isInteger) {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
-                        return BinaryExpression(expr2.left, "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(expr2.left, "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
                 in negativePowersOfTwo -> {
                     if (leftValue.inferType(program).isInteger) {
                         // times a negative power of two => negate, then shift left
                         val numshifts = log2(-cv).toInt()
-                        return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteralValue.optimalInteger(numshifts, expr.position), expr.position)
+                        return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
@@ -660,7 +660,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun optimizeShiftLeft(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression? {
+    private fun optimizeShiftLeft(expr: BinaryExpression, amountLv: NumericLiteral?): Expression? {
         if (amountLv == null)
             return null
 
@@ -674,16 +674,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         when (val targetDt = targetIDt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
-                    return NumericLiteralValue(targetDt, 0.0, expr.position)
+                    return NumericLiteral(targetDt, 0.0, expr.position)
                 }
             }
             DataType.UWORD, DataType.WORD -> {
                 if (amount >= 16) {
-                    return NumericLiteralValue(targetDt, 0.0, expr.position)
+                    return NumericLiteral(targetDt, 0.0, expr.position)
                 } else if (amount > 8) {
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
-                    val shifted = BinaryExpression(lsb, "<<", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position)
-                    return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteralValue.optimalInteger(0, expr.position)), expr.position)
+                    val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
+                    return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteral.optimalInteger(0, expr.position)), expr.position)
                 }
             }
             else -> {
@@ -692,7 +692,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun optimizeShiftRight(expr: BinaryExpression, amountLv: NumericLiteralValue?): Expression? {
+    private fun optimizeShiftRight(expr: BinaryExpression, amountLv: NumericLiteral?): Expression? {
         if (amountLv == null)
             return null
 
@@ -706,27 +706,27 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         when (idt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
-                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                    return NumericLiteral.optimalInteger(0, expr.position)
                 }
             }
             DataType.BYTE -> {
                 if (amount > 8) {
-                    expr.right = NumericLiteralValue.optimalInteger(8, expr.right.position)
+                    expr.right = NumericLiteral.optimalInteger(8, expr.right.position)
                     return null
                 }
             }
             DataType.UWORD -> {
                 if (amount >= 16) {
-                    return NumericLiteralValue.optimalInteger(0, expr.position)
+                    return NumericLiteral.optimalInteger(0, expr.position)
                 }
                 else if (amount > 8) {
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteralValue.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
+                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
                 }
             }
             DataType.WORD -> {
                 if (amount > 16) {
-                    expr.right = NumericLiteralValue.optimalInteger(16, expr.right.position)
+                    expr.right = NumericLiteral.optimalInteger(16, expr.right.position)
                     return null
                 }
             }
@@ -736,7 +736,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteralValue?): BinExprWithConstants {
+    private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteral?): BinExprWithConstants {
         if (expr.operator in AssociativeOperators && leftVal != null) {
             // swap left and right so that right is always the constant
             val tmp = expr.left
@@ -747,6 +747,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return BinExprWithConstants(expr, leftVal, expr.right.constValue(program))
     }
 
-    private data class BinExprWithConstants(val expr: BinaryExpression, val leftVal: NumericLiteralValue?, val rightVal: NumericLiteralValue?)
+    private data class BinExprWithConstants(val expr: BinaryExpression, val leftVal: NumericLiteral?, val rightVal: NumericLiteral?)
 
 }

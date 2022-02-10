@@ -14,7 +14,7 @@ import kotlin.io.path.isRegularFile
 
 /***************** Antlr Extension methods to create AST ****************/
 
-private data class NumericLiteral(val number: Double, val datatype: DataType)
+private data class NumericLiteralNode(val number: Double, val datatype: DataType)
 
 
 private fun ParserRuleContext.toPosition() : Position {
@@ -328,8 +328,8 @@ private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     return DirectiveArg(str?.text?.substring(1, text.length-1), identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
 }
 
-private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
-    fun makeLiteral(text: String, radix: Int): NumericLiteral {
+private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteralNode {
+    fun makeLiteral(text: String, radix: Int): NumericLiteralNode {
         val integer: Int
         var datatype = DataType.UBYTE
         when (radix) {
@@ -367,7 +367,7 @@ private fun Prog8ANTLRParser.IntegerliteralContext.toAst(): NumericLiteral {
             }
             else -> throw FatalAstException("invalid radix")
         }
-        return NumericLiteral(integer.toDouble(), datatype)
+        return NumericLiteralNode(integer.toDouble(), datatype)
     }
     val terminal: TerminalNode = children[0] as TerminalNode
     val integerPart = this.intpart.text
@@ -385,27 +385,27 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if(litval!=null) {
         val booleanlit = litval.booleanliteral()?.toAst()
         return if(booleanlit!=null) {
-            NumericLiteralValue.fromBoolean(booleanlit, litval.toPosition())
+            NumericLiteral.fromBoolean(booleanlit, litval.toPosition())
         }
         else {
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
-                    DataType.UBYTE -> NumericLiteralValue(DataType.UBYTE, intLit.number, litval.toPosition())
-                    DataType.BYTE -> NumericLiteralValue(DataType.BYTE, intLit.number, litval.toPosition())
-                    DataType.UWORD -> NumericLiteralValue(DataType.UWORD, intLit.number, litval.toPosition())
-                    DataType.WORD -> NumericLiteralValue(DataType.WORD, intLit.number, litval.toPosition())
-                    DataType.FLOAT -> NumericLiteralValue(DataType.FLOAT, intLit.number, litval.toPosition())
+                    DataType.UBYTE -> NumericLiteral(DataType.UBYTE, intLit.number, litval.toPosition())
+                    DataType.BYTE -> NumericLiteral(DataType.BYTE, intLit.number, litval.toPosition())
+                    DataType.UWORD -> NumericLiteral(DataType.UWORD, intLit.number, litval.toPosition())
+                    DataType.WORD -> NumericLiteral(DataType.WORD, intLit.number, litval.toPosition())
+                    DataType.FLOAT -> NumericLiteral(DataType.FLOAT, intLit.number, litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
-                litval.floatliteral()!=null -> NumericLiteralValue(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
+                litval.floatliteral()!=null -> NumericLiteral(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
                 litval.stringliteral()!=null -> litval.stringliteral().toAst()
                 litval.charliteral()!=null -> litval.charliteral().toAst()
                 litval.arrayliteral()!=null -> {
                     val array = litval.arrayliteral().toAst()
                     // the actual type of the arraysize can not yet be determined here (missing namespace & heap)
                     // the ConstantFold takes care of that and converts the type if needed.
-                    ArrayLiteralValue(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
+                    ArrayLiteral(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
                 }
                 else -> throw FatalAstException("invalid parsed literal")
             }
@@ -426,7 +426,7 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
-        val step = rangestep?.toAst() ?: NumericLiteralValue(DataType.UBYTE, defaultstep.toDouble(), toPosition())
+        val step = rangestep?.toAst() ?: NumericLiteral(DataType.UBYTE, defaultstep.toDouble(), toPosition())
         return RangeExpression(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 
@@ -465,7 +465,7 @@ private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
     return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], encoding, toPosition())
 }
 
-private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue {
+private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
     val text=this.STRING().text
     val enc = encoding?.text
     val encoding =
@@ -476,7 +476,7 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteralValue {
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
             Encoding.PETSCII
-    return StringLiteralValue(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
+    return StringLiteral(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
 }
 
 private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {

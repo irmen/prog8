@@ -5,7 +5,7 @@ import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
-import prog8.ast.expressions.NumericLiteralValue
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Block
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
@@ -19,7 +19,7 @@ internal object DummyFunctions : IBuiltinFunctions {
         name: String,
         args: List<Expression>,
         position: Position,
-    ): NumericLiteralValue? = null
+    ): NumericLiteral? = null
 
     override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
 }

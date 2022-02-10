@@ -36,12 +36,12 @@ internal class ExpressionsAsmGen(private val program: Program,
             is TypecastExpression -> translateExpression(expression)
             is AddressOf -> translateExpression(expression)
             is DirectMemoryRead -> asmgen.translateDirectMemReadExpressionToRegAorStack(expression, true)
-            is NumericLiteralValue -> translateExpression(expression)
+            is NumericLiteral -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCallExpression -> translateFunctionCallResultOntoStack(expression)
             is PipeExpression -> asmgen.translatePipeExpression(expression.expressions,  expression,false, true)
             is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
-            is ArrayLiteralValue, is StringLiteralValue -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
+            is ArrayLiteral, is StringLiteral -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpression -> throw AssemblyError("range expression should have been changed into array values")
             is CharLiteral -> throw AssemblyError("charliteral should have been replaced by ubyte using certain encoding")
             else -> TODO("missing expression asmgen for $expression")
@@ -214,7 +214,7 @@ internal class ExpressionsAsmGen(private val program: Program,
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    private fun translateExpression(expr: NumericLiteralValue) {
+    private fun translateExpression(expr: NumericLiteral) {
         when(expr.type) {
             DataType.UBYTE, DataType.BYTE -> asmgen.out(" lda  #${expr.number.toHex()}  | sta  P8ESTACK_LO,x  | dex")
             DataType.UWORD, DataType.WORD -> asmgen.out("""
@@ -592,7 +592,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "<" -> {
                 if(dt==DataType.UBYTE || dt==DataType.UWORD)
-                    return translateExpressionInternal(NumericLiteralValue.fromBoolean(false, expr.position))
+                    return translateExpressionInternal(NumericLiteral.fromBoolean(false, expr.position))
                 when(dt) {
                     DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lesszero_b")
                     DataType.WORD -> asmgen.out("  jsr  prog8_lib.lesszero_w")
@@ -622,7 +622,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             ">=" -> {
                 if(dt==DataType.UBYTE || dt==DataType.UWORD)
-                    return translateExpressionInternal(NumericLiteralValue.fromBoolean(true, expr.position))
+                    return translateExpressionInternal(NumericLiteral.fromBoolean(true, expr.position))
                 when(dt) {
                     DataType.BYTE -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sb")
                     DataType.WORD -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sw")
