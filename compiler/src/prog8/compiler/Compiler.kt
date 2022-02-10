@@ -112,31 +112,31 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
         return CompilationResult(true, program, programName, compTarget, importedFiles)
     } catch (px: ParseError) {
-        System.err.print("\u001b[91m")  // bright red
+        System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
     } catch (ac: AbortCompilation) {
         if(!ac.message.isNullOrEmpty()) {
-            System.err.print("\u001b[91m")  // bright red
+            System.err.print("\n\u001b[91m")  // bright red
             System.err.println(ac.message)
             System.err.print("\u001b[0m")  // reset
         }
     } catch (nsf: NoSuchFileException) {
-        System.err.print("\u001b[91m")  // bright red
+        System.err.print("\n\u001b[91m")  // bright red
         System.err.println("File not found: ${nsf.message}")
         System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
-        System.err.print("\u001b[91m")  // bright red
+        System.err.print("\n\u001b[91m")  // bright red
         System.err.println(ax.toString())
         System.err.print("\u001b[0m")  // reset
     } catch (x: Exception) {
-        print("\u001b[91m")  // bright red
+        print("\n\u001b[91m")  // bright red
         println("\n* internal error *")
         print("\u001b[0m")  // reset
         System.out.flush()
         throw x
     } catch (x: NotImplementedError) {
-        print("\u001b[91m")  // bright red
+        print("\n\u001b[91m")  // bright red
         println("\n* internal error: missing feature/code *")
         print("\u001b[0m")  // reset
         System.out.flush()

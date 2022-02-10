@@ -1,9 +1,8 @@
 package prog8.codegen.cpu6502
 
-import com.github.michaelbull.result.onFailure
-import prog8.ast.base.ArrayDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.IntegerDatatypes
+import com.github.michaelbull.result.fold
+import com.github.michaelbull.result.onSuccess
+import prog8.ast.base.*
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.ZeropageWish
@@ -41,20 +40,52 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
                         vars.subroutineVars.asSequence().flatMap { it.value }
                 ).toList()
 
+        val numberOfAllocatableVariables = allVariables.size
+        val totalAllocatedMemorySize = allVariables.sumOf { memsize(it) }
+
         val varsRequiringZp = allVariables.filter { it.zp == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.zp == ZeropageWish.PREFER_ZEROPAGE }
         val varsDontCare = allVariables.filter { it.zp == ZeropageWish.DONTCARE }
+        val numberOfExplicitNonZpVariables = allVariables.count { it.zp == ZeropageWish.NOT_IN_ZEROPAGE }
+        require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
+
+        var numVariablesAllocatedInZP: Int = 0
+        var numberOfNonIntegerVariables: Int = 0
 
         varsRequiringZp.forEach { variable ->
             val numElements = numArrayElements(variable)
-            val result = zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
-            result.onFailure { errors.err(it.message!!, variable.position) }
+            val result = zeropage.allocate(
+                variable.scopedname,
+                variable.type,
+                variable.scope,
+                numElements,
+                variable.initialValue,
+                variable.position,
+                errors
+            )
+            result.fold(
+                success = {
+                    numVariablesAllocatedInZP++
+                },
+                failure = {
+                    errors.err(it.message!!, variable.position)
+                }
+            )
         }
 
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
                 val numElements = numArrayElements(variable)
-                zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
+                val result = zeropage.allocate(
+                    variable.scopedname,
+                    variable.type,
+                    variable.scope,
+                    numElements,
+                    variable.initialValue,
+                    variable.position,
+                    errors
+                )
+                result.onSuccess { numVariablesAllocatedInZP++ }
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
@@ -63,13 +94,39 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
             if(errors.noErrors()) {
                 for (variable in varsDontCare) {
                     if(variable.type in IntegerDatatypes) {
-                        val numElements = numArrayElements(variable)
-                        zeropage.allocate(variable.scopedname, variable.type, variable.scope, numElements, variable.initialValue, variable.position, errors)
-                        if(zeropage.free.isEmpty())
+                        if(zeropage.free.isEmpty()) {
                             break
-                    }
+                        } else {
+                            val numElements = numArrayElements(variable)
+                            val result = zeropage.allocate(
+                                variable.scopedname,
+                                variable.type,
+                                variable.scope,
+                                numElements,
+                                variable.initialValue,
+                                variable.position,
+                                errors
+                            )
+                            result.onSuccess { numVariablesAllocatedInZP++ }
+                        }
+                    } else
+                        numberOfNonIntegerVariables++
                 }
             }
+        }
+
+        println("  number of allocated vars: $numberOfAllocatableVariables  total size: $totalAllocatedMemorySize")
+        println("  put into zeropage: $numVariablesAllocatedInZP,  non-zp allocatable: ${numberOfNonIntegerVariables+numberOfExplicitNonZpVariables}")
+        println("  zeropage free space: ${zeropage.free.size} bytes")
+    }
+
+    private fun memsize(variable: IVariablesAndConsts.StaticVariable): Int {
+        return when(variable.type) {
+            in NumericDatatypes ->
+                options.compTarget.memorySize(variable.type)
+            in ArrayDatatypes -> variable.arraysize!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(variable.type))
+            DataType.STR -> (variable.initialValue as StringLiteralValue).value.length + 1
+            else -> 0
         }
     }
 
