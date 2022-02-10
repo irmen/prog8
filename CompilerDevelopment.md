@@ -12,6 +12,9 @@
 * The same argument applies to `IMemSizer`, and - not entirely sure about that - `IBuiltinFunctions`.
 
 #### Steps to take, in conceptual (!) order:
+
+(note: all these steps have been implemented, rejected or otherwise solved now.)
+
 1. introduce an abstraction `SourceCode` that encapsulates the origin and actual loading of Prog8 source code
    - from the local file system (use case: user programs)
    - from resources (prog8lib)
