@@ -106,10 +106,10 @@ class UnusedCodeRemover(private val program: Program,
         if(decl.type==VarDeclType.VAR) {
             val block = decl.definingBlock
             val forceOutput = "force_output" in block.options()
-            if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm && !block.isInLibrary) {         // TODO remove check on block.isInLibrary, but this now breaks some programs
+            if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm) {
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
-                    if(!decl.definingModule.isLibrary)
+                    // if(!decl.definingModule.isLibrary)
                         errors.warn("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }

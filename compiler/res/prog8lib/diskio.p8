@@ -407,7 +407,7 @@ io_error:
     sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> ubyte {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
-        uword end_address = address + size
+        uword @shared end_address = address + size
         first_byte = 0      ; result var reuse
 
         %asm {{

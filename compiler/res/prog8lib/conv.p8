@@ -7,7 +7,7 @@ conv {
 
 ; ----- number conversions to decimal strings ----
 
-    str  string_out = "????????????????"       ; result buffer for the string conversion routines
+    str  @shared string_out = "????????????????"       ; result buffer for the string conversion routines
 
 asmsub  str_ub0  (ubyte value @ A) clobbers(A,Y)  {
 	; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)

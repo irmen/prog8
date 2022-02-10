@@ -369,7 +369,7 @@ _done
                 set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
-                ubyte mask = gfx2.plot.mask4c[lsb(x) & 3]
+                ubyte @shared mask = gfx2.plot.mask4c[lsb(x) & 3]
                 repeat height {
                     %asm {{
                         lda  cx16.VERA_DATA0
@@ -545,9 +545,9 @@ _done
     }
 
     sub plot(uword @zp x, uword y, ubyte color) {
-        ubyte[8] bits = [128, 64, 32, 16, 8, 4, 2, 1]
-        ubyte[4] mask4c = [%00111111, %11001111, %11110011, %11111100]
-        ubyte[4] shift4c = [6,4,2,0]
+        ubyte[8] @shared bits = [128, 64, 32, 16, 8, 4, 2, 1]
+        ubyte[4] @shared mask4c = [%00111111, %11001111, %11110011, %11111100]
+        ubyte[4] @shared shift4c = [6,4,2,0]
 
         when active_mode {
             1 -> {
