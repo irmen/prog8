@@ -1,10 +1,13 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode

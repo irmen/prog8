@@ -4,12 +4,7 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.Position
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.InferredTypes
-import prog8.ast.statements.VarDecl
-import prog8.ast.statements.VarDeclOrigin
-import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter

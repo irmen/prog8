@@ -2,7 +2,9 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
-import prog8.ast.base.*
+import prog8.ast.base.ArrayDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.IntegerDatatypes
 import prog8.ast.expressions.StringLiteralValue
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.ZeropageWish
@@ -41,8 +43,6 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
                 ).toList()
 
         val numberOfAllocatableVariables = allVariables.size
-        val totalAllocatedMemorySize = allVariables.sumOf { memsize(it) }
-
         val varsRequiringZp = allVariables.filter { it.zp == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.zp == ZeropageWish.PREFER_ZEROPAGE }
         val varsDontCare = allVariables.filter { it.zp == ZeropageWish.DONTCARE }
@@ -115,19 +115,9 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
             }
         }
 
-        println("  number of allocated vars: $numberOfAllocatableVariables  total size: $totalAllocatedMemorySize")
+        println("  number of allocated vars: $numberOfAllocatableVariables")
         println("  put into zeropage: $numVariablesAllocatedInZP,  non-zp allocatable: ${numberOfNonIntegerVariables+numberOfExplicitNonZpVariables}")
         println("  zeropage free space: ${zeropage.free.size} bytes")
-    }
-
-    private fun memsize(variable: IVariablesAndConsts.StaticVariable): Int {
-        return when(variable.type) {
-            in NumericDatatypes ->
-                options.compTarget.memorySize(variable.type)
-            in ArrayDatatypes -> variable.arraysize!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(variable.type))
-            DataType.STR -> (variable.initialValue as StringLiteralValue).value.length + 1
-            else -> 0
-        }
     }
 
     internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.variables

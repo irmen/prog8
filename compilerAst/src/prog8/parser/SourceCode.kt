@@ -4,9 +4,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.name
 import kotlin.io.path.readText
-import kotlin.io.path.toPath
 
 /**
  * Encapsulates - and ties together - actual source code (=text) and its [origin].

@@ -56,6 +56,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         // TODO get rid of the vardecl inside the ast - codegen should depend on the IVariableAllocation object
+        //      but if we do this now, all variable name lookups break because these are still done on the Ast directly rather than on a separate symbol table
         // return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
         return noModifications
     }
