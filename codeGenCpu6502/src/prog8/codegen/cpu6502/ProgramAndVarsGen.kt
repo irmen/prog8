@@ -12,8 +12,15 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.math.absoluteValue
 
-
-internal class ProgramGen(
+/**
+ * Generates the main parts of the program:
+ *  - entry/exit code
+ *  - initialization routines
+ *  - blocks
+ *  - subroutines
+ *  - all variables (note: VarDecl ast nodes are *NOT* used anymore for this! now uses IVariablesAndConsts data tables!)
+ */
+internal class ProgramAndVarsGen(
     val program: Program,
     val variables: IVariablesAndConsts,
     val options: CompilationOptions,
@@ -328,7 +335,7 @@ internal class ProgramGen(
 
         arrayVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.key)+"_init_value"
-            arrayVardecl2asm(varname, it.value.dt, it.value.initialArrayValue!!, null)
+            arrayVariable2asm(varname, it.value.dt, it.value.initialArrayValue!!, null)
         }
 
         asmgen.out("""+       tsx
@@ -365,11 +372,11 @@ internal class ProgramGen(
             outputStringvar(it.scopedname.last(), it.type, stringvalue.encoding, stringvalue.value)
         }
         othervars.sortedBy { it.type }.forEach {
-            vardecl2asm(it)
+            staticVariable2asm(it)
         }
     }
 
-    private fun vardecl2asm(variable: IVariablesAndConsts.StaticVariable) {
+    private fun staticVariable2asm(variable: IVariablesAndConsts.StaticVariable) {
         val name = variable.scopedname.last()
         val value = variable.initialValue
         val staticValue: Number =
@@ -402,14 +409,14 @@ internal class ProgramGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVardecl2asm(name, variable.type, value as? ArrayLiteralValue, variable.arraysize)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.type, value as? ArrayLiteralValue, variable.arraysize)
             else -> {
                 throw AssemblyError("weird dt")
             }
         }
     }
 
-    private fun arrayVardecl2asm(varname: String, dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, value: ArrayLiteralValue?, orNumberOfZeros: Int?) {
         when(dt) {
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
