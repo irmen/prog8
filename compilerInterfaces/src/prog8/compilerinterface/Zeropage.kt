@@ -117,7 +117,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         allocations[address] = name to datatype
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
-                in NumericDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, null)        // numerical variables in zeropage never have an initial value here TODO why not?
+                in NumericDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, null)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
                 DataType.STR -> ZpAllocation(address, datatype, size, originalScope, initValue as? StringLiteral, null)
                 in ArrayDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, initValue as? ArrayLiteral)
                 else -> throw AssemblyError("invalid dt")

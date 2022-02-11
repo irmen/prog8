@@ -3,8 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- answer the question in zeropage.kt makeAllocation():  numerical variables in zeropage never have an initial value here TODO why not?
-- (for 7.9:) remove support for old @"screencodes" string encoding syntax, parser+code+docs
+- remove support for old @"screencodes" string encoding syntax, parser+code+docs
 - ...
 
 

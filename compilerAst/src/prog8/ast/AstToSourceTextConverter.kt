@@ -101,10 +101,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(decl: VarDecl) {
-
-        // if the vardecl is a parameter of a subroutine, don't output it again
-        val paramNames = decl.definingSubroutine?.parameters?.map { it.name }
-        if(paramNames!=null && decl.name in paramNames)
+        if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
         when(decl.type) {
@@ -191,7 +188,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         else {
             outputln("{ ")
             scopelevel++
-            outputStatements(subroutine.statements)
+            outputStatements(subroutine.statements.filter { it !is VarDecl || it.origin!=VarDeclOrigin.SUBROUTINEPARAM})
             scopelevel--
             outputi("}")
         }
