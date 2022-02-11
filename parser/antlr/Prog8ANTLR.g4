@@ -220,9 +220,9 @@ booleanliteral :  'true' | 'false' ;
 
 arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the values over several lines
 
-stringliteral : (old_alt_encoding='@' | encoding=NAME ':')? STRING ;
+stringliteral : (encoding=NAME ':')? STRING ;
 
-charliteral : (old_alt_encoding='@' | encoding=NAME ':')? SINGLECHAR ;
+charliteral : (encoding=NAME ':')? SINGLECHAR ;
 
 floatliteral :  FLOAT_NUMBER ;
 

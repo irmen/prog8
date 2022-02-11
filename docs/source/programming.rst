@@ -193,8 +193,7 @@ Values will usually be part of an expression or assignment statement::
     -33.456e52            ; floating point number
     "Hi, I am a string"   ; text string, encoded with compiler target default encoding
     'a'                   ; byte value (ubyte) for the letter a
-    @"Alternate"          ; text string, encoded with alternate encoding (old deprecated syntax)
-    sc:"Alternate"        ; text string, encoded with c64 screencode encoding (current syntax)
+    sc:"Alternate"        ; text string, encoded with c64 screencode encoding
     sc:'a'                ; byte value of the letter a in c64 screencode encoding
 
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
@@ -317,13 +316,6 @@ They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
 *default encoding* for the target platform. On the CBM machines, this is CBM PETSCII.
-
-.. sidebar::
-    Deprecated ``@`` prefix
-
-    In older versions of the language, the ``@`` prefix was used to specify the
-    CBM screencode encoding. This syntax is still supported for now, but will be removed
-    in a future language version.
 
 Alternative encodings can be specified with a ``encodingname:`` prefix to the string or character literal.
 The following encodings are currently recognised:

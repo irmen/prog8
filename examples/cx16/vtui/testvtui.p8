@@ -18,7 +18,7 @@ main {
         vtui.gotoxy(10,10)
         vtui.border(1, 40, 6, $47)
         vtui.gotoxy(12,12)
-        vtui.print_str2(@"Hello, world! vtui from Prog8!", $f2, false)
+        vtui.print_str2(sc:"Hello, world! vtui from Prog8!", $f2, false)
         vtui.gotoxy(12,13)
         vtui.print_str2("Hello, world! vtui from Prog8!", $f2, true)
 
@@ -30,11 +30,11 @@ main {
 ;        txt.chrout('\n')
 
         vtui.gotoxy(5,20)
-        vtui.print_str2(@"Enter your name: ", $e3, false)
+        vtui.print_str2(sc:"Enter your name: ", $e3, false)
         ubyte length = vtui.input_str(inputbuffer, len(inputbuffer), $21)
 
         vtui.gotoxy(8,22)
-        vtui.print_str2(@"Your name is: ", $e3, false)
+        vtui.print_str2(sc:"Your name is: ", $e3, false)
         ;vtui.print_str2(inputbuffer, $67, $00)
         vtui.print_str(inputbuffer, length, $67, $00)
 

@@ -31,7 +31,7 @@ class TestCompilerOnRanges: FunSpec({
         val result = compileText(platform, false, """
             main {
                 sub start() {
-                    ubyte[] cs = @'a' to 'z' ; values are computed at compile time 
+                    ubyte[] cs = sc:'a' to 'z' ; values are computed at compile time 
                     cs[0] = 23 ; keep optimizer from removing it
                 }
             }
@@ -133,7 +133,7 @@ class TestCompilerOnRanges: FunSpec({
             main {
                 sub start() {
                     ubyte i
-                    for i in @'a' to 'f' {
+                    for i in sc:'a' to 'f' {
                         i += i ; keep optimizer from removing it
                     }
                 }

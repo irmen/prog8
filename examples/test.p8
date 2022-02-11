@@ -1,10 +1,9 @@
 %zeropage basicsafe
 
 main {
-    ubyte @requirezp foobar2 = 255
     sub start() {
-        ubyte @requirezp foobar = 255
-        foobar++
-        foobar2++
+        uword zzz = memory("sdfasdf", 100, 0)
+        str @shared foobar = "zsdfzsdf"
+        str @shared foobar2 = sc:"zsdfzsdf"
     }
 }

@@ -429,23 +429,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe 'x'
         }
 
-        test("on rhs of block-level const decl, with screencode enc (old syntax)") {
-            val src = SourceCode.Text("""
-                main {
-                    const ubyte c = @'x'
-                }
-            """)
-            val module = parseModule(src)
-            val decl = module
-                .statements.filterIsInstance<Block>()[0]
-                .statements.filterIsInstance<VarDecl>()[0]
-
-            val rhs = decl.value as CharLiteral
-            rhs.encoding shouldBe Encoding.SCREENCODES
-            rhs.value shouldBe 'x'
-        }
-
-        test("on rhs of block-level const decl, with screencode enc (new syntax)") {
+        test("on rhs of block-level const decl, with screencode enc") {
             val src = SourceCode.Text("""
                 main {
                     const ubyte c = sc:'x'
@@ -497,26 +481,7 @@ class TestProg8Parser: FunSpec( {
             rhs.encoding shouldBe Encoding.PETSCII
         }
 
-        test("on rhs of subroutine-level const decl, screencode (old syntax)") {
-            val src = SourceCode.Text("""
-                main {
-                    sub start() {
-                        const ubyte c = @'x'
-                    }
-                }
-            """)
-            val module = parseModule(src)
-            val decl = module
-                .statements.filterIsInstance<Block>()[0]
-                .statements.filterIsInstance<Subroutine>()[0]
-                .statements.filterIsInstance<VarDecl>()[0]
-
-            val rhs = decl.value as CharLiteral
-            rhs.encoding shouldBe Encoding.SCREENCODES
-            rhs.value shouldBe 'x'
-        }
-
-        test("on rhs of subroutine-level const decl, screencode (new syntax)") {
+        test("on rhs of subroutine-level const decl, screencode encoded") {
             val src = SourceCode.Text("""
                 main {
                     sub start() {
@@ -571,21 +536,7 @@ class TestProg8Parser: FunSpec( {
             rhs.value shouldBe "name"
         }
 
-        test("old syntax alt encoding") {
-            val source = """
-                main {
-                    str name = @"name"
-                }"""
-            val module = parseModule(SourceCode.Text(source))
-            val decl = module
-                .statements.filterIsInstance<Block>()[0]
-                .statements.filterIsInstance<VarDecl>()[0]
-            val rhs = decl.value as StringLiteral
-            rhs.encoding shouldBe Encoding.SCREENCODES
-            rhs.value shouldBe "name"
-        }
-
-        test("new syntax encodings") {
+        test("string encodings") {
             val source = """
                 main {
                     str name1 = petscii:"Name"
@@ -619,7 +570,7 @@ class TestProg8Parser: FunSpec( {
                         }
                         for ub in "something" {             ; #1
                         }
-                        for ub in @'a' to 'f' {             ; #2
+                        for ub in sc:'a' to 'f' {           ; #2
                         }
                         for ub in false to true {           ; #3
                         }

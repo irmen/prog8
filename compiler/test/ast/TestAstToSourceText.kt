@@ -83,17 +83,6 @@ class TestAstToSourceText: AnnotationSpec() {
     }
 
     @Test
-    fun testStringLiteral_withOldSc() {
-        val orig = SourceCode.Text("""
-            main {
-                str sAlt = @"fooBar\n"
-            }
-        """)
-        val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("str +sAlt += +sc:\"fooBar\\\\n\"")
-    }
-
-    @Test
     fun testStringLiteral_withIso() {
         val orig = SourceCode.Text("""
             main {
@@ -113,17 +102,6 @@ class TestAstToSourceText: AnnotationSpec() {
         """)
         val (txt, _) = roundTrip(parseModule(orig))
         txt shouldContain Regex("ubyte +c += +petscii:'x'")
-    }
-
-    @Test
-    fun testCharLiteral_OldSc() {
-        val orig = SourceCode.Text("""
-            main {
-                ubyte cAlt = @'x'
-            }
-        """)
-        val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("ubyte +cAlt += +sc:'x'")
     }
 
     @Test

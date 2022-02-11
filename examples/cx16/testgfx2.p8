@@ -190,7 +190,7 @@ main {
 
         ubyte tp
         for tp in 0 to 15 {
-            gfx2.text(19+tp,20+tp*11, 5, @"ScreenCODE text! 1234![]<>#$%&*()")
+            gfx2.text(19+tp,20+tp*11, 5, sc:"ScreenCODE text! 1234![]<>#$%&*()")
         }
 
     }

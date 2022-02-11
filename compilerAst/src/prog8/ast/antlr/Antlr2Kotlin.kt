@@ -321,10 +321,8 @@ internal fun Prog8ANTLRParser.DirectiveContext.toAst() : Directive =
 
 private fun Prog8ANTLRParser.DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
-    val oldenc = str?.old_alt_encoding?.text
-    val enc = str?.encoding?.text
-    if(oldenc!=null || enc !=null)
-        throw SyntaxError("can't use alternate string encoding for directive arguments", toPosition())
+    if(str?.encoding?.text!=null)
+        throw SyntaxError("don't use a string encoding for directive arguments", toPosition())
     return DirectiveArg(str?.text?.substring(1, text.length-1), identifier()?.text, integerliteral()?.toAst()?.number?.toUInt(), toPosition())
 }
 
@@ -455,9 +453,7 @@ private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
     val text = this.SINGLECHAR().text
     val enc = this.encoding?.text
     val encoding =
-        if(old_alt_encoding!=null)
-            Encoding.SCREENCODES
-        else if(enc!=null)
+        if(enc!=null)
             Encoding.values().singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
@@ -469,9 +465,7 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
     val text=this.STRING().text
     val enc = encoding?.text
     val encoding =
-        if(old_alt_encoding!=null)
-            Encoding.SCREENCODES
-        else if(enc!=null)
+        if(enc!=null)
             Encoding.values().singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else

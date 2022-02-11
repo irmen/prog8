@@ -9,8 +9,8 @@ main {
 
         txt.lowercase()
 
-        str s1 = "HELLO hello 1234 @[/]"      ; regular strings have default encoding (petscii on c64)
-        str s2 = @"HELLO hello 1234 @[/]"     ; alternative encoding (screencodes on c64)
+        str s1 = "HELLO hello 1234 @[/]"        ; regular strings have default encoding (petscii on c64)
+        str s2 = sc:"HELLO hello 1234 @[/]"     ; alternative encoding (screencodes on c64)
 
         txt.print("\n\n\n\nString output via print:\n")
         txt.print("petscii-str: ")
@@ -25,7 +25,7 @@ main {
             txt.setchr(i, 1, s2[i])
 
         ubyte c1 = 'z'
-        ubyte c2 = @'z'
+        ubyte c2 = sc:'z'
 
         txt.print("\npetscii z=")
         txt.print_ub(c1)

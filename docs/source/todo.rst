@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- remove support for old @"screencodes" string encoding syntax, parser+code+docs
 - ...
 
 

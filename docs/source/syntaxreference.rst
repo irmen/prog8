@@ -431,13 +431,6 @@ memory at the given index. See :ref:`pointervars`
 
 String
 ^^^^^^
-.. sidebar::
-    Deprecated ``@`` prefix
-
-    In older versions of the language, the ``@`` prefix was used to specify the
-    CBM screencode encoding. This syntax is still supported for now, but will be removed
-    in a future language version.
-
 A string literal can occur with or without an encoding prefix (encoding followed by ':' followed by the string itself).
 When this is omitted, the string is stored in the machine's default character encoding (which is PETSCII on the CBM machines).
 You can choose to store the string in other encodings such as ``sc`` (screencodes) or ``iso`` (iso-8859-15).
