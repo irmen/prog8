@@ -8,10 +8,7 @@ import prog8.ast.base.IntegerDatatypes
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.ZeropageWish
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.IVariablesAndConsts
-import prog8.compilerinterface.ZeropageType
+import prog8.compilerinterface.*
 
 
 internal class VariableAllocator(private val vars: IVariablesAndConsts,
@@ -23,6 +20,7 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
     private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
     internal val memorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabsInternal
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
+    internal val zeropageVars: Map<List<String>, Zeropage.ZpAllocation> = zeropage.allocatedVariables
 
     internal fun getMemorySlab(name: String) = memorySlabsInternal[name]
     internal fun allocateMemorySlab(name: String, size: UInt, align: UInt) {
@@ -120,7 +118,7 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
         println("  zeropage free space: ${zeropage.free.size} bytes")
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.variables
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
 
     private fun numArrayElements(variable: IVariablesAndConsts.StaticVariable) =
         when(variable.type) {
@@ -129,7 +127,7 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
             else -> null
         }
 
-    fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
+    internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
         var extra = subroutineExtras[sub]
         return if(extra==null) {
             extra = SubroutineExtraAsmInfo()
@@ -140,7 +138,7 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
             extra
     }
 
-    fun getFloatAsmConst(number: Double): String {
+    internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
         if(asmName!=null)
             return asmName

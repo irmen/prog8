@@ -27,6 +27,7 @@ Compiler:
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement classes, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
+  OR: change pipe syntax and require function call, but always have implicit first argument added.
 - for the pipe operator: make it 100% syntactic sugar so there's no need for asm codegen like translatePipeExpression
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names.
@@ -69,5 +70,6 @@ Optimizations:
 - translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
 - translateNormalAssignment() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
+  but we have no efficient way right now to see if the body references a variable.
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4

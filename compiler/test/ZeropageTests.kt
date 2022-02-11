@@ -264,12 +264,12 @@ class TestCx16Zeropage: FunSpec({
 
     test("preallocated zp vars") {
         val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target))
-        zp1.variables[listOf("test")] shouldBe null
-        zp1.variables[listOf("cx16", "r0")] shouldNotBe null
-        zp1.variables[listOf("cx16", "r15")] shouldNotBe null
-        zp1.variables[listOf("cx16", "r0L")] shouldNotBe null
-        zp1.variables[listOf("cx16", "r15L")] shouldNotBe null
-        zp1.variables[listOf("cx16", "r0sH")] shouldNotBe null
-        zp1.variables[listOf("cx16", "r15sH")] shouldNotBe null
+        zp1.allocatedVariables[listOf("test")] shouldBe null
+        zp1.allocatedVariables[listOf("cx16", "r0")] shouldNotBe null
+        zp1.allocatedVariables[listOf("cx16", "r15")] shouldNotBe null
+        zp1.allocatedVariables[listOf("cx16", "r0L")] shouldNotBe null
+        zp1.allocatedVariables[listOf("cx16", "r15L")] shouldNotBe null
+        zp1.allocatedVariables[listOf("cx16", "r0sH")] shouldNotBe null
+        zp1.allocatedVariables[listOf("cx16", "r15sH")] shouldNotBe null
     }
 })

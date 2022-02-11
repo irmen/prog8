@@ -29,9 +29,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    protected val allocatedVariables = mutableMapOf<List<String>, ZpAllocation>()
-    private val allocations = mutableMapOf<UInt, Pair<List<String>, DataType>>()
-    val variables: Map<List<String>, ZpAllocation> = allocatedVariables
+    val allocatedVariables = mutableMapOf<List<String>, ZpAllocation>()
 
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
@@ -61,7 +59,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                  position: Position?,
                  errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
 
-        require(name.isEmpty() || !allocations.values.any { it.first==name } ) {"name can't be allocated twice"}
+        require(name.isEmpty() || name !in allocatedVariables) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
             return Err(ZeropageAllocationError("zero page usage has been disabled"))
@@ -114,7 +112,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>, initValue: Expression?, originalScope: INameScope): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
-        allocations[address] = name to datatype
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
                 in NumericDatatypes -> ZpAllocation(address, datatype, size, originalScope, null, null)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments

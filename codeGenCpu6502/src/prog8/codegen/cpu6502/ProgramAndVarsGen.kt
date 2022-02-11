@@ -297,10 +297,9 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        val zp = zeropage
         // string and array variables in zeropage that have initializer value, should be initialized
-        val stringVarsWithInitInZp = zp.variables.filter { it.value.dt==DataType.STR && it.value.initialStringValue!=null }
-        val arrayVarsWithInitInZp = zp.variables.filter { it.value.dt in ArrayDatatypes && it.value.initialArrayValue!=null }
+        val stringVarsWithInitInZp = allocator.zeropageVars.filter { it.value.dt==DataType.STR && it.value.initialStringValue!=null }
+        val arrayVarsWithInitInZp = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes && it.value.initialArrayValue!=null }
         if(stringVarsWithInitInZp.isNotEmpty() || arrayVarsWithInitInZp.isNotEmpty()) {
             asmgen.out("; zp str and array initializations")
             stringVarsWithInitInZp.forEach {
@@ -352,7 +351,7 @@ internal class ProgramAndVarsGen(
     }
 
     private fun zeropagevars2asm(scope: INameScope) {
-        val zpVariables = zeropage.variables.filter { it.value.originalScope==scope }
+        val zpVariables = allocator.zeropageVars.filter { it.value.originalScope==scope }
         for ((scopedName, zpvar) in zpVariables) {
             if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped

@@ -2,8 +2,10 @@
 
 main {
     sub start() {
-        uword zzz = memory("sdfasdf", 100, 0)
-        str @shared foobar = "zsdfzsdf"
-        str @shared foobar2 = sc:"zsdfzsdf"
+        ubyte @shared xx
+
+        if xx==1 or xx==2 or xx==3 {
+            xx++
+        }
     }
 }
