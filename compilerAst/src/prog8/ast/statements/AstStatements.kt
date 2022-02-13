@@ -602,12 +602,18 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
+
     val names: Set<String> by lazy {
         // A cache of all the words (identifiers) present in this block of assembly code
         // this is used when checking if prog8 names are referenced from assembly code
-        // TODO: smarter pattern; don't include words in comments
-        val wordPattern = Regex("""\b([_a-zA-Z][_a-zA-Z0-9]+?)\b""", RegexOption.MULTILINE)
-        wordPattern.findAll(assembly).map { it.value }.toSet()
+        val wordPattern = Regex("""\b([_a-zA-Z][_a-zA-Z0-9]+?)\b""")
+        assembly.splitToSequence('\n')
+            .map {
+                val everythintBeforeComment = it.substringBefore(';')
+                wordPattern.findAll(everythintBeforeComment)
+            }
+            .flatMap { it.map { it.value } }
+            .toSet()
     }
 }
 

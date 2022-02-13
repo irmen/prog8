@@ -68,11 +68,6 @@ class TestCompilerOnCharLit: FunSpec({
         decl.type shouldBe VarDeclType.VAR
         decl.datatype shouldBe DataType.UBYTE
 
-        // TODO: assertIs<CharLiteral>(decl.value,
-        //          "char literals should be kept until code gen")
-        //       val initializerValue = decl.value as CharLiteral
-        //       assertEquals('\n', (initializerValue as CharLiteral).value)
-
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
         }
