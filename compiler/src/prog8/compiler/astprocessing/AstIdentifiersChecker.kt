@@ -108,7 +108,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             // the builtin functions can't be redefined
             errors.err("builtin function cannot be redefined", label.position)
         } else {
-            val existing = label.definingSubroutine?.getAllLabels(label.name) ?: emptyList()
+            val existing = (label.definingSubroutine ?: label.definingBlock).getAllLabels(label.name)
             for(el in existing) {
                 if(el === label || el.name != label.name)
                     continue

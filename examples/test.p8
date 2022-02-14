@@ -1,11 +1,25 @@
-%zeropage basicsafe
-
+%import textio
 main {
-    sub start() {
-        ubyte @shared xx
+	str myBar = "main.bar"
 
-        if xx==1 or xx==2 or xx==3 {
-            xx++
+foo_bar:
+
+	sub start() {
+	    txt.print(myBar)
+	    txt.print(&foo_bar)
+	    return
+
+quert:
+quert:
+quert:
+quert:
+
+	}
+
+        sub start() {
         }
-    }
+foo_bar:
+foo_bar:
+foo_bar:
+foo_bar:
 }
