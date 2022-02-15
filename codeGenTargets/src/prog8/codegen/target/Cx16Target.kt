@@ -7,6 +7,7 @@ import prog8.codegen.target.cbm.CbmMemorySizer
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.codegen.target.cx16.CX16MachineDefinition
+import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
@@ -15,6 +16,7 @@ import prog8.compilerinterface.IStringEncoding
 class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by CbmMemorySizer {
     override val name = NAME
     override val machine = CX16MachineDefinition()
+    override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES, Encoding.ISO)
 
     companion object {
         const val NAME = "cx16"

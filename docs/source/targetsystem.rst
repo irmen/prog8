@@ -9,7 +9,7 @@ Prog8 targets the following hardware:
 - optional use of memory mapped I/O registers
 - optional use of system ROM routines
 
-Currently these machines can be selected as a compiler target (via the ``-target`` compiler argument):
+Currently these machines can be selected as a compilation target (via the ``-target`` compiler argument):
 
 - 'c64': the Commodore 64
 - 'c128': the Commodore 128  (*limited support only for now*)
@@ -19,7 +19,7 @@ This chapter explains some relevant system details of the c64 and cx16 machines.
 
 .. hint::
     If you only use standard kernal and prog8 library routines,
-    it is possible to compile the *exact same program* for both machines (just change the compiler target flag)!
+    it is possible to compile the *exact same program* for both machines (just change the compilation target flag)!
 
 
 Memory Model

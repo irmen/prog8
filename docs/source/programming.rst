@@ -191,7 +191,7 @@ Values will usually be part of an expression or assignment statement::
     $aa43                 ; hex integer number
     %100101               ; binary integer number (% is also remainder operator so be careful)
     -33.456e52            ; floating point number
-    "Hi, I am a string"   ; text string, encoded with compiler target default encoding
+    "Hi, I am a string"   ; text string, encoded with default encoding
     'a'                   ; byte value (ubyte) for the letter a
     sc:"Alternate"        ; text string, encoded with c64 screencode encoding
     sc:'a'                ; byte value of the letter a in c64 screencode encoding
@@ -985,7 +985,7 @@ memory(name, size, alignment)
     The return value is just a simple uword address so it cannot be used as an array in your program.
     You can only treat it as a pointer or use it in inline assembly.
 
-callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler target for now
+callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another ram-bank on the CommanderX16 (using the ``jsrfar`` routine)
     The banked RAM is located in the address range $A000-$BFFF (8 kilobyte).
     Notice that bank $00 is used by the Kernal and should not be used by user code.
@@ -996,7 +996,7 @@ callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler t
     If the routine requires different arguments or return values, ``callfar`` cannot be used
     and you'll have to set up a call to ``jsrfar`` yourself to process this.
 
-callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 compiler target for now
+callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another rom-bank on the CommanderX16
     The banked ROM is located in the address range $C000-$FFFF (16 kilobyte).
     There are 32 banks (0 to 31).

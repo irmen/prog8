@@ -6,8 +6,15 @@ import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import prog8.codegen.target.C64Target
+import prog8.codegen.target.Cx16Target
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.assertFailure
+import prog8tests.helpers.assertSuccess
+import prog8tests.helpers.compileText
 
 
 class TestStringEncodings: FunSpec({
@@ -187,5 +194,70 @@ class TestStringEncodings: FunSpec({
             result = PetsciiEncoding.encodeScreencode("a_~ë")
             result.expectError { "should not encode" }
         }
+    }
+
+    test("invalid encoding immediately errors the parser") {
+        val source="""
+            main {
+                str string5 = unicorns:"wrong"
+                ubyte char5 = unicorns:'?'
+            
+                sub start() {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, source, errors, false).assertFailure()
+        errors.errors.size shouldBe 0
+    }
+
+    test("unsupported string encoding iso for C64 compilationtarget") {
+        val source="""
+            main {
+                str string1 = "default"
+                str string2 = sc:"screencodes"
+                str string3 = iso:"iso"
+                str string4 = petscii:"petscii"
+                sub start() {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, source, errors, writeAssembly = false).assertFailure()
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "text encoding"
+    }
+
+    test("unsupported char encoding iso for C64 compilationtarget") {
+        val source="""
+            main {
+                ubyte char1 = 'd'
+                ubyte char2 = sc:'s'
+                ubyte char3 = iso:'i'
+                ubyte char4 = petscii:'p'
+                sub start() {
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, source, errors, writeAssembly = false).assertFailure()
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "text encoding"
+    }
+
+    test("all encodings supported for Cx16 target") {
+        val source="""
+            main {
+                str string1 = "default"
+                str string2 = sc:"screencodes"
+                str string3 = iso:"iso"
+                str string4 = petscii:"petscii"
+            
+                ubyte char1 = 'd'
+                ubyte char2 = sc:'s'
+                ubyte char3 = iso:'i'
+                ubyte char4 = petscii:'p'
+            
+                sub start() {
+                }
+            }"""
+        compileText(Cx16Target(), false, source, writeAssembly = false).assertSuccess()
     }
 })

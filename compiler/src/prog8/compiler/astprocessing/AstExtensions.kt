@@ -10,10 +10,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.IStringEncoding
-import prog8.compilerinterface.IVariablesAndConsts
+import prog8.compilerinterface.*
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -48,12 +45,16 @@ internal fun Program.reorderStatements(errors: IErrorReporter, options: Compilat
     }
 }
 
-internal fun Program.charLiteralsToUByteLiterals(enc: IStringEncoding) {
+internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, errors: IErrorReporter) {
     val walker = object : AstWalker() {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
+            if(char.encoding !in target.supportedEncodings) {
+                errors.err("compilation target doesn't support this text encoding", char.position)
+                return noModifications
+            }
             return listOf(IAstModification.ReplaceNode(
                 char,
-                NumericLiteral(DataType.UBYTE, enc.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
+                NumericLiteral(DataType.UBYTE, target.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
                 parent
             ))
         }
@@ -96,7 +97,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
         val transforms = AstVariousTransforms(this)
         transforms.visit(this)
         transforms.applyModifications()
-        val lit2decl = LiteralsToAutoVars(this)
+        val lit2decl = LiteralsToAutoVars(this, options.compTarget, errors)
         lit2decl.visit(this)
         if(errors.noErrors())
             lit2decl.applyModifications()

@@ -12,11 +12,19 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 
 
-internal class LiteralsToAutoVars(private val program: Program) : AstWalker() {
+internal class LiteralsToAutoVars(private val program: Program,
+                                  private val target: ICompilationTarget,
+                                  private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
+        if(string.encoding !in target.supportedEncodings) {
+            errors.err("compilation target doesn't support this text encoding", string.position)
+            return noModifications
+        }
         if(string.parent !is VarDecl
             && string.parent !is WhenChoice
             && (string.parent !is ContainmentCheck || string.value.length>ContainmentCheck.max_inlined_string_length)) {

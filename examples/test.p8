@@ -1,25 +1,14 @@
-%import textio
 main {
-	str myBar = "main.bar"
+    str string1 = "default"
+    str string2 = sc:"screencodes"
+    str string3 = iso:"iso"
+    str string4 = petscii:"petscii"
 
-foo_bar:
+    ubyte char1 = 'd'
+    ubyte char2 = sc:'s'
+    ubyte char3 = iso:'i'
+    ubyte char4 = petscii:'p'
 
-	sub start() {
-	    txt.print(myBar)
-	    txt.print(&foo_bar)
-	    return
-
-quert:
-quert:
-quert:
-quert:
-
-	}
-
-        sub start() {
-        }
-foo_bar:
-foo_bar:
-foo_bar:
-foo_bar:
+    sub start() {
+    }
 }

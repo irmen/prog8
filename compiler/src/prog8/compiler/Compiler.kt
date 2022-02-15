@@ -184,7 +184,7 @@ fun parseImports(filepath: Path,
                  errors: IErrorReporter,
                  compTarget: ICompilationTarget,
                  sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
-    println("Compiler target: ${compTarget.name}")
+    println("Compilation target: ${compTarget.name}")
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
@@ -284,7 +284,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
     //       By introduction a CHAR dt, we will also lose the opportunity to do constant-folding on any expression containing a char literal.
     //       Yes this is different from strings that are only encoded in the code gen phase.
-    program.charLiteralsToUByteLiterals(compilerOptions.compTarget)
+    program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)
+    errors.report()
     program.constantFold(errors, compilerOptions.compTarget)
     errors.report()
     program.desugaring(errors)
