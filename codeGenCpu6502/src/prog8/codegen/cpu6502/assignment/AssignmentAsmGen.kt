@@ -308,22 +308,17 @@ internal class AssignmentAsmGen(private val program: Program,
                                 asmgen.translate(ifelse)
                             }
                             else {
-                                // no orig ast assign target, can't use the workaround, so fallback to stack eval
-                                fallbackToStackEval(value, assign)
+                                // no orig ast assign target so can't use the workaround, so fallback to stack eval
+                                fallbackToStackEval(assign)
                             }
                         } else {
-                            // Everything else just evaluate via the stack.
+                            // All remaining binary expressions just evaluate via the stack for now.
                             // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                             // because the code here is the implementation of exactly that...)
-                            fallbackToStackEval(value, assign)
+                            fallbackToStackEval(assign)
                         }
                     }
-                    else -> {
-                        // Everything else just evaluate via the stack.
-                        // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
-                        // because the code here is the implementation of exactly that...)
-                        fallbackToStackEval(value, assign)
-                    }
+                    else -> throw AssemblyError("weird assignment value type $value")
                 }
             }
             SourceStorageKind.REGISTER -> {
@@ -336,9 +331,13 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun fallbackToStackEval(value: Expression, assign: AsmAssignment) {
-        // TODO DON'T STACK-EVAL THIS... by using a temp var? so that it becomes augmentable assignment expression?
-        asmgen.translateExpression(value)
+    private fun fallbackToStackEval(assign: AsmAssignment) {
+        // TODO DON'T STACK-EVAL... perhaps by using a temp var? so that it becomes augmentable assignment expression?
+        //      or don't try to solve it here in this one case and rather rewrite the whole stack based value evaluation.
+        // this routine is called for assigning a binaryexpression value:
+        // - if it's a boolean comparison expression and the workaround isn't possible (no origTarget ast node)
+        // - for all other binary expressions.
+        asmgen.translateExpression(assign.source.expression!!)
         if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
             asmgen.signExtendStackLsb(assign.source.datatype)
         if (assign.target.kind != TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
@@ -352,7 +351,7 @@ internal class AssignmentAsmGen(private val program: Program,
             val constRange = range.toConstantIntegerRange()
             if(constRange!=null)
                 return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), constRange.toList())
-            TODO("non-const range containment check ${containment.position}")
+            throw AssemblyError("non const range containment check not supported")
         }
         val variable = (containment.iterable as? IdentifierReference)?.targetVarDecl(program)
         if(variable!=null) {

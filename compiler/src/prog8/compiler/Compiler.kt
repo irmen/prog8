@@ -275,15 +275,10 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    // perform initial syntax checks and processings
     println("Analyzing code...")
     program.preprocessAst(errors)
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
-    // TODO: turning char literals into UBYTEs via an encoding should really happen in code gen - but for that we'd need DataType.CHAR
-    //       ...but what do we gain from this? We can leave it as it is now: where a char literal is no more than syntactic sugar for an UBYTE value.
-    //       By introduction a CHAR dt, we will also lose the opportunity to do constant-folding on any expression containing a char literal.
-    //       Yes this is different from strings that are only encoded in the code gen phase.
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)
     errors.report()
     program.constantFold(errors, compilerOptions.compTarget)
@@ -303,13 +298,10 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
 }
 
 private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
-    // optimize the parse tree
     println("Optimizing...")
-
     val remover = UnusedCodeRemover(program, errors, compTarget)
     remover.visit(program)
     remover.applyModifications()
-
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
@@ -346,7 +338,6 @@ private fun writeAssembly(program: Program,
                           errors: IErrorReporter,
                           compilerOptions: CompilationOptions
 ): WriteAssemblyResult {
-    // asm generation directly from the Ast
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     val variables = VariableExtractor().extractVars(program)
     program.processAstBeforeAsmGeneration(compilerOptions, variables, errors)

@@ -16,13 +16,7 @@ import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 
-/*
-    todo add more peephole expression optimizations
-
-    Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
-
- */
-
+// TODO add more peephole expression optimizations? Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
 class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()

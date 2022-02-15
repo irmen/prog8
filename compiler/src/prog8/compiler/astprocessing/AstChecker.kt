@@ -1221,6 +1221,10 @@ internal class AstChecker(private val program: Program,
         if(containment.parent is BinaryExpression)
             errors.err("containment check is currently not supported in complex expressions", containment.position)
 
+        val range = containment.iterable as? RangeExpression
+        if(range!=null && range.toConstantIntegerRange()==null)
+            errors.err("containment check requires a constant integer range", range.position)
+
         if(iterableDt.isIterable) {
             val iterableEltDt = ArrayToElementTypes.getValue(iterableDt.getOr(DataType.UNDEFINED))
             val invalidDt = if (elementDt.isBytes) {

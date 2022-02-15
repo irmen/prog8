@@ -210,24 +210,14 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
-        // TODO find another way to prepare the arguments, without using the eval stack
+        // TODO find another way to prepare the arguments, without using the eval stack: use a few temporary variables instead, or use push()/pop() like replaceCallAsmSubStatementWithGosub() in the statement reorderer
 
         if(sub.parameters.isEmpty())
             return
 
-
-        // 1. load all arguments reversed onto the stack: first arg goes last (is on top).
-
+        // load all arguments reversed onto the stack: first arg goes last (is on top).
         for (arg in stmt.args.reversed())
             asmgen.translateExpression(arg)
-
-        // TODO here's an alternative to the above, but for now generates bigger code due to intermediate register steps:
-//        for (arg in stmt.args.reversed()) {
-//            // note this stuff below is needed to (eventually) avoid calling asmgen.translateExpression()
-//            // TODO also This STILL requires the translateNormalAssignment() to be fixed to avoid stack eval for expressions...
-//            val dt = arg.inferType(program).getOr(DataType.UNDEFINED)
-//            asmgen.assignExpressionTo(arg, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, dt, sub))
-//        }
 
         var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
         var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null

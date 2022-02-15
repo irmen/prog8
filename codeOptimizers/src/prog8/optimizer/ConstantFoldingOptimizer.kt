@@ -427,7 +427,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     {
         // NOTE: THIS IS ONLY VALID ON FLOATING POINT CONSTANTS
 
-        // todo: this implements only a small set of possible reorderings at this time, we could think of more
+        // TODO: this implements only a small set of possible reorderings at this time, we could think of more
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
 
