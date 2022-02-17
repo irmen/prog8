@@ -131,7 +131,6 @@ abstract class AstWalker {
     open fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(builtinFunctionPlaceholder: BuiltinFunctionPlaceholder, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications

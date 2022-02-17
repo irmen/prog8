@@ -5,6 +5,9 @@ For next release
 ^^^^^^^^^^^^^^^^
 - attempt to rework registerArgsViaStackEvaluation() to use tempvars or push()/pop() instead of evalstack based evaluation
   actually, all function call asmgen code should use the same routine to pass arguments (replaceCallAsmSubStatementWithGosub ?)
+- If all regular function calls (both expression + statement) are then replaced by a GoSub node,
+  the only reason the old FunctionCall[stmt/expression] nodes are still present is because they're for a builtin function call.
+  -> at this time make those a new Node type for the codegenerator
 
 
 Need help with
