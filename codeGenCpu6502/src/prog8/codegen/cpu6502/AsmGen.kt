@@ -874,7 +874,7 @@ $repeatLabel    lda  $counterVar
             "%asminclude" -> {
                 val includedName = stmt.args[0].str!!
                 if(stmt.definingModule.source is SourceCode.Generated)
-                    TODO("%asminclude inside non-library, non-filesystem module")
+                    throw AssemblyError("%asminclude inside non-library/non-filesystem module not yet supported")
                 loadAsmIncludeFile(includedName, stmt.definingModule.source).fold(
                     success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
@@ -885,7 +885,7 @@ $repeatLabel    lda  $counterVar
                 val offset = if(stmt.args.size>1) ", ${stmt.args[1].int}" else ""
                 val length = if(stmt.args.size>2) ", ${stmt.args[2].int}" else ""
                 if(stmt.definingModule.source is SourceCode.Generated)
-                    TODO("%asmbinary inside non-library, non-filesystem module")
+                    throw AssemblyError("%asmbinary inside non-library/non-filesystem module not yet supported")
                 val sourcePath = Path(stmt.definingModule.source.origin)
                 val includedPath = sourcePath.resolveSibling(includedName)
                 val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*

@@ -120,7 +120,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         asmgen.out("  pla")
                 }
             } else {
-                argumentsViaVariables(sub, call)
+                // arguments via variables
+                for(arg in sub.parameters.withIndex().zip(call.args))
+                    argumentViaVariable(sub, arg.first.value, arg.second)
             }
             asmgen.out("  jsr  $subAsmName")
         }
@@ -186,11 +188,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
-    private fun argumentsViaVariables(sub: Subroutine, call: IFunctionCall) {
-        for(arg in sub.parameters.withIndex().zip(call.args))
-            argumentViaVariable(sub, arg.first.value, arg.second)
-    }
-
     private fun argumentsViaRegisters(sub: Subroutine, call: IFunctionCall) {
         if(sub.parameters.size==1) {
             argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
@@ -207,16 +204,18 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
-    private fun registerArgsViaStackEvaluation(stmt: IFunctionCall, sub: Subroutine) {
+    private fun registerArgsViaStackEvaluation(call: IFunctionCall, callee: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
-        // TODO find another way to prepare the arguments, without using the eval stack: use a few temporary variables instead, or use push()/pop() like replaceCallAsmSubStatementWithGosub() in the statement reorderer
+        // TODO find another way to prepare the arguments, without using the eval stack: use a few temporary variables instead,
+        //       or use cpu hardware stack like makeGosubWithArgsViaCpuStack() in the statement reorderer
+        //       we can't reuse tryReplaceCallWithGosub() from the StatementReorderer because we can't rewrite an expression node into a gosub *statement*...
 
-        if(sub.parameters.isEmpty())
+        if(callee.parameters.isEmpty())
             return
 
         // load all arguments reversed onto the stack: first arg goes last (is on top).
-        for (arg in stmt.args.reversed())
+        for (arg in call.args.reversed())
             asmgen.translateExpression(arg)
 
         var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
@@ -225,7 +224,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         asmgen.out("  inx")     // align estack pointer
 
-        for(argi in stmt.args.zip(sub.asmParameterRegisters).withIndex()) {
+        for(argi in call.args.zip(callee.asmParameterRegisters).withIndex()) {
             val plusIdxStr = if(argi.index==0) "" else "+${argi.index}"
             when {
                 argi.value.second.statusflag == Statusflag.Pc -> {
@@ -246,7 +245,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 }
                 argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
                     // immediately output code to load the virtual register, to avoid clobbering the A register later
-                    when (sub.parameters[argi.index].type) {
+                    when (callee.parameters[argi.index].type) {
                         in ByteDatatypes -> {
                             // only load the lsb of the virtual register
                             asmgen.out(
@@ -315,7 +314,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             if(argForAregister!=null)
                 asmgen.out("  pla")
         } else {
-            repeat(sub.parameters.size - 1) { asmgen.out("  inx") }       // unwind stack
+            repeat(callee.parameters.size - 1) { asmgen.out("  inx") }       // unwind stack
         }
 
         if(argForCarry!=null)

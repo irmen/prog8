@@ -4,7 +4,10 @@ import prog8.ast.INameScope
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
-import prog8.ast.statements.*
+import prog8.ast.statements.Block
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
+import prog8.ast.statements.ZeropageWish
 
 /**
  * A more convenient way to pass variable (and constant values) definitions to the code generator,

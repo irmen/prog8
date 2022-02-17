@@ -3,11 +3,16 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- attempt to rework registerArgsViaStackEvaluation() to use tempvars or push()/pop() instead of evalstack based evaluation
-  actually, all function call asmgen code should use the same routine to pass arguments (replaceCallAsmSubStatementWithGosub ?)
-- If all regular function calls (both expression + statement) are then replaced by a GoSub node,
-  the only reason the old FunctionCall[stmt/expression] nodes are still present is because they're for a builtin function call.
-  -> at this time make those a new Node type for the codegenerator
+- attempt to rework registerArgsViaStackEvaluation() to use tempvars or cpu hardware stack instead of evalstack based evaluation
+- ... UNLESS the expression (functioncall) node is the topmost node of the expression tree ???
+
+- check if the optimization step for single arg func call statements to use R9 is still used/useful in after(functionCallStatement) in StatementOptimizer
+
+- all function call asmgen code should use the same routine to pass arguments...
+- Also calls to builtin functions are still a FunctionCall node -> make new Node type for these if they're a Statement?
+  So that we at least get rid of the FunctionCallStatement altogether in the codegen.
+
+- see if we can get rid of storing the  origAstTarget in AsmAssignTarget
 
 
 Need help with
