@@ -6,8 +6,8 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.ArrayIndex
+import prog8.ast.statements.BuiltinFunctionCallStatement
 import prog8.ast.statements.DirectMemoryWrite
-import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.*
@@ -22,11 +22,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                                       private val assignAsmGen: AssignmentAsmGen,
                                       private val allocations: VariableAllocator) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+    internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        val func = BuiltinFunctions.getValue(fcall.target.nameInSource.single())
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
     }
 
-    internal fun translateFunctioncallStatement(fcall: FunctionCallStatement, func: FSignature) {
+    internal fun translateFunctioncallStatement(fcall: BuiltinFunctionCallStatement) {
+        val func = BuiltinFunctions.getValue(fcall.name)
         translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
     }
 
@@ -533,7 +535,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as FunctionCallStatement).definingSubroutine!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.restoreRegisterLocal(CpuRegister.X)
                                 asmgen.out("""
@@ -634,7 +636,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as FunctionCallStatement).definingSubroutine!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.restoreRegisterLocal(CpuRegister.X)
                                 asmgen.out("""

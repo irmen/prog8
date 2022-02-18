@@ -5,10 +5,14 @@ main {
         ubyte xx = 200
         ubyte yy = 100
 
+        uword qq = 100
+        cmp(qq,xx)
+
         simple(xx+yy)
         void routine(xx+yy, yy+99, 99, true)
         uword @shared zz = mkword(xx+yy,yy+99)
         zz = routine(1000+xx+yy, yy+99, 55, true)
+
 
         txt.print("1300 199 55 1 ?:\n")
         txt.print_uw(r_arg)

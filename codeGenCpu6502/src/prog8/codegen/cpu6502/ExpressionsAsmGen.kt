@@ -7,7 +7,6 @@ import prog8.ast.statements.BuiltinFunctionPlaceholder
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue
 
@@ -53,8 +52,7 @@ internal class ExpressionsAsmGen(private val program: Program,
 
         val sub = call.target.targetStatement(program)
         if(sub is BuiltinFunctionPlaceholder) {
-            val builtinFunc = BuiltinFunctions.getValue(sub.name)
-            asmgen.translateBuiltinFunctionCallExpression(call, builtinFunc, true, null)
+            asmgen.translateBuiltinFunctionCallExpression(call, true, null)
         } else {
             sub as Subroutine
             asmgen.saveXbeforeCall(call)

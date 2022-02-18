@@ -320,15 +320,8 @@ class AsmGen(internal val program: Program,
             is Return -> translate(stmt)
             is Subroutine -> programGen.translateSubroutine(stmt)
             is InlineAssembly -> translate(stmt)
-            is FunctionCallStatement -> {
-                val functionName = stmt.target.nameInSource.last()
-                val builtinFunc = BuiltinFunctions[functionName]
-                if (builtinFunc != null) {
-                    builtinFunctionsAsmGen.translateFunctioncallStatement(stmt, builtinFunc)
-                } else {
-                    functioncallAsmGen.translateFunctionCallStatement(stmt)
-                }
-            }
+            is BuiltinFunctionCallStatement -> builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
+            is FunctionCallStatement -> functioncallAsmGen.translateFunctionCallStatement(stmt)         // TODO try to remove this last usage of FunctionCallStatement node in the codegen.
             is Assignment -> assignmentAsmGen.translate(stmt)
             is Jump -> {
                 val (asmLabel, indirect) = getJumpTarget(stmt)
@@ -450,8 +443,8 @@ class AsmGen(internal val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, signature: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, signature, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, resultToStack, resultRegister)
 
     internal fun translateBuiltinFunctionCallExpression(name: String, args: List<AsmAssignSource>, scope: Subroutine): DataType =
             builtinFunctionsAsmGen.translateFunctioncall(name, args, false, scope)

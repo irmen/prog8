@@ -3,9 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Calls to builtin functions are still a FunctionCall node -> make new Node type for these if they're a Statement?
-  So that we at least get rid of the FunctionCallStatement altogether in the codegen.?
-
+- introduce BuiltinFunctionCallExpression as well?
 - see if we can get rid of storing the  origAstTarget in AsmAssignTarget
 
 

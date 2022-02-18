@@ -8,7 +8,6 @@ import prog8.ast.toHex
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.VariableAllocator
 import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CpuType
 import prog8.compilerinterface.builtinFunctionReturnType
 
@@ -218,8 +217,7 @@ internal class AssignmentAsmGen(private val program: Program,
                                 }
                             }
                             is BuiltinFunctionPlaceholder -> {
-                                val signature = BuiltinFunctions.getValue(sub.name)
-                                asmgen.translateBuiltinFunctionCallExpression(value, signature, false, assign.target.register)
+                                asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
                                 if(assign.target.register==null) {
                                     // still need to assign the result to the target variable/etc.
                                     val returntype = builtinFunctionReturnType(sub.name, value.args, program)
