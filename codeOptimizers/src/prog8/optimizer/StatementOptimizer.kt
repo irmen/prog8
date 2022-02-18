@@ -127,10 +127,9 @@ class StatementOptimizer(private val program: Program,
 
         // see if we can optimize any complex argument expressions to be just a simple variable
         // TODO for now, only works for single-argument functions because we use just 1 temp var: R9
-        // TODO is this still useful at all, when functioncallstatement gets replaced by GoSub?
         if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
             val arg = functionCallStatement.args[0]
-            if(!arg.isSimple && arg !is TypecastExpression && arg !is IFunctionCall) {
+            if(!arg.isSimple && arg !is IFunctionCall) {
                 val name = getTempRegisterName(arg.inferType(program))
                 val tempvar = IdentifierReference(name, functionCallStatement.position)
                 val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)

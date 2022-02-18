@@ -14,7 +14,6 @@ import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AsmAssignment
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.CpuType
 
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
@@ -193,7 +192,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
         } else {
             if(asmgen.asmsubArgsHaveRegisterClobberRisk(call.args, sub.asmParameterRegisters)) {
-                registerArgsViaStackEvaluation(call, sub)
+                registerArgsViaCpuStackEvaluation(call, sub)
             } else {
                 asmgen.asmsubArgsEvalOrder(sub).forEach {
                     val param = sub.parameters[it]
@@ -204,121 +203,24 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
-    private fun registerArgsViaStackEvaluation(call: IFunctionCall, callee: Subroutine) {
+    private fun registerArgsViaCpuStackEvaluation(call: IFunctionCall, callee: Subroutine) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
-        // TODO find another way to prepare the arguments, without using the eval stack: use a few temporary variables instead,
-        //       or use cpu hardware stack like makeGosubWithArgsViaCpuStack() in the statement reorderer
-        //       we can't reuse tryReplaceCallWithGosub() from the StatementReorderer because we can't rewrite an expression node into a gosub *statement*...
 
+        require(callee.isAsmSubroutine)
         if(callee.parameters.isEmpty())
             return
 
-        // load all arguments reversed onto the stack: first arg goes last (is on top).
-        for (arg in call.args.reversed())
-            asmgen.translateExpression(arg)
-
-        var argForCarry: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-        var argForXregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-        var argForAregister: IndexedValue<Pair<Expression, RegisterOrStatusflag>>? = null
-
-        asmgen.out("  inx")     // align estack pointer
-
-        for(argi in call.args.zip(callee.asmParameterRegisters).withIndex()) {
-            val plusIdxStr = if(argi.index==0) "" else "+${argi.index}"
-            when {
-                argi.value.second.statusflag == Statusflag.Pc -> {
-                    require(argForCarry == null)
-                    argForCarry = argi
-                }
-                argi.value.second.statusflag != null -> throw AssemblyError("can only use Carry as status flag parameter")
-                argi.value.second.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) -> {
-                    require(argForXregister==null)
-                    argForXregister = argi
-                }
-                argi.value.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.AY) -> {
-                    require(argForAregister == null)
-                    argForAregister = argi
-                }
-                argi.value.second.registerOrPair == RegisterOrPair.Y -> {
-                    asmgen.out("  ldy  P8ESTACK_LO$plusIdxStr,x")
-                }
-                argi.value.second.registerOrPair in Cx16VirtualRegisters -> {
-                    // immediately output code to load the virtual register, to avoid clobbering the A register later
-                    when (callee.parameters[argi.index].type) {
-                        in ByteDatatypes -> {
-                            // only load the lsb of the virtual register
-                            asmgen.out(
-                                """
-                                lda  P8ESTACK_LO$plusIdxStr,x
-                                sta  cx16.${argi.value.second.registerOrPair.toString().lowercase()}
-                            """)
-                            if (asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out(
-                                    "  stz  cx16.${
-                                        argi.value.second.registerOrPair.toString().lowercase()
-                                    }+1")
-                            else
-                                asmgen.out(
-                                    "  lda  #0 |  sta  cx16.${
-                                        argi.value.second.registerOrPair.toString().lowercase()
-                                    }+1")
-                        }
-                        in WordDatatypes, in IterableDatatypes ->
-                            asmgen.out(
-                                """
-                                lda  P8ESTACK_LO$plusIdxStr,x
-                                sta  cx16.${argi.value.second.registerOrPair.toString().lowercase()}
-                                lda  P8ESTACK_HI$plusIdxStr,x
-                                sta  cx16.${
-                                    argi.value.second.registerOrPair.toString().lowercase()
-                                }+1
-                            """)
-                        else -> throw AssemblyError("weird dt")
-                    }
-                }
-                else -> throw AssemblyError("weird argument")
-            }
+        // use the cpu hardware stack as intermediate storage for the arguments.
+        val argOrder = asmgen.options.compTarget.asmsubArgsEvalOrder(callee)
+        argOrder.reversed().forEach {
+            asmgen.pushCpuStack(callee.parameters[it].type, call.args[it])
         }
-
-        if(argForCarry!=null) {
-            val plusIdxStr = if(argForCarry.index==0) "" else "+${argForCarry.index}"
-            asmgen.out("""
-                clc
-                lda  P8ESTACK_LO$plusIdxStr,x
-                beq  +
-                sec
-+               php""")             // push the status flags
+        argOrder.forEach {
+            val param = callee.parameters[it]
+            val targetVar = callee.searchAsmParameter(param.name)!!
+            asmgen.popCpuStack(param.type, targetVar, (call as Node).definingSubroutine)
         }
-
-        if(argForAregister!=null) {
-            val plusIdxStr = if(argForAregister.index==0) "" else "+${argForAregister.index}"
-            when(argForAregister.value.second.registerOrPair) {
-                RegisterOrPair.A -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x")
-                RegisterOrPair.AY -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x |  ldy  P8ESTACK_HI$plusIdxStr,x")
-                else -> throw AssemblyError("weird arg")
-            }
-        }
-
-        if(argForXregister!=null) {
-            val plusIdxStr = if(argForXregister.index==0) "" else "+${argForXregister.index}"
-
-            if(argForAregister!=null)
-                asmgen.out("  pha")
-            when(argForXregister.value.second.registerOrPair) {
-                RegisterOrPair.X -> asmgen.out("  lda  P8ESTACK_LO$plusIdxStr,x |  tax")
-                RegisterOrPair.AX -> asmgen.out("  ldy  P8ESTACK_LO$plusIdxStr,x |  lda  P8ESTACK_HI$plusIdxStr,x |  tax |  tya")
-                RegisterOrPair.XY -> asmgen.out("  ldy  P8ESTACK_HI$plusIdxStr,x |  lda  P8ESTACK_LO$plusIdxStr,x |  tax")
-                else -> throw AssemblyError("weird arg")
-            }
-            if(argForAregister!=null)
-                asmgen.out("  pla")
-        } else {
-            repeat(callee.parameters.size - 1) { asmgen.out("  inx") }       // unwind stack
-        }
-
-        if(argForCarry!=null)
-            asmgen.out("  plp")       // set the carry flag back to correct value
     }
 
     private fun argumentViaVariable(sub: Subroutine, parameter: SubroutineParameter, value: Expression) {

@@ -1,14 +1,28 @@
+%import textio
 
 main {
     sub start() {
-        ubyte xx = 10
-        ubyte yy = 10
+        ubyte xx = 200
+        ubyte yy = 100
 
         simple(xx+yy)
         void routine(xx+yy, yy+99, 99, true)
         uword @shared zz = mkword(xx+yy,yy+99)
-        zz = routine(xx+yy, yy+99, 99, true)
+        zz = routine(1000+xx+yy, yy+99, 55, true)
+
+        txt.print("1300 199 55 1 ?:\n")
+        txt.print_uw(r_arg)
+        txt.spc()
+        txt.print_ub(r_arg2)
+        txt.spc()
+        txt.print_ub(r_arg3)
+        txt.spc()
+        txt.print_ub(r_arg4)
+        txt.spc()
+
         memory.mem()
+        repeat {
+        }
     }
 
     uword @shared r_arg
@@ -25,6 +39,7 @@ main {
     asmsub routine(uword arg @AY, ubyte arg2 @X, ubyte arg3 @R0, ubyte arg4 @Pc) -> ubyte @A {
         %asm {{
             pha
+            lda  #0
             adc  #0
             sta  r_arg4
             pla

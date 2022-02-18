@@ -503,6 +503,30 @@ private fun makeGosubWithArgsViaCpuStack(call: IFunctionCall,
                                          callee: Subroutine,
                                          compTarget: ICompilationTarget): Iterable<IAstModification> {
 
+    fun popCall(targetName: List<String>, dt: DataType, position: Position): FunctionCallStatement {
+        return FunctionCallStatement(
+            IdentifierReference(listOf(if(dt in ByteDatatypes) "pop" else "popw"), position),
+            mutableListOf(IdentifierReference(targetName, position)),
+            true, position
+        )
+    }
+
+    fun pushCall(value: Expression, dt: DataType, position: Position): FunctionCallStatement {
+        val pushvalue = when(dt) {
+            DataType.UBYTE, DataType.UWORD -> value
+            in PassByReferenceDatatypes -> value
+            DataType.BYTE -> TypecastExpression(value, DataType.UBYTE, true, position)
+            DataType.WORD -> TypecastExpression(value, DataType.UWORD, true, position)
+            else -> throw FatalAstException("invalid dt $dt    $value")
+        }
+
+        return FunctionCallStatement(
+            IdentifierReference(listOf(if(dt in ByteDatatypes) "push" else "pushw"), position),
+            mutableListOf(pushvalue),
+            true, position
+        )
+    }
+
     val argOrder = compTarget.asmsubArgsEvalOrder(callee)
     val scope = AnonymousScope(mutableListOf(), position)
     if(callee.shouldSaveX()) {
@@ -524,28 +548,4 @@ private fun makeGosubWithArgsViaCpuStack(call: IFunctionCall,
         scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), position), mutableListOf(), true, position)
     }
     return listOf(IAstModification.ReplaceNode(call as Node, scope, parent))
-}
-
-private fun popCall(targetName: List<String>, dt: DataType, position: Position): FunctionCallStatement {
-    return FunctionCallStatement(
-        IdentifierReference(listOf(if(dt in ByteDatatypes) "pop" else "popw"), position),
-        mutableListOf(IdentifierReference(targetName, position)),
-        true, position
-    )
-}
-
-private fun pushCall(value: Expression, dt: DataType, position: Position): FunctionCallStatement {
-    val pushvalue = when(dt) {
-        DataType.UBYTE, DataType.UWORD -> value
-        in PassByReferenceDatatypes -> value
-        DataType.BYTE -> TypecastExpression(value, DataType.UBYTE, true, position)
-        DataType.WORD -> TypecastExpression(value, DataType.UWORD, true, position)
-        else -> throw FatalAstException("invalid dt $dt    $value")
-    }
-
-    return FunctionCallStatement(
-        IdentifierReference(listOf(if(dt in ByteDatatypes) "push" else "pushw"), position),
-        mutableListOf(pushvalue),
-        true, position
-    )
 }
