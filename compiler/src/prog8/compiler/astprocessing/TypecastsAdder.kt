@@ -164,31 +164,31 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
         when(val sub = call.target.targetStatement(program)) {
             is Subroutine -> {
-                sub.parameters.zip(call.args).forEachIndexed { index, pair ->
-                    val argItype = pair.second.inferType(program)
+                sub.parameters.zip(call.args).forEach { (param, arg) ->
+                    val argItype = arg.inferType(program)
                     if(argItype.isKnown) {
                         val argtype = argItype.getOr(DataType.UNDEFINED)
-                        val requiredType = pair.first.type
+                        val requiredType = param.type
                         if (requiredType != argtype) {
                             if (argtype isAssignableTo requiredType) {
                                 // don't need a cast for pass-by-reference types that are assigned to UWORD
                                 if(requiredType!=DataType.UWORD || argtype !in PassByReferenceDatatypes)
-                                    addTypecastOrCastedValueModification(modifications, pair.second, requiredType, call as Node)
+                                    addTypecastOrCastedValueModification(modifications, arg, requiredType, call as Node)
                             } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
                                 // We allow STR/ARRAY values in place of UWORD parameters.
                                 // Take their address instead, UNLESS it's a str parameter in the containing subroutine
-                                val identifier = pair.second as? IdentifierReference
+                                val identifier = arg as? IdentifierReference
                                 if(identifier?.isSubroutineParameter(program)==false) {
                                     modifications += IAstModification.ReplaceNode(
                                             identifier,
-                                            AddressOf(identifier, pair.second.position),
+                                            AddressOf(identifier, arg.position),
                                             call as Node)
                                 }
-                            } else if(pair.second is NumericLiteral) {
-                                val cast = (pair.second as NumericLiteral).cast(requiredType)
+                            } else if(arg is NumericLiteral) {
+                                val cast = arg.cast(requiredType)
                                 if(cast.isValid)
                                     modifications += IAstModification.ReplaceNode(
-                                            pair.second,
+                                            arg,
                                             cast.valueOrZero(),
                                             call as Node)
                             }
