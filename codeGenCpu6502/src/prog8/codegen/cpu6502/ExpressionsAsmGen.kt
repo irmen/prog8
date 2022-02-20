@@ -3,8 +3,6 @@ package prog8.codegen.cpu6502
 import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
-import prog8.ast.statements.BuiltinFunctionPlaceholder
-import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.CpuType
@@ -38,6 +36,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             is NumericLiteral -> translateExpression(expression)
             is IdentifierReference -> translateExpression(expression)
             is FunctionCallExpression -> translateFunctionCallResultOntoStack(expression)
+            is BuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
             is PipeExpression -> asmgen.translatePipeExpression(expression.expressions,  expression,false, true)
             is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
             is ArrayLiteral, is StringLiteral -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
@@ -50,95 +49,90 @@ internal class ExpressionsAsmGen(private val program: Program,
     private fun translateFunctionCallResultOntoStack(call: FunctionCallExpression) {
         // only for use in nested expression evaluation
 
-        val sub = call.target.targetStatement(program)
-        if(sub is BuiltinFunctionPlaceholder) {
-            asmgen.translateBuiltinFunctionCallExpression(call, true, null)
-        } else {
-            sub as Subroutine
-            asmgen.saveXbeforeCall(call)
-            asmgen.translateFunctionCall(call, true)
-            if(sub.regXasResult()) {
-                // store the return value in X somewhere that we can acces again below
-                asmgen.out("  stx  P8ZP_SCRATCH_REG")
-            }
-            asmgen.restoreXafterCall(call)
+        val sub = call.target.targetSubroutine(program)!!
+        asmgen.saveXbeforeCall(call)
+        asmgen.translateFunctionCall(call, true)
+        if(sub.regXasResult()) {
+            // store the return value in X somewhere that we can access again below
+            asmgen.out("  stx  P8ZP_SCRATCH_REG")
+        }
+        asmgen.restoreXafterCall(call)
 
-            val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
-            for ((_, reg) in returns) {
-                // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
-                if (reg.registerOrPair != null) {
-                    when (reg.registerOrPair!!) {
-                        RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
-                        RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
-                        RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
-                        RegisterOrPair.X -> asmgen.out("  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
-                        RegisterOrPair.AX -> asmgen.out("  sta  P8ESTACK_LO,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_HI,x |  dex")
-                        RegisterOrPair.XY -> asmgen.out("  tya |  sta  P8ESTACK_HI,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
-                        RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.push_fac1")
-                        RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.push_fac2")
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> {
-                            asmgen.out(
-                                """
-                                lda  cx16.${reg.registerOrPair.toString().lowercase()}
-                                sta  P8ESTACK_LO,x
-                                lda  cx16.${reg.registerOrPair.toString().lowercase()}+1
-                                sta  P8ESTACK_HI,x
-                                dex
-                            """)
-                        }
-                    }
-                } else when(reg.statusflag) {
-                    Statusflag.Pc -> {
-                        asmgen.out("""
-                            lda  #0
-                            rol  a
+        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+        for ((_, reg) in returns) {
+            // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
+            if (reg.registerOrPair != null) {
+                when (reg.registerOrPair!!) {
+                    RegisterOrPair.A -> asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+                    RegisterOrPair.Y -> asmgen.out("  tya |  sta  P8ESTACK_LO,x |  dex")
+                    RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+                    RegisterOrPair.X -> asmgen.out("  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
+                    RegisterOrPair.AX -> asmgen.out("  sta  P8ESTACK_LO,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_HI,x |  dex")
+                    RegisterOrPair.XY -> asmgen.out("  tya |  sta  P8ESTACK_HI,x |  lda  P8ZP_SCRATCH_REG |  sta  P8ESTACK_LO,x |  dex")
+                    RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.push_fac1")
+                    RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.push_fac2")
+                    RegisterOrPair.R0,
+                    RegisterOrPair.R1,
+                    RegisterOrPair.R2,
+                    RegisterOrPair.R3,
+                    RegisterOrPair.R4,
+                    RegisterOrPair.R5,
+                    RegisterOrPair.R6,
+                    RegisterOrPair.R7,
+                    RegisterOrPair.R8,
+                    RegisterOrPair.R9,
+                    RegisterOrPair.R10,
+                    RegisterOrPair.R11,
+                    RegisterOrPair.R12,
+                    RegisterOrPair.R13,
+                    RegisterOrPair.R14,
+                    RegisterOrPair.R15 -> {
+                        asmgen.out(
+                            """
+                            lda  cx16.${reg.registerOrPair.toString().lowercase()}
                             sta  P8ESTACK_LO,x
-                            dex""")
+                            lda  cx16.${reg.registerOrPair.toString().lowercase()}+1
+                            sta  P8ESTACK_HI,x
+                            dex
+                        """)
                     }
-                    Statusflag.Pz -> {
-                        asmgen.out("""
-                            beq  +
-                            lda  #0
-                            beq  ++
-+                           lda  #1
-+                           sta  P8ESTACK_LO,x
-                            dex""")
-                    }
-                    Statusflag.Pv -> {
-                        asmgen.out("""
-                            bvs  +
-                            lda  #0
-                            beq  ++
-+                           lda  #1
-+                           sta  P8ESTACK_LO,x
-                            dex""")
-                    }
-                    Statusflag.Pn -> {
-                        asmgen.out("""
-                            bmi  +
-                            lda  #0
-                            beq  ++
-+                           lda  #1
-+                           sta  P8ESTACK_LO,x
-                            dex""")
-                    }
-                    null -> {}
                 }
+            } else when(reg.statusflag) {
+                Statusflag.Pc -> {
+                    asmgen.out("""
+                        lda  #0
+                        rol  a
+                        sta  P8ESTACK_LO,x
+                        dex""")
+                }
+                Statusflag.Pz -> {
+                    asmgen.out("""
+                        beq  +
+                        lda  #0
+                        beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                        dex""")
+                }
+                Statusflag.Pv -> {
+                    asmgen.out("""
+                        bvs  +
+                        lda  #0
+                        beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                        dex""")
+                }
+                Statusflag.Pn -> {
+                    asmgen.out("""
+                        bmi  +
+                        lda  #0
+                        beq  ++
++                           lda  #1
++                           sta  P8ESTACK_LO,x
+                        dex""")
+                }
+                null -> {}
             }
         }
     }

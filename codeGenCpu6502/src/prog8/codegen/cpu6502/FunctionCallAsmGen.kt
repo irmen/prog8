@@ -18,7 +18,7 @@ import prog8.compilerinterface.AssemblyError
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
 
-    internal fun translateFunctionCallStatement(stmt: IFunctionCall) {
+    internal fun translateFunctionCallStatement(stmt: FunctionCallStatement) {
         saveXbeforeCall(stmt)
         translateFunctionCall(stmt, false)
         restoreXafterCall(stmt)

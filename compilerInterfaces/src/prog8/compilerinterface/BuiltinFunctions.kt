@@ -176,6 +176,9 @@ private fun builtinAll(array: List<Double>): Double = if(array.all { it!=0.0 }) 
 
 fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): InferredTypes.InferredType {
 
+    if(function in arrayOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
+        return InferredTypes.InferredType.void()
+
     fun datatypeFromIterableArg(arglist: Expression): DataType {
         if(arglist is ArrayLiteral) {
             val dt = arglist.value.map {it.inferType(program).getOr(DataType.UNDEFINED)}.toSet()

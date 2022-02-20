@@ -443,8 +443,8 @@ class AsmGen(internal val program: Program,
     internal fun translateExpression(expression: Expression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(functionCallExpr: FunctionCallExpression, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(functionCallExpr, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(bfc: BuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
 
     internal fun translateBuiltinFunctionCallExpression(name: String, args: List<AsmAssignSource>, scope: Subroutine): DataType =
             builtinFunctionsAsmGen.translateFunctioncall(name, args, false, scope)
@@ -1200,7 +1200,7 @@ $repeatLabel    lda  $counterVar
                 }
                 if(dt==DataType.UBYTE) {
                     assignExpressionToRegister(left, RegisterOrPair.A, false)
-                    if (left is FunctionCallExpression && !left.isSimple)
+                    if (left is IFunctionCall && !left.isSimple)
                         out("  cmp  #0")
                 } else {
                     assignExpressionToRegister(left, RegisterOrPair.AY, false)
@@ -1216,7 +1216,7 @@ $repeatLabel    lda  $counterVar
             }
             DataType.BYTE -> {
                 assignExpressionToRegister(left, RegisterOrPair.A, true)
-                if (left is FunctionCallExpression && !left.isSimple)
+                if (left is IFunctionCall && !left.isSimple)
                     out("  cmp  #0")
                 when (operator) {
                     "==" -> out("  bne  $jumpIfFalseLabel")

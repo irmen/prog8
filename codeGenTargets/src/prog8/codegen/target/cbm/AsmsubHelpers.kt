@@ -3,8 +3,8 @@ package prog8.codegen.target.cbm
 import prog8.ast.base.Cx16VirtualRegisters
 import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.ArrayIndexedExpression
+import prog8.ast.expressions.BuiltinFunctionCall
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 
@@ -46,10 +46,10 @@ internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
                     it.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
                 }
             }
-            is FunctionCallExpression -> {
-                if (expr.target.nameInSource == listOf("lsb") || expr.target.nameInSource == listOf("msb"))
+            is BuiltinFunctionCall -> {
+                if (expr.name == "lsb" || expr.name == "msb")
                     return isClobberRisk(expr.args[0])
-                if (expr.target.nameInSource == listOf("mkword"))
+                if (expr.name == "mkword")
                     return isClobberRisk(expr.args[0]) && isClobberRisk(expr.args[1])
                 return !expr.isSimple
             }

@@ -965,10 +965,6 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {
-                if(target.nameInSource[0] == "set_carry" || target.nameInSource[0]=="set_irqd" ||
-                        target.nameInSource[0] == "clear_carry" || target.nameInSource[0]=="clear_irqd") {
-                    return InferredTypes.void() // these have no return value
-                }
                 return program.builtinFunctions.returnType(target.nameInSource[0], this.args)
             }
             is Subroutine -> {
@@ -1131,4 +1127,40 @@ fun invertCondition(cond: Expression): BinaryExpression? {
             return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
     }
     return null
+}
+
+
+class BuiltinFunctionCall(override var target: IdentifierReference,
+                          override var args: MutableList<Expression>,
+                          override val position: Position) : Expression(), IFunctionCall {
+
+    val name = target.nameInSource.single()
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        target.linkParents(this)
+        args.forEach { it.linkParents(this) }
+    }
+
+    override fun copy() = BuiltinFunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
+    override val isSimple = name in arrayOf("msb", "lsb", "peek", "peekw", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===target)
+            target=replacement as IdentifierReference
+        else {
+            val idx = args.indexOfFirst { it===node }
+            args[idx] = replacement as Expression
+        }
+        replacement.parent = this
+    }
+
+    override fun constValue(program: Program): NumericLiteral? = null
+    override fun toString() = "BuiltinFunctionCall(name=$name, pos=$position)"
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
+    override fun inferType(program: Program) = program.builtinFunctions.returnType(name, this.args)
 }

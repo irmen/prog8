@@ -22,7 +22,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                                       private val assignAsmGen: AssignmentAsmGen,
                                       private val allocations: VariableAllocator) {
 
-    internal fun translateFunctioncallExpression(fcall: FunctionCallExpression, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+    internal fun translateFunctioncallExpression(fcall: BuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val func = BuiltinFunctions.getValue(fcall.target.nameInSource.single())
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
     }
@@ -57,7 +57,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 }
             }
         }.toMutableList()
-        val fcall = FunctionCallExpression(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
+        val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
         fcall.linkParents(scope)
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)
         return if(isStatement) DataType.UNDEFINED else func.known_returntype!!
@@ -352,7 +352,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     }
 
     private fun funcMemory(fcall: IFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        if(discardResult || fcall !is FunctionCallExpression)
+        if(discardResult || fcall !is BuiltinFunctionCall)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as StringLiteral).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- introduce BuiltinFunctionCallExpression as well?
 - see if we can get rid of storing the  origAstTarget in AsmAssignTarget
 
 

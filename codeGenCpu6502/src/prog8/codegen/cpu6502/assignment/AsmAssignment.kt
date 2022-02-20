@@ -167,26 +167,20 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val dt = value.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, dt, array = value)
                 }
+                is BuiltinFunctionCall -> {
+                    val returnType = value.inferType(program)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
+                }
                 is FunctionCallExpression -> {
-                    when (val sub = value.target.targetStatement(program)) {
-                        is Subroutine -> {
-                            val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
-                                    ?: throw AssemblyError("can't translate zero return values in assignment")
+                    val sub = value.target.targetSubroutine(program)!!
+                    val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
+                            ?: throw AssemblyError("can't translate zero return values in assignment")
 
-                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
-                        }
-                        is BuiltinFunctionPlaceholder -> {
-                            val returnType = value.inferType(program)
-                            AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
-                        }
-                        else -> {
-                            throw AssemblyError("weird call")
-                        }
-                    }
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
                 }
                 else -> {
-                    val dt = value.inferType(program)
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, dt.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
+                    val returnType = value.inferType(program)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
                 }
             }
         }

@@ -267,43 +267,6 @@ internal class BeforeAsmAstChanger(val program: Program,
         )
     }
 
-    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(functionCallStatement.target.nameInSource.size==1
-            && functionCallStatement.target.nameInSource[0] in program.builtinFunctions.names) {
-            return listOf(IAstModification.ReplaceNode(
-                functionCallStatement,
-                BuiltinFunctionCallStatement(functionCallStatement.target, functionCallStatement.args, functionCallStatement.position),
-                parent
-            ))
-        }
-
-        return noModifications
-    }
-
-    override fun after(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(bfcs.name=="cmp") {
-            // if the datatype of the arguments of cmp() are different, cast the byte one to word.
-            val arg1 = bfcs.args[0]
-            val arg2 = bfcs.args[1]
-            val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
-            val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
-            if(dt1 in ByteDatatypes) {
-                if(dt2 in ByteDatatypes)
-                    return noModifications
-                val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
-                if(replaced)
-                    return listOf(IAstModification.ReplaceNode(arg1, cast, bfcs))
-            } else {
-                if(dt2 in WordDatatypes)
-                    return noModifications
-                val (replaced, cast) = arg2.typecastTo(if(dt2== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
-                if(replaced)
-                    return listOf(IAstModification.ReplaceNode(arg2, cast, bfcs))
-            }
-        }
-        return noModifications
-    }
-
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
 
         val containingStatement = getContainingStatement(arrayIndexedExpression)

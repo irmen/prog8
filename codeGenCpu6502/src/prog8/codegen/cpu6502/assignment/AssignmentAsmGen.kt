@@ -161,75 +161,74 @@ internal class AssignmentAsmGen(private val program: Program,
                     is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
                     is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
                     is FunctionCallExpression -> {
-                        when (val sub = value.target.targetStatement(program)) {
-                            is Subroutine -> {
-                                asmgen.saveXbeforeCall(value)
-                                asmgen.translateFunctionCall(value, true)
-                                val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
-                                    sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
-                                when (returnValue.first) {
-                                    DataType.STR -> {
-                                        asmgen.restoreXafterCall(value)
-                                        when(assign.target.datatype) {
-                                            DataType.UWORD -> {
-                                                // assign the address of the string result value
-                                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                            }
-                                            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                                                // copy the actual string result into the target string variable
-                                                asmgen.out("""
-                                                    pha
-                                                    lda  #<${assign.target.asmVarname}
-                                                    sta  P8ZP_SCRATCH_W1
-                                                    lda  #>${assign.target.asmVarname}
-                                                    sta  P8ZP_SCRATCH_W1+1
-                                                    pla
-                                                    jsr  prog8_lib.strcpy""")
-                                            }
-                                            else -> throw AssemblyError("weird target dt")
-                                        }
+                        val sub = value.target.targetSubroutine(program)!!
+                        asmgen.saveXbeforeCall(value)
+                        asmgen.translateFunctionCall(value, true)
+                        val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
+                            sub.returntypes.zip(sub.asmReturnvaluesRegisters).single { it.second.statusflag!=null }
+                        when (returnValue.first) {
+                            DataType.STR -> {
+                                asmgen.restoreXafterCall(value)
+                                when(assign.target.datatype) {
+                                    DataType.UWORD -> {
+                                        // assign the address of the string result value
+                                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                                     }
-                                    DataType.FLOAT -> {
-                                        // float result from function sits in FAC1
-                                        asmgen.restoreXafterCall(value)
-                                        assignFAC1float(assign.target)
+                                    DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                                        // copy the actual string result into the target string variable
+                                        asmgen.out("""
+                                            pha
+                                            lda  #<${assign.target.asmVarname}
+                                            sta  P8ZP_SCRATCH_W1
+                                            lda  #>${assign.target.asmVarname}
+                                            sta  P8ZP_SCRATCH_W1+1
+                                            pla
+                                            jsr  prog8_lib.strcpy""")
                                     }
-                                    else -> {
-                                        // do NOT restore X register before assigning the result values first
-                                        when (returnValue.second.registerOrPair) {
-                                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
-                                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
-                                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
-                                            RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
-                                            RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                            RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
-                                            else -> {
-                                                val sflag = returnValue.second.statusflag
-                                                if(sflag!=null)
-                                                    assignStatusFlagByte(assign.target, sflag)
-                                                else
-                                                    throw AssemblyError("should be just one register byte result value")
-                                            }
-                                        }
-                                        // we've processed the result value in the X register by now, so it's now finally safe to restore it
-                                        asmgen.restoreXafterCall(value)
-                                    }
+                                    else -> throw AssemblyError("weird target dt")
                                 }
                             }
-                            is BuiltinFunctionPlaceholder -> {
-                                asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
-                                if(assign.target.register==null) {
-                                    // still need to assign the result to the target variable/etc.
-                                    val returntype = builtinFunctionReturnType(sub.name, value.args, program)
-                                    if(!returntype.isKnown)
-                                        throw AssemblyError("unknown dt")
-                                    when(returntype.getOr(DataType.UNDEFINED)) {
-                                        in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
-                                        in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
+                            DataType.FLOAT -> {
+                                // float result from function sits in FAC1
+                                asmgen.restoreXafterCall(value)
+                                assignFAC1float(assign.target)
+                            }
+                            else -> {
+                                // do NOT restore X register before assigning the result values first
+                                when (returnValue.second.registerOrPair) {
+                                    RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
+                                    RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
+                                    RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                                    RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                                    RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                    RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
+                                    else -> {
+                                        val sflag = returnValue.second.statusflag
+                                        if(sflag!=null)
+                                            assignStatusFlagByte(assign.target, sflag)
+                                        else
+                                            throw AssemblyError("should be just one register byte result value")
+                                    }
+                                }
+                                // we've processed the result value in the X register by now, so it's now finally safe to restore it
+                                asmgen.restoreXafterCall(value)
+                            }
+                        }
+                    }
+                    is BuiltinFunctionCall -> {
+                        asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
+                        if(assign.target.register==null) {
+                            // still need to assign the result to the target variable/etc.
+                            val returntype = builtinFunctionReturnType(value.name, value.args, program)
+                            if(!returntype.isKnown)
+                                throw AssemblyError("unknown dt")
+                            when(returntype.getOr(DataType.UNDEFINED)) {
+                                in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
+                                in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
+                                DataType.STR -> {
+                                    when (assign.target.datatype) {
                                         DataType.STR -> {
-                                            when (assign.target.datatype) {
-                                                DataType.STR -> {
-                                                    asmgen.out("""
+                                            asmgen.out("""
                                                         pha
                                                         lda  #<${assign.target.asmVarname}
                                                         sta  P8ZP_SCRATCH_W1
@@ -237,21 +236,16 @@ internal class AssignmentAsmGen(private val program: Program,
                                                         sta  P8ZP_SCRATCH_W1+1
                                                         pla
                                                         jsr  prog8_lib.strcpy""")
-                                                }
-                                                DataType.UWORD -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                                else -> throw AssemblyError("str return value type mismatch with target")
-                                            }
                                         }
-                                        DataType.FLOAT -> {
-                                            // float result from function sits in FAC1
-                                            assignFAC1float(assign.target)
-                                        }
-                                        else -> throw AssemblyError("weird result type")
+                                        DataType.UWORD -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                        else -> throw AssemblyError("str return value type mismatch with target")
                                     }
                                 }
-                            }
-                            else -> {
-                                throw AssemblyError("weird func call")
+                                DataType.FLOAT -> {
+                                    // float result from function sits in FAC1
+                                    assignFAC1float(assign.target)
+                                }
+                                else -> throw AssemblyError("weird result type")
                             }
                         }
                     }
@@ -682,7 +676,7 @@ $containsLabel      lda  #1
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {
-        val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
+        val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
         lsb.linkParents(value.parent)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, target, false, program.memsizer, value.position)
