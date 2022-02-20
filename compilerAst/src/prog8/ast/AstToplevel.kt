@@ -14,10 +14,6 @@ import prog8.parser.SourceCode
 const val internedStringsModuleName = "prog8_interned_strings"
 
 
-interface IAssignable {
-    // just a tag for now
-}
-
 interface IFunctionCall {
     var target: IdentifierReference
     var args: MutableList<Expression>

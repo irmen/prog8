@@ -8,7 +8,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.*
-import prog8.optimizer.getTempRegisterName
 
 internal class BeforeAsmAstChanger(val program: Program,
                                    private val options: CompilationOptions,
@@ -242,7 +241,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         if(separateLeftExpr) {
-            val name = getTempRegisterName(leftDt)
+            val name = program.getTempRegisterName(leftDt)
             leftOperandReplacement = IdentifierReference(name, expr.position)
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
@@ -251,12 +250,11 @@ internal class BeforeAsmAstChanger(val program: Program,
             )
         }
         if(separateRightExpr) {
-            val name = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
-            val tempvardecl = program.toplevelModule.lookup(name) as VarDecl
-            variables.addIfUnknown(tempvardecl.definingBlock, tempvardecl)
-            rightOperandReplacement = IdentifierReference(name, expr.position)
+            val (tempVarName, tempVarDecl) = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
+            variables.addIfUnknown(tempVarDecl.definingBlock, tempVarDecl)
+            rightOperandReplacement = IdentifierReference(tempVarName, expr.position)
             rightAssignment = Assignment(
-                AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
+                AssignTarget(IdentifierReference(tempVarName, expr.position), null, null, expr.position),
                 expr.right,
                 AssignmentOrigin.BEFOREASMGEN, expr.position
             )
@@ -325,10 +323,9 @@ internal class BeforeAsmAstChanger(val program: Program,
         val modifications = mutableListOf<IAstModification>()
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
-        val tempvar = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
-        val tempvardecl = program.toplevelModule.lookup(tempvar) as VarDecl
-        variables.addIfUnknown(tempvardecl.definingBlock, tempvardecl)
-        val target = AssignTarget(IdentifierReference(tempvar, expr.indexer.position), null, null, expr.indexer.position)
+        val (tempVarName, tempVarDecl) = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
+        variables.addIfUnknown(tempVarDecl.definingBlock, tempVarDecl)
+        val target = AssignTarget(IdentifierReference(tempVarName, expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.BEFOREASMGEN, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(

@@ -287,7 +287,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
 
 class ArrayIndexedExpression(var arrayvar: IdentifierReference,
                              val indexer: ArrayIndex,
-                             override val position: Position) : Expression(), IAssignable {
+                             override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -393,7 +393,7 @@ data class AddressOf(var identifier: IdentifierReference, override val position:
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
 
-class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression(), IAssignable {
+class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -847,7 +847,7 @@ class RangeExpression(var from: Expression,
 }
 
 
-data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression(), IAssignable {
+data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override val isSimple = true

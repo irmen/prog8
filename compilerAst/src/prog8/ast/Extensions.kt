@@ -4,6 +4,7 @@ import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
+import prog8.ast.expressions.InferredTypes
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.statements.ZeropageWish
@@ -37,7 +38,7 @@ fun UInt.toHex(): String {
     }
 }
 
-fun Program.getTempVar(dt: DataType, altNames: Boolean=false): List<String> {
+fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>, VarDecl> {
     val tmpvarName = if(altNames) {
         when (dt) {
             DataType.UBYTE -> listOf("prog8_lib", "tempvar_ub2")
@@ -59,8 +60,9 @@ fun Program.getTempVar(dt: DataType, altNames: Boolean=false): List<String> {
     }
 
     val block = this.allBlocks.first { it.name==tmpvarName[0] }
-    if(block.statements.filterIsInstance<VarDecl>().any { it.name == tmpvarName[1] })
-        return tmpvarName
+    val existingDecl = block.statements.firstOrNull { it is VarDecl && it.name == tmpvarName[1] }
+    if(existingDecl!=null)
+        return Pair(tmpvarName, existingDecl as VarDecl)
 
     // add new temp variable to the ast directly (we can do this here because we're not iterating inside those container blocks)
     val decl = VarDecl(
@@ -68,5 +70,17 @@ fun Program.getTempVar(dt: DataType, altNames: Boolean=false): List<String> {
         null, tmpvarName[1], null, false, false, null, Position.DUMMY)
     block.statements.add(decl)
     decl.linkParents(block)
-    return tmpvarName
+    return Pair(tmpvarName, decl)
+}
+
+fun Program.getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
+    return when {
+        // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
+        dt istype DataType.UBYTE -> listOf("cx16", "r9L")
+        dt istype DataType.BYTE -> listOf("cx16", "r9sL")
+        dt istype DataType.UWORD -> listOf("cx16", "r9")
+        dt istype DataType.WORD -> listOf("cx16", "r9s")
+        dt.isPassByReference -> listOf("cx16", "r9")
+        else -> throw FatalAstException("invalid dt $dt")
+    }
 }

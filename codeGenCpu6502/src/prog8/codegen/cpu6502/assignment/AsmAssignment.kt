@@ -36,7 +36,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                val array: ArrayIndexedExpression? = null,
                                val memory: DirectMemoryWrite? = null,
                                val register: RegisterOrPair? = null,
-                               val origAstTarget: AssignTarget? = null      // TODO look into removing the need to store this
+                               val origAstTarget: AssignTarget? = null
                                )
 {
     val constMemoryAddress by lazy { memory?.addressExpression?.constValue(program)?.number?.toUInt() ?: 0u}

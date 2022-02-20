@@ -3,8 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- see if we can get rid of storing the  origAstTarget in AsmAssignTarget
-
+...
 
 Need help with
 ^^^^^^^^^^^^^^
@@ -24,8 +23,8 @@ Future Things and Ideas
 Compiler:
 
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
+- make everything an expression. (get rid of Statements. Statements are expressions with void return types).
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
-- unify FunctioncallExpression + FunctioncallStatement and PipeExpression + Pipe statement classes, may require moving Expression/Statement into interfaces instead of abstract base classes
 - for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
   OR: change pipe syntax and require function call, but always have implicit first argument added.
 - for the pipe operator: make it 100% syntactic sugar so there's no need for asm codegen like translatePipeExpression
@@ -73,3 +72,4 @@ Optimizations:
   but we have no efficient way right now to see if the body references a variable.
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
+- AssignmentAsmGen: "real optimized code for comparison expressions that yield a boolean result value"

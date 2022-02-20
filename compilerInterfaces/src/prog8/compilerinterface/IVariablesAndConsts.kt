@@ -12,6 +12,8 @@ import prog8.ast.statements.ZeropageWish
 /**
  * A more convenient way to pass variable (and constant values) definitions to the code generator,
  * so that it doesn't have to scavenge and manipulate the VerDecl nodes in the AST for this information.
+ *
+ * note: the string variables are in here as well, they're in blockVars for the block named 'prog8_interned_strings'.
  */
 interface IVariablesAndConsts {
     data class ConstantNumberSymbol(val type: DataType, val scopedname: List<String>, val value: Double, val position: Position)
@@ -31,5 +33,8 @@ interface IVariablesAndConsts {
     val subroutineConsts: Map<Subroutine, Set<ConstantNumberSymbol>>
     val subroutineMemvars: Map<Subroutine, Set<MemoryMappedVariable>>
 
+    /**
+     * ability to add another new variable after the tables have already been created.
+     */
     fun addIfUnknown(definingBlock: Block, variable: VarDecl)
 }

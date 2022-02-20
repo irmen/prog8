@@ -4,6 +4,13 @@ main {
     sub start() {
         ubyte xx = 200
         ubyte yy = 100
+        uword @shared cc
+
+        ubyte[200] array
+
+        cc=array[xx+yy+10]
+
+        cc = xx-yy>10
 
         uword qq = 100
         cmp(qq,xx)

@@ -98,14 +98,14 @@ X =      BinExpr                                    X   =   LeftExpr
                 // we can see if we can unwrap the binary expression by working on a new temporary variable
                 // (that has the type of the expression), and then finally doing the typecast.
                 // Once it's outside the typecast, the regular splitting can commence.
-                val tempVar = program.getTempVar(origExpr.inferType(program).getOr(DataType.UNDEFINED))
+                val (tempVarName, _) = program.getTempVar(origExpr.inferType(program).getOr(DataType.UNDEFINED))
                 val assignTempVar = Assignment(
-                    AssignTarget(IdentifierReference(tempVar, typecast.position), null, null, typecast.position),
+                    AssignTarget(IdentifierReference(tempVarName, typecast.position), null, null, typecast.position),
                     typecast.expression, AssignmentOrigin.OPTIMIZER, typecast.position
                 )
                 return listOf(
                     IAstModification.InsertBefore(assignment, assignTempVar, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(typecast.expression, IdentifierReference(tempVar, typecast.position), typecast)
+                    IAstModification.ReplaceNode(typecast.expression, IdentifierReference(tempVarName, typecast.position), typecast)
                 )
             }
         }

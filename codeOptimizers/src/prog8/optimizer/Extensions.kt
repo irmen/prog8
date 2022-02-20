@@ -2,9 +2,6 @@ package prog8.optimizer
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.InferredTypes
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
@@ -67,16 +64,4 @@ fun Program.splitBinaryExpressions(options: CompilationOptions, compTarget: ICom
     val opti = BinExprSplitter(this, options, compTarget)
     opti.visit(this)
     return opti.applyModifications()
-}
-
-fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
-    return when {
-        // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
-        dt istype DataType.UBYTE -> listOf("cx16", "r9L")
-        dt istype DataType.BYTE -> listOf("cx16", "r9sL")
-        dt istype DataType.UWORD -> listOf("cx16", "r9")
-        dt istype DataType.WORD -> listOf("cx16", "r9s")
-        dt.isPassByReference -> listOf("cx16", "r9")
-        else -> throw FatalAstException("invalid dt $dt")
-    }
 }
