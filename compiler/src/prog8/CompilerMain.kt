@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.base.AstException
+import prog8.codegen.target.AtariTarget
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -44,7 +45,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental codegen")
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}')").default(C64Target.NAME)
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}')").default(C64Target.NAME)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
@@ -71,7 +72,7 @@ private fun compileMain(args: Array<String>): Boolean {
     if(srcdirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
-    if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME)) {
+    if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME, AtariTarget.NAME)) {
         System.err.println("Invalid compilation target: $compilationTarget")
         return false
     }

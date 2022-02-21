@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- move memcopy() logic to prog8_lib and call this from sys.memcopy() the same for all targets (so cx16 now also works when kernal is disabled!)
+- same for memset()
+- get rid of RAW_LOAD_ADDRESS  and make specifying the load address for RAW launcher mode required
 ...
 
 
@@ -48,6 +51,7 @@ Compiler:
 Libraries:
 
 - fix the problems in c128 target, and flesh out its libraries.
+- fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?

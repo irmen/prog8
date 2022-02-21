@@ -17,39 +17,82 @@ internal class AssemblyProgram(
         private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     private val assemblyFile = outputDir.resolve("$name.asm")
-    private val prgFile = outputDir.resolve("$name.prg")
+    private val prgFile = outputDir.resolve("$name.prg")        // CBM prg executable program
+    private val xexFile = outputDir.resolve("$name.xex")        // Atari xex executable program
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve(viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
 
     override fun assemble(options: CompilationOptions): Boolean {
-        // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
-        val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
-                "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
-            )
 
-        if(options.asmQuiet)
-            command.add("--quiet")
+        val assemblerCommand: List<String>
 
-        if(options.asmListfile)
-            command.add("--list=$listFile")
+        when (compTarget.name) {
+            in setOf("c64", "c128", "cx16") -> {
+                // CBM machines .prg generation.
 
-        val outFile = when (options.output) {
-            OutputType.PRG -> {
-                command.add("--cbm-prg")
-                println("\nCreating prg for target ${compTarget.name}.")
-                prgFile
+                // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
+                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                    "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
+                    "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
+                )
+
+                if(options.asmQuiet)
+                    command.add("--quiet")
+
+                if(options.asmListfile)
+                    command.add("--list=$listFile")
+
+                val outFile = when (options.output) {
+                    OutputType.PRG -> {
+                        command.add("--cbm-prg")
+                        println("\nCreating prg for target ${compTarget.name}.")
+                        prgFile
+                    }
+                    OutputType.RAW -> {
+                        command.add("--nostart")
+                        println("\nCreating raw binary for target ${compTarget.name}.")
+                        binFile
+                    }
+                }
+                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+                assemblerCommand = command
+
             }
-            OutputType.RAW -> {
-                command.add("--nostart")
-                println("\nCreating raw binary for target ${compTarget.name}.")
-                binFile
+            "atari" -> {
+                // Atari800XL .xex generation.
+
+                // TODO are these options okay?
+                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                    "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
+                    "--no-monitor"
+                )
+
+                if(options.asmQuiet)
+                    command.add("--quiet")
+
+                if(options.asmListfile)
+                    command.add("--list=$listFile")
+
+                val outFile = when (options.output) {
+                    OutputType.PRG -> {
+                        command.add("--atari-xex")
+                        println("\nCreating xex for target ${compTarget.name}.")
+                        xexFile
+                    }
+                    OutputType.RAW -> {
+                        command.add("--nostart")
+                        println("\nCreating raw binary for target ${compTarget.name}.")
+                        binFile
+                    }
+                }
+                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+                assemblerCommand = command
             }
+            else -> throw AssemblyError("invalid compilation target")
         }
-        command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
 
-        val proc = ProcessBuilder(command).inheritIO().start()
+        val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
         val result = proc.waitFor()
         if (result == 0) {
             removeGeneratedLabelsFromMonlist()

@@ -18,7 +18,8 @@ This CPU is from the late 1970's and early 1980's and was used in many home comp
 such as the `Commodore-64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
-You can compile programs for various machines with this CPU such as the Commodore-64 and Commodore-128, and the Commander X16.
+You can compile programs for various machines with this CPU such as the Commodore-64 and Commodore-128,
+the Commander X16, and the Atari 800 XL.
 
 
 Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).

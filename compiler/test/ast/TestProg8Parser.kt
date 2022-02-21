@@ -425,7 +425,7 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<VarDecl>()[0]
 
             val rhs = decl.value as CharLiteral
-            rhs.encoding shouldBe Encoding.PETSCII
+            rhs.encoding shouldBe Encoding.DEFAULT
             rhs.value shouldBe 'x'
         }
 
@@ -478,7 +478,7 @@ class TestProg8Parser: FunSpec( {
 
             val rhs = decl.value as CharLiteral
             rhs.value shouldBe 'x'
-            rhs.encoding shouldBe Encoding.PETSCII
+            rhs.encoding shouldBe Encoding.DEFAULT
         }
 
         test("on rhs of subroutine-level const decl, screencode encoded") {
@@ -532,7 +532,7 @@ class TestProg8Parser: FunSpec( {
                 .statements.filterIsInstance<Block>()[0]
                 .statements.filterIsInstance<VarDecl>()[0]
             val rhs = decl.value as StringLiteral
-            rhs.encoding shouldBe Encoding.PETSCII
+            rhs.encoding shouldBe Encoding.DEFAULT
             rhs.value shouldBe "name"
         }
 

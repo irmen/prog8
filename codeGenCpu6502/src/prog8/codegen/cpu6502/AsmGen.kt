@@ -42,6 +42,10 @@ class AsmGen(internal val program: Program,
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen, allocator)
 
     override fun compileToAssembly(): IAssemblyProgram? {
+
+        if(options.compTarget.name=="atari" && options.launcher==LauncherType.BASIC)
+            throw AssemblyError("atari target cannot use CBM BASIC launcher type")
+
         assemblyLines.clear()
         loopEndLabels.clear()
 

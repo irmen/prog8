@@ -12,6 +12,7 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
@@ -21,7 +22,7 @@ internal class LiteralsToAutoVars(private val program: Program,
                                   private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
-        if(string.encoding !in target.supportedEncodings) {
+        if(string.encoding != Encoding.DEFAULT && string.encoding !in target.supportedEncodings) {
             errors.err("compilation target doesn't support this text encoding", string.position)
             return noModifications
         }

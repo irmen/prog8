@@ -155,7 +155,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                             else
                                 '_'
                         }.joinToString("")
-                        call.args[0] = StringLiteral(processed, Encoding.PETSCII, name.position)
+                        call.args[0] = StringLiteral(processed, compTarget.defaultEncoding, name.position)
                         call.args[0].linkParents(call as Node)
                     }
                 }

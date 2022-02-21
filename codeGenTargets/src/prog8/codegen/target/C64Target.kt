@@ -7,16 +7,15 @@ import prog8.codegen.target.c64.C64MachineDefinition
 import prog8.codegen.target.cbm.CbmMemorySizer
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.*
 
 
 class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by CbmMemorySizer {
     override val name = NAME
     override val machine = C64MachineDefinition()
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES)
+    override val defaultEncoding = Encoding.PETSCII
+    override val defaultLauncherType = LauncherType.BASIC
 
     companion object {
         const val NAME = "c64"

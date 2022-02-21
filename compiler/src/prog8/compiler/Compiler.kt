@@ -12,6 +12,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
+import prog8.codegen.target.AtariTarget
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -59,6 +60,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
             C64Target.NAME -> C64Target()
             C128Target.NAME -> C128Target()
             Cx16Target.NAME -> Cx16Target()
+            AtariTarget.NAME -> AtariTarget()
             else -> throw IllegalArgumentException("invalid compilation target")
         }
 
@@ -206,6 +208,9 @@ fun parseImports(filepath: Path,
 
     if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
+    if(compilerOptions.launcher == LauncherType.BASIC && compTarget.name==AtariTarget.NAME)
+        errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
+
     errors.report()
 
     return Triple(program, compilerOptions, importedFiles)
@@ -255,7 +260,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
             OutputType.PRG
         }
     }
-    val launcherType = if (launcherTypeStr == null) LauncherType.BASIC else {
+    val launcherType = if (launcherTypeStr == null) compTarget.defaultLauncherType else {
         try {
             LauncherType.valueOf(launcherTypeStr)
         } catch (x: IllegalArgumentException) {
@@ -274,7 +279,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     println("Analyzing code...")
-    program.preprocessAst(errors)
+    program.preprocessAst(errors, compilerOptions.compTarget)
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)

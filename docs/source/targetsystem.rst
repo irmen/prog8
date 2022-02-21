@@ -12,8 +12,9 @@ Prog8 targets the following hardware:
 Currently these machines can be selected as a compilation target (via the ``-target`` compiler argument):
 
 - 'c64': the Commodore 64
-- 'c128': the Commodore 128  (*limited support only for now*)
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
+- 'c128': the Commodore 128  (*limited support*)
+- 'atari': the Atari 800 XL  (*experimental support*)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
 

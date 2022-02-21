@@ -457,7 +457,7 @@ private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
             Encoding.values().singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
-            Encoding.PETSCII
+            Encoding.DEFAULT
     return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], encoding, toPosition())
 }
 
@@ -469,7 +469,7 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
             Encoding.values().singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
-            Encoding.PETSCII
+            Encoding.DEFAULT
     return StringLiteral(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
 }
 

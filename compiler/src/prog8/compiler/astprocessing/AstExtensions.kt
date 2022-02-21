@@ -10,10 +10,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.IVariablesAndConsts
+import prog8.compilerinterface.*
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -51,7 +48,8 @@ internal fun Program.reorderStatements(errors: IErrorReporter, options: Compilat
 internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, errors: IErrorReporter) {
     val walker = object : AstWalker() {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
-            if(char.encoding !in target.supportedEncodings) {
+            require(char.encoding != Encoding.DEFAULT)
+            if(char.encoding != Encoding.DEFAULT && char.encoding !in target.supportedEncodings) {
                 errors.err("compilation target doesn't support this text encoding", char.position)
                 return noModifications
             }
@@ -83,8 +81,8 @@ internal fun Program.verifyFunctionArgTypes() {
     fixer.visit(this)
 }
 
-internal fun Program.preprocessAst(errors: IErrorReporter) {
-    val transforms = AstPreprocessor(this, errors)
+internal fun Program.preprocessAst(errors: IErrorReporter, target: ICompilationTarget) {
+    val transforms = AstPreprocessor(this, errors, target)
     transforms.visit(this)
     var mods = transforms.applyModifications()
     while(mods>0)

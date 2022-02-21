@@ -9,10 +9,24 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
 
-class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWalker() {
+class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
+
+    override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
+        if(char.encoding==Encoding.DEFAULT)
+            char.encoding = compTarget.defaultEncoding
+        return noModifications
+    }
+
+    override fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> {
+        if(string.encoding==Encoding.DEFAULT)
+            string.encoding = compTarget.defaultEncoding
+        return super.before(string, parent)
+    }
 
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
@@ -47,7 +61,7 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter) : AstWal
         return modifications
     }
 
-    override fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
 
         // move vardecls in Anonymous scope up to the containing subroutine
         // and add initialization assignment in its place if needed

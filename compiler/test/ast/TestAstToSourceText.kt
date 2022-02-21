@@ -68,7 +68,7 @@ class TestAstToSourceText: AnnotationSpec() {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("str +s += +petscii:\"fooBar\\\\n\"")
+        txt shouldContain Regex("str +s += +\"fooBar\\\\n\"")
     }
 
     @Test
@@ -101,7 +101,7 @@ class TestAstToSourceText: AnnotationSpec() {
             }
         """)
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex("ubyte +c += +petscii:'x'")
+        txt shouldContain Regex("ubyte +c += +'x'")
     }
 
     @Test

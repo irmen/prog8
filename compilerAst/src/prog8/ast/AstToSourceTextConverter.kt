@@ -7,6 +7,7 @@ import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.Encoding
 
 
 /**
@@ -293,11 +294,17 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(char: CharLiteral) {
-        output("${char.encoding.prefix}:'${escape(char.value.toString())}'")
+        if(char.encoding==Encoding.DEFAULT)
+            output("'${escape(char.value.toString())}'")
+        else
+            output("${char.encoding.prefix}:'${escape(char.value.toString())}'")
     }
 
     override fun visit(string: StringLiteral) {
-        output("${string.encoding.prefix}:\"${escape(string.value)}\"")
+        if(string.encoding==Encoding.DEFAULT)
+            output("\"${escape(string.value)}\"")
+        else
+            output("${string.encoding.prefix}:\"${escape(string.value)}\"")
     }
 
     override fun visit(array: ArrayLiteral) {

@@ -593,7 +593,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 }
 
 class CharLiteral(val value: Char,
-                  val encoding: Encoding,
+                  var encoding: Encoding,
                   override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -607,7 +607,8 @@ class CharLiteral(val value: Char,
         throw FatalAstException("can't replace here")
     }
 
-    override fun copy() = CharLiteral(value, encoding, position)
+    override fun copy() =
+        CharLiteral(value, encoding, position)
     override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program): NumericLiteral {
         val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
@@ -628,7 +629,7 @@ class CharLiteral(val value: Char,
 }
 
 class StringLiteral(val value: String,
-                    val encoding: Encoding,
+                    var encoding: Encoding,
                     override val position: Position) : Expression() {
     override lateinit var parent: Node
 
