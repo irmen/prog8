@@ -142,10 +142,42 @@ class TestPipes: FunSpec({
         value.number shouldBe 194.0
 
         assigncc = stmts[6] as Assignment
-        val pipecc = assignw.value as PipeExpression
+        val pipecc = assigncc.value as PipeExpression
         pipecc.expressions.size shouldBe 2
-        pipecc.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipecc.expressions[0] shouldBe instanceOf<BuiltinFunctionCall>()
         pipecc.expressions[1] shouldBe instanceOf<IdentifierReference>()
+    }
+
+    test("correct pipe expressions with variables at end") {
+        val text = """
+            %import textio
+            
+            main {
+                sub start() {
+                    uword @shared ww
+                    ubyte @shared cc
+                    
+                    9999 |> addword |> addword |> ww
+                    30 |> sin8u |> cos8u |> cc     ; will be optimized away into a const number
+                }
+                sub addword(uword ww) -> uword {
+                    return ww+2222
+                }
+        }
+        """
+        val result = compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 7
+
+        val assignw = stmts[4] as Assignment
+        val pipew = assignw.value as PipeExpression
+        pipew.expressions.size shouldBe 2
+        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
+
+        val assigncc = stmts[5] as Assignment
+        val value = assigncc.value as NumericLiteral
+        value.number shouldBe 194.0
     }
 
     test("incorrect type in pipe expression") {

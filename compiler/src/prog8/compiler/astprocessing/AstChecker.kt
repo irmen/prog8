@@ -1285,11 +1285,11 @@ internal class AstChecker(private val program: Program,
 
             for(expr in expressions.drop(1)) {         // just keep the first expression value as-is
                 val functionName = expr as? IdentifierReference
-                val function = functionName?.targetStatement(program)
-                if(functionName!=null && function!=null) {
-                    when (function) {
+                val target = functionName?.targetStatement(program)
+                if(functionName!=null && target!=null) {
+                    when (target) {
                         is BuiltinFunctionPlaceholder -> {
-                            val func = BuiltinFunctions.getValue(function.name)
+                            val func = BuiltinFunctions.getValue(target.name)
                             if(func.parameters.size!=1)
                                 errors.err("can only use unary function", expr.position)
                             else if(!func.hasReturn && expr !== expressions.last())
@@ -1307,17 +1307,21 @@ internal class AstChecker(private val program: Program,
                             }
                         }
                         is Subroutine -> {
-                            if(function.parameters.size!=1)
+                            if(target.parameters.size!=1)
                                 errors.err("can only use unary function", expr.position)
-                            else if(function.returntypes.size!=1 && expr !== expressions.last())
+                            else if(target.returntypes.size!=1 && expr !== expressions.last())
                                 errors.err("function must return a single value", expr.position)
 
-                            val paramDt = function.parameters.firstOrNull()?.type
+                            val paramDt = target.parameters.firstOrNull()?.type
                             if(paramDt!=null && !(valueDt isAssignableTo paramDt))
                                 errors.err("pipe value datatype $valueDt incompatible with function argument $paramDt", functionName.position)
 
-                            if(function.returntypes.isNotEmpty())
-                                valueDt = function.returntypes.single()
+                            if(target.returntypes.isNotEmpty())
+                                valueDt = target.returntypes.single()
+                        }
+                        is VarDecl -> {
+                            if(!(valueDt isAssignableTo target.datatype))
+                                errors.err("final pipe value datatype can't be stored in pipe ending variable", functionName.position)
                         }
                         else -> {
                             throw FatalAstException("weird function")

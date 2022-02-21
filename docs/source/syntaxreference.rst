@@ -549,6 +549,15 @@ pipe: ``|>``
                         |> determine_score
                         |> add_bonus
 
+    Finally, if you like the left-to-right flow, it's possible to use the name of a variable as the last term. This just means that the pipe's resulting value is
+    stored in that variable (it's just another way of writing an assignment). So the above can also be written as::
+
+        uword score
+        get_player(1)
+            |> determine_score
+            |> add_bonus
+            |> score
+
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``

@@ -701,12 +701,13 @@ If you want to ignore a return value of a subroutine, you should prefix the call
 Otherwise the compiler will issue a warning about discarding a result value.
 
 Deeply nested function calls can be rewritten as a chain using the *pipe operator* ``|>`` as long as they
-are unary functions (taking a single argument).
+are unary functions (taking a single argument). Various possibilities of using this operator are explained
+in the syntax reference for this operator.
 
 .. note::
     **Order of evaluation:**
 
-    The order of evaluation of arguments is *unspecified* and should not be relied upon.
+    The order of evaluation of arguments to a single function call is *unspecified* and should not be relied upon.
     There is no guarantee of a left-to-right or right-to-left evaluation of the call arguments.
 
 .. caution::

@@ -412,6 +412,26 @@ internal class StatementReorderer(val program: Program,
         checkUnusedReturnValues(functionCallStatement, function, program, errors)
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
+
+    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
+        val last = pipe.expressions.lastOrNull() as? IdentifierReference
+        val variable = last?.targetVarDecl(program)
+        if(variable!=null) {
+            val target = AssignTarget(last, null, null, last.position)
+            if(pipe.expressions.size>2)
+            {
+                val value = PipeExpression(pipe.expressions.dropLast(1).toMutableList(), pipe.position)
+                val assign = Assignment(target, value, AssignmentOrigin.OPTIMIZER, pipe.position)
+                return listOf(IAstModification.ReplaceNode(pipe, assign, parent))
+            }
+            else if(pipe.expressions.size==2)
+            {
+                val assign = Assignment(target, pipe.expressions[0], AssignmentOrigin.OPTIMIZER, pipe.position)
+                return listOf(IAstModification.ReplaceNode(pipe, assign, parent))
+            }
+        }
+        return noModifications
+    }
 }
 
 
