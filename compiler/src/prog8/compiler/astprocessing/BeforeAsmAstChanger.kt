@@ -241,7 +241,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         if(separateLeftExpr) {
-            val name = program.getTempRegisterName(leftDt)
+            val name = getTempRegisterName(leftDt)
             leftOperandReplacement = IdentifierReference(name, expr.position)
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),

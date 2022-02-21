@@ -37,5 +37,4 @@ class CompilationOptions(val output: OutputType,
                          var asmListfile: Boolean = false,
                          var experimentalCodegen: Boolean = false,
                          var outputDir: Path = Path("")
-) {
-}
+)

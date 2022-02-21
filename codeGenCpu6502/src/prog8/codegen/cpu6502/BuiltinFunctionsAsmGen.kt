@@ -57,10 +57,10 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
         fcall.linkParents(scope)
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)
-        if(isStatement) {
-            return DataType.UNDEFINED
+        return if(isStatement) {
+            DataType.UNDEFINED
         } else {
-            return builtinFunctionReturnType(func.name, argExpressions, program).getOrElse { throw AssemblyError("unknown dt") }
+            builtinFunctionReturnType(func.name, argExpressions, program).getOrElse { throw AssemblyError("unknown dt") }
         }
     }
 

@@ -73,7 +73,7 @@ fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>
     return Pair(tmpvarName, decl)
 }
 
-fun Program.getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
+fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
     return when {
         // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
         dt istype DataType.UBYTE -> listOf("cx16", "r9L")

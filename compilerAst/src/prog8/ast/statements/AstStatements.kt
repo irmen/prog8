@@ -614,7 +614,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
                 val everythintBeforeComment = it.substringBefore(';')
                 wordPattern.findAll(everythintBeforeComment)
             }
-            .flatMap { it.map { it.value } }
+            .flatMap { it.map { mr -> mr.value } }
             .toSet()
     }
 }

@@ -128,11 +128,10 @@ sealed class SourceCode {
     /**
      * SourceCode for internally generated nodes (usually Modules)
      */
-    class Generated(name: String) : SourceCode() {
+    class Generated(override val name: String) : SourceCode() {
         override val isFromResources: Boolean = false
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
-        override val name: String = name
         override val text: String = "<generated code node, no text representation>"
     }
 }

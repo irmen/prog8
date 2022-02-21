@@ -1,8 +1,11 @@
 package prog8.ast.expressions
 
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
+import prog8.ast.internedStringsModuleName
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
@@ -1103,8 +1106,7 @@ class PipeExpression(val expressions: MutableList<Expression>, override val posi
     private fun inferType(program: Program, functionNames: List<Expression>): InferredTypes.InferredType {
         val identifier = functionNames.last() as? IdentifierReference
         if(identifier!=null) {
-            val target = identifier.targetStatement(program)
-            when(target) {
+            when(val target = identifier.targetStatement(program)) {
                 is BuiltinFunctionPlaceholder -> {
                     val typeOfPrev = inferType(program, functionNames.dropLast(1))
                     return if(typeOfPrev.isKnown) {

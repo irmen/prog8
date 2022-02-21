@@ -90,9 +90,6 @@ class FSignature(val name: String,
 }
 
 
-
-
-@Suppress("UNUSED_ANONYMOUS_PARAMETER")
 private val functionSignatures: List<FSignature> = listOf(
     // this set of function have no return value and operate in-place:
     FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), false,null),
@@ -311,7 +308,6 @@ private fun collectionArg(args: List<Expression>, position: Position, program: P
     return NumericLiteral.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // 1 arg, type = float or int, result type= isSameAs as argument type
     if(args.size!=1)
@@ -351,7 +347,6 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     }
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
@@ -385,7 +380,6 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
 }
 
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 2)
         throw SyntaxError("mkword requires msb and lsb arguments", position)
@@ -395,7 +389,6 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.UWORD, result.toDouble(), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSin8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin8 requires one argument", position)
@@ -404,7 +397,6 @@ private fun builtinSin8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteral(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSin8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin8u requires one argument", position)
@@ -413,7 +405,6 @@ private fun builtinSin8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSinR8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr8 requires one argument", position)
@@ -422,7 +413,6 @@ private fun builtinSinR8(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.BYTE, round(127.0 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSinR8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr8u requires one argument", position)
@@ -431,7 +421,6 @@ private fun builtinSinR8u(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCos8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos8 requires one argument", position)
@@ -440,7 +429,6 @@ private fun builtinCos8(args: List<Expression>, position: Position, program: Pro
     return NumericLiteral(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCos8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos8u requires one argument", position)
@@ -449,7 +437,6 @@ private fun builtinCos8u(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCosR8(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr8 requires one argument", position)
@@ -458,7 +445,6 @@ private fun builtinCosR8(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.BYTE, round(127.0 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCosR8u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr8u requires one argument", position)
@@ -467,7 +453,6 @@ private fun builtinCosR8u(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.UBYTE, round(128.0 + 127.5 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSin16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin16 requires one argument", position)
@@ -476,7 +461,6 @@ private fun builtinSin16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSin16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sin16u requires one argument", position)
@@ -485,7 +469,6 @@ private fun builtinSin16u(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSinR16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr16 requires one argument", position)
@@ -494,7 +477,6 @@ private fun builtinSinR16(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.WORD, round(32767.0 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSinR16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sinr16u requires one argument", position)
@@ -503,7 +485,6 @@ private fun builtinSinR16u(args: List<Expression>, position: Position, program: 
     return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * sin(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCos16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos16 requires one argument", position)
@@ -512,7 +493,6 @@ private fun builtinCos16(args: List<Expression>, position: Position, program: Pr
     return NumericLiteral(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCos16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cos16u requires one argument", position)
@@ -521,7 +501,6 @@ private fun builtinCos16u(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCosR16(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr16 requires one argument", position)
@@ -530,7 +509,6 @@ private fun builtinCosR16(args: List<Expression>, position: Position, program: P
     return NumericLiteral(DataType.WORD, round(32767.0 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinCosR16u(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("cosr16u requires one argument", position)
@@ -539,7 +517,6 @@ private fun builtinCosR16u(args: List<Expression>, position: Position, program: 
     return NumericLiteral(DataType.UWORD, round(32768.0 + 32767.5 * cos(rad)), position)
 }
 
-@Suppress("UNUSED_PARAMETER")
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)

@@ -130,7 +130,7 @@ class StatementOptimizer(private val program: Program,
         if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
             val arg = functionCallStatement.args[0]
             if(!arg.isSimple && arg !is IFunctionCall) {
-                val name = program.getTempRegisterName(arg.inferType(program))
+                val name = getTempRegisterName(arg.inferType(program))
                 val tempvar = IdentifierReference(name, functionCallStatement.position)
                 val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
                 return listOf(

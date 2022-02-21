@@ -47,8 +47,8 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
         val numberOfExplicitNonZpVariables = allVariables.count { it.zp == ZeropageWish.NOT_IN_ZEROPAGE }
         require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
 
-        var numVariablesAllocatedInZP: Int = 0
-        var numberOfNonIntegerVariables: Int = 0
+        var numVariablesAllocatedInZP = 0
+        var numberOfNonIntegerVariables = 0
 
         varsRequiringZp.forEach { variable ->
             val numElements = numArrayElements(variable)
