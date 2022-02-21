@@ -1098,17 +1098,34 @@ class PipeExpression(val expressions: MutableList<Expression>, override val posi
     override fun referencesIdentifier(nameInSource: List<String>) =
         expressions.any { it.referencesIdentifier(nameInSource) }
 
-    override fun inferType(program: Program): InferredTypes.InferredType {
-        val last = expressions.last()
-        val type = last.inferType(program)
-        if(type.isKnown)
-            return type
-        val identifier = last as? IdentifierReference
+    override fun inferType(program: Program): InferredTypes.InferredType = inferType(program, expressions)
+
+    private fun inferType(program: Program, functionNames: List<Expression>): InferredTypes.InferredType {
+        val identifier = functionNames.last() as? IdentifierReference
         if(identifier!=null) {
-            val call = FunctionCallExpression(identifier, mutableListOf(), identifier.position)
-            return call.inferType(program)
+            val target = identifier.targetStatement(program)
+            when(target) {
+                is BuiltinFunctionPlaceholder -> {
+                    val typeOfPrev = inferType(program, functionNames.dropLast(1))
+                    return if(typeOfPrev.isKnown) {
+                        val zero = defaultZero(typeOfPrev.getOr(DataType.UNDEFINED), identifier.position)
+                        val args = mutableListOf<Expression>(zero)
+                        program.builtinFunctions.returnType(identifier.nameInSource[0], args)
+                    } else {
+                        InferredTypes.InferredType.unknown()
+                    }
+                }
+                is Subroutine -> {
+                    val call = FunctionCallExpression(identifier, mutableListOf(), identifier.position)
+                    return call.inferType(program)
+                }
+                is VarDecl -> {
+                    return InferredTypes.InferredType.known(target.datatype)
+                }
+                else -> return InferredTypes.InferredType.unknown()
+            }
         }
-        return InferredTypes.InferredType.unknown()
+        return functionNames.last().inferType(program)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {

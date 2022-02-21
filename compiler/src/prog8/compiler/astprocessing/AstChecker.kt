@@ -1245,27 +1245,30 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(pipe: PipeExpression) {
         processPipe(pipe.expressions, pipe)
-        val last = pipe.expressions.last() as IdentifierReference
-        val target = last.targetStatement(program)!!
-        when(target) {
-            is BuiltinFunctionPlaceholder -> {
-                if(BuiltinFunctions.getValue(target.name).known_returntype==null)
-                    errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+        if(errors.noErrors()) {
+            val last = pipe.expressions.last() as IdentifierReference
+            when (val target = last.targetStatement(program)!!) {
+                is BuiltinFunctionPlaceholder -> {
+                    if (!BuiltinFunctions.getValue(target.name).hasReturn)
+                        errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+                }
+                is Subroutine -> {
+                    if (target.returntypes.isEmpty())
+                        errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+                    else if (target.returntypes.size != 1)
+                        errors.err("invalid pipe expression; last term doesn't return a single value", last.position)
+                }
+                else -> errors.err("invalid pipe expression; last term doesn't return a value", last.position)
             }
-            is Subroutine -> {
-                if(target.returntypes.isEmpty())
-                    errors.err("invalid pipe expression; last term doesn't return a value", last.position)
-                else if(target.returntypes.size!=1)
-                    errors.err("invalid pipe expression; last term doesn't return a single value", last.position)
-            }
-            else -> errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+            super.visit(pipe)
         }
-        super.visit(pipe)
     }
 
     override fun visit(pipe: Pipe) {
         processPipe(pipe.expressions, pipe)
-        super.visit(pipe)
+        if(errors.noErrors()) {
+            super.visit(pipe)
+        }
     }
 
     private fun processPipe(expressions: List<Expression>, scope: Node) {
@@ -1289,14 +1292,19 @@ internal class AstChecker(private val program: Program,
                             val func = BuiltinFunctions.getValue(function.name)
                             if(func.parameters.size!=1)
                                 errors.err("can only use unary function", expr.position)
-                            else if(func.known_returntype==null && expr !== expressions.last())
+                            else if(!func.hasReturn && expr !== expressions.last())
                                 errors.err("function must return a single value", expr.position)
 
                             val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
                             if(paramDts!=null && !paramDts.any { valueDt isAssignableTo it })
                                 errors.err("pipe value datatype $valueDt incompatible withfunction argument ${paramDts.toList()}", functionName.position)
 
-                            valueDt = func.known_returntype!!
+                            if(errors.noErrors()) {
+                                // type can depend on the argument(s) of the function. For now, we only deal with unary functions,
+                                // so we know there must be a single argument. Take its type from the previous expression in the pipe chain.
+                                val zero = defaultZero(valueDt, expr.position)
+                                valueDt = builtinFunctionReturnType(func.name, listOf(zero), program).getOrElse { DataType.UNDEFINED }
+                            }
                         }
                         is Subroutine -> {
                             if(function.parameters.size!=1)

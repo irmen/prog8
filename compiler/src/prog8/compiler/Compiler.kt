@@ -171,8 +171,6 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
                     null
                 }
             }
-            else if(func.known_returntype==null)
-                return null  // builtin function $name can't be used here because it doesn't return a value
         }
         return null
     }

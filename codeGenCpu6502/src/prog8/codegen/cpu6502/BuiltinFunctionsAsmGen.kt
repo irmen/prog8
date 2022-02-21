@@ -11,10 +11,7 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.Subroutine
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.*
-import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.CpuType
-import prog8.compilerinterface.FSignature
+import prog8.compilerinterface.*
 
 
 internal class BuiltinFunctionsAsmGen(private val program: Program,
@@ -60,7 +57,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
         fcall.linkParents(scope)
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)
-        return if(isStatement) DataType.UNDEFINED else func.known_returntype!!
+        if(isStatement) {
+            return DataType.UNDEFINED
+        } else {
+            return builtinFunctionReturnType(func.name, argExpressions, program).getOrElse { throw AssemblyError("unknown dt") }
+        }
     }
 
     private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {

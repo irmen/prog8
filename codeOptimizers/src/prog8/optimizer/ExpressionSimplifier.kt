@@ -335,6 +335,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
     override fun after(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
         val expressions = pipeExpr.expressions
+        if(expressions.size==2 && expressions[0].isSimple) {
+            // just replace with a normal function call
+            val funcname = expressions[1] as IdentifierReference
+            val arg = expressions[0]
+            val call = FunctionCallExpression(funcname.copy(), mutableListOf(arg), arg.position)
+            return listOf(IAstModification.ReplaceNode(pipeExpr, call, parent))
+        }
+        require(expressions.size>=2) { "pipe expression should have 2 or more parts" }
         val firstValue = expressions.first()
         if(firstValue.isSimple) {
             val funcname = expressions[1] as IdentifierReference

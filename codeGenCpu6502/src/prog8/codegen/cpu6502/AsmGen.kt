@@ -968,14 +968,27 @@ $repeatLabel    lda  $counterVar
         assemblyLines.add(assembly)
     }
 
-    internal fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair {
+    internal fun returnRegisterOfFunction(it: IdentifierReference, argumentTypesForBuiltinFunc: List<DataType>?): RegisterOrPair {
         return when (val targetRoutine = it.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
-                when (BuiltinFunctions.getValue(targetRoutine.name).known_returntype) {
+                val func = BuiltinFunctions.getValue(targetRoutine.name)
+                when (func.returnType) {
                     in ByteDatatypes -> RegisterOrPair.A
                     in WordDatatypes -> RegisterOrPair.AY
                     DataType.FLOAT -> RegisterOrPair.FAC1
-                    else -> throw AssemblyError("weird returntype")
+                    else -> {
+                        if(!func.hasReturn)
+                            throw AssemblyError("func has no returntype")
+                        else {
+                            val args = argumentTypesForBuiltinFunc!!.map { defaultZero(it, Position.DUMMY) }
+                            when(builtinFunctionReturnType(func.name, args, program).getOrElse { DataType.UNDEFINED }) {
+                                in ByteDatatypes -> RegisterOrPair.A
+                                in WordDatatypes -> RegisterOrPair.AY
+                                DataType.FLOAT -> RegisterOrPair.FAC1
+                                else -> throw AssemblyError("weird returntype")
+                            }
+                        }
+                    }
                 }
             }
             is Subroutine -> targetRoutine.asmReturnvaluesRegisters.single().registerOrPair!!
@@ -2833,7 +2846,7 @@ $repeatLabel    lda  $counterVar
         var valueDt = firstTerm.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
         var valueSource: AsmAssignSource =
             if(firstTerm is IFunctionCall) {
-                val resultReg = returnRegisterOfFunction(firstTerm.target)
+                val resultReg = returnRegisterOfFunction(firstTerm.target, listOf(valueDt))
                 assignExpressionToRegister(firstTerm, resultReg, valueDt in listOf(DataType.BYTE, DataType.WORD, DataType.FLOAT))
                 AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
             } else {
@@ -2844,7 +2857,7 @@ $repeatLabel    lda  $counterVar
         //   directly assign their argument from the previous call's returnvalue.
         expressions.drop(1).dropLast(1).forEach {
             valueDt = functioncallAsmGen.translateUnaryFunctionCallWithArgSource(it as IdentifierReference, valueSource, false, subroutine)
-            val resultReg = returnRegisterOfFunction(it)
+            val resultReg = returnRegisterOfFunction(it, listOf(valueDt))
             valueSource = AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
         }
 

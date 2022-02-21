@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- allow the last term in a pipe *statement* to be a variable, rewrite this as   var = <rest of pipe>
+
 
 Need help with
 ^^^^^^^^^^^^^^
