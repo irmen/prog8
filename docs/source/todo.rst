@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- sin8u(30) is different from sin8u(xx) where xx=30, so the const eval is off. Also test/fix other builtin functions!
+...
 
 
 Need help with

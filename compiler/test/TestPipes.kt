@@ -139,7 +139,7 @@ class TestPipes: FunSpec({
 
         var assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
-        value.number shouldBe 194.0
+        value.number shouldBe 190.0
 
         assigncc = stmts[6] as Assignment
         val pipecc = assigncc.value as PipeExpression
@@ -177,7 +177,7 @@ class TestPipes: FunSpec({
 
         val assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
-        value.number shouldBe 194.0
+        value.number shouldBe 190.0
     }
 
     test("incorrect type in pipe expression") {
