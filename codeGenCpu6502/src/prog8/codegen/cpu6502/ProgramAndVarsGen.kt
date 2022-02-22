@@ -70,9 +70,15 @@ internal class ProgramAndVarsGen(
         asmgen.out(".cpu  '$cpu'\n.enc  'none'\n")
 
         program.actualLoadAddress = program.definedLoadAddress
-        if (program.actualLoadAddress == 0u)   // fix load address
-            program.actualLoadAddress = if (options.launcher == LauncherType.BASIC)
-                compTarget.machine.BASIC_LOAD_ADDRESS else compTarget.machine.RAW_LOAD_ADDRESS
+        if (program.actualLoadAddress == 0u) {
+            if (options.launcher == LauncherType.CBMBASIC) {
+                program.actualLoadAddress = compTarget.machine.BASIC_LOAD_ADDRESS
+            }
+            else {
+                errors.err("load address must be specified with %address when using launcher type ${options.launcher}", program.toplevelModule.position)
+                return
+            }
+        }
 
         // the global prog8 variables needed
         val zp = zeropage
@@ -84,9 +90,10 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
 
         when {
-            options.launcher == LauncherType.BASIC -> {
-                if (program.actualLoadAddress != options.compTarget.machine.BASIC_LOAD_ADDRESS)
-                    throw AssemblyError("BASIC output must have correct load address")
+            options.launcher == LauncherType.CBMBASIC -> {
+                if (program.actualLoadAddress != options.compTarget.machine.BASIC_LOAD_ADDRESS) {
+                    errors.err("BASIC output must have load address ${options.compTarget.machine.BASIC_LOAD_ADDRESS.toHex()}", program.toplevelModule.position)
+                }
                 asmgen.out("; ---- basic program with sys call ----")
                 asmgen.out("* = ${program.actualLoadAddress.toHex()}")
                 val year = LocalDate.now().year

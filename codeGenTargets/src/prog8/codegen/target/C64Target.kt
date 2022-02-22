@@ -15,7 +15,7 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Cb
     override val machine = C64MachineDefinition()
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES)
     override val defaultEncoding = Encoding.PETSCII
-    override val defaultLauncherType = LauncherType.BASIC
+    override val defaultLauncherType = LauncherType.CBMBASIC
 
     companion object {
         const val NAME = "c64"

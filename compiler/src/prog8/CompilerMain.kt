@@ -9,6 +9,7 @@ import prog8.codegen.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
+import prog8.compilerinterface.LauncherType
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -18,7 +19,7 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    val buildVersion = object {}.javaClass.getResource("/version.txt").readText().trim()
+    val buildVersion = object {}.javaClass.getResource("/version.txt")?.readText()?.trim()
     println("\nProg8 compiler v$buildVersion by Irmen de Jong (irmen@razorvine.net)")
     println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
 
@@ -167,10 +168,16 @@ private fun compileMain(args: Array<String>): Boolean {
 
             val programNameInPath = outputPath.resolve(compilationResult.programName)
 
-            if (startEmulator1==true)
-                compilationResult.compTarget.machine.launchEmulator(1, programNameInPath)
-            else if (startEmulator2==true)
-                compilationResult.compTarget.machine.launchEmulator(2, programNameInPath)
+            if(startEmulator1==true || startEmulator2==true) {
+                if (compilationResult.compilationOptions.launcher != LauncherType.NONE) {
+                    if (startEmulator1 == true)
+                        compilationResult.compilationOptions.compTarget.machine.launchEmulator(1, programNameInPath)
+                    else if (startEmulator2 == true)
+                        compilationResult.compilationOptions.compTarget.machine.launchEmulator(2, programNameInPath)
+                } else {
+                    println("\nCan't start emulator because program has no launcher type.")
+                }
+            }
         }
     }
 

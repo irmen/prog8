@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- get rid of RAW_LOAD_ADDRESS  and make specifying the load address for RAW launcher mode required
 ...
 
 

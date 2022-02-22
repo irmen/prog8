@@ -20,7 +20,6 @@ interface IMachineDefinition {
     val ESTACK_LO: UInt
     val ESTACK_HI: UInt
     val BASIC_LOAD_ADDRESS : UInt
-    val RAW_LOAD_ADDRESS : UInt
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage

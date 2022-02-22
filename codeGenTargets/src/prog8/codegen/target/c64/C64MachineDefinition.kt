@@ -14,7 +14,6 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val BASIC_LOAD_ADDRESS = 0x0801u
-    override val RAW_LOAD_ADDRESS = 0xc000u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
@@ -25,7 +24,7 @@ class C64MachineDefinition: IMachineDefinition {
     override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return if (compilerOptions.launcher == LauncherType.BASIC || compilerOptions.output == OutputType.PRG)
+        return if (compilerOptions.launcher == LauncherType.CBMBASIC || compilerOptions.output == OutputType.PRG)
             listOf("syslib")
         else
             emptyList()

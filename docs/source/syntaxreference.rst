@@ -90,13 +90,9 @@ Directives
 .. data:: %address <address>
 
 	Level: module.
-	Global setting, set the program's start memory address
-
-	- default for ``raw`` output is ``$c000``
-	- default for ``prg`` output is ``$0801``
-	- cannot be changed if you select ``prg`` with a ``basic`` launcher;
-	  then it is always ``$081e`` (immediately after the BASIC program), and the BASIC program itself is always at ``$0801``.
-	  This is because the C64 expects BASIC programs to start at this address.
+	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
+	default launcher type is a CBM-basic program. But you have to specify this address yourself when
+	you don't use a CBM-basic launcher.
 
 
 .. data:: %import <name>

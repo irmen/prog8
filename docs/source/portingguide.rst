@@ -32,8 +32,7 @@ RAM, ROM, I/O
 =============
 
 #. what part(s) of the address space is RAM?  What parts of the RAM can be used by user programs?
-#. what is the load address of Basic programs?
-#. what is a good load address of machine code programs?
+#. what is the usual starting memory address of programs?
 #. what is the best place to put 2 pages (512 bytes total) of scratch area data in RAM?
 #. what part(s) of the address space is ROM?
 #. what part(s) of the address space is memory mapped I/O registers?

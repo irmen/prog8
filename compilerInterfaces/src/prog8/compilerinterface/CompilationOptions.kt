@@ -9,7 +9,7 @@ enum class OutputType {
 }
 
 enum class LauncherType {
-    BASIC,
+    CBMBASIC,
     NONE
 }
 

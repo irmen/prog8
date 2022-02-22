@@ -86,7 +86,7 @@ internal fun generateAssembly(
     variables: IVariablesAndConsts,
     options: CompilationOptions? = null
 ): IAssemblyProgram? {
-    val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, true, C64Target(), outputDir = outputDir)
+    val coptions = options ?: CompilationOptions(OutputType.RAW, LauncherType.CBMBASIC, ZeropageType.DONTUSE, emptyList(), true, true, C64Target(), outputDir = outputDir)
     coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
     val asmgen = AsmGen(program, ErrorReporterForTests(), variables, coptions)
     return asmgen.compileToAssembly()

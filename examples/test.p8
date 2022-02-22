@@ -1,5 +1,8 @@
 %import textio
 %zeropage kernalsafe
+; %launcher none
+;%output prg
+;%address $2022
 
 main {
     sub start() {

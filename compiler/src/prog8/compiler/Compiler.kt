@@ -30,7 +30,7 @@ import kotlin.system.measureTimeMillis
 class CompilationResult(val success: Boolean,
                         val program: Program,
                         val programName: String,
-                        val compTarget: ICompilationTarget,
+                        val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>)
 
 class CompilerArguments(val filepath: Path,
@@ -64,10 +64,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
             else -> throw IllegalArgumentException("invalid compilation target")
         }
 
+    var compilationOptions: CompilationOptions
+
     try {
         val totalTime = measureTimeMillis {
             // import main module and everything it needs
-            val (programresult, compilationOptions, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
+            val (programresult, options, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
+            compilationOptions = options
             print("Parsed ${args.filepath}")
             ModuleImporter.ansiEraseRestOfLine(true)
 
@@ -106,7 +109,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
-                        return CompilationResult(false, program, programName, compTarget, importedFiles)
+                        return CompilationResult(false, program, programName, compilationOptions, importedFiles)
                     }
                 }
             }
@@ -115,7 +118,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         System.err.flush()
         val seconds = totalTime/1000.0
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
-        return CompilationResult(true, program, programName, compTarget, importedFiles)
+        return CompilationResult(true, program, programName, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
@@ -149,7 +152,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
     }
 
     val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compTarget)
-    return CompilationResult(false, failedProgram, programName, compTarget, emptyList())
+    val dummyoptions = CompilationOptions(
+        OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(),
+        floats = false,
+        noSysInit = true,
+        compTarget = compTarget
+    )
+    return CompilationResult(false, failedProgram, programName, dummyoptions, emptyList())
 }
 
 private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {
@@ -206,9 +215,9 @@ fun parseImports(filepath: Path,
     importer.importLibraryModule("math")
     importer.importLibraryModule("prog8_lib")
 
-    if (compilerOptions.launcher == LauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+    if (compilerOptions.launcher == LauncherType.CBMBASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
-    if(compilerOptions.launcher == LauncherType.BASIC && compTarget.name==AtariTarget.NAME)
+    if(compilerOptions.launcher == LauncherType.CBMBASIC && compTarget.name==AtariTarget.NAME)
         errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
 
     errors.report()
@@ -265,7 +274,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
             LauncherType.valueOf(launcherTypeStr)
         } catch (x: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
-            LauncherType.BASIC
+            LauncherType.CBMBASIC
         }
     }
 
