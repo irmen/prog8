@@ -823,16 +823,61 @@ sys {
 
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
         ; note: can't be inlined because is called from asm as well
+        ;       also: doesn't use cx16 ROM routine so this always works even when ROM is not banked in.
         %asm {{
-            sta  cx16.r2
-            sty  cx16.r2+1
-            jmp  cx16.memory_copy
+            cpy  #0
+            bne  _longcopy
+
+            ; copy <= 255 bytes
+            tay
+            bne  _copyshort
+            rts     ; nothing to copy
+
+_copyshort
+            ; decrease source and target pointers so we can simply index by Y
+            lda  cx16.r0
+            bne  +
+            dec  cx16.r0+1
++           dec  cx16.r0
+            lda  cx16.r1
+            bne  +
+            dec  cx16.r1+1
++           dec  cx16.r1
+
+-           lda  (cx16.r0),y
+            sta  (cx16.r1),y
+            dey
+            bne  -
+            rts
+
+_longcopy
+            pha                         ; lsb(count) = remainder in last page
+            tya
+            tax                         ; x = num pages (1+)
+            ldy  #0
+-           lda  (cx16.r0),y
+            sta  (cx16.r1),y
+            iny
+            bne  -
+            inc  cx16.r0+1
+            inc  cx16.r1+1
+            dex
+            bne  -
+            ply
+            bne  _copyshort
+            rts
         }}
     }
 
-    inline asmsub memset(uword mem @R0, uword numbytes @R1, ubyte value @A) clobbers(A,X,Y) {
+    asmsub memset(uword mem @R0, uword numbytes @R1, ubyte value @A) clobbers(A,X,Y) {
         %asm {{
-            jsr  cx16.memory_fill
+            ldy  cx16.r0
+            sty  P8ZP_SCRATCH_W1
+            ldy  cx16.r0+1
+            sty  P8ZP_SCRATCH_W1+1
+            ldx  cx16.r1
+            ldy  cx16.r1+1
+            jmp  prog8_lib.memset
         }}
     }
 

@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- move memcopy() logic to prog8_lib and call this from sys.memcopy() the same for all targets (so cx16 now also works when kernal is disabled!)
-- same for memset()
 - get rid of RAW_LOAD_ADDRESS  and make specifying the load address for RAW launcher mode required
 ...
 
@@ -12,7 +10,7 @@ For next release
 Need help with
 ^^^^^^^^^^^^^^
 - c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
-- other targets such as Atari 800XL: all required details about the machine, I have no clue whatsoever
+- atari target: more details details about the machine, fixing library routines. I have no clue whatsoever.
 - see the :ref:`portingguide` for details on what information is needed.
 
 
