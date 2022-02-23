@@ -21,7 +21,7 @@ sub home() {
 }
 
 sub nl() {
-    txt.chrout('\n')
+    txt.chrout(155)
 }
 
 sub spc() {
@@ -118,7 +118,28 @@ asmsub  scroll_down  (ubyte alsocolors @ Pc) clobbers(A)  {
 }
 
 
-romsub $FFD2 = chrout(ubyte char @ A)    ; TODO
+romsub $F2B0 = outchar(ubyte char @ A)
+romsub $F2Fd = waitkey()
+
+asmsub chrout(ubyte char @ A) {
+	%asm {{
+		sta  _tmp_outchar+1
+		pha
+		txa
+		pha
+		tya
+		pha
+_tmp_outchar
+		lda  #0
+		jsr  outchar
+		pla
+		tay
+		pla
+		tax
+		pla
+		rts
+	}}
+}
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
