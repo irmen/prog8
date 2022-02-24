@@ -169,7 +169,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val programNameInPath = outputPath.resolve(compilationResult.programName)
 
             if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.compilationOptions.launcher != LauncherType.NONE) {
+                if (compilationResult.compilationOptions.launcher != LauncherType.NONE || compilationTarget=="atari") {
                     if (startEmulator1 == true)
                         compilationResult.compilationOptions.compTarget.machine.launchEmulator(1, programNameInPath)
                     else if (startEmulator2 == true)

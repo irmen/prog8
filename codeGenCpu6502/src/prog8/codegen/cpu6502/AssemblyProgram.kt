@@ -94,7 +94,7 @@ internal class AssemblyProgram(
 
         val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
         val result = proc.waitFor()
-        if (result == 0) {
+        if (result == 0 && compTarget.name!="atari") {
             removeGeneratedLabelsFromMonlist()
             generateBreakpointList()
         }
