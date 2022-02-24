@@ -5,7 +5,9 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.*
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.FunctionCallExpression
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 
@@ -124,30 +126,6 @@ class CallGraph(private val program: Program, private val allowMissingIdentifier
 
     override fun visit(inlineAssembly: InlineAssembly) {
         allAssemblyNodes.add(inlineAssembly)
-    }
-
-    override fun visit(pipe: PipeExpression) {
-        processPipe(pipe.expressions, pipe)
-        super.visit(pipe)
-    }
-
-    override fun visit(pipe: Pipe) {
-        processPipe(pipe.expressions, pipe)
-        super.visit(pipe)
-    }
-
-    private fun processPipe(expressions: Iterable<Expression>, pipe: Node) {
-        expressions.forEach {
-            if(it is IdentifierReference){
-                val otherSub = it.targetSubroutine(program)
-                if(otherSub!=null) {
-                    pipe.definingSubroutine?.let { thisSub ->
-                        calls[thisSub] = calls.getValue(thisSub) + otherSub
-                        calledBy[otherSub] = calledBy.getValue(otherSub) + pipe
-                    }
-                }
-            }
-        }
     }
 
     fun checkRecursiveCalls(errors: IErrorReporter) {

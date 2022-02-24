@@ -443,8 +443,12 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if(addressof()!=null)
         return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
 
-    if(pipe!=null)
-        return PipeExpression(pipesource.toAst(), pipetarget.toAst(), toPosition())
+    if(pipesegment()!=null)
+        return PipeExpression(
+            expression(0).toAst(),
+            pipesegment().map { it.functioncall().toAst() }.toMutableList(),
+            toPosition()
+        )
 
     throw FatalAstException(text)
 }
@@ -602,7 +606,9 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expr
 }
 
 private fun Prog8ANTLRParser.PipestmtContext.toAst(): Pipe {
-    val source = this.source.toAst()
-    val target = this.target.toAst()
-    return Pipe(source, target, toPosition())
+    return Pipe(
+        expression().toAst(),
+        pipesegment().map { it.functioncall().toAst() }.toMutableList(),
+        toPosition()
+    )
 }

@@ -183,9 +183,8 @@ expression :
 	| directmemory
 	| addressof
 	| expression typecast
-    | pipesource = expression EOL? pipe=PIPE EOL? pipetarget = expression
+	| expression pipesegment+
 	;
-
 
 typecast : 'as' datatype;
 
@@ -208,7 +207,9 @@ returnstmt : 'return' expression? ;
 
 breakstmt : 'break';
 
-pipestmt:  source=expression pipe=PIPE EOL? target=expression ;
+pipestmt :  expression pipesegment+;
+
+pipesegment :  EOL? PIPE functioncall ;
 
 identifier :  NAME ;
 

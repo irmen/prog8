@@ -50,7 +50,7 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             val target = call.target.targetStatement(program)
             if (target is Subroutine) {
                 if(call.args.size != target.parameters.size)
-                    return "invalid number of arguments"
+                    return "invalid number of arguments (#1)"       // TODO how does this relate to the same error in AstIdentifiersChecker
                 val paramtypes = target.parameters.map { it.type }
                 val mismatch = argtypes.zip(paramtypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
@@ -79,7 +79,7 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
                 if(call.args.size != func.parameters.size)
-                    return "invalid number of arguments"
+                    return "invalid number of arguments (#2)"    // TODO how does this relate to the same error in AstIdentifiersChecker
                 val paramtypes = func.parameters.map { it.possibleDatatypes }
                 argtypes.zip(paramtypes).forEachIndexed { index, pair ->
                     val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }

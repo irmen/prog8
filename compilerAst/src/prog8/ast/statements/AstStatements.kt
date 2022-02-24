@@ -1022,35 +1022,30 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 }
 
 
-class Pipe(val expressions: MutableList<Expression>, override val position: Position): Statement() {
+class Pipe(override var source: Expression,
+           override val segments: MutableList<FunctionCallExpression>,
+           override val position: Position): Statement(), IPipe {
     override lateinit var parent: Node
-
-    constructor(source: Expression, target: Expression, position: Position) : this(mutableListOf(), position) {
-        if(source is PipeExpression)
-            expressions.addAll(source.expressions)
-        else
-            expressions.add(source)
-
-        if(target is PipeExpression)
-            expressions.addAll(target.expressions)
-        else
-            expressions.add(target)
-    }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        expressions.forEach { it.linkParents(this) }
+        source.linkParents(this)
+        segments.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = Pipe(expressions.map { it.copy() }.toMutableList(), position)
+    override fun copy() = Pipe(source.copy(), segments.map { it.copy() }.toMutableList(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)  = visitor.visit(this, parent)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(node is Expression)
         require(replacement is Expression)
-        val idx = expressions.indexOf(node)
-        expressions[idx] = replacement
+        if(node===source) {
+            source = replacement
+        } else {
+            val idx = segments.indexOf(node)
+            segments[idx] = replacement as FunctionCallExpression
+        }
     }
 }
 

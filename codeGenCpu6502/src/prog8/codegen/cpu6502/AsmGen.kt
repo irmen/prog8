@@ -337,7 +337,7 @@ class AsmGen(internal val program: Program,
             is RepeatLoop -> translate(stmt)
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
-            is Pipe -> translatePipeExpression(stmt.expressions, stmt, true, false)
+            is Pipe -> translatePipeExpression(stmt.source, stmt.segments, stmt, isStatement = true, pushResultOnEstack = false)
             is VarDecl -> { /* do nothing; variables are handled elsewhere */ }
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
@@ -2837,10 +2837,14 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun translatePipeExpression(expressions: Iterable<Expression>, scope: Node, isStatement: Boolean, pushResultOnEstack: Boolean) {
+    internal fun translatePipeExpression(source: Expression, segments: Iterable<FunctionCallExpression>, scope: Node, isStatement: Boolean, pushResultOnEstack: Boolean) {
 
         // TODO more efficient code generation to avoid needless assignments to the temp var
 
+        TODO("translatePipeExpression")
+
+
+/*
         // the first term: an expression (could be anything) producing a value.
         val subroutine = scope.definingSubroutine!!
         val firstTerm = expressions.first()
@@ -2886,6 +2890,7 @@ $repeatLabel    lda  $counterVar
                 }
             }
         }
+*/
     }
 
     internal fun popCpuStack(dt: DataType, target: VarDecl, scope: Subroutine?) {

@@ -25,17 +25,17 @@ class TestPipes: FunSpec({
             main {
                 sub start() {
 
-                    1.234 |> addfloat 
-                          |> floats.print_f
+                    1.234 |> addfloat() 
+                          |> floats.print_f()
                     
-                    9999 |> addword
-                         |> txt.print_uw
+                    9999 |> addword()
+                         |> txt.print_uw()
 
                     ; these are optimized into just the function calls:
-                    9999 |> abs |> txt.print_uw
-                    9999 |> txt.print_uw
-                    99 |> abs |> txt.print_ub
-                    99 |> txt.print_ub
+                    9999 |> abs() |> txt.print_uw()
+                    9999 |> txt.print_uw()
+                    99 |> abs() |> txt.print_ub()
+                    99 |> txt.print_ub()
                 }
 
                 sub addfloat(float fl) -> float {
@@ -50,14 +50,16 @@ class TestPipes: FunSpec({
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
         val pipef = stmts[0] as Pipe
-        pipef.expressions.size shouldBe 2
-        pipef.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
-        pipef.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipef.source shouldBe instanceOf<NumericLiteral>()
+        pipef.segments.size shouldBe 2
+        pipef.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipef.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         val pipew = stmts[1] as Pipe
-        pipew.expressions.size shouldBe 2
-        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
-        pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipef.source shouldBe instanceOf<NumericLiteral>()
+        pipew.segments.size shouldBe 2
+        pipew.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipew.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         var stmt = stmts[2] as FunctionCallStatement
         stmt.target.nameInSource shouldBe listOf("txt", "print_uw")
@@ -127,15 +129,17 @@ class TestPipes: FunSpec({
         stmts.size shouldBe 8
         val assignf = stmts[1] as Assignment
         val pipef = assignf.value as PipeExpression
-        pipef.expressions.size shouldBe 2
-        pipef.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
-        pipef.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipef.source shouldBe instanceOf<NumericLiteral>()
+        pipef.segments.size shouldBe 2
+        pipef.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipef.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         val assignw = stmts[3] as Assignment
         val pipew = assignw.value as PipeExpression
-        pipew.expressions.size shouldBe 2
-        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
-        pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipew.source shouldBe instanceOf<NumericLiteral>()
+        pipew.segments.size shouldBe 2
+        pipew.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipew.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         var assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
@@ -143,9 +147,10 @@ class TestPipes: FunSpec({
 
         assigncc = stmts[6] as Assignment
         val pipecc = assigncc.value as PipeExpression
-        pipecc.expressions.size shouldBe 2
-        pipecc.expressions[0] shouldBe instanceOf<BuiltinFunctionCall>()
-        pipecc.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipecc.source shouldBe instanceOf<NumericLiteral>()
+        pipecc.segments.size shouldBe 2
+        pipecc.segments[0] shouldBe instanceOf<BuiltinFunctionCall>()
+        pipecc.segments[1] shouldBe instanceOf<IdentifierReference>()
     }
 
     test("correct pipe expressions with variables at end") {
@@ -171,9 +176,10 @@ class TestPipes: FunSpec({
 
         val assignw = stmts[4] as Assignment
         val pipew = assignw.value as PipeExpression
-        pipew.expressions.size shouldBe 2
-        pipew.expressions[0] shouldBe instanceOf<FunctionCallExpression>()
-        pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipew.source shouldBe instanceOf<NumericLiteral>()
+        pipew.segments.size shouldBe 2
+        pipew.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipew.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         val assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
@@ -221,14 +227,16 @@ class TestPipes: FunSpec({
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
         val pipef = stmts[4] as Pipe
-        pipef.expressions.size shouldBe 2
-        pipef.expressions[0] shouldBe instanceOf<BuiltinFunctionCall>()
-        pipef.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipef.source shouldBe instanceOf<NumericLiteral>()
+        pipef.segments.size shouldBe 2
+        pipef.segments[0] shouldBe instanceOf<BuiltinFunctionCall>()
+        pipef.segments[1] shouldBe instanceOf<IdentifierReference>()
 
         val pipew = stmts[5] as Pipe
-        pipew.expressions.size shouldBe 2
-        pipew.expressions[0] shouldBe instanceOf<BuiltinFunctionCall>()
-        pipew.expressions[1] shouldBe instanceOf<IdentifierReference>()
+        pipew.source shouldBe instanceOf<NumericLiteral>()
+        pipew.segments.size shouldBe 2
+        pipew.segments[0] shouldBe instanceOf<BuiltinFunctionCall>()
+        pipew.segments[1] shouldBe instanceOf<IdentifierReference>()
     }
 
     test("pipe statement with type errors") {

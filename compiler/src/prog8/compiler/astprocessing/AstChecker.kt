@@ -1244,9 +1244,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(pipe: PipeExpression) {
-        processPipe(pipe.expressions, pipe)
+        processPipe(pipe.source, pipe.segments, pipe)
         if(errors.noErrors()) {
-            val last = pipe.expressions.last() as IdentifierReference
+            val last = pipe.segments.last().target
             when (val target = last.targetStatement(program)!!) {
                 is BuiltinFunctionPlaceholder -> {
                     if (!BuiltinFunctions.getValue(target.name).hasReturn)
@@ -1265,73 +1265,67 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(pipe: Pipe) {
-        processPipe(pipe.expressions, pipe)
+        processPipe(pipe.source, pipe.segments, pipe)
         if(errors.noErrors()) {
             super.visit(pipe)
         }
     }
 
-    private fun processPipe(expressions: List<Expression>, scope: Node) {
+    private fun processPipe(source: Expression, segments: List<FunctionCallExpression>, scope: Node) {
         // first expression is just any expression producing a value
         // all other expressions should be the name of a unary function that returns a single value
         // the last expression should be the name of a unary function whose return value we don't care about.
-        if (expressions.size < 2) {
+        if (segments.isEmpty()) {
             errors.err("pipe is missing one or more expressions", scope.position)
         } else {
             // invalid size and other issues will be handled by the ast checker later.
-            var valueDt = expressions[0].inferType(program).getOrElse {
-                throw FatalAstException("invalid dt ${expressions[0]} @ ${scope.position}")
+            var valueDt = source.inferType(program).getOrElse {
+                throw FatalAstException("invalid dt")
             }
 
-            for(expr in expressions.drop(1)) {         // just keep the first expression value as-is
-                val functionName = expr as? IdentifierReference
-                val target = functionName?.targetStatement(program)
-                if(functionName!=null && target!=null) {
+            for(funccall in segments) {
+                val target = funccall.target.targetStatement(program)
+                if(target!=null) {
                     when (target) {
                         is BuiltinFunctionPlaceholder -> {
                             val func = BuiltinFunctions.getValue(target.name)
                             if(func.parameters.size!=1)
-                                errors.err("can only use unary function", expr.position)
-                            else if(!func.hasReturn && expr !== expressions.last())
-                                errors.err("function must return a single value", expr.position)
+                                errors.err("can only use unary function", funccall.position)
+                            else if(!func.hasReturn && funccall !== segments.last())
+                                errors.err("function must return a single value", funccall.position)
 
                             val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
                             if(paramDts!=null && !paramDts.any { valueDt isAssignableTo it })
-                                errors.err("pipe value datatype $valueDt incompatible withfunction argument ${paramDts.toList()}", functionName.position)
+                                errors.err("pipe value datatype $valueDt incompatible with function argument ${paramDts.toList()}", funccall.position)
 
                             if(errors.noErrors()) {
                                 // type can depend on the argument(s) of the function. For now, we only deal with unary functions,
                                 // so we know there must be a single argument. Take its type from the previous expression in the pipe chain.
-                                val zero = defaultZero(valueDt, expr.position)
+                                val zero = defaultZero(valueDt, funccall.position)
                                 valueDt = builtinFunctionReturnType(func.name, listOf(zero), program).getOrElse { DataType.UNDEFINED }
                             }
                         }
                         is Subroutine -> {
                             if(target.parameters.size!=1)
-                                errors.err("can only use unary function", expr.position)
-                            else if(target.returntypes.size!=1 && expr !== expressions.last())
-                                errors.err("function must return a single value", expr.position)
+                                errors.err("can only use unary function", funccall.position)
+                            else if(target.returntypes.size!=1 && funccall !== segments.last())
+                                errors.err("function must return a single value", funccall.position)
 
                             val paramDt = target.parameters.firstOrNull()?.type
                             if(paramDt!=null && !(valueDt isAssignableTo paramDt))
-                                errors.err("pipe value datatype $valueDt incompatible with function argument $paramDt", functionName.position)
+                                errors.err("pipe value datatype $valueDt incompatible with function argument $paramDt", funccall.position)
 
                             if(target.returntypes.isNotEmpty())
                                 valueDt = target.returntypes.single()
                         }
                         is VarDecl -> {
                             if(!(valueDt isAssignableTo target.datatype))
-                                errors.err("final pipe value datatype can't be stored in pipe ending variable", functionName.position)
+                                errors.err("final pipe value datatype can't be stored in pipe ending variable", funccall.position)
                         }
                         else -> {
                             throw FatalAstException("weird function")
                         }
                     }
-                } else {
-                    if(expr is IFunctionCall)
-                        errors.err("use only the name of the function, not a call", expr.position)
-                    else
-                        errors.err("can only use unary function", expr.position)
                 }
             }
         }

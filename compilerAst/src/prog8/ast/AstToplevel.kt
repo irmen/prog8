@@ -4,8 +4,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.base.findParentNode
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
@@ -17,6 +16,15 @@ const val internedStringsModuleName = "prog8_interned_strings"
 interface IFunctionCall {
     var target: IdentifierReference
     var args: MutableList<Expression>
+    val position: Position
+    var parent: Node             // will be linked correctly later (late init)
+}
+
+interface IPipe {
+    var source: Expression
+    val segments: MutableList<FunctionCallExpression>
+    val position: Position
+    var parent: Node             // will be linked correctly later (late init)
 }
 
 interface IStatementContainer {

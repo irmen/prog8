@@ -283,7 +283,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
             is PipeExpression -> {
-                asmgen.translatePipeExpression(value.expressions, value, false, false)
+                asmgen.translatePipeExpression(value.source, value.segments, value, false, false)
                 val resultDt = value.inferType(program)
                 val register =
                     if(resultDt.isBytes) RegisterOrPair.A

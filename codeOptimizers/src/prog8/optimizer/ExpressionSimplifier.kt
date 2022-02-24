@@ -334,47 +334,43 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     override fun after(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
-        val expressions = pipeExpr.expressions
-        if(expressions.size==2 && expressions[0].isSimple) {
+        require(pipeExpr.segments.isNotEmpty())
+        val segments = pipeExpr.segments
+        if(segments.size==1 && segments[0].isSimple) {
             // just replace with a normal function call
-            val funcname = expressions[1] as IdentifierReference
-            val arg = expressions[0]
+            val funcname = segments[1].target
+            val arg = segments[0]
             val call = FunctionCallExpression(funcname.copy(), mutableListOf(arg), arg.position)
             return listOf(IAstModification.ReplaceNode(pipeExpr, call, parent))
         }
-        require(expressions.size>=2) { "pipe expression should have 2 or more parts" }
-        val firstValue = expressions.first()
+        val firstValue = pipeExpr.source
         if(firstValue.isSimple) {
-            val funcname = expressions[1] as IdentifierReference
+            val funcname = pipeExpr.segments[0].target
             val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
-            val newExprs = mutableListOf<Expression>(first)
-            newExprs.addAll(expressions.drop(2))
-            return listOf(IAstModification.ReplaceNode(pipeExpr, PipeExpression(newExprs, pipeExpr.position), parent))
-        }
-        val singleExpr = expressions.singleOrNull()
-        if(singleExpr!=null) {
-            val callExpr = singleExpr as FunctionCallExpression
-            val call = FunctionCallExpression(callExpr.target, callExpr.args, callExpr.position)
-            return listOf(IAstModification.ReplaceNode(pipeExpr, call, parent))
+            val newSegments = mutableListOf(first)
+            newSegments.addAll(pipeExpr.segments.drop(1))
+            return listOf(IAstModification.ReplaceNode(pipeExpr, PipeExpression(first, newSegments, pipeExpr.position), parent))
         }
         return noModifications
     }
 
     override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
-        val expressions = pipe.expressions
-        val firstValue = expressions.first()
-        if(firstValue.isSimple) {
-            val funcname = expressions[1] as IdentifierReference
-            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
-            val newExprs = mutableListOf<Expression>(first)
-            newExprs.addAll(expressions.drop(2))
-            return listOf(IAstModification.ReplaceNode(pipe, Pipe(newExprs, pipe.position), parent))
-        }
-        val singleExpr = expressions.singleOrNull()
-        if(singleExpr!=null) {
-            val callExpr = singleExpr as FunctionCallExpression
-            val call = FunctionCallStatement(callExpr.target, callExpr.args, true, callExpr.position)
+        require(pipe.segments.isNotEmpty())
+        val segments = pipe.segments
+        if(segments.size==1 && segments[0].isSimple) {
+            // just replace with a normal function call
+            val funcname = segments[1].target
+            val arg = segments[0]
+            val call = FunctionCallExpression(funcname.copy(), mutableListOf(arg), arg.position)
             return listOf(IAstModification.ReplaceNode(pipe, call, parent))
+        }
+        val firstValue = pipe.source
+        if(firstValue.isSimple) {
+            val funcname = pipe.segments[0].target
+            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
+            val newSegments = mutableListOf(first)
+            newSegments.addAll(pipe.segments.drop(1))
+            return listOf(IAstModification.ReplaceNode(pipe, Pipe(first, newSegments, pipe.position), parent))
         }
         return noModifications
     }

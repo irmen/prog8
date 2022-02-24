@@ -1,14 +1,12 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.base.NumericDatatypes
-import prog8.ast.base.SyntaxError
-import prog8.ast.base.VarDeclType
+import prog8.ast.*
+import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
@@ -112,5 +110,45 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             }
         }
         return noModifications
+    }
+
+    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
+        return process(pipe, parent)
+    }
+
+    override fun after(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
+        return process(pipeExpr, parent)
+    }
+
+    private fun process(pipe: IPipe, parent: Node): Iterable<IAstModification> {
+        // add the "missing" first argument to each function call in the pipe segments
+        // so that all function call related checks just pass
+        // might have to remove it again when entering code generation pass, or just replace it there
+        // with the proper output value of the previous pipe segment.
+        return pipe.segments.map {
+            val firstArgDt = when (val target = it.target.targetStatement(program)) {
+                is Subroutine -> target.parameters.first().type
+                is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(target.name).parameters.first().possibleDatatypes.first()
+                else -> DataType.UNDEFINED
+            }
+            val dummyFirstArg = when (firstArgDt) {
+                in IntegerDatatypes -> {
+                    IdentifierReference(
+                        getTempRegisterName(InferredTypes.InferredType.known(firstArgDt)),
+                        pipe.position
+                    )
+                }
+                DataType.FLOAT -> {
+                    val (name, _) = program.getTempVar(DataType.FLOAT)
+                    IdentifierReference(name, pipe.position)
+                }
+                else -> throw FatalAstException("weird dt")
+            }
+
+            IAstModification.SetExpression(
+                { newexpr -> it.args.add(0, newexpr) },
+                dummyFirstArg, parent
+            )
+        }
     }
 }

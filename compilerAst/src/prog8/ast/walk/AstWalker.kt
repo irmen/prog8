@@ -473,13 +473,15 @@ abstract class AstWalker {
 
     fun visit(pipe: Pipe, parent: Node) {
         track(before(pipe, parent), pipe, parent)
-        pipe.expressions.forEach { it.accept(this, pipe) }
+        pipe.source.accept(this, pipe)
+        pipe.segments.forEach { it.accept(this, pipe) }
         track(after(pipe, parent), pipe, parent)
     }
 
     fun visit(pipe: PipeExpression, parent: Node) {
         track(before(pipe, parent), pipe, parent)
-        pipe.expressions.forEach { it.accept(this, pipe) }
+        pipe.source.accept(this, pipe)
+        pipe.segments.forEach { it.accept(this, pipe) }
         track(after(pipe, parent), pipe, parent)
     }
 }
