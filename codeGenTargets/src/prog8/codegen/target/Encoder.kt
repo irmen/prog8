@@ -2,6 +2,7 @@ package prog8.codegen.target
 
 import com.github.michaelbull.result.fold
 import prog8.ast.base.FatalAstException
+import prog8.codegen.target.cbm.AtasciiEncoding
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8.compilerinterface.Encoding
@@ -13,6 +14,7 @@ internal object Encoder: IStringEncoding {
             Encoding.PETSCII -> PetsciiEncoding.encodePetscii(str, true)
             Encoding.SCREENCODES -> PetsciiEncoding.encodeScreencode(str, true)
             Encoding.ISO -> IsoEncoding.encode(str)
+            Encoding.ATASCII -> AtasciiEncoding.encode(str)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
         return coded.fold(
@@ -25,6 +27,7 @@ internal object Encoder: IStringEncoding {
             Encoding.PETSCII -> PetsciiEncoding.decodePetscii(bytes, true)
             Encoding.SCREENCODES -> PetsciiEncoding.decodeScreencode(bytes, true)
             Encoding.ISO -> IsoEncoding.decode(bytes)
+            Encoding.ATASCII -> AtasciiEncoding.decode(bytes)
             else -> throw FatalAstException("unsupported encoding $encoding")
         }
         return decoded.fold(

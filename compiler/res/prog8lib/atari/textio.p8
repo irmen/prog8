@@ -9,19 +9,15 @@
 txt {
 
 const ubyte DEFAULT_WIDTH = 40
-const ubyte DEFAULT_HEIGHT = 25
+const ubyte DEFAULT_HEIGHT = 24
 
 
 sub  clear_screen() {
-    txt.chrout(147)     ; TODO
-}
-
-sub home() {
-    txt.chrout(19)      ; TODO
+    txt.chrout(125)
 }
 
 sub nl() {
-    txt.chrout(155)
+    txt.chrout('\n')
 }
 
 sub spc() {

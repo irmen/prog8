@@ -9,6 +9,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
+import prog8.codegen.target.cbm.AtasciiEncoding
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8tests.helpers.ErrorReporterForTests
@@ -179,6 +180,20 @@ class TestStringEncodings: FunSpec({
             PetsciiEncoding.decodeScreencode(listOf(93u), true).getOrElse { throw it }.single() shouldBe '│'
             PetsciiEncoding.decodeScreencode(listOf(66u), false).getOrElse { throw it }.single() shouldBe '\uf13c' // "BOX DRAWINGS LIGHT VERTICAL ONE EIGHTH LEFT (CUS)"
             PetsciiEncoding.decodeScreencode(listOf(66u), true).getOrElse { throw it }.single() shouldBe 'B'
+        }
+    }
+
+    context("atari") {
+        test("atascii encoding") {
+            AtasciiEncoding.encode("a") shouldBe Ok(listOf<UByte>(97u))
+            AtasciiEncoding.encode("A") shouldBe Ok(listOf<UByte>(65u))
+            AtasciiEncoding.encode("\n") shouldBe Ok(listOf<UByte>(155u))
+        }
+
+        test("atascii decoding") {
+            AtasciiEncoding.decode(listOf<UByte>(97u)) shouldBe Ok("a")
+            AtasciiEncoding.decode(listOf<UByte>(65u)) shouldBe Ok("A")
+            AtasciiEncoding.decode(listOf<UByte>(155u)) shouldBe Ok("\n")
         }
     }
 

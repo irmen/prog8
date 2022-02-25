@@ -159,7 +159,7 @@ object PetsciiEncoding {
         '\uf105',    //       0x90 -> BLACK COLOR SWITCH (CUS)
         '\uf11e',    //      0x91 -> CURSOR UP (CUS)
         '\uf11b',    //      0x92 -> REVERSE VIDEO OFF (CUS)
-        '\u000c',    //       0x93 -> FORM FEED
+        '\u000c',    //       0x93 -> FORM FEED (CLEAR SCREEN)
         '\uf121',    //      0x94 -> INSERT (CUS)
         '\uf106',    //       0x95 -> BROWN COLOR SWITCH (CUS)
         '\uf107',    //       0x96 -> LIGHT RED COLOR SWITCH (CUS)
@@ -195,7 +195,7 @@ object PetsciiEncoding {
         '\u258e',    //  ▎    0xB4 -> LEFT ONE QUARTER BLOCK
         '\u258d',    //  ▍    0xB5 -> LEFT THREE EIGTHS BLOCK
         '\uf131',    //      0xB6 -> RIGHT THREE EIGHTHS BLOCK (CUS)
-        '\uf132',    //      0xB7 -> UPPER ONE QUARTER BLOCK (CUS)
+        '\uf132',    //  🮂    0xB7 -> UPPER ONE QUARTER BLOCK (CUS)
         '\uf133',    //      0xB8 -> UPPER THREE EIGHTS BLOCK (CUS)
         '\u2583',    //  ▃    0xB9 -> LOWER THREE EIGHTHS BLOCK
         '\u2713',    //  ✓    0xBA -> CHECK MARK
@@ -246,7 +246,7 @@ object PetsciiEncoding {
         '\u2595',    //  ▕    0xE7 -> RIGHT ONE EIGHTH BLOCK
         '\uf12f',    //      0xE8 -> LOWER HALF BLOCK MEDIUM SHADE (CUS)
         '\uf13a',    //      0xE9 -> MEDIUM SHADE SLASHED RIGHT (CUS)
-        '\uf130',    //      0xEA -> RIGHT ONE QUARTER BLOCK (CUS)
+        '\uf130',    //  🮇    0xEA -> RIGHT ONE QUARTER BLOCK (CUS)
         '\u251c',    //  ├    0xEB -> BOX DRAWINGS LIGHT VERTICAL AND RIGHT
         '\u2597',    //  ▗    0xEC -> QUADRANT LOWER RIGHT
         '\u2514',    //  └    0xED -> BOX DRAWINGS LIGHT UP AND RIGHT
@@ -418,7 +418,7 @@ object PetsciiEncoding {
         '\uf105',    //       0x90 -> BLACK COLOR SWITCH (CUS)
         '\uf11e',    //       0x91 -> CURSOR UP (CUS)
         '\uf11b',    //       0x92 -> REVERSE VIDEO OFF (CUS)
-        '\u000c',    //       0x93 -> FORM FEED
+        '\u000c',    //       0x93 -> FORM FEED (CLEAR SCREEN)
         '\uf121',    //       0x94 -> INSERT (CUS)
         '\uf106',    //       0x95 -> BROWN COLOR SWITCH (CUS)
         '\uf107',    //       0x96 -> LIGHT RED COLOR SWITCH (CUS)

@@ -5,9 +5,9 @@
 ; hello world test for Atari 8-bit
 
 main {
-	sub start() {
+    sub start() {
         txt.print("Hello, World!")
-		txt.nl()
-		txt.waitkey()
+        txt.nl()
+        txt.waitkey()
     }
 }
