@@ -2,7 +2,6 @@ package prog8.codegen.target.cx16
 
 import prog8.codegen.target.cbm.Mflpt5
 import prog8.compilerinterface.*
-import java.io.IOException
 import java.nio.file.Path
 
 
@@ -30,16 +29,16 @@ class CX16MachineDefinition: IMachineDefinition {
     }
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
-        val emulatorName: String
+        val emulator: String
         val extraArgs: List<String>
 
         when(selectedEmulator) {
             1 -> {
-                emulatorName = "x16emu"
+                emulator = "x16emu"
                 extraArgs = emptyList()
             }
             2 -> {
-                emulatorName = "box16"
+                emulator = "box16"
                 extraArgs = listOf("-sym", viceMonListName(programNameWithPath.toString()))
             }
             else -> {
@@ -48,19 +47,11 @@ class CX16MachineDefinition: IMachineDefinition {
             }
         }
 
-        for(emulator in listOf(emulatorName)) {
-            println("\nStarting Commander X16 emulator $emulator...")
-            val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
-            val processb = ProcessBuilder(cmdline).inheritIO()
-            val process: Process
-            try {
-                process=processb.start()
-            } catch(x: IOException) {
-                continue  // try the next emulator executable
-            }
-            process.waitFor()
-            break
-        }
+        println("\nStarting Commander X16 emulator $emulator...")
+        val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
+        val processb = ProcessBuilder(cmdline).inheritIO()
+        val process: Process = processb.start()
+        process.waitFor()
     }
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0x9f00u..0x9fffu

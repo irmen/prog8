@@ -3,7 +3,6 @@ package prog8.codegen.target.c128
 import prog8.codegen.target.c64.normal6502instructions
 import prog8.codegen.target.cbm.Mflpt5
 import prog8.compilerinterface.*
-import java.io.IOException
 import java.nio.file.Path
 
 
@@ -37,21 +36,13 @@ class C128MachineDefinition: IMachineDefinition {
             return
         }
 
-        for(emulator in listOf("x128")) {
-            println("\nStarting C-128 emulator $emulator...")
-            val viceMonlist = viceMonListName(programNameWithPath.toString())
-            val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
-                    "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
-            val processb = ProcessBuilder(cmdline).inheritIO()
-            val process: Process
-            try {
-                process=processb.start()
-            } catch(x: IOException) {
-                continue  // try the next emulator executable
-            }
-            process.waitFor()
-            break
-        }
+        println("\nStarting C-128 emulator x128...")
+        val viceMonlist = viceMonListName(programNameWithPath.toString())
+        val cmdline = listOf("x128", "-silent", "-moncommands", viceMonlist,
+                "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
+        val processb = ProcessBuilder(cmdline).inheritIO()
+        val process: Process = processb.start()
+        process.waitFor()
     }
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu

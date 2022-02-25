@@ -2,7 +2,6 @@ package prog8.codegen.target.atari
 
 import prog8.codegen.target.c64.normal6502instructions
 import prog8.compilerinterface.*
-import java.io.IOException
 import java.nio.file.Path
 
 
@@ -31,24 +30,29 @@ class AtariMachineDefinition: IMachineDefinition {
     }
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
-        if(selectedEmulator!=1) {
-            System.err.println("The atari target only supports the main emulator (atari800).")
-            return
+        val emulatorName: String
+        val cmdline: List<String>
+        when(selectedEmulator) {
+            1 -> {
+                emulatorName = "atari800"
+                cmdline = listOf(emulatorName, "-xl", "-xl-rev", "2", "-nobasic", "-run", "${programNameWithPath}.xex")
+            }
+            2 -> {
+                emulatorName = "altirra"
+                cmdline = listOf("Altirra64.exe", "${programNameWithPath.normalize()}.xex")
+            }
+            else -> {
+                System.err.println("Atari target only supports atari800 and altirra emulators.")
+                return
+            }
         }
 
-        for(emulator in listOf("atari800")) {
-            println("\nStarting Atari800XL emulator $emulator...")
-            val cmdline = listOf(emulator, "-xl", "-nobasic", "-run", "${programNameWithPath}.xex")
-            val processb = ProcessBuilder(cmdline).inheritIO()
-            val process: Process
-            try {
-                process=processb.start()
-            } catch(x: IOException) {
-                continue  // try the next emulator executable
-            }
-            process.waitFor()
-            break
-        }
+        // TODO monlist?
+
+        println("\nStarting Atari800XL emulator $emulatorName...")
+        val processb = ProcessBuilder(cmdline).inheritIO()
+        val process: Process = processb.start()
+        process.waitFor()
     }
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu        // TODO
