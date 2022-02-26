@@ -15,7 +15,6 @@ class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by C
     override val machine = CX16MachineDefinition()
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES, Encoding.ISO)
     override val defaultEncoding = Encoding.PETSCII
-    override val defaultLauncherType = LauncherType.CBMBASIC
 
     companion object {
         const val NAME = "cx16"

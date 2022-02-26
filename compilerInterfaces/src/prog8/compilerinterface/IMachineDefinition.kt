@@ -19,7 +19,7 @@ interface IMachineDefinition {
     val FLOAT_MEM_SIZE: Int
     val ESTACK_LO: UInt
     val ESTACK_HI: UInt
-    val BASIC_LOAD_ADDRESS : UInt
+    val PROGRAM_LOAD_ADDRESS : UInt
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage

@@ -71,12 +71,27 @@ internal class ProgramAndVarsGen(
 
         program.actualLoadAddress = program.definedLoadAddress
         if (program.actualLoadAddress == 0u) {
-            if (options.launcher == LauncherType.CBMBASIC) {
-                program.actualLoadAddress = compTarget.machine.BASIC_LOAD_ADDRESS
-            }
-            else {
-                errors.err("load address must be specified with %address when using launcher type ${options.launcher}", program.toplevelModule.position)
-                return
+            when(options.output) {
+                OutputType.RAW -> {
+                    errors.err("load address must be specified with %address when using raw output type", program.toplevelModule.position)
+                    return
+                }
+                OutputType.PRG -> {
+                    when(options.launcher) {
+                        CbmPrgLauncherType.BASIC -> {
+                            program.actualLoadAddress = compTarget.machine.PROGRAM_LOAD_ADDRESS
+                        }
+                        CbmPrgLauncherType.NONE -> {
+                            errors.err("load address must be specified with %address when not using basic launcher", program.toplevelModule.position)
+                            return
+                        }
+                    }
+                }
+                OutputType.XEX -> {
+                    if(options.launcher!=CbmPrgLauncherType.NONE)
+                        throw AssemblyError("atari xex output can't contain BASIC launcher")
+                    program.actualLoadAddress = compTarget.machine.PROGRAM_LOAD_ADDRESS
+                }
             }
         }
 
@@ -89,32 +104,43 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ESTACK_LO = ${compTarget.machine.ESTACK_LO.toHex()}")
         asmgen.out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
 
-        when {
-            options.launcher == LauncherType.CBMBASIC -> {
-                if (program.actualLoadAddress != options.compTarget.machine.BASIC_LOAD_ADDRESS) {
-                    errors.err("BASIC output must have load address ${options.compTarget.machine.BASIC_LOAD_ADDRESS.toHex()}", program.toplevelModule.position)
-                }
-                asmgen.out("; ---- basic program with sys call ----")
-                asmgen.out("* = ${program.actualLoadAddress.toHex()}")
-                val year = LocalDate.now().year
-                asmgen.out("  .word  (+), $year")
-                asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
-                asmgen.out("+\t.word  0")
-                asmgen.out("prog8_entrypoint\t; assembly code starts here\n")
-                if(!options.noSysInit)
-                    asmgen.out("  jsr  ${compTarget.name}.init_system")
-                asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
-            }
-            options.output == OutputType.PRG -> {
-                asmgen.out("; ---- program without basic sys call ----")
-                asmgen.out("* = ${program.actualLoadAddress.toHex()}\n")
-                if(!options.noSysInit)
-                    asmgen.out("  jsr  ${compTarget.name}.init_system")
-                asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
-            }
-            options.output == OutputType.RAW -> {
+        when(options.output) {
+            OutputType.RAW -> {
                 asmgen.out("; ---- raw assembler program ----")
                 asmgen.out("* = ${program.actualLoadAddress.toHex()}\n")
+            }
+            OutputType.PRG -> {
+                when(options.launcher) {
+                    CbmPrgLauncherType.BASIC -> {
+                        if (program.actualLoadAddress != options.compTarget.machine.PROGRAM_LOAD_ADDRESS) {
+                            errors.err("BASIC output must have load address ${options.compTarget.machine.PROGRAM_LOAD_ADDRESS.toHex()}", program.toplevelModule.position)
+                        }
+                        asmgen.out("; ---- basic program with sys call ----")
+                        asmgen.out("* = ${program.actualLoadAddress.toHex()}")
+                        val year = LocalDate.now().year
+                        asmgen.out("  .word  (+), $year")
+                        asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
+                        asmgen.out("+\t.word  0")
+                        asmgen.out("prog8_entrypoint\t; assembly code starts here\n")
+                        if(!options.noSysInit)
+                            asmgen.out("  jsr  ${compTarget.name}.init_system")
+                        asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
+                    }
+                    CbmPrgLauncherType.NONE -> {
+                        asmgen.out("; ---- program without basic sys call ----")
+                        asmgen.out("* = ${program.actualLoadAddress.toHex()}\n")
+                        if(!options.noSysInit)
+                            asmgen.out("  jsr  ${compTarget.name}.init_system")
+                        asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
+                    }
+                }
+            }
+            OutputType.XEX -> {
+                asmgen.out("; ---- atari xex program ----")
+                asmgen.out("* = ${program.actualLoadAddress.toHex()}\n")
+                if(!options.noSysInit)
+                    asmgen.out("  jsr  ${compTarget.name}.init_system")
+                asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
             }
         }
 

@@ -23,7 +23,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- (due to the new atari target:) rework "launcher" option to a better name, include "XEX", and automatically set load address to $2000 in this case so %address can be omitted for atari programs too
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type

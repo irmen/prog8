@@ -20,7 +20,7 @@ import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.LauncherType
+import prog8.compilerinterface.CbmPrgLauncherType
 import prog8.compilerinterface.OutputType
 import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.*
@@ -302,7 +302,7 @@ class TestOptimization: FunSpec({
         expr.right.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UWORD
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val options = CompilationOptions(OutputType.RAW, LauncherType.CBMBASIC, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
+        val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
         result.program.processAstBeforeAsmGeneration(options, DummyVarsAndConsts, ErrorReporterForTests())
 
         // assignment is now split into:

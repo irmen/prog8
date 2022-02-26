@@ -43,9 +43,6 @@ class AsmGen(internal val program: Program,
 
     override fun compileToAssembly(): IAssemblyProgram? {
 
-        if(options.compTarget.name=="atari" && options.launcher==LauncherType.CBMBASIC)
-            throw AssemblyError("atari target cannot use CBM BASIC launcher type")
-
         assemblyLines.clear()
         loopEndLabels.clear()
 

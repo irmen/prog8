@@ -9,7 +9,7 @@ import prog8.codegen.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8.compilerinterface.LauncherType
+import prog8.compilerinterface.CbmPrgLauncherType
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -169,7 +169,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val programNameInPath = outputPath.resolve(compilationResult.programName)
 
             if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.compilationOptions.launcher != LauncherType.NONE || compilationTarget=="atari") {
+                if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari") {
                     if (startEmulator1 == true)
                         compilationResult.compilationOptions.compTarget.machine.launchEmulator(1, programNameInPath)
                     else if (startEmulator2 == true)

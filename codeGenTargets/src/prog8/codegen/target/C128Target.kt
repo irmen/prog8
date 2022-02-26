@@ -15,7 +15,6 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by C
     override val machine = C128MachineDefinition()
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES)
     override val defaultEncoding = Encoding.PETSCII
-    override val defaultLauncherType = LauncherType.CBMBASIC
 
     companion object {
         const val NAME = "c128"

@@ -5,11 +5,12 @@ import kotlin.io.path.Path
 
 enum class OutputType {
     RAW,
-    PRG
+    PRG,
+    XEX
 }
 
-enum class LauncherType {
-    CBMBASIC,
+enum class CbmPrgLauncherType {
+    BASIC,
     NONE
 }
 
@@ -22,7 +23,7 @@ enum class ZeropageType {
 }
 
 class CompilationOptions(val output: OutputType,
-                         val launcher: LauncherType,
+                         val launcher: CbmPrgLauncherType,
                          val zeropage: ZeropageType,
                          val zpReserved: List<UIntRange>,
                          val floats: Boolean,

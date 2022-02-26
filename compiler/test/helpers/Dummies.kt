@@ -53,7 +53,6 @@ internal object DummyCompilationTarget : ICompilationTarget {
         get() = throw NotImplementedError("dummy")
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES, Encoding.ISO)
     override val defaultEncoding = Encoding.PETSCII
-    override val defaultLauncherType = LauncherType.NONE
 
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         throw NotImplementedError("dummy")

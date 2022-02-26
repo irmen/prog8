@@ -54,6 +54,7 @@ internal class AssemblyProgram(
                         println("\nCreating raw binary for target ${compTarget.name}.")
                         binFile
                     }
+                    else -> throw AssemblyError("invalid output type")
                 }
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
@@ -75,7 +76,7 @@ internal class AssemblyProgram(
                     command.add("--list=$listFile")
 
                 val outFile = when (options.output) {
-                    OutputType.PRG -> {
+                    OutputType.XEX -> {
                         command.add("--atari-xex")
                         println("\nCreating xex for target ${compTarget.name}.")
                         xexFile
@@ -85,6 +86,7 @@ internal class AssemblyProgram(
                         println("\nCreating raw binary for target ${compTarget.name}.")
                         binFile
                     }
+                    else -> throw AssemblyError("invalid output type")
                 }
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command

@@ -1,6 +1,5 @@
 %import textio
 %zeropage basicsafe
-%address $2000
 
 ; This example computes the first 20 values of the Fibonacci sequence.
 ; Note: this program is compatible with atari.

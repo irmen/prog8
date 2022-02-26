@@ -12,7 +12,7 @@ class AtariMachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 6
-    override val BASIC_LOAD_ADDRESS = 0x2000u
+    override val PROGRAM_LOAD_ADDRESS = 0x2000u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override val ESTACK_LO = 0x1a00u     //  $1a00-$1aff inclusive      // TODO
@@ -23,7 +23,7 @@ class AtariMachineDefinition: IMachineDefinition {
     override fun getFloat(num: Number) = TODO("float from number")
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return if (compilerOptions.launcher == LauncherType.CBMBASIC || compilerOptions.output == OutputType.PRG)
+        return if (compilerOptions.launcher == CbmPrgLauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             listOf("syslib")
         else
             emptyList()

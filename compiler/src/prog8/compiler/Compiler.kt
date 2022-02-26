@@ -153,7 +153,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 
     val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compTarget)
     val dummyoptions = CompilationOptions(
-        OutputType.RAW, LauncherType.NONE, ZeropageType.DONTUSE, emptyList(),
+        OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(),
         floats = false,
         noSysInit = true,
         compTarget = compTarget
@@ -215,9 +215,9 @@ fun parseImports(filepath: Path,
     importer.importLibraryModule("math")
     importer.importLibraryModule("prog8_lib")
 
-    if (compilerOptions.launcher == LauncherType.CBMBASIC && compilerOptions.output != OutputType.PRG)
+    if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
-    if(compilerOptions.launcher == LauncherType.CBMBASIC && compTarget.name==AtariTarget.NAME)
+    if(compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name==AtariTarget.NAME)
         errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
 
     errors.report()
@@ -261,7 +261,12 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         .map { it[0].int!!..it[1].int!! }
         .toList()
 
-    val outputType = if (outputTypeStr == null) OutputType.PRG else {
+    val outputType = if (outputTypeStr == null) {
+        if(compTarget is AtariTarget)
+            OutputType.XEX
+        else
+            OutputType.PRG
+    } else {
         try {
             OutputType.valueOf(outputTypeStr)
         } catch (x: IllegalArgumentException) {
@@ -269,12 +274,17 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
             OutputType.PRG
         }
     }
-    val launcherType = if (launcherTypeStr == null) compTarget.defaultLauncherType else {
+    val launcherType = if (launcherTypeStr == null) {
+        when(compTarget) {
+            is AtariTarget -> CbmPrgLauncherType.NONE
+            else -> CbmPrgLauncherType.BASIC
+        }
+    } else {
         try {
-            LauncherType.valueOf(launcherTypeStr)
+            CbmPrgLauncherType.valueOf(launcherTypeStr)
         } catch (x: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
-            LauncherType.CBMBASIC
+            CbmPrgLauncherType.BASIC
         }
     }
 

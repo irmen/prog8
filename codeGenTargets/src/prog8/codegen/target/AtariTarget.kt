@@ -17,7 +17,6 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     override val machine = AtariMachineDefinition()
     override val supportedEncodings = setOf(Encoding.ATASCII)
     override val defaultEncoding = Encoding.ATASCII
-    override val defaultLauncherType = LauncherType.NONE
 
     companion object {
         const val NAME = "atari"
