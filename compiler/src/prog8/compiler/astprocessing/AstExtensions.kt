@@ -76,8 +76,8 @@ fun Program.desugaring(errors: IErrorReporter): Int {
     return desugar.applyModifications()
 }
 
-internal fun Program.verifyFunctionArgTypes() {
-    val fixer = VerifyFunctionArgTypes(this)
+internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter) {
+    val fixer = VerifyFunctionArgTypes(this, errors)
     fixer.visit(this)
 }
 

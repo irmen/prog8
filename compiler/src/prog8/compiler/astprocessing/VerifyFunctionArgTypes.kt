@@ -1,28 +1,35 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
+import prog8.ast.IPipe
+import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.DataType
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.Position
+import prog8.ast.base.defaultZero
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCallExpression
+import prog8.ast.expressions.PipeExpression
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.InternalCompilerException
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.builtinFunctionReturnType
 
-internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
+internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorReporter) : IAstVisitor {
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
         val error = checkTypes(functionCallExpr as IFunctionCall, program)
         if(error!=null)
-            throw InternalCompilerException(error)
+            errors.err(error.first, error.second)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
         val error = checkTypes(functionCallStatement as IFunctionCall, program)
-        if (error!=null)
-            throw InternalCompilerException(error)
+        if(error!=null)
+            errors.err(error.first, error.second)
     }
 
     companion object {
@@ -41,22 +48,27 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             return false
         }
 
-        fun checkTypes(call: IFunctionCall, program: Program): String? {
+        fun checkTypes(call: IFunctionCall, program: Program): Pair<String, Position>? {
             val argITypes = call.args.map { it.inferType(program) }
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
             if(firstUnknownDt>=0)
-                return "argument ${firstUnknownDt+1} invalid argument type"
+                return Pair("argument ${firstUnknownDt+1} invalid argument type", call.args[firstUnknownDt].position)
             val argtypes = argITypes.map { it.getOr(DataType.UNDEFINED) }
             val target = call.target.targetStatement(program)
+            val isPartOfPipeSegments = (call.parent as? IPipe)?.segments?.contains(call as Node) == true
             if (target is Subroutine) {
-                if(call.args.size != target.parameters.size)
-                    return "invalid number of arguments (#1)"       // TODO how does this relate to the same error in AstIdentifiersChecker
-                val paramtypes = target.parameters.map { it.type }
-                val mismatch = argtypes.zip(paramtypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
+                val consideredParamTypes = if(isPartOfPipeSegments) {
+                    target.parameters.drop(1).map { it.type }    // skip first one (the implicit first arg), this is checked elsewhere
+                } else {
+                    target.parameters.map { it.type }
+                }
+                if(argtypes.size != consideredParamTypes.size)
+                    return Pair("invalid number of arguments", call.position)
+                val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch].toString()
-                    val expected = paramtypes[mismatch].toString()
-                    return "argument ${mismatch + 1} type mismatch, was: $actual expected: $expected"
+                    val expected = consideredParamTypes[mismatch].toString()
+                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                 }
                 if(target.isAsmSubroutine) {
                     if(target.asmReturnvaluesRegisters.size>1) {
@@ -70,7 +82,7 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
                                 else
                                     parent
                             if (checkParent !is Assignment && checkParent !is VarDecl) {
-                                return "can't use subroutine call that returns multiple return values here"
+                                return Pair("can't use subroutine call that returns multiple return values here", call.position)
                             }
                         }
                     }
@@ -78,19 +90,23 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             }
             else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
-                if(call.args.size != func.parameters.size)
-                    return "invalid number of arguments (#2)"    // TODO how does this relate to the same error in AstIdentifiersChecker
-                val paramtypes = func.parameters.map { it.possibleDatatypes }
-                argtypes.zip(paramtypes).forEachIndexed { index, pair ->
+                val consideredParamTypes = if(isPartOfPipeSegments) {
+                    func.parameters.drop(1).map { it.possibleDatatypes }    // skip first one (the implicit first arg), this is checked elsewhere
+                } else {
+                    func.parameters.map { it.possibleDatatypes }
+                }
+                if(argtypes.size != consideredParamTypes.size)
+                    return Pair("invalid number of arguments", call.position)
+                argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
                     val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
                     if (!anyCompatible) {
                         val actual = pair.first.toString()
                         return if(pair.second.size==1) {
                             val expected = pair.second[0].toString()
-                            "argument ${index + 1} type mismatch, was: $actual expected: $expected"
+                            Pair("argument ${index + 1} type mismatch, was: $actual expected: $expected", call.args[index].position)
                         } else {
                             val expected = pair.second.toList().toString()
-                            "argument ${index + 1} type mismatch, was: $actual expected one of: $expected"
+                            Pair("argument ${index + 1} type mismatch, was: $actual expected one of: $expected", call.args[index].position)
                         }
                     }
                 }
@@ -99,4 +115,91 @@ internal class VerifyFunctionArgTypes(val program: Program) : IAstVisitor {
             return null
         }
     }
+
+    override fun visit(pipe: PipeExpression) {
+        processPipe(pipe.source, pipe.segments, pipe)
+        if(errors.noErrors()) {
+            val last = (pipe.segments.last() as IFunctionCall).target
+            when (val target = last.targetStatement(program)!!) {
+                is BuiltinFunctionPlaceholder -> {
+                    if (!BuiltinFunctions.getValue(target.name).hasReturn)
+                        errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+                }
+                is Subroutine -> {
+                    if (target.returntypes.isEmpty())
+                        errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+                    else if (target.returntypes.size != 1)
+                        errors.err("invalid pipe expression; last term doesn't return a single value", last.position)
+                }
+                else -> errors.err("invalid pipe expression; last term doesn't return a value", last.position)
+            }
+            super.visit(pipe)
+        }
+    }
+
+    override fun visit(pipe: Pipe) {
+        processPipe(pipe.source, pipe.segments, pipe)
+        if(errors.noErrors()) {
+            super.visit(pipe)
+        }
+    }
+
+    private fun processPipe(source: Expression, segments: List<Expression>, scope: Node) {
+
+        val sourceArg = (source as? IFunctionCall)?.args?.firstOrNull()
+        if(sourceArg!=null && segments.any { (it as IFunctionCall).args.firstOrNull() === sourceArg})
+            throw FatalAstException("some pipe segment first arg is replicated from the source functioncall arg")
+
+        // invalid size and other issues will be handled by the ast checker later.
+        var valueDt = source.inferType(program).getOrElse {
+            throw FatalAstException("invalid dt")
+        }
+
+        for(funccall in segments) {
+            val target = (funccall as IFunctionCall).target.targetStatement(program)
+            if(target!=null) {
+                when (target) {
+                    is BuiltinFunctionPlaceholder -> {
+                        val func = BuiltinFunctions.getValue(target.name)
+                        if(func.parameters.size!=1)
+                            errors.err("can only use unary function", funccall.position)
+                        else if(!func.hasReturn && funccall !== segments.last())
+                            errors.err("function must return a single value", funccall.position)
+
+                        val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
+                        if(paramDts!=null && !paramDts.any { valueDt isAssignableTo it })
+                            errors.err("pipe value datatype $valueDt incompatible with function argument ${paramDts.toList()}", funccall.position)
+
+                        if(errors.noErrors()) {
+                            // type can depend on the argument(s) of the function. For now, we only deal with unary functions,
+                            // so we know there must be a single argument. Take its type from the previous expression in the pipe chain.
+                            val zero = defaultZero(valueDt, funccall.position)
+                            valueDt = builtinFunctionReturnType(func.name, listOf(zero), program).getOrElse { DataType.UNDEFINED }
+                        }
+                    }
+                    is Subroutine -> {
+                        if(target.parameters.size!=1)
+                            errors.err("can only use unary function", funccall.position)
+                        else if(target.returntypes.size!=1 && funccall !== segments.last())
+                            errors.err("function must return a single value", funccall.position)
+
+                        val paramDt = target.parameters.firstOrNull()?.type
+                        if(paramDt!=null && !(valueDt isAssignableTo paramDt))
+                            errors.err("pipe value datatype $valueDt incompatible with function argument $paramDt", funccall.position)
+
+                        if(target.returntypes.isNotEmpty())
+                            valueDt = target.returntypes.single()
+                    }
+                    is VarDecl -> {
+                        if(!(valueDt isAssignableTo target.datatype))
+                            errors.err("final pipe value datatype can't be stored in pipe ending variable", funccall.position)
+                    }
+                    else -> {
+                        throw FatalAstException("weird function")
+                    }
+                }
+            }
+        }
+    }
+
 }

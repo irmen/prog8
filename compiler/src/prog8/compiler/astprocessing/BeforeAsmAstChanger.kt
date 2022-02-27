@@ -16,15 +16,15 @@ internal class BeforeAsmAstChanger(val program: Program,
 ) : AstWalker() {
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
-        throw FatalAstException("break should have been replaced by goto $breakStmt")
+        throw InternalCompilerException("break should have been replaced by goto $breakStmt")
     }
 
     override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
-        throw FatalAstException("while should have been converted to jumps")
+        throw InternalCompilerException("while should have been converted to jumps")
     }
 
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
-        throw FatalAstException("do..until should have been converted to jumps")
+        throw InternalCompilerException("do..until should have been converted to jumps")
     }
 
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {
@@ -51,7 +51,7 @@ internal class BeforeAsmAstChanger(val program: Program,
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(!options.dontReinitGlobals) {
             if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
-                throw FatalAstException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+                throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
 
         return noModifications
@@ -183,7 +183,7 @@ internal class BeforeAsmAstChanger(val program: Program,
 
         if((binExpr.left as? NumericLiteral)?.number==0.0 &&
             (binExpr.right as? NumericLiteral)?.number!=0.0)
-            throw FatalAstException("0==X should have been swapped to if X==0")
+            throw InternalCompilerException("0==X should have been swapped to if X==0")
 
         // simplify the conditional expression, introduce simple assignments if required.
         // NOTE: sometimes this increases code size because additional stores/loads are generated for the

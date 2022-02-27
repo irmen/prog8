@@ -1,6 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
+import prog8.ast.IPipe
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.Position
@@ -135,14 +136,24 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     private fun visitFunctionCall(call: IFunctionCall) {
         when (val target = call.target.targetStatement(program)) {
             is Subroutine -> {
-                if(call.args.size != target.parameters.size) {
+                // if the call is part of a Pipe, the number of arguments in the call should be 1 less than the number of parameters
+                val expectedNumberOfArgs = if(call.parent is IPipe)
+                    target.parameters.size-1
+                else
+                    target.parameters.size
+                if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
                     errors.err("invalid number of arguments", pos)
                 }
             }
             is BuiltinFunctionPlaceholder -> {
                 val func = BuiltinFunctions.getValue(target.name)
-                if(call.args.size != func.parameters.size) {
+                // if the call is part of a Pipe, the number of arguments in the call should be 1 less than the number of parameters
+                val expectedNumberOfArgs = if(call.parent is IPipe)
+                    func.parameters.size-1
+                else
+                    func.parameters.size
+                if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
                     errors.err("invalid number of arguments", pos)
                 }

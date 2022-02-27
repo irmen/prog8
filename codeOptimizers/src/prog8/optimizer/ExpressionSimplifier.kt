@@ -1,8 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.IntegerDatatypes
@@ -333,44 +331,26 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return noModifications
     }
 
-    override fun after(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
-        require(pipeExpr.segments.isNotEmpty())
-        val segments = pipeExpr.segments
-        if(segments.size==1 && segments[0].isSimple) {
-            // just replace with a normal function call
-            val funcname = segments[1].target
-            val arg = segments[0]
-            val call = FunctionCallExpression(funcname.copy(), mutableListOf(arg), arg.position)
-            return listOf(IAstModification.ReplaceNode(pipeExpr, call, parent))
-        }
-        val firstValue = pipeExpr.source
-        if(firstValue.isSimple) {
-            val funcname = pipeExpr.segments[0].target
-            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
-            val newSegments = mutableListOf(first)
-            newSegments.addAll(pipeExpr.segments.drop(1))
-            return listOf(IAstModification.ReplaceNode(pipeExpr, PipeExpression(first, newSegments, pipeExpr.position), parent))
-        }
-        return noModifications
-    }
+    override fun after(pipeExpr: PipeExpression, parent: Node) = processPipe(pipeExpr, parent)
+    override fun after(pipe: Pipe, parent: Node) = processPipe(pipe, parent)
 
-    override fun after(pipe: Pipe, parent: Node): Iterable<IAstModification> {
-        require(pipe.segments.isNotEmpty())
-        val segments = pipe.segments
-        if(segments.size==1 && segments[0].isSimple) {
-            // just replace with a normal function call
-            val funcname = segments[1].target
-            val arg = segments[0]
-            val call = FunctionCallExpression(funcname.copy(), mutableListOf(arg), arg.position)
-            return listOf(IAstModification.ReplaceNode(pipe, call, parent))
-        }
-        val firstValue = pipe.source
-        if(firstValue.isSimple) {
-            val funcname = pipe.segments[0].target
-            val first = FunctionCallExpression(funcname.copy(), mutableListOf(firstValue), firstValue.position)
-            val newSegments = mutableListOf(first)
-            newSegments.addAll(pipe.segments.drop(1))
-            return listOf(IAstModification.ReplaceNode(pipe, Pipe(first, newSegments, pipe.position), parent))
+    private fun processPipe(pipe: IPipe, parent: Node): Iterable<IAstModification> {
+        if(pipe.source.isSimple) {
+            val segments = pipe.segments
+            if(segments.size==1) {
+                // replace the whole pipe with a normal function call
+                val funcname = (segments[0] as IFunctionCall).target
+                val call = if(pipe is Pipe)
+                    FunctionCallStatement(funcname, mutableListOf(pipe.source), true, pipe.position)
+                else
+                    FunctionCallExpression(funcname, mutableListOf(pipe.source), pipe.position)
+                return listOf(IAstModification.ReplaceNode(pipe as Node, call, parent))
+            } else if(segments.size>1) {
+                // replace source+firstsegment by firstsegment(source) call as the new source
+                val firstSegment = segments.removeAt(0) as IFunctionCall
+                val call = FunctionCallExpression(firstSegment.target, mutableListOf(pipe.source), pipe.position)
+                return listOf(IAstModification.ReplaceNode(pipe.source, call, pipe as Node))
+            }
         }
         return noModifications
     }

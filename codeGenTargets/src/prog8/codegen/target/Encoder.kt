@@ -1,12 +1,12 @@
 package prog8.codegen.target
 
 import com.github.michaelbull.result.fold
-import prog8.ast.base.FatalAstException
 import prog8.codegen.target.cbm.AtasciiEncoding
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.InternalCompilerException
 
 internal object Encoder: IStringEncoding {
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
@@ -15,7 +15,7 @@ internal object Encoder: IStringEncoding {
             Encoding.SCREENCODES -> PetsciiEncoding.encodeScreencode(str, true)
             Encoding.ISO -> IsoEncoding.encode(str)
             Encoding.ATASCII -> AtasciiEncoding.encode(str)
-            else -> throw FatalAstException("unsupported encoding $encoding")
+            else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return coded.fold(
             failure = { throw it },
@@ -28,7 +28,7 @@ internal object Encoder: IStringEncoding {
             Encoding.SCREENCODES -> PetsciiEncoding.decodeScreencode(bytes, true)
             Encoding.ISO -> IsoEncoding.decode(bytes)
             Encoding.ATASCII -> AtasciiEncoding.decode(bytes)
-            else -> throw FatalAstException("unsupported encoding $encoding")
+            else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return decoded.fold(
             failure = { throw it },

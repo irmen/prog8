@@ -1023,7 +1023,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 
 
 class Pipe(override var source: Expression,
-           override val segments: MutableList<FunctionCallExpression>,
+           override val segments: MutableList<Expression>,      // are all function calls
            override val position: Position): Statement(), IPipe {
     override lateinit var parent: Node
 
@@ -1043,8 +1043,9 @@ class Pipe(override var source: Expression,
         if(node===source) {
             source = replacement
         } else {
+            require(replacement is IFunctionCall)
             val idx = segments.indexOf(node)
-            segments[idx] = replacement as FunctionCallExpression
+            segments[idx] = replacement
         }
     }
 }

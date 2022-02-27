@@ -286,8 +286,8 @@ class TestSubroutines: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:25) invalid number of arguments"
-        errors.errors[1] shouldContain "9:25) invalid number of arguments"
+        errors.errors[0] shouldContain "7:25: invalid number of arguments"
+        errors.errors[1] shouldContain "9:25: invalid number of arguments"
     }
 
     test("invalid number of args check on asm subroutine") {
@@ -307,8 +307,8 @@ class TestSubroutines: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:25) invalid number of arguments"
-        errors.errors[1] shouldContain "9:25) invalid number of arguments"
+        errors.errors[0] shouldContain "7:25: invalid number of arguments"
+        errors.errors[1] shouldContain "9:25: invalid number of arguments"
     }
 
     test("invalid number of args check on call to label and builtin func") {

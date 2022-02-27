@@ -1,20 +1,27 @@
 %import textio
+%import floats
+%import test_stack
+%zeropage basicsafe
 
 main {
     sub start() {
-        ubyte xx = 30
-        ubyte cc
-
-        cc=0
-        cc = 30 |> sin8u |> cos8u |> cc
-        txt.print_ub(cc)
-        txt.nl()
-        cc=0
-        cc = xx |> sin8u |> cos8u |> cc
-        txt.print_ub(cc)
-        txt.nl()
-
-        repeat {
-        }
+    get_player(1)
+        |> determine_score()
+        |> add_bonus()
+        |> txt.print_uw()
     }
+
+    sub get_player(ubyte xx) -> ubyte {
+        return xx+33
+    }
+
+    sub determine_score() -> ubyte {
+        return 33
+    }
+
+    sub add_bonus(ubyte qq) {
+        qq++
+    }
+
+
 }

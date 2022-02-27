@@ -23,11 +23,10 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
-- for the pipe operator: recognise a placeholder (``?`` or ``%`` or ``_``) in a non-unary function call to allow non-unary functions in the chain; ``4 |> mkword(?, $44) |> print_uw``
-  OR: change pipe syntax and require function call, but always have implicit first argument added.
 - for the pipe operator: make it 100% syntactic sugar so there's no need for asm codegen like translatePipeExpression
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names.

@@ -528,31 +528,26 @@ containment check:  ``in``
 
 pipe: ``|>``
     Used as an alternative to nesting function calls. The pipe operator is used to 'pipe' the value
-    into the next function. It only works on unary functions (taking a single argument), because you just
-    specify the *name* of the function that the value has to be piped into. The resulting value will be piped
-    into the next function as long as there are chained pipes.
+    into the next function. You write a pipe as a sequence of function calls. You don't write
+    the arguments to the functions though: the value of one segment in the pipe, will be used as the argument
+    for the next function call in the sequence.
+
+    *note:* It only works on unary functions (taking a single argument) for now.
+
     For example, this: ``txt.print_uw(add_bonus(determine_score(get_player(1))))``
     can be rewritten as::
 
         get_player(1)
-            |> determine_score
-            |> add_bonus
-            |> txt.print_uw
+            |> determine_score()
+            |> add_bonus()
+            |> txt.print_uw()
 
-    It also works for expressions that return a value, for example ``uword score = add_bonus(determine_score(get_player(1)))`` ::
+    A pipe can also be written as an expression that returns a value, for example ``uword score = add_bonus(determine_score(get_player(1)))`` ::
 
         uword score = get_player(1)
-                        |> determine_score
-                        |> add_bonus
+                        |> determine_score()
+                        |> add_bonus()
 
-    Finally, if you like the left-to-right flow, it's possible to use the name of a variable as the last term. This just means that the pipe's resulting value is
-    stored in that variable (it's just another way of writing an assignment). So the above can also be written as::
-
-        uword score
-        get_player(1)
-            |> determine_score
-            |> add_bonus
-            |> score
 
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.

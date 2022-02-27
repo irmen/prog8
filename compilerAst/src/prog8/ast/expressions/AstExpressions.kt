@@ -939,6 +939,14 @@ class FunctionCallExpression(override var target: IdentifierReference,
         // lenghts of arrays and strings are constants that are determined at compile time!
         if(target.nameInSource.size>1)
             return null
+
+        // If the function call is part of a Pipe segments, the number of args will be 1 less than the number of parameters required
+        // because of the implicit first argument. We don't know this first argument here. Assume it is not a constant,
+        // which means that this function call cannot be a constant either.
+        val pipeParentSegments = (parent as? IPipe)?.segments ?: emptyList()
+        if(this in pipeParentSegments)
+            return null
+
         val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
@@ -1075,7 +1083,7 @@ class ContainmentCheck(var element: Expression,
 }
 
 class PipeExpression(override var source: Expression,
-                     override val segments: MutableList<FunctionCallExpression>,
+                     override val segments: MutableList<Expression>,        // are all function calls
                      override val position: Position): Expression(), IPipe {
     override lateinit var parent: Node
 
@@ -1099,8 +1107,9 @@ class PipeExpression(override var source: Expression,
         if(node===source) {
             source = replacement
         } else {
+            require(replacement is IFunctionCall)
             val idx = segments.indexOf(node)
-            segments[idx] = replacement as FunctionCallExpression
+            segments[idx] = replacement
         }
     }
 }

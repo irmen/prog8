@@ -344,8 +344,8 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
+    program.verifyFunctionArgTypes(errors)
     errors.report()
-    program.verifyFunctionArgTypes()
     program.moveMainAndStartToFirst()
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid
     errors.report()

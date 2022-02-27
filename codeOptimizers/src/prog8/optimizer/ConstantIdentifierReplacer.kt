@@ -9,6 +9,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.InternalCompilerException
 
 // Fix up the literal value's type to match that of the vardecl
 //   (also check range literal operands types before they get expanded into arrays for instance)
@@ -97,7 +98,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                         identifier.parent
                     )
                 )
-                in PassByReferenceDatatypes -> throw FatalAstException("pass-by-reference type should not be considered a constant")
+                in PassByReferenceDatatypes -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
                 else -> noModifications
             }
         } catch (x: UndefinedSymbolError) {
