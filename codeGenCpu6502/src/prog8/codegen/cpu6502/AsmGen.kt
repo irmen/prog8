@@ -447,11 +447,11 @@ class AsmGen(internal val program: Program,
     internal fun translateBuiltinFunctionCallExpression(bfc: BuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
 
-    internal fun translateBuiltinFunctionCallExpression(name: String, args: List<AsmAssignSource>, scope: Subroutine): DataType =
-            builtinFunctionsAsmGen.translateFunctioncall(name, args, false, scope)
+    private fun translateBuiltinFunctionCallExpression(name: String, singleArg:AsmAssignSource, scope: Subroutine): DataType =
+            builtinFunctionsAsmGen.translateUnaryFunctioncall(name, singleArg, false, scope)
 
-    internal fun translateBuiltinFunctionCallStatement(name: String, args: List<AsmAssignSource>, scope: Subroutine) =
-            builtinFunctionsAsmGen.translateFunctioncall(name, args, true, scope)
+    private fun translateBuiltinFunctionCallStatement(name: String, singleArg: AsmAssignSource, scope: Subroutine) =
+            builtinFunctionsAsmGen.translateUnaryFunctioncall(name, singleArg, true, scope)
 
     internal fun translateFunctionCall(functionCallExpr: FunctionCallExpression, isExpression: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
@@ -2887,14 +2887,14 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateUnaryFunctionCallWithArgSource(target: IdentifierReference, arg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
+    private fun translateUnaryFunctionCallWithArgSource(target: IdentifierReference, singleArg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
         when(val targetStmt = target.targetStatement(program)!!) {
             is BuiltinFunctionPlaceholder -> {
                 return if(isStatement) {
-                    translateBuiltinFunctionCallStatement(targetStmt.name, listOf(arg), scope)
+                    translateBuiltinFunctionCallStatement(targetStmt.name, singleArg, scope)
                     DataType.UNDEFINED
                 } else {
-                    translateBuiltinFunctionCallExpression(targetStmt.name, listOf(arg), scope)
+                    translateBuiltinFunctionCallExpression(targetStmt.name, singleArg, scope)
                 }
             }
             is Subroutine -> {
@@ -2903,7 +2903,7 @@ $repeatLabel    lda  $counterVar
                     // argument via registers
                     val argRegister = targetStmt.asmParameterRegisters.single().registerOrPair!!
                     val assignArgument = AsmAssignment(
-                        arg,
+                        singleArg,
                         AsmAssignTarget.fromRegisters(argRegister, argDt in SignedDatatypes, scope, program, this),
                         false, program.memsizer, target.position
                     )
@@ -2919,7 +2919,7 @@ $repeatLabel    lda  $counterVar
                                 else -> throw AssemblyError("invalid dt")
                             }
                             AsmAssignment(
-                                arg,
+                                singleArg,
                                 AsmAssignTarget(TargetStorageKind.REGISTER, program, this, argDt, scope, register = paramReg),
                                 false, program.memsizer, target.position
                             )
@@ -2927,7 +2927,7 @@ $repeatLabel    lda  $counterVar
                             // arg goes via parameter variable
                             val argVarName = asmVariableName(targetStmt.scopedName + targetStmt.parameters.single().name)
                             AsmAssignment(
-                                arg,
+                                singleArg,
                                 AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, argDt, scope, argVarName),
                                 false, program.memsizer, target.position
                             )

@@ -29,21 +29,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
     }
 
-    internal fun translateFunctioncall(name: String, args: List<AsmAssignSource>, isStatement: Boolean, scope: Subroutine): DataType {
+    internal fun translateUnaryFunctioncall(name: String, singleArg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
         val func = BuiltinFunctions.getValue(name)
-        val argExpressions = args.map { src ->
-            when(src.kind) {
-                SourceStorageKind.LITERALNUMBER -> src.number!!
-                SourceStorageKind.EXPRESSION -> src.expression!!
-                SourceStorageKind.ARRAY -> src.array!!
+        val argExpression =
+            when(singleArg.kind) {
+                SourceStorageKind.LITERALNUMBER -> singleArg.number!!
+                SourceStorageKind.EXPRESSION -> singleArg.expression!!
+                SourceStorageKind.ARRAY -> singleArg.array!!
                 else -> {
                     // TODO make it so that we can assign efficiently from something else as an expression....namely: register(s)
                     //      this is useful in pipe expressions for instance, to skip the use of a temporary variable
                     //      but for now, just assign it to a temporary variable and use that as a source
-                    val tempvar = asmgen.getTempVarName(src.datatype)
+                    val tempvar = asmgen.getTempVarName(singleArg.datatype)
                     val assignTempvar = AsmAssignment(
-                        src,
-                        AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, src.datatype, scope, variableAsmName = asmgen.asmVariableName(tempvar)),
+                        singleArg,
+                        AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, singleArg.datatype, scope, variableAsmName = asmgen.asmVariableName(tempvar)),
                         false, program.memsizer, Position.DUMMY
                     )
                     assignAsmGen.translateNormalAssignment(assignTempvar)
@@ -53,7 +53,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     ident
                 }
             }
-        }.toMutableList()
+        val argExpressions = mutableListOf(argExpression);
         val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
         fcall.linkParents(scope)
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)

@@ -27,7 +27,6 @@ Compiler:
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
-- for the pipe operator: make it 100% syntactic sugar so there's no need for asm codegen like translatePipeExpression
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names.
   If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code bloat.
@@ -35,7 +34,7 @@ Compiler:
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (scenario sought)
 - consider adding McCarthy evaluation to shortcircuit and and or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
-- use more of Result<> and Either<> to handle errors/ nulls better?
+- use more of Result<> to handle errors/ nulls better?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
@@ -69,9 +68,11 @@ Optimizations:
 
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
+        aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()
+        versus: aa = cos8u(sin8u(cos8u(sin8u(startvalue(1)))))  <--- this one contains no sta cx16.r9L in between.
 - AssignmentAsmGen.assignExpression() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
+- AssignmentAsmGen: "real optimized code for comparison expressions that yield a boolean result value"
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
-- AssignmentAsmGen: "real optimized code for comparison expressions that yield a boolean result value"
