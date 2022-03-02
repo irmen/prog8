@@ -15,12 +15,12 @@ main {
         return xx+33
     }
 
-    sub determine_score() -> ubyte {
-        return 33
+    sub determine_score(ubyte zz) -> ubyte {
+        return zz+22
     }
 
-    sub add_bonus(ubyte qq) {
-        qq++
+    sub add_bonus(ubyte qq) -> ubyte {
+        return qq+1
     }
 
 

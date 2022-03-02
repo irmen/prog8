@@ -36,8 +36,7 @@ class TestPipes: FunSpec({
                 sub func2(uword arg) -> uword {
                     return arg+2222
                 }
-            }
-        """
+            }"""
         val src = SourceCode.Text(text)
         val module = parseModule(src)
         val errors = ErrorReporterForTests()
@@ -86,8 +85,7 @@ class TestPipes: FunSpec({
                 sub func3(uword arg) {
                     ; nothing
                 }
-            }
-        """
+            }"""
         val src = SourceCode.Text(text)
         val module = parseModule(src)
         val errors = ErrorReporterForTests()
@@ -130,7 +128,7 @@ class TestPipes: FunSpec({
                     1.234 |> addfloat() 
                           |> floats.print_f()
                     
-                    9999 |> addword()
+                    startvalue(99) |> addword()
                          |> txt.print_uw()
 
                     9999 |> abs() |> txt.print_uw()
@@ -139,14 +137,16 @@ class TestPipes: FunSpec({
                     99 |> txt.print_ub()
                 }
 
+                sub startvalue(ubyte arg) -> uword {
+                    return arg+9999
+                }
                 sub addfloat(float fl) -> float {
                     return fl+2.22
                 }
                 sub addword(uword ww) -> uword {
                     return ww+2222
                 }
-            }
-        """
+            }"""
         val result = compileText(C64Target(), optimize = false, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
@@ -183,7 +183,7 @@ class TestPipes: FunSpec({
                     1.234 |> addfloat() 
                           |> floats.print_f()
                     
-                    9999 |> addword()
+                    startvalue(99) |> addword()
                          |> txt.print_uw()
 
                     ; these should be optimized into just the function calls:
@@ -193,14 +193,16 @@ class TestPipes: FunSpec({
                     99 |> txt.print_ub()
                 }
 
+                sub startvalue(ubyte arg) -> uword {
+                    return arg+9999
+                }
                 sub addfloat(float fl) -> float {
                     return fl+2.22
                 }
                 sub addword(uword ww) -> uword {
                     return ww+2222
                 }
-            }
-        """
+            }"""
         val result = compileText(C64Target(), optimize = true, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
@@ -213,9 +215,9 @@ class TestPipes: FunSpec({
 
         val pipew = stmts[1] as Pipe
         pipef.source shouldBe instanceOf<FunctionCallExpression>()
-        (pipew.source as IFunctionCall).target.nameInSource shouldBe listOf("addword")
-        pipew.segments.size shouldBe 1
-        val callw = pipew.segments[0] as IFunctionCall
+        (pipew.source as IFunctionCall).target.nameInSource shouldBe listOf("startvalue")
+        pipew.segments.size shouldBe 2
+        val callw = pipew.segments[1] as IFunctionCall
         callw.target.nameInSource shouldBe listOf("txt", "print_uw")
 
         var stmt = stmts[2] as FunctionCallStatement
@@ -245,8 +247,7 @@ class TestPipes: FunSpec({
                 sub addword(uword ww) -> uword {
                     return ww+2222
                 }
-            }
-        """
+            }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, errors=errors).assertFailure()
         errors.errors.size shouldBe 1
@@ -263,21 +264,23 @@ class TestPipes: FunSpec({
                     float @shared fl = 1.234 |> addfloat() 
                                         |> addfloat()
                     
-                    uword @shared ww = 9999 |> addword()
+                    uword @shared ww = startvalue(99) |> addword()
                                         |> addword()
                                         
                     ubyte @shared cc = 30 |> sin8u() |> cos8u()
                     cc = cc |> sin8u() |> cos8u()
                 }
 
+                sub startvalue(ubyte arg) -> uword {
+                    return arg+9999
+                }
                 sub addfloat(float fl) -> float {
                     return fl+2.22
                 }
                 sub addword(uword ww) -> uword {
                     return ww+2222
                 }
-        }
-        """
+            }"""
         val result = compileText(C64Target(), optimize = false, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 8
@@ -293,7 +296,7 @@ class TestPipes: FunSpec({
 
         val assignw = stmts[3] as Assignment
         val pipew = assignw.value as PipeExpression
-        pipew.source shouldBe instanceOf<NumericLiteral>()
+        pipew.source shouldBe instanceOf<IFunctionCall>()
         pipew.segments.size shouldBe 2
         call = pipew.segments[0] as IFunctionCall
         call.target.nameInSource shouldBe listOf("addword")
@@ -327,21 +330,24 @@ class TestPipes: FunSpec({
                     float @shared fl = 1.234 |> addfloat() 
                                         |> addfloat()
                     
-                    uword @shared ww = 9999 |> addword()
+                    uword @shared ww = startvalue(99) |> addword()
                                         |> addword()
                                         
                     ubyte @shared cc = 30 |> sin8u() |> cos8u()     ; will be optimized away into a const number
                     cc = cc |> sin8u() |> cos8u()
                 }
 
+                sub startvalue(ubyte arg) -> uword {
+                    return arg+9999
+                }
                 sub addfloat(float fl) -> float {
                     return fl+2.22
                 }
                 sub addword(uword ww) -> uword {
                     return ww+2222
                 }
-        }
-        """
+            }
+            """
         val result = compileText(C64Target(), optimize = true, text, writeAssembly = true).assertSuccess()
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 8
@@ -354,8 +360,9 @@ class TestPipes: FunSpec({
         val assignw = stmts[3] as Assignment
         val pipew = assignw.value as PipeExpression
         pipew.source shouldBe instanceOf<FunctionCallExpression>()
-        pipew.segments.size shouldBe 1
+        pipew.segments.size shouldBe 2
         pipew.segments[0] shouldBe instanceOf<FunctionCallExpression>()
+        pipew.segments[1] shouldBe instanceOf<FunctionCallExpression>()
 
         var assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
@@ -439,5 +446,30 @@ class TestPipes: FunSpec({
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "UWORD incompatible"
         errors.errors[1] shouldContain "UWORD incompatible"
+    }
+
+    test("pipe detects invalid number of args") {
+        val text = """
+            main {
+                sub start() {
+                    uword ww = startvalue() |> addword()
+                                        |> addword()
+                                        
+                    ubyte cc = 30 |> sin8u(99) |> cos8u(22)
+                }
+
+                sub startvalue(ubyte arg) -> uword {
+                    return arg+9999
+                }
+                sub addword(uword ww) -> uword {
+                    return ww+2222
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize = false, text, writeAssembly = false, errors=errors).assertFailure()
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain ":4:32: invalid number of arguments"
+        errors.errors[1] shouldContain ":7:44: invalid number of arguments"
+        errors.errors[2] shouldContain ":7:57: invalid number of arguments"
     }
 })

@@ -10,7 +10,6 @@ import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
 
@@ -134,28 +133,32 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
 
     private fun visitFunctionCall(call: IFunctionCall) {
+        val isPartOfPipeSegments = (call.parent as? IPipe)?.segments?.contains(call as Node) == true
+        val errormessageAboutArgs = if(isPartOfPipeSegments) "invalid number of arguments in piped call" else "invalid number of arguments"
         when (val target = call.target.targetStatement(program)) {
             is Subroutine -> {
                 // if the call is part of a Pipe, the number of arguments in the call should be 1 less than the number of parameters
-                val expectedNumberOfArgs = if(call.parent is IPipe)
-                    target.parameters.size-1
-                else
+                val expectedNumberOfArgs: Int = if(isPartOfPipeSegments) {
+                    target.parameters.size - 1
+                } else {
                     target.parameters.size
+                }
                 if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    errors.err("invalid number of arguments", pos)
+                    errors.err(errormessageAboutArgs, pos)
                 }
             }
             is BuiltinFunctionPlaceholder -> {
                 val func = BuiltinFunctions.getValue(target.name)
                 // if the call is part of a Pipe, the number of arguments in the call should be 1 less than the number of parameters
-                val expectedNumberOfArgs = if(call.parent is IPipe)
+                val expectedNumberOfArgs: Int = if(isPartOfPipeSegments) {
                     func.parameters.size-1
-                else
+                } else {
                     func.parameters.size
+                }
                 if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    errors.err("invalid number of arguments", pos)
+                    errors.err(errormessageAboutArgs, pos)
                 }
                 if(func.name=="memory") {
                     val name = call.args[0] as? StringLiteral

@@ -56,14 +56,15 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
             val argtypes = argITypes.map { it.getOr(DataType.UNDEFINED) }
             val target = call.target.targetStatement(program)
             val isPartOfPipeSegments = (call.parent as? IPipe)?.segments?.contains(call as Node) == true
+            val errormessageAboutArgs = if(isPartOfPipeSegments) "invalid number of arguments in piped call" else "invalid number of arguments"
             if (target is Subroutine) {
-                val consideredParamTypes = if(isPartOfPipeSegments) {
+                val consideredParamTypes: List<DataType> = if(isPartOfPipeSegments) {
                     target.parameters.drop(1).map { it.type }    // skip first one (the implicit first arg), this is checked elsewhere
                 } else {
                     target.parameters.map { it.type }
                 }
                 if(argtypes.size != consideredParamTypes.size)
-                    return Pair("invalid number of arguments", call.position)
+                    return Pair(errormessageAboutArgs, call.position)
                 val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch].toString()
@@ -90,13 +91,13 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
             }
             else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
-                val consideredParamTypes = if(isPartOfPipeSegments) {
+                val consideredParamTypes: List<Array<DataType>> = if(isPartOfPipeSegments) {
                     func.parameters.drop(1).map { it.possibleDatatypes }    // skip first one (the implicit first arg), this is checked elsewhere
                 } else {
                     func.parameters.map { it.possibleDatatypes }
                 }
                 if(argtypes.size != consideredParamTypes.size)
-                    return Pair("invalid number of arguments", call.position)
+                    return Pair(errormessageAboutArgs, call.position)
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
                     val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
                     if (!anyCompatible) {
