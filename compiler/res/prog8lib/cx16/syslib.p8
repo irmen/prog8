@@ -822,7 +822,10 @@ sys {
     }
 
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
-        ; note: can't be inlined because is called from asm as well
+        ; note: only works for NON-OVERLAPPING memory regions!
+        ;       If you have to copy overlapping memory regions, consider using
+        ;       the cx16 specific kernal routine `memory_copy` (make sure kernal rom is banked in).
+        ; note: can't be inlined because is called from asm as well.
         ;       also: doesn't use cx16 ROM routine so this always works even when ROM is not banked in.
         %asm {{
             cpy  #0

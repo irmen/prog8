@@ -68,6 +68,7 @@ sys {
     }
 
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
+        ; note: only works for NON-OVERLAPPING memory regions!
         ; note: can't be inlined because is called from asm as well
         %asm {{
             ldx  cx16.r0

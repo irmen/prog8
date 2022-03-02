@@ -40,6 +40,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     // TODO make it so that we can assign efficiently from something else as an expression....namely: register(s)
                     //      this is useful in pipe expressions for instance, to skip the use of a temporary variable
                     //      but for now, just assign it to a temporary variable and use that as a source
+                    //      Idea: to do this without having to rewrite every single function in translateFunctioncall(),
+                    //            hack a special IdentifierReference like "!6502.A/X/Y/AX/AY/XY" to reference a cpu register
                     val tempvar = asmgen.getTempVarName(singleArg.datatype)
                     val assignTempvar = AsmAssignment(
                         singleArg,

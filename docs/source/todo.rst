@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+FIX BUG:
+- wormfood noopt crash caused by a change in 7.8; 8ae3bad6f7e73a3913594a983939298b357c7e7e "fix rts in empty asmsub"
+
 ...
 
 
@@ -67,9 +70,9 @@ Expressions:
 Optimizations:
 
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
-- translateFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
-        aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()
-        versus: aa = cos8u(sin8u(cos8u(sin8u(startvalue(1)))))  <--- this one contains no sta cx16.r9L in between.
+- translateUnaryFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
+   compare ``aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()``
+   versus: ``aa = cos8u(sin8u(cos8u(sin8u(startvalue(1)))))``  the second one contains no sta cx16.r9L in between.
 - AssignmentAsmGen.assignExpression() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.

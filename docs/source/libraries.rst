@@ -51,7 +51,7 @@ sys (part of syslib)
 
 ``memcopy(from, to, numbytes)``
     Efficiently copy a number of bytes from a memory location to another.
-    NOTE: 'to' must NOT overlap with 'from', unless it is *before* 'from'.
+    *Warning:* can only copy *non-overlapping* memory areas correctly!
     Because this function imposes some overhead to handle the parameters,
     it is only faster if the number of bytes is larger than a certain threshold.
     Compare the generated code to see if it was beneficial or not.
