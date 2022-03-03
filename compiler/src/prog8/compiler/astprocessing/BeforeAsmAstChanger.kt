@@ -118,7 +118,7 @@ internal class BeforeAsmAstChanger(val program: Program,
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
-        if (!subroutine.isAsmSubroutine && !subroutine.inline) {
+        if (!subroutine.isAsmSubroutine && (!subroutine.inline || !options.optimize)) {
             if(subroutine.statements.isEmpty() ||
                 (subroutine.amountOfRtsInAsm() == 0
                         && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
@@ -145,7 +145,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             }
         }
 
-        if (!subroutine.inline) {
+        if (!subroutine.inline || !options.optimize) {
             if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && subroutine.amountOfRtsInAsm() == 0) {
                 // make sure the NOT INLINED asm subroutine actually has a rts at the end
                 // (non-asm routines get a Return statement as needed, above)

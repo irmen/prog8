@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-FIX BUG:
-- wormfood noopt crash caused by a change in 7.8; 8ae3bad6f7e73a3913594a983939298b357c7e7e "fix rts in empty asmsub"
-
 ...
 
 
