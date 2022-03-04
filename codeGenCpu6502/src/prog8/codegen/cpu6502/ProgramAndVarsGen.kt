@@ -24,6 +24,7 @@ import kotlin.math.absoluteValue
 internal class ProgramAndVarsGen(
     val program: Program,
     val variables: IVariablesAndConsts,
+    val symboltable: SymbolTable,
     val options: CompilationOptions,
     val errors: IErrorReporter,
     private val functioncallAsmGen: FunctionCallAsmGen,
@@ -383,6 +384,8 @@ internal class ProgramAndVarsGen(
     }
 
     private fun zeropagevars2asm(block: Block) {
+        //val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup fail") }
+        //require(scope.type==StNodeType.BLOCK)
         val varnames = variables.blockVars.getOrDefault(block, emptySet()).map { it.scopedname }.toSet()
         zeropagevars2asm(varnames)
     }

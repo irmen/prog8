@@ -19,7 +19,7 @@ internal class VariableExtractor: IAstVisitor {
     private val allSubroutineConsts = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
     private val allSubroutineMemoryvars = mutableMapOf<Subroutine, MutableSet<VarDecl>>()
 
-    fun extractVars(program: Program): IVariablesAndConsts {
+    fun extractFrom(program: Program): IVariablesAndConsts {
         this.visit(program)
         return VariablesAndConsts(
             allBlockVars, allBlockConsts, allBlockMemoryvars,

@@ -290,7 +290,6 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
-        val variables = VariableExtractor().extractVars(result.program)
 
         // bb = (( not bb as uword)  or  not ww)
         val bbAssign = result.program.entrypoint.statements.last() as Assignment
@@ -328,7 +327,7 @@ class TestOptimization: FunSpec({
         ((bbAssigns1expr.right as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val asm = generateAssembly(result.program, variables, options)
+        val asm = generateAssembly(result.program, options)
         asm shouldNotBe null
         asm!!.name.shouldNotBeBlank()
     }

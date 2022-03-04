@@ -15,6 +15,8 @@ import prog8.ast.statements.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage
+import prog8.compiler.astprocessing.SymbolTableMaker
+import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
@@ -23,7 +25,7 @@ import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
 
 class TestAsmGenSymbols: StringSpec({
-    fun createTestProgram(): Pair<Program, IVariablesAndConsts> {
+    fun createTestProgram(): Program {
         /*
     main  {
 
@@ -69,41 +71,22 @@ class TestAsmGenSymbols: StringSpec({
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder).addModule(module)
-        val variables = object : IVariablesAndConsts {
-            override val blockVars: Map<Block, Set<IVariablesAndConsts.StaticVariable>>
-            override val blockConsts: Map<Block, Set<IVariablesAndConsts.ConstantNumberSymbol>>
-            override val blockMemvars: Map<Block, Set<IVariablesAndConsts.MemoryMappedVariable>>
-            override val subroutineVars: Map<Subroutine, Set<IVariablesAndConsts.StaticVariable>>
-            override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
-            override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
 
-            init {
-                blockVars = mutableMapOf()
-                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticVariable(varInBlock.datatype, varInBlock.scopedName, varInBlock.value, varInBlock.arraysize?.constIndex(), varInBlock.zeropage, varInBlock.position))
-                blockConsts = mutableMapOf()
-                blockMemvars = mutableMapOf()
-                subroutineVars = mutableMapOf()
-                subroutineVars[subroutine] = mutableSetOf(
-                    IVariablesAndConsts.StaticVariable(varInSub.datatype, varInSub.scopedName, varInSub.value, varInSub.arraysize?.constIndex(), varInSub.zeropage, varInSub.position),
-                    IVariablesAndConsts.StaticVariable(var2InSub.datatype, var2InSub.scopedName, var2InSub.value, var2InSub.arraysize?.constIndex(), var2InSub.zeropage, var2InSub.position)
-                )
-                subroutineConsts = mutableMapOf()
-                subroutineMemvars = mutableMapOf()
-            }
-        }
-        return Pair(program, variables)
+        return program
     }
 
-    fun createTestAsmGen(program: Program, allocation: IVariablesAndConsts): AsmGen {
+    fun createTestAsmGen(program: Program): AsmGen {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target())
         options.compTarget.machine.zeropage = C64Zeropage(options)
-        return AsmGen(program, errors, allocation, options)
+        val st = SymbolTableMaker().makeFrom(program)
+        val allocation = VariableExtractor().extractFrom(program)
+        return AsmGen(program, errors, st, allocation, options)
     }
 
     "symbol and variable names from strings" {
-        val (program, variables) = createTestProgram()
-        val asmgen = createTestAsmGen(program, variables)
+        val program = createTestProgram()
+        val asmgen = createTestAsmGen(program)
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("<name>") shouldBe "prog8_name"
@@ -115,8 +98,8 @@ class TestAsmGenSymbols: StringSpec({
     }
 
     "symbol and variable names from variable identifiers" {
-        val (program, variables) = createTestProgram()
-        val asmgen = createTestAsmGen(program, variables)
+        val program = createTestProgram()
+        val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
         val localvarIdent = sub.statements.asSequence().filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
@@ -135,8 +118,8 @@ class TestAsmGenSymbols: StringSpec({
     }
 
     "symbol and variable names from label identifiers" {
-        val (program, variables) = createTestProgram()
-        val asmgen = createTestAsmGen(program, variables)
+        val program = createTestProgram()
+        val asmgen = createTestAsmGen(program)
         val sub = program.entrypoint
 
         val localLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
@@ -164,8 +147,8 @@ main {
         prog8_lib.P8ZP_SCRATCH_W1 = 1
         prog8_lib.P8ZP_SCRATCH_W2 = 1
          */
-        val (program, variables) = createTestProgram()
-        val asmgen = createTestAsmGen(program, variables)
+        val program = createTestProgram()
+        val asmgen = createTestAsmGen(program)
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_REG") shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_W2") shouldBe "P8ZP_SCRATCH_W2"
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_REG")) shouldBe "P8ZP_SCRATCH_REG"

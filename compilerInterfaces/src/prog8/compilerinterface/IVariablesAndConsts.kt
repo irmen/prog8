@@ -13,6 +13,9 @@ import prog8.ast.statements.ZeropageWish
  *
  * note: the string variables are in here as well, they're in blockVars for the block named 'prog8_interned_strings'.
  */
+
+// TODO remove this, and replace with SymbolTable
+
 interface IVariablesAndConsts {
     data class ConstantNumberSymbol(val type: DataType, val scopedname: List<String>, val value: Double, val position: Position)
     data class MemoryMappedVariable(val type: DataType, val scopedname: List<String>, val address: UInt, val position: Position)

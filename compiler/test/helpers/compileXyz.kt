@@ -8,6 +8,8 @@ import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
+import prog8.compiler.astprocessing.SymbolTableMaker
+import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compiler.compileProgram
 import prog8.compilerinterface.*
 import java.nio.file.Path
@@ -83,11 +85,12 @@ internal fun compileText(
 
 internal fun generateAssembly(
     program: Program,
-    variables: IVariablesAndConsts,
     options: CompilationOptions? = null
 ): IAssemblyProgram? {
     val coptions = options ?: CompilationOptions(OutputType.RAW, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(), true, true, C64Target(), outputDir = outputDir)
     coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
-    val asmgen = AsmGen(program, ErrorReporterForTests(), variables, coptions)
+    val variables = VariableExtractor().extractFrom(program)
+    val st = SymbolTableMaker().makeFrom(program)
+    val asmgen = AsmGen(program, ErrorReporterForTests(), st, variables, coptions)
     return asmgen.compileToAssembly()
 }

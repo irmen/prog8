@@ -23,6 +23,7 @@ internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 class AsmGen(internal val program: Program,
              internal val errors: IErrorReporter,
+             internal val symbolTable: SymbolTable,
              internal val variables: IVariablesAndConsts,
              internal val options: CompilationOptions): IAssemblyGenerator {
 
@@ -37,7 +38,7 @@ class AsmGen(internal val program: Program,
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
-    private val programGen = ProgramAndVarsGen(program, variables, options, errors, functioncallAsmGen, this, allocator, zeropage)
+    private val programGen = ProgramAndVarsGen(program, variables, symbolTable, options, errors, functioncallAsmGen, this, allocator, zeropage)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen, allocator)
 

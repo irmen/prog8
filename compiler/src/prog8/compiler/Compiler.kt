@@ -363,7 +363,8 @@ private fun writeAssembly(program: Program,
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
-    val variables = VariableExtractor().extractVars(program)
+    val variables = VariableExtractor().extractFrom(program)
+    val symbolTable = SymbolTableMaker().makeFrom(program)
 
     // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
     //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.
@@ -374,7 +375,7 @@ private fun writeAssembly(program: Program,
 //    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
-    val assembly = asmGeneratorFor(program, errors, variables, compilerOptions).compileToAssembly()
+    val assembly = asmGeneratorFor(program, errors, symbolTable, variables, compilerOptions).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -414,14 +415,18 @@ fun printProgram(program: Program) {
     println()
 }
 
-internal fun asmGeneratorFor(program: Program, errors: IErrorReporter, variables: IVariablesAndConsts, options: CompilationOptions): IAssemblyGenerator
+internal fun asmGeneratorFor(program: Program,
+                             errors: IErrorReporter,
+                             symbolTable: SymbolTable,
+                             variables: IVariablesAndConsts,
+                             options: CompilationOptions): IAssemblyGenerator
 {
     if(options.experimentalCodegen) {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return prog8.codegen.experimental6502.AsmGen(program, errors, variables, options)
+            return prog8.codegen.experimental6502.AsmGen(program, errors, symbolTable, variables, options)
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return prog8.codegen.cpu6502.AsmGen(program, errors, variables, options)
+            return prog8.codegen.cpu6502.AsmGen(program, errors, symbolTable, variables, options)
     }
 
     throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")
