@@ -60,7 +60,7 @@ class CX16MachineDefinition: IMachineDefinition {
         zeropage = CX16Zeropage(compilerOptions)
     }
 
-    // 6502 opcodes (including aliases and illegal opcodes), these cannot be used as variable or label names
+    // 65c02 opcodes, these cannot be used as variable or label names
     override val opcodeNames = setOf("adc", "and", "asl", "bcc", "bcs",
             "beq", "bge", "bit", "blt", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
             "cld", "cli", "clv", "cmp", "cpx", "cpy", "dec", "dex", "dey",

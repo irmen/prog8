@@ -12,6 +12,10 @@ class AsmGen(internal val program: Program,
 
         println("\n** experimental 65(c)02 code generator **\n")
 
+        val stMaker = SymbolTableMaker()
+        val symbolTable = stMaker.make(program)
+        symbolTable.print()
+
         println("..todo: create assembly code into ${options.outputDir.toAbsolutePath()}..")
         return AssemblyProgram("dummy")
     }

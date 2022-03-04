@@ -23,7 +23,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     data class ZpAllocation(val address: UInt,
                             val dt: DataType,
                             val size: Int,
-                            val originalScope: INameScope,
+                            val originalScope: INameScope,              // TODO try to get rid of this reference
                             val initialStringValue: StringLiteral?,
                             val initialArrayValue: ArrayLiteral?)
 
