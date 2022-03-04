@@ -1,6 +1,5 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.INameScope
 import prog8.ast.Program
 import prog8.ast.antlr.escape
 import prog8.ast.base.*
@@ -383,8 +382,18 @@ internal class ProgramAndVarsGen(
                     clc""")
     }
 
-    private fun zeropagevars2asm(scope: INameScope) {
-        val zpVariables = allocator.zeropageVars.filter { it.value.originalScope==scope }
+    private fun zeropagevars2asm(block: Block) {
+        val varnames = variables.blockVars.getOrDefault(block, emptySet()).map { it.scopedname }.toSet()
+        zeropagevars2asm(varnames)
+    }
+
+    private fun zeropagevars2asm(sub: Subroutine) {
+        val varnames = variables.subroutineVars.getOrDefault(sub, emptySet()).map { it.scopedname }.toSet()
+        zeropagevars2asm(varnames)
+    }
+
+    private fun zeropagevars2asm(varNames: Set<List<String>>) {
+        val zpVariables = allocator.zeropageVars.filter { it.key in varNames }
         for ((scopedName, zpvar) in zpVariables) {
             if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped

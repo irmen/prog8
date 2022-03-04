@@ -1,6 +1,5 @@
 package prog8.compilerinterface
 
-import prog8.ast.INameScope
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
@@ -20,7 +19,6 @@ interface IVariablesAndConsts {
     data class MemoryMappedVariable(val type: DataType, val scopedname: List<String>, val address: UInt, val position: Position)
     data class StaticVariable(val type: DataType,
                               val scopedname: List<String>,
-                              val scope: INameScope,
                               val initialValue: Expression?,
                               val arraysize: Int?,
                               val zp: ZeropageWish,

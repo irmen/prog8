@@ -178,7 +178,7 @@ internal class VariablesAndConsts (
     }
 
     private fun toStatic(decl: VarDecl) =
-        IVariablesAndConsts.StaticVariable(decl.datatype, decl.scopedName, decl.definingScope, decl.value, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
+        IVariablesAndConsts.StaticVariable(decl.datatype, decl.scopedName, decl.value, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
 
     override fun addIfUnknown(definingBlock: Block, variable: VarDecl) {
         var blockvars = bv[definingBlock]

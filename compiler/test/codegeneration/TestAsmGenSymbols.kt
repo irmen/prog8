@@ -83,13 +83,13 @@ class TestAsmGenSymbols: StringSpec({
 
             init {
                 blockVars = mutableMapOf()
-                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticVariable(varInBlock.datatype, varInBlock.scopedName, varInBlock.definingScope, varInBlock.value, varInBlock.arraysize?.constIndex(), varInBlock.zeropage, varInBlock.position))
+                blockVars[block] = mutableSetOf(IVariablesAndConsts.StaticVariable(varInBlock.datatype, varInBlock.scopedName, varInBlock.value, varInBlock.arraysize?.constIndex(), varInBlock.zeropage, varInBlock.position))
                 blockConsts = mutableMapOf()
                 blockMemvars = mutableMapOf()
                 subroutineVars = mutableMapOf()
                 subroutineVars[subroutine] = mutableSetOf(
-                    IVariablesAndConsts.StaticVariable(varInSub.datatype, varInSub.scopedName, varInSub.definingScope, varInSub.value, varInSub.arraysize?.constIndex(), varInSub.zeropage, varInSub.position),
-                    IVariablesAndConsts.StaticVariable(var2InSub.datatype, var2InSub.scopedName, var2InSub.definingScope, var2InSub.value, var2InSub.arraysize?.constIndex(), var2InSub.zeropage, var2InSub.position)
+                    IVariablesAndConsts.StaticVariable(varInSub.datatype, varInSub.scopedName, varInSub.value, varInSub.arraysize?.constIndex(), varInSub.zeropage, varInSub.position),
+                    IVariablesAndConsts.StaticVariable(var2InSub.datatype, var2InSub.scopedName, var2InSub.value, var2InSub.arraysize?.constIndex(), var2InSub.zeropage, var2InSub.position)
                 )
                 subroutineConsts = mutableMapOf()
                 subroutineMemvars = mutableMapOf()
