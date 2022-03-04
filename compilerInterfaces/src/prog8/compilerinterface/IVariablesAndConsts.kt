@@ -5,7 +5,6 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
 import prog8.ast.statements.ZeropageWish
 
 /**
@@ -30,9 +29,4 @@ interface IVariablesAndConsts {
     val subroutineVars: Map<Subroutine, Set<StaticVariable>>
     val subroutineConsts: Map<Subroutine, Set<ConstantNumberSymbol>>
     val subroutineMemvars: Map<Subroutine, Set<MemoryMappedVariable>>
-
-    /**
-     * ability to add another new variable after the tables have already been created.
-     */
-    fun addIfUnknown(definingBlock: Block, variable: VarDecl)
 }

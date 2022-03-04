@@ -21,8 +21,8 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
     checker.visit(this)
 }
 
-internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, variables: IVariablesAndConsts, errors: IErrorReporter) {
-    val fixer = BeforeAsmAstChanger(this, compilerOptions, variables, errors)
+internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
+    val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while(errors.noErrors() && fixer.applyModifications()>0) {
         fixer.visit(this)

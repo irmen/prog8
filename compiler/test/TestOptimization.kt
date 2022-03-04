@@ -303,7 +303,7 @@ class TestOptimization: FunSpec({
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
-        result.program.processAstBeforeAsmGeneration(options, DummyVarsAndConsts, ErrorReporterForTests())
+        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
 
         // assignment is now split into:
         //     bb =  not bb

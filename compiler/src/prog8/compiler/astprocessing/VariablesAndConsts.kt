@@ -104,7 +104,7 @@ internal class VariablesAndConsts (
     override val subroutineConsts: Map<Subroutine, Set<IVariablesAndConsts.ConstantNumberSymbol>>
     override val subroutineMemvars: Map<Subroutine, Set<IVariablesAndConsts.MemoryMappedVariable>>
 
-    private val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }.toMutableMap()
+    private val bv = astBlockVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
     private val bc = astBlockConsts.keys.associateWith { mutableSetOf<IVariablesAndConsts.ConstantNumberSymbol>() }
     private val bmv = astBlockMemvars.keys.associateWith { mutableSetOf<IVariablesAndConsts.MemoryMappedVariable>() }
     private val sv = astSubroutineVars.keys.associateWith { mutableSetOf<IVariablesAndConsts.StaticVariable>() }
@@ -180,12 +180,4 @@ internal class VariablesAndConsts (
     private fun toStatic(decl: VarDecl) =
         IVariablesAndConsts.StaticVariable(decl.datatype, decl.scopedName, decl.value, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
 
-    override fun addIfUnknown(definingBlock: Block, variable: VarDecl) {
-        var blockvars = bv[definingBlock]
-        if(blockvars==null) {
-            blockvars = mutableSetOf()
-            bv[definingBlock] = blockvars
-        }
-        blockvars.add(toStatic(variable))
-    }
 }

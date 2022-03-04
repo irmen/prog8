@@ -11,7 +11,6 @@ import prog8.compilerinterface.*
 
 internal class BeforeAsmAstChanger(val program: Program,
                                    private val options: CompilationOptions,
-                                   private val variables: IVariablesAndConsts,
                                    private val errors: IErrorReporter
 ) : AstWalker() {
 
@@ -250,8 +249,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             )
         }
         if(separateRightExpr) {
-            val (tempVarName, tempVarDecl) = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
-            variables.addIfUnknown(tempVarDecl.definingBlock, tempVarDecl)
+            val (tempVarName, _) = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
             rightOperandReplacement = IdentifierReference(tempVarName, expr.position)
             rightAssignment = Assignment(
                 AssignTarget(IdentifierReference(tempVarName, expr.position), null, null, expr.position),
@@ -323,8 +321,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         val modifications = mutableListOf<IAstModification>()
         val statement = expr.containingStatement
         val dt = expr.indexer.indexExpr.inferType(program)
-        val (tempVarName, tempVarDecl) = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
-        variables.addIfUnknown(tempVarDecl.definingBlock, tempVarDecl)
+        val (tempVarName, _) = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
         val target = AssignTarget(IdentifierReference(tempVarName, expr.indexer.position), null, null, expr.indexer.position)
         val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.BEFOREASMGEN, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
