@@ -6,7 +6,6 @@ import prog8.compilerinterface.*
 class AsmGen(internal val program: Program,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val variables: IVariablesAndConsts,
              internal val options: CompilationOptions): IAssemblyGenerator {
 
     override fun compileToAssembly(): IAssemblyProgram? {

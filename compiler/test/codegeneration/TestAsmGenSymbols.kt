@@ -16,7 +16,6 @@ import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage
 import prog8.compiler.astprocessing.SymbolTableMaker
-import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
@@ -80,8 +79,7 @@ class TestAsmGenSymbols: StringSpec({
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target())
         options.compTarget.machine.zeropage = C64Zeropage(options)
         val st = SymbolTableMaker().makeFrom(program)
-        val allocation = VariableExtractor().extractFrom(program)
-        return AsmGen(program, errors, st, allocation, options)
+        return AsmGen(program, errors, st, options)
     }
 
     "symbol and variable names from strings" {

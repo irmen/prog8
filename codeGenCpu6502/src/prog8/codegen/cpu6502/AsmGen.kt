@@ -24,14 +24,13 @@ internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 class AsmGen(internal val program: Program,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val variables: IVariablesAndConsts,
              internal val options: CompilationOptions): IAssemblyGenerator {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.machine.zeropage
-    private val allocator = VariableAllocator(variables, symbolTable, options, errors)
+    private val allocator = VariableAllocator(symbolTable, options, errors)
     private val assemblyLines = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)

@@ -16,7 +16,6 @@ import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
-import prog8.compiler.astprocessing.VariableExtractor
 import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
 import prog8.compilerinterface.CompilationOptions

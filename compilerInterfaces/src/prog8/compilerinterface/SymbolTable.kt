@@ -8,6 +8,19 @@ import prog8.ast.statements.ZeropageWish
 import prog8.ast.toHex
 
 
+/**
+ * Tree structure containing all symbol definitions in the program
+ * (blocks, subroutines, variables (all types) and labels).
+ */
+class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
+    fun print() = printIndented(0)
+
+    override fun printProperties() { }
+
+    val origAstLinks = mutableMapOf<Node, StNode>()     // links of the original Ast nodes to the symbol table node.
+}
+
+
 enum class StNodeType {
     GLOBAL,
     // MODULE,     // not used with current scoping rules
@@ -81,7 +94,7 @@ open class StNode(val name: String,
         }
     }
 
-    fun printIndented(indent: Int) {
+    protected fun printIndented(indent: Int) {
         print("    ".repeat(indent))
         when(type) {
             StNodeType.GLOBAL -> print("SYMBOL-TABLE:")
@@ -106,14 +119,6 @@ open class StNode(val name: String,
         children[child.name] = child
         child.parent = this
     }
-}
-
-class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
-    fun print() = printIndented(0)
-
-    override fun printProperties() { }
-
-    val origAstLinks = mutableMapOf<Node, StNode>()     // link the original Ast nodes into the table.   TODO is this really needed?
 }
 
 class StStaticVariable(name: String,

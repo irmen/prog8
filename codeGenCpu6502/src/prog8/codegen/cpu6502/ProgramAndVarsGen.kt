@@ -25,7 +25,7 @@ internal class ProgramAndVarsGen(
     val program: Program,
     val options: CompilationOptions,
     val errors: IErrorReporter,
-    private val symboltable: SymbolTable,       // TODO stick this in Program
+    private val symboltable: SymbolTable,
     private val functioncallAsmGen: FunctionCallAsmGen,
     private val asmgen: AsmGen,
     private val allocator: VariableAllocator,
