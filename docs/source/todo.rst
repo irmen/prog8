@@ -3,6 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- make 'intermediate' module containing the SymbolTable and dumbed down version of the Ast.
+  no vardecls in it anymore (these are part of the symboltable) and baked types, so no inferType too.
+  no name lookup in the Ast, always do this in the symbol table.
+
 ...
 
 

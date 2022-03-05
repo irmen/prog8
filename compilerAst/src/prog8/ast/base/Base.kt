@@ -4,7 +4,6 @@ import prog8.ast.Node
 import prog8.ast.expressions.NumericLiteral
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
-import kotlin.io.path.div
 
 
 /**************************** AST Data classes ****************************/

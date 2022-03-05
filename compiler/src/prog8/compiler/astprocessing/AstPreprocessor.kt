@@ -3,9 +3,10 @@ package prog8.compiler.astprocessing
 import prog8.ast.IPipe
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.NumericDatatypes
+import prog8.ast.base.SyntaxError
+import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
-import prog8.ast.getTempRegisterName
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification

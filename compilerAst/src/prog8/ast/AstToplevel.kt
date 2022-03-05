@@ -4,7 +4,8 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.base.findParentNode
-import prog8.ast.expressions.*
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor

@@ -9,7 +9,10 @@ import prog8.ast.statements.VarDecl
 import prog8.codegen.target.atari.AtariMachineDefinition
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
-import prog8.compilerinterface.*
+import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IMemSizer
+import prog8.compilerinterface.IStringEncoding
 
 
 class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {

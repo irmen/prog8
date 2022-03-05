@@ -18,8 +18,8 @@ import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
-import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.CbmPrgLauncherType
+import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.OutputType
 import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.*
