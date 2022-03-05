@@ -12,6 +12,7 @@ import prog8.compilerinterface.*
 
 
 internal class VariableAllocator(private val vars: IVariablesAndConsts,
+                                 private val symboltable: SymbolTable,
                                  private val options: CompilationOptions,
                                  private val errors: IErrorReporter) {
 
@@ -35,28 +36,59 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
         if(options.zeropage== ZeropageType.DONTUSE)
             return
 
-        val allVariables = (
+        val allVariablesOld = (
                         vars.blockVars.asSequence().flatMap { it.value } +
                         vars.subroutineVars.asSequence().flatMap { it.value }
                 ).toList()
 
-        val numberOfAllocatableVariables = allVariables.size
-        val varsRequiringZp = allVariables.filter { it.zp == ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables.filter { it.zp == ZeropageWish.PREFER_ZEROPAGE }
-        val varsDontCare = allVariables.filter { it.zp == ZeropageWish.DONTCARE }
-        val numberOfExplicitNonZpVariables = allVariables.count { it.zp == ZeropageWish.NOT_IN_ZEROPAGE }
+        val allVariables = collectAllVariables(symboltable)
+        require(allVariables.size == allVariablesOld.size)
+        require(allVariables.map{it.scopedName}.toSet()==allVariablesOld.map{it.scopedname}.toSet())
+
+        val numberOfAllocatableVariables = allVariablesOld.size
+        val varsRequiringZp = allVariablesOld.filter { it.zp == ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariablesOld.filter { it.zp == ZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare = allVariablesOld.filter { it.zp == ZeropageWish.DONTCARE }
+        val numberOfExplicitNonZpVariables = allVariablesOld.count { it.zp == ZeropageWish.NOT_IN_ZEROPAGE }
         require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
+
+        val numberOfAllocatableVariables2 = allVariables.size
+        val varsRequiringZp2 = allVariables.filter { it.zpw == ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp2 = allVariables.filter { it.zpw == ZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare2 = allVariables.filter { it.zpw == ZeropageWish.DONTCARE }
+        val numberOfExplicitNonZpVariables2 = allVariables.count { it.zpw == ZeropageWish.NOT_IN_ZEROPAGE }
+        require(varsDontCare2.size + varsRequiringZp2.size + varsPreferringZp2.size + numberOfExplicitNonZpVariables2 == numberOfAllocatableVariables2)
+        require(varsDontCare2.size==varsDontCare.size)
+        require(varsRequiringZp2.size==varsRequiringZp.size)
+        require(varsPreferringZp2.size==varsPreferringZp.size)
+        require(numberOfExplicitNonZpVariables2==numberOfExplicitNonZpVariables)
+        require(numberOfAllocatableVariables2==numberOfAllocatableVariables)
+
+        val oldvarsByName = varsDontCare.associateBy { it.scopedname }
+        val newvarsByName = varsDontCare2.associateBy { it.scopedName }
+        require(oldvarsByName.keys==newvarsByName.keys)
+        oldvarsByName.forEach { (name, oldvar) ->
+            val newvar = newvarsByName.getValue(name)
+            require(oldvar.scopedname==newvar.scopedName)
+            require(oldvar.type==newvar.dt)
+            require(oldvar.zp==newvar.zpw)
+            require(oldvar.initialValue==newvar.initialvalue)
+            require(oldvar.arraysize==newvar.arraysize)
+            require(oldvar.position==newvar.position)
+            require(numArrayElements(oldvar) == numArrayElements(newvar))
+        }
+
 
         var numVariablesAllocatedInZP = 0
         var numberOfNonIntegerVariables = 0
 
-        varsRequiringZp.forEach { variable ->
+        varsRequiringZp2.forEach { variable ->
             val numElements = numArrayElements(variable)
             val result = zeropage.allocate(
-                variable.scopedname,
-                variable.type,
+                variable.scopedName,
+                variable.dt,
                 numElements,
-                variable.initialValue,
+                variable.initialvalue,
                 variable.position,
                 errors
             )
@@ -71,13 +103,13 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
         }
 
         if(errors.noErrors()) {
-            varsPreferringZp.forEach { variable ->
+            varsPreferringZp2.forEach { variable ->
                 val numElements = numArrayElements(variable)
                 val result = zeropage.allocate(
-                    variable.scopedname,
-                    variable.type,
+                    variable.scopedName,
+                    variable.dt,
                     numElements,
-                    variable.initialValue,
+                    variable.initialvalue,
                     variable.position,
                     errors
                 )
@@ -88,17 +120,17 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
             // try to allocate any other interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
-                for (variable in varsDontCare) {
-                    if(variable.type in IntegerDatatypes) {
+                for (variable in varsDontCare2.sortedWith(compareBy({it.scopedName.size}, {it.name}))) {
+                    if(variable.dt in IntegerDatatypes) {
                         if(zeropage.free.isEmpty()) {
                             break
                         } else {
                             val numElements = numArrayElements(variable)
                             val result = zeropage.allocate(
-                                variable.scopedname,
-                                variable.type,
+                                variable.scopedName,
+                                variable.dt,
                                 numElements,
-                                variable.initialValue,
+                                variable.initialvalue,
                                 variable.position,
                                 errors
                             )
@@ -115,11 +147,32 @@ internal class VariableAllocator(private val vars: IVariablesAndConsts,
         println("  zeropage free space: ${zeropage.free.size} bytes")
     }
 
+    private fun collectAllVariables(st: SymbolTable): Collection<StStaticVariable> {
+        val vars = mutableListOf<StStaticVariable>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type==StNodeType.STATICVAR)
+                    vars.add(child.value as StStaticVariable)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(st)
+        return vars
+    }
+
     internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
 
     private fun numArrayElements(variable: IVariablesAndConsts.StaticVariable) =
         when(variable.type) {
             DataType.STR -> (variable.initialValue as StringLiteral).value.length
+            in ArrayDatatypes -> variable.arraysize!!
+            else -> null
+        }
+
+    private fun numArrayElements(variable: StStaticVariable) =
+        when(variable.dt) {
+            DataType.STR -> (variable.initialvalue as StringLiteral).value.length
             in ArrayDatatypes -> variable.arraysize!!
             else -> null
         }

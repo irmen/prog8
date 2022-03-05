@@ -23,10 +23,9 @@ import kotlin.math.absoluteValue
  */
 internal class ProgramAndVarsGen(
     val program: Program,
-    val variables: IVariablesAndConsts,
-    val symboltable: SymbolTable,
     val options: CompilationOptions,
     val errors: IErrorReporter,
+    private val symboltable: SymbolTable,       // TODO stick this in Program
     private val functioncallAsmGen: FunctionCallAsmGen,
     private val asmgen: AsmGen,
     private val allocator: VariableAllocator,
@@ -383,15 +382,19 @@ internal class ProgramAndVarsGen(
                     clc""")
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
     private fun zeropagevars2asm(block: Block) {
-        //val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup fail") }
-        //require(scope.type==StNodeType.BLOCK)
-        val varnames = variables.blockVars.getOrDefault(block, emptySet()).map { it.scopedname }.toSet()
+        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.BLOCK)
+        val varnames = scope.children.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
         zeropagevars2asm(varnames)
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
     private fun zeropagevars2asm(sub: Subroutine) {
-        val varnames = variables.subroutineVars.getOrDefault(sub, emptySet()).map { it.scopedname }.toSet()
+        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.SUBROUTINE)
+        val varnames = scope.children.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
         zeropagevars2asm(varnames)
     }
 
@@ -404,32 +407,44 @@ internal class ProgramAndVarsGen(
         }
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
+    // TODO don't have this as a separate loop, use a partition over the variables in the block; ZP<->NonZP
     private fun nonZpVariables2asm(block: Block) {
-        val variables = variables.blockVars[block]?.filter { !allocator.isZpVar(it.scopedname) } ?: emptyList()
+        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.BLOCK)
+        val variables = scope.children
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
+    // TODO don't have this as a separate loop, use a partition over the variables in the subroutine; ZP<->NonZP
     private fun nonZpVariables2asm(sub: Subroutine) {
-        val variables = variables.subroutineVars[sub]?.filter { !allocator.isZpVar(it.scopedname) } ?: emptyList()
+        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.SUBROUTINE)
+        val variables = scope.children
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
     }
 
-    private fun nonZpVariables2asm(variables: List<IVariablesAndConsts.StaticVariable>) {
+    private fun nonZpVariables2asm(variables: List<StStaticVariable>) {
         asmgen.out("")
         asmgen.out("; non-zeropage variables")
-        val (stringvars, othervars) = variables.partition { it.type==DataType.STR }
+        val (stringvars, othervars) = variables.partition { it.dt==DataType.STR }
         stringvars.forEach {
-            val stringvalue = it.initialValue as StringLiteral
-            outputStringvar(it.scopedname.last(), it.type, stringvalue.encoding, stringvalue.value)
+            val stringvalue = it.initialvalue as StringLiteral
+            outputStringvar(it.name, it.dt, stringvalue.encoding, stringvalue.value)
         }
         othervars.sortedBy { it.type }.forEach {
             staticVariable2asm(it)
         }
     }
 
-    private fun staticVariable2asm(variable: IVariablesAndConsts.StaticVariable) {
-        val name = variable.scopedname.last()
-        val value = variable.initialValue
+    private fun staticVariable2asm(variable: StStaticVariable) {
+        val name = variable.name
+        val value = variable.initialvalue
         val staticValue: Number =
             if(value!=null) {
                 if(value is NumericLiteral) {
@@ -438,13 +453,13 @@ internal class ProgramAndVarsGen(
                     else
                         value.number.toInt()
                 } else {
-                    if(variable.type in NumericDatatypes)
+                    if(variable.dt in NumericDatatypes)
                         throw AssemblyError("can only deal with constant numeric values for global vars")
                     else 0
                 }
             } else 0
 
-        when (variable.type) {
+        when (variable.dt) {
             DataType.UBYTE -> asmgen.out("$name\t.byte  ${staticValue.toHex()}")
             DataType.BYTE -> asmgen.out("$name\t.char  $staticValue")
             DataType.UWORD -> asmgen.out("$name\t.word  ${staticValue.toHex()}")
@@ -460,7 +475,7 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.type, value as? ArrayLiteral, variable.arraysize)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, value as? ArrayLiteral, variable.arraysize)
             else -> {
                 throw AssemblyError("weird dt")
             }
@@ -524,30 +539,41 @@ internal class ProgramAndVarsGen(
         }
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
     private fun memdefsAndConsts2asm(block: Block) {
-        val mvs = variables.blockMemvars[block] ?: emptySet()
-        val consts = variables.blockConsts[block] ?: emptySet()
+        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.BLOCK)
+        val mvs = scope.children
+            .filter { it.value.type==StNodeType.MEMVAR }
+            .map { it.value as StMemVar }
+        val consts = scope.children
+            .filter { it.value.type==StNodeType.CONSTANT }
+            .map { it.value as StConstant }
         memdefsAndConsts2asm(mvs, consts)
     }
 
+    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
     private fun memdefsAndConsts2asm(sub: Subroutine) {
-        val mvs = variables.subroutineMemvars[sub] ?: emptySet()
-        val consts = variables.subroutineConsts[sub] ?: emptySet()
+        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.SUBROUTINE)
+        val mvs = scope.children
+            .filter { it.value.type==StNodeType.MEMVAR }
+            .map { it.value as StMemVar }
+        val consts = scope.children
+            .filter { it.value.type==StNodeType.CONSTANT }
+            .map { it.value as StConstant }
         memdefsAndConsts2asm(mvs, consts)
     }
 
-    private fun memdefsAndConsts2asm(
-        memvars: Set<IVariablesAndConsts.MemoryMappedVariable>,
-        consts: Set<IVariablesAndConsts.ConstantNumberSymbol>
-    ) {
+    private fun memdefsAndConsts2asm(memvars: Collection<StMemVar>, consts: Collection<StConstant>) {
         memvars.forEach {
-            asmgen.out("  ${it.scopedname.last()} = ${it.address.toHex()}")
+            asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
         consts.forEach {
-            if(it.type==DataType.FLOAT)
-                asmgen.out("  ${it.scopedname.last()} = ${it.value}")
+            if(it.dt==DataType.FLOAT)
+                asmgen.out("  ${it.name} = ${it.value}")
             else
-                asmgen.out("  ${it.scopedname.last()} = ${it.value.toHex()}")
+                asmgen.out("  ${it.name} = ${it.value.toHex()}")
         }
     }
 

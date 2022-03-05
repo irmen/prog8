@@ -31,14 +31,14 @@ class AsmGen(internal val program: Program,
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.machine.zeropage
-    private val allocator = VariableAllocator(variables, options, errors)
+    private val allocator = VariableAllocator(variables, symbolTable, options, errors)
     private val assemblyLines = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
-    private val programGen = ProgramAndVarsGen(program, variables, symbolTable, options, errors, functioncallAsmGen, this, allocator, zeropage)
+    private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen, allocator)
 
