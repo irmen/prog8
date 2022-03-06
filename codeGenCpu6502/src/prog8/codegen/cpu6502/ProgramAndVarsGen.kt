@@ -201,13 +201,10 @@ internal class ProgramAndVarsGen(
         }
 
         asmgen.out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
-
         asmgen.outputSourceLine(block)
 
-        zeropagevars2asm(block)
-        memdefsAndConsts2asm(block)
+        createBlockVariables(block)
         asmsubs2asm(block.statements)
-        nonZpVariables2asm(block)
 
         asmgen.out("")
         asmgen.out("; subroutines in this block")
@@ -231,6 +228,34 @@ internal class ProgramAndVarsGen(
         }
 
         asmgen.out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
+    }
+
+    private fun getVars(scope: StNode): Map<String, StNode> =
+        scope.children.filter { it.value.type in arrayOf(StNodeType.STATICVAR, StNodeType.CONSTANT, StNodeType.MEMVAR) }
+
+    private fun createBlockVariables(block: Block) {
+        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.BLOCK)
+        val varsInBlock = getVars(scope)
+
+        // Zeropage Variables
+        val varnames = varsInBlock.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
+        zeropagevars2asm(varnames)
+
+        // MemDefs and Consts
+        val mvs = varsInBlock
+            .filter { it.value.type==StNodeType.MEMVAR }
+            .map { it.value as StMemVar }
+        val consts = varsInBlock
+            .filter { it.value.type==StNodeType.CONSTANT }
+            .map { it.value as StConstant }
+        memdefsAndConsts2asm(mvs, consts)
+
+        // normal statically allocated variables
+        val variables = varsInBlock
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .map { it.value as StStaticVariable }
+        nonZpVariables2asm(variables)
     }
 
     internal fun translateSubroutine(sub: Subroutine) {
@@ -261,8 +286,24 @@ internal class ProgramAndVarsGen(
         } else {
             // regular subroutine
             asmgen.out("${sub.name}\t.proc")
-            zeropagevars2asm(sub)
-            memdefsAndConsts2asm(sub)
+
+            val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+            require(scope.type==StNodeType.SUBROUTINE)
+            val varsInSubroutine = getVars(scope)
+
+            // Zeropage Variables
+            val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
+            zeropagevars2asm(varnames)
+
+            // MemDefs and Consts
+            val mvs = varsInSubroutine
+                .filter { it.value.type==StNodeType.MEMVAR }
+                .map { it.value as StMemVar }
+            val consts = varsInSubroutine
+                .filter { it.value.type==StNodeType.CONSTANT }
+                .map { it.value as StConstant }
+            memdefsAndConsts2asm(mvs, consts)
+
             asmsubs2asm(sub.statements)
 
             // the main.start subroutine is the program's entrypoint and should perform some initialization logic
@@ -314,7 +355,13 @@ internal class ProgramAndVarsGen(
                 asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
             if(asmGenInfo.usedFloatEvalResultVar2)
                 asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-            nonZpVariables2asm(sub)
+
+            // normal statically allocated variables
+            val variables = varsInSubroutine
+                .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+                .map { it.value as StStaticVariable }
+            nonZpVariables2asm(variables)
+
             asmgen.out("  .pend\n")
         }
     }
@@ -382,22 +429,6 @@ internal class ProgramAndVarsGen(
                     clc""")
     }
 
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    private fun zeropagevars2asm(block: Block) {
-        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.BLOCK)
-        val varnames = scope.children.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
-        zeropagevars2asm(varnames)
-    }
-
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    private fun zeropagevars2asm(sub: Subroutine) {
-        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.SUBROUTINE)
-        val varnames = scope.children.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
-        zeropagevars2asm(varnames)
-    }
-
     private fun zeropagevars2asm(varNames: Set<List<String>>) {
         val zpVariables = allocator.zeropageVars.filter { it.key in varNames }
         for ((scopedName, zpvar) in zpVariables) {
@@ -405,28 +436,6 @@ internal class ProgramAndVarsGen(
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
             asmgen.out("${scopedName.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
         }
-    }
-
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    // TODO don't have this as a separate loop, use a partition over the variables in the block; ZP<->NonZP
-    private fun nonZpVariables2asm(block: Block) {
-        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.BLOCK)
-        val variables = scope.children
-            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
-            .map { it.value as StStaticVariable }
-        nonZpVariables2asm(variables)
-    }
-
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    // TODO don't have this as a separate loop, use a partition over the variables in the subroutine; ZP<->NonZP
-    private fun nonZpVariables2asm(sub: Subroutine) {
-        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.SUBROUTINE)
-        val variables = scope.children
-            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
-            .map { it.value as StStaticVariable }
-        nonZpVariables2asm(variables)
     }
 
     private fun nonZpVariables2asm(variables: List<StStaticVariable>) {
@@ -537,32 +546,6 @@ internal class ProgramAndVarsGen(
             }
             else -> throw AssemblyError("require array dt")
         }
-    }
-
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    private fun memdefsAndConsts2asm(block: Block) {
-        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.BLOCK)
-        val mvs = scope.children
-            .filter { it.value.type==StNodeType.MEMVAR }
-            .map { it.value as StMemVar }
-        val consts = scope.children
-            .filter { it.value.type==StNodeType.CONSTANT }
-            .map { it.value as StConstant }
-        memdefsAndConsts2asm(mvs, consts)
-    }
-
-    // TODO avoid looking up the variables multiple times because the Ast node is used as an anchor
-    private fun memdefsAndConsts2asm(sub: Subroutine) {
-        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
-        require(scope.type==StNodeType.SUBROUTINE)
-        val mvs = scope.children
-            .filter { it.value.type==StNodeType.MEMVAR }
-            .map { it.value as StMemVar }
-        val consts = scope.children
-            .filter { it.value.type==StNodeType.CONSTANT }
-            .map { it.value as StConstant }
-        memdefsAndConsts2asm(mvs, consts)
     }
 
     private fun memdefsAndConsts2asm(memvars: Collection<StMemVar>, consts: Collection<StConstant>) {
