@@ -50,6 +50,12 @@ class PtProgram(
     override fun printProperties() {
         print("'$name'")
     }
+
+    fun allBlocks(): Sequence<PtBlock> =
+        children.asSequence().flatMap { it.children }.filterIsInstance<PtBlock>()
+
+    fun entrypoint(): PtSub? =
+        allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && it.name == "start" } as PtSub?
 }
 
 
