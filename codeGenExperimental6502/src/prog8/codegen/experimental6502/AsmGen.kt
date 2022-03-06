@@ -14,6 +14,9 @@ class AsmGen(internal val program: Program,
 
         symbolTable.print()
 
+        // TODO temporary location to do this:
+        val intermediateAst = IntermediateAstMaker.transform(program)
+        intermediateAst.print()
 
         println("..todo: create assembly code into ${options.outputDir.toAbsolutePath()}..")
         return AssemblyProgram("dummy")

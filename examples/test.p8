@@ -12,6 +12,9 @@ main {
     sub start() {
         sys.memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
 
+        ubyte qq = candidate_prime |> sin8u() |> cos8u()
+        candidate_prime |> sin8u() |> txt.print_ub()
+
         ; calculate primes
         txt.print("prime numbers up to 255:\n\n")
         ubyte amount=0
