@@ -26,19 +26,19 @@ internal class SymbolTableMaker: IAstVisitor {
 
     override fun visit(block: Block) {
         val node = StNode(block.name, StNodeType.BLOCK, block.position)
+        st.add(node)
         scopestack.push(node)
         super.visit(block)
         scopestack.pop()
-        st.add(node)
         // st.origAstLinks[block] = node
     }
 
     override fun visit(subroutine: Subroutine) {
         val node = StNode(subroutine.name, StNodeType.SUBROUTINE, subroutine.position)
+        scopestack.peek().add(node)
         scopestack.push(node)
         super.visit(subroutine)
         scopestack.pop()
-        scopestack.peek().add(node)
         // st.origAstLinks[subroutine] = node
     }
 

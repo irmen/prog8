@@ -16,10 +16,17 @@ class TestSymbolTable: FunSpec({
         st.position shouldBe Position.DUMMY
     }
 
+    test("symboltable flatten") {
+        val st = makeSt()
+        st.flat[listOf("zzzzz")] shouldBe null
+        st.flat.getValue(listOf("sin")).type shouldBe StNodeType.BUILTINFUNC
+        st.flat.getValue(listOf("block2")).type shouldBe StNodeType.BLOCK
+        st.flat.getValue(listOf("block2", "sub2", "subsub", "label")).type shouldBe StNodeType.LABEL
+        st.flat[listOf("block2", "sub2", "subsub", "label", "zzzz")] shouldBe null
+    }
+
     test("symboltable global lookups") {
         val st = makeSt()
-        st.print()
-
         st.lookup("undefined") shouldBe null
         st.lookup(listOf("undefined")) shouldBe null
         var default = st.lookupOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }

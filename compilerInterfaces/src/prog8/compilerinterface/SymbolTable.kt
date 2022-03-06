@@ -9,6 +9,20 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
     fun print() = printIndented(0)
 
     override fun printProperties() { }
+
+    /**
+     * The table as a flat mapping of scoped names to the StNode.
+     * This gives the fastest lookup possible (no need to traverse tree nodes)
+     */
+    val flat: Map<List<String>, StNode> by lazy {
+        val result = mutableMapOf<List<String>, StNode>()
+        fun flatten(node: StNode) {
+            result[node.scopedName] = node
+            node.children.values.forEach { flatten(it) }
+        }
+        children.values.forEach { flatten(it) }
+        result
+    }
 }
 
 
