@@ -2,12 +2,11 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.codegen.target.C64Target
 import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 
@@ -32,7 +31,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         result.program.entrypoint.statements.size shouldBe 13
     }
 
@@ -54,7 +53,7 @@ class TestTypecasts: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -70,7 +69,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -87,7 +86,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "in-place makes no sense"
     }
@@ -103,7 +102,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "can't cast"
@@ -152,7 +151,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         printProgram(result.program)
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 27
@@ -180,7 +179,7 @@ class TestTypecasts: FunSpec({
                     }
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 14
     }
@@ -197,7 +196,7 @@ class TestTypecasts: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
     test("(u)byte extend to word parameters") {
@@ -226,7 +225,7 @@ class TestTypecasts: FunSpec({
                     }}
                 }
             }"""
-        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
 
     test("lsb msb used as args with word types") {
@@ -245,6 +244,6 @@ class TestTypecasts: FunSpec({
                     }}
                 }
             }"""
-        compileText(C64Target(), true, text, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
 })

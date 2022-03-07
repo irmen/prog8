@@ -2,6 +2,7 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.DataType
@@ -229,7 +230,7 @@ class TestMemory: FunSpec({
                     uword @shared mem = memory("a b c", 100, $100)
                 }
             }
-        """, writeAssembly = true).assertSuccess()
+        """, writeAssembly = true) shouldNotBe null
     }
 
     test("memory() with invalid argument") {
@@ -239,6 +240,6 @@ class TestMemory: FunSpec({
                     uword @shared mem1 = memory("abc", 100, -2)
                 }
             }
-        """, writeAssembly = true).assertFailure()
+        """, writeAssembly = true) shouldBe null
     }
 })

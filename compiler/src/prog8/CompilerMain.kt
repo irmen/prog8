@@ -81,10 +81,10 @@ private fun compileMain(args: Array<String>): Boolean {
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
         val allImportedFiles = mutableSetOf<Path>()
-
+        val results = mutableListOf<CompilationResult>()
         while(true) {
             println("Continuous watch mode active. Modules: $moduleFiles")
-            val results = mutableListOf<CompilationResult>()
+            results.clear()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
                 val compilerArgs = CompilerArguments(
@@ -102,7 +102,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputPath
                 )
                 val compilationResult = compileProgram(compilerArgs)
-                results.add(compilationResult)
+                if(compilationResult!=null)
+                    results.add(compilationResult)
             }
 
             val allNewlyImportedFiles = results.flatMap { it.importedFiles }
@@ -152,21 +153,23 @@ private fun compileMain(args: Array<String>): Boolean {
                     srcdirs,
                     outputPath
                 )
-                compilationResult = compileProgram(compilerArgs)
-                if (!compilationResult.success)
+                val result = compileProgram(compilerArgs)
+                if(result==null)
                     return false
+                else
+                    compilationResult = result
             } catch (x: AstException) {
                 return false
             }
 
             if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.programName.isEmpty()) {
+                if (compilationResult.program.name.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                     return true
                 }
             }
 
-            val programNameInPath = outputPath.resolve(compilationResult.programName)
+            val programNameInPath = outputPath.resolve(compilationResult.program.name)
 
             if(startEmulator1==true || startEmulator2==true) {
                 if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari") {

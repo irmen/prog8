@@ -10,7 +10,6 @@ import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 import prog8tests.helpers.outputDir
 
@@ -27,7 +26,7 @@ main {
         ; nothing
     }
 }
-""").assertSuccess()
+""")!!
         result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
 
         val moduleNames = result.program.modules.map { it.name }
@@ -60,7 +59,7 @@ main {
         ; nothing
     }
 }
-""").assertSuccess()
+""")!!
         result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
         val options = determineCompilationOptions(result.program, C64Target())
         options.floats shouldBe true

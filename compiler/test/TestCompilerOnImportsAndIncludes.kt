@@ -28,8 +28,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             assumeReadableFile(fixturesDir, "foo_bar.p8")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
-                .assertSuccess()
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
             val program = result.program
             val startSub = program.entrypoint
@@ -51,8 +50,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             assumeReadableFile(fixturesDir, "foo_bar.asm")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)
-                .assertSuccess()
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
             val program = result.program
             val startSub = program.entrypoint
@@ -76,16 +74,14 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonExisting.p8")
             assumeNotExists(fixturesDir, "i_do_not_exist.bin")
 
-            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
-                .assertFailure()
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldBe null
         }
 
         test("testAsmbinaryDirectiveWithNonReadableFile") {
             val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonReadable.p8")
             assumeDirectory(fixturesDir, "subFolder")
 
-            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
-                .assertFailure()
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldBe null
         }
 
         val tests = listOf(
@@ -104,12 +100,11 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                     outputDir.normalize().toAbsolutePath() shouldNotBe workingDir.normalize().toAbsolutePath()
                 }
 
-                compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir)
-                    .assertSuccess(
-                        "argument to assembler directive .binary " +
-                                "should be relative to the generated .asm file (in output dir), " +
-                                "NOT relative to .p8 neither current working dir"
-                    )
+                withClue("argument to assembler directive .binary " +
+                        "should be relative to the generated .asm file (in output dir), " +
+                        "NOT relative to .p8 neither current working dir") {
+                    compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldNotBe null
+                }
             }
         }
     }

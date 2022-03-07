@@ -1,13 +1,17 @@
 package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldNotBe
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8.compilerinterface.ICompilationTarget
-import prog8tests.helpers.*
+import prog8tests.helpers.assumeDirectory
+import prog8tests.helpers.cartesianProduct
+import prog8tests.helpers.outputDir
+import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists
@@ -21,7 +25,7 @@ import kotlin.io.path.exists
 
 private val examplesDir = assumeDirectory(workingDir, "../examples")
 
-private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget): CompilationResult {
+private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget): CompilationResult? {
     val args = CompilerArguments(
         filepath,
         optimize,
@@ -75,7 +79,7 @@ class TestCompilerOnExamplesC64: FunSpec({
         val target = C64Target()
         val (displayName, filepath) = prepareTestFiles(source, optimize, target)
         test(displayName) {
-            compileTheThing(filepath, optimize, target).assertSuccess()
+            compileTheThing(filepath, optimize, target) shouldNotBe null
         }
     }
 })
@@ -107,7 +111,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
         val target = Cx16Target()
         val (displayName, filepath) = prepareTestFiles(source, optimize, target)
         test(displayName) {
-            compileTheThing(filepath, optimize, target).assertSuccess()
+            compileTheThing(filepath, optimize, target) shouldNotBe null
         }
     }
 })
@@ -148,10 +152,10 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
         val (displayNameC64, filepathC64) = prepareTestFiles(source, optimize, c64target)
         val (displayNameCx16, filepathCx16) = prepareTestFiles(source, optimize, cx16target)
         test(displayNameC64) {
-            compileTheThing(filepathC64, optimize, c64target).assertSuccess()
+            compileTheThing(filepathC64, optimize, c64target) shouldNotBe null
         }
         test(displayNameCx16) {
-            compileTheThing(filepathCx16, optimize, cx16target).assertSuccess()
+            compileTheThing(filepathCx16, optimize, cx16target) shouldNotBe null
         }
     }
 })

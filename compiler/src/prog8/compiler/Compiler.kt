@@ -27,9 +27,7 @@ import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
 
-class CompilationResult(val success: Boolean,
-                        val program: Program,
-                        val programName: String,
+class CompilationResult(val program: Program,
                         val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>)
 
@@ -48,7 +46,7 @@ class CompilerArguments(val filepath: Path,
                         val errors: IErrorReporter = ErrorReporter())
 
 
-fun compileProgram(args: CompilerArguments): CompilationResult {
+fun compileProgram(args: CompilerArguments): CompilationResult? {
     var programName = ""
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
@@ -104,12 +102,15 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
 //            println("*********** AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
 
+            println("***program.name = ${program.name}")
+            println("***programName = $programName")
+
             if (args.writeAssembly) {
                 when (val result = writeAssembly(program, args.errors, compilationOptions)) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
                     is WriteAssemblyResult.Fail -> {
                         System.err.println(result.error)
-                        return CompilationResult(false, program, programName, compilationOptions, importedFiles)
+                        return null
                     }
                 }
             }
@@ -118,7 +119,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         System.err.flush()
         val seconds = totalTime/1000.0
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
-        return CompilationResult(true, program, programName, compilationOptions, importedFiles)
+        return CompilationResult(program, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
@@ -151,14 +152,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult {
         throw x
     }
 
-    val failedProgram = Program("failed", BuiltinFunctionsFacade(BuiltinFunctions), compTarget, compTarget)
-    val dummyoptions = CompilationOptions(
-        OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(),
-        floats = false,
-        noSysInit = true,
-        compTarget = compTarget
-    )
-    return CompilationResult(false, failedProgram, programName, dummyoptions, emptyList())
+    return null
 }
 
 private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {

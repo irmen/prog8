@@ -12,7 +12,6 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.codegen.target.Cx16Target
 import prog8.compilerinterface.Encoding
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 
@@ -32,7 +31,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout('\n')
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -56,7 +55,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout(ch)
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -91,7 +90,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout(ch)
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint

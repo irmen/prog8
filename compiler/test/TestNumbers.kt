@@ -4,14 +4,13 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.toHex
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.cbm.Mflpt5
 import prog8.compilerinterface.InternalCompilerException
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 
@@ -126,7 +125,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertSuccess()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 2
         errors.warnings[0] shouldContain "converted to float"
@@ -146,7 +145,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "converted to float"
@@ -163,7 +162,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "out of range"
@@ -179,6 +178,6 @@ class TestNumbers: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), true, src, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
     }
 })

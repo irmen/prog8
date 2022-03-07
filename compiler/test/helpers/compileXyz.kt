@@ -1,7 +1,5 @@
 package prog8tests.helpers
 
-import io.kotest.assertions.withClue
-import io.kotest.matchers.shouldBe
 import prog8.ast.Program
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
@@ -15,24 +13,6 @@ import java.nio.file.Path
 import kotlin.io.path.name
 
 
-internal fun CompilationResult.assertSuccess(description: String = ""): CompilationResult {
-    withClue("expected successful compilation but failed $description") {
-        success shouldBe true
-    }
-    return this
-}
-
-internal fun CompilationResult.assertFailure(description: String = ""): CompilationResult {
-    withClue("expected failure to compile but succeeded $description") {
-        success shouldBe false
-    }
-    return this
-}
-
-/**
- * @see CompilationResult.assertSuccess
- * @see CompilationResult.assertFailure
- */
 internal fun compileFile(
     platform: ICompilationTarget,
     optimize: Boolean,
@@ -42,7 +22,7 @@ internal fun compileFile(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true
-) : CompilationResult {
+) : CompilationResult? {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
     val args = CompilerArguments(
@@ -74,7 +54,7 @@ internal fun compileText(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true
-) : CompilationResult {
+) : CompilationResult? {
     val filePath = outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)

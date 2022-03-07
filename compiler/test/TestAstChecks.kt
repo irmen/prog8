@@ -2,11 +2,10 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.codegen.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 
@@ -25,7 +24,7 @@ class TestAstChecks: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors).assertSuccess()
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 2
         errors.warnings[0] shouldContain "converted to float"
@@ -50,7 +49,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors).assertFailure()
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain ":7:28: assignment value is invalid"
@@ -73,7 +72,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors).assertFailure()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.filter { it.contains("missing &") }.size shouldBe 4
     }
 
@@ -95,6 +94,6 @@ class TestAstChecks: FunSpec({
                 }
             }
             """
-        compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
+        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
     }
 })

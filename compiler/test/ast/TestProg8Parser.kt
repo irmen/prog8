@@ -859,7 +859,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val start = result.program.entrypoint
         val string = (start.statements[0] as VarDecl).value as StringLiteral
         withClue("x-escapes are hacked to range 0x8000-0x80ff") {
@@ -895,7 +895,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val start = result.program.entrypoint
         val containmentChecks = start.statements.takeLast(4)
         (containmentChecks[0] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
@@ -916,7 +916,7 @@ class TestProg8Parser: FunSpec( {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(),  false, text, writeAssembly = false, errors = errors).assertFailure()
+        compileText(C64Target(),  false, text, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "must be an iterable type"
         errors.errors[1] shouldContain "datatype doesn't match"
@@ -936,7 +936,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(),  false, text, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
         val stmt = result.program.entrypoint.statements
         stmt.size shouldBe 12
         val var1 = stmt[0] as VarDecl

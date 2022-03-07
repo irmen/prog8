@@ -35,7 +35,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), true, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), true, sourcecode)!!
         val toplevelModule = result.program.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements.single() as Subroutine
@@ -60,7 +60,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), true, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), true, sourcecode)!!
         val toplevelModule = result.program.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements[0] as Subroutine
@@ -119,7 +119,7 @@ class TestOptimization: FunSpec({
                     cx16.r7s = llw - 900 + 999
                 }
             }"""
-        val result = compileText(C64Target(), true, source, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
         // expected:
 //        uword load_location
 //        load_location = 12345
@@ -172,7 +172,7 @@ class TestOptimization: FunSpec({
                     cx16.r4s = llw * 90 / 5     ; not optimized because of loss of integer division precision
                 }
             }"""
-        val result = compileText(C64Target(), true, source, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
         printProgram(result.program)
         // expected:
 //        word llw
@@ -229,7 +229,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, sourcecode).assertSuccess()
+        val result = compileText(C64Target(), false, sourcecode)!!
         val mainsub = result.program.entrypoint
         mainsub.statements.size shouldBe 10
         val declTest = mainsub.statements[0] as VarDecl
@@ -267,7 +267,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
 
         // ww = ((( not bb as uword)  or  not ww) as uword)
         val wwAssign = result.program.entrypoint.statements.last() as Assignment
@@ -288,7 +288,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, src, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
 
         // bb = (( not bb as uword)  or  not ww)
         val bbAssign = result.program.entrypoint.statements.last() as Assignment
@@ -340,7 +340,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), true, src, writeAssembly = true).assertSuccess()
+        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
         /* turned into:
         ubyte r
         r = 0
@@ -376,7 +376,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly = false)!!
         val assignFF = result.program.entrypoint.statements.last() as Assignment
         assignFF.isAugmentable shouldBe true
         assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
@@ -385,7 +385,7 @@ class TestOptimization: FunSpec({
         (value.left as? IdentifierReference)?.nameInSource shouldBe listOf("ff")
         value.right shouldBe instanceOf<TypecastExpression>()
 
-        compileText(C64Target(), optimize=false, src, writeAssembly = true).assertSuccess()
+        compileText(C64Target(), optimize=false, src, writeAssembly = true) shouldNotBe null
     }
 
     test("unused variable removal") {
@@ -402,7 +402,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         result.program.entrypoint.statements.size shouldBe 7
         val alldecls = result.program.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
@@ -425,7 +425,7 @@ class TestOptimization: FunSpec({
                     }
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         printProgram(result.program)
         result.program.entrypoint.statements.size shouldBe 3
         val ifstmt = result.program.entrypoint.statements[0] as IfElse
@@ -454,7 +454,7 @@ class TestOptimization: FunSpec({
                     z6 = z1+z6-5
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         /* expected:
         ubyte z1
         z1 = 10
@@ -521,7 +521,7 @@ class TestOptimization: FunSpec({
             }
         """
 
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 6
         val assign=stmts.last() as Assignment
@@ -538,7 +538,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 6
         val assign=stmts.last() as Assignment
@@ -557,7 +557,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 10
         stmts.filterIsInstance<VarDecl>().size shouldBe 5
@@ -573,7 +573,7 @@ class TestOptimization: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=true, src, writeAssembly=false, errors = errors).assertFailure()
+        compileText(C64Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain  "type of value BYTE doesn't match target UBYTE"
         errors.errors[1] shouldContain  "out of range"
@@ -592,7 +592,7 @@ class TestOptimization: FunSpec({
                 q=r
             }
         }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true).assertSuccess()
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
         result.program.entrypoint.statements.size shouldBe 11
         result.program.entrypoint.statements.last() shouldBe instanceOf<Return>()
     }
@@ -610,7 +610,7 @@ class TestOptimization: FunSpec({
             }
         }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         printProgram(result.program)
         /* expected result:
         uword yy
@@ -640,7 +640,7 @@ class TestOptimization: FunSpec({
                 xx = xx+10      ; so this should not be changed into xx=10
             }
         }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false).assertSuccess()
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         /*
         expected result:
         uword xx

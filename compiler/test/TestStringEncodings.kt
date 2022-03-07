@@ -6,6 +6,8 @@ import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNot
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
@@ -13,8 +15,6 @@ import prog8.codegen.target.cbm.AtasciiEncoding
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.assertFailure
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 
@@ -221,7 +221,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, false).assertFailure()
+        compileText(C64Target(), false, source, errors, false) shouldBe null
         errors.errors.size shouldBe 0
     }
 
@@ -236,7 +236,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false).assertFailure()
+        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "text encoding"
     }
@@ -252,7 +252,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false).assertFailure()
+        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "text encoding"
     }
@@ -273,6 +273,6 @@ class TestStringEncodings: FunSpec({
                 sub start() {
                 }
             }"""
-        compileText(Cx16Target(), false, source, writeAssembly = false).assertSuccess()
+        compileText(Cx16Target(), false, source, writeAssembly = false) shouldNotBe null
     }
 })

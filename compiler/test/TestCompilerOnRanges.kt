@@ -3,6 +3,7 @@ package prog8tests
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.base.DataType
@@ -35,7 +36,7 @@ class TestCompilerOnRanges: FunSpec({
                     cs[0] = 23 ; keep optimizer from removing it
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -67,7 +68,7 @@ class TestCompilerOnRanges: FunSpec({
                     cs[0] = 23 ; keep optimizer from removing it
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -119,9 +120,9 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 """)
                 if (optEnableFloats != "" && (sizeInDecl=="" || sizeInDecl=="42"))
-                    result.assertSuccess()
+                    result shouldNotBe null
                 else
-                    result.assertFailure()
+                    result shouldBe null
 
             }
         }
@@ -138,7 +139,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -172,7 +173,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -198,7 +199,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -224,7 +225,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """, errors, false).assertFailure()
+        """, errors, false) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain ".p8:5:30: range expression from value must be integer"
         errors.errors[1] shouldContain ".p8:5:45: range expression to value must be integer"
@@ -240,7 +241,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
 
         val program = result.program
         val startSub = program.entrypoint
@@ -272,7 +273,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
         val statements = result.program.entrypoint.statements
         val array = (statements[0] as VarDecl).value
         array shouldBe instanceOf<ArrayLiteral>()
@@ -293,7 +294,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """).assertSuccess()
+        """)!!
         val statements = result.program.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
@@ -339,7 +340,7 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }
                 }
-            }""", writeAssembly = true).assertSuccess()
+            }""", writeAssembly = true) shouldNotBe null
     }
 
     test("if containment check on all possible iterable expressions") {
@@ -400,7 +401,7 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }                    
                 }
-            }""", writeAssembly = true).assertSuccess()
+            }""", writeAssembly = true) shouldNotBe null
     }
 
     test("containment check in expressions") {
@@ -426,6 +427,6 @@ class TestCompilerOnRanges: FunSpec({
                     xx = ww in [9000,8000,7000]
                     xx = ww in wvalues
                 }
-            }""", writeAssembly = true).assertSuccess()
+            }""", writeAssembly = true) shouldNotBe null
     }
 })
