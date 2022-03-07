@@ -102,9 +102,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //            println("*********** AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
 
-            println("***program.name = ${program.name}")
-            println("***programName = $programName")
-
             if (args.writeAssembly) {
                 when (val result = writeAssembly(program, args.errors, compilationOptions)) {
                     is WriteAssemblyResult.Ok -> programName = result.filename
