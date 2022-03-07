@@ -6,7 +6,6 @@ import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.codegen.experimental6502.IntermediateAstMaker
 import prog8.codegen.target.C64Target
-import prog8tests.helpers.assertSuccess
 import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({
@@ -24,7 +23,7 @@ class TestIntermediateAst: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(),  false, text, writeAssembly = false).assertSuccess()
+        val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
         val ast = IntermediateAstMaker.transform(result.program)
         ast.name shouldBe result.program.name
         ast.builtinFunctions.names shouldBe result.program.builtinFunctions.names
