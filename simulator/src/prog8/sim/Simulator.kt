@@ -9,43 +9,63 @@ import prog8.compilerinterface.intermediate.*
 import java.util.Stack
 
 
-class ExitProgram(val status: Int): Exception()
+sealed class FlowcontrolException : Exception()
+
+class ReturnValue(val value: Pair<Double, DataType>?): FlowcontrolException()
+
+class ExitProgram(val status: Int): FlowcontrolException()
+
+class JumpTo(val targetName: List<String>): FlowcontrolException()
 
 
 class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
     val memory = Memory()
-    private val variables = Variables(symboltable, program.memsizer)
+    private val variables = Variables(symboltable)
     private val eval = Evaluator(symboltable, memory, variables, this)
-    private val callStack = Stack<InstructionPointer>()
-    private var instructionPtr = InstructionPointer(listOf(PtReturn(Position.DUMMY)))
 
     fun run() {
         memory.clear()
         val start = program.entrypoint() ?: throw NoSuchElementException("no main.start() found")
         try {
             executeSubroutine(start)
+        } catch(r: ReturnValue) {
+            println("Program Exit.")
         } catch (exit: ExitProgram) {
             println("Program Exit! Status code: ${exit.status}")
         }
     }
 
-    internal fun executeSubroutine(sub: PtSub): Pair<Double, DataType> {
-        instructionPtr = InstructionPointer(sub.children)
-        callStack.push(instructionPtr)
+    internal fun executeSubroutine(sub: PtSub): Pair<Double, DataType>? {
+        return try {
+            executeStatementList(sub.children)
+            null
+        } catch(r: ReturnValue) {
+            r.value
+        }
+    }
+
+    internal fun executeStatementList(nodes: List<PtNode>) {
+        var instructionPtr = InstructionPointer(nodes)
         while(true) {
-            val incr = executeStatement(instructionPtr.current)
-            if(callStack.empty())
-                throw ExitProgram(0)
-            if(incr)
-                instructionPtr++
+            try {
+                if (executeStatement(instructionPtr.current))
+                    instructionPtr.next()
+            } catch(jump: JumpTo) {
+                val target = findPtNode(jump.targetName, instructionPtr.current)
+                val nodes = target.parent.children
+                instructionPtr = InstructionPointer(nodes, nodes.indexOf(target))
+            }
         }
     }
 
     internal fun executeStatement(node: PtNode): Boolean {
         return when(node) {
-            is PtAsmSub -> true
+            is PtAsmSub -> throw NotImplementedError("can't run assembly subroutine in simulator at this time")
             is PtAssignment -> execute(node)
-            is PtBuiltinFunctionCall -> execute(node)
+            is PtBuiltinFunctionCall -> {
+                eval.evaluate(node)     // throw away any result
+                true
+            }
             is PtConditionalBranch -> TODO()
             is PtDirective -> execute(node)
             is PtForLoop -> TODO()
@@ -54,12 +74,12 @@ class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
                 true
             }
             is PtGosub -> TODO()
-            is PtIfElse -> TODO()
+            is PtIfElse -> execute(node)
             is PtInlineAssembly -> throw NotImplementedError("can't run inline assembly in simulator at this time")
-            is PtJump -> TODO()
+            is PtJump -> execute(node)
             is PtLabel -> true
             is PtPipe -> execute(node)
-            is PtPostIncrDecr -> TODO()
+            is PtPostIncrDecr -> execute(node)
             is PtRepeatLoop -> execute(node)
             is PtReturn -> execute(node)
             is PtSub -> true  // this simulator doesn't "fall through" into nested subroutines
@@ -67,6 +87,47 @@ class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
             is PtWhen -> TODO()
             else -> TODO("missing code for node $node")
         }
+    }
+
+    private fun execute(jump: PtJump): Boolean {
+        if(jump.address!=null)
+            throw NotImplementedError("simulator can't jump into memory machine code")
+        else if(jump.generatedLabel!=null)
+            throw NotImplementedError("simulator can't jump into generated label")
+        else {
+            throw JumpTo(jump.identifier!!.targetName)
+        }
+    }
+
+    private fun execute(post: PtPostIncrDecr): Boolean {
+        val identifier = post.target.identifier
+        val memoryAddr = post.target.memory
+        val array = post.target.array
+        if(identifier!=null) {
+            val variable = symboltable.lookup(identifier.targetName) as StStaticVariable
+            var value = variables.getValue(variable).number!!
+            if(post.operator=="++") value++ else value--
+            variables.setValue(variable, Variables.Value(value, null, null))
+        } else if(memoryAddr!=null) {
+            val addr = eval.evaluateExpression(memoryAddr.address).first.toUInt()
+            if(post.operator=="++")
+                memory[addr] = (memory[addr]+1u).toUByte()
+            else
+                memory[addr] = (memory[addr]-1u).toUByte()
+        } else if(array!=null) {
+            println("TODO: ${array.variable.ref}[] ${post.operator}")
+        }
+        return true
+    }
+
+    private fun execute(ifelse: PtIfElse): Boolean {
+        val condition = eval.evaluateExpression(ifelse.condition)
+        if(condition.first!=0.0) {
+            println("TODO: if part")
+        } else {
+            println("TODO: else part")
+        }
+        return true
     }
 
     private fun execute(repeat: PtRepeatLoop): Boolean {
@@ -79,8 +140,10 @@ class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
     }
 
     private fun execute(ret: PtReturn): Boolean {
-        instructionPtr = callStack.pop()
-        return true
+        if(ret.hasValue)
+            throw ReturnValue(eval.evaluateExpression(ret.value!!))
+        else
+            throw ReturnValue(null)
     }
 
     private fun execute(directive: PtDirective): Boolean {
@@ -95,7 +158,7 @@ class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
         val array = assign.target.array
         if(identifier!=null) {
             val targetvar = symboltable.flat.getValue(identifier.targetName) as StStaticVariable
-            variables.setValue(targetvar, value.first)
+            variables.setValue(targetvar, Variables.Value(value.first, null, null))
         }
         else if(memoryAddr!=null) {
             val address = eval.evaluateExpression(memoryAddr.address)
@@ -109,16 +172,22 @@ class Simulator(val program: PtProgram, val symboltable: SymbolTable) {
             throw IllegalArgumentException("missing assign target")
         return true
     }
+}
 
-    private fun execute(fcall: PtBuiltinFunctionCall): Boolean {
-        when(fcall.name) {
-            "print" -> {
-                val string = fcall.children.single() as PtString
-                require(string.encoding==Encoding.DEFAULT)
-                print(string.value)
-            }
-            else -> TODO("missing builtin function ${fcall.name}")
-        }
-        return true
+
+
+internal fun findPtNode(scopedName: List<String>, scope: PtNode): PtNode {
+    var root = scope
+    while(root !is PtProgram) {
+        root=root.parent
     }
+    val block = root.allBlocks().first {
+        it.name == scopedName.first()
+    }
+    var node: PtNode = block
+    scopedName.drop(1).forEach { namepart->
+        val nodes = node.children.filterIsInstance<PtNamedNode>()
+        node = nodes.first { it.name==namepart }
+    }
+    return node
 }

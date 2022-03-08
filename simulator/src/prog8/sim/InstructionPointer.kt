@@ -16,8 +16,7 @@ class InstructionPointer(var instructions: List<PtNode>, start: Int=0) {
         require(instructions.isNotEmpty())
     }
 
-    operator fun inc(): InstructionPointer {
+    fun next() {
         currentIdx++
-        return this
     }
 }
