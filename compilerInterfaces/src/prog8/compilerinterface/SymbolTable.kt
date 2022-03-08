@@ -23,6 +23,20 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         children.values.forEach { flatten(it) }
         result
     }
+
+    val allVariables: Collection<StStaticVariable> by lazy {
+        val vars = mutableListOf<StStaticVariable>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type==StNodeType.STATICVAR)
+                    vars.add(child.value as StStaticVariable)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(this)
+        vars
+    }
 }
 
 

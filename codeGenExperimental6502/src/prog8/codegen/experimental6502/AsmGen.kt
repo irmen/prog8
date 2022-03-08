@@ -1,8 +1,8 @@
 package prog8.codegen.experimental6502
 
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.compilerinterface.*
+import prog8.sim.Simulator
 
 class AsmGen(internal val program: Program,
              internal val errors: IErrorReporter,
@@ -14,12 +14,14 @@ class AsmGen(internal val program: Program,
         println("\n** experimental 65(c)02 code generator **\n")
 
         symbolTable.print()
+        symbolTable.flat.forEach { println(it) }
 
         // TODO temporary location to do this:
-        val intermediateAst = IntermediateAstMaker.transform(program)
+        val intermediateAst = IntermediateAstMaker(program).transform()
         intermediateAst.print()
-        val entry = intermediateAst.entrypoint() ?: throw FatalAstException("no main.start() found")
-        println(entry)
+
+        val sim = Simulator(intermediateAst, symbolTable)
+        sim.run()
 
         println("..todo: create assembly code into ${options.outputDir.toAbsolutePath()}..")
         return AssemblyProgram("dummy")

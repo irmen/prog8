@@ -11,14 +11,14 @@ import prog8.ast.toHex
 
 
 class PtAsmSub(
-    val name: String,
+    name: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val paramRegisters: List<RegisterOrStatusflag>,
     val retvalRegisters: List<RegisterOrStatusflag>,
     val inline: Boolean,
     position: Position
-) : PtNode(position) {
+) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$name  inline=$inline")
     }
@@ -26,19 +26,21 @@ class PtAsmSub(
 
 
 class PtSub(
-    val name: String,
+    name: String,
     val parameters: List<SubroutineParameter>,
     val returntypes: List<DataType>,
     val inline: Boolean,
     position: Position
-) : PtNode(position) {
+) : PtNamedNode(name, position) {
     override fun printProperties() {
         print(name)
     }
 }
 
 
-class PtAssignment(val augmentable: Boolean, val origin: AssignmentOrigin, position: Position) : PtNode(position) {
+class PtAssignment(val augmentable: Boolean,
+                   val origin: AssignmentOrigin,        // TODO is this ever used in the codegen?
+                   position: Position) : PtNode(position) {
     val target: PtAssignTarget
         get() = children[0] as PtAssignTarget
     val value: PtNode
@@ -156,10 +158,11 @@ class PtPostIncrDecr(val operator: String, position: Position) : PtNode(position
 }
 
 
-class PtRepeatLoop(val forever: Boolean, position: Position) : PtNode(position) {
-    override fun printProperties() {
-        print("forever=$forever")
-    }
+class PtRepeatLoop(position: Position) : PtNode(position) {
+    val count: PtNode
+        get() = children.single()
+
+    override fun printProperties() {}
 }
 
 
@@ -177,7 +180,7 @@ class PtReturn(position: Position) : PtNode(position) {
 }
 
 
-class PtVariable(val name: String, val type: DataType, position: Position) : PtNode(position) {
+class PtVariable(name: String, val type: DataType, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$type  $name")
     }
@@ -191,7 +194,7 @@ class PtConstant(val name: String, val type: DataType, val value: Double, positi
 }
 
 
-class PtMemMapped(val name: String, val type: DataType, val address: UInt, position: Position) : PtNode(position) {
+class PtMemMapped(name: String, val type: DataType, val address: UInt, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("&$type $name = ${address.toHex()}")
     }

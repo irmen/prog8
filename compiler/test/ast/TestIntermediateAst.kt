@@ -6,6 +6,7 @@ import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.codegen.experimental6502.IntermediateAstMaker
 import prog8.codegen.target.C64Target
+import prog8.compilerinterface.intermediate.PtVariable
 import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({
@@ -24,14 +25,18 @@ class TestIntermediateAst: FunSpec({
             }
         """
         val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
-        val ast = IntermediateAstMaker.transform(result.program)
+        val ast = IntermediateAstMaker(result.program).transform()
         ast.name shouldBe result.program.name
-        ast.builtinFunctions.names shouldBe result.program.builtinFunctions.names
         val entry = ast.entrypoint() ?: fail("no main.start() found")
         entry.name shouldBe "start"
+        entry.scopedName shouldBe listOf("main", "start")
         val blocks = ast.allBlocks().toList()
         blocks.size shouldBeGreaterThan 1
         blocks[0].name shouldBe "main"
+        blocks[0].scopedName shouldBe listOf("main")
+        val ccdecl = entry.children[0] as PtVariable
+        ccdecl.name shouldBe "cc"
+        ccdecl.scopedName shouldBe listOf("main", "start", "cc")
         ast.print()
     }
 

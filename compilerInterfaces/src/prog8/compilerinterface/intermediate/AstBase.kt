@@ -1,15 +1,13 @@
 package prog8.compilerinterface.intermediate
 
-import prog8.ast.IBuiltinFunctions
 import prog8.ast.base.Position
 import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
-import prog8.parser.SourceCode
 
 // TODO : once the CodeGen doesn't need the old Ast anymore, get rid of the 'Pt' prefixes.
 
 
-abstract class PtNode(val position: Position, val children: MutableList<PtNode> = mutableListOf()) {
+sealed class PtNode(val position: Position, val children: MutableList<PtNode> = mutableListOf()) {
 
     lateinit var parent: PtNode
 
@@ -35,14 +33,27 @@ abstract class PtNode(val position: Position, val children: MutableList<PtNode> 
 }
 
 
-class PtNodeGroup(): PtNode(Position.DUMMY) {
+class PtNodeGroup: PtNode(Position.DUMMY) {
     override fun printProperties() {}
+}
+
+
+abstract class PtNamedNode(val name: String, position: Position): PtNode(position) {
+    val scopedName: List<String> by lazy {
+        if(this is PtModule)
+            emptyList()
+        else {
+            var namedParent: PtNode = this.parent
+            while(namedParent !is PtNamedNode)
+                namedParent = namedParent.parent
+            namedParent.scopedName + name
+        }
+    }
 }
 
 
 class PtProgram(
     val name: String,
-    val builtinFunctions: IBuiltinFunctions,
     val memsizer: IMemSizer,
     val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {
@@ -60,29 +71,29 @@ class PtProgram(
 
 
 class PtModule(
-    val name: String,
-    val source: SourceCode,
+    name: String,
     val loadAddress: UInt,
     val library: Boolean,
     position: Position
-) : PtNode(position) {
+) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$name  addr=$loadAddress  library=$library")
     }
 }
 
 
-class PtBlock(val name: String,
+class PtBlock(name: String,
               val address: UInt?,
               val library: Boolean,
-              position: Position) : PtNode(position) {
+              position: Position
+) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$name  addr=$address  library=$library")
     }
 }
 
 
-class PtDirective(val name: String, position: Position) : PtNode(position) {
+class PtDirective(var name: String, position: Position) : PtNode(position) {
     val args: List<PtDirectiveArg>
         get() = children.map { it as PtDirectiveArg }
 
@@ -108,7 +119,7 @@ class PtInlineAssembly(val assembly: String, position: Position) : PtNode(positi
 }
 
 
-class PtLabel(val name: String, position: Position) : PtNode(position) {
+class PtLabel(name: String, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print(name)
     }

@@ -6,8 +6,8 @@ import prog8.compilerinterface.Encoding
 
 
 class PtAddressOf(position: Position) : PtNode(position) {
-    val addr: PtNode
-        get() = children.single()
+    val identifier: PtIdentifier
+        get() = children.single() as PtIdentifier
 
     override fun printProperties() {}
 }
@@ -51,9 +51,9 @@ class PtContainmentCheck(position: Position): PtNode(position) {
 }
 
 
-class PtIdentifier(val name: List<String>, position: Position) : PtNode(position) {
+class PtIdentifier(val ref: List<String>, val targetName: List<String>, position: Position) : PtNode(position) {
     override fun printProperties() {
-        print(name)
+        print("$ref --> $targetName")
     }
 }
 

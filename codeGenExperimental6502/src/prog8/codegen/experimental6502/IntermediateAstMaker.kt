@@ -9,11 +9,10 @@ import prog8.ast.statements.*
 import prog8.compilerinterface.intermediate.*
 
 
-object IntermediateAstMaker {
-    fun transform(srcProgram: Program): PtProgram {
+class IntermediateAstMaker(val srcProgram: Program) {
+    fun transform(): PtProgram {
         val program = PtProgram(
             srcProgram.name,
-            srcProgram.builtinFunctions,
             srcProgram.memsizer,
             srcProgram.encoding
         )
@@ -28,7 +27,6 @@ object IntermediateAstMaker {
     private fun transform(srcModule: Module): PtModule {
         val module = PtModule(
             srcModule.name,
-            srcModule.source,
             srcModule.loadAddress,
             srcModule.isLibrary,
             srcModule.position
@@ -115,8 +113,14 @@ object IntermediateAstMaker {
         return target
     }
 
-    private fun transform(identifier: IdentifierReference): PtIdentifier =
-        PtIdentifier(identifier.nameInSource, identifier.position)
+    private fun transform(identifier: IdentifierReference): PtIdentifier {
+        val target=identifier.targetStatement(srcProgram)!! as INamedStatement
+        val targetname = if(target.name in srcProgram.builtinFunctions.names)
+            listOf("<builtin>", target.name)
+        else
+            target.scopedName
+        return PtIdentifier(identifier.nameInSource, targetname, identifier.position)
+    }
 
     private fun transform(srcBlock: Block): PtBlock {
         val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, srcBlock.position)
@@ -240,9 +244,10 @@ object IntermediateAstMaker {
     }
 
     private fun transform(srcRepeat: RepeatLoop): PtRepeatLoop {
-        val repeat = PtRepeatLoop(srcRepeat.iterations==null, srcRepeat.position)
-        if(srcRepeat.iterations!=null)
-            repeat.add(transformExpression(srcRepeat.iterations!!))
+        if(srcRepeat.iterations==null)
+            throw FatalAstException("repeat-forever loop should have been replaced with label+jump")
+        val repeat = PtRepeatLoop(srcRepeat.position)
+        repeat.add(transformExpression(srcRepeat.iterations!!))
         for (statement in srcRepeat.body.statements) {
             repeat.add(transformStatement(statement))
         }
