@@ -15,6 +15,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.IErrorReporter
 
+private var generatedLabelSequenceNumber: Int = 0
 
 internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
@@ -27,9 +28,9 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - replace 'break' statements by a goto + generated after label.
     // - replace while and do-until loops by just jumps.
     // - replace peek() and poke() by direct memory accesses.
+    // - repeat-forever loops replaced by label+jump.
 
 
-    private var generatedLabelSequenceNumber: Int = 0
     private val generatedLabelPrefix = "prog8_label_"
 
     private fun makeLabel(postfix: String, position: Position): Label {
@@ -134,6 +135,19 @@ _after:
             val tgt = AssignTarget(null, null, DirectMemoryWrite(functionCall.args[0], position), position)
             val assign = Assignment(tgt, functionCall.args[1], AssignmentOrigin.OPTIMIZER, position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
+        }
+        return noModifications
+    }
+
+    override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
+        if(repeatLoop.iterations==null) {
+            val label = makeLabel("repeat", repeatLoop.position)
+            val jump = jumpLabel(label)
+            return listOf(
+                IAstModification.InsertFirst(label, repeatLoop.body),
+                IAstModification.InsertLast(jump, repeatLoop.body),
+                IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent)
+            )
         }
         return noModifications
     }

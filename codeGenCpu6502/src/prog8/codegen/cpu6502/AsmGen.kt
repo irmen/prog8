@@ -582,14 +582,7 @@ class AsmGen(internal val program: Program,
         loopEndLabels.push(endLabel)
 
         when (stmt.iterations) {
-            null -> {
-                // endless loop
-                val repeatLabel = makeLabel("repeat")
-                out(repeatLabel)
-                translate(stmt.body)
-                jmp(repeatLabel)
-                out(endLabel)
-            }
+            null -> throw AssemblyError("repeat-forever loop should have been replaced by label+jump")
             is NumericLiteral -> {
                 val iterations = (stmt.iterations as NumericLiteral).number.toInt()
                 when {

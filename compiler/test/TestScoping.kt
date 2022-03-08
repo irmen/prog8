@@ -37,7 +37,7 @@ class TestScoping: FunSpec({
         val src = """
             main {
                 sub start() {
-                    repeat {
+                    repeat 10 {
                         ubyte xx = 99
                         xx++
                     }
@@ -91,7 +91,7 @@ class TestScoping: FunSpec({
             iflabel:
                     }
         
-                    repeat {
+                    repeat 10 {
                         addr = &iflabel
                         addr = &labelinside
                         addr = &labeloutside
