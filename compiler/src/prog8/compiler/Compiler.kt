@@ -47,7 +47,6 @@ class CompilerArguments(val filepath: Path,
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
-    var programName = ""
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
 
@@ -103,12 +102,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //            printProgram(program)
 
             if (args.writeAssembly) {
-                when (val result = writeAssembly(program, args.errors, compilationOptions)) {
-                    is WriteAssemblyResult.Ok -> programName = result.filename
-                    is WriteAssemblyResult.Fail -> {
-                        System.err.println(result.error)
-                        return null
-                    }
+                if(!createAssemblyAndAssemble(program, args.errors, compilationOptions)) {
+                    System.err.println("Error in codegeneration or assembler")
+                    return null
                 }
             }
         }
@@ -342,15 +338,10 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     errors.report()
 }
 
-private sealed class WriteAssemblyResult {
-    class Ok(val filename: String): WriteAssemblyResult()
-    class Fail(val error: String): WriteAssemblyResult()
-}
-
-private fun writeAssembly(program: Program,
-                          errors: IErrorReporter,
-                          compilerOptions: CompilationOptions
-): WriteAssemblyResult {
+private fun createAssemblyAndAssemble(program: Program,
+                                      errors: IErrorReporter,
+                                      compilerOptions: CompilationOptions
+): Boolean {
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
@@ -369,12 +360,9 @@ private fun writeAssembly(program: Program,
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
-        if(assembly.assemble(compilerOptions)) {
-            WriteAssemblyResult.Ok(assembly.name)
-        } else
-            WriteAssemblyResult.Fail("assembler step failed")
+        assembly.assemble(compilerOptions)
     } else {
-        WriteAssemblyResult.Fail("compiler failed with errors")
+        false
     }
 }
 
