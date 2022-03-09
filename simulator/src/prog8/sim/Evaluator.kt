@@ -1,6 +1,9 @@
 package prog8.sim
 
 import prog8.ast.base.DataType
+import prog8.ast.base.PassByReferenceDatatypes
+import prog8.ast.base.Position
+import prog8.ast.expressions.AddressOf
 import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.StNodeType
 import prog8.compilerinterface.StStaticVariable
@@ -111,7 +114,8 @@ class Evaluator(
                     throw NotImplementedError("simulator can't run asmsub ${node.name}")
                 node as PtSub
                 passCallArgs(node, args)
-                return simulator.executeSubroutine(node)!!
+                simulator.instructionPtrStack.push(simulator.ip)
+                simulator.ip = InstructionPointer(node.children)
             }
         }
     }
@@ -135,9 +139,16 @@ class Evaluator(
             StNodeType.STATICVAR -> {
                 val variable = target as StStaticVariable
                 val value = variables.getValue(variable)
-                if(value.number==null)
-                    TODO("${ident.ref} -> $value")
-                return Pair(value.number!!, target.dt)
+                if(value.number==null){
+                    if(variable.dt in PassByReferenceDatatypes) {
+                        // return the address instead
+                        val addrof = PtAddressOf(ident.position)
+                        addrof.add(PtIdentifier(ident.ref, ident.targetName, ident.position))
+                        return evaluate(addrof)
+                    } else
+                        throw IllegalArgumentException("invalid dt")
+                }
+                return Pair(value.number, target.dt)
             }
             StNodeType.CONSTANT -> throw IllegalArgumentException("constants should have been const folded")
             else -> throw IllegalArgumentException("weird ref target")
