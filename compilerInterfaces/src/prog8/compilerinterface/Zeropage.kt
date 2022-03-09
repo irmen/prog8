@@ -4,9 +4,6 @@ import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import prog8.ast.base.*
-import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.StringLiteral
 
 
 class ZeropageAllocationError(message: String) : Exception(message)
@@ -19,11 +16,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 
-    data class ZpAllocation(val address: UInt,
-                            val dt: DataType,
-                            val size: Int,
-                            val initialStringValue: StringLiteral?,
-                            val initialArrayValue: ArrayLiteral?)
+    data class ZpAllocation(val address: UInt, val dt: DataType, val size: Int)
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
@@ -52,7 +45,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     fun allocate(name: List<String>,
                  datatype: DataType,
                  numElements: Int?,
-                 initValue: Expression?,
                  position: Position?,
                  errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
 
@@ -90,13 +82,13 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))
-                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name, initValue), 1))
+                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name), 1))
                     }
-                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name, initValue), 1))
+                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name), 1))
                 }
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                     if (sequentialFree(candidate, size))
-                        return Ok(Pair(makeAllocation(candidate, size, datatype, name, initValue), size))
+                        return Ok(Pair(makeAllocation(candidate, size, datatype, name), size))
                 }
             }
         }
@@ -106,14 +98,14 @@ abstract class Zeropage(protected val options: CompilationOptions) {
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
 
-    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>, initValue: Expression?): UInt {
+    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
-                in NumericDatatypes -> ZpAllocation(address, datatype, size, null, null)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
-                DataType.STR -> ZpAllocation(address, datatype, size, initValue as? StringLiteral, null)
-                in ArrayDatatypes -> ZpAllocation(address, datatype, size, null, initValue as? ArrayLiteral)
+                in NumericDatatypes -> ZpAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
+                DataType.STR -> ZpAllocation(address, datatype, size)
+                in ArrayDatatypes -> ZpAllocation(address, datatype, size)
                 else -> throw AssemblyError("invalid dt")
             }
         }

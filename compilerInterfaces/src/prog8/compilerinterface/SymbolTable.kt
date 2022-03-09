@@ -3,7 +3,6 @@ package prog8.compilerinterface
 import prog8.ast.Node
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.expressions.Expression
 import prog8.ast.statements.ZeropageWish
 import prog8.ast.toHex
 
@@ -123,14 +122,25 @@ open class StNode(val name: String,
 
 class StStaticVariable(name: String,
                        val dt: DataType,
-                       val initialvalue: Expression?,
+                       val initialNumericValue: Double?,
+                       val initialStringValue: Pair<String, Encoding>?,
+                       val initialArrayValue: DoubleArray?,
                        val arraysize: Int?,
                        val zpw: ZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
+
+    init {
+        if(arraysize!=null && initialArrayValue!=null)
+            require(arraysize == initialArrayValue.size)
+        if(arraysize!=null || initialArrayValue!=null)
+            require(initialStringValue==null && initialNumericValue==null)
+    }
+
     override fun printProperties() {
-        print("$name  dt=$dt initialval=$initialvalue arraysize=$arraysize zpw=$zpw")
+        print("$name  dt=$dt  zpw=$zpw")
     }
 }
+
 
 class StConstant(name: String, val dt: DataType, val value: Double, position: Position) :
     StNode(name, StNodeType.CONSTANT, position) {

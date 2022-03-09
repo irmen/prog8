@@ -5,7 +5,6 @@ import com.github.michaelbull.result.onSuccess
 import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes
-import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.*
@@ -53,7 +52,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                 variable.scopedName,
                 variable.dt,
                 numElements,
-                variable.initialvalue,
                 variable.position,
                 errors
             )
@@ -74,7 +72,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     variable.scopedName,
                     variable.dt,
                     numElements,
-                    variable.initialvalue,
                     variable.position,
                     errors
                 )
@@ -95,7 +92,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                 variable.scopedName,
                                 variable.dt,
                                 numElements,
-                                variable.initialvalue,
                                 variable.position,
                                 errors
                             )
@@ -130,7 +126,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
     private fun numArrayElements(variable: StStaticVariable) =
         when(variable.dt) {
-            DataType.STR -> (variable.initialvalue as StringLiteral).value.length
+            DataType.STR -> variable.initialStringValue!!.first.length+1        // 1 extra because of 0 termination char
             in ArrayDatatypes -> variable.arraysize!!
             else -> null
         }

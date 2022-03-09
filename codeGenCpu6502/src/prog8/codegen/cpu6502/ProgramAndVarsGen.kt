@@ -2,8 +2,10 @@ package prog8.codegen.cpu6502
 
 import prog8.ast.Program
 import prog8.ast.antlr.escape
-import prog8.ast.base.*
-import prog8.ast.expressions.*
+import prog8.ast.base.ArrayDatatypes
+import prog8.ast.base.ByteDatatypes
+import prog8.ast.base.DataType
+import prog8.ast.base.RegisterOrPair
 import prog8.ast.statements.*
 import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
@@ -377,12 +379,12 @@ internal class ProgramAndVarsGen(
         }
 
         // string and array variables in zeropage that have initializer value, should be initialized
-        val stringVarsWithInitInZp = allocator.zeropageVars.filter { it.value.dt==DataType.STR && it.value.initialStringValue!=null }
-        val arrayVarsWithInitInZp = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes && it.value.initialArrayValue!=null }
+        val stringVarsWithInitInZp = getZpStringVarsWithInitvalue()
+        val arrayVarsWithInitInZp = getZpArrayVarsWithInitvalue()
         if(stringVarsWithInitInZp.isNotEmpty() || arrayVarsWithInitInZp.isNotEmpty()) {
             asmgen.out("; zp str and array initializations")
             stringVarsWithInitInZp.forEach {
-                val name = asmgen.asmVariableName(it.key)
+                val name = asmgen.asmVariableName(it.name)
                 asmgen.out("""
                     lda  #<${name}
                     ldy  #>${name}
@@ -393,8 +395,8 @@ internal class ProgramAndVarsGen(
                     jsr  prog8_lib.strcpy""")
             }
             arrayVarsWithInitInZp.forEach {
-                val size = it.value.size
-                val name = asmgen.asmVariableName(it.key)
+                val size = it.alloc.size
+                val name = asmgen.asmVariableName(it.name)
                 asmgen.out("""
                     lda  #<${name}_init_value
                     ldy  #>${name}_init_value
@@ -412,14 +414,13 @@ internal class ProgramAndVarsGen(
         }
 
         stringVarsWithInitInZp.forEach {
-            val varname = asmgen.asmVariableName(it.key)+"_init_value"
-            val stringvalue = it.value.initialStringValue!!
-            outputStringvar(varname, it.value.dt, stringvalue.encoding, stringvalue.value)
+            val varname = asmgen.asmVariableName(it.name)+"_init_value"
+            outputStringvar(varname, it.value.second, it.value.first)
         }
 
         arrayVarsWithInitInZp.forEach {
-            val varname = asmgen.asmVariableName(it.key)+"_init_value"
-            arrayVariable2asm(varname, it.value.dt, it.value.initialArrayValue!!, null)
+            val varname = asmgen.asmVariableName(it.name)+"_init_value"
+            arrayVariable2asm(varname, it.alloc.dt, it.value, null)
         }
 
         asmgen.out("""+       tsx
@@ -427,6 +428,40 @@ internal class ProgramAndVarsGen(
                     ldx  #255       ; init estack ptr
                     clv
                     clc""")
+    }
+
+    private class ZpStringWithInitial(
+        val name: List<String>,
+        val alloc: Zeropage.ZpAllocation,
+        val value: Pair<String, Encoding>
+    )
+
+    private class ZpArrayWithInitial(
+        val name: List<String>,
+        val alloc: Zeropage.ZpAllocation,
+        val value: DoubleArray
+    )
+
+    private fun getZpStringVarsWithInitvalue(): Collection<ZpStringWithInitial> {
+        val result = mutableListOf<ZpStringWithInitial>()
+        val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
+        for (variable in vars) {
+            val svar = symboltable.lookup(variable.key) as StStaticVariable        // TODO faster in flat lookup table
+            if(svar.initialStringValue!=null)
+                result.add(ZpStringWithInitial(variable.key, variable.value, svar.initialStringValue!!))
+        }
+        return result
+    }
+
+    private fun getZpArrayVarsWithInitvalue(): Collection<ZpArrayWithInitial> {
+        val result = mutableListOf<ZpArrayWithInitial>()
+        val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
+        for (variable in vars) {
+            val svar = symboltable.lookup(variable.key) as StStaticVariable        // TODO faster in flat lookup table
+            if(svar.initialArrayValue!=null)
+                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.initialArrayValue!!))
+        }
+        return result
     }
 
     private fun zeropagevars2asm(varNames: Set<List<String>>) {
@@ -443,8 +478,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; non-zeropage variables")
         val (stringvars, othervars) = variables.partition { it.dt==DataType.STR }
         stringvars.forEach {
-            val stringvalue = it.initialvalue as StringLiteral
-            outputStringvar(it.name, it.dt, stringvalue.encoding, stringvalue.value)
+            outputStringvar(it.name, it.initialStringValue!!.second, it.initialStringValue!!.first)
         }
         othervars.sortedBy { it.type }.forEach {
             staticVariable2asm(it)
@@ -453,45 +487,38 @@ internal class ProgramAndVarsGen(
 
     private fun staticVariable2asm(variable: StStaticVariable) {
         val name = variable.name
-        val value = variable.initialvalue
-        val staticValue: Number =
-            if(value!=null) {
-                if(value is NumericLiteral) {
-                    if(value.type== DataType.FLOAT)
-                        value.number
-                    else
-                        value.number.toInt()
-                } else {
-                    if(variable.dt in NumericDatatypes)
-                        throw AssemblyError("can only deal with constant numeric values for global vars")
-                    else 0
-                }
+        val initialValue: Number =
+            if(variable.initialNumericValue!=null) {
+                if(variable.dt== DataType.FLOAT)
+                    variable.initialNumericValue!!
+                else
+                    variable.initialNumericValue!!.toInt()
             } else 0
 
         when (variable.dt) {
-            DataType.UBYTE -> asmgen.out("$name\t.byte  ${staticValue.toHex()}")
-            DataType.BYTE -> asmgen.out("$name\t.char  $staticValue")
-            DataType.UWORD -> asmgen.out("$name\t.word  ${staticValue.toHex()}")
-            DataType.WORD -> asmgen.out("$name\t.sint  $staticValue")
+            DataType.UBYTE -> asmgen.out("$name\t.byte  ${initialValue.toHex()}")
+            DataType.BYTE -> asmgen.out("$name\t.char  $initialValue")
+            DataType.UWORD -> asmgen.out("$name\t.word  ${initialValue.toHex()}")
+            DataType.WORD -> asmgen.out("$name\t.sint  $initialValue")
             DataType.FLOAT -> {
-                if(staticValue==0) {
+                if(initialValue==0) {
                     asmgen.out("$name\t.byte  0,0,0,0,0  ; float")
                 } else {
-                    val floatFill = compTarget.machine.getFloat(staticValue).makeFloatFillAsm()
-                    asmgen.out("$name\t.byte  $floatFill  ; float $staticValue")
+                    val floatFill = compTarget.machine.getFloat(initialValue).makeFloatFillAsm()
+                    asmgen.out("$name\t.byte  $floatFill  ; float $initialValue")
                 }
             }
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, value as? ArrayLiteral, variable.arraysize)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.initialArrayValue, variable.arraysize)
             else -> {
                 throw AssemblyError("weird dt")
             }
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?) {
         when(dt) {
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
@@ -534,11 +561,9 @@ internal class ProgramAndVarsGen(
                 }
             }
             DataType.ARRAY_F -> {
-                val array = value?.value ?:
-                                Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
+                val array = value ?: DoubleArray(orNumberOfZeros!!)
                 val floatFills = array.map {
-                    val number = (it as NumericLiteral).number
-                    compTarget.machine.getFloat(number).makeFloatFillAsm()
+                    compTarget.machine.getFloat(it).makeFloatFillAsm()
                 }
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
@@ -569,56 +594,56 @@ internal class ProgramAndVarsGen(
             }
     }
 
-    private fun outputStringvar(varname: String, dt: DataType, encoding: Encoding, value: String) {
-        asmgen.out("$varname\t; $dt $encoding:\"${escape(value).replace("\u0000", "<NULL>")}\"")
+    private fun outputStringvar(varname: String, encoding: Encoding, value: String) {
+        asmgen.out("$varname\t; $encoding:\"${escape(value).replace("\u0000", "<NULL>")}\"")
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?): List<String> {
-        val array = value?.value ?:
-                        Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
+    private fun makeArrayFillDataUnsigned(dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?): List<String> {
+        val array = value ?: DoubleArray(orNumberOfZeros!!)
         return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteral).number.toInt()
+                    val number = it.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_UW -> array.map {
-                when (it) {
-                    is NumericLiteral -> {
-                        "$" + it.number.toInt().toString(16).padStart(4, '0')
-                    }
-                    is AddressOf -> {
-                        asmgen.asmSymbolName(it.identifier)
-                    }
-                    is IdentifierReference -> {
-                        asmgen.asmSymbolName(it)
-                    }
-                    else -> throw AssemblyError("weird array elt dt")
-                }
+                "$" + it.toInt().toString(16).padStart(4, '0')
+                // TODO: initial array literals with address-of, or just variable references, are no longer possible at this time
+//                when (it) {
+//                    is NumericLiteral -> {
+//                        "$" + it.number.toInt().toString(16).padStart(4, '0')
+//                    }
+//                    is AddressOf -> {
+//                        asmgen.asmSymbolName(it.identifier)
+//                    }
+//                    is IdentifierReference -> {
+//                        asmgen.asmSymbolName(it)
+//                    }
+//                    else -> throw AssemblyError("weird array elt dt")
+//                }
             }
             else -> throw AssemblyError("invalid dt")
         }
     }
 
-    private fun makeArrayFillDataSigned(dt: DataType, value: ArrayLiteral?, orNumberOfZeros: Int?): List<String> {
-        val array = value?.value ?:
-                        Array(orNumberOfZeros!!) { defaultZero(ArrayToElementTypes.getValue(dt), Position.DUMMY) }
+    private fun makeArrayFillDataSigned(dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?): List<String> {
+        val array = value ?: DoubleArray(orNumberOfZeros!!)
         return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteral).number.toInt()
+                    val number = it.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_B ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = (it as NumericLiteral).number.toInt()
+                    val number = it.toInt()
                     val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
                     if(number>=0)
                         "$$hexnum"
@@ -626,11 +651,11 @@ internal class ProgramAndVarsGen(
                         "-$$hexnum"
                 }
             DataType.ARRAY_UW -> array.map {
-                val number = (it as NumericLiteral).number.toInt()
+                val number = it.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
             DataType.ARRAY_W -> array.map {
-                val number = (it as NumericLiteral).number.toInt()
+                val number = it.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)
                     "$$hexnum"
