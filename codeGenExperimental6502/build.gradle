@@ -26,7 +26,6 @@ compileTestKotlin {
 dependencies {
     implementation project(':compilerInterfaces')
     implementation project(':compilerAst')
-    implementation project(':simulator')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.14"

@@ -7,7 +7,6 @@ include(
     ':codeGenCpu6502',
     ':codeGenExperimental6502',
     ':compiler',
-    ':simulator',
     ':dbusCompilerService',
     ':httpCompilerService'
 )
