@@ -4,7 +4,6 @@ import prog8.ast.Node
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
 import prog8.ast.statements.ZeropageWish
-import prog8.ast.toHex
 
 
 /**
@@ -123,8 +122,8 @@ open class StNode(val name: String,
 class StStaticVariable(name: String,
                        val dt: DataType,
                        val initialNumericValue: Double?,
-                       val initialStringValue: Pair<String, Encoding>?,
-                       val initialArrayValue: DoubleArray?,
+                       val initialStringValue: StString?,
+                       val initialArrayValue: StArray?,
                        val arraysize: Int?,
                        val zpw: ZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
@@ -153,6 +152,12 @@ class StMemVar(name: String, val dt: DataType, val address: UInt, position: Posi
     StNode(name, StNodeType.MEMVAR, position
 ) {
     override fun printProperties() {
-        print("$name  dt=$dt address=${address.toHex()}")
+        print("$name  dt=$dt address=${address.toString(16).padStart(4,'0')}")
     }
 }
+
+
+class StArrayElement(val number: Double?, val addressOf: List<String>?)
+
+typealias StString = Pair<String, Encoding>
+typealias StArray = List<StArrayElement>

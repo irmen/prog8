@@ -439,7 +439,7 @@ internal class ProgramAndVarsGen(
     private class ZpArrayWithInitial(
         val name: List<String>,
         val alloc: Zeropage.ZpAllocation,
-        val value: DoubleArray
+        val value: StArray
     )
 
     private fun getZpStringVarsWithInitvalue(): Collection<ZpStringWithInitial> {
@@ -518,7 +518,7 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
         when(dt) {
             DataType.ARRAY_UB -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
@@ -561,9 +561,9 @@ internal class ProgramAndVarsGen(
                 }
             }
             DataType.ARRAY_F -> {
-                val array = value ?: DoubleArray(orNumberOfZeros!!)
+                val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
-                    compTarget.machine.getFloat(it).makeFloatFillAsm()
+                    compTarget.machine.getFloat(it.number!!).makeFloatFillAsm()
                 }
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
@@ -571,6 +571,14 @@ internal class ProgramAndVarsGen(
             }
             else -> throw AssemblyError("require array dt")
         }
+    }
+
+    private fun zeroFilledArray(numElts: Int): StArray {
+        val values = mutableListOf<StArrayElement>()
+        repeat(numElts) {
+            values.add(StArrayElement(0.0, null))
+        }
+        return values
     }
 
     private fun memdefsAndConsts2asm(memvars: Collection<StMemVar>, consts: Collection<StConstant>) {
@@ -602,48 +610,41 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?): List<String> {
-        val array = value ?: DoubleArray(orNumberOfZeros!!)
+    private fun makeArrayFillDataUnsigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
+        val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when (dt) {
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = it.toInt()
+                    val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_UW -> array.map {
-                "$" + it.toInt().toString(16).padStart(4, '0')
-                // TODO: initial array literals with address-of, or just variable references, are no longer possible at this time
-//                when (it) {
-//                    is NumericLiteral -> {
-//                        "$" + it.number.toInt().toString(16).padStart(4, '0')
-//                    }
-//                    is AddressOf -> {
-//                        asmgen.asmSymbolName(it.identifier)
-//                    }
-//                    is IdentifierReference -> {
-//                        asmgen.asmSymbolName(it)
-//                    }
-//                    else -> throw AssemblyError("weird array elt dt")
-//                }
+                if(it.number!=null) {
+                    "$" + it.number!!.toInt().toString(16).padStart(4, '0')
+                }
+                else if(it.addressOf!=null) {
+                    asmgen.asmSymbolName(it.addressOf!!)
+                }
+                else
+                    throw AssemblyError("weird array elt")
             }
             else -> throw AssemblyError("invalid dt")
         }
     }
 
-    private fun makeArrayFillDataSigned(dt: DataType, value: DoubleArray?, orNumberOfZeros: Int?): List<String> {
-        val array = value ?: DoubleArray(orNumberOfZeros!!)
+    private fun makeArrayFillDataSigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
+        val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when (dt) {
+            // byte array can never contain pointer-to types, so treat values as all integers
             DataType.ARRAY_UB ->
-                // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = it.toInt()
+                    val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             DataType.ARRAY_B ->
-                // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = it.toInt()
+                    val number = it.number!!.toInt()
                     val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
                     if(number>=0)
                         "$$hexnum"
@@ -651,11 +652,11 @@ internal class ProgramAndVarsGen(
                         "-$$hexnum"
                 }
             DataType.ARRAY_UW -> array.map {
-                val number = it.toInt()
+                val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
             DataType.ARRAY_W -> array.map {
-                val number = it.toInt()
+                val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)
                     "$$hexnum"

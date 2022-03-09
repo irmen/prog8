@@ -260,8 +260,10 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 
 Arrays
 ^^^^^^
-Array types are also supported. They can be made of bytes, words or floats, strings, and other arrays
-(although the usefulness of the latter is very limited for now)::
+Array types are also supported. They can be formed from a list of bytes, words, floats, or addresses of other variables
+(such as explicit address-of expressions, strings, or other array variables) - values in an array literal
+always have to be constants. Putting variables inside an array has to be done on a value-by-value basis.
+Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value

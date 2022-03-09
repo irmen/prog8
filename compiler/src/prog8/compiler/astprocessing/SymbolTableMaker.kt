@@ -1,11 +1,10 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
-import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.StringLiteral
+import prog8.ast.expressions.*
 import prog8.ast.statements.Block
 import prog8.ast.statements.Label
 import prog8.ast.statements.Subroutine
@@ -66,15 +65,17 @@ internal class SymbolTableMaker: IAstVisitor {
         st.origAstLinks[decl] = node
     }
 
-    private fun makeInitialArray(arrayLit: ArrayLiteral?): DoubleArray? {
+    private fun makeInitialArray(arrayLit: ArrayLiteral?): StArray? {
         if(arrayLit==null)
             return null
         return arrayLit.value.map {
-            if(it !is NumericLiteral)
-                TODO("ability to have addressof or variables inside array literal currently not possible @ ${arrayLit.position}")
-            else
-                it.number
-        }.toDoubleArray()
+            when(it){
+                is AddressOf -> StArrayElement(null, it.identifier.nameInSource)
+                is IdentifierReference -> StArrayElement(null, it.nameInSource)
+                is NumericLiteral -> StArrayElement(it.number, null)
+                else -> throw FatalAstException("weird element dt in array literal")
+            }
+        }.toList()
     }
 
     override fun visit(label: Label) {
