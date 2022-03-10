@@ -2,9 +2,10 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode

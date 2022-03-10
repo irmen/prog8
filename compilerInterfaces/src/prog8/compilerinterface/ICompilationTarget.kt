@@ -1,8 +1,11 @@
 package prog8.compilerinterface
 
 import prog8.ast.expressions.Expression
-import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.code.core.Encoding
+import prog8.code.core.IMemSizer
+import prog8.code.core.IStringEncoding
+import prog8.code.core.RegisterOrStatusflag
 
 
 interface ICompilationTarget: IStringEncoding, IMemSizer {

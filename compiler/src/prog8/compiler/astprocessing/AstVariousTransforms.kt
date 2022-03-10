@@ -12,7 +12,7 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.DataType
+import prog8.code.core.DataType
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {
@@ -104,7 +104,7 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
 
 internal fun replacePointerVarIndexWithMemreadOrMemwrite(program: Program, arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
     val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
-    if(arrayVar!=null && arrayVar.datatype ==  DataType.UWORD) {
+    if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
         // rewrite   pointervar[index]  into  @(pointervar+index)
         val indexer = arrayIndexedExpression.indexer
         val add = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)

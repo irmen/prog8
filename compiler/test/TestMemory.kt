@@ -10,14 +10,16 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
+import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.codegen.target.C64Target
 import prog8.compiler.printProgram
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.Position
-import prog8.compilerinterface.VarDeclType
 import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
-import prog8tests.helpers.*
+import prog8tests.helpers.DummyFunctions
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.compileText
 
 
 class TestMemory: FunSpec({

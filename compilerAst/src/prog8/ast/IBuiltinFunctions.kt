@@ -3,7 +3,7 @@ package prog8.ast
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
-import prog8.compilerinterface.Position
+import prog8.code.core.Position
 
 interface IBuiltinFunctions {
     val names: Set<String>

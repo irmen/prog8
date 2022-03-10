@@ -6,7 +6,10 @@ import prog8.codegen.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8tests.helpers.*
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.outputDir
+import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.createTempFile

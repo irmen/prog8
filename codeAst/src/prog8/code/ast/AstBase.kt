@@ -1,10 +1,11 @@
-package prog8.compilerinterface.intermediate
+package prog8.code.ast
 
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
-import prog8.compilerinterface.Position
+import prog8.code.core.IMemSizer
+import prog8.code.core.IStringEncoding
+import prog8.code.core.Position
 
-// TODO : once the CodeGen doesn't need the old Ast anymore, get rid of the 'Pt' prefixes.
+
+// TODO : once the CodeGen doesn't need the old Ast anymore, get rid of the 'Pt' prefixes ?
 
 
 sealed class PtNode(val position: Position, val children: MutableList<PtNode> = mutableListOf()) {

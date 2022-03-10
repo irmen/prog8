@@ -8,11 +8,12 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
+import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AsmAssignment
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
-import prog8.compilerinterface.*
+import prog8.compilerinterface.AssemblyError
 
 
 internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {

@@ -2,10 +2,11 @@ package prog8.ast.antlr
 
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compilerinterface.*
+import prog8.code.core.*
 import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
 import java.nio.file.Path

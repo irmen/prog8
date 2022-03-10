@@ -1,7 +1,7 @@
 package prog8.ast.antlr
 
 import prog8.ast.base.SyntaxError
-import prog8.compilerinterface.Position
+import prog8.code.core.Position
 
 fun escape(str: String): String {
     val es = str.map {

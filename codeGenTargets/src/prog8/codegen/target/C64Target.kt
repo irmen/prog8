@@ -1,16 +1,16 @@
 package prog8.codegen.target
 
 import prog8.ast.expressions.Expression
-import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.code.core.Encoding
+import prog8.code.core.IMemSizer
+import prog8.code.core.IStringEncoding
+import prog8.code.core.RegisterOrStatusflag
 import prog8.codegen.target.c64.C64MachineDefinition
 import prog8.codegen.target.cbm.CbmMemorySizer
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
-import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
 
 
 class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by CbmMemorySizer {

@@ -2,11 +2,13 @@ package prog8.ast.expressions
 
 import prog8.ast.*
 import prog8.ast.antlr.escape
-import prog8.ast.base.*
+import prog8.ast.base.ExpressionError
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.*
+import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.round

@@ -10,9 +10,10 @@ import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.Position
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
+
 
 class TestNumericLiteral: FunSpec({
 

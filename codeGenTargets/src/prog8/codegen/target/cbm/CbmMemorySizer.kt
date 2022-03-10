@@ -1,6 +1,7 @@
 package prog8.codegen.target.cbm
 
-import prog8.compilerinterface.*
+import prog8.code.core.*
+
 
 internal object CbmMemorySizer: IMemSizer {
     override fun memorySize(dt: DataType): Int {

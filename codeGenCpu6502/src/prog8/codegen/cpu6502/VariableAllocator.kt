@@ -2,6 +2,9 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.DataType
+import prog8.code.core.IntegerDatatypes
 import prog8.compilerinterface.*
 
 

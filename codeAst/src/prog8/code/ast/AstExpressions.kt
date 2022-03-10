@@ -1,8 +1,8 @@
-package prog8.compilerinterface.intermediate
+package prog8.code.ast
 
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.Position
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
 
 
 class PtAddressOf(position: Position) : PtNode(position) {

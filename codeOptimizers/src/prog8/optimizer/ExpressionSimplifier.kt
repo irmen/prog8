@@ -6,10 +6,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.DataType
+import prog8.code.core.DataType
+import prog8.code.core.IntegerDatatypes
+import prog8.code.core.NumericDatatypes
 import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.IntegerDatatypes
-import prog8.compilerinterface.NumericDatatypes
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow

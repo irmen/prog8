@@ -11,9 +11,9 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.ArrayDatatypes
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.DataType
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.DataType
 import prog8.compilerinterface.IErrorReporter
 
 

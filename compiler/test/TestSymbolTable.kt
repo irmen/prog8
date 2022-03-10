@@ -4,6 +4,8 @@ import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.compilerinterface.*
 
 class TestSymbolTable: FunSpec({

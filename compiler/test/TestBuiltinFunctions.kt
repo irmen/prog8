@@ -2,11 +2,10 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import prog8.code.core.DataType
+import prog8.code.core.NumericDatatypes
+import prog8.code.core.RegisterOrPair
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.NumericDatatypes
-import prog8.compilerinterface.RegisterOrPair
-
 
 class TestBuiltinFunctions: FunSpec({
 

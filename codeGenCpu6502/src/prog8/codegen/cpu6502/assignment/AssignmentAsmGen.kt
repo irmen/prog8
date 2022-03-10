@@ -1,12 +1,14 @@
 package prog8.codegen.cpu6502.assignment
 
 import prog8.ast.Program
-import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8.compilerinterface.*
+import prog8.compilerinterface.AssemblyError
+import prog8.compilerinterface.CpuType
+import prog8.compilerinterface.builtinFunctionReturnType
 
 
 internal class AssignmentAsmGen(private val program: Program, 

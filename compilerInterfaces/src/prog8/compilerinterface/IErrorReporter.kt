@@ -1,5 +1,7 @@
 package prog8.compilerinterface
 
+import prog8.code.core.Position
+
 interface IErrorReporter {
     fun err(msg: String, position: Position)
     fun warn(msg: String, position: Position)

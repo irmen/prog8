@@ -2,16 +2,18 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.ExpressionError
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.ast.statements.VarDeclType
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.IntegerDatatypes
-import prog8.compilerinterface.VarDeclType
+import prog8.code.core.DataType
+import prog8.code.core.IntegerDatatypes
 import kotlin.math.pow
 
 

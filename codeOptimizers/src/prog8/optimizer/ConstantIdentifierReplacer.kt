@@ -2,12 +2,16 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.*
+import prog8.code.core.*
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.InternalCompilerException
 
 // Fix up the literal value's type to match that of the vardecl
 //   (also check range literal operands types before they get expanded into arrays for instance)
@@ -23,7 +27,7 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
             if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
                 && declConstValue.type != decl.datatype) {
                 // avoid silent float roundings
-                if(decl.datatype in IntegerDatatypes && declConstValue.type==DataType.FLOAT) {
+                if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
                     errors.err("refused rounding of float to avoid loss of precision", decl.value!!.position)
                 } else {
                     // cast the numeric literal to the appropriate datatype of the variable

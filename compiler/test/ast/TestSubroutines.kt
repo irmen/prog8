@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
-import prog8.compilerinterface.DataType
+import prog8.code.core.DataType
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode
 

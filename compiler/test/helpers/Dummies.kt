@@ -4,9 +4,11 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
-import prog8.compilerinterface.*
+import prog8.code.core.*
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IMachineDefinition
+
 
 internal object DummyFunctions : IBuiltinFunctions {
     override val names: Set<String> = emptySet()

@@ -1,6 +1,11 @@
 package prog8.codegen.target.cx16
 
-import prog8.compilerinterface.*
+import prog8.code.core.DataType
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.InternalCompilerException
+import prog8.compilerinterface.Zeropage
+import prog8.compilerinterface.ZeropageType
+
 
 class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 

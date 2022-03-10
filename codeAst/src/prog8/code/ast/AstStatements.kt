@@ -1,9 +1,6 @@
-package prog8.compilerinterface.intermediate
+package prog8.code.ast
 
-import prog8.ast.statements.AssignmentOrigin
-import prog8.ast.statements.RegisterOrStatusflag
-import prog8.ast.statements.SubroutineParameter
-import prog8.compilerinterface.*
+import prog8.code.core.*
 
 
 class PtAsmSub(
@@ -23,7 +20,7 @@ class PtAsmSub(
 
 class PtSub(
     name: String,
-    val parameters: List<SubroutineParameter>,
+    val parameters: List<PtSubroutineParameter>,
     val returntypes: List<DataType>,
     val inline: Boolean,
     position: Position
@@ -34,16 +31,21 @@ class PtSub(
 }
 
 
-class PtAssignment(val augmentable: Boolean,
-                   val origin: AssignmentOrigin,        // TODO is this ever used in the codegen?
-                   position: Position) : PtNode(position) {
+class PtSubroutineParameter(val name: String, val type: DataType, position: Position): PtNode(position) {
+    override fun printProperties() {
+        print("$type $name")
+    }
+}
+
+
+class PtAssignment(val augmentable: Boolean, position: Position) : PtNode(position) {
     val target: PtAssignTarget
         get() = children[0] as PtAssignTarget
     val value: PtNode
         get() = children[1]
 
     override fun printProperties() {
-        print("aug=$augmentable  origin=$origin")
+        print("aug=$augmentable")
     }
 }
 

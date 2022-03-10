@@ -1,7 +1,6 @@
 package prog8.ast.expressions
 
-import prog8.ast.base.*
-import prog8.compilerinterface.*
+import prog8.code.core.*
 import java.util.*
 
 

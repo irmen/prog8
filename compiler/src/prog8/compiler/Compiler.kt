@@ -11,6 +11,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.Position
 import prog8.codegen.target.AtariTarget
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target

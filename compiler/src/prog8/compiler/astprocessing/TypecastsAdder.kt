@@ -3,12 +3,18 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.*
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.DataType
+import prog8.code.core.IterableDatatypes
+import prog8.code.core.PassByReferenceDatatypes
+import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.IErrorReporter
 
 
 class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {

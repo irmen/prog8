@@ -12,12 +12,14 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
-import prog8.compilerinterface.DataType
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.Position
-import prog8tests.helpers.*
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.cartesianProduct
+import prog8tests.helpers.compileText
 
 
 /**

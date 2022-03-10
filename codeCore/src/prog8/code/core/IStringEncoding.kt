@@ -1,4 +1,4 @@
-package prog8.compilerinterface
+package prog8.code.core
 
 enum class Encoding(val prefix: String) {
     DEFAULT("default"),         // depends on compilation target

@@ -5,6 +5,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.Position
 import prog8.compilerinterface.*
 import java.util.*
 

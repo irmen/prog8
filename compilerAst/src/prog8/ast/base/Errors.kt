@@ -1,7 +1,7 @@
 package prog8.ast.base
 
 import prog8.ast.expressions.IdentifierReference
-import prog8.compilerinterface.Position
+import prog8.code.core.Position
 
 /**
  * A severe problem in the Ast (such as internal inconsistency or failed invariant)

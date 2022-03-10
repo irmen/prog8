@@ -1,16 +1,21 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.base.*
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.*
+import prog8.code.core.*
+import prog8.compilerinterface.BuiltinFunctions
+import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
 
 internal class StatementReorderer(val program: Program,
                                   val errors: IErrorReporter,
-                                  private val options: CompilationOptions) : AstWalker() {
+                                  private val options: CompilationOptions
+) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
     // - library blocks are put last.
@@ -469,7 +474,8 @@ private fun tryReplaceCallNormalSubWithGosub(call: FunctionCallStatement, parent
 private fun tryReplaceCallAsmSubWithGosub(call: FunctionCallStatement,
                                           parent: Node,
                                           callee: Subroutine,
-                                          compTarget: ICompilationTarget): Iterable<IAstModification> {
+                                          compTarget: ICompilationTarget
+): Iterable<IAstModification> {
     val noModifications = emptyList<IAstModification>()
 
     if(callee.parameters.isEmpty()) {

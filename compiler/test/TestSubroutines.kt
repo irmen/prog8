@@ -11,8 +11,8 @@ import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
+import prog8.code.core.DataType
 import prog8.codegen.target.C64Target
-import prog8.compilerinterface.DataType
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 

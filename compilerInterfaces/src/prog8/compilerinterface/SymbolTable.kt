@@ -1,5 +1,9 @@
 package prog8.compilerinterface
 
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
+
 
 /**
  * Tree structure containing all symbol definitions in the program

@@ -8,13 +8,17 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.*
+import prog8.code.core.Encoding
+import prog8.code.core.NumericDatatypes
+import prog8.compilerinterface.ICompilationTarget
+import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.InternalCompilerException
 
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
 
     override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
-        if(char.encoding==Encoding.DEFAULT)
+        if(char.encoding== Encoding.DEFAULT)
             char.encoding = compTarget.defaultEncoding
         return noModifications
     }

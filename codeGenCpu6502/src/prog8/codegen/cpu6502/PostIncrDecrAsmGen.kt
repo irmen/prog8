@@ -4,7 +4,8 @@ import prog8.ast.Program
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.PostIncrDecr
-import prog8.compilerinterface.*
+import prog8.code.core.*
+import prog8.compilerinterface.AssemblyError
 
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {

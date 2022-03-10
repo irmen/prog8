@@ -1,9 +1,12 @@
 package prog8.compilerinterface
 
 import prog8.ast.Program
-import prog8.ast.base.*
+import prog8.ast.base.AstException
+import prog8.ast.base.FatalAstException
+import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
+import prog8.code.core.*
 import kotlin.math.*
 
 

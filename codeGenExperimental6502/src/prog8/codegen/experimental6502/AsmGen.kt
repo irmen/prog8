@@ -1,12 +1,14 @@
 package prog8.codegen.experimental6502
 
+import prog8.code.ast.PtProgram
 import prog8.compilerinterface.*
-import prog8.compilerinterface.intermediate.PtProgram
+
 
 class AsmGen(internal val program: PtProgram,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val options: CompilationOptions): IAssemblyGenerator {
+             internal val options: CompilationOptions
+): IAssemblyGenerator {
 
     override fun compileToAssembly(): IAssemblyProgram? {
 

@@ -1,7 +1,8 @@
 package prog8.compiler
 
+import prog8.code.core.Position
 import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.Position
+
 
 internal class ErrorReporter: IErrorReporter {
     private enum class MessageSeverity {

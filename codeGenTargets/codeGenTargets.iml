@@ -10,7 +10,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
-    <orderEntry type="module" module-name="compilerInterfaces" />
+    <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="compilerAst" />
+    <orderEntry type="module" module-name="compilerInterfaces" />
   </component>
 </module>
