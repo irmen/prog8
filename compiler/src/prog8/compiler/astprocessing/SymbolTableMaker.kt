@@ -30,7 +30,7 @@ internal class SymbolTableMaker: IAstVisitor {
         super.visit(block)
         scopestack.pop()
         st.add(node)
-        st.origAstLinks[block] = node
+        // st.origAstLinks[block] = node
     }
 
     override fun visit(subroutine: Subroutine) {
@@ -39,7 +39,7 @@ internal class SymbolTableMaker: IAstVisitor {
         super.visit(subroutine)
         scopestack.pop()
         scopestack.peek().add(node)
-        st.origAstLinks[subroutine] = node
+        // st.origAstLinks[subroutine] = node
     }
 
     override fun visit(decl: VarDecl) {
@@ -57,7 +57,7 @@ internal class SymbolTableMaker: IAstVisitor {
                 VarDeclType.MEMORY -> StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), decl.position)
             }
         scopestack.peek().add(node)
-        st.origAstLinks[decl] = node
+        // st.origAstLinks[decl] = node
     }
 
     private fun map(zpw: ZeropageWish): StZeropageWish = when(zpw) {
@@ -83,6 +83,6 @@ internal class SymbolTableMaker: IAstVisitor {
     override fun visit(label: Label) {
         val node = StNode(label.name, StNodeType.LABEL, label.position)
         scopestack.peek().add(node)
-        st.origAstLinks[label] = node
+        // st.origAstLinks[label] = node
     }
 }

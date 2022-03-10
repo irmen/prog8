@@ -2,7 +2,6 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
-import prog8.ast.statements.Subroutine
 import prog8.compilerinterface.*
 
 
@@ -11,7 +10,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                  private val errors: IErrorReporter) {
 
     private val zeropage = options.compTarget.machine.zeropage
-    private val subroutineExtras = mutableMapOf<Subroutine, SubroutineExtraAsmInfo>()
     private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
     internal val memorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabsInternal
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
@@ -28,17 +26,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
     }
 
     internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
-
-    internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
-        var extra = subroutineExtras[sub]
-        return if(extra==null) {
-            extra = SubroutineExtraAsmInfo()
-            subroutineExtras[sub] = extra
-            extra
-        }
-        else
-            extra
-    }
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
@@ -152,21 +139,4 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             in ArrayDatatypes -> variable.arraysize!!
             else -> null
         }
-
-
-    /**
-     * Cntains various attributes that influence the assembly code generator.
-     * Conceptually it should be part of any INameScope.
-     * But because the resulting code only creates "real" scopes on a subroutine level,
-     * it's more consistent to only define these attributes on a Subroutine node.
-     */
-    internal class SubroutineExtraAsmInfo {
-        var usedRegsaveA = false
-        var usedRegsaveX = false
-        var usedRegsaveY = false
-        var usedFloatEvalResultVar1 = false
-        var usedFloatEvalResultVar2 = false
-
-        val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
-    }
 }

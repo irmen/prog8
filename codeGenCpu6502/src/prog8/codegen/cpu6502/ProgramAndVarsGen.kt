@@ -331,7 +331,7 @@ internal class ProgramAndVarsGen(
             }
 
             asmgen.out("; variables")
-            val asmGenInfo = allocator.subroutineExtra(sub)
+            val asmGenInfo = asmgen.subroutineExtra(sub)
             for((dt, name, addr) in asmGenInfo.extraVars) {
                 if(addr!=null)
                     asmgen.out("$name = $addr")

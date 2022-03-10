@@ -231,11 +231,11 @@ class AsmGen(internal val program: Program,
                 }
                 CpuRegister.X -> {
                     out("  stx  prog8_regsaveX")
-                    allocator.subroutineExtra(scope).usedRegsaveX = true
+                    subroutineExtra(scope).usedRegsaveX = true
                 }
                 CpuRegister.Y -> {
                     out("  sty  prog8_regsaveY")
-                    allocator.subroutineExtra(scope).usedRegsaveY = true
+                    subroutineExtra(scope).usedRegsaveY = true
                 }
             }
         }
@@ -727,7 +727,7 @@ $repeatLabel    lda  $counterVar
 
     private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: RepeatLoop): String {
         val scope = stmt.definingSubroutine!!
-        val asmInfo = allocator.subroutineExtra(scope)
+        val asmInfo = subroutineExtra(scope)
         var parent = stmt.parent
         while(parent !is ParentSentinel) {
             if(parent is RepeatLoop)
@@ -1448,7 +1448,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1493,7 +1493,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1538,7 +1538,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -1583,7 +1583,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -2523,7 +2523,7 @@ $repeatLabel    lda  $counterVar
                 beq  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -2608,7 +2608,7 @@ $repeatLabel    lda  $counterVar
                 bne  $jumpIfFalseLabel""")
         } else {
             val subroutine = left.definingSubroutine!!
-            allocator.subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
+            subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
             assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
@@ -3039,4 +3039,34 @@ $repeatLabel    lda  $counterVar
                 out("  pha |  tya |  pha")
         }
     }
+
+    private val subroutineExtrasCache = mutableMapOf<Subroutine, SubroutineExtraAsmInfo>()
+
+    internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
+        var extra = subroutineExtrasCache[sub]
+        return if(extra==null) {
+            extra = SubroutineExtraAsmInfo()
+            subroutineExtrasCache[sub] = extra
+            extra
+        }
+        else
+            extra
+    }
+}
+
+
+/**
+ * Contains various attributes that influence the assembly code generator.
+ * Conceptually it should be part of any INameScope.
+ * But because the resulting code only creates "real" scopes on a subroutine level,
+ * it's more consistent to only define these attributes on a Subroutine node.
+ */
+internal class SubroutineExtraAsmInfo {
+    var usedRegsaveA = false
+    var usedRegsaveX = false
+    var usedRegsaveY = false
+    var usedFloatEvalResultVar1 = false
+    var usedFloatEvalResultVar2 = false
+
+    val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
 }

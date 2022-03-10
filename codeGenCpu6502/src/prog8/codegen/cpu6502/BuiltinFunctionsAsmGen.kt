@@ -1622,7 +1622,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     if(scope==null)
                         throw AssemblyError("cannot use float arguments outside of a subroutine scope")
 
-                    allocations.subroutineExtra(scope).usedFloatEvalResultVar2 = true
+                    asmgen.subroutineExtra(scope).usedFloatEvalResultVar2 = true
                     val variable = IdentifierReference(listOf(subroutineFloatEvalResultVar2), value.position)
                     val addr = AddressOf(variable, value.position)
                     addr.linkParents(value)

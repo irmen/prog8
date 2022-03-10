@@ -1,7 +1,5 @@
 package prog8.compilerinterface
 
-import prog8.ast.Node
-
 
 /**
  * Tree structure containing all symbol definitions in the program
@@ -11,8 +9,6 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
     fun print() = printIndented(0)
 
     override fun printProperties() { }
-
-    val origAstLinks = mutableMapOf<Node, StNode>()     // links of the original Ast nodes to the symbol table node.
 }
 
 
