@@ -12,5 +12,6 @@
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="github.hypfvieh.dbus.java" level="project" />
     <orderEntry type="library" name="slf4j.simple" level="project" />
+    <orderEntry type="module" module-name="codeCore" />
   </component>
 </module>

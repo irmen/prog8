@@ -1,5 +1,7 @@
+
 plugins {
-    id "java"
+    id 'java'
+    id 'application'
     id "org.jetbrains.kotlin.jvm"
 }
 
@@ -22,15 +24,7 @@ compileTestKotlin {
 }
 
 dependencies {
-    implementation project(':codeCore')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'org.antlr:antlr4-runtime:4.9.3'
-    implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.14"
-    implementation project(':parser')
-}
-
-configurations.all {
-    exclude group: 'com.ibm.icu', module: 'icu4j'
 }
 
 sourceSets {
@@ -38,5 +32,10 @@ sourceSets {
         java {
             srcDirs = ["${project.projectDir}/src"]
         }
+        resources {
+            srcDirs = ["${project.projectDir}/res"]
+        }
     }
 }
+
+// note: there are no unit tests in this module!

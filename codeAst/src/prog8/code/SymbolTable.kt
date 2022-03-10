@@ -1,4 +1,5 @@
-package prog8.compilerinterface
+package prog8.code
+
 
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -32,7 +33,7 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         val vars = mutableListOf<StStaticVariable>()
         fun collect(node: StNode) {
             for(child in node.children) {
-                if(child.value.type==StNodeType.STATICVAR)
+                if(child.value.type== StNodeType.STATICVAR)
                     vars.add(child.value as StStaticVariable)
                 else
                     collect(child.value)
@@ -93,7 +94,7 @@ open class StNode(val name: String,
     private fun lookupQualified(scopedName: List<String>): StNode? {
         // a scoped name refers to a name in another namespace, and always stars from the root.
         var node = this
-        while(node.type!=StNodeType.GLOBAL)
+        while(node.type!= StNodeType.GLOBAL)
             node = node.parent
 
         for(name in scopedName) {
@@ -108,10 +109,10 @@ open class StNode(val name: String,
     private fun lookupUnqualified(name: String): StNode? {
         // first consider the builtin functions
         var globalscope = this
-        while(globalscope.type!=StNodeType.GLOBAL)
+        while(globalscope.type!= StNodeType.GLOBAL)
             globalscope = globalscope.parent
         val globalNode = globalscope.children[name]
-        if(globalNode!=null && globalNode.type==StNodeType.BUILTINFUNC)
+        if(globalNode!=null && globalNode.type== StNodeType.BUILTINFUNC)
             return globalNode
 
         // search for the unqualified name in the current scope or its parent scopes
@@ -120,7 +121,7 @@ open class StNode(val name: String,
             val node = scope.children[name]
             if(node!=null)
                 return node
-            if(scope.type==StNodeType.GLOBAL)
+            if(scope.type== StNodeType.GLOBAL)
                 return null
             else
                 scope = scope.parent

@@ -3,7 +3,7 @@ package prog8.codegen.cpu6502
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.code.core.*
-import prog8.compilerinterface.AssemblyError
+import prog8.code.core.AssemblyError
 import prog8.compilerinterface.CpuType
 import kotlin.math.absoluteValue
 

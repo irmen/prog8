@@ -4,7 +4,7 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {

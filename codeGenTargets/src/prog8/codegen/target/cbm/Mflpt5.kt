@@ -1,7 +1,7 @@
 package prog8.codegen.target.cbm
 
 import prog8.compilerinterface.IMachineFloat
-import prog8.compilerinterface.InternalCompilerException
+import prog8.code.core.InternalCompilerException
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 

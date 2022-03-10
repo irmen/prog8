@@ -9,14 +9,14 @@ import prog8.code.core.ArrayDatatypes
 import prog8.code.core.DataType
 import prog8.code.core.IntegerDatatypes
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 import kotlin.math.floor
 
 
 class StatementOptimizer(private val program: Program,
-                                  private val errors: IErrorReporter,
-                                  private val functions: IBuiltinFunctions,
-                                  private val compTarget: ICompilationTarget
+                         private val errors: IErrorReporter,
+                         private val functions: IBuiltinFunctions,
+                         private val compTarget: ICompilationTarget
 ) : AstWalker() {
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {

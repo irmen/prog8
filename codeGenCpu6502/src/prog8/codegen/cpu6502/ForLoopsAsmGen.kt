@@ -9,7 +9,7 @@ import prog8.code.core.ArrayToElementTypes
 import prog8.code.core.DataType
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.toHex
-import prog8.compilerinterface.AssemblyError
+import prog8.code.core.AssemblyError
 import prog8.compilerinterface.Zeropage
 import kotlin.math.absoluteValue
 

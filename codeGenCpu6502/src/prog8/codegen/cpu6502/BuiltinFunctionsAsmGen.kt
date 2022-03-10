@@ -1606,7 +1606,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 
     private fun translateArguments(args: MutableList<Expression>, signature: FSignature, scope: Subroutine?) {
         val callConv = signature.callConvention(args.map {
-            it.inferType(program).getOrElse { throw AssemblyError("unknown dt")}
+            it.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
         })
 
         fun getSourceForFloat(value: Expression): AsmAssignSource {

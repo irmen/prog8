@@ -46,7 +46,8 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                  datatype: DataType,
                  numElements: Int?,
                  position: Position?,
-                 errors: IErrorReporter): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+                 errors: IErrorReporter
+    ): Result<Pair<UInt, Int>, ZeropageAllocationError> {
 
         require(name.isEmpty() || name !in allocatedVariables) {"name can't be allocated twice"}
 

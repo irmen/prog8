@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import prog8.ast.Program
 import prog8.ast.antlr.escape
 import prog8.ast.statements.*
+import prog8.code.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.TargetStorageKind

@@ -13,7 +13,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {

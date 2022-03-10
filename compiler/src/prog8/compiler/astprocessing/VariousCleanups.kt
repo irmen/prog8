@@ -14,7 +14,7 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.ArrayDatatypes
 import prog8.code.core.DataType
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {

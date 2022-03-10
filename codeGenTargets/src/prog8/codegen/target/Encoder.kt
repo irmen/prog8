@@ -6,7 +6,7 @@ import prog8.code.core.IStringEncoding
 import prog8.codegen.target.cbm.AtasciiEncoding
 import prog8.codegen.target.cbm.IsoEncoding
 import prog8.codegen.target.cbm.PetsciiEncoding
-import prog8.compilerinterface.InternalCompilerException
+import prog8.code.core.InternalCompilerException
 
 
 internal object Encoder: IStringEncoding {

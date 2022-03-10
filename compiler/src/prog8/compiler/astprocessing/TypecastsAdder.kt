@@ -14,7 +14,7 @@ import prog8.code.core.IterableDatatypes
 import prog8.code.core.PassByReferenceDatatypes
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {

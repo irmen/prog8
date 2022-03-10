@@ -11,7 +11,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.Position
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 internal class AstIdentifiersChecker(private val errors: IErrorReporter,

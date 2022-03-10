@@ -27,6 +27,8 @@ compileTestKotlin {
 def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
+    implementation project(':codeAst')
+    implementation project(':codeCore')
     implementation project(':compilerInterfaces')
     implementation project(':codeOptimizers')
     implementation project(':compilerAst')

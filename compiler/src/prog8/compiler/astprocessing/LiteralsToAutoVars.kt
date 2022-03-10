@@ -14,12 +14,13 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 internal class LiteralsToAutoVars(private val program: Program,
                                   private val target: ICompilationTarget,
-                                  private val errors: IErrorReporter) : AstWalker() {
+                                  private val errors: IErrorReporter
+) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.encoding != Encoding.DEFAULT && string.encoding !in target.supportedEncodings) {

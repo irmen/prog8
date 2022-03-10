@@ -12,7 +12,7 @@ import prog8.code.core.ByteDatatypes
 import prog8.code.core.DataType
 import prog8.code.core.PassByReferenceDatatypes
 import prog8.code.core.WordDatatypes
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 
 internal class BeforeAsmTypecastCleaner(val program: Program,

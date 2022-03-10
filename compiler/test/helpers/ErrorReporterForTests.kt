@@ -1,9 +1,10 @@
 package prog8tests.helpers
 
 import prog8.code.core.Position
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
-internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false): IErrorReporter {
+internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false):
+    IErrorReporter {
 
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()

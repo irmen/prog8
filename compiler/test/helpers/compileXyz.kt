@@ -1,6 +1,7 @@
 package prog8tests.helpers
 
 import prog8.ast.Program
+import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.c64.C64Zeropage

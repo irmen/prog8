@@ -2,15 +2,15 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
-import prog8.code.core.ArrayDatatypes
-import prog8.code.core.DataType
-import prog8.code.core.IntegerDatatypes
+import prog8.code.*
+import prog8.code.core.*
 import prog8.compilerinterface.*
 
 
 internal class VariableAllocator(private val symboltable: SymbolTable,
                                  private val options: CompilationOptions,
-                                 private val errors: IErrorReporter) {
+                                 private val errors: IErrorReporter
+) {
 
     private val zeropage = options.compTarget.machine.zeropage
     private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
@@ -126,7 +126,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val vars = mutableListOf<StStaticVariable>()
         fun collect(node: StNode) {
             for(child in node.children) {
-                if(child.value.type==StNodeType.STATICVAR)
+                if(child.value.type == StNodeType.STATICVAR)
                     vars.add(child.value as StStaticVariable)
                 else
                     collect(child.value)

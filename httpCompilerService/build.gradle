@@ -25,6 +25,7 @@ compileTestKotlin {
 }
 
 dependencies {
+    implementation project(':codeCore')
     implementation project(':compilerInterfaces')
     implementation project(':compiler')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"

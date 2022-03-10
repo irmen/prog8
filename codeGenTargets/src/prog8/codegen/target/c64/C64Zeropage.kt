@@ -1,9 +1,10 @@
 package prog8.codegen.target.c64
 
+import prog8.code.core.ZeropageType
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.InternalCompilerException
+import prog8.code.core.InternalCompilerException
 import prog8.compilerinterface.Zeropage
-import prog8.compilerinterface.ZeropageType
+
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 

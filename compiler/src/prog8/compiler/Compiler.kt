@@ -11,7 +11,8 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.Position
+import prog8.code.SymbolTable
+import prog8.code.core.*
 import prog8.codegen.target.AtariTarget
 import prog8.codegen.target.C128Target
 import prog8.codegen.target.C64Target
@@ -117,7 +118,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
-    } catch (ac: AbortCompilation) {
+    } catch (ac: ErrorsReportedException) {
         if(!ac.message.isNullOrEmpty()) {
             System.err.print("\n\u001b[91m")  // bright red
             System.err.println(ac.message)
@@ -360,7 +361,13 @@ private fun createAssemblyAndAssemble(program: Program,
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
-        assembly.assemble(compilerOptions)
+        val options = AssemblerOptions(
+            compilerOptions.output,
+            compilerOptions.asmQuiet,
+            compilerOptions.asmListfile,
+            compilerOptions.outputDir
+        )
+        assembly.assemble(options)
     } else {
         false
     }
@@ -403,7 +410,13 @@ internal fun asmGeneratorFor(program: Program,
 
             // TODO for now, only use the new Intermediary Ast for this experimental codegen:
             val intermediateAst = IntermediateAstMaker(program).transform()
-            return prog8.codegen.experimental6502.AsmGen(intermediateAst, errors, symbolTable, options)
+            val asmOptions = AssemblerOptions(
+               options.output,
+               options.asmQuiet,
+               options.asmListfile,
+               options.outputDir
+            )
+            return prog8.codegen.experimental6502.AsmGen(intermediateAst, errors, symbolTable, asmOptions)
         }
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))

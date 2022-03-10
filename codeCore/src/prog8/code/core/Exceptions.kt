@@ -1,7 +1,7 @@
-package prog8.compilerinterface
+package prog8.code.core
 
 class InternalCompilerException(message: String?) : Exception(message)
 
-class AbortCompilation(message: String?) : Exception(message)
-
 class AssemblyError(msg: String) : RuntimeException(msg)
+
+class ErrorsReportedException(message: String?) : Exception(message)

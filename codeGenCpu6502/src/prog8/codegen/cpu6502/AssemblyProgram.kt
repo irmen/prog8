@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
+import prog8.code.core.*
 import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 import java.io.File
@@ -23,7 +24,7 @@ internal class AssemblyProgram(
     private val viceMonListFile = outputDir.resolve(viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
 
-    override fun assemble(options: CompilationOptions): Boolean {
+    override fun assemble(options: AssemblerOptions): Boolean {
 
         val assemblerCommand: List<String>
 

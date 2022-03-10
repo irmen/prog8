@@ -9,6 +9,7 @@ import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.IErrorReporter
 
 
 class CallGraph(private val program: Program, private val allowMissingIdentifierTargetVarDecls: Boolean=false) : IAstVisitor {

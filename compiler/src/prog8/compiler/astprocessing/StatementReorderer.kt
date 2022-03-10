@@ -10,7 +10,7 @@ import prog8.code.core.*
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.CompilationOptions
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 
 internal class StatementReorderer(val program: Program,
                                   val errors: IErrorReporter,

@@ -13,15 +13,11 @@ import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.core.DataType
-import prog8.code.core.Position
+import prog8.code.core.*
 import prog8.codegen.target.C64Target
 import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
-import prog8.compilerinterface.CbmPrgLauncherType
 import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.OutputType
-import prog8.compilerinterface.ZeropageType
 import prog8tests.helpers.*
 
 

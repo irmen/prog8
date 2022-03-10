@@ -1,6 +1,4 @@
-package prog8.compilerinterface
-
-import prog8.code.core.Position
+package prog8.code.core
 
 interface IErrorReporter {
     fun err(msg: String, position: Position)
@@ -9,7 +7,6 @@ interface IErrorReporter {
     fun report()
     fun finalizeNumErrors(numErrors: Int, numWarnings: Int) {
         if(numErrors>0)
-            throw AbortCompilation("There are $numErrors errors and $numWarnings warnings.")
+            throw ErrorsReportedException("There are $numErrors errors and $numWarnings warnings.")
     }
 }
-

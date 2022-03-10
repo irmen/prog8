@@ -151,3 +151,24 @@ val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
 )
+
+
+
+enum class OutputType {
+    RAW,
+    PRG,
+    XEX
+}
+
+enum class CbmPrgLauncherType {
+    BASIC,
+    NONE
+}
+
+enum class ZeropageType {
+    BASICSAFE,
+    FLOATSAFE,
+    KERNALSAFE,
+    FULL,
+    DONTUSE
+}

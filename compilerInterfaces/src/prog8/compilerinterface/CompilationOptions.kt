@@ -1,26 +1,11 @@
 package prog8.compilerinterface
 
+import prog8.code.core.CbmPrgLauncherType
+import prog8.code.core.OutputType
+import prog8.code.core.ZeropageType
 import java.nio.file.Path
 import kotlin.io.path.Path
 
-enum class OutputType {
-    RAW,
-    PRG,
-    XEX
-}
-
-enum class CbmPrgLauncherType {
-    BASIC,
-    NONE
-}
-
-enum class ZeropageType {
-    BASICSAFE,
-    FLOATSAFE,
-    KERNALSAFE,
-    FULL,
-    DONTUSE
-}
 
 class CompilationOptions(val output: OutputType,
                          val launcher: CbmPrgLauncherType,

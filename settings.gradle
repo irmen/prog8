@@ -1,7 +1,9 @@
 include(
     ':parser',
-    ':compilerInterfaces',
+    ':codeCore',
+    ':codeAst',
     ':compilerAst',
+    ':compilerInterfaces',
     ':codeOptimizers',
     ':codeGenTargets',
     ':codeGenCpu6502',

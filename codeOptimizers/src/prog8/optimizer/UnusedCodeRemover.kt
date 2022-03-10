@@ -8,7 +8,7 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.DataType
 import prog8.compilerinterface.CallGraph
 import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.code.core.IErrorReporter
 import prog8.compilerinterface.isIOAddress
 
 

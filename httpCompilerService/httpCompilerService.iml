@@ -9,11 +9,12 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="module" module-name="compiler" />
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="glassfish.javax.json" level="project" />
     <orderEntry type="library" name="takes" level="project" />
     <orderEntry type="library" name="slf4j.simple" level="project" />
+    <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="compilerInterfaces" />
+    <orderEntry type="module" module-name="compiler" />
   </component>
 </module>

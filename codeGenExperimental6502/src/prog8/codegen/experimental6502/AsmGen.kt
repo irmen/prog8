@@ -1,13 +1,26 @@
 package prog8.codegen.experimental6502
 
+import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
-import prog8.compilerinterface.*
+import prog8.code.core.AssemblerOptions
+import prog8.code.core.IAssemblyGenerator
+import prog8.code.core.IAssemblyProgram
+import prog8.code.core.IErrorReporter
 
+/*
+
+    NOTE: The goal is to keep the dependencies as lean as possible! For now, we depend only on:
+         - codeAst (the 'lean' new AST and the SymbolTable)
+         - codeCore (various base enums and interfaces)
+
+    This *should* be enough to build a complete code generator with. But we'll see :)
+
+ */
 
 class AsmGen(internal val program: PtProgram,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val options: CompilationOptions
+             internal val options: AssemblerOptions         // TODO this may not be enough, maybe we actually need the other CompilationOptions as well
 ): IAssemblyGenerator {
 
     override fun compileToAssembly(): IAssemblyProgram? {
