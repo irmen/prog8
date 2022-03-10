@@ -17,16 +17,44 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val zeropageVars: Map<List<String>, Zeropage.ZpAllocation> = zeropage.allocatedVariables
 
+    init {
+        allocateZeropageVariables()
+    }
+
     internal fun getMemorySlab(name: String) = memorySlabsInternal[name]
+
     internal fun allocateMemorySlab(name: String, size: UInt, align: UInt) {
         memorySlabsInternal[name] = Pair(size, align)
+    }
+
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
+
+    internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
+        var extra = subroutineExtras[sub]
+        return if(extra==null) {
+            extra = SubroutineExtraAsmInfo()
+            subroutineExtras[sub] = extra
+            extra
+        }
+        else
+            extra
+    }
+
+    internal fun getFloatAsmConst(number: Double): String {
+        val asmName = globalFloatConsts[number]
+        if(asmName!=null)
+            return asmName
+
+        val newName = "prog8_float_const_${globalFloatConsts.size}"
+        globalFloatConsts[number] = newName
+        return newName
     }
 
     /**
      * Allocate variables into the Zeropage.
      * The result should be retrieved from the current machine's zeropage object!
      */
-    internal fun allocateZeropageVariables() {
+    private fun allocateZeropageVariables() {
         if(options.zeropage== ZeropageType.DONTUSE)
             return
 
@@ -118,8 +146,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         return vars
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
-
     private fun numArrayElements(variable: StStaticVariable) =
         when(variable.dt) {
             DataType.STR -> variable.initialStringValue!!.first.length+1        // 1 extra because of 0 termination char
@@ -127,40 +153,20 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             else -> null
         }
 
-    internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
-        var extra = subroutineExtras[sub]
-        return if(extra==null) {
-            extra = SubroutineExtraAsmInfo()
-            subroutineExtras[sub] = extra
-            extra
-        }
-        else
-            extra
+
+    /**
+     * Cntains various attributes that influence the assembly code generator.
+     * Conceptually it should be part of any INameScope.
+     * But because the resulting code only creates "real" scopes on a subroutine level,
+     * it's more consistent to only define these attributes on a Subroutine node.
+     */
+    internal class SubroutineExtraAsmInfo {
+        var usedRegsaveA = false
+        var usedRegsaveX = false
+        var usedRegsaveY = false
+        var usedFloatEvalResultVar1 = false
+        var usedFloatEvalResultVar2 = false
+
+        val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
     }
-
-    internal fun getFloatAsmConst(number: Double): String {
-        val asmName = globalFloatConsts[number]
-        if(asmName!=null)
-            return asmName
-
-        val newName = "prog8_float_const_${globalFloatConsts.size}"
-        globalFloatConsts[number] = newName
-        return newName
-    }
-}
-
-/**
- * This class contains various attributes that influence the assembly code generator.
- * Conceptually it should be part of any INameScope.
- * But because the resulting code only creates "real" scopes on a subroutine level,
- * it's more consistent to only define these attributes on a Subroutine node.
- */
-internal class SubroutineExtraAsmInfo {
-    var usedRegsaveA = false
-    var usedRegsaveX = false
-    var usedRegsaveY = false
-    var usedFloatEvalResultVar1 = false
-    var usedFloatEvalResultVar2 = false
-
-    val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
 }

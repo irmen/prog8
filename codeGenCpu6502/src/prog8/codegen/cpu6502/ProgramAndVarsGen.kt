@@ -37,8 +37,6 @@ internal class ProgramAndVarsGen(
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
         require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
 
-        allocator.allocateZeropageVariables()
-
         header()
         val allBlocks = program.allBlocks
         if(allBlocks.first().name != "main")
