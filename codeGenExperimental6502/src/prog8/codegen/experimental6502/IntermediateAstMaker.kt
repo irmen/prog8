@@ -3,9 +3,9 @@ package prog8.codegen.experimental6502
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.compilerinterface.VarDeclType
 import prog8.compilerinterface.intermediate.*
 
 

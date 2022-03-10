@@ -1,8 +1,8 @@
 package prog8.compilerinterface.intermediate
 
-import prog8.ast.base.Position
 import prog8.compilerinterface.IMemSizer
 import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.Position
 
 // TODO : once the CodeGen doesn't need the old Ast anymore, get rid of the 'Pt' prefixes.
 

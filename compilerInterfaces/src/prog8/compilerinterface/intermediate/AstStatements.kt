@@ -1,13 +1,9 @@
 package prog8.compilerinterface.intermediate
 
-import prog8.ast.base.BranchCondition
-import prog8.ast.base.CpuRegister
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
 import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.SubroutineParameter
-import prog8.ast.toHex
+import prog8.compilerinterface.*
 
 
 class PtAsmSub(
