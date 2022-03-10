@@ -1,9 +1,9 @@
 package prog8.codegen.experimental6502
 
-import prog8.ast.Program
 import prog8.compilerinterface.*
+import prog8.compilerinterface.intermediate.PtProgram
 
-class AsmGen(internal val program: Program,
+class AsmGen(internal val program: PtProgram,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
              internal val options: CompilationOptions): IAssemblyGenerator {
@@ -14,10 +14,7 @@ class AsmGen(internal val program: Program,
 
         symbolTable.print()
         symbolTable.flat.forEach { println(it) }
-
-        // TODO temporary location to do this:
-        val intermediateAst = IntermediateAstMaker(program).transform()
-        intermediateAst.print()
+        program.print()
 
         println("..todo: create assembly code into ${options.outputDir.toAbsolutePath()}..")
         return AssemblyProgram("dummy")

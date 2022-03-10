@@ -4,8 +4,8 @@ import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.codegen.experimental6502.IntermediateAstMaker
 import prog8.codegen.target.C64Target
+import prog8.compiler.IntermediateAstMaker
 import prog8.compilerinterface.intermediate.PtVariable
 import prog8tests.helpers.compileText
 
