@@ -2,7 +2,6 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
@@ -13,6 +12,7 @@ import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.DataType
 
 
 internal class AstVariousTransforms(private val program: Program) : AstWalker() {

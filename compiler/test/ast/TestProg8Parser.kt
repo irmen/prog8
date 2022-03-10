@@ -15,13 +15,13 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.cbm.PetsciiEncoding
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.Position
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode

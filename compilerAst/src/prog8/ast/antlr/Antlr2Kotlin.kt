@@ -5,7 +5,7 @@ import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.*
 import prog8.parser.Prog8ANTLRParser
 import prog8.parser.SourceCode
 import java.nio.file.Path

@@ -3,9 +3,9 @@ package prog8.parser
 import org.antlr.v4.runtime.*
 import prog8.ast.Module
 import prog8.ast.antlr.toAst
-import prog8.ast.base.Position
 import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
+import prog8.compilerinterface.Position
 
 
 class ParseError(override var message: String, val position: Position, cause: RuntimeException): Exception(message, cause)

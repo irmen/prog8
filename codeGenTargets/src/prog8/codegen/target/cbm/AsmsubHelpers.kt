@@ -1,12 +1,12 @@
 package prog8.codegen.target.cbm
 
-import prog8.ast.base.Cx16VirtualRegisters
-import prog8.ast.base.RegisterOrPair
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BuiltinFunctionCall
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
+import prog8.compilerinterface.Cx16VirtualRegisters
+import prog8.compilerinterface.RegisterOrPair
 
 
 internal fun asmsub6502ArgsEvalOrder(sub: Subroutine): List<Int> {

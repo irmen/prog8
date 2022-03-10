@@ -1,8 +1,6 @@
 package prog8tests.helpers
 
 import prog8.ast.IBuiltinFunctions
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral

@@ -1,8 +1,6 @@
 package prog8.compilerinterface
 
 import prog8.ast.Node
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
 
 
 /**

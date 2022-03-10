@@ -1,15 +1,15 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.IntegerDatatypes
-import prog8.ast.base.NumericDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.IntegerDatatypes
+import prog8.compilerinterface.NumericDatatypes
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow

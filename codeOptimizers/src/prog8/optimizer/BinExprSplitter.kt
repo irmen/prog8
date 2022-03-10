@@ -3,7 +3,6 @@ package prog8.optimizer
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.expressions.AugmentAssignmentOperators
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
@@ -15,6 +14,7 @@ import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.isIOAddress
 

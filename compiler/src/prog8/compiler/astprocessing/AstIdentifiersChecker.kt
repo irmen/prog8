@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.IPipe
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.Position
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
@@ -12,6 +11,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.BuiltinFunctions
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.Position
 
 internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                                      private val program: Program,

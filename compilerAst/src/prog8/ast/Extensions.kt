@@ -1,13 +1,13 @@
 package prog8.ast
 
-import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.Position
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.statements.ZeropageWish
+import prog8.compilerinterface.DataType
+import prog8.compilerinterface.Position
+import prog8.compilerinterface.VarDeclType
 
 
 fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>, VarDecl> {

@@ -1,19 +1,12 @@
 package prog8.codegen.target
 
-import prog8.ast.base.ByteDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.PassByReferenceDatatypes
-import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.RegisterOrStatusflag
 import prog8.ast.statements.Subroutine
 import prog8.codegen.target.atari.AtariMachineDefinition
 import prog8.codegen.target.cbm.asmsub6502ArgsEvalOrder
 import prog8.codegen.target.cbm.asmsub6502ArgsHaveRegisterClobberRisk
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.*
 
 
 class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {

@@ -3,7 +3,6 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.IdentifierReference
@@ -12,6 +11,7 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.Encoding
 import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.IErrorReporter

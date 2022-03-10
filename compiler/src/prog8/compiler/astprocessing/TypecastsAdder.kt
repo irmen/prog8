@@ -8,9 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.*
 
 
 class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {
@@ -21,7 +19,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val declValue = decl.value
-        if(decl.type==VarDeclType.VAR && declValue!=null) {
+        if(decl.type== VarDeclType.VAR && declValue!=null) {
             val valueDt = declValue.inferType(program)
             if(valueDt isnot decl.datatype) {
 

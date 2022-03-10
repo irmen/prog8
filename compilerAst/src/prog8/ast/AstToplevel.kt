@@ -1,14 +1,14 @@
 package prog8.ast
 
-import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.Position
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.DataType
+import prog8.compilerinterface.Position
 import prog8.parser.SourceCode
 
 const val internedStringsModuleName = "prog8_interned_strings"

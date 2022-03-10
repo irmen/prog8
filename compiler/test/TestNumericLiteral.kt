@@ -5,14 +5,14 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.ast.base.DataType
 import prog8.ast.base.ExpressionError
-import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.Position
 
 class TestNumericLiteral: FunSpec({
 

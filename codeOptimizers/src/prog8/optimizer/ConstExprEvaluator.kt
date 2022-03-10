@@ -3,6 +3,9 @@ package prog8.optimizer
 import prog8.ast.base.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
+import prog8.compilerinterface.DataType
+import prog8.compilerinterface.IntegerDatatypes
+import prog8.compilerinterface.Position
 import kotlin.math.pow
 
 

@@ -6,8 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
 import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -16,7 +14,9 @@ import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.Encoding
+import prog8.compilerinterface.Position
 import prog8tests.helpers.*
 
 

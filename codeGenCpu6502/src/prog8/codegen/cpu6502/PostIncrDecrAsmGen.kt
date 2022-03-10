@@ -1,11 +1,10 @@
 package prog8.codegen.cpu6502
 
 import prog8.ast.Program
-import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.PostIncrDecr
-import prog8.compilerinterface.AssemblyError
+import prog8.compilerinterface.*
 
 
 internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {

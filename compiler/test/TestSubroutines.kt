@@ -6,13 +6,13 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.base.DataType
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
+import prog8.compilerinterface.DataType
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 

@@ -2,15 +2,10 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import prog8.ast.Program
-import prog8.ast.base.ArrayToElementTypes
-import prog8.ast.base.DataType
-import prog8.ast.base.RegisterOrPair
-import prog8.ast.base.toHex
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
-import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.Zeropage
+import prog8.compilerinterface.*
 import kotlin.math.absoluteValue
 
 internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen, private val zeropage: Zeropage) {

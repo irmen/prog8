@@ -1,7 +1,6 @@
 package prog8.compilerinterface
 
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.AssignTarget

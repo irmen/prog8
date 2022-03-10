@@ -1,10 +1,10 @@
 package prog8.codegen.cpu6502
 
 import prog8.ast.Program
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.VarDecl
 import prog8.compilerinterface.IMachineDefinition
+import prog8.compilerinterface.VarDeclType
 
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations

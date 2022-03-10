@@ -3,16 +3,12 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.ByteDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.PassByReferenceDatatypes
-import prog8.ast.base.WordDatatypes
 import prog8.ast.expressions.*
 import prog8.ast.statements.BuiltinFunctionCallStatement
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.*
 
 internal class BeforeAsmTypecastCleaner(val program: Program,
                                         private val errors: IErrorReporter

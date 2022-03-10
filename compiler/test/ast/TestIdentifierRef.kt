@@ -4,12 +4,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.Program
-import prog8.ast.base.Position
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
+import prog8.compilerinterface.Position
 import prog8.parser.Prog8Parser
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions

@@ -4,8 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.ArrayDatatypes
-import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.AnonymousScope
@@ -13,7 +11,9 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.compilerinterface.ArrayDatatypes
 import prog8.compilerinterface.CompilationOptions
+import prog8.compilerinterface.DataType
 import prog8.compilerinterface.IErrorReporter
 
 

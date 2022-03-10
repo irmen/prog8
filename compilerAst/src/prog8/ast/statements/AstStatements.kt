@@ -5,6 +5,7 @@ import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.compilerinterface.*
 
 
 interface INamedStatement {

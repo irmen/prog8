@@ -2,7 +2,6 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.DataType
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -10,10 +9,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.Encoding
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
+import prog8.compilerinterface.*
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {

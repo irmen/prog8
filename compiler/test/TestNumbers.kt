@@ -6,10 +6,10 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.ast.base.toHex
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.cbm.Mflpt5
 import prog8.compilerinterface.InternalCompilerException
+import prog8.compilerinterface.toHex
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 

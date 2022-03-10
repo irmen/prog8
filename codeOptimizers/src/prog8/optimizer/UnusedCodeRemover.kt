@@ -1,16 +1,11 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.base.DataType
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.compilerinterface.CallGraph
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IErrorReporter
-import prog8.compilerinterface.isIOAddress
+import prog8.compilerinterface.*
 
 
 class UnusedCodeRemover(private val program: Program,
@@ -67,7 +62,7 @@ class UnusedCodeRemover(private val program: Program,
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
             if(callgraph.unused(block)) {
-                if(block.statements.any{ it !is VarDecl || it.type==VarDeclType.VAR})
+                if(block.statements.any{ it !is VarDecl || it.type== VarDeclType.VAR})
                     errors.warn("removing unused block '${block.name}'", block.position)
                 program.removeInternedStringsFromRemovedBlock(block)
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))

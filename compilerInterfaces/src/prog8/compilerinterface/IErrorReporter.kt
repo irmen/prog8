@@ -1,8 +1,5 @@
 package prog8.compilerinterface
 
-import prog8.ast.base.Position
-
-
 interface IErrorReporter {
     fun err(msg: String, position: Position)
     fun warn(msg: String, position: Position)

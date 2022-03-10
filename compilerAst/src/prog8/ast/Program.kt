@@ -1,15 +1,11 @@
 package prog8.ast
 
-import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.Position
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.compilerinterface.IMemSizer
-import prog8.compilerinterface.IStringEncoding
+import prog8.compilerinterface.*
 import prog8.parser.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/

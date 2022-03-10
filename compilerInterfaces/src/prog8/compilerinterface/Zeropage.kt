@@ -3,7 +3,6 @@ package prog8.compilerinterface
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import prog8.ast.base.*
 
 
 class ZeropageAllocationError(message: String) : Exception(message)

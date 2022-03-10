@@ -9,8 +9,8 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.Position
 import prog8.ast.internedStringsModuleName
+import prog8.compilerinterface.Position
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer

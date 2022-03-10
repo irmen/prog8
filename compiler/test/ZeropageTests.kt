@@ -12,7 +12,6 @@ import io.kotest.matchers.collections.shouldNotBeIn
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import prog8.ast.base.DataType
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
 import prog8.codegen.target.c64.C64Zeropage

@@ -5,9 +5,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.ast.base.DataType
-import prog8.ast.base.Position
-import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -15,6 +12,9 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target
 import prog8.compiler.printProgram
+import prog8.compilerinterface.DataType
+import prog8.compilerinterface.Position
+import prog8.compilerinterface.VarDeclType
 import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
 import prog8tests.helpers.*

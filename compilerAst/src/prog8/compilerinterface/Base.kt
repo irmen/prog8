@@ -1,4 +1,4 @@
-package prog8.ast.base
+package prog8.compilerinterface
 
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
@@ -204,4 +204,9 @@ fun UInt.toHex(): String {
         in 0u until 0x10000u -> "$"+this.toString(16).padStart(4,'0')
         else -> throw IllegalArgumentException("number too large for 16 bits $this")
     }
+}
+
+
+interface IMemSizer {
+    fun memorySize(dt: DataType): Int
 }

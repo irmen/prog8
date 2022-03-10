@@ -6,9 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8.compilerinterface.AssemblyError
-import prog8.compilerinterface.CpuType
-import prog8.compilerinterface.builtinFunctionReturnType
+import prog8.compilerinterface.*
 
 
 internal class AssignmentAsmGen(private val program: Program, 
