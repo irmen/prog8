@@ -9,9 +9,9 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotBeBlank
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
+import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.base.DataType
-import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
 import prog8.ast.expressions.*
 import prog8.ast.statements.*

@@ -4,7 +4,6 @@ import prog8.ast.Program
 import prog8.ast.base.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
-import prog8.ast.toHex
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.VariableAllocator
 import prog8.compilerinterface.AssemblyError

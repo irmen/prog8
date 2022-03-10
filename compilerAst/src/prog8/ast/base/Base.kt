@@ -1,9 +1,8 @@
 package prog8.ast.base
 
-import prog8.ast.Node
-import prog8.ast.expressions.NumericLiteral
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
+import kotlin.math.abs
 
 
 /**************************** AST Data classes ****************************/
@@ -166,29 +165,6 @@ val Cx16VirtualRegisters = arrayOf(
 )
 
 
-// find the parent node of a specific type or interface
-// (useful to figure out in what namespace/block something is defined, etc.)
-inline fun <reified T> findParentNode(node: Node): T? {
-    var candidate = node.parent
-    while(candidate !is T && candidate !is ParentSentinel)
-        candidate = candidate.parent
-    return if(candidate is ParentSentinel)
-        null
-    else
-        candidate as T
-}
-
-object ParentSentinel : Node {
-    override val position = Position("<<sentinel>>", 0, 0, 0)
-    override var parent: Node = this
-    override fun linkParents(parent: Node) {}
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        replacement.parent = this
-    }
-
-    override fun copy(): Node = throw FatalAstException("should never duplicate a ParentSentinel")
-}
-
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
     override fun toString(): String = "[$file: line $line col ${startCol+1}-${endCol+1}]"
     fun toClickableStr(): String {
@@ -201,11 +177,31 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
     }
 }
 
-fun defaultZero(dt: DataType, position: Position) = when(dt) {
-    DataType.UBYTE -> NumericLiteral(DataType.UBYTE, 0.0,  position)
-    DataType.BYTE -> NumericLiteral(DataType.BYTE, 0.0,  position)
-    DataType.UWORD, DataType.STR -> NumericLiteral(DataType.UWORD, 0.0, position)
-    DataType.WORD -> NumericLiteral(DataType.WORD, 0.0, position)
-    DataType.FLOAT -> NumericLiteral(DataType.FLOAT, 0.0, position)
-    else -> throw FatalAstException("can only determine default zero value for a numeric type")
+
+fun Number.toHex(): String {
+    //  0..15 -> "0".."15"
+    //  16..255 -> "$10".."$ff"
+    //  256..65536 -> "$0100".."$ffff"
+    // negative values are prefixed with '-'.
+    val integer = this.toInt()
+    if(integer<0)
+        return '-' + abs(integer).toHex()
+    return when (integer) {
+        in 0 until 16 -> integer.toString()
+        in 0 until 0x100 -> "$"+integer.toString(16).padStart(2,'0')
+        in 0 until 0x10000 -> "$"+integer.toString(16).padStart(4,'0')
+        else -> throw IllegalArgumentException("number too large for 16 bits $this")
+    }
+}
+
+fun UInt.toHex(): String {
+    //  0..15 -> "0".."15"
+    //  16..255 -> "$10".."$ff"
+    //  256..65536 -> "$0100".."$ffff"
+    return when (this) {
+        in 0u until 16u -> this.toString()
+        in 0u until 0x100u -> "$"+this.toString(16).padStart(2,'0')
+        in 0u until 0x10000u -> "$"+this.toString(16).padStart(4,'0')
+        else -> throw IllegalArgumentException("number too large for 16 bits $this")
+    }
 }

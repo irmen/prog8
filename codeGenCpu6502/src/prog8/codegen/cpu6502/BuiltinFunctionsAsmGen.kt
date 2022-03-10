@@ -9,7 +9,6 @@ import prog8.ast.statements.ArrayIndex
 import prog8.ast.statements.BuiltinFunctionCallStatement
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.Subroutine
-import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compilerinterface.*
 

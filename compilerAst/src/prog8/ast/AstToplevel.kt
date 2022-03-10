@@ -1,17 +1,29 @@
 package prog8.ast
 
+import prog8.ast.base.DataType
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.ParentSentinel
 import prog8.ast.base.Position
-import prog8.ast.base.findParentNode
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.parser.SourceCode
 
 const val internedStringsModuleName = "prog8_interned_strings"
+
+
+object ParentSentinel : Node {
+    override val position = Position("<<sentinel>>", 0, 0, 0)
+    override var parent: Node = this
+    override fun linkParents(parent: Node) {}
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        replacement.parent = this
+    }
+
+    override fun copy(): Node = throw FatalAstException("should never duplicate a ParentSentinel")
+}
 
 
 interface IFunctionCall {
@@ -248,6 +260,19 @@ interface Node {
 }
 
 
+// find the parent node of a specific type or interface
+// (useful to figure out in what namespace/block something is defined, etc.)
+inline fun <reified T> findParentNode(node: Node): T? {
+    var candidate = node.parent
+    while(candidate !is T && candidate !is ParentSentinel)
+        candidate = candidate.parent
+    return if(candidate is ParentSentinel)
+        null
+    else
+        candidate as T
+}
+
+
 open class Module(final override var statements: MutableList<Statement>,
                   final override val position: Position,
                   val source: SourceCode) : Node, INameScope {
@@ -315,4 +340,14 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
 internal object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
     override var statements = mutableListOf<Statement>()
+}
+
+
+fun defaultZero(dt: DataType, position: Position) = when(dt) {
+    DataType.UBYTE -> NumericLiteral(DataType.UBYTE, 0.0,  position)
+    DataType.BYTE -> NumericLiteral(DataType.BYTE, 0.0,  position)
+    DataType.UWORD, DataType.STR -> NumericLiteral(DataType.UWORD, 0.0, position)
+    DataType.WORD -> NumericLiteral(DataType.WORD, 0.0, position)
+    DataType.FLOAT -> NumericLiteral(DataType.FLOAT, 0.0, position)
+    else -> throw FatalAstException("can only determine default zero value for a numeric type")
 }

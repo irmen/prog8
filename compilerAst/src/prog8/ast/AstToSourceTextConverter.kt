@@ -4,6 +4,7 @@ import prog8.ast.antlr.escape
 import prog8.ast.base.DataType
 import prog8.ast.base.NumericDatatypes
 import prog8.ast.base.VarDeclType
+import prog8.ast.base.toHex
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor

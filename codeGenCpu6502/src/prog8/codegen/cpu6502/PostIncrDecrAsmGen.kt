@@ -5,7 +5,6 @@ import prog8.ast.base.*
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.PostIncrDecr
-import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
 
 

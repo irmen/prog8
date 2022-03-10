@@ -2,7 +2,6 @@ package prog8.ast.walk
 
 import prog8.ast.*
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.ParentSentinel
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 

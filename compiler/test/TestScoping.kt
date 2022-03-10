@@ -8,7 +8,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.GlobalNamespace
-import prog8.ast.base.ParentSentinel
+import prog8.ast.ParentSentinel
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.codegen.target.C64Target

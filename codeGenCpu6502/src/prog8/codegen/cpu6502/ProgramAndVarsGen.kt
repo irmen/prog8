@@ -2,12 +2,8 @@ package prog8.codegen.cpu6502
 
 import prog8.ast.Program
 import prog8.ast.antlr.escape
-import prog8.ast.base.ArrayDatatypes
-import prog8.ast.base.ByteDatatypes
-import prog8.ast.base.DataType
-import prog8.ast.base.RegisterOrPair
+import prog8.ast.base.*
 import prog8.ast.statements.*
-import prog8.ast.toHex
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 import prog8.compilerinterface.*

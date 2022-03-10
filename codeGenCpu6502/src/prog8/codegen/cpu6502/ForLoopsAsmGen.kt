@@ -5,10 +5,10 @@ import prog8.ast.Program
 import prog8.ast.base.ArrayToElementTypes
 import prog8.ast.base.DataType
 import prog8.ast.base.RegisterOrPair
+import prog8.ast.base.toHex
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
-import prog8.ast.toHex
 import prog8.compilerinterface.AssemblyError
 import prog8.compilerinterface.Zeropage
 import kotlin.math.absoluteValue

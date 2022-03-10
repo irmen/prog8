@@ -1,10 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.base.ParentSentinel
+import prog8.ast.*
 import prog8.ast.base.Position
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.FunctionCallExpression
