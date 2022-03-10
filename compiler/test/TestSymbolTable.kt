@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.*
 
 class TestSymbolTable: FunSpec({
@@ -71,10 +70,10 @@ private fun makeSt(): SymbolTable {
     block1.add(sub12)
     block1.add(StConstant("c1", DataType.UWORD, 12345.0, Position.DUMMY))
     block1.add(StConstant("blockc", DataType.UWORD, 999.0, Position.DUMMY))
-    sub11.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub11.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub12.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub12.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
+    sub11.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, StZeropageWish.DONTCARE, Position.DUMMY))
+    sub11.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, StZeropageWish.DONTCARE, Position.DUMMY))
+    sub12.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, StZeropageWish.DONTCARE, Position.DUMMY))
+    sub12.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, StZeropageWish.DONTCARE, Position.DUMMY))
 
     val block2 = StNode("block2", StNodeType.BLOCK, Position.DUMMY)
     val sub21 = StNode("sub1", StNodeType.SUBROUTINE, Position.DUMMY)

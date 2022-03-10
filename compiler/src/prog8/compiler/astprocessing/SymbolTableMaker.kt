@@ -5,10 +5,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.base.Position
 import prog8.ast.base.VarDeclType
 import prog8.ast.expressions.*
-import prog8.ast.statements.Block
-import prog8.ast.statements.Label
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.compilerinterface.*
 import java.util.*
@@ -56,13 +53,20 @@ internal class SymbolTableMaker: IAstVisitor {
                     val initialString = if(initialStringLit==null) null else Pair(initialStringLit.value, initialStringLit.encoding)
                     val initialArrayLit = decl.value as? ArrayLiteral
                     val initialArray = makeInitialArray(initialArrayLit)
-                    StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
+                    StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, decl.arraysize?.constIndex(), map(decl.zeropage), decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)
                 VarDeclType.MEMORY -> StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), decl.position)
             }
         scopestack.peek().add(node)
         st.origAstLinks[decl] = node
+    }
+
+    private fun map(zpw: ZeropageWish): StZeropageWish = when(zpw) {
+        ZeropageWish.REQUIRE_ZEROPAGE -> StZeropageWish.REQUIRE_ZEROPAGE
+        ZeropageWish.PREFER_ZEROPAGE -> StZeropageWish.PREFER_ZEROPAGE
+        ZeropageWish.DONTCARE -> StZeropageWish.DONTCARE
+        ZeropageWish.NOT_IN_ZEROPAGE -> StZeropageWish.NOT_IN_ZEROPAGE
     }
 
     private fun makeInitialArray(arrayLit: ArrayLiteral?): StArray? {

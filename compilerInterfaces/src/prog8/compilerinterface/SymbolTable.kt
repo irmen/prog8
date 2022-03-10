@@ -3,7 +3,6 @@ package prog8.compilerinterface
 import prog8.ast.Node
 import prog8.ast.base.DataType
 import prog8.ast.base.Position
-import prog8.ast.statements.ZeropageWish
 
 
 /**
@@ -30,6 +29,16 @@ enum class StNodeType {
     CONSTANT,
     BUILTINFUNC
 }
+
+// TODO assumption: replicating this here (from the Ast namespace) allows us later to have 0 dependencies on the original Ast nodes/namespace
+//      same for DataType?  or should those things be moved into a separate module 'elementary' that contains all shared enums and classes such as Position?
+enum class StZeropageWish {
+    REQUIRE_ZEROPAGE,
+    PREFER_ZEROPAGE,
+    DONTCARE,
+    NOT_IN_ZEROPAGE
+}
+
 
 open class StNode(val name: String,
                   val type: StNodeType,
@@ -125,7 +134,7 @@ class StStaticVariable(name: String,
                        val initialStringValue: StString?,
                        val initialArrayValue: StArray?,
                        val arraysize: Int?,
-                       val zpw: ZeropageWish,
+                       val zpw: StZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
 
     init {

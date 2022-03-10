@@ -6,7 +6,6 @@ import prog8.ast.base.ArrayDatatypes
 import prog8.ast.base.DataType
 import prog8.ast.base.IntegerDatatypes
 import prog8.ast.statements.Subroutine
-import prog8.ast.statements.ZeropageWish
 import prog8.compilerinterface.*
 
 
@@ -37,10 +36,10 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val allVariables = collectAllVariables(symboltable)
 
         val numberOfAllocatableVariables = allVariables.size
-        val varsRequiringZp = allVariables.filter { it.zpw == ZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables.filter { it.zpw == ZeropageWish.PREFER_ZEROPAGE }
-        val varsDontCare = allVariables.filter { it.zpw == ZeropageWish.DONTCARE }
-        val numberOfExplicitNonZpVariables = allVariables.count { it.zpw == ZeropageWish.NOT_IN_ZEROPAGE }
+        val varsRequiringZp = allVariables.filter { it.zpw == StZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariables.filter { it.zpw == StZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare = allVariables.filter { it.zpw == StZeropageWish.DONTCARE }
+        val numberOfExplicitNonZpVariables = allVariables.count { it.zpw == StZeropageWish.NOT_IN_ZEROPAGE }
         require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
 
         var numVariablesAllocatedInZP = 0

@@ -644,7 +644,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)
+        if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
             err("zeropage usage has been disabled by options")
 
         super.visit(decl)
