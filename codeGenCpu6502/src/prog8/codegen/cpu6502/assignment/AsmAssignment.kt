@@ -5,7 +5,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
-import prog8.code.core.AssemblyError
 
 
 internal enum class TargetStorageKind {

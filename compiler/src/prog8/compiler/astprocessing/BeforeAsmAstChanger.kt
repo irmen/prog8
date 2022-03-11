@@ -8,7 +8,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.compilerinterface.*
 
 internal class BeforeAsmAstChanger(val program: Program,
                                    private val options: CompilationOptions,

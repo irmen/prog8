@@ -7,8 +7,6 @@ import prog8.ast.statements.Subroutine
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8.code.core.AssemblyError
-import prog8.code.core.CpuType
 
 
 internal class AugmentableAssignmentAsmGen(private val program: Program,

@@ -27,7 +27,6 @@ dependencies {
     implementation project(':codeAst')
     implementation project(':codeCore')
     implementation project(':compilerAst')
-    implementation project(':compilerInterfaces')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.14"

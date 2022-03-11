@@ -10,7 +10,9 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.Subroutine
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
-import prog8.compilerinterface.*
+import prog8.compiler.BuiltinFunctions
+import prog8.compiler.FSignature
+import prog8.compiler.builtinFunctionReturnType
 
 
 internal class BuiltinFunctionsAsmGen(private val program: Program,

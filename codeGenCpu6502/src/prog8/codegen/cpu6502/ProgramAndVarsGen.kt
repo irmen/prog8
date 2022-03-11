@@ -7,7 +7,7 @@ import prog8.code.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
-import prog8.compilerinterface.*
+import prog8.compiler.CallGraph
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.math.absoluteValue

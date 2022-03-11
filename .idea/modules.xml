@@ -6,11 +6,9 @@
       <module fileurl="file://$PROJECT_DIR$/codeCore/codeCore.iml" filepath="$PROJECT_DIR$/codeCore/codeCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" filepath="$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" />
-      <module fileurl="file://$PROJECT_DIR$/codeGenTargets/codeGenTargets.iml" filepath="$PROJECT_DIR$/codeGenTargets/codeGenTargets.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" filepath="$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />
-      <module fileurl="file://$PROJECT_DIR$/compilerInterfaces/compilerInterfaces.iml" filepath="$PROJECT_DIR$/compilerInterfaces/compilerInterfaces.iml" />
       <module fileurl="file://$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" filepath="$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />

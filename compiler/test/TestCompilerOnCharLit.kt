@@ -11,7 +11,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.VarDeclType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
-import prog8.codegen.target.Cx16Target
+import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
 
 

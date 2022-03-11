@@ -29,10 +29,8 @@ def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 dependencies {
     implementation project(':codeAst')
     implementation project(':codeCore')
-    implementation project(':compilerInterfaces')
     implementation project(':codeOptimizers')
     implementation project(':compilerAst')
-    implementation project(':codeGenTargets')
     implementation project(':codeGenCpu6502')
     implementation project(':codeGenExperimental6502')
     implementation 'org.antlr:antlr4-runtime:4.9.3'

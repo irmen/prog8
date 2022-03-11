@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText

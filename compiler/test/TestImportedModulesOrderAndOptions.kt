@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
 import prog8.ast.internedStringsModuleName
 import prog8.code.core.ZeropageType
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8tests.helpers.ErrorReporterForTests
@@ -17,7 +17,8 @@ import prog8tests.helpers.outputDir
 class TestImportedModulesOrderAndOptions: FunSpec({
 
     test("testImportedModuleOrderAndMainModuleCorrect") {
-        val result = compileText(C64Target(), false, """
+        val result = compileText(
+            C64Target(), false, """
 %import textio
 %import floats
 
@@ -48,7 +49,8 @@ main {
     }
 
     test("testCompilationOptionsCorrectFromMain") {
-        val result = compileText(C64Target(), false, """
+        val result = compileText(
+            C64Target(), false, """
 %import textio
 %import floats
 %zeropage dontuse

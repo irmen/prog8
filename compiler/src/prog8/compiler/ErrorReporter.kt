@@ -1,7 +1,7 @@
 package prog8.compiler
 
-import prog8.code.core.Position
 import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 
 internal class ErrorReporter: IErrorReporter {

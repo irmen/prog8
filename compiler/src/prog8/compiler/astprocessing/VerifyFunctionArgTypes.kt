@@ -9,10 +9,10 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.DataType
-import prog8.code.core.Position
-import prog8.compilerinterface.BuiltinFunctions
 import prog8.code.core.IErrorReporter
-import prog8.compilerinterface.builtinFunctionReturnType
+import prog8.code.core.Position
+import prog8.compiler.BuiltinFunctions
+import prog8.compiler.builtinFunctionReturnType
 
 internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorReporter) : IAstVisitor {
 

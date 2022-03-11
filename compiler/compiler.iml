@@ -19,9 +19,7 @@
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="codeAst" />
     <orderEntry type="module" module-name="compilerAst" />
-    <orderEntry type="module" module-name="compilerInterfaces" />
     <orderEntry type="module" module-name="codeOptimizers" />
-    <orderEntry type="module" module-name="codeGenTargets" />
     <orderEntry type="module" module-name="codeGenCpu6502" />
     <orderEntry type="module" module-name="codeGenExperimental6502" />
   </component>

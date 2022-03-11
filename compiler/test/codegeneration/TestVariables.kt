@@ -2,7 +2,7 @@ package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8tests.helpers.compileText
 
 

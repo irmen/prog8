@@ -8,11 +8,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.codegen.target.C64Target
-import prog8.codegen.target.Cx16Target
-import prog8.codegen.target.cbm.AtasciiEncoding
-import prog8.codegen.target.cbm.IsoEncoding
-import prog8.codegen.target.cbm.PetsciiEncoding
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
+import prog8.code.target.cbm.AtasciiEncoding
+import prog8.code.target.cbm.IsoEncoding
+import prog8.code.target.cbm.PetsciiEncoding
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 

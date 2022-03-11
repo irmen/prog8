@@ -7,7 +7,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.compilerinterface.*
+import prog8.compiler.BuiltinFunctions
+import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
 import java.io.File
 import kotlin.io.path.Path

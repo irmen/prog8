@@ -15,8 +15,8 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
-import prog8.codegen.target.C64Target
-import prog8.codegen.target.Cx16Target
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.cartesianProduct
 import prog8tests.helpers.compileText
@@ -218,7 +218,8 @@ class TestCompilerOnRanges: FunSpec({
 
     test("testForLoopWithRange_str_downto_str") {
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), true, """
+        compileText(
+            Cx16Target(), true, """
             main {
                 sub start() {
                     ubyte i
@@ -234,7 +235,8 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("testForLoopWithIterable_str") {
-        val result = compileText(Cx16Target(), false, """
+        val result = compileText(
+            Cx16Target(), false, """
             main {
                 sub start() {
                     ubyte i
@@ -266,7 +268,8 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("range with negative step should be constvalue") {
-        val result = compileText(C64Target(), false, """
+        val result = compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     ubyte[] array = 100 to 50 step -2
@@ -286,7 +289,8 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("range with start/end variables should be ok") {
-        val result = compileText(C64Target(), false, """
+        val result = compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     byte from = 100
@@ -305,7 +309,8 @@ class TestCompilerOnRanges: FunSpec({
 
 
     test("for statement on all possible iterable expressions") {
-        compileText(C64Target(), false, """
+        compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx
@@ -346,7 +351,8 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("if containment check on all possible iterable expressions") {
-        compileText(C64Target(), false, """
+        compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx
@@ -407,7 +413,8 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     test("containment check in expressions") {
-        compileText(C64Target(), false, """
+        compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     ubyte xx

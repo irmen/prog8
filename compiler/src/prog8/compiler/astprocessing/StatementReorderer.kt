@@ -7,10 +7,9 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.compilerinterface.BuiltinFunctions
-import prog8.code.core.IErrorReporter
 import prog8.codegen.cpu6502.asmsub6502ArgsEvalOrder
 import prog8.codegen.cpu6502.asmsub6502ArgsHaveRegisterClobberRisk
+import prog8.compiler.BuiltinFunctions
 
 internal class StatementReorderer(val program: Program,
                                   val errors: IErrorReporter,

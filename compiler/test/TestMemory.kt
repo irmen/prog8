@@ -13,9 +13,8 @@ import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8.compiler.printProgram
-import prog8.compilerinterface.isIOAddress
 import prog8.parser.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
@@ -227,7 +226,8 @@ class TestMemory: FunSpec({
 
 
     test("memory() with spaces in name works") {
-        compileText(C64Target(), false, """
+        compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     uword @shared mem = memory("a b c", 100, $100)
@@ -237,7 +237,8 @@ class TestMemory: FunSpec({
     }
 
     test("memory() with invalid argument") {
-        compileText(C64Target(), false, """
+        compileText(
+            C64Target(), false, """
             main {
                 sub start() {
                     uword @shared mem1 = memory("abc", 100, -2)

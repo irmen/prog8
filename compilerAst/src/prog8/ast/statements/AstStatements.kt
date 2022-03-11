@@ -424,6 +424,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), position)
 
     fun inferType(program: Program): InferredTypes.InferredType {
         if (identifier != null) {
@@ -491,7 +492,49 @@ data class AssignTarget(var identifier: IdentifierReference?,
         return false
     }
 
-    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), position)
+    fun isIOAddress(machine: IMachineDefinition): Boolean {
+        val memAddr = memoryAddress
+        val arrayIdx = arrayindexed
+        val ident = identifier
+        when {
+            memAddr != null -> {
+                val addr = memAddr.addressExpression.constValue(definingModule.program)
+                if(addr!=null)
+                    return machine.isIOAddress(addr.number.toUInt())
+                return when (memAddr.addressExpression) {
+                    is IdentifierReference -> {
+                        val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(definingModule.program)
+                        val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteral)
+                            machine.isIOAddress((decl.value as NumericLiteral).number.toUInt())
+                        else
+                            false
+                        result
+                    }
+                    else -> false
+                }
+            }
+            arrayIdx != null -> {
+                val targetStmt = arrayIdx.arrayvar.targetVarDecl(definingModule.program)
+                return if (targetStmt?.type == VarDeclType.MEMORY) {
+                    val addr = targetStmt.value as? NumericLiteral
+                    if (addr != null)
+                        machine.isIOAddress(addr.number.toUInt())
+                    else
+                        false
+                } else false
+            }
+            ident != null -> {
+                val decl = ident.targetVarDecl(definingModule.program) ?:
+                throw FatalAstException("invalid identifier ${ident.nameInSource}")
+                return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
+                    machine.isIOAddress((decl.value as NumericLiteral).number.toUInt())
+                else
+                    false
+            }
+            else -> return false
+        }
+    }
+
 }
 
 class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : Statement() {

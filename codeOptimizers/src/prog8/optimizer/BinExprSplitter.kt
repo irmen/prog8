@@ -15,7 +15,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
-import prog8.compilerinterface.isIOAddress
 
 
 class BinExprSplitter(private val program: Program, private val options: CompilationOptions) : AstWalker() {

@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.core.DataType
 import prog8.code.core.NumericDatatypes
 import prog8.code.core.RegisterOrPair
-import prog8.compilerinterface.BuiltinFunctions
+import prog8.compiler.BuiltinFunctions
 
 class TestBuiltinFunctions: FunSpec({
 

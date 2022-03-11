@@ -11,8 +11,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.ast.internedStringsModuleName
-import prog8.compiler.ModuleImporter
 import prog8.code.core.IErrorReporter
+import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8.parser.SourceCode
 import prog8tests.helpers.*

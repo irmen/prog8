@@ -13,12 +13,11 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
 import prog8.code.SymbolTable
 import prog8.code.core.*
-import prog8.codegen.target.AtariTarget
-import prog8.codegen.target.C128Target
-import prog8.codegen.target.C64Target
-import prog8.codegen.target.Cx16Target
+import prog8.code.target.AtariTarget
+import prog8.code.target.C128Target
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.compiler.astprocessing.*
-import prog8.compilerinterface.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
 import java.nio.file.Path
@@ -205,7 +204,7 @@ fun parseImports(filepath: Path,
 
     if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
-    if(compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name==AtariTarget.NAME)
+    if(compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name== AtariTarget.NAME)
         errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
 
     errors.report()

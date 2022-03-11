@@ -8,7 +8,8 @@ import prog8.ast.statements.*
 import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
-import prog8.compilerinterface.*
+import prog8.compiler.BuiltinFunctions
+import prog8.compiler.builtinFunctionReturnType
 import prog8.parser.SourceCode
 import java.util.*
 import kotlin.io.path.Path

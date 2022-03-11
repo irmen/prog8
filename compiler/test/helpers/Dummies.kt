@@ -4,9 +4,7 @@ import prog8.ast.IBuiltinFunctions
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.Subroutine
 import prog8.code.core.*
-import prog8.code.core.IMachineDefinition
 
 
 internal object DummyFunctions : IBuiltinFunctions {

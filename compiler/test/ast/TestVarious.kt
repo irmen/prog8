@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.statements.InlineAssembly
 import prog8.code.core.Position
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8tests.helpers.compileText
 
 class TestVarious: FunSpec({

@@ -5,7 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.ast.PtVariable
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8.compiler.IntermediateAstMaker
 import prog8tests.helpers.compileText
 

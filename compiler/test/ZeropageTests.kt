@@ -13,11 +13,10 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
-import prog8.codegen.target.C64Target
-import prog8.codegen.target.Cx16Target
-import prog8.codegen.target.c64.C64Zeropage
-import prog8.codegen.target.cx16.CX16Zeropage
-import prog8.compilerinterface.*
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
+import prog8.code.target.c64.C64Zeropage
+import prog8.code.target.cx16.CX16Zeropage
 import prog8tests.helpers.DummyCompilationTarget
 import prog8tests.helpers.ErrorReporterForTests
 

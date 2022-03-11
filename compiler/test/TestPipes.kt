@@ -13,7 +13,7 @@ import prog8.ast.statements.Pipe
 import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.AstPreprocessor
 import prog8.parser.Prog8Parser.parseModule
 import prog8.parser.SourceCode

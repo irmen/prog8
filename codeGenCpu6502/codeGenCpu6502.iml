@@ -12,7 +12,6 @@
     <orderEntry type="module" module-name="codeAst" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="compilerAst" />
-    <orderEntry type="module" module-name="compilerInterfaces" />
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
   </component>
 </module>

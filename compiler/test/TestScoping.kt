@@ -11,7 +11,7 @@ import prog8.ast.GlobalNamespace
 import prog8.ast.ParentSentinel
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
-import prog8.codegen.target.C64Target
+import prog8.code.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
