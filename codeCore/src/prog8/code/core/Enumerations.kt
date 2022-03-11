@@ -172,3 +172,10 @@ enum class ZeropageType {
     FULL,
     DONTUSE
 }
+
+enum class ZeropageWish {
+    REQUIRE_ZEROPAGE,
+    PREFER_ZEROPAGE,
+    DONTCARE,
+    NOT_IN_ZEROPAGE
+}

@@ -8,15 +8,16 @@ import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.Position
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 
 internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                                      private val program: Program,
-                                     private val compTarget: ICompilationTarget) : IAstVisitor {
+                                     private val compTarget: ICompilationTarget
+) : IAstVisitor {
     private var blocks = mutableMapOf<String, Block>()
 
     private fun nameError(name: String, position: Position, existing: Statement) {

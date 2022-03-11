@@ -5,9 +5,9 @@ import prog8.ast.expressions.InferredTypes
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.statements.VarDeclType
-import prog8.ast.statements.ZeropageWish
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.core.ZeropageWish
 
 
 fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>, VarDecl> {

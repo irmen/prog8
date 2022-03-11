@@ -70,11 +70,6 @@ class AsmGen(internal val program: Program,
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
     internal fun haveFPWRcall() = options.compTarget.name=="cx16"
 
-    internal fun asmsubArgsEvalOrder(sub: Subroutine) =
-        options.compTarget.asmsubArgsEvalOrder(sub)
-    internal fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>, paramRegisters: List<RegisterOrStatusflag>) =
-        options.compTarget.asmsubArgsHaveRegisterClobberRisk(args, paramRegisters)
-
     private var generatedLabelSequenceNumber: Int = 0
 
     internal fun makeLabel(postfix: String): String {

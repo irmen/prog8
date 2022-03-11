@@ -315,7 +315,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
-        val optsDone2 = program.splitBinaryExpressions(compilerOptions, compTarget)
+        val optsDone2 = program.splitBinaryExpressions(compilerOptions)
         val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
@@ -361,13 +361,7 @@ private fun createAssemblyAndAssemble(program: Program,
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
-        val options = AssemblerOptions(
-            compilerOptions.output,
-            compilerOptions.asmQuiet,
-            compilerOptions.asmListfile,
-            compilerOptions.outputDir
-        )
-        assembly.assemble(options)
+        assembly.assemble(compilerOptions)
     } else {
         false
     }
@@ -410,13 +404,7 @@ internal fun asmGeneratorFor(program: Program,
 
             // TODO for now, only use the new Intermediary Ast for this experimental codegen:
             val intermediateAst = IntermediateAstMaker(program).transform()
-            val asmOptions = AssemblerOptions(
-               options.output,
-               options.asmQuiet,
-               options.asmListfile,
-               options.outputDir
-            )
-            return prog8.codegen.experimental6502.AsmGen(intermediateAst, errors, symbolTable, asmOptions)
+            return prog8.codegen.experimental6502.AsmGen(intermediateAst, errors, symbolTable, options)
         }
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))

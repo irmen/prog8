@@ -2,7 +2,7 @@ package prog8.codegen.experimental6502
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
-import prog8.code.core.AssemblerOptions
+import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyGenerator
 import prog8.code.core.IAssemblyProgram
 import prog8.code.core.IErrorReporter
@@ -20,7 +20,7 @@ import prog8.code.core.IErrorReporter
 class AsmGen(internal val program: PtProgram,
              internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val options: AssemblerOptions         // TODO this may not be enough, maybe we actually need the other CompilationOptions as well
+             internal val options: CompilationOptions
 ): IAssemblyGenerator {
 
     override fun compileToAssembly(): IAssemblyProgram? {

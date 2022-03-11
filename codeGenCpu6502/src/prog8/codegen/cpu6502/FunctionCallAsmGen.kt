@@ -133,10 +133,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         if(sub.parameters.size==1) {
             argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
         } else {
-            if(asmgen.asmsubArgsHaveRegisterClobberRisk(call.args, sub.asmParameterRegisters)) {
+            if(asmsub6502ArgsHaveRegisterClobberRisk(call.args, sub.asmParameterRegisters)) {
                 registerArgsViaCpuStackEvaluation(call, sub)
             } else {
-                asmgen.asmsubArgsEvalOrder(sub).forEach {
+                asmsub6502ArgsEvalOrder(sub).forEach {
                     val param = sub.parameters[it]
                     val arg = call.args[it]
                     argumentViaRegister(sub, IndexedValue(it, param), arg)
@@ -154,7 +154,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             return
 
         // use the cpu hardware stack as intermediate storage for the arguments.
-        val argOrder = asmgen.options.compTarget.asmsubArgsEvalOrder(callee)
+        val argOrder = asmsub6502ArgsEvalOrder(callee)
         argOrder.reversed().forEach {
             asmgen.pushCpuStack(callee.parameters[it].type, call.args[it])
         }

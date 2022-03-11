@@ -8,9 +8,9 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import prog8.compilerinterface.BuiltinFunctions
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.code.core.IErrorReporter
+import prog8.codegen.cpu6502.asmsub6502ArgsEvalOrder
+import prog8.codegen.cpu6502.asmsub6502ArgsHaveRegisterClobberRisk
 
 internal class StatementReorderer(val program: Program,
                                   val errors: IErrorReporter,
@@ -489,7 +489,7 @@ private fun tryReplaceCallAsmSubWithGosub(call: FunctionCallStatement,
             scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), call.position), mutableListOf(), true, call.position)
         }
         return listOf(IAstModification.ReplaceNode(call, scope, parent))
-    } else if(!compTarget.asmsubArgsHaveRegisterClobberRisk(call.args, callee.asmParameterRegisters)) {
+    } else if(!asmsub6502ArgsHaveRegisterClobberRisk(call.args, callee.asmParameterRegisters)) {
         // No register clobber risk, let the asmgen assign values to the registers directly.
         // this is more efficient than first evaluating them to the stack.
         // As complex expressions will be flagged as a clobber-risk, these will be simplified below.
@@ -530,7 +530,7 @@ private fun makeGosubWithArgsViaCpuStack(call: IFunctionCall,
         )
     }
 
-    val argOrder = compTarget.asmsubArgsEvalOrder(callee)
+    val argOrder = asmsub6502ArgsEvalOrder(callee)
     val scope = AnonymousScope(mutableListOf(), position)
     if(callee.shouldSaveX()) {
         scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), position), mutableListOf(), true, position)

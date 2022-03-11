@@ -5,6 +5,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.VarDeclType
+import prog8.code.core.IMachineDefinition
 
 fun AssignTarget.isIOAddress(machine: IMachineDefinition): Boolean {
     val memAddr = memoryAddress

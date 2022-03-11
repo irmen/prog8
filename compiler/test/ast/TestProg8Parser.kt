@@ -20,6 +20,7 @@ import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
+import prog8.code.core.ZeropageWish
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.cbm.PetsciiEncoding
 import prog8.parser.ParseError

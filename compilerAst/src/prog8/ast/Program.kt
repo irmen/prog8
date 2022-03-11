@@ -5,10 +5,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.DataType
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.Position
+import prog8.code.core.*
 import prog8.parser.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/

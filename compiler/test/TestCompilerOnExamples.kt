@@ -2,12 +2,12 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
+import prog8.code.core.ICompilationTarget
 import prog8.codegen.target.C64Target
 import prog8.codegen.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8.compilerinterface.ICompilationTarget
 import prog8tests.helpers.assumeDirectory
 import prog8tests.helpers.cartesianProduct
 import prog8tests.helpers.outputDir

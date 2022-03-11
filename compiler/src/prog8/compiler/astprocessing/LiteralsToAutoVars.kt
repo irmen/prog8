@@ -13,7 +13,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
-import prog8.compilerinterface.ICompilationTarget
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 

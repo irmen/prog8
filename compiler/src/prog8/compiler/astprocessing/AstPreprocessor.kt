@@ -8,11 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.Encoding
-import prog8.code.core.NumericDatatypes
-import prog8.compilerinterface.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.InternalCompilerException
+import prog8.code.core.*
 
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {

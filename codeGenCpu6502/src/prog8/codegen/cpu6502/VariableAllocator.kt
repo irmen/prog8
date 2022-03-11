@@ -2,9 +2,11 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
-import prog8.code.*
+import prog8.code.StNode
+import prog8.code.StNodeType
+import prog8.code.StStaticVariable
+import prog8.code.SymbolTable
 import prog8.code.core.*
-import prog8.compilerinterface.*
 
 
 internal class VariableAllocator(private val symboltable: SymbolTable,
@@ -51,10 +53,10 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val allVariables = collectAllVariables(symboltable)
 
         val numberOfAllocatableVariables = allVariables.size
-        val varsRequiringZp = allVariables.filter { it.zpw == StZeropageWish.REQUIRE_ZEROPAGE }
-        val varsPreferringZp = allVariables.filter { it.zpw == StZeropageWish.PREFER_ZEROPAGE }
-        val varsDontCare = allVariables.filter { it.zpw == StZeropageWish.DONTCARE }
-        val numberOfExplicitNonZpVariables = allVariables.count { it.zpw == StZeropageWish.NOT_IN_ZEROPAGE }
+        val varsRequiringZp = allVariables.filter { it.zpw == ZeropageWish.REQUIRE_ZEROPAGE }
+        val varsPreferringZp = allVariables.filter { it.zpw == ZeropageWish.PREFER_ZEROPAGE }
+        val varsDontCare = allVariables.filter { it.zpw == ZeropageWish.DONTCARE }
+        val numberOfExplicitNonZpVariables = allVariables.count { it.zpw == ZeropageWish.NOT_IN_ZEROPAGE }
         require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
 
         var numVariablesAllocatedInZP = 0

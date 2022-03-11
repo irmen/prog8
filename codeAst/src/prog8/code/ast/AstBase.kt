@@ -5,7 +5,6 @@ import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
 
 // New (work-in-progress) simplified AST for the code generator.
-// TODO : once the CodeGen doesn't need the old Ast anymore, get rid of the 'Pt' prefixes ?
 
 
 sealed class PtNode(val position: Position, val children: MutableList<PtNode> = mutableListOf()) {

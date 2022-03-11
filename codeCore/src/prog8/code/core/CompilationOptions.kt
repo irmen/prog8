@@ -1,8 +1,5 @@
-package prog8.compilerinterface
+package prog8.code.core
 
-import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.OutputType
-import prog8.code.core.ZeropageType
 import java.nio.file.Path
 import kotlin.io.path.Path
 

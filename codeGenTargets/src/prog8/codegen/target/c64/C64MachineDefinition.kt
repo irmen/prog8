@@ -1,10 +1,7 @@
 package prog8.codegen.target.c64
 
-import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.OutputType
-import prog8.code.core.viceMonListName
+import prog8.code.core.*
 import prog8.codegen.target.cbm.Mflpt5
-import prog8.compilerinterface.*
 import java.io.IOException
 import java.nio.file.Path
 

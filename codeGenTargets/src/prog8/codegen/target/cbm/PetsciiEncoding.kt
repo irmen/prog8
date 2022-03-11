@@ -3,7 +3,6 @@ package prog8.codegen.target.cbm
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import prog8.ast.antlr.escape
 import java.io.CharConversionException
 
 object PetsciiEncoding {
@@ -1077,7 +1076,7 @@ object PetsciiEncoding {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Petscii character for '${escape(chr.toString())}' (${chr.code})")
+                    throw CharConversionException("no ${case}Petscii character for '${chr}' (${chr.code})")
                 }
             }
         }
@@ -1120,7 +1119,7 @@ object PetsciiEncoding {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Screencode character for '${escape(chr.toString())}' (${chr.code})")
+                    throw CharConversionException("no ${case}Screencode character for '${chr}' (${chr.code})")
                 }
             }
         }

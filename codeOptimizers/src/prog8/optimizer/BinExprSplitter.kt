@@ -13,13 +13,12 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
 import prog8.compilerinterface.isIOAddress
 
 
-class BinExprSplitter(private val program: Program, private val options: CompilationOptions, private val compTarget: ICompilationTarget) : AstWalker() {
+class BinExprSplitter(private val program: Program, private val options: CompilationOptions) : AstWalker() {
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
 
@@ -115,7 +114,7 @@ X =      BinExpr                                    X   =   LeftExpr
 
     private fun isSimpleTarget(target: AssignTarget) =
             if (target.identifier!=null || target.memoryAddress!=null)
-                !target.isIOAddress(compTarget.machine)
+                !target.isIOAddress(options.compTarget.machine)
             else
                 false
 

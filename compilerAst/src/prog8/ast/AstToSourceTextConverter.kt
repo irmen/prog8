@@ -4,10 +4,7 @@ import prog8.ast.antlr.escape
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.NumericDatatypes
-import prog8.code.core.toHex
+import prog8.code.core.*
 
 
 /**

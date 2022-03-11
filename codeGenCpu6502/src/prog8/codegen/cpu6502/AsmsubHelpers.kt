@@ -1,4 +1,4 @@
-package prog8.codegen.target.cbm
+package prog8.codegen.cpu6502
 
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BuiltinFunctionCall
@@ -9,7 +9,7 @@ import prog8.code.core.RegisterOrPair
 import prog8.code.core.RegisterOrStatusflag
 
 
-internal fun asmsub6502ArgsEvalOrder(sub: Subroutine): List<Int> {
+fun asmsub6502ArgsEvalOrder(sub: Subroutine): List<Int> {
     val order = mutableListOf<Int>()
     // order is:
     //  1) cx16 virtual word registers,
@@ -37,7 +37,7 @@ internal fun asmsub6502ArgsEvalOrder(sub: Subroutine): List<Int> {
     return order
 }
 
-internal fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
+fun asmsub6502ArgsHaveRegisterClobberRisk(args: List<Expression>,
                                                    paramRegisters: List<RegisterOrStatusflag>): Boolean {
     fun isClobberRisk(expr: Expression): Boolean {
         when (expr) {

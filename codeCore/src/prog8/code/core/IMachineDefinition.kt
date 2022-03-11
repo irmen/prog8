@@ -1,4 +1,4 @@
-package prog8.compilerinterface
+package prog8.code.core
 
 import java.nio.file.Path
 

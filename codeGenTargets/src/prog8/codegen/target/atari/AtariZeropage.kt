@@ -1,9 +1,9 @@
 package prog8.codegen.target.atari
 
+import prog8.code.core.CompilationOptions
 import prog8.code.core.ZeropageType
-import prog8.compilerinterface.CompilationOptions
 import prog8.code.core.InternalCompilerException
-import prog8.compilerinterface.Zeropage
+import prog8.code.core.Zeropage
 
 class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
 

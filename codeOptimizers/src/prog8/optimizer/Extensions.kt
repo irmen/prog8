@@ -2,8 +2,8 @@ package prog8.optimizer
 
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
-import prog8.compilerinterface.CompilationOptions
-import prog8.compilerinterface.ICompilationTarget
+import prog8.code.core.CompilationOptions
+import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 
@@ -60,8 +60,8 @@ fun Program.simplifyExpressions(errors: IErrorReporter) : Int {
     return opti.applyModifications()
 }
 
-fun Program.splitBinaryExpressions(options: CompilationOptions, compTarget: ICompilationTarget) : Int {
-    val opti = BinExprSplitter(this, options, compTarget)
+fun Program.splitBinaryExpressions(options: CompilationOptions) : Int {
+    val opti = BinExprSplitter(this, options)
     opti.visit(this)
     return opti.applyModifications()
 }

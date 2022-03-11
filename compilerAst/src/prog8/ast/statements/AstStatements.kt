@@ -166,13 +166,6 @@ class Break(override val position: Position) : Statement() {
 }
 
 
-enum class ZeropageWish {
-    REQUIRE_ZEROPAGE,
-    PREFER_ZEROPAGE,
-    DONTCARE,
-    NOT_IN_ZEROPAGE
-}
-
 enum class VarDeclOrigin {
     USERCODE,
     SUBROUTINEPARAM,

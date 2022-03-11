@@ -1,9 +1,7 @@
 package prog8.codegen.target.atari
 
-import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.OutputType
+import prog8.code.core.*
 import prog8.codegen.target.c64.normal6502instructions
-import prog8.compilerinterface.*
 import java.nio.file.Path
 
 

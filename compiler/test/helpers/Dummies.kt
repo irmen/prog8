@@ -6,8 +6,7 @@ import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Subroutine
 import prog8.code.core.*
-import prog8.compilerinterface.ICompilationTarget
-import prog8.compilerinterface.IMachineDefinition
+import prog8.code.core.IMachineDefinition
 
 
 internal object DummyFunctions : IBuiltinFunctions {
@@ -56,15 +55,6 @@ internal object DummyCompilationTarget : ICompilationTarget {
     }
 
     override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
-        throw NotImplementedError("dummy")
-    }
-
-    override fun asmsubArgsEvalOrder(sub: Subroutine): List<Int> {
-        throw NotImplementedError("dummy")
-    }
-
-    override fun asmsubArgsHaveRegisterClobberRisk(args: List<Expression>,
-                                                   paramRegisters: List<RegisterOrStatusflag>): Boolean {
         throw NotImplementedError("dummy")
     }
 
