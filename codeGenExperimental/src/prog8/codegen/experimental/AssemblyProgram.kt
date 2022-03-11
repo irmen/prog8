@@ -1,4 +1,4 @@
-package prog8.codegen.experimental6502
+package prog8.codegen.experimental
 
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram

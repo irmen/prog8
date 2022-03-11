@@ -5,7 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/codeAst/codeAst.iml" filepath="$PROJECT_DIR$/codeAst/codeAst.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeCore/codeCore.iml" filepath="$PROJECT_DIR$/codeCore/codeCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />
-      <module fileurl="file://$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" filepath="$PROJECT_DIR$/codeGenExperimental6502/codeGenExperimental6502.iml" />
+      <module fileurl="file://$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" filepath="$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" filepath="$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />

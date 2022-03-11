@@ -21,6 +21,6 @@
     <orderEntry type="module" module-name="compilerAst" />
     <orderEntry type="module" module-name="codeOptimizers" />
     <orderEntry type="module" module-name="codeGenCpu6502" />
-    <orderEntry type="module" module-name="codeGenExperimental6502" />
+    <orderEntry type="module" module-name="codeGenExperimental" />
   </component>
 </module>

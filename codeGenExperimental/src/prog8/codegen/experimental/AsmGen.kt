@@ -1,4 +1,4 @@
-package prog8.codegen.experimental6502
+package prog8.codegen.experimental
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
@@ -25,7 +25,7 @@ class AsmGen(internal val program: PtProgram,
 
     override fun compileToAssembly(): IAssemblyProgram? {
 
-        println("\n** experimental 65(c)02 code generator **\n")
+        println("\n** experimental code generator **\n")
 
         symbolTable.print()
         symbolTable.flat.forEach { println(it) }
