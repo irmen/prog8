@@ -284,7 +284,7 @@ class IntermediateAstMaker(val srcProgram: Program) {
     private fun transformSub(srcSub: Subroutine): PtSub {
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
-            srcSub.returntypes,
+            srcSub.returntypes.singleOrNull(),
             srcSub.inline,
             srcSub.position)
 

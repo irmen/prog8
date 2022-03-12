@@ -21,7 +21,7 @@ class PtAsmSub(
 class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
-    val returntypes: List<DataType>,
+    val returntype: DataType?,
     val inline: Boolean,
     position: Position
 ) : PtNamedNode(name, position) {

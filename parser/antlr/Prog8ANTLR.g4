@@ -245,7 +245,7 @@ subroutine :
 	inline? 'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
 	;
 
-sub_return_part : '->' sub_returns  ;
+sub_return_part : '->' datatype  ;
 
 statement_block :
 	'{' EOL
@@ -255,8 +255,6 @@ statement_block :
 
 
 sub_params :  vardecl (',' EOL? vardecl)* ;
-
-sub_returns :  datatype (',' EOL? datatype)*  ;
 
 asmsubroutine :
     inline? 'asmsub' asmsub_decl  statement_block

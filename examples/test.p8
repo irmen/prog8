@@ -31,6 +31,9 @@ main {
         ; test_stack.test()
     }
 
+    sub derp() -> ubyte, ubyte {
+        return 0, 1
+    }
 
     sub find_next_prime() -> ubyte {
 

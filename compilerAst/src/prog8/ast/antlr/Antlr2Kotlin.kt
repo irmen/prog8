@@ -275,18 +275,13 @@ private fun Prog8ANTLRParser.LabeldefContext.toAst(): Statement =
 private fun Prog8ANTLRParser.SubroutineContext.toAst() : Subroutine {
     // non-asm subroutine
     val inline = inline()!=null
-    val returntypes = sub_return_part()?.toAst() ?: emptyList()
+    val returntype = sub_return_part()?.datatype()?.toAst()
     return Subroutine(identifier().text,
             sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-            returntypes,
+            if(returntype==null) emptyList() else listOf(returntype),
             statement_block()?.toAst() ?: mutableListOf(),
             inline,
             toPosition())
-}
-
-private fun Prog8ANTLRParser.Sub_return_partContext.toAst(): List<DataType> {
-    val returns = sub_returns() ?: return emptyList()
-    return returns.datatype().map { it.toAst() }
 }
 
 private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter> =
