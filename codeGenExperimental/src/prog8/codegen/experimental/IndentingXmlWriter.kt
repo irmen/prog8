@@ -13,13 +13,12 @@ class IndentingXmlWriter(val xml: XMLStreamWriter): XMLStreamWriter by xml {
     fun elt(name: String) = writeStartElement(name)
     fun attr(name: String, value: String) = writeAttribute(name, value)
     fun attrs(attributes: List<Pair<String, String>>) = attributes.forEach { writeAttribute(it.first, it.second) }
-    fun text(text: String) = writeCData(text)
     fun startChildren() {
         xml.writeCharacters("\n")
         content.pop()
         content.push(true)
     }
-    fun endElt() = this.writeEndElement()
+    fun endElt(writeIndent: Boolean=true) = writeEndElement(writeIndent)
     fun pos(pos: Position) {
         elt("src")
         attr("pos", pos.toString())
@@ -63,18 +62,29 @@ class IndentingXmlWriter(val xml: XMLStreamWriter): XMLStreamWriter by xml {
         content.push(false)
     }
 
-    override fun writeEndElement() {
+    fun writeEndElement(writeIndents: Boolean) {
         indent--
-        if(content.pop())
+        if(content.pop() && writeIndents)
             xml.writeCharacters("  ".repeat(indent))
         xml.writeEndElement()
         xml.writeCharacters("\n")
     }
+
+    override fun writeEndElement() = writeEndElement(true)
 
     override fun writeStartElement(name: String, ns: String, p2: String) {
         xml.writeCharacters("  ".repeat(indent))
         xml.writeStartElement(name, ns, p2)
         indent++
         content.push(false)
+    }
+
+    fun writeTextNode(name: String, attrs: List<Pair<String, String>>, text: String) {
+        xml.writeCharacters("  ".repeat(indent))
+        xml.writeStartElement(name)
+        attrs.forEach { (name, value) -> xml.writeAttribute(name, value) }
+        xml.writeCData(text)
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 }

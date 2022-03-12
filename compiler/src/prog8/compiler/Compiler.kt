@@ -402,7 +402,7 @@ internal fun asmGeneratorFor(program: Program,
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02)) {
 
             // TODO for now, only use the new Intermediary Ast for this experimental codegen:
-            val intermediateAst = IntermediateAstMaker(program).transform()
+            val intermediateAst = IntermediateAstMaker(program, options).transform()
             return prog8.codegen.experimental.AsmGen(intermediateAst, errors, symbolTable, options)
         }
     } else {

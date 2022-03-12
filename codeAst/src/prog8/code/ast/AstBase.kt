@@ -1,9 +1,7 @@
 package prog8.code.ast
 
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.Position
-import java.util.*
+import prog8.code.core.*
+import java.nio.file.Path
 
 // New (work-in-progress) simplified AST for the code generator.
 
@@ -41,11 +39,11 @@ class PtNodeGroup: PtNode(Position.DUMMY) {
 
 abstract class PtNamedNode(val name: String, position: Position): PtNode(position) {
     val scopedName: List<String> by lazy {
-        if(this is PtModule)
-            emptyList()
+        var namedParent: PtNode = this.parent
+        if(namedParent is PtProgram)
+            listOf(name)
         else {
-            var namedParent: PtNode = this.parent
-            while(namedParent !is PtNamedNode)
+            while (namedParent !is PtNamedNode)
                 namedParent = namedParent.parent
             namedParent.scopedName + name
         }
@@ -53,8 +51,22 @@ abstract class PtNamedNode(val name: String, position: Position): PtNode(positio
 }
 
 
+class ProgramOptions(
+    val output: OutputType,
+    val launcher: CbmPrgLauncherType,
+    val zeropage: ZeropageType,
+    val zpReserved: Collection<UIntRange>,
+    val loadAddress: UInt?,
+    val floatsEnabled: Boolean,
+    val noSysInit: Boolean,
+    val dontReinitGlobals: Boolean,
+    val optimize: Boolean
+)
+
+
 class PtProgram(
     val name: String,
+    val options: ProgramOptions,
     val memsizer: IMemSizer,
     val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {
@@ -63,26 +75,14 @@ class PtProgram(
         print("'$name'")
     }
 
-    fun allModuleDirectives(): Sequence<PtDirective> =
-        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
+//    fun allModuleDirectives(): Sequence<PtDirective> =
+//        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
 
     fun allBlocks(): Sequence<PtBlock> =
-        children.asSequence().flatMap { it.children }.filterIsInstance<PtBlock>()
+        children.asSequence().filterIsInstance<PtBlock>()
 
     fun entrypoint(): PtSub? =
         allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && it.name == "start" } as PtSub?
-}
-
-
-class PtModule(
-    name: String,
-    val loadAddress: UInt?,
-    val library: Boolean,
-    position: Position
-) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("$name  addr=$loadAddress  library=$library")
-    }
 }
 
 
@@ -93,51 +93,6 @@ class PtBlock(name: String,
 ) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$name  addr=$address  library=$library")
-    }
-}
-
-
-class PtDirective(var name: String, position: Position) : PtNode(position) {
-    val args: List<PtDirectiveArg>
-        get() = children.map { it as PtDirectiveArg }
-
-    override fun printProperties() {
-        print(name)
-    }
-
-    override fun hashCode(): Int {
-        return Objects.hash(name, args)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if(other !is PtDirective)
-            return false
-        if(other===this)
-            return true
-        return(name==other.name && args.zip(other.args).all { it.first==it.second })
-    }
-}
-
-
-class PtDirectiveArg(val str: String?,
-                     val name: String?,
-                     val int: UInt?,
-                     position: Position
-): PtNode(position) {
-    override fun printProperties() {
-        print("str=$str name=$name int=$int")
-    }
-
-    override fun hashCode(): Int {
-        return Objects.hash(str, name, int)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if(other !is PtDirectiveArg)
-            return false
-        if(other===this)
-            return true
-        return str==other.str || name==other.name || int==other.int
     }
 }
 
@@ -153,3 +108,19 @@ class PtLabel(name: String, position: Position) : PtNamedNode(name, position) {
     }
 }
 
+
+class PtBreakpoint(position: Position): PtNode(position) {
+    override fun printProperties() {}
+}
+
+
+class PtInlineBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position) {
+    override fun printProperties() {
+        print("filename=$file  offset=$offset  length=$length")
+    }
+}
+
+
+class PtNop(position: Position): PtNode(position) {
+    override fun printProperties() {}
+}

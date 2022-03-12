@@ -1,16 +1,25 @@
 %import textio
 %import test_stack
 %zeropage basicsafe
+%zpreserved 50,80
+%zpreserved 150,155
+%address $4000
 
 ; Note: this program is compatible with C64 and CX16.
+%option align_word
 
 main {
+        %option align_word
 
     ubyte[256] sieve
     ubyte candidate_prime = 2       ; is increased in the loop
 
     sub start() {
         sys.memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
+
+        %breakpoint
+        %asmbinary "LICENSE", 10 ,1
+
 
         ; calculate primes
         txt.print("prime numbers up to 255:\n\n")

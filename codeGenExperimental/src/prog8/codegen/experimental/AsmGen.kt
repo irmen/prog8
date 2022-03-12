@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import javax.xml.stream.XMLOutputFactory
 import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.div
 
 /*
@@ -36,7 +37,7 @@ class AsmGen(internal val program: PtProgram,
         xml.elt("program")
         xml.attr("name", program.name)
         xml.startChildren()
-        program.allModuleDirectives().forEach { writeNode(it) }
+        write(program.options)
         program.children.forEach { writeNode(it) }
         xml.endElt()
         xml.endDoc()
@@ -45,11 +46,32 @@ class AsmGen(internal val program: PtProgram,
         return AssemblyProgram("dummy")
     }
 
+    private fun write(options: ProgramOptions) {
+        xml.elt("options")
+        xml.attr("output", options.output.name)
+        xml.attr("launcher", options.launcher.name)
+        xml.attr("zeropage", options.zeropage.name)
+        if(options.loadAddress!=null)
+            xml.attr("loadaddress", options.loadAddress.toString())
+        xml.attr("floatsenabled", options.floatsEnabled.toString())
+        xml.attr("nosysinit", options.noSysInit.toString())
+        xml.attr("dontreinitglobals", options.dontReinitGlobals.toString())
+        xml.attr("optimize", options.optimize.toString())
+        if(options.zpReserved.isNotEmpty()) {
+            xml.startChildren()
+            options.zpReserved.forEach {
+                xml.elt("zpreserved")
+                xml.attr("from", it.first.toString())
+                xml.attr("to", it.last.toString())
+                xml.endElt()
+            }
+        }
+        xml.endElt()
+    }
+
     private fun writeNode(it: PtNode) {
         when(it) {
-            is PtModule -> write(it)
             is PtBlock -> write(it)
-            is PtDirective -> write(it)
             is PtSub -> write(it)
             is PtVariable -> write(it)
             is PtAssignment -> write(it)
@@ -68,6 +90,7 @@ class AsmGen(internal val program: PtProgram,
             is PtIdentifier -> write(it)
             is PtIfElse -> write(it)
             is PtInlineAssembly -> write(it)
+            is PtInlineBinary -> write(it)
             is PtJump -> write(it)
             is PtMemoryByte -> write(it)
             is PtMemMapped -> write(it)
@@ -83,9 +106,18 @@ class AsmGen(internal val program: PtProgram,
             is PtWhen -> write(it)
             is PtWhenChoice -> write(it)
             is PtLabel -> write(it)
+            is PtNop -> {}
+            is PtBreakpoint -> write(it)
             is PtNodeGroup -> it.children.forEach { writeNode(it) }
             else -> TODO("$it")
         }
+    }
+
+    private fun write(breakPt: PtBreakpoint) {
+        xml.elt("breakpoint")
+        xml.startChildren()
+        xml.pos(breakPt.position)
+        xml.endElt()
     }
 
     private fun write(pipe: PtPipe) {
@@ -116,13 +148,8 @@ class AsmGen(internal val program: PtProgram,
         xml.endElt()
     }
 
-    private fun write(string: PtString) {
-        xml.elt("string")
-        xml.attr("encoding", string.encoding.name)
-        xml.startChildren()
-        xml.text(string.value)
-        xml.endElt()
-    }
+    private fun write(string: PtString) =
+        xml.writeTextNode("string", listOf(Pair("encoding", string.encoding.name)), string.value)
 
     private fun write(rept: PtRepeatLoop) {
         xml.elt("repeat")
@@ -255,9 +282,19 @@ class AsmGen(internal val program: PtProgram,
         xml.elt("assembly")
         xml.startChildren()
         xml.pos(inlineAsm.position)
-        xml.elt("code")
-        xml.text(inlineAsm.assembly)
+        xml.writeTextNode("code", emptyList(), inlineAsm.assembly)
         xml.endElt()
+    }
+
+    private fun write(inlineBinary: PtInlineBinary) {
+        xml.elt("binary")
+        xml.attr("filename", inlineBinary.file.absolutePathString())
+        if(inlineBinary.offset!=null)
+            xml.attr("offset", inlineBinary.offset!!.toString())
+        if(inlineBinary.length!=null)
+            xml.attr("length", inlineBinary.length!!.toString())
+        xml.startChildren()
+        xml.pos(inlineBinary.position)
         xml.endElt()
     }
 
@@ -388,18 +425,6 @@ class AsmGen(internal val program: PtProgram,
         xml.attr("name", label.name)
         xml.startChildren()
         xml.pos(label.position)
-        xml.endElt()
-    }
-
-    private fun write(module: PtModule) {
-        xml.elt("module")
-        xml.attr("name", module.name)
-        xml.attr("library", module.library.toString())
-        if(module.loadAddress!=null)
-            xml.attr("loadaddress", module.loadAddress.toString())
-        xml.startChildren()
-        xml.pos(module.position)
-        module.children.asSequence().filter { it !is PtDirective }.forEach { write(it as PtBlock) }
         xml.endElt()
     }
 
@@ -559,26 +584,9 @@ class AsmGen(internal val program: PtProgram,
         xml.elt("var")
         xml.attr("name", variable.name)
         xml.attr("type", variable.type.name)
-        xml.endElt()
-    }
-
-    private fun write(directive: PtDirective) {
-        if(directive.name=="%import")
-            return
-        xml.elt("directive")
-        xml.attr("name", directive.name.substring(1))
-        if(directive.args.isNotEmpty()) {
+        if(variable.value!=null) {
             xml.startChildren()
-            directive.args.forEach {
-                xml.elt("arg")
-                if(it.name!=null)
-                    xml.attr("name", it.name!!)
-                if(it.str!=null)
-                    xml.attr("string", it.str!!)
-                if(it.int!=null)
-                    xml.attr("number", it.int!!.toString())
-                xml.endElt()
-            }
+            writeNode(variable.value!!)
         }
         xml.endElt()
     }

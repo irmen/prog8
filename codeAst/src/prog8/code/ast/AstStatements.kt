@@ -1,7 +1,6 @@
 package prog8.code.ast
 
 import prog8.code.core.*
-import javax.xml.crypto.Data
 
 
 class PtAsmSub(
@@ -157,7 +156,7 @@ class PtReturn(position: Position) : PtNode(position) {
 }
 
 
-class PtVariable(name: String, val type: DataType, position: Position) : PtNamedNode(name, position) {
+class PtVariable(name: String, val type: DataType, var value: PtExpression?, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$type  $name")
     }

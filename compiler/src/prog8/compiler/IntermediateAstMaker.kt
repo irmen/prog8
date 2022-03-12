@@ -1,41 +1,41 @@
 package prog8.compiler
 
-import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
+import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
+import kotlin.io.path.Path
 
 
-class IntermediateAstMaker(val program: Program) {
+class IntermediateAstMaker(val program: Program, val comp: CompilationOptions) {
     fun transform(): PtProgram {
+        val options = ProgramOptions(
+            comp.output,
+            comp.launcher,
+            comp.zeropage,
+            comp.zpReserved,
+            program.definedLoadAddress,
+            comp.floats,
+            comp.noSysInit,
+            comp.dontReinitGlobals,
+            comp.optimize
+        )
+
         val ptProgram = PtProgram(
             program.name,
+            options,
             program.memsizer,
             program.encoding
         )
 
-        for (module in program.modules) {
-            ptProgram.add(transform(module))
-        }
+        // note: modules are not represented any longer in this Ast. All blocks have been moved into the top scope.
+        for (block in program.allBlocks)
+            ptProgram.add(transform(block))
 
         return ptProgram
-    }
-
-    private fun transform(srcModule: Module): PtModule {
-        val module = PtModule(
-            srcModule.name,
-            srcModule.loadAddress,
-            srcModule.isLibrary,
-            srcModule.position
-        )
-
-        for (statement in srcModule.statements)
-            module.add(transformStatement(statement))
-
-        return module
     }
 
     private fun transformStatement(statement: Statement): PtNode {
@@ -158,16 +158,19 @@ class IntermediateAstMaker(val program: Program) {
         return branch
     }
 
-    private fun transform(directive: Directive): PtDirective {
-        val dir = PtDirective(directive.directive, directive.position)
-        for (arg in directive.args) {
-            dir.add(transform(arg))
+    private fun transform(directive: Directive): PtNode {
+        return when(directive.directive) {
+            "%breakpoint" -> PtBreakpoint(directive.position)
+            "%asmbinary" -> {
+                val offset: UInt? = if(directive.args.size>=2) directive.args[1].int!! else null
+                val length: UInt? = if(directive.args.size>=3) directive.args[2].int!! else null
+                val sourcePath = Path(directive.definingModule.source.origin)
+                val includedPath = sourcePath.resolveSibling(directive.args[0].str!!)
+                PtInlineBinary(includedPath, offset, length, directive.position)
+            }
+            else -> PtNop(directive.position)
         }
-        return dir
     }
-
-    private fun transform(arg: DirectiveArg): PtDirectiveArg =
-        PtDirectiveArg(arg.str, arg.name, arg.int, arg.position)
 
     private fun transform(srcFor: ForLoop): PtForLoop {
         val forloop = PtForLoop(srcFor.position)
@@ -307,7 +310,10 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcVar: VarDecl): PtNode {
         return when(srcVar.type) {
-            VarDeclType.VAR -> PtVariable(srcVar.name, srcVar.datatype, srcVar.position)
+            VarDeclType.VAR -> {
+                val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
+                PtVariable(srcVar.name, srcVar.datatype, value, srcVar.position)
+            }
             VarDeclType.CONST -> PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
             VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.position)
         }
