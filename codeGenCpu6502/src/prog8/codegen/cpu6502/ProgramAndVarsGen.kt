@@ -65,7 +65,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("")
         asmgen.out(".cpu  '$cpu'\n.enc  'none'\n")
 
-        program.actualLoadAddress = program.definedLoadAddress
+        program.actualLoadAddress = program.definedLoadAddress ?: 0u
         if (program.actualLoadAddress == 0u) {
             when(options.output) {
                 OutputType.RAW -> {

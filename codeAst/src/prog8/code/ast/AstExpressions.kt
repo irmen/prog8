@@ -5,76 +5,115 @@ import prog8.code.core.Encoding
 import prog8.code.core.Position
 
 
-class PtAddressOf(position: Position) : PtNode(position) {
-    val identifier: PtIdentifier
-        get() = children.single() as PtIdentifier
-
-    override fun printProperties() {}
-}
-
-
-class PtArrayIndexer(position: Position): PtNode(position) {
-    val variable: PtIdentifier
-        get() = children[0] as PtIdentifier
-    val index: PtNode
-        get() = children[1]
-
-    override fun printProperties() {}
-}
-
-
-class PtArrayLiteral(val type: DataType, position: Position): PtNode(position) {
+sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
     override fun printProperties() {
         print(type)
     }
 }
 
 
-class PtBinaryExpression(val operator: String, position: Position): PtNode(position) {
-    val left: PtNode
-        get() = children[0]
-    val right: PtNode
-        get() = children[1]
+class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
+    val identifier: PtIdentifier
+        get() = children.single() as PtIdentifier
+}
 
+
+class PtArrayIndexer(type: DataType, position: Position): PtExpression(type, position) {
+    val variable: PtIdentifier
+        get() = children[0] as PtIdentifier
+    val index: PtExpression
+        get() = children[1] as PtExpression
+}
+
+
+class PtArrayLiteral(type: DataType, position: Position): PtExpression(type, position)
+
+
+class PtBuiltinFunctionCall(val name: String, val void: Boolean, type: DataType, position: Position) : PtExpression(type, position) {
+    init {
+        if(!void)
+            require(type!=DataType.UNDEFINED)
+    }
+
+    val args: List<PtExpression>
+        get() = children.map { it as PtExpression }
     override fun printProperties() {
-        print(operator)
+        print("$name void=$void")
     }
 }
 
 
-class PtContainmentCheck(position: Position): PtNode(position) {
-    val element: PtNode
-        get() = children[0]
-    val iterable: PtNode
-        get() = children[0]
-    override fun printProperties() {}
-}
+class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+    val left: PtExpression
+        get() = children[0] as PtExpression
+    val right: PtExpression
+        get() = children[1] as PtExpression
 
-
-class PtIdentifier(val ref: List<String>, val targetName: List<String>, position: Position) : PtNode(position) {
     override fun printProperties() {
-        print("$ref --> $targetName")
+        print("$operator -> $type")
     }
 }
 
 
-class PtMemoryByte(position: Position) : PtNode(position) {
-    val address: PtNode
-        get() = children.single()
+class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, position) {
+    val element: PtExpression
+        get() = children[0] as PtExpression
+    val iterable: PtExpression
+        get() = children[0] as PtExpression
+}
+
+
+class PtFunctionCall(val functionName: List<String>,
+                     val void: Boolean,
+                     type: DataType,
+                     position: Position) : PtExpression(type, position) {
+    init {
+        if(!void)
+            require(type!=DataType.UNDEFINED)
+    }
+
+    val args: List<PtExpression>
+        get() = children.map { it as PtExpression }
+    override fun printProperties() {
+        print("${functionName.joinToString(".")} void=$void")
+    }
+}
+
+
+class PtIdentifier(val ref: List<String>, val targetName: List<String>, type: DataType, position: Position) : PtExpression(type, position) {
+    override fun printProperties() {
+        print("$ref --> $targetName  $type")
+    }
+}
+
+
+class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
+    val address: PtExpression
+        get() = children.single() as PtExpression
     override fun printProperties() {}
 }
 
 
-class PtNumber(val type: DataType, val number: Double, position: Position) : PtNode(position) {
+class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
     override fun printProperties() {
         print("$number ($type)")
     }
 }
 
 
-class PtPrefix(val operator: String, position: Position): PtNode(position) {
-    val value: PtNode
-        get() = children.single()
+class PtPipe(type: DataType, val void: Boolean, position: Position) : PtExpression(type, position) {
+    init {
+        if(!void)
+            require(type!=DataType.UNDEFINED)
+    }
+
+    override fun printProperties() {}
+}
+
+
+class PtPrefix(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+    val value: PtExpression
+        get() = children.single() as PtExpression
 
     override fun printProperties() {
         print(operator)
@@ -82,27 +121,26 @@ class PtPrefix(val operator: String, position: Position): PtNode(position) {
 }
 
 
-class PtRange(position: Position) : PtNode(position) {
-    val from: PtNode
-        get() = children[0]
-    val to: PtNode
-        get() = children[1]
-    val step: PtNode
-        get() = children[2]
+class PtRange(type: DataType, position: Position) : PtExpression(type, position) {
+    val from: PtExpression
+        get() = children[0] as PtExpression
+    val to: PtExpression
+        get() = children[1] as PtExpression
+    val step: PtExpression
+        get() = children[2] as PtExpression
 
     override fun printProperties() {}
 }
 
 
-class PtString(val value: String, val encoding: Encoding, position: Position) : PtNode(position) {
+class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
     override fun printProperties() {
         print("$encoding:\"$value\"")
     }
 }
 
 
-class PtTypeCast(val type: DataType, position: Position) : PtNode(position) {
-    override fun printProperties() {
-        print(type)
-    }
+class PtTypeCast(type: DataType, position: Position) : PtExpression(type, position) {
+    val value: PtExpression
+        get() = children.single() as PtExpression
 }

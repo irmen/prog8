@@ -6,21 +6,22 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
+import prog8.code.core.DataType
 
 
-class IntermediateAstMaker(val srcProgram: Program) {
+class IntermediateAstMaker(val program: Program) {
     fun transform(): PtProgram {
-        val program = PtProgram(
-            srcProgram.name,
-            srcProgram.memsizer,
-            srcProgram.encoding
+        val ptProgram = PtProgram(
+            program.name,
+            program.memsizer,
+            program.encoding
         )
 
-        for (module in srcProgram.modules) {
-            program.add(transform(module))
+        for (module in program.modules) {
+            ptProgram.add(transform(module))
         }
 
-        return program
+        return ptProgram
     }
 
     private fun transform(srcModule: Module): PtModule {
@@ -71,7 +72,7 @@ class IntermediateAstMaker(val srcProgram: Program) {
         }
     }
 
-    private fun transformExpression(expr: Expression): PtNode {
+    private fun transformExpression(expr: Expression): PtExpression {
         return when(expr) {
             is AddressOf -> transform(expr)
             is ArrayIndexedExpression -> transform(expr)
@@ -112,13 +113,19 @@ class IntermediateAstMaker(val srcProgram: Program) {
         return target
     }
 
-    private fun transform(identifier: IdentifierReference): PtIdentifier {
-        val target=identifier.targetStatement(srcProgram)!! as INamedStatement
-        val targetname = if(target.name in srcProgram.builtinFunctions.names)
+    private fun targetOf(identifier: IdentifierReference): Pair<List<String>, DataType> {
+        val target=identifier.targetStatement(program)!! as INamedStatement
+        val targetname = if(target.name in program.builtinFunctions.names)
             listOf("<builtin>", target.name)
         else
             target.scopedName
-        return PtIdentifier(identifier.nameInSource, targetname, identifier.position)
+        val type = identifier.inferType(program).getOr(DataType.UNDEFINED)
+        return Pair(targetname, type)
+    }
+
+    private fun transform(identifier: IdentifierReference): PtIdentifier {
+        val (target, type) = targetOf(identifier)
+        return PtIdentifier(identifier.nameInSource, target, type, identifier.position)
     }
 
     private fun transform(srcBlock: Block): PtBlock {
@@ -131,7 +138,8 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
-        val call = PtBuiltinFunctionCall(srcNode.name, srcNode.position)
+        val type = builtinFunctionReturnType(srcNode.name, srcNode.args, program).getOr(DataType.UNDEFINED)
+        val call = PtBuiltinFunctionCall(srcNode.name, true, type, srcNode.position)
         for (arg in srcNode.args)
             call.add(transformExpression(arg))
         return call
@@ -173,22 +181,19 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transform(srcCall: FunctionCallStatement): PtFunctionCall {
-        val call = PtFunctionCall(true, srcCall.position)
-        call.add(transform(srcCall.target))
-        val args = PtNodeGroup()
+        val (target, type) = targetOf(srcCall.target)
+        val call = PtFunctionCall(target,true, type, srcCall.position)
         for (arg in srcCall.args)
-            args.add(transformExpression(arg))
-        call.add(args)
+            call.add(transformExpression(arg))
         return call
     }
 
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
-        val call = PtFunctionCall(false, srcCall.position)
-        call.add(transform(srcCall.target))
-        val args = PtNodeGroup()
+        val (target, _) = targetOf(srcCall.target)
+        val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val call = PtFunctionCall(target, false, type, srcCall.position)
         for (arg in srcCall.args)
-            args.add(transformExpression(arg))
-        call.add(args)
+            call.add(transformExpression(arg))
         return call
     }
 
@@ -229,7 +234,8 @@ class IntermediateAstMaker(val srcProgram: Program) {
         PtLabel(label.name, label.position)
 
     private fun transform(srcPipe: Pipe): PtPipe {
-        val pipe = PtPipe(srcPipe.position)
+        val type = srcPipe.segments.last().inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val pipe = PtPipe(type, true, srcPipe.position)
         pipe.add(transformExpression(srcPipe.source))
         for (segment in srcPipe.segments)
             pipe.add(transformExpression(segment))
@@ -247,9 +253,11 @@ class IntermediateAstMaker(val srcProgram: Program) {
             throw FatalAstException("repeat-forever loop should have been replaced with label+jump")
         val repeat = PtRepeatLoop(srcRepeat.position)
         repeat.add(transformExpression(srcRepeat.iterations!!))
+        val scope = PtNodeGroup()
         for (statement in srcRepeat.body.statements) {
-            repeat.add(transformStatement(statement))
+            scope.add(transformStatement(statement))
         }
+        repeat.add(scope)
         return repeat
     }
 
@@ -261,10 +269,13 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
+        val params = srcSub.parameters
+            .map { PtSubroutineParameter(it.name, it.type, it.position) }
+            .zip(srcSub.asmParameterRegisters)
         val sub = PtAsmSub(srcSub.name,
             srcSub.asmAddress,
             srcSub.asmClobbers,
-            srcSub.asmParameterRegisters,
+            params,
             srcSub.asmReturnvaluesRegisters,
             srcSub.inline,
             srcSub.position)
@@ -334,7 +345,8 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val array = PtArrayIndexer(srcArr.position)
+        val type = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val array = PtArrayIndexer(type, srcArr.position)
         array.add(transform(srcArr.arrayvar))
         array.add(transformExpression(srcArr.indexer.indexExpr))
         return array
@@ -348,14 +360,16 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
-        val expr = PtBinaryExpression(srcExpr.operator, srcExpr.position)
+        val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
         expr.add(transformExpression(srcExpr.left))
         expr.add(transformExpression(srcExpr.right))
         return expr
     }
 
     private fun transform(srcCall: BuiltinFunctionCall): PtBuiltinFunctionCall {
-        val call = PtBuiltinFunctionCall(srcCall.name, srcCall.position)
+        val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val call = PtBuiltinFunctionCall(srcCall.name, false, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -384,7 +398,8 @@ class IntermediateAstMaker(val srcProgram: Program) {
         PtNumber(number.type, number.number, number.position)
 
     private fun transform(srcPipe: PipeExpression): PtPipe {
-        val pipe = PtPipe(srcPipe.position)
+        val type = srcPipe.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val pipe = PtPipe(type, false, srcPipe.position)
         pipe.add(transformExpression(srcPipe.source))
         for (segment in srcPipe.segments)
             pipe.add(transformExpression(segment))
@@ -392,13 +407,15 @@ class IntermediateAstMaker(val srcProgram: Program) {
     }
 
     private fun transform(srcPrefix: PrefixExpression): PtPrefix {
-        val prefix = PtPrefix(srcPrefix.operator, srcPrefix.position)
+        val type = srcPrefix.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val prefix = PtPrefix(srcPrefix.operator, type, srcPrefix.position)
         prefix.add(transformExpression(srcPrefix.expression))
         return prefix
     }
 
     private fun transform(srcRange: RangeExpression): PtRange {
-        val range=PtRange(srcRange.position)
+        val type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))
         range.add(transformExpression(srcRange.to))
         range.add(transformExpression(srcRange.step))

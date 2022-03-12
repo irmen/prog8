@@ -3,6 +3,7 @@ package prog8.code.ast
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
+import java.util.*
 
 // New (work-in-progress) simplified AST for the code generator.
 
@@ -62,6 +63,9 @@ class PtProgram(
         print("'$name'")
     }
 
+    fun allModuleDirectives(): Sequence<PtDirective> =
+        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
+
     fun allBlocks(): Sequence<PtBlock> =
         children.asSequence().flatMap { it.children }.filterIsInstance<PtBlock>()
 
@@ -72,7 +76,7 @@ class PtProgram(
 
 class PtModule(
     name: String,
-    val loadAddress: UInt,
+    val loadAddress: UInt?,
     val library: Boolean,
     position: Position
 ) : PtNamedNode(name, position) {
@@ -100,6 +104,18 @@ class PtDirective(var name: String, position: Position) : PtNode(position) {
     override fun printProperties() {
         print(name)
     }
+
+    override fun hashCode(): Int {
+        return Objects.hash(name, args)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is PtDirective)
+            return false
+        if(other===this)
+            return true
+        return(name==other.name && args.zip(other.args).all { it.first==it.second })
+    }
 }
 
 
@@ -110,6 +126,18 @@ class PtDirectiveArg(val str: String?,
 ): PtNode(position) {
     override fun printProperties() {
         print("str=$str name=$name int=$int")
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(str, name, int)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is PtDirectiveArg)
+            return false
+        if(other===this)
+            return true
+        return str==other.str || name==other.name || int==other.int
     }
 }
 

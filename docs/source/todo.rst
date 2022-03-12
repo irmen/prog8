@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- unit test for PtProgram AST: should also test new things such as the Datatype in nodes.
+
 ...
 
 

@@ -285,9 +285,8 @@ open class Module(final override var statements: MutableList<Statement>,
             .substringAfterLast("/")
             .substringAfterLast("\\")
 
-    val loadAddress: UInt by lazy {
-        val address = (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int ?: 0u
-        address
+    val loadAddress: UInt? by lazy {
+        (statements.singleOrNull { it is Directive && it.directive == "%address" } as? Directive)?.args?.single()?.int
     }
 
     override fun linkParents(parent: Node) {

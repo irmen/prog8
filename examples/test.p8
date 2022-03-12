@@ -28,11 +28,11 @@ main {
         txt.print_ub(amount)
         txt.nl()
 
-        ; test_stack.test()
-    }
+        uword[] @shared array = [111,222,333,444,555]
 
-    sub derp() -> ubyte, ubyte {
-        return 0, 1
+        amount = amount |> sin8u() |> cos8u() |> sin8u()
+
+        ; test_stack.test()
     }
 
     sub find_next_prime() -> ubyte {

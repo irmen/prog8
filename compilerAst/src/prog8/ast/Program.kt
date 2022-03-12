@@ -67,7 +67,7 @@ class Program(val name: String,
     val toplevelModule: Module
         get() = modules.first { it.name!= internedStringsModuleName }
 
-    val definedLoadAddress: UInt
+    val definedLoadAddress: UInt?
         get() = toplevelModule.loadAddress
 
     var actualLoadAddress = 0u
