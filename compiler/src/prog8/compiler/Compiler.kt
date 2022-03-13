@@ -23,6 +23,7 @@ import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
+import kotlin.math.exp
 import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
@@ -101,6 +102,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //            println("*********** AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
 
+            determineProgramLoadAddress(program, compilationOptions, args.errors)
+            args.errors.report()
+
             if (args.writeAssembly) {
                 if(!createAssemblyAndAssemble(program, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
@@ -108,6 +112,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 }
             }
         }
+
         System.out.flush()
         System.err.flush()
         val seconds = totalTime/1000.0
@@ -147,6 +152,45 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
     return null
 }
+
+
+internal fun determineProgramLoadAddress(program: Program, options: CompilationOptions, errors: IErrorReporter) {
+    val specifiedAddress = program.toplevelModule.loadAddress
+    var loadAddress: UInt? = null
+    if(specifiedAddress!=null) {
+        loadAddress = specifiedAddress.first
+    }
+    else {
+        when(options.output) {
+            OutputType.RAW -> { /* no predefined load address */ }
+            OutputType.PRG -> {
+                if(options.launcher==CbmPrgLauncherType.BASIC) {
+                    loadAddress = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+                }
+            }
+            OutputType.XEX -> {
+                if(options.launcher!=CbmPrgLauncherType.NONE)
+                    throw AssemblyError("atari xex output can't contain BASIC launcher")
+                loadAddress = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+            }
+        }
+    }
+
+    if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC) {
+        val expected = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+        if(loadAddress!=expected) {
+            errors.err("BASIC output must have load address ${expected.toHex()}", specifiedAddress?.second ?: program.toplevelModule.position)
+        }
+    }
+
+    if(loadAddress==null) {
+        errors.err("load address must be specified with these output options", program.toplevelModule.position)
+        return
+    }
+
+    options.loadAddress = loadAddress
+}
+
 
 private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuiltinFunctions {
     lateinit var program: Program
@@ -276,10 +320,9 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     }
 
     return CompilationOptions(
-        outputType,
-        launcherType,
+        outputType, launcherType,
         zpType, zpReserved, floatsEnabled, noSysInit,
-        compTarget
+        compTarget, 0u
     )
 }
 
@@ -402,7 +445,7 @@ internal fun asmGeneratorFor(program: Program,
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02)) {
 
             // TODO for now, only use the new Intermediary Ast for this experimental codegen:
-            val intermediateAst = IntermediateAstMaker(program, options).transform()
+            val intermediateAst = IntermediateAstMaker(program).transform()
             return prog8.codegen.experimental.AsmGen(intermediateAst, errors, symbolTable, options)
         }
     } else {

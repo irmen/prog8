@@ -112,10 +112,11 @@ internal fun Program.variousCleanups(errors: IErrorReporter, options: Compilatio
 }
 
 internal fun Program.moveMainAndStartToFirst() {
-    // the module containing the program entrypoint is moved to the first in the sequence.
+    // The module containing the program entrypoint is moved to the first in the sequence.
     // the "main" block containing the entrypoint is moved to the top in there,
     // and finally the entrypoint subroutine "start" itself is moved to the top in that block.
 
+    // sortModules()
     val directives = modules[0].statements.filterIsInstance<Directive>()
     val start = this.entrypoint
     val mod = start.definingModule

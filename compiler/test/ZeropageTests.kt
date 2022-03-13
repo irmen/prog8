@@ -44,9 +44,10 @@ class TestAbstractZeropage: FunSpec({
                 CbmPrgLauncherType.NONE,
                 ZeropageType.FULL,
                 listOf((0x50u..0x5fu)),
-                false,
-                false,
-                DummyCompilationTarget
+                floats = false,
+                noSysInit = false,
+                compTarget = DummyCompilationTarget,
+                loadAddress = 999u
             )
         )
         zp.free.size shouldBe 256-6-16
@@ -61,7 +62,11 @@ class TestC64Zeropage: FunSpec({
     val c64target = C64Target()
 
     test("testNames") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),
+            floats = false,
+            noSysInit = false,
+            compTarget = c64target, loadAddress = 999u
+        ))
 
         var result = zp.allocate(emptyList(), DataType.UBYTE, null, null, errors)
         result.onFailure { fail(it.toString()) }
@@ -75,33 +80,33 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testZpFloatEnable") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
         var result = zp.allocate(emptyList(), DataType.FLOAT, null, null, errors)
         result.expectError { "should be allocation error due to disabled floats" }
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, c64target))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(), true, false, c64target, 999u))
         result = zp2.allocate(emptyList(), DataType.FLOAT, null, null, errors)
         result.expectError { "should be allocation error due to disabled ZP use" }
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, c64target))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, c64target, 999u))
         zp3.allocate(emptyList(), DataType.FLOAT, null, null, errors)
     }
 
     test("testZpModesWithFloats") {
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target))
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target))
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, c64target))
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target))
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target))
-        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, c64target))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target, 999u))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, c64target, 999u))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target, 999u))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target, 999u))
+        C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), true, false, c64target, 999u))
         shouldThrow<InternalCompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), true, false, c64target))
+            C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), true, false, c64target, 999u))
         }
         shouldThrow<InternalCompilerException> {
-            C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false, c64target))
+            C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), true, false, c64target, 999u))
         }
     }
 
     test("testZpDontuse") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.DONTUSE, emptyList(), false, false, c64target, 999u))
         println(zp.free)
         zp.availableBytes() shouldBe 0
         val result = zp.allocate(emptyList(), DataType.BYTE, null, null, errors)
@@ -109,13 +114,13 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testFreeSpacesBytes") {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target, 999u))
         zp1.availableBytes() shouldBe 18
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target, 999u))
         zp2.availableBytes() shouldBe 85
-        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target))
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target, 999u))
         zp3.availableBytes() shouldBe 125
-        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target))
+        val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
         zp4.availableBytes() shouldBe 239
         zp4.allocate(listOf("test"), DataType.UBYTE, null, null, errors)
         zp4.availableBytes() shouldBe 238
@@ -124,7 +129,7 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testReservedSpace") {
-        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target))
+        val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
         zp1.availableBytes() shouldBe 239
         50u shouldBeIn zp1.free
         100u shouldBeIn zp1.free
@@ -133,7 +138,7 @@ class TestC64Zeropage: FunSpec({
         200u shouldBeIn zp1.free
         255u shouldBeIn zp1.free
         199u shouldBeIn zp1.free
-        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, listOf(50u .. 100u, 200u..255u), false, false, c64target))
+        val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, listOf(50u .. 100u, 200u..255u), false, false, c64target, 999u))
         zp2.availableBytes() shouldBe 139
         50u shouldNotBeIn zp2.free
         100u shouldNotBeIn zp2.free
@@ -145,7 +150,7 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testBasicsafeAllocation") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target, 999u))
         zp.availableBytes() shouldBe 18
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
@@ -167,7 +172,7 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testFullAllocation") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
         zp.availableBytes() shouldBe 239
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
@@ -198,7 +203,7 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testEfficientAllocation") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(),  true, false, c64target, 999u))
         zp.availableBytes() shouldBe 18
         zp.allocate(emptyList(), DataType.WORD,  null, null, errors).getOrElse{throw it}.first shouldBe 0x04u
         zp.allocate(emptyList(), DataType.UBYTE, null, null, errors).getOrElse{throw it}.first shouldBe 0x06u
@@ -216,7 +221,7 @@ class TestC64Zeropage: FunSpec({
     }
 
     test("testReservedLocations") {
-        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, c64target))
+        val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, c64target, 999u))
         withClue("zp _B1 and _REG must be next to each other to create a word") {
             zp.SCRATCH_B1 + 1u shouldBe zp.SCRATCH_REG
         }
@@ -229,18 +234,18 @@ class TestCx16Zeropage: FunSpec({
     val cx16target = Cx16Target()
 
     test("testReservedLocations") {
-        val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, cx16target))
+        val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), false, false, cx16target, 999u))
         withClue("zp _B1 and _REG must be next to each other to create a word") {
             zp.SCRATCH_B1 + 1u shouldBe zp.SCRATCH_REG
         }
     }
 
     test("testFreeSpacesBytes") {
-        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, cx16target))
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, cx16target, 999u))
         zp1.availableBytes() shouldBe 88
-        val zp2 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, cx16target))
+        val zp2 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, cx16target, 999u))
         zp2.availableBytes() shouldBe 175
-        val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target))
+        val zp3 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target, 999u))
         zp3.availableBytes() shouldBe 216
         zp3.allocate(listOf("test"), DataType.UBYTE, null, null, errors)
         zp3.availableBytes() shouldBe 215
@@ -249,7 +254,7 @@ class TestCx16Zeropage: FunSpec({
     }
 
     test("testReservedSpace") {
-        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target))
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target, 999u))
         zp1.availableBytes() shouldBe 216
         0x22u shouldBeIn zp1.free
         0x80u shouldBeIn zp1.free
@@ -259,7 +264,7 @@ class TestCx16Zeropage: FunSpec({
     }
 
     test("preallocated zp vars") {
-        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target))
+        val zp1 = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, cx16target, 999u))
         zp1.allocatedVariables[listOf("test")] shouldBe null
         zp1.allocatedVariables[listOf("cx16", "r0")] shouldNotBe null
         zp1.allocatedVariables[listOf("cx16", "r15")] shouldNotBe null

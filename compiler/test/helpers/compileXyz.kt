@@ -9,6 +9,7 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.astprocessing.SymbolTableMaker
 import prog8.compiler.compileProgram
+import prog8.compiler.determineProgramLoadAddress
 import java.nio.file.Path
 import kotlin.io.path.name
 
@@ -66,9 +67,17 @@ internal fun generateAssembly(
     program: Program,
     options: CompilationOptions? = null
 ): IAssemblyProgram? {
-    val coptions = options ?: CompilationOptions(OutputType.RAW, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(), true, true, C64Target(), outputDir = outputDir)
+    val coptions = options ?: CompilationOptions(OutputType.RAW, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(),
+        floats = true,
+        noSysInit = true,
+        compTarget = C64Target(),
+        loadAddress = 0u, outputDir = outputDir)
     coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
     val st = SymbolTableMaker().makeFrom(program)
-    val asmgen = AsmGen(program, ErrorReporterForTests(), st, coptions)
+    val errors = ErrorReporterForTests()
+    determineProgramLoadAddress(program, coptions, errors)
+    errors.report()
+    val asmgen = AsmGen(program, errors, st, coptions)
+    errors.report()
     return asmgen.compileToAssembly()
 }

@@ -661,14 +661,14 @@ internal class AstChecker(private val program: Program,
             "%output" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name != "raw" && directive.args[0].name != "prg")
-                    err("invalid output directive type, expected raw or prg")
+                if(directive.args.size!=1 || directive.args[0].name !in OutputType.values().map {it.name.lowercase()})
+                    err("invalid output directive type")
             }
             "%launcher" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name != "basic" && directive.args[0].name != "none")
-                    err("invalid launcher directive type, expected basic or none")
+                if(directive.args.size!=1 || directive.args[0].name !in CbmPrgLauncherType.values().map{it.name.lowercase()})
+                    err("invalid launcher directive type")
             }
             "%zeropage" -> {
                 if(directive.parent !is Module)

@@ -51,25 +51,8 @@ abstract class PtNamedNode(val name: String, position: Position): PtNode(positio
 }
 
 
-// TODO remove duplicates that are also in CompilationOptions (that is already passed into the AsmGen already)
-// TODO make sure loadaddress is always set to a sensible value (not 0)  see determineProgramLoadAddress()
-class ProgramOptions(
-    val output: OutputType,
-    val launcher: CbmPrgLauncherType,
-    val zeropage: ZeropageType,
-    val zpReserved: Collection<UIntRange>,
-    val loadAddress: UInt,
-    val floatsEnabled: Boolean,
-    val noSysInit: Boolean,
-    val dontReinitGlobals: Boolean,
-    val optimize: Boolean,
-    val target: String
-)
-
-
 class PtProgram(
     val name: String,
-    val options: ProgramOptions,
     val memsizer: IMemSizer,
     val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {

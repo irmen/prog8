@@ -37,7 +37,7 @@ class AsmGen(internal val program: PtProgram,
         xml.elt("program")
         xml.attr("name", program.name)
         xml.startChildren()
-        write(program.options)
+        writeOptions(options)
         program.children.forEach { writeNode(it) }
         writeSymboltable(symbolTable)
         xml.endElt()
@@ -130,14 +130,14 @@ class AsmGen(internal val program: PtProgram,
         }
     }
 
-    private fun write(options: ProgramOptions) {
+    private fun writeOptions(options: CompilationOptions) {
         xml.elt("options")
-        xml.attr("target", options.target)
+        xml.attr("target", options.compTarget.name)
         xml.attr("output", options.output.name)
         xml.attr("launcher", options.launcher.name)
         xml.attr("zeropage", options.zeropage.name)
         xml.attr("loadaddress", options.loadAddress.toString())
-        xml.attr("floatsenabled", options.floatsEnabled.toString())
+        xml.attr("floatsenabled", options.floats.toString())
         xml.attr("nosysinit", options.noSysInit.toString())
         xml.attr("dontreinitglobals", options.dontReinitGlobals.toString())
         xml.attr("optimize", options.optimize.toString())
@@ -661,13 +661,15 @@ class AsmGen(internal val program: PtProgram,
     }
 
     private fun write(variable: PtVariable) {
-        // TODO get this from the AST only?
+        // the variable declaration nodes are still present in the Ast,
+        // but the Symboltable should be used look up their details.
         xml.elt("vardecl")
         xml.attr("name", variable.scopedName.joinToString("."))
         xml.attr("type", variable.type.name)
         if(variable.arraySize!=null)
             xml.attr("arraysize", variable.arraySize.toString())
         if(variable.value!=null) {
+            // static initialization value
             xml.startChildren()
             writeNode(variable.value!!)
         }

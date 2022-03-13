@@ -296,7 +296,11 @@ class TestOptimization: FunSpec({
         expr.right.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UWORD
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
-        val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(), false, true, C64Target(), outputDir= outputDir)
+        val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(),
+            floats = false,
+            noSysInit = true,
+            compTarget = C64Target(),
+            loadAddress = 0u, outputDir= outputDir)
         result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
 
         // assignment is now split into:

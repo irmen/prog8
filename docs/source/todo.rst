@@ -3,10 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ProgramOptions: remove duplicates that are also in CompilationOptions (that is already passed into the AsmGen already)
-- ProgramOptions: make sure loadaddress is always set to a sensible value (not 0)  see determineProgramLoadAddress()
-- unit test for PtProgram AST: should also test new things such as the Datatype in nodes.
-
 ...
 
 

@@ -4,12 +4,10 @@ import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
+import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtPipe
 import prog8.code.ast.PtVariable
-import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.CompilationOptions
-import prog8.code.core.OutputType
-import prog8.code.core.ZeropageType
+import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.compiler.IntermediateAstMaker
 import prog8tests.helpers.compileText
@@ -30,19 +28,11 @@ class TestIntermediateAst: FunSpec({
             }
         """
         val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
-        val options = CompilationOptions(
-            OutputType.PRG,
-            CbmPrgLauncherType.BASIC,
-            ZeropageType.BASICSAFE,
-            emptyList(),
-            floats = true,
-            noSysInit = false,
-            compTarget = C64Target()
-        )
-        val ast = IntermediateAstMaker(result.program, options).transform()
+        val ast = IntermediateAstMaker(result.program).transform()
         ast.name shouldBe result.program.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")
+        entry.children.size shouldBe 5
         entry.name shouldBe "start"
         entry.scopedName shouldBe listOf("main", "start")
         val blocks = ast.allBlocks().toList()
@@ -52,6 +42,13 @@ class TestIntermediateAst: FunSpec({
         val ccdecl = entry.children[0] as PtVariable
         ccdecl.name shouldBe "cc"
         ccdecl.scopedName shouldBe listOf("main", "start", "cc")
+        ccdecl.type shouldBe DataType.UBYTE
+        val arraydecl = entry.children[2] as PtVariable
+        arraydecl.name shouldBe "array"
+        arraydecl.type shouldBe DataType.ARRAY_UB
+        val pipe = (entry.children[4] as PtAssignment).value as PtPipe
+        pipe.void shouldBe false
+        pipe.type shouldBe DataType.UBYTE
         ast.print()
     }
 

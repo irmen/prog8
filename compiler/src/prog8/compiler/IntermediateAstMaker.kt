@@ -5,30 +5,14 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
-import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import kotlin.io.path.Path
 
 
-class IntermediateAstMaker(val program: Program, val comp: CompilationOptions) {
+class IntermediateAstMaker(val program: Program) {
     fun transform(): PtProgram {
-        val loadAddress = program.actualLoadAddress
-        val options = ProgramOptions(
-            comp.output,
-            comp.launcher,
-            comp.zeropage,
-            comp.zpReserved,
-            loadAddress,
-            comp.floats,
-            comp.noSysInit,
-            comp.dontReinitGlobals,
-            comp.optimize,
-            comp.compTarget.name
-        )
-
         val ptProgram = PtProgram(
             program.name,
-            options,
             program.memsizer,
             program.encoding
         )

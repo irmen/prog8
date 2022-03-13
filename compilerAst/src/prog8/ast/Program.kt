@@ -67,11 +67,6 @@ class Program(val name: String,
     val toplevelModule: Module
         get() = modules.first { it.name!= internedStringsModuleName }
 
-    val definedLoadAddress: UInt?
-        get() = toplevelModule.loadAddress
-
-    var actualLoadAddress = 0u
-
     private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 
     fun internString(string: StringLiteral): List<String> {
@@ -125,6 +120,8 @@ class Program(val name: String,
         block.accept(s)
         s.removeStrings(modules)
     }
+
+    fun sortModules() = _modules.sortBy { it.isLibrary }
 
     private class StringSearch(val program: Program): IAstVisitor {
         val removals = mutableListOf<List<String>>()
