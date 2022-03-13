@@ -1,10 +1,6 @@
 package prog8.code
 
-
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.Position
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 
 
 /**
@@ -51,6 +47,7 @@ enum class StNodeType {
     // MODULE,     // not used with current scoping rules
     BLOCK,
     SUBROUTINE,
+    ROMSUB,
     LABEL,
     STATICVAR,
     MEMVAR,
@@ -131,6 +128,7 @@ open class StNode(val name: String,
             StNodeType.MEMVAR -> print("(M) ")
             StNodeType.CONSTANT -> print("(C) ")
             StNodeType.BUILTINFUNC -> print("(F) ")
+            StNodeType.ROMSUB -> print("(R) ")
         }
         printProperties()
         println()
@@ -153,7 +151,7 @@ class StStaticVariable(name: String,
                        val initialStringValue: StString?,
                        val initialArrayValue: StArray?,
                        val arraysize: Int?,
-                       val zpw: ZeropageWish,
+                       val zpwish: ZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
 
     init {
@@ -164,7 +162,7 @@ class StStaticVariable(name: String,
     }
 
     override fun printProperties() {
-        print("$name  dt=$dt  zpw=$zpw")
+        print("$name  dt=$dt  zpw=$zpwish")
     }
 }
 
@@ -177,13 +175,19 @@ class StConstant(name: String, val dt: DataType, val value: Double, position: Po
 }
 
 class StMemVar(name: String, val dt: DataType, val address: UInt, position: Position) :
-    StNode(name, StNodeType.MEMVAR, position
-) {
+    StNode(name, StNodeType.MEMVAR, position) {
     override fun printProperties() {
-        print("$name  dt=$dt address=${address.toString(16).padStart(4,'0')}")
+        print("$name  dt=$dt address=${address.toHex()}")
     }
 }
 
+
+class StRomSub(name: String, val address: UInt, position: Position) :
+        StNode(name, StNodeType.ROMSUB, position) {
+    override fun printProperties() {
+        print("$name  address=${address.toHex()}")
+    }
+}
 
 class StArrayElement(val number: Double?, val addressOf: List<String>?)
 

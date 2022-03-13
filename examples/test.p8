@@ -3,7 +3,6 @@
 %zeropage basicsafe
 %zpreserved 50,80
 %zpreserved 150,155
-%address $4000
 
 ; Note: this program is compatible with C64 and CX16.
 %option align_word

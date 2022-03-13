@@ -19,11 +19,7 @@ class IndentingXmlWriter(val xml: XMLStreamWriter): XMLStreamWriter by xml {
         content.push(true)
     }
     fun endElt(writeIndent: Boolean=true) = writeEndElement(writeIndent)
-    fun pos(pos: Position) {
-        elt("src")
-        attr("pos", pos.toString())
-        endElt()
-    }
+    fun pos(pos: Position) = writeAttribute("src", pos.toString())
     fun comment(text: String) {
         writeComment(text)
         writeCharacters("\n")
@@ -79,11 +75,14 @@ class IndentingXmlWriter(val xml: XMLStreamWriter): XMLStreamWriter by xml {
         content.push(false)
     }
 
-    fun writeTextNode(name: String, attrs: List<Pair<String, String>>, text: String) {
+    fun writeTextNode(name: String, attrs: List<Pair<String, String>>, text: String, cdata: Boolean = true) {
         xml.writeCharacters("  ".repeat(indent))
         xml.writeStartElement(name)
         attrs.forEach { (name, value) -> xml.writeAttribute(name, value) }
-        xml.writeCData(text)
+        if(cdata)
+            xml.writeCData(text)
+        else
+            xml.writeCharacters(text)
         xml.writeEndElement()
         xml.writeCharacters("\n")
     }

@@ -1,6 +1,6 @@
 package prog8.codegen.experimental
 
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import javax.xml.stream.XMLOutputFactory
@@ -39,6 +39,7 @@ class AsmGen(internal val program: PtProgram,
         xml.startChildren()
         write(program.options)
         program.children.forEach { writeNode(it) }
+        writeSymboltable(symbolTable)
         xml.endElt()
         xml.endDoc()
         xml.close()
@@ -46,13 +47,96 @@ class AsmGen(internal val program: PtProgram,
         return AssemblyProgram("dummy")
     }
 
+    private fun writeSymboltable(st: SymbolTable) {
+        xml.elt("symboltable")
+        xml.startChildren()
+        st.flat.forEach{ (name, entry) ->
+            xml.elt("entry")
+            xml.attr("name", name.joinToString("."))
+            xml.attr("type", entry.type.name)
+            xml.startChildren()
+            writeStNode(entry)
+            xml.endElt()
+        }
+        xml.endElt()
+    }
+
+    private fun writeStNode(node: StNode) {
+        when(node.type) {
+            StNodeType.GLOBAL,
+            StNodeType.LABEL,
+            StNodeType.BLOCK,
+            StNodeType.BUILTINFUNC,
+            StNodeType.SUBROUTINE -> {/* no additional info*/}
+            StNodeType.ROMSUB -> {
+                node as StRomSub
+                xml.elt("romsub")
+                xml.attr("address", node.address.toString())
+                xml.endElt()
+            }
+            StNodeType.STATICVAR -> {
+                node as StStaticVariable
+                xml.elt("var")
+                xml.attr("type", node.dt.name)
+                xml.attr("zpwish", node.zpwish.name)
+                if(node.arraysize!=null)
+                    xml.attr("arraysize", node.arraysize.toString())
+                if(node.initialNumericValue!=null || node.initialArrayValue!=null || node.initialStringValue!=null) {
+                    xml.startChildren()
+                    if(node.initialNumericValue!=null) {
+                        writeNumber(node.dt, node.initialNumericValue!!)
+                    }
+                    if(node.initialStringValue!=null) {
+                        xml.writeTextNode(
+                            "string",
+                            listOf(Pair("encoding", node.initialStringValue!!.second.name)),
+                            node.initialStringValue!!.first,
+                            false
+                        )
+                    }
+                    if(node.initialArrayValue!=null) {
+                        xml.elt("array")
+                        xml.startChildren()
+                        val eltDt = ArrayToElementTypes.getValue(node.dt)
+                        node.initialArrayValue!!.forEach {
+                            if(it.number!=null) {
+                                writeNumber(eltDt, it.number!!)
+                            }
+                            if(it.addressOf!=null) {
+                                xml.elt("addressof")
+                                xml.attr("symbol", it.addressOf!!.joinToString("."))
+                                xml.endElt()
+                            }
+                        }
+                        xml.endElt()
+                    }
+                }
+                xml.endElt()
+            }
+            StNodeType.MEMVAR -> {
+                node as StMemVar
+                xml.writeTextNode("memvar",
+                    listOf(Pair("type", node.dt.name)),
+                    node.address.toString(),
+                    false)
+            }
+            StNodeType.CONSTANT -> {
+                node as StConstant
+                xml.writeTextNode("const",
+                    listOf(Pair("type", node.dt.name)),
+                    intOrDouble(node.dt, node.value).toString(),
+                    false)
+            }
+        }
+    }
+
     private fun write(options: ProgramOptions) {
         xml.elt("options")
+        xml.attr("target", options.target)
         xml.attr("output", options.output.name)
         xml.attr("launcher", options.launcher.name)
         xml.attr("zeropage", options.zeropage.name)
-        if(options.loadAddress!=null)
-            xml.attr("loadaddress", options.loadAddress.toString())
+        xml.attr("loadaddress", options.loadAddress.toString())
         xml.attr("floatsenabled", options.floatsEnabled.toString())
         xml.attr("nosysinit", options.noSysInit.toString())
         xml.attr("dontreinitglobals", options.dontReinitGlobals.toString())
@@ -115,7 +199,6 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(breakPt: PtBreakpoint) {
         xml.elt("breakpoint")
-        xml.startChildren()
         xml.pos(breakPt.position)
         xml.endElt()
     }
@@ -149,12 +232,12 @@ class AsmGen(internal val program: PtProgram,
     }
 
     private fun write(string: PtString) =
-        xml.writeTextNode("string", listOf(Pair("encoding", string.encoding.name)), string.value)
+        xml.writeTextNode("string", listOf(Pair("encoding", string.encoding.name)), string.value, false)
 
     private fun write(rept: PtRepeatLoop) {
         xml.elt("repeat")
-        xml.startChildren()
         xml.pos(rept.position)
+        xml.startChildren()
         xml.elt("count")
         xml.startChildren()
         writeNode(rept.count)
@@ -168,8 +251,8 @@ class AsmGen(internal val program: PtProgram,
     private fun write(branch: PtConditionalBranch) {
         xml.elt("conditionalbranch")
         xml.attr("condition", branch.condition.name)
-        xml.startChildren()
         xml.pos(branch.position)
+        xml.startChildren()
         xml.elt("true")
         xml.startChildren()
         writeNode(branch.trueScope)
@@ -219,9 +302,9 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(forLoop: PtForLoop) {
         xml.elt("for")
-        xml.attr("var", strTargetName(forLoop.variable))
-        xml.startChildren()
+        xml.attr("loopvar", strTargetName(forLoop.variable))
         xml.pos(forLoop.position)
+        xml.startChildren()
         xml.elt("iterable")
         xml.startChildren()
         writeNode(forLoop.iterable)
@@ -246,8 +329,8 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(whenStmt: PtWhen) {
         xml.elt("when")
-        xml.startChildren()
         xml.pos(whenStmt.position)
+        xml.startChildren()
         xml.elt("value")
         xml.startChildren()
         writeNode(whenStmt.value)
@@ -280,8 +363,8 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(inlineAsm: PtInlineAssembly) {
         xml.elt("assembly")
-        xml.startChildren()
         xml.pos(inlineAsm.position)
+        xml.startChildren()
         xml.writeTextNode("code", emptyList(), inlineAsm.assembly)
         xml.endElt()
     }
@@ -293,7 +376,6 @@ class AsmGen(internal val program: PtProgram,
             xml.attr("offset", inlineBinary.offset!!.toString())
         if(inlineBinary.length!=null)
             xml.attr("length", inlineBinary.length!!.toString())
-        xml.startChildren()
         xml.pos(inlineBinary.position)
         xml.endElt()
     }
@@ -338,9 +420,8 @@ class AsmGen(internal val program: PtProgram,
     }
 
     private fun write(addrof: PtAddressOf) {
-        xml.elt("addrof")
-        xml.startChildren()
-        write(addrof.identifier)
+        xml.elt("addressof")
+        xml.attr("symbol", strTargetName(addrof.identifier))
         xml.endElt()
     }
 
@@ -351,18 +432,16 @@ class AsmGen(internal val program: PtProgram,
             xml.attr("type", "VOID")
         else
             xml.attr("type", fcall.type.name)
-        xml.startChildren()
         xml.pos(fcall.position)
+        xml.startChildren()
         fcall.children.forEach { writeNode(it) }
         xml.endElt()
     }
 
-    private fun write(number: PtNumber) {
-        xml.elt("number")
-        xml.attr("type", number.type.name)
-        xml.attr("value", intOrDouble(number.type, number.number).toString())
-        xml.endElt()
-    }
+    private fun write(number: PtNumber) = writeNumber(number.type, number.number)
+
+    private fun writeNumber(type: DataType, number: Double) =
+        xml.writeTextNode("number", listOf(Pair("type", type.name)), intOrDouble(type, number).toString(), false)
 
     private fun write(symbol: PtIdentifier) {
         xml.elt("symbol")
@@ -374,8 +453,8 @@ class AsmGen(internal val program: PtProgram,
     private fun write(assign: PtAssignment) {
         xml.elt("assign")
         xml.attr("aug", assign.augmentable.toString())
-        xml.startChildren()
         xml.pos(assign.position)
+        xml.startChildren()
         write(assign.target)
         writeNode(assign.value)
         xml.endElt()
@@ -383,21 +462,21 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(ifElse: PtIfElse) {
         xml.elt("ifelse")
-        xml.startChildren()
         xml.pos(ifElse.position)
+        xml.startChildren()
         xml.elt("condition")
         xml.startChildren()
         writeNode(ifElse.condition)
         xml.endElt()
         xml.elt("true")
-        xml.startChildren()
         xml.pos(ifElse.ifScope.position)
+        xml.startChildren()
         writeNode(ifElse.ifScope)
         xml.endElt()
         if(ifElse.elseScope.children.isNotEmpty()) {
             xml.elt("false")
-            xml.startChildren()
             xml.pos(ifElse.elseScope.position)
+            xml.startChildren()
             writeNode(ifElse.elseScope)
             xml.endElt()
         }
@@ -422,30 +501,31 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(label: PtLabel) {
         xml.elt("label")
-        xml.attr("name", label.name)
-        xml.startChildren()
+        xml.attr("name", label.scopedName.joinToString("."))
         xml.pos(label.position)
         xml.endElt()
     }
 
     private fun write(block: PtBlock) {
         xml.elt("block")
-        xml.attr("name", block.name)
+        xml.attr("name", block.scopedName.joinToString("."))
         if(block.address!=null)
             xml.attr("address", block.address!!.toString())
         xml.attr("library", block.library.toString())
-        xml.startChildren()
         xml.pos(block.position)
+        xml.startChildren()
         block.children.forEach { writeNode(it) }
         xml.endElt()
     }
 
     private fun write(memMapped: PtMemMapped) {
-        xml.elt("memvar")
-        xml.attr("type", memMapped.type.name)
-        xml.attr("name", memMapped.name)
-        xml.attr("address", memMapped.address.toString())
-        xml.endElt()
+        xml.writeTextNode("memvar",
+            listOf(
+                Pair("name", memMapped.scopedName.joinToString(".")),
+                Pair("type", memMapped.type.name)
+            ),
+            memMapped.address.toString(),
+            false)
     }
 
     private fun write(target: PtAssignTarget) {
@@ -484,12 +564,12 @@ class AsmGen(internal val program: PtProgram,
 
     private fun write(sub: PtSub) {
         xml.elt("sub")
-        xml.attr("name", sub.name)
+        xml.attr("name", sub.scopedName.joinToString("."))
         if(sub.inline)
             xml.attr("inline", "true")
         xml.attr("returntype", sub.returntype?.toString() ?: "VOID")
-        xml.startChildren()
         xml.pos(sub.position)
+        xml.startChildren()
         if(sub.parameters.isNotEmpty()) {
             xml.elt("parameters")
             xml.startChildren()
@@ -519,22 +599,22 @@ class AsmGen(internal val program: PtProgram,
     private fun write(asmSub: PtAsmSub) {
         if(asmSub.address!=null) {
             xml.elt("romsub")
-            xml.attr("name", asmSub.name)
+            xml.attr("name", asmSub.scopedName.joinToString("."))
             xml.attr("address", asmSub.address!!.toString())
             if(asmSub.inline)
                 xml.attr("inline", "true")
-            xml.startChildren()
             xml.pos(asmSub.position)
+            xml.startChildren()
             paramsEtcetera(asmSub)
             xml.endElt()
         }
         else {
             xml.elt("asmsub")
-            xml.attr("name", asmSub.name)
+            xml.attr("name", asmSub.scopedName.joinToString("."))
             if(asmSub.inline)
                 xml.attr("inline", "true")
-            xml.startChildren()
             xml.pos(asmSub.position)
+            xml.startChildren()
             paramsEtcetera(asmSub)
             xml.elt("code")
             xml.startChildren()
@@ -572,18 +652,21 @@ class AsmGen(internal val program: PtProgram,
     }
 
     private fun write(constant: PtConstant) {
-        xml.elt("const")
-        xml.attr("name", constant.name)
-        xml.attr("type", constant.type.name)
-        xml.attr("value", intOrDouble(constant.type, constant.value).toString())
-        xml.endElt()
+        xml.writeTextNode("const",
+            listOf(
+                Pair("name", constant.scopedName.joinToString(".")),
+                Pair("type", constant.type.name)
+            ),
+            intOrDouble(constant.type, constant.value).toString(), false)
     }
 
     private fun write(variable: PtVariable) {
         // TODO get this from the AST only?
-        xml.elt("var")
-        xml.attr("name", variable.name)
+        xml.elt("vardecl")
+        xml.attr("name", variable.scopedName.joinToString("."))
         xml.attr("type", variable.type.name)
+        if(variable.arraySize!=null)
+            xml.attr("arraysize", variable.arraySize.toString())
         if(variable.value!=null) {
             xml.startChildren()
             writeNode(variable.value!!)

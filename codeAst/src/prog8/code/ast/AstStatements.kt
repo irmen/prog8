@@ -156,14 +156,14 @@ class PtReturn(position: Position) : PtNode(position) {
 }
 
 
-class PtVariable(name: String, val type: DataType, var value: PtExpression?, position: Position) : PtNamedNode(name, position) {
+class PtVariable(name: String, val type: DataType, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$type  $name")
     }
 }
 
 
-class PtConstant(val name: String, val type: DataType, val value: Double, position: Position) : PtNode(position) {
+class PtConstant(name: String, val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("$type $name = $value")
     }

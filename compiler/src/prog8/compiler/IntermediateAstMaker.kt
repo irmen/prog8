@@ -12,16 +12,18 @@ import kotlin.io.path.Path
 
 class IntermediateAstMaker(val program: Program, val comp: CompilationOptions) {
     fun transform(): PtProgram {
+        val loadAddress = program.actualLoadAddress
         val options = ProgramOptions(
             comp.output,
             comp.launcher,
             comp.zeropage,
             comp.zpReserved,
-            program.definedLoadAddress,
+            loadAddress,
             comp.floats,
             comp.noSysInit,
             comp.dontReinitGlobals,
-            comp.optimize
+            comp.optimize,
+            comp.compTarget.name
         )
 
         val ptProgram = PtProgram(
@@ -312,7 +314,7 @@ class IntermediateAstMaker(val program: Program, val comp: CompilationOptions) {
         return when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                PtVariable(srcVar.name, srcVar.datatype, value, srcVar.position)
+                PtVariable(srcVar.name, srcVar.datatype, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
             }
             VarDeclType.CONST -> PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
             VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.position)
@@ -359,7 +361,7 @@ class IntermediateAstMaker(val program: Program, val comp: CompilationOptions) {
     }
 
     private fun transform(srcArr: ArrayLiteral): PtArrayLiteral {
-        val arr = PtArrayLiteral(srcArr.type.getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
+        val arr = PtArrayLiteral(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
         for (elt in srcArr.value)
             arr.add(transformExpression(elt))
         return arr
