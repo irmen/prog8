@@ -166,6 +166,10 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), false, null),
     FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), false, null),
     FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), false, null),
+    FSignature("syscall"     , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE))), false, null, null),
+    FSignature("syscall1"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD))), false, null, null),
+    FSignature("syscall2"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD))), false, null, null),
+    FSignature("syscall3"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD)), FParam("arg3", arrayOf(DataType.UWORD))), false, null, null),
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }

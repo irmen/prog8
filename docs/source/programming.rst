@@ -1011,6 +1011,13 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
     and you'll have to set up a call in assembly code yourself that handles the banking and
     argument/returnvalues.
 
+syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
+    Functions for doing a system call on targets that support this. Currently no actual target
+    uses this though except, possibly, the experimental code generation target!
+    The regular 6502 based compiler targets just use a gosub to asmsub kernal routines at
+    specific memory locations. So these builtin function calls are not useful yet except for
+    experimentation in new code generation targets.
+
 rsave, rsavex
     Saves all registers including status (or only X) on the stack
     It's not needed to rsave()/rsavex() before an asm subroutine that clobbers the X register

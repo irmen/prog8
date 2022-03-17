@@ -15,6 +15,11 @@ main {
     sub start() {
         sys.memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
 
+        syscall(1)
+        syscall1(1, 1111)
+        syscall2(1, 1111, 2222)
+        syscall3(1, 1111, 2222, 3333)
+
         %breakpoint
         %asmbinary "LICENSE", 10 ,1
 
