@@ -4,6 +4,8 @@ include(
     ':codeAst',
     ':compilerAst',
     ':codeOptimizers',
+    ':virtualmachine',
+    ':codeGenVirtual',
     ':codeGenCpu6502',
     ':codeGenExperimental',
     ':compiler',

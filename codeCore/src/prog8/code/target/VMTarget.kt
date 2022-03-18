@@ -1,17 +1,16 @@
 package prog8.code.target
 
 import prog8.code.core.*
-import prog8.code.target.atari.AtariMachineDefinition
+import prog8.code.target.virtual.VirtualMachineDefinition
 
-
-class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
+class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     override val name = NAME
-    override val machine = AtariMachineDefinition()
-    override val supportedEncodings = setOf(Encoding.ATASCII)
-    override val defaultEncoding = Encoding.ATASCII
+    override val machine = VirtualMachineDefinition()
+    override val supportedEncodings = setOf(Encoding.ISO)
+    override val defaultEncoding = Encoding.ISO
 
     companion object {
-        const val NAME = "atari"
+        const val NAME = "virtual"
     }
 
     override fun memorySize(dt: DataType): Int {

@@ -23,7 +23,7 @@ class AtariMachineDefinition: IMachineDefinition {
     override fun getFloat(num: Number) = TODO("float from number")
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return if (compilerOptions.launcher == CbmPrgLauncherType.BASIC || compilerOptions.output == OutputType.PRG)
+        return if (compilerOptions.output == OutputType.XEX)
             listOf("syslib")
         else
             emptyList()

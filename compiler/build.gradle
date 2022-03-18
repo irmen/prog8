@@ -32,6 +32,7 @@ dependencies {
     implementation project(':codeOptimizers')
     implementation project(':compilerAst')
     implementation project(':codeGenCpu6502')
+    implementation project(':codeGenVirtual')
     implementation project(':codeGenExperimental')
     implementation 'org.antlr:antlr4-runtime:4.9.3'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"

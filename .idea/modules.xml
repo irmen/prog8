@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/codeCore/codeCore.iml" filepath="$PROJECT_DIR$/codeCore/codeCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" filepath="$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" />
+      <module fileurl="file://$PROJECT_DIR$/codeGenVirtual/codeGenVirtual.iml" filepath="$PROJECT_DIR$/codeGenVirtual/codeGenVirtual.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" filepath="$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />
@@ -14,6 +15,7 @@
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
       <module fileurl="file://$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" filepath="$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
+      <module fileurl="file://$PROJECT_DIR$/virtualmachine/virtualmachine.iml" filepath="$PROJECT_DIR$/virtualmachine/virtualmachine.iml" />
     </modules>
   </component>
 </project>

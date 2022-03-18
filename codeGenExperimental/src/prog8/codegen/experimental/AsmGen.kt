@@ -19,9 +19,9 @@ import prog8.code.core.IErrorReporter
 
 
 class AsmGen(internal val program: PtProgram,
-             internal val errors: IErrorReporter,
              internal val symbolTable: SymbolTable,
-             internal val options: CompilationOptions
+             internal val options: CompilationOptions,
+             internal val errors: IErrorReporter
 ): IAssemblyGenerator {
 
     override fun compileToAssembly(): IAssemblyProgram? {

@@ -1,14 +1,6 @@
 %import textio
-%import test_stack
-%zeropage basicsafe
-%zpreserved 50,80
-%zpreserved 150,155
-%option align_word
-
 
 main {
-        %option align_word
-
     ubyte[256] sieve
     ubyte candidate_prime = 2       ; is increased in the loop
 

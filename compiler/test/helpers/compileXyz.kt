@@ -77,7 +77,7 @@ internal fun generateAssembly(
     val errors = ErrorReporterForTests()
     determineProgramLoadAddress(program, coptions, errors)
     errors.report()
-    val asmgen = AsmGen(program, errors, st, coptions)
+    val asmgen = AsmGen(program, st, coptions, errors)
     errors.report()
     return asmgen.compileToAssembly()
 }

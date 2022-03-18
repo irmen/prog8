@@ -22,5 +22,6 @@
     <orderEntry type="module" module-name="codeOptimizers" />
     <orderEntry type="module" module-name="codeGenCpu6502" />
     <orderEntry type="module" module-name="codeGenExperimental" />
+    <orderEntry type="module" module-name="codeGenVirtual" />
   </component>
 </module>

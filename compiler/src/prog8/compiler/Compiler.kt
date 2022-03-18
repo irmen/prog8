@@ -13,17 +13,13 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
 import prog8.code.SymbolTable
 import prog8.code.core.*
-import prog8.code.target.AtariTarget
-import prog8.code.target.C128Target
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
+import prog8.code.target.*
 import prog8.compiler.astprocessing.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
-import kotlin.math.exp
 import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
@@ -59,6 +55,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             C128Target.NAME -> C128Target()
             Cx16Target.NAME -> Cx16Target()
             AtariTarget.NAME -> AtariTarget()
+            VMTarget.NAME -> VMTarget()
             else -> throw IllegalArgumentException("invalid compilation target")
         }
 
@@ -444,13 +441,18 @@ internal fun asmGeneratorFor(program: Program,
     if(options.experimentalCodegen) {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02)) {
 
-            // TODO for now, only use the new Intermediary Ast for this experimental codegen:
+            // TODO for now, use the new Intermediary Ast for this experimental codegen:
             val intermediateAst = IntermediateAstMaker(program).transform()
-            return prog8.codegen.experimental.AsmGen(intermediateAst, errors, symbolTable, options)
+            return prog8.codegen.experimental.AsmGen(intermediateAst, symbolTable, options, errors)
         }
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            return prog8.codegen.cpu6502.AsmGen(program, errors, symbolTable, options)
+            return prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
+        if (options.compTarget.name == VMTarget.NAME) {
+            // TODO for now, use the new Intermediary Ast for this codegen:
+            val intermediateAst = IntermediateAstMaker(program).transform()
+            return prog8.codegen.virtual.CodeGen(intermediateAst, symbolTable, options, errors)
+        }
     }
 
     throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")

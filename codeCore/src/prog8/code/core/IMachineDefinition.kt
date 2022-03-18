@@ -10,7 +10,8 @@ interface IMachineFloat {
 
 enum class CpuType {
     CPU6502,
-    CPU65c02
+    CPU65c02,
+    VIRTUAL
 }
 
 interface IMachineDefinition {
