@@ -168,7 +168,7 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtIdentifier -> write(it)
             is PtIfElse -> write(it)
             is PtInlineAssembly -> write(it)
-            is PtInlineBinary -> write(it)
+            is PtIncludeBinary -> write(it)
             is PtJump -> write(it)
             is PtMemoryByte -> write(it)
             is PtMemMapped -> write(it)
@@ -363,7 +363,7 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.endElt()
     }
 
-    private fun write(inlineBinary: PtInlineBinary) {
+    private fun write(inlineBinary: PtIncludeBinary) {
         xml.elt("binary")
         xml.attr("filename", inlineBinary.file.absolutePathString())
         if(inlineBinary.offset!=null)

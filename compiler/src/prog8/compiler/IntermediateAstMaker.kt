@@ -1,12 +1,19 @@
 package prog8.compiler
 
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
+import com.github.michaelbull.result.getOrElse
+import com.github.michaelbull.result.mapError
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.DataType
+import prog8.parser.SourceCode
+import java.io.File
 import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 
 
 class IntermediateAstMaker(val program: Program) {
@@ -152,9 +159,14 @@ class IntermediateAstMaker(val program: Program) {
                 val length: UInt? = if(directive.args.size>=3) directive.args[2].int!! else null
                 val sourcePath = Path(directive.definingModule.source.origin)
                 val includedPath = sourcePath.resolveSibling(directive.args[0].str!!)
-                PtInlineBinary(includedPath, offset, length, directive.position)
+                PtIncludeBinary(includedPath, offset, length, directive.position)
             }
-            else -> PtNop(directive.position)
+            "%asminclude" -> {
+                val result = loadAsmIncludeFile(directive.args[0].str!!, directive.definingModule.source)
+                val assembly = result.getOrElse { throw it }
+                PtInlineAssembly(assembly, directive.position)
+            }
+            else -> TODO("directive to PtNode   $directive")
         }
     }
 
@@ -422,4 +434,20 @@ class IntermediateAstMaker(val program: Program) {
         cast.add(transformExpression(srcCast.expression))
         return cast
     }
+
+
+    private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
+        return if (filename.startsWith(SourceCode.libraryFilePrefix)) {
+            return com.github.michaelbull.result.runCatching {
+                SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").text
+            }.mapError { NoSuchFileException(File(filename)) }
+        } else {
+            val sib = Path(source.origin).resolveSibling(filename)
+            if (sib.isRegularFile())
+                Ok(SourceCode.File(sib).text)
+            else
+                Ok(SourceCode.File(Path(filename)).text)
+        }
+    }
+
 }

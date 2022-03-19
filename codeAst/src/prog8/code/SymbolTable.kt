@@ -39,6 +39,8 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         collect(this)
         vars
     }
+
+    override fun lookup(scopedName: List<String>) = flat[scopedName]
 }
 
 
@@ -73,7 +75,7 @@ open class StNode(val name: String,
 
     fun lookup(name: String) =
         lookupUnqualified(name)
-    fun lookup(scopedName: List<String>) =
+    open fun lookup(scopedName: List<String>) =
         if(scopedName.size>1) lookupQualified(scopedName) else lookupUnqualified(scopedName[0])
     fun lookupOrElse(name: String, default: () -> StNode) =
         lookupUnqualified(name) ?: default()

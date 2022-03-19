@@ -21,6 +21,7 @@ internal object DummyFunctions : IBuiltinFunctions {
 
 internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType) = 0
+    override fun memorySize(arrayDt: DataType, numElements: Int) = 0
 }
 
 internal object DummyStringEncoder : IStringEncoding {
@@ -57,6 +58,10 @@ internal object DummyCompilationTarget : ICompilationTarget {
     }
 
     override fun memorySize(dt: DataType): Int {
+        throw NotImplementedError("dummy")
+    }
+
+    override fun memorySize(arrayDt: DataType, numElements: Int): Int {
         throw NotImplementedError("dummy")
     }
 }

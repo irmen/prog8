@@ -100,7 +100,7 @@ class PtBreakpoint(position: Position): PtNode(position) {
 }
 
 
-class PtInlineBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position) {
+class PtIncludeBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position) {
     override fun printProperties() {
         print("filename=$file  offset=$offset  length=$length")
     }

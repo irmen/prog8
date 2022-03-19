@@ -181,7 +181,34 @@ data class Instruction(
     val reg2: Int?=null,       // 0-$ffff
     val reg3: Int?=null,       // 0-$ffff
     val value: Int?=null,      // 0-$ffff
-)
+) {
+    override fun toString(): String {
+        val result = mutableListOf(opcode.name.lowercase())
+        when(type) {
+            DataType.BYTE -> result.add(".b ")
+            DataType.WORD -> result.add(".w ")
+            else -> result.add(" ")
+        }
+        reg1?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        reg2?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        reg3?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        value?.let {
+            result.add(it.toString())
+        }
+        if(result.last() == ",")
+            result.dropLast(1)
+        return result.joinToString("").trimEnd()
+    }
+}
 
 data class InstructionFormat(val datatypes: Set<DataType>, val reg1: Boolean, val reg2: Boolean, val reg3: Boolean, val value: Boolean)
 

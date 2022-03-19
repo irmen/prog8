@@ -3,6 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- move prog8_lib.pattern_match to string module
+- move SourceCode class?
+- move internedStringsModuleName ?
+
 ...
 
 

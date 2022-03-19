@@ -57,7 +57,7 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 when (datatype) {
                     in IntegerDatatypes -> options.compTarget.memorySize(datatype)
                     DataType.STR, in ArrayDatatypes  -> {
-                        val memsize = numElements!! * options.compTarget.memorySize(ArrayToElementTypes.getValue(datatype))
+                        val memsize = options.compTarget.memorySize(datatype, numElements!!)
                         if(position!=null)
                             errors.warn("allocating a large value in zeropage; str/array $memsize bytes", position)
                         else

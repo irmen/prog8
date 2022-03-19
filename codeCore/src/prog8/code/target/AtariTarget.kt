@@ -22,4 +22,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
             else -> Int.MIN_VALUE
         }
     }
+
+    override fun memorySize(arrayDt: DataType, numElements: Int) =
+        memorySize(ArrayToElementTypes.getValue(arrayDt)) * numElements
 }

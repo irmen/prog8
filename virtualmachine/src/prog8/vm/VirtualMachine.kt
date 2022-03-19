@@ -23,7 +23,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             throw IllegalArgumentException("program cannot contain more than 65536 instructions")
     }
 
-    fun run() {
+    fun run(throttle: Boolean = true) {
         try {
             var before = System.nanoTime()
             var numIns = 0
@@ -31,7 +31,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 step()
                 numIns++
 
-                if(stepCount and 32767 == 0) {
+                if(throttle && stepCount and 32767 == 0) {
                     Thread.sleep(0, 10)     // avoid 100% cpu core usage
                 }
 

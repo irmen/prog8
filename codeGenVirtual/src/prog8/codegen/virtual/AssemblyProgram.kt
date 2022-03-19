@@ -6,25 +6,23 @@ import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
 
-internal class AssemblyProgram(override val name: String) : IAssemblyProgram
-{
+internal class AssemblyProgram(override val name: String,
+                               private val allocations: VariableAllocator,
+                               private val instructions: MutableList<String>
+) : IAssemblyProgram {
     override fun assemble(options: CompilationOptions): Boolean {
         val outfile = options.outputDir / ("$name.p8virt")
         println("write code to ${outfile}")
         outfile.bufferedWriter().use {
-            it.write(memsrc)
+            allocations.asVmMemory().forEach { alloc -> it.write(alloc + "\n") }
             it.write("------PROGRAM------\n")
-            it.write(src)
+            instructions.forEach { ins -> it.write(ins + "\n") }
         }
         return true
     }
+}
 
-    val memsrc = """
-$4000 strz "Hello from program! "derp" bye.\n"
-$2000 ubyte 65,66,67,68,0
-$2100 uword $1111,$2222,$3333,$4444
-"""
-    val src = """
+    /*
 ; enable lores gfx screen
 load r0, 0
 syscall 8   
@@ -53,3 +51,4 @@ load.w r0,0
 return"""
 
 }
+*/
