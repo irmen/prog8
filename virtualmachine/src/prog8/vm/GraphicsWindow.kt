@@ -45,7 +45,9 @@ class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling
     private fun optimalRefreshRate(frame: JFrame): Int {
         var rate = frame.graphicsConfiguration.device.displayMode.refreshRate
         if(rate==0)
-            rate = GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices.map { it.displayMode.refreshRate }.first { it>0 }
+            rate = GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices
+                .map { it.displayMode.refreshRate }
+                .firstOrNull { it>0 } ?: 60
         return max(30, min(250, rate))
     }
 
