@@ -187,7 +187,10 @@ class IntermediateAstMaker(val program: Program) {
                 val assembly = result.getOrElse { throw it }
                 PtInlineAssembly(assembly, directive.position)
             }
-            else -> TODO("directive to PtNode   $directive")
+            else -> {
+                // other directives don't output any code
+                PtNop(directive.position)
+            }
         }
     }
 

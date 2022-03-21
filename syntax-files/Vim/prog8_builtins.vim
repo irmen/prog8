@@ -798,7 +798,6 @@ syn match prog8BuiltInFunc "\<diskio\.rename\>"
 
 
 " prog8_lib.p8
-syn match prog8BuiltInFunc "\<prog8_lib\.pattern_match\>"
 
 
 " string.p8
@@ -811,6 +810,7 @@ syn match prog8BuiltInFunc "\<string\.copy\>"
 syn match prog8BuiltInFunc "\<string\.compare\>"
 syn match prog8BuiltInFunc "\<string\.lower\>"
 syn match prog8BuiltInFunc "\<string\.upper\>"
+syn match prog8BuiltInFunc "\<string\.pattern_match\>"
 
 
 " test_stack.p8

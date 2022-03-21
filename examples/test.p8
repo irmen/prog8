@@ -15,6 +15,10 @@ main {
         %breakpoint
         %asmbinary "LICENSE", 10 ,1
 
+        %asm {{
+            nop
+        }}
+
 
         ; calculate primes
         txt.print("prime numbers up to 255:\n\n")

@@ -178,7 +178,7 @@ io_error:
             if not list_skip_disk_name {
                 if not list_pattern
                     return true
-                if prog8_lib.pattern_match(list_filename, list_pattern)
+                if string.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false

@@ -3,9 +3,7 @@
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 prog8_lib {
+    %option force_output
 
-	sub pattern_match(str string, str pattern) -> ubyte {
-	    ; TODO
-	    return 0
-	}
+    ; nothing here for now
 }
