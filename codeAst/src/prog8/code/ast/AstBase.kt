@@ -6,8 +6,9 @@ import java.nio.file.Path
 // New (work-in-progress) simplified AST for the code generator.
 
 
-sealed class PtNode(val position: Position, val children: MutableList<PtNode> = mutableListOf()) {
+sealed class PtNode(val position: Position) {
 
+    val children = mutableListOf<PtNode>()
     lateinit var parent: PtNode
 
     protected fun printIndented(indent: Int) {
@@ -32,7 +33,7 @@ sealed class PtNode(val position: Position, val children: MutableList<PtNode> = 
 }
 
 
-class PtNodeGroup: PtNode(Position.DUMMY) {
+class PtNodeGroup : PtNode(Position.DUMMY) {
     override fun printProperties() {}
 }
 
@@ -108,5 +109,15 @@ class PtIncludeBinary(val file: Path, val offset: UInt?, val length: UInt?, posi
 
 
 class PtNop(position: Position): PtNode(position) {
+    override fun printProperties() {}
+}
+
+
+class PtScopeVarsDecls(position: Position): PtNode(position) {
+    override fun printProperties() {}
+}
+
+
+class PtScopeVarsInit(position: Position): PtNode(position) {
     override fun printProperties() {}
 }

@@ -11,7 +11,7 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.code.core.Position
 import prog8.parser.Prog8Parser
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder

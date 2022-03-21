@@ -4,8 +4,8 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import prog8.parser.SourceCode
-import prog8.parser.SourceCode.Companion.libraryFilePrefix
+import prog8.code.core.SourceCode
+import prog8.code.core.SourceCode.Companion.libraryFilePrefix
 import prog8tests.helpers.assumeNotExists
 import prog8tests.helpers.assumeReadableFile
 import prog8tests.helpers.fixturesDir
@@ -26,7 +26,7 @@ class TestSourceCode: AnnotationSpec() {
         src.text shouldBe text
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe false
-        src.toString().startsWith("prog8.parser.SourceCode") shouldBe true
+        src.toString().startsWith("prog8.code.core.SourceCode") shouldBe true
     }
 
     @Test

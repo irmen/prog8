@@ -12,7 +12,7 @@ import prog8.ast.statements.Subroutine
 import prog8.code.target.C64Target
 import prog8.compiler.CallGraph
 import prog8.parser.Prog8Parser.parseModule
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import prog8tests.helpers.*
 
 class TestCallgraph: FunSpec({

@@ -8,7 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.parser.Prog8ANTLRParser
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
 

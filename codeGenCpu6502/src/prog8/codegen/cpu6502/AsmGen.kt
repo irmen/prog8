@@ -10,7 +10,7 @@ import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines

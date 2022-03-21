@@ -13,7 +13,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.c64.C64Zeropage
 import prog8.codegen.cpu6502.AsmGen
 import prog8.compiler.astprocessing.SymbolTableMaker
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder

@@ -1,10 +1,14 @@
-package prog8.parser
+package prog8.code.core
 
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.readText
+
+
+const val internedStringsModuleName = "prog8_interned_strings"
+
 
 /**
  * Encapsulates - and ties together - actual source code (=text) and its [origin].

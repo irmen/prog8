@@ -15,7 +15,7 @@ import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
 import prog8.code.target.C64Target
 import prog8.compiler.printProgram
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder

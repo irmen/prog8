@@ -10,11 +10,11 @@ import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
-import prog8.ast.internedStringsModuleName
 import prog8.code.core.IErrorReporter
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
-import prog8.parser.SourceCode
+import prog8.code.core.SourceCode
+import prog8.code.core.internedStringsModuleName
 import prog8tests.helpers.*
 import kotlin.io.path.*
 

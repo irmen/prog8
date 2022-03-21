@@ -9,9 +9,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.parser.SourceCode
-
-const val internedStringsModuleName = "prog8_interned_strings"
+import prog8.code.core.SourceCode
 
 
 object ParentSentinel : Node {
@@ -275,7 +273,8 @@ inline fun <reified T> findParentNode(node: Node): T? {
 
 open class Module(final override var statements: MutableList<Statement>,
                   final override val position: Position,
-                  val source: SourceCode) : Node, INameScope {
+                  val source: SourceCode
+) : Node, INameScope {
 
     override lateinit var parent: Node
     lateinit var program: Program

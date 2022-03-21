@@ -10,7 +10,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.DataType
-import prog8.parser.SourceCode
+import prog8.code.core.Position
+import prog8.code.core.SourceCode
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
@@ -122,12 +123,32 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transform(srcBlock: Block): PtBlock {
+        val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
+        val (varinits, actualStatements) = statements.partition { (it as? Assignment)?.origin==AssignmentOrigin.VARINIT }
         val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, srcBlock.position)
 
-        for (stmt in srcBlock.statements)
+        if(vardecls.isNotEmpty()) block.add(makeScopeVarsDecls(vardecls, srcBlock.position))
+        if(varinits.isNotEmpty()) block.add(makeScopeVarInitializers(varinits, srcBlock.position))
+        for (stmt in actualStatements)
             block.add(transformStatement(stmt))
 
         return block
+    }
+
+    private fun makeScopeVarsDecls(vardecls: List<Statement>, position: Position): PtNode {
+        val decls = PtScopeVarsDecls(position)
+        vardecls.forEach {
+            decls.add(transformStatement(it as VarDecl))
+        }
+        return decls
+    }
+
+    private fun makeScopeVarInitializers(varinits: List<Statement>, position: Position): PtScopeVarsInit {
+        val init = PtScopeVarsInit(position)
+        varinits.forEach {
+            init.add(transformStatement(it as Assignment))
+        }
+        return init
     }
 
     private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
@@ -294,13 +315,17 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transformSub(srcSub: Subroutine): PtSub {
+        val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
+        val (varinits, actualStatements) = statements.partition { (it as? Assignment)?.origin==AssignmentOrigin.VARINIT }
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
             srcSub.returntypes.singleOrNull(),
             srcSub.inline,
             srcSub.position)
 
-        for (statement in srcSub.statements)
+        if(vardecls.isNotEmpty()) sub.add(makeScopeVarsDecls(vardecls, sub.position))
+        if(varinits.isNotEmpty()) sub.add(makeScopeVarInitializers(varinits, srcSub.position))
+        for (statement in actualStatements)
             sub.add(transformStatement(statement))
 
         return sub

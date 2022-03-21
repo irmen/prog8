@@ -186,9 +186,25 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtLabel -> write(it)
             is PtNop -> {}
             is PtBreakpoint -> write(it)
+            is PtScopeVarsDecls -> write(it)
+            is PtScopeVarsInit -> write(it)
             is PtNodeGroup -> it.children.forEach { writeNode(it) }
             else -> TODO("$it")
         }
+    }
+
+    private fun write(vars: PtScopeVarsDecls) {
+        xml.elt("vars")
+        xml.startChildren()
+        vars.children.forEach { writeNode(it) }
+        xml.endElt()
+    }
+
+    private fun write(inits: PtScopeVarsInit) {
+        xml.elt("varsinit")
+        xml.startChildren()
+        inits.children.forEach { writeNode(it) }
+        xml.endElt()
     }
 
     private fun write(breakPt: PtBreakpoint) {
@@ -236,9 +252,7 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.startChildren()
         writeNode(rept.count)
         xml.endElt()
-        xml.elt("statements")
         writeNode(rept.statements)
-        xml.endElt()
         xml.endElt()
     }
 
@@ -303,10 +317,7 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.startChildren()
         writeNode(forLoop.iterable)
         xml.endElt()
-        xml.elt("statements")
-        xml.startChildren()
         writeNode(forLoop.statements)
-        xml.endElt()
         xml.endElt()
     }
 
@@ -348,10 +359,7 @@ class AstToXmlConverter(internal val program: PtProgram,
             writeNode(choice.values)
             xml.endElt()
         }
-        xml.elt("statements")
-        xml.startChildren()
         writeNode(choice.statements)
-        xml.endElt()
         xml.endElt()
     }
 
@@ -570,10 +578,7 @@ class AstToXmlConverter(internal val program: PtProgram,
             sub.parameters.forEach { write(it) }
             xml.endElt()
         }
-        xml.elt("statements")
-        xml.startChildren()
         sub.children.forEach { writeNode(it) }
-        xml.endElt()
         xml.endElt()
     }
 
