@@ -583,25 +583,22 @@ class Jump(var address: UInt?,
         "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
 }
 
-// a GoSub is ONLY created internally for calling subroutines
-class GoSub(val address: UInt?,
-            val identifier: IdentifierReference?,
-            val generatedLabel: String?,             // can be used in code generation scenarios
-            override val position: Position) : Statement() {
+// a GoSub is ONLY created internally for calling subroutines, there's no syntax for it in the language
+class GoSub(val identifier: IdentifierReference, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier?.linkParents(this)
+        identifier.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = GoSub(address, identifier?.copy(), generatedLabel, position)
+    override fun copy() = GoSub(identifier.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString() =
-        "GoSub(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
+        "GoSub($identifier;  pos=$position)"
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,

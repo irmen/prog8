@@ -887,7 +887,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(gosub: GoSub) {
-        val tgt = gosub.identifier!!.targetSubroutine(program)
+        val tgt = gosub.identifier.targetSubroutine(program)
         if(tgt!=null && tgt.isAsmSubroutine) {
             // no need to rescue X , this has been taken care of already
             out("  jsr  ${getJumpTarget(gosub)}")
@@ -917,17 +917,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun getJumpTarget(gosub: GoSub): String {
-        val ident = gosub.identifier
-        val label = gosub.generatedLabel
-        val addr = gosub.address
-        return when {
-            ident!=null -> asmSymbolName(ident)
-            label!=null -> label
-            addr!=null -> addr.toHex()
-            else -> "????"
-        }
-    }
+    private fun getJumpTarget(gosub: GoSub): String = asmSymbolName(gosub.identifier)
 
     private fun translate(ret: Return, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->

@@ -135,13 +135,7 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(gosub: PtGosub): VmCodeChunk {
         val chunk = VmCodeChunk()
-        if(gosub.address!=null)
-            throw AssemblyError("cannot gosub to a memory address in the vm target")
-        else if(gosub.identifier!=null) {
-            chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(gosub.identifier!!.targetName))
-        } else if(gosub.generatedLabel!=null) {
-            chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(listOf(gosub.generatedLabel!!)))
-        }
+        chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(gosub.identifier.targetName))
         return chunk
     }
 

@@ -183,18 +183,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(gosub: GoSub) {
-        val ident = gosub.identifier
-        if(ident!=null) {
-            val targetStatement = checkFunctionOrLabelExists(ident, gosub)
-            if(targetStatement!=null) {
-                if(targetStatement is BuiltinFunctionPlaceholder)
-                    errors.err("can't gosub to a builtin function", gosub.position)
-            }
+        val targetStatement = checkFunctionOrLabelExists(gosub.identifier, gosub)
+        if(targetStatement!=null) {
+            if(targetStatement is BuiltinFunctionPlaceholder)
+                errors.err("can't gosub to a builtin function", gosub.position)
         }
 
-        val addr = gosub.address
-        if(addr!=null && addr > 65535u)
-            errors.err("gosub address must be valid integer 0..\$ffff", gosub.position)
         super.visit(gosub)
     }
 

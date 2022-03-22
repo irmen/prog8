@@ -86,14 +86,9 @@ class PtForLoop(position: Position) : PtNode(position) {
 }
 
 
-class PtGosub(val identifier: PtIdentifier?,
-              val address: UInt?,
-              val generatedLabel: String?,
-              position: Position) : PtNode(position) {
+class PtGosub(val identifier: PtIdentifier, position: Position) : PtNode(position) {
     override fun printProperties() {
-        identifier?.printProperties()
-        if(address!=null) print(address.toHex())
-        if(generatedLabel!=null) print(generatedLabel)
+        identifier.printProperties()
     }
 }
 

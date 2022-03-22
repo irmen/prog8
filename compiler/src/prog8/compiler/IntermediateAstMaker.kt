@@ -222,13 +222,7 @@ class IntermediateAstMaker(val program: Program) {
         return call
     }
 
-    private fun transform(gosub: GoSub): PtGosub {
-        val identifier = if(gosub.identifier!=null) transform(gosub.identifier!!) else null
-        return PtGosub(identifier,
-            gosub.address,
-            gosub.generatedLabel,
-            gosub.position)
-    }
+    private fun transform(gosub: GoSub): PtGosub  = PtGosub(transform(gosub.identifier), gosub.position)
 
     private fun transform(srcIf: IfElse): PtIfElse {
         val ifelse = PtIfElse(srcIf.position)

@@ -556,11 +556,7 @@ class AstToXmlConverter(internal val program: PtProgram,
 
     private fun write(gosub: PtGosub) {
         xml.elt("gosub")
-        if(gosub.identifier!=null) xml.attr("symbol", strTargetName(gosub.identifier!!))
-        else if(gosub.address!=null) xml.attr("address", gosub.address!!.toString())
-        else if(gosub.generatedLabel!=null) xml.attr("label", gosub.generatedLabel!!)
-        else
-            throw InternalCompilerException("weird jump target")
+        xml.attr("symbol", strTargetName(gosub.identifier))
         xml.endElt()
     }
 

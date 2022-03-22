@@ -200,7 +200,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
+        return tryReplaceCallWithGosub(functionCallStatement, parent, program)
     }
 }
 

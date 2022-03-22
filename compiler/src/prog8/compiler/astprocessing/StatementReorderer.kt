@@ -411,21 +411,22 @@ internal class StatementReorderer(val program: Program,
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         val function = functionCallStatement.target.targetStatement(program)!!
         checkUnusedReturnValues(functionCallStatement, function, program, errors)
-        return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
+        return tryReplaceCallWithGosub(functionCallStatement, parent, program)
     }
 }
 
 
-internal fun tryReplaceCallWithGosub(functionCallStatement: FunctionCallStatement,
-                                     parent: Node,
-                                     program: Program,
-                                     options: CompilationOptions): Iterable<IAstModification> {
+internal fun tryReplaceCallWithGosub(
+    functionCallStatement: FunctionCallStatement,
+    parent: Node,
+    program: Program
+): Iterable<IAstModification> {
     val callee = functionCallStatement.target.targetStatement(program)!!
     if(callee is Subroutine) {
         if(callee.inline)
             return emptyList()
         return if(callee.isAsmSubroutine)
-            tryReplaceCallAsmSubWithGosub(functionCallStatement, parent, callee, options.compTarget)
+            tryReplaceCallAsmSubWithGosub(functionCallStatement, parent, callee)
         else
             tryReplaceCallNormalSubWithGosub(functionCallStatement, parent, callee, program)
     }
@@ -437,7 +438,7 @@ private fun tryReplaceCallNormalSubWithGosub(call: FunctionCallStatement, parent
 
     if(callee.parameters.isEmpty()) {
         // 0 params -> just GoSub
-        return listOf(IAstModification.ReplaceNode(call, GoSub(null, call.target, null, call.position), parent))
+        return listOf(IAstModification.ReplaceNode(call, GoSub(call.target, call.position), parent))
     }
 
     if(callee.parameters.size==1) {
@@ -466,14 +467,14 @@ private fun tryReplaceCallNormalSubWithGosub(call: FunctionCallStatement, parent
             Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, AssignmentOrigin.PARAMETERASSIGN, argumentValue.position)
         }
     val scope = AnonymousScope(assignParams.toMutableList(), call.position)
-    scope.statements += GoSub(null, call.target, null, call.position)
+    scope.statements += GoSub(call.target, call.position)
     return listOf(IAstModification.ReplaceNode(call, scope, parent))
 }
 
-private fun tryReplaceCallAsmSubWithGosub(call: FunctionCallStatement,
-                                          parent: Node,
-                                          callee: Subroutine,
-                                          compTarget: ICompilationTarget
+private fun tryReplaceCallAsmSubWithGosub(
+    call: FunctionCallStatement,
+    parent: Node,
+    callee: Subroutine
 ): Iterable<IAstModification> {
     val noModifications = emptyList<IAstModification>()
 
@@ -483,7 +484,7 @@ private fun tryReplaceCallAsmSubWithGosub(call: FunctionCallStatement,
         if(callee.shouldSaveX()) {
             scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), call.position), mutableListOf(), true, call.position)
         }
-        scope.statements += GoSub(null, call.target, null, call.position)
+        scope.statements += GoSub(call.target, call.position)
         if(callee.shouldSaveX()) {
             scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), call.position), mutableListOf(), true, call.position)
         }
@@ -495,15 +496,16 @@ private fun tryReplaceCallAsmSubWithGosub(call: FunctionCallStatement,
         return noModifications
     } else {
         // clobber risk; evaluate the arguments on the CPU stack first (in reverse order)...
-        return makeGosubWithArgsViaCpuStack(call, call.position, parent, callee, compTarget)
+        return makeGosubWithArgsViaCpuStack(call, call.position, parent, callee)
     }
 }
 
-private fun makeGosubWithArgsViaCpuStack(call: IFunctionCall,
-                                         position: Position,
-                                         parent: Node,
-                                         callee: Subroutine,
-                                         compTarget: ICompilationTarget): Iterable<IAstModification> {
+private fun makeGosubWithArgsViaCpuStack(
+    call: IFunctionCall,
+    position: Position,
+    parent: Node,
+    callee: Subroutine
+): Iterable<IAstModification> {
 
     fun popCall(targetName: List<String>, dt: DataType, position: Position): FunctionCallStatement {
         return FunctionCallStatement(
@@ -545,7 +547,7 @@ private fun makeGosubWithArgsViaCpuStack(call: IFunctionCall,
         val targetName = callee.scopedName + param.name
         scope.statements += popCall(targetName, param.type, position)
     }
-    scope.statements += GoSub(null, call.target, null, position)
+    scope.statements += GoSub(call.target, position)
     if(callee.shouldSaveX()) {
         scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), position), mutableListOf(), true, position)
     }

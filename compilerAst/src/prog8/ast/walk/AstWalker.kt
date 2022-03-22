@@ -300,7 +300,7 @@ abstract class AstWalker {
 
     fun visit(gosub: GoSub, parent: Node) {
         track(before(gosub, parent), gosub, parent)
-        gosub.identifier?.accept(this, gosub)
+        gosub.identifier.accept(this, gosub)
         track(after(gosub, parent), gosub, parent)
     }
 

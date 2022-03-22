@@ -71,7 +71,7 @@ interface IAstVisitor {
     }
 
     fun visit(gosub: GoSub) {
-        gosub.identifier?.accept(this)
+        gosub.identifier.accept(this)
     }
 
     fun visit(ifElse: IfElse) {

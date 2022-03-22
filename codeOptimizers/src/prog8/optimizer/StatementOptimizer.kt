@@ -291,13 +291,13 @@ class StatementOptimizer(private val program: Program,
 
     override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
         // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
-        val subroutineParams = gosub.identifier?.targetSubroutine(program)?.parameters
+        val subroutineParams = gosub.identifier.targetSubroutine(program)?.parameters
         if(subroutineParams!=null && subroutineParams.isEmpty()) {
             val returnstmt = gosub.nextSibling() as? Return
             if(returnstmt!=null && returnstmt.value==null) {
                 return listOf(
                     IAstModification.Remove(returnstmt, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(gosub, Jump(gosub.address, gosub.identifier, gosub.generatedLabel, gosub.position), parent)
+                    IAstModification.ReplaceNode(gosub, Jump(null, gosub.identifier, null, gosub.position), parent)
                 )
             }
         }

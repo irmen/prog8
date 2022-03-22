@@ -36,7 +36,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     }
 
     internal fun saveXbeforeCall(gosub: GoSub) {
-        val sub = gosub.identifier?.targetSubroutine(program)
+        val sub = gosub.identifier.targetSubroutine(program)
         if(sub?.shouldSaveX()==true) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
             if(regSaveOnStack)
@@ -58,7 +58,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
     }
 
     internal fun restoreXafterCall(gosub: GoSub) {
-        val sub = gosub.identifier?.targetSubroutine(program)
+        val sub = gosub.identifier.targetSubroutine(program)
         if(sub?.shouldSaveX()==true) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
             if(regSaveOnStack)

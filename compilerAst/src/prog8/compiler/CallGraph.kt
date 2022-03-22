@@ -101,7 +101,7 @@ class CallGraph(private val program: Program, private val allowMissingIdentifier
     }
 
     override fun visit(gosub: GoSub) {
-        val otherSub = gosub.identifier?.targetSubroutine(program)
+        val otherSub = gosub.identifier.targetSubroutine(program)
         if (otherSub != null) {
             gosub.definingSubroutine?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub) + otherSub

@@ -242,11 +242,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(gosub: GoSub) {
         output("gosub ")
-        when {
-            gosub.address!=null -> output(gosub.address.toHex())
-            gosub.generatedLabel!=null -> output(gosub.generatedLabel)
-            gosub.identifier!=null -> gosub.identifier.accept(this)
-        }
+        gosub.identifier.accept(this)
     }
 
     override fun visit(ifElse: IfElse) {
