@@ -6,6 +6,8 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.VMTarget
+import prog8.code.target.virtual.VirtualMachineDefinition
 import kotlin.math.floor
 
 
@@ -120,21 +122,22 @@ class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
         }
 
-        // see if we can optimize any complex argument expressions to be just a simple variable
-        // TODO for now, only works for single-argument functions because we use just 1 temp var: R9
-        if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
-            val arg = functionCallStatement.args[0]
-            if(!arg.isSimple && arg !is IFunctionCall) {
-                val name = getTempRegisterName(arg.inferType(program))
-                val tempvar = IdentifierReference(name, functionCallStatement.position)
-                val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                return listOf(
-                    IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
-                )
+        if(compTarget.name!=VMTarget.NAME) {
+            // see if we can optimize any complex argument expressions to be just a simple variable
+            // TODO for now, only works for single-argument functions because we use just 1 temp var: R9
+            if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
+                val arg = functionCallStatement.args[0]
+                if(!arg.isSimple && arg !is IFunctionCall) {
+                    val name = getTempRegisterName(arg.inferType(program))
+                    val tempvar = IdentifierReference(name, functionCallStatement.position)
+                    val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                    return listOf(
+                        IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
+                    )
+                }
             }
         }
-
 
         return noModifications
     }
@@ -464,6 +467,10 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+
+        if(compTarget.name==VMTarget.NAME)
+            return noModifications
+
         fun returnViaIntermediaryVar(value: Expression): Iterable<IAstModification>? {
             val subr = returnStmt.definingSubroutine!!
             val returnDt = subr.returntypes.single()

@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- first for virtual target: do not create tempvars for return statements (StatementOptimizer)
-   maybe other places as well?
 - in new AST: combine param assignments + GoSub, back into PtFunctionCall node.  PtGosub node should not exist.
 
 ...
@@ -70,6 +68,10 @@ Expressions:
 
 Optimizations:
 
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
+  the old CompilerAst, those checks should probably be removed.
+  (most of them avoid the case where extra temporary variables are introduced in an attempt to simplify
+  the expression code generation)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - translateUnaryFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
    compare ``aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()``

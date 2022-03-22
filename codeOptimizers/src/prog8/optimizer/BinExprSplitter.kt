@@ -15,6 +15,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
+import prog8.code.target.VMTarget
 
 
 class BinExprSplitter(private val program: Program, private val options: CompilationOptions) : AstWalker() {
@@ -91,7 +92,7 @@ X =      BinExpr                                    X   =   LeftExpr
         val typecast = assignment.value as? TypecastExpression
         if(typecast!=null) {
             val origExpr = typecast.expression as? BinaryExpression
-            if(origExpr!=null) {
+            if(origExpr!=null && options.compTarget.name!=VMTarget.NAME) {
                 // it's a typecast of a binary expression.
                 // we can see if we can unwrap the binary expression by working on a new temporary variable
                 // (that has the type of the expression), and then finally doing the typecast.

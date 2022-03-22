@@ -8,6 +8,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 
 internal class BeforeAsmAstChanger(val program: Program,
                                    private val options: CompilationOptions,
@@ -224,6 +225,9 @@ internal class BeforeAsmAstChanger(val program: Program,
         //       the actual conditional expression in the statement should be no more than VARIABLE <COMPARISON-OPERATOR> SIMPLE-EXPRESSION
         // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
 
+        if(options.compTarget.name==VMTarget.NAME)
+            return CondExprSimplificationResult(null, null, null, null)
+
         var leftAssignment: Assignment? = null
         var leftOperandReplacement: Expression? = null
         var rightAssignment: Assignment? = null
@@ -271,11 +275,12 @@ internal class BeforeAsmAstChanger(val program: Program,
             return noModifications
         }
 
-
-        val index = arrayIndexedExpression.indexer.indexExpr
-        if(index !is NumericLiteral && index !is IdentifierReference) {
-            // replace complex indexing expression with a temp variable to hold the computed index first
-            return getAutoIndexerVarFor(arrayIndexedExpression)
+        if(options.compTarget.name!=VMTarget.NAME) {
+            val index = arrayIndexedExpression.indexer.indexExpr
+            if (index !is NumericLiteral && index !is IdentifierReference) {
+                // replace complex indexing expression with a temp variable to hold the computed index first
+                return getAutoIndexerVarFor(arrayIndexedExpression)
+            }
         }
 
         return noModifications
