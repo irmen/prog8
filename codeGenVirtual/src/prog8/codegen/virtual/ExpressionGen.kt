@@ -5,7 +5,7 @@ import prog8.code.core.AssemblyError
 import prog8.vm.Instruction
 import prog8.vm.Opcode
 
-internal class ExpressionGen(val codeGen: CodeGen, val builtinFunctions: BuiltinFunctionsGen) {
+internal class ExpressionGen(val codeGen: CodeGen) {
     fun translateExpression(expr: PtExpression): Pair<VmCodeChunk, Int> {
         // TODO("Not yet implemented")
         val chunk = VmCodeChunk()
@@ -78,6 +78,52 @@ internal class ExpressionGen(val codeGen: CodeGen, val builtinFunctions: Builtin
         // TODO evaluate arguments
         chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, codeGen.gosubArg(fcall.functionName))
         return Pair(chunk, 0)   // TODO function result always in r0?
+    }
+
+
+
+    fun translate(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val chunk = VmCodeChunk()
+        when(call.name) {
+            "syscall" -> {
+                val vExpr = call.args.single() as PtNumber
+                chunk += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=vExpr.number.toInt()))
+            }
+            "syscall1" -> {
+                val vExpr = call.args[0] as PtNumber
+                // TODO make sure it evaluates into r0
+                val (expressionChunk0, resultRegister0) = translateExpression(call.args[1])
+                chunk += expressionChunk0
+                chunk += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=vExpr.number.toInt()))
+            }
+            "syscall2" -> {
+                val vExpr = call.args[0] as PtNumber
+                // TODO make sure it evaluates into r0
+                val (expressionChunk0, resultRegister0) = translateExpression(call.args[1])
+                chunk += expressionChunk0
+                // TODO make sure it evaluates into r1
+                val (expressionChunk1, resultRegister1) = translateExpression(call.args[2])
+                chunk += expressionChunk1
+                chunk += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=vExpr.number.toInt()))
+            }
+            "syscall3" -> {
+                val vExpr = call.args[0] as PtNumber
+                // TODO make sure it evaluates into r0
+                val (expressionChunk0, resultRegister0) = translateExpression(call.args[1])
+                chunk += expressionChunk0
+                // TODO make sure it evaluates into r1
+                val (expressionChunk1, resultRegister1) = translateExpression(call.args[2])
+                chunk += expressionChunk1
+                // TODO make sure it evaluates into r2
+                val (expressionChunk2, resultRegister2) = translateExpression(call.args[3])
+                chunk += expressionChunk2
+                chunk += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=vExpr.number.toInt()))
+            }
+            else -> {
+                TODO("builtinfunc ${call.name}")
+            }
+        }
+        return chunk
     }
 
 }

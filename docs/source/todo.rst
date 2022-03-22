@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- in new AST: combine param assignments + GoSub, back into PtFunctionCall node.  PtGosub node should not exist.
 
 ...
 

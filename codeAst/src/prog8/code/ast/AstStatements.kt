@@ -86,13 +86,6 @@ class PtForLoop(position: Position) : PtNode(position) {
 }
 
 
-class PtGosub(val identifier: PtIdentifier, position: Position) : PtNode(position) {
-    override fun printProperties() {
-        identifier.printProperties()
-    }
-}
-
-
 class PtIfElse(position: Position) : PtNode(position) {
     val condition: PtExpression
         get() = children[0] as PtExpression

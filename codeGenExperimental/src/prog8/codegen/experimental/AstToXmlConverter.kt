@@ -164,7 +164,6 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtContainmentCheck -> write(it)
             is PtForLoop -> write(it)
             is PtFunctionCall -> write(it)
-            is PtGosub -> write(it)
             is PtIdentifier -> write(it)
             is PtIfElse -> write(it)
             is PtInlineAssembly -> write(it)
@@ -551,12 +550,6 @@ class AstToXmlConverter(internal val program: PtProgram,
         else if(jump.generatedLabel!=null) xml.attr("label", jump.generatedLabel!!)
         else
             throw InternalCompilerException("weird jump target")
-        xml.endElt()
-    }
-
-    private fun write(gosub: PtGosub) {
-        xml.elt("gosub")
-        xml.attr("symbol", strTargetName(gosub.identifier))
         xml.endElt()
     }
 

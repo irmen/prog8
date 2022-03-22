@@ -4,6 +4,7 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
+import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
@@ -87,7 +88,13 @@ class IntermediateAstMaker(val program: Program) {
         }
     }
 
-    private fun transform(srcAssign: Assignment): PtAssignment {
+    private fun transform(srcAssign: Assignment): PtNode {
+        if(srcAssign.origin==AssignmentOrigin.PARAMETERASSIGN) {
+            // assignments that are setting the parameters for a function call,
+            // will be gathered at the GoSub itself later.
+            return PtNop(srcAssign.position)
+        }
+
         val assign = PtAssignment(srcAssign.isAugmentable, srcAssign.position)
         assign.add(transform(srcAssign.target))
         assign.add(transformExpression(srcAssign.value))
@@ -222,7 +229,35 @@ class IntermediateAstMaker(val program: Program) {
         return call
     }
 
-    private fun transform(gosub: GoSub): PtGosub  = PtGosub(transform(gosub.identifier), gosub.position)
+    private fun transform(gosub: GoSub): PtFunctionCall {
+        // Gather the Goto and any preceding parameter assignments back into a single Function call node.
+        // (the reason it was split up in the first place, is because the Compiler Ast optimizers
+        // can then work on any complex expressions that are used as arguments.)
+        val parent = gosub.parent as IStatementContainer
+        val gosubIdx = parent.statements.indexOf(gosub)
+        val previousNodes = parent.statements.subList(0, gosubIdx).reversed()
+        val paramAssigns = mutableListOf<Assignment>()
+        for (node in previousNodes) {
+            if(node !is Assignment || node.origin!=AssignmentOrigin.PARAMETERASSIGN)
+                break
+            paramAssigns += node
+        }
+        val parameters = gosub.identifier.targetSubroutine(program)!!.parameters
+        if(paramAssigns.size != parameters.size)
+            throw FatalAstException("mismatched number of parameter assignments for function call")
+
+        val target = transform(gosub.identifier)
+        val call = PtFunctionCall(target.targetName, true, DataType.UNDEFINED, gosub.position)
+
+        // put arguments in correct order for the parameters
+        val namedAssigns = paramAssigns.associate { it.target.identifier!!.targetVarDecl(program)!!.name to it.value }
+        parameters.forEach {
+            val argument = namedAssigns.getValue(it.name)
+            call.add(transformExpression(argument))
+        }
+
+        return call
+    }
 
     private fun transform(srcIf: IfElse): PtIfElse {
         val ifelse = PtIfElse(srcIf.position)

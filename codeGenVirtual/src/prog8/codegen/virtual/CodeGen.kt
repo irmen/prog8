@@ -15,8 +15,7 @@ class CodeGen(internal val program: PtProgram,
 ): IAssemblyGenerator {
 
     internal val allocations = VariableAllocator(symbolTable, program, errors)
-    private val builtinFunctions = BuiltinFunctionsGen(this)
-    private val expressionEval = ExpressionGen(this, builtinFunctions)
+    private val expressionEval = ExpressionGen(this)
     private val instructions = mutableListOf<String>()
 
     init {
@@ -93,7 +92,7 @@ class CodeGen(internal val program: PtProgram,
             is PtArrayIndexer -> TODO()
             is PtArrayLiteral -> TODO()
             is PtBinaryExpression -> TODO()
-            is PtBuiltinFunctionCall -> builtinFunctions.translate(node)
+            is PtBuiltinFunctionCall -> expressionEval.translate(node)
             is PtContainmentCheck -> TODO()
             is PtFunctionCall -> translate(node)
             is PtIdentifier -> TODO()
@@ -105,7 +104,6 @@ class CodeGen(internal val program: PtProgram,
             is PtString -> TODO()
             is PtTypeCast -> TODO()
             is PtForLoop -> TODO()
-            is PtGosub -> translate(node)
             is PtIfElse -> TODO()
             is PtJump -> TODO()
             is PtNodeGroup -> TODO()
@@ -128,14 +126,14 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(fcall: PtFunctionCall): VmCodeChunk {
         val chunk = VmCodeChunk()
-        // TODO evaluate function call arguments
+        for ((index, arg) in fcall.args.withIndex()) {
+            // TODO make sure the expressions code doesn't clobber the previous registers, and doesn't use the r0, r1, r2... which are needed to pass the args
+            val (expressionChunk, resultRegister) = expressionEval.translateExpression(arg)
+            chunk += expressionChunk
+            if(resultRegister!=index)
+                chunk += VmCodeInstruction(Instruction(Opcode.LOADR, vmType(arg.type), reg1=0, reg2=resultRegister))
+        }
         chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(fcall.functionName))
-        return chunk
-    }
-
-    private fun translate(gosub: PtGosub): VmCodeChunk {
-        val chunk = VmCodeChunk()
-        chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(gosub.identifier.targetName))
         return chunk
     }
 
