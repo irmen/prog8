@@ -24,7 +24,7 @@ Currently NO support for 24 or 32 bits, and FLOATING POINT is not implemented ye
 *only* LOAD AND STORE instructions have a possible memory operand, all other instructions use only registers or immediate value.
 
 
-LOAD/STORE  -- all have type b/w/f.  (note: float not yet implemented)
+LOAD/STORE  -- all have type b/w
 
 
 load        reg1,         value       - load immediate value into register
@@ -49,9 +49,9 @@ Subroutine parameters set in Reg 0, 1, 2... before gosub.
 Return value in Reg 0 before return.
 
 jump                    location      - continue running at instruction number given by location
-jumpi       reg1                      - continue running at instruction number given by reg1
+jumpi       reg1                      - continue running at instruction number in reg1
 gosub                   location      - save current instruction location+1, continue execution at location
-gosubi      reg1                      - gosub to subroutine at instruction number given by reg1
+gosubi      reg1                      - gosub to subroutine at instruction number in reg1
 syscall                 value         - do a systemcall identified by call number
 return                                - restore last saved instruction location and continue at that instruction
 
@@ -70,14 +70,12 @@ bge         reg1, reg2, value         - jump to location in program given by val
 bges        reg1, reg2, value         - jump to location in program given by value, if reg1 >= reg2 (signed)
 
 
-ARITHMETIC - all have a type of b/w/f. (note: float not yet implemented)
-(note: for calculations, all types -result, and both operands- are identical)
+INTEGER ARITHMETIC - all have a type of b/w.
+(note: the types of the result and both operands, are all identical UNLESS OTHERWISE NOTED).
 
 neg         reg1, reg2                      - reg1 = sign negation of reg2
 add         reg1, reg2, reg3                - reg1 = reg2+reg3 (unsigned + signed)
-addi        reg1, reg2,         value       - reg1 = reg2+value (unsigned + signed)
 sub         reg1, reg2, reg3                - reg1 = reg2-reg3 (unsigned + signed)
-subi        reg1, reg2,         value       - reg1 = reg2-value (unsigned + signed)
 ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (latter not yet implemented as we don't have longs yet)
 exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: latter ext.w, not yet implemented as we don't have longs yet)
 mul         reg1, reg2, reg3                - unsigned multiply reg1=reg2*reg3  note: byte*byte->byte, no type extension to word!
@@ -145,9 +143,7 @@ enum class Opcode {
 
     NEG,
     ADD,
-    ADDI,
     SUB,
-    SUBI,
     MUL,
     DIV,
     EXT,
@@ -171,7 +167,7 @@ enum class Opcode {
 enum class DataType {
     BYTE,
     WORD
-    // TODO add LONG?  FLOAT?
+    // TODO add INT (32-bit)?
 }
 
 data class Instruction(
@@ -190,22 +186,22 @@ data class Instruction(
             else -> result.add(" ")
         }
         reg1?.let {
-            result.add(it.toString())
+            result.add("r$it")
             result.add(",")
         }
         reg2?.let {
-            result.add(it.toString())
+            result.add("r$it")
             result.add(",")
         }
         reg3?.let {
-            result.add(it.toString())
+            result.add("r$it")
             result.add(",")
         }
         value?.let {
             result.add(it.toString())
         }
         if(result.last() == ",")
-            result.dropLast(1)
+            result.removeLast()
         return result.joinToString("").trimEnd()
     }
 }
@@ -253,9 +249,7 @@ val instructionFormats = mutableMapOf(
 
         Opcode.NEG to        InstructionFormat(BW, true,  true,  false, false),
         Opcode.ADD to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ADDI to       InstructionFormat(BW, true,  true,  false, true ),
         Opcode.SUB to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SUBI to       InstructionFormat(BW, true,  true,  false, true ),
         Opcode.MUL to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.DIV to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.EXT to        InstructionFormat(BW, true,  true,  false, false),

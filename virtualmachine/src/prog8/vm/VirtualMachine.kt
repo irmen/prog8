@@ -109,9 +109,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.BGES -> InsBGES(ins)
             Opcode.NEG -> InsNEG(ins)
             Opcode.ADD -> InsADD(ins)
-            Opcode.ADDI -> InsADDI(ins)
             Opcode.SUB -> InsSUB(ins)
-            Opcode.SUBI -> InsSUBI(ins)
             Opcode.MUL -> InsMul(ins)
             Opcode.DIV -> InsDiv(ins)
             Opcode.EXT -> InsEXT(ins)
@@ -474,26 +472,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setW(reg1, result.toUShort())
     }
 
-    private fun InsADDI(i: Instruction) {
-        when(i.type!!) {
-            DataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!, null, i.value!!.toUByte())
-            DataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!, null, i.value!!.toUShort())
-        }
-        pc++
-    }
-
     private fun InsSUB(i: Instruction) {
         when(i.type!!) {
             DataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, i.reg3!!, null)
             DataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, i.reg3!!, null)
-        }
-        pc++
-    }
-
-    private fun InsSUBI(i: Instruction) {
-        when(i.type!!) {
-            DataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, null, i.value!!.toUByte())
-            DataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, null, i.value!!.toUShort())
         }
         pc++
     }

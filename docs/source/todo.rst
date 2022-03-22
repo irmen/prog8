@@ -3,6 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- first for virtual target: do not create tempvars for return statements (StatementOptimizer)
+   maybe other places as well?
+- in new AST: combine param assignments + GoSub, back into PtFunctionCall node.  PtGosub node should not exist.
+
 ...
 
 

@@ -12,7 +12,7 @@ class Assembler {
     fun initializeMemory(memsrc: String, memory: Memory) {
         val instrPattern = Regex("""(.+?)\s+([a-z]+)\s+(.+)""", RegexOption.IGNORE_CASE)
         for(line in memsrc.lines()) {
-            if(line.isBlank())
+            if(line.isBlank() || line.startsWith(';'))
                 continue
             val match = instrPattern.matchEntire(line.trim())
             if(match==null)
@@ -54,7 +54,7 @@ class Assembler {
         placeholders.clear()
         val program = mutableListOf<Instruction>()
         val instructionPattern = Regex("""([a-z]+)(\.b|\.w)?(.*)""", RegexOption.IGNORE_CASE)
-        val labelPattern = Regex("""_([a-z0-9]+):""")
+        val labelPattern = Regex("""_([a-z0-9\._]+):""")
         for (line in source.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue

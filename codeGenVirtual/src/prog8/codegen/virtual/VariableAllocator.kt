@@ -27,13 +27,10 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
         freeStart = nextLocation
     }
 
-    fun asVmMemory(): List<String> {
-/*
-$4000 strz "Hello from program! "derp" bye.\n"
-$2000 ubyte 65,66,67,68,0
-$2100 uword $1111,$2222,$3333,$4444
- */
-        val mm = mutableListOf<String>()
+    fun get(name: List<String>) = allocations.getValue(name)
+
+    fun asVmMemory(): List<Pair<List<String>, String>> {
+        val mm = mutableListOf<Pair<List<String>, String>>()
         for (variable in st.allVariables) {
             val location = allocations.getValue(variable.scopedName)
             val typeStr = when(variable.dt) {
@@ -67,7 +64,7 @@ $2100 uword $1111,$2222,$3333,$4444
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            mm.add("${location.toHex()} $typeStr $value")
+            mm.add(Pair(variable.scopedName, "${location.toHex()} $typeStr $value"))
         }
         return mm
     }
