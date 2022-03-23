@@ -35,12 +35,13 @@ internal class SymbolTableMaker: IAstVisitor {
     }
 
     override fun visit(subroutine: Subroutine) {
+        val parameters = subroutine.parameters.map { StSubroutineParameter(it.name, it.type) }
         if(subroutine.asmAddress!=null) {
-            val node = StRomSub(subroutine.name, subroutine.asmAddress!!, subroutine.position)
+            val node = StRomSub(subroutine.name, subroutine.asmAddress!!, parameters, subroutine.position)
             scopestack.peek().add(node)
             // st.origAstLinks[subroutine] = node
         } else {
-            val node = StNode(subroutine.name, StNodeType.SUBROUTINE, subroutine.position)
+            val node = StSub(subroutine.name, parameters, subroutine.position)
             scopestack.peek().add(node)
             scopestack.push(node)
             super.visit(subroutine)

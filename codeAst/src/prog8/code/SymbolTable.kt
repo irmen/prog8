@@ -176,6 +176,7 @@ class StConstant(name: String, val dt: DataType, val value: Double, position: Po
     }
 }
 
+
 class StMemVar(name: String, val dt: DataType, val address: UInt, position: Position) :
     StNode(name, StNodeType.MEMVAR, position) {
     override fun printProperties() {
@@ -184,13 +185,23 @@ class StMemVar(name: String, val dt: DataType, val address: UInt, position: Posi
 }
 
 
-class StRomSub(name: String, val address: UInt, position: Position) :
-        StNode(name, StNodeType.ROMSUB, position) {
+class StSub(name: String, val parameters: List<StSubroutineParameter>, position: Position) :
+        StNode(name, StNodeType.SUBROUTINE, position) {
+    override fun printProperties() {
+        print(name)
+    }
+}
+
+
+class StRomSub(name: String, val address: UInt, parameters: List<StSubroutineParameter>, position: Position) :
+    StNode(name, StNodeType.ROMSUB, position) {
     override fun printProperties() {
         print("$name  address=${address.toHex()}")
     }
 }
 
+
+class StSubroutineParameter(val name: String, val type: DataType)
 class StArrayElement(val number: Double?, val addressOf: List<String>?)
 
 typealias StString = Pair<String, Encoding>

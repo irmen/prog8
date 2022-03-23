@@ -186,7 +186,6 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtNop -> {}
             is PtBreakpoint -> write(it)
             is PtScopeVarsDecls -> write(it)
-            is PtScopeVarsInit -> write(it)
             is PtNodeGroup -> it.children.forEach { writeNode(it) }
             else -> TODO("$it")
         }
@@ -196,13 +195,6 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.elt("vars")
         xml.startChildren()
         vars.children.forEach { writeNode(it) }
-        xml.endElt()
-    }
-
-    private fun write(inits: PtScopeVarsInit) {
-        xml.elt("varsinit")
-        xml.startChildren()
-        inits.children.forEach { writeNode(it) }
         xml.endElt()
     }
 

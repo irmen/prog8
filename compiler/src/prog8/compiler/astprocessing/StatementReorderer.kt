@@ -7,6 +7,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.asmsub6502ArgsEvalOrder
 import prog8.codegen.cpu6502.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.compiler.BuiltinFunctions
@@ -411,7 +412,7 @@ internal class StatementReorderer(val program: Program,
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         val function = functionCallStatement.target.targetStatement(program)!!
         checkUnusedReturnValues(functionCallStatement, function, program, errors)
-        return tryReplaceCallWithGosub(functionCallStatement, parent, program)
+        return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
 }
 
@@ -419,14 +420,19 @@ internal class StatementReorderer(val program: Program,
 internal fun tryReplaceCallWithGosub(
     functionCallStatement: FunctionCallStatement,
     parent: Node,
-    program: Program
+    program: Program,
+    options: CompilationOptions
 ): Iterable<IAstModification> {
     val callee = functionCallStatement.target.targetStatement(program)!!
     if(callee is Subroutine) {
         if(callee.inline)
             return emptyList()
-        return if(callee.isAsmSubroutine)
-            tryReplaceCallAsmSubWithGosub(functionCallStatement, parent, callee)
+        return if(callee.isAsmSubroutine) {
+            if(options.compTarget.name==VMTarget.NAME)
+                emptyList()
+            else
+                tryReplaceCallAsmSubWithGosub(functionCallStatement, parent, callee)
+        }
         else
             tryReplaceCallNormalSubWithGosub(functionCallStatement, parent, callee, program)
     }

@@ -40,7 +40,7 @@ class VirtualMachineDefinition: IMachineDefinition {
         assembler.initializeMemory(memsrc, memory)
         val program = assembler.assembleProgram(programsrc)
         val vm = VirtualMachine(memory, program)
-        vm.run()
+        vm.run(throttle = true)
     }
 
     override fun isIOAddress(address: UInt): Boolean = false

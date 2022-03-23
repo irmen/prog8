@@ -58,6 +58,16 @@ class PtAssignTarget(position: Position) : PtNode(position) {
     val memory: PtMemoryByte?
         get() = children.single() as? PtMemoryByte
 
+    val type: DataType
+        get() {
+            return when(val tgt = children.single()) {
+                is PtIdentifier -> tgt.type
+                is PtArrayIndexer -> tgt.type       // TODO array to elt type?
+                is PtMemoryByte -> tgt.type
+                else -> throw AssemblyError("weird dt")
+            }
+        }
+
     override fun printProperties() {}
 }
 

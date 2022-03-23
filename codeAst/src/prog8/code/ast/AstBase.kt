@@ -116,8 +116,3 @@ class PtNop(position: Position): PtNode(position) {
 class PtScopeVarsDecls(position: Position): PtNode(position) {
     override fun printProperties() {}
 }
-
-
-class PtScopeVarsInit(position: Position): PtNode(position) {
-    override fun printProperties() {}
-}

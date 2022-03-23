@@ -9,7 +9,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling: Int): JFrame("vm-graphics $pixelWidth × $pixelHeight"), AutoCloseable {
+class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling: Int): JFrame("Prog8 VM Graphics Screen $pixelWidth × $pixelHeight"), AutoCloseable {
     private lateinit var repaintTimer: Timer
 
     fun start() {

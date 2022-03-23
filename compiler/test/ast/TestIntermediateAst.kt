@@ -40,8 +40,9 @@ class TestIntermediateAst: FunSpec({
         blocks[0].scopedName shouldBe listOf("main")
 
         val vars = entry.children[0] as PtScopeVarsDecls
-        val inits = entry.children[1] as PtScopeVarsInit
-        inits.children.size shouldBe 1
+        val ccInit = entry.children[1] as PtAssignment
+        ccInit.target.identifier?.targetName shouldBe listOf("main","start","cc")
+        (ccInit.value as PtNumber).number shouldBe 0.0
 
         val ccdecl = vars.children[0] as PtVariable
         ccdecl.name shouldBe "cc"

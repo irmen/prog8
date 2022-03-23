@@ -72,7 +72,7 @@ class Assembler {
             } else {
                 val (_, instr, typestr, rest) = match.groupValues
                 val opcode = Opcode.valueOf(instr.uppercase())
-                var type: DataType? = convertType(typestr)
+                var type: VmDataType? = convertType(typestr)
                 val operands = rest.lowercase().split(",").toMutableList()
                 var reg1: Int? = null
                 var reg2: Int? = null
@@ -113,7 +113,7 @@ class Assembler {
                 }
                 val format = instructionFormats.getValue(opcode)
                 if(type==null && format.datatypes.isNotEmpty())
-                    type= DataType.BYTE
+                    type= VmDataType.BYTE
                 if(type!=null && type !in format.datatypes)
                     throw IllegalArgumentException("invalid type code for $line")
                 if(format.reg1 && reg1==null)
@@ -161,11 +161,11 @@ class Assembler {
         return value.toInt()
     }
 
-    private fun convertType(typestr: String): DataType? {
+    private fun convertType(typestr: String): VmDataType? {
         return when(typestr.lowercase()) {
             "" -> null
-            ".b" -> DataType.BYTE
-            ".w" -> DataType.WORD
+            ".b" -> VmDataType.BYTE
+            ".w" -> VmDataType.WORD
             else -> throw IllegalArgumentException("invalid type $typestr")
         }
     }

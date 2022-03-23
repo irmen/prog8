@@ -18,7 +18,7 @@ internal class AssemblyProgram(override val name: String,
 
     override fun assemble(options: CompilationOptions): Boolean {
         val outfile = options.outputDir / ("$name.p8virt")
-        println("write code to ${outfile}")
+        println("write code to $outfile")
         outfile.bufferedWriter().use { out ->
             allocations.asVmMemory().forEach { (name, alloc) ->
                 out.write("; ${name.joinToString(".")}\n")
@@ -38,9 +38,18 @@ internal class AssemblyProgram(override val name: String,
     private fun BufferedWriter.writeLine(line: VmCodeLine) {
         when(line) {
             is VmCodeComment -> write("; ${line.comment}\n")
-            is VmCodeInstruction -> write(line.ins.toString() + "\n")
+            is VmCodeInstruction -> {
+                write(line.ins.toString())
+                if(line.labelArg!=null) {
+                    if (line.ins.reg1 != null || line.ins.reg2 != null || line.ins.reg3 != null || line.ins.value != null)
+                        write(",")
+                    else
+                        write(" ")
+                    write("_" + line.labelArg.joinToString("."))
+                }
+                write("\n")
+            }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
-            is VmCodeOpcodeWithStringArg -> write("${line.opcode.name.lowercase()} ${line.arg}\n")
         }
     }
 
@@ -50,13 +59,17 @@ internal class AssemblyProgram(override val name: String,
 
 internal sealed class VmCodeLine
 
-internal class VmCodeInstruction(val ins: Instruction): VmCodeLine()
+internal class VmCodeInstruction(val ins: Instruction, val labelArg: List<String>?=null): VmCodeLine()
 internal class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
-internal class VmCodeOpcodeWithStringArg(val opcode: Opcode, val arg: String): VmCodeLine()
 
-internal class VmCodeChunk {
+internal class VmCodeChunk(initial: VmCodeLine? = null) {
     val lines = mutableListOf<VmCodeLine>()
+
+    init {
+        if(initial!=null)
+            lines.add(initial)
+    }
 
     operator fun plusAssign(line: VmCodeLine) {
         lines.add(line)

@@ -668,6 +668,15 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "not" -> {
                 when(type) {
+                    // if reg==0 ->
+                    /*
+        lda  P8ESTACK_LO+1,x
+		beq  +
+		lda  #1
++		eor  #1
+		sta  P8ESTACK_LO+1,x
+		rts
+                     */
                     in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.not_byte")
                     in WordDatatypes -> asmgen.out("  jsr  prog8_lib.not_word")
                     else -> throw AssemblyError("weird type")

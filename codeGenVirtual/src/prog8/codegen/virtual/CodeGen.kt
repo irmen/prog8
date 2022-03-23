@@ -5,7 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Instruction
 import prog8.vm.Opcode
-import prog8.vm.DataType
+import prog8.vm.VmDataType
 
 
 class CodeGen(internal val program: PtProgram,
@@ -16,7 +16,6 @@ class CodeGen(internal val program: PtProgram,
 
     internal val allocations = VariableAllocator(symbolTable, program, errors)
     private val expressionEval = ExpressionGen(this)
-    private val instructions = mutableListOf<String>()
 
     init {
         if(options.dontReinitGlobals)
@@ -24,29 +23,151 @@ class CodeGen(internal val program: PtProgram,
     }
 
     override fun compileToAssembly(): IAssemblyProgram? {
-        instructions.clear()
         val vmprog = AssemblyProgram(program.name, allocations)
 
+        // collect global variables initializers
         program.allBlocks().forEach {
-            it.children
-                .singleOrNull { node->node is PtScopeVarsInit }
-                ?.let { inits ->
-                    vmprog.addGlobalInits(translate(inits as PtScopeVarsInit))
-                    it.children.remove(inits)
-                }
+            val chunk = VmCodeChunk()
+            it.children.filterIsInstance<PtAssignment>().forEach { assign -> chunk += translate(assign, RegisterUsage(0)) }
+            vmprog.addGlobalInits(chunk)
         }
 
+        val regUsage = RegisterUsage(0)
         for (block in program.allBlocks()) {
-            vmprog.addBlock(translate(block))
+            vmprog.addBlock(translate(block, regUsage))
         }
 
         return vmprog
     }
 
-    private fun translate(assignment: PtAssignment): VmCodeChunk {
+
+    private fun translateNode(node: PtNode, regUsage: RegisterUsage): VmCodeChunk {
+        val chunk = when(node) {
+            is PtBlock -> translate(node, regUsage)
+            is PtSub -> translate(node, regUsage)
+            is PtScopeVarsDecls -> VmCodeChunk() // vars should be looked up via symbol table
+            is PtVariable -> VmCodeChunk() // var should be looked up via symbol table
+            is PtMemMapped -> VmCodeChunk() // memmapped var should be looked up via symbol table
+            is PtConstant -> VmCodeChunk() // constants have all been folded into the code
+            is PtAssignment -> translate(node, regUsage)
+            is PtNodeGroup -> translateGroup(node.children, regUsage)
+            is PtBuiltinFunctionCall -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
+            is PtFunctionCall -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
+            is PtNop -> VmCodeChunk()
+            is PtReturn -> translate(node)
+            is PtJump -> translate(node)
+            is PtConditionalBranch -> TODO()
+            is PtPipe -> TODO()
+            is PtForLoop -> TODO()
+            is PtIfElse -> TODO()
+            is PtPostIncrDecr -> translate(node, regUsage)
+            is PtRepeatLoop -> translate(node, regUsage)
+            is PtWhen -> TODO()
+            is PtLabel -> VmCodeChunk(VmCodeLabel(node.scopedName))
+            is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Instruction(Opcode.BREAKPOINT)))
+            is PtAddressOf,
+            is PtContainmentCheck,
+            is PtMemoryByte,
+            is PtProgram,
+            is PtArrayIndexer,
+            is PtBinaryExpression,
+            is PtIdentifier,
+            is PtWhenChoice,
+            is PtPrefix,
+            is PtRange,
+            is PtAssignTarget,
+            is PtTypeCast,
+            is PtSubroutineParameter,
+            is PtNumber,
+            is PtArrayLiteral,
+            is PtString -> throw AssemblyError("$node should not occur as separate statement node")
+            is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target")
+            is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target")
+            is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target")
+            else -> TODO("missing codegen for $node")
+        }
+        chunk.lines.add(0, VmCodeComment(node.position.toString()))
+        return chunk
+    }
+
+    private fun translate(postIncrDecr: PtPostIncrDecr, regUsage: RegisterUsage): VmCodeChunk {
         val chunk = VmCodeChunk()
-        val (expressionChunk, resultRegister) = expressionEval.translateExpression(assignment.value)
-        chunk += expressionChunk
+        val operation = when(postIncrDecr.operator) {
+            "++" -> Opcode.INC
+            "--" -> Opcode.DEC
+            else -> throw AssemblyError("weird operator")
+        }
+        val ident = postIncrDecr.target.identifier
+        val memory = postIncrDecr.target.memory
+        val array = postIncrDecr.target.array
+        val vmDt = vmType(postIncrDecr.target.type)
+        val resultReg = regUsage.nextFree()
+        if(ident!=null) {
+            val address = allocations.get(ident.targetName)
+            chunk += VmCodeInstruction(Instruction(Opcode.LOADM, vmDt, reg1=resultReg, value = address))
+            chunk += VmCodeInstruction(Instruction(operation, vmDt, reg1=resultReg))
+            chunk += VmCodeInstruction(Instruction(Opcode.STOREM, vmDt, reg1=resultReg, value = address))
+        } else if(memory!=null) {
+            val addressReg = regUsage.nextFree()
+            chunk += expressionEval.translateExpression(memory.address, addressReg, regUsage)
+            chunk += VmCodeInstruction(Instruction(Opcode.LOADI, vmDt, reg1=resultReg, reg2=addressReg))
+            chunk += VmCodeInstruction(Instruction(operation, vmDt, reg1=resultReg))
+            chunk += VmCodeInstruction(Instruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg))
+        } else if (array!=null) {
+            TODO("postincrdecr array")
+        } else
+            throw AssemblyError("weird assigntarget")
+
+        return chunk
+    }
+
+    private fun translate(repeat: PtRepeatLoop, regUsage: RegisterUsage): VmCodeChunk {
+        if((repeat.count as? PtNumber)?.number==0.0)
+            return VmCodeChunk()
+        if((repeat.count as? PtNumber)?.number==1.0)
+            return translateGroup(repeat.children, regUsage)
+        if((repeat.count as? PtNumber)?.number==256.0) {
+            // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
+            repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
+        }
+
+        val chunk = VmCodeChunk()
+        val counterReg = regUsage.nextFree()
+        val vmDt = vmType(repeat.count.type)
+        chunk += expressionEval.translateExpression(repeat.count, counterReg, regUsage)
+        val repeatLabel = createLabelName()
+        chunk += VmCodeLabel(repeatLabel)
+        chunk += translateNode(repeat.statements, regUsage)
+        chunk += VmCodeInstruction(Instruction(Opcode.DEC, vmDt, reg1=counterReg))
+        chunk += VmCodeInstruction(Instruction(Opcode.BNZ, vmDt, reg1=counterReg), labelArg = repeatLabel)
+        return chunk
+    }
+
+    private fun translate(jump: PtJump): VmCodeChunk {
+        val chunk = VmCodeChunk()
+        if(jump.address!=null)
+            throw AssemblyError("cannot jump to memory location in the vm target")
+        chunk += if(jump.generatedLabel!=null)
+            VmCodeInstruction(Instruction(Opcode.JUMP), labelArg = listOf(jump.generatedLabel!!))
+        else if(jump.identifier!=null)
+            VmCodeInstruction(Instruction(Opcode.JUMP), labelArg = jump.identifier!!.targetName)
+        else
+            throw AssemblyError("weird jump")
+        return chunk
+    }
+
+    private fun translateGroup(group: List<PtNode>, regUsage: RegisterUsage): VmCodeChunk {
+        val chunk = VmCodeChunk()
+        group.forEach { chunk += translateNode(it, regUsage) }
+        return chunk
+    }
+
+    private fun translate(assignment: PtAssignment, regUsage: RegisterUsage): VmCodeChunk {
+        // TODO optimize in-place assignments (assignment.augmentable = true)
+
+        val chunk = VmCodeChunk()
+        val resultRegister = regUsage.nextFree()
+        chunk += expressionEval.translateExpression(assignment.value, resultRegister, regUsage)
         val ident = assignment.target.identifier
         val memory = assignment.target.memory
         val array = assignment.target.array
@@ -64,9 +185,8 @@ class CodeGen(internal val program: PtProgram,
                 if(memory.address is PtNumber) {
                     Instruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
                 } else {
-                    // TODO make sure the registers used in this eval don't overlap with the one above
-                    val (addrExpressionChunk, addressRegister) = expressionEval.translateExpression(assignment.value)
-                    chunk += addrExpressionChunk
+                    val addressRegister = regUsage.nextFree()
+                    chunk += expressionEval.translateExpression(assignment.value, addressRegister, regUsage)
                     Instruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressRegister)
                 }
             chunk += VmCodeInstruction(ins)
@@ -76,124 +196,55 @@ class CodeGen(internal val program: PtProgram,
         return chunk
     }
 
-    private fun translateNode(node: PtNode): VmCodeChunk {
-        return when(node) {
-            is PtBlock -> translate(node)
-            is PtSub -> translate(node)
-            is PtScopeVarsDecls -> VmCodeChunk() // vars should be looked up via symbol table
-            is PtVariable -> VmCodeChunk() // var should be looked up via symbol table
-            is PtMemMapped -> VmCodeChunk() // memmapped var should be looked up via symbol table
-            is PtConstant -> VmCodeChunk() // constants have all been folded into the code
-            is PtAssignTarget -> TODO()
-            is PtAssignment -> translate(node)
-            is PtScopeVarsInit -> translate(node)
-            is PtConditionalBranch -> TODO()
-            is PtAddressOf -> TODO()
-            is PtArrayIndexer -> TODO()
-            is PtArrayLiteral -> TODO()
-            is PtBinaryExpression -> TODO()
-            is PtBuiltinFunctionCall -> expressionEval.translate(node)
-            is PtContainmentCheck -> TODO()
-            is PtFunctionCall -> translate(node)
-            is PtIdentifier -> TODO()
-            is PtMemoryByte -> TODO()
-            is PtNumber -> TODO()
-            is PtPipe -> TODO()
-            is PtPrefix -> TODO()
-            is PtRange -> TODO()
-            is PtString -> TODO()
-            is PtTypeCast -> TODO()
-            is PtForLoop -> TODO()
-            is PtIfElse -> TODO()
-            is PtJump -> TODO()
-            is PtNodeGroup -> TODO()
-            is PtNop -> VmCodeChunk()
-            is PtPostIncrDecr -> TODO()
-            is PtProgram -> TODO()
-            is PtRepeatLoop -> TODO()
-            is PtReturn -> translate(node)
-            is PtSubroutineParameter -> TODO()
-            is PtWhen -> TODO()
-            is PtWhenChoice -> TODO()
-            is PtLabel -> TODO()
-            is PtBreakpoint -> TODO()
-            is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target")
-            is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target")
-            is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target")
-            else -> TODO("missing codegen for $node")
-        }
-    }
-
-    private fun translate(fcall: PtFunctionCall): VmCodeChunk {
-        val chunk = VmCodeChunk()
-        for ((index, arg) in fcall.args.withIndex()) {
-            // TODO make sure the expressions code doesn't clobber the previous registers, and doesn't use the r0, r1, r2... which are needed to pass the args
-            val (expressionChunk, resultRegister) = expressionEval.translateExpression(arg)
-            chunk += expressionChunk
-            if(resultRegister!=index)
-                chunk += VmCodeInstruction(Instruction(Opcode.LOADR, vmType(arg.type), reg1=0, reg2=resultRegister))
-        }
-        chunk += VmCodeOpcodeWithStringArg(Opcode.GOSUB, gosubArg(fcall.functionName))
-        return chunk
-    }
-
     private fun translate(ret: PtReturn): VmCodeChunk {
         val chunk = VmCodeChunk()
         val value = ret.value
         if(value!=null) {
-            val (expressionChunk, resultRegister) = expressionEval.translateExpression(value)
-            chunk += expressionChunk
-            if(resultRegister!=0)
-                chunk += VmCodeInstruction(Instruction(Opcode.LOADR, vmType(value.type), reg1=0, reg2=resultRegister))
+            // Call Convention: return value is always returned in r0
+            chunk += expressionEval.translateExpression(value, 0, RegisterUsage(1))
         }
         chunk += VmCodeInstruction(Instruction(Opcode.RETURN))
         return chunk
     }
 
-    internal fun vmType(type: prog8.code.core.DataType): DataType {
-        return when(type) {
-            prog8.code.core.DataType.UBYTE,
-            prog8.code.core.DataType.BYTE -> DataType.BYTE
-            prog8.code.core.DataType.UWORD,
-            prog8.code.core.DataType.WORD -> DataType.WORD
-            in PassByReferenceDatatypes -> DataType.WORD
-            else -> throw AssemblyError("no vm datatype for $type")
-        }
-    }
-
-    private fun translate(init: PtScopeVarsInit): VmCodeChunk {
-        val chunk = VmCodeChunk()
-        init.children.forEach { chunk += translateNode(it) }
-        return chunk
-    }
-
-    private fun translate(sub: PtSub): VmCodeChunk {
+    private fun translate(sub: PtSub, regUsage: RegisterUsage): VmCodeChunk {
+        // TODO actually inline subroutines marked as inline
         val chunk = VmCodeChunk()
         chunk += VmCodeComment("SUB: ${sub.scopedName} -> ${sub.returntype}")
         chunk += VmCodeLabel(sub.scopedName)
-        sub.children
-            .singleOrNull { it is PtScopeVarsInit }
-            ?.let { inits ->
-                sub.children.remove(inits)
-                chunk += translateNode(inits)
-            }
-
         for (child in sub.children) {
-            chunk += translateNode(child)
+            chunk += translateNode(child, regUsage)
         }
         chunk += VmCodeComment("SUB-END '${sub.name}'")
         return chunk
     }
 
-    private fun translate(block: PtBlock): VmCodeChunk {
+    private fun translate(block: PtBlock, regUsage: RegisterUsage): VmCodeChunk {
         val chunk = VmCodeChunk()
         chunk += VmCodeComment("BLOCK '${block.name}'  addr=${block.address}  lib=${block.library}")
-        for (child in block.children)
-            chunk += translateNode(child)
+        for (child in block.children) {
+            if(child !is PtAssignment) // global variable initialization is done elsewhere
+                chunk += translateNode(child, regUsage)
+        }
         chunk += VmCodeComment("BLOCK-END '${block.name}'")
         return chunk
     }
 
 
-    internal fun gosubArg(targetName: List<String>) = "_${targetName.joinToString(".")}"
+    internal fun vmType(type: DataType): VmDataType {
+        return when(type) {
+            DataType.UBYTE,
+            DataType.BYTE -> VmDataType.BYTE
+            DataType.UWORD,
+            DataType.WORD -> VmDataType.WORD
+            in PassByReferenceDatatypes -> VmDataType.WORD
+            else -> throw AssemblyError("no vm datatype for $type")
+        }
+    }
+
+    private var labelSequenceNumber = 0
+    internal fun createLabelName(): List<String> {
+        labelSequenceNumber++
+        return listOf("generated$labelSequenceNumber")
+    }
 }

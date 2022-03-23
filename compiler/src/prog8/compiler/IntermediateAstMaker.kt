@@ -131,14 +131,10 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcBlock: Block): PtBlock {
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
-        val (varinits, actualStatements) = statements.partition { (it as? Assignment)?.origin==AssignmentOrigin.VARINIT }
         val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, srcBlock.position)
-
         if(vardecls.isNotEmpty()) block.add(makeScopeVarsDecls(vardecls, srcBlock.position))
-        if(varinits.isNotEmpty()) block.add(makeScopeVarInitializers(varinits, srcBlock.position))
-        for (stmt in actualStatements)
+        for (stmt in statements)
             block.add(transformStatement(stmt))
-
         return block
     }
 
@@ -148,14 +144,6 @@ class IntermediateAstMaker(val program: Program) {
             decls.add(transformStatement(it as VarDecl))
         }
         return decls
-    }
-
-    private fun makeScopeVarInitializers(varinits: List<Statement>, position: Position): PtScopeVarsInit {
-        val init = PtScopeVarsInit(position)
-        varinits.forEach {
-            init.add(transformStatement(it as Assignment))
-        }
-        return init
     }
 
     private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
@@ -236,23 +224,38 @@ class IntermediateAstMaker(val program: Program) {
         val parent = gosub.parent as IStatementContainer
         val gosubIdx = parent.statements.indexOf(gosub)
         val previousNodes = parent.statements.subList(0, gosubIdx).reversed()
-        val paramAssigns = mutableListOf<Assignment>()
+        val paramValues = mutableMapOf<String, Expression>()
         for (node in previousNodes) {
             if(node !is Assignment || node.origin!=AssignmentOrigin.PARAMETERASSIGN)
                 break
-            paramAssigns += node
+            paramValues[node.target.identifier!!.nameInSource.last()] = node.value
         }
+        // instead of just assigning to the parameters, another way is to use push()/pop()
+        if(previousNodes.isNotEmpty()) {
+            val first = previousNodes[0] as? FunctionCallStatement
+            if(first!=null && first.target.nameInSource == listOf("pop")) {
+                val numPops = previousNodes.indexOfFirst { (it as? FunctionCallStatement)?.target?.nameInSource != listOf("pop") }
+                val pops = previousNodes.subList(0, numPops)
+                val pushes = previousNodes.subList(numPops, numPops+numPops)
+                // TODO one of these has to be reversed?
+                for ((push, pop) in pushes.zip(pops)) {
+                    val name = ((pop as FunctionCallStatement).args.single() as IdentifierReference).nameInSource.last()
+                    val arg = (push as FunctionCallStatement).args.single()
+                    paramValues[name] = arg
+                }
+            }
+        }
+
         val parameters = gosub.identifier.targetSubroutine(program)!!.parameters
-        if(paramAssigns.size != parameters.size)
+        if(paramValues.size != parameters.size)
             throw FatalAstException("mismatched number of parameter assignments for function call")
 
         val target = transform(gosub.identifier)
         val call = PtFunctionCall(target.targetName, true, DataType.UNDEFINED, gosub.position)
 
         // put arguments in correct order for the parameters
-        val namedAssigns = paramAssigns.associate { it.target.identifier!!.targetVarDecl(program)!!.name to it.value }
         parameters.forEach {
-            val argument = namedAssigns.getValue(it.name)
+            val argument = paramValues.getValue(it.name)
             call.add(transformExpression(argument))
         }
 
@@ -348,7 +351,6 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
-        val (varinits, actualStatements) = statements.partition { (it as? Assignment)?.origin==AssignmentOrigin.VARINIT }
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
             srcSub.returntypes.singleOrNull(),
@@ -356,8 +358,7 @@ class IntermediateAstMaker(val program: Program) {
             srcSub.position)
 
         if(vardecls.isNotEmpty()) sub.add(makeScopeVarsDecls(vardecls, sub.position))
-        if(varinits.isNotEmpty()) sub.add(makeScopeVarInitializers(varinits, srcSub.position))
-        for (statement in actualStatements)
+        for (statement in statements)
             sub.add(transformStatement(statement))
 
         return sub

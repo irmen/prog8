@@ -7,6 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
@@ -288,7 +289,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(subroutine.inline && !subroutine.isAsmSubroutine)
+        if(compilerOptions.compTarget.name!=VMTarget.NAME && subroutine.inline && !subroutine.isAsmSubroutine)
             err("subroutine inlining is currently only supported on asmsub routines")
 
         if(subroutine.parent !is Block && subroutine.parent !is Subroutine)
@@ -498,8 +499,8 @@ internal class AstChecker(private val program: Program,
                         if (assignment.value !is FunctionCallExpression)
                             errors.err("assignment value is invalid or has no proper datatype, maybe forgot '&' (address-of)", assignment.value.position)
                     } else {
-                        checkAssignmentCompatible(targetDatatype.getOr(DataType.BYTE),
-                                sourceDatatype.getOr(DataType.BYTE), assignment.value)
+                        checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
+                                sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
                     }
                 }
             }
@@ -1463,8 +1464,15 @@ internal class AstChecker(private val program: Program,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
 
-        if(sourceValue is RangeExpression)
+        if(sourceValue is RangeExpression) {
             errors.err("can't assign a range value to something else", position)
+            return false
+        }
+
+        if(sourceDatatype==DataType.UNDEFINED) {
+            errors.err("assignment right hand side doesn't result in a value", position)
+            return false
+        }
 
         val result =  when(targetDatatype) {
             DataType.BYTE -> sourceDatatype== DataType.BYTE
