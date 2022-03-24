@@ -8,7 +8,7 @@
 txt {
 
 sub  clear_screen() {
-    txt.chrout(125)
+    syscall1(3, "\x1b[2J\x1B[H")
 }
 
 sub nl() {

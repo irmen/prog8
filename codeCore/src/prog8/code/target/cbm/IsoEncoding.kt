@@ -11,7 +11,17 @@ object IsoEncoding {
 
     fun encode(str: String): Result<List<UByte>, CharConversionException> {
         return try {
-            Ok(str.toByteArray(charset).map { it.toUByte() })
+            val mapped = str.map { chr ->
+                when (chr) {
+                    '\u0000' -> 0u
+                    in '\u8000'..'\u80ff' -> {
+                        // special case: take the lower 8 bit hex value directly
+                        (chr.code - 0x8000).toUByte()
+                    }
+                    else -> charset.encode(chr.toString())[0].toUByte()
+                }
+            }
+            Ok(mapped)
         } catch (ce: CharConversionException) {
             Err(ce)
         }

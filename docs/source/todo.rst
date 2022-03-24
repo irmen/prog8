@@ -5,6 +5,7 @@ For next release
 ^^^^^^^^^^^^^^^^
 - simplify cx16.joystick_get2() once this cx16 rom issue is resolved: https://github.com/commanderx16/x16-rom/issues/203
   Can now be resolved because the fix got merged https://github.com/commanderx16/x16-rom/pull/204
+- add unit test for the string encoders special handling of 0x0000 and 0x8000-0x80ff
 
 ...
 

@@ -193,10 +193,9 @@ class Assembler {
                         }
                     }
                     'x' -> {
-                        // special hack 0x8000..0x80ff  will be outputted verbatim without encoding
                         try {
                             val hex = ("" + iter.nextChar() + iter.nextChar()).toInt(16)
-                            (0x8000 + hex).toChar()
+                            hex.toChar()
                         } catch (sb: StringIndexOutOfBoundsException) {
                             throw IllegalArgumentException("invalid \\x escape sequence")
                         } catch (nf: NumberFormatException) {
