@@ -590,33 +590,37 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsLSR(i: Instruction) {
+        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setB(i.reg1!!, (registers.getB(i.reg2!!).toInt() ushr 1).toUByte())
-            VmDataType.WORD -> registers.setW(i.reg1!!, (registers.getW(i.reg2!!).toInt() ushr 1).toUShort())
+            VmDataType.BYTE -> registers.setB(i.reg1!!, (left shr right.toInt()).toUByte())
+            VmDataType.WORD -> registers.setW(i.reg1!!, (left shr right.toInt()).toUShort())
         }
         pc++
     }
 
     private fun InsLSL(i: Instruction) {
+        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setB(i.reg1!!, (registers.getB(i.reg2!!).toInt() shl 1).toUByte())
-            VmDataType.WORD -> registers.setW(i.reg1!!, (registers.getW(i.reg2!!).toInt() shl 1).toUShort())
+            VmDataType.BYTE -> registers.setB(i.reg1!!, (left shl right.toInt()).toUByte())
+            VmDataType.WORD -> registers.setW(i.reg1!!, (left shl right.toInt()).toUShort())
         }
         pc++
     }
 
     private fun InsROR(i: Instruction) {
+        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setB(i.reg1!!, (registers.getB(i.reg2!!).toInt().rotateRight(1).toUByte()))
-            VmDataType.WORD -> registers.setW(i.reg1!!, (registers.getW(i.reg2!!).toInt().rotateRight(1).toUShort()))
+            VmDataType.BYTE -> registers.setB(i.reg1!!, (left.rotateRight(right.toInt()).toUByte()))
+            VmDataType.WORD -> registers.setW(i.reg1!!, (left.rotateRight(right.toInt()).toUShort()))
         }
         pc++
     }
 
     private fun InsROL(i: Instruction) {
+        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setB(i.reg1!!, (registers.getB(i.reg2!!).toInt().rotateLeft(1).toUByte()))
-            VmDataType.WORD -> registers.setW(i.reg1!!, (registers.getW(i.reg2!!).toInt().rotateLeft(1).toUShort()))
+            VmDataType.BYTE -> registers.setB(i.reg1!!, (left.rotateLeft(right.toInt()).toUByte()))
+            VmDataType.WORD -> registers.setW(i.reg1!!, (left.rotateLeft(right.toInt()).toUShort()))
         }
         pc++
     }

@@ -104,11 +104,12 @@ All have type b or w.
 and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsr         reg1                             - reg1 = shift reg1 right by 1 bit
-lsl         reg1                             - reg1 = shift reg1 left by 1 bit
-ror         reg1                             - reg1 = rotate reg1 right by 1 bit, not using carry
-rol         reg1                             - reg1 = rotate reg1 left by 1 bit, not using carry
+lsr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits
+lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bits
+ror         reg1, reg2, reg3                 - reg1 = rotate reg2 right by reg3 bits, not using carry
+rol         reg1, reg2, reg3                 - reg1 = rotate reg2 left by reg3 bits, not using carry
 
+TODO add asr? (arithmetical shift right, so with sign bit)
 TODO also add ror/rol variants using the carry bit? These do map directly on 6502 and 68k instructions.
 
 
@@ -285,10 +286,10 @@ val instructionFormats = mutableMapOf(
         Opcode.AND to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.OR to         InstructionFormat(BW, true,  true,  true,  false),
         Opcode.XOR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSR to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.LSL to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROR to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROL to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.LSR to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.LSL to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ROR to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ROL to        InstructionFormat(BW, true,  true,  true,  false),
 
         Opcode.COPY to       InstructionFormat(NN, true,  true,  false, true ),
         Opcode.COPYZ to      InstructionFormat(NN, true,  true,  false, false),

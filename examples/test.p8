@@ -10,6 +10,8 @@ main {
         syscall1(8, 0)      ; enable lo res creen
         ubyte shifter
 
+        shifter >>= 1
+
         repeat {
             uword xx
             uword yy = 0
@@ -22,6 +24,9 @@ main {
                 yy++
             }
             shifter+=4
+
+            txt.print_ub(shifter)
+            txt.nl()
         }
     }
 }

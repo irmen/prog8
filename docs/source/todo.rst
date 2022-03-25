@@ -18,8 +18,8 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- vm code gen: don't reuse registers, don't pre allocate variables (except strings + arrays) but instead put them into registers too
-    then we have Static Single Assignment form in the VM code
+- vm code gen: don't reuse registers and don't pre allocate variables? (except strings + arrays) but instead put them into registers too
+    then we ALMOST have Static Single Assignment form in the VM code.  But what can we use that for?
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
