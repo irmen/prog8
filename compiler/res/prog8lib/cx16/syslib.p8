@@ -311,6 +311,7 @@ romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
+romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to don't have the hassle to deal with multiple return values
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
@@ -530,17 +531,6 @@ asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) 
         eor  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
         rts
-    }}
-}
-
-inline asmsub joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX  {
-    ; convenience routine to get the joystick state without requiring inline assembly that deals with the multiple return values.
-    ; Also disables interrupts to avoid the IRQ race condition mentioned here: https://github.com/commanderx16/x16-rom/issues/203
-    ; TODO once that issue is resolved, this routine can be redefined as:  romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX
-    %asm {{
-        sei
-        jsr  cx16.joystick_get
-        cli
     }}
 }
 
