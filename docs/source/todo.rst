@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add unit test for the string encoders special handling of 0x0000 and 0x8000-0x80ff
 
 ...
 

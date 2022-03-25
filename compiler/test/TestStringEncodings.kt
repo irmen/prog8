@@ -8,8 +8,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.ast.antlr.unescape
+import prog8.code.core.Encoding
+import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.Encoder
 import prog8.code.target.cbm.AtasciiEncoding
 import prog8.code.target.cbm.IsoEncoding
 import prog8.code.target.cbm.PetsciiEncoding
@@ -210,6 +214,24 @@ class TestStringEncodings: FunSpec({
         }
     }
 
+    test("special pass-through") {
+        val passthroughEscaped= """\x00\x1b\x99\xff"""
+        val passthrough = unescape(passthroughEscaped, Position.DUMMY)
+        passthrough.length shouldBe 4
+        passthrough[0] shouldBe '\u8000'
+        passthrough[1] shouldBe '\u801b'
+        passthrough[2] shouldBe '\u8099'
+        passthrough[3] shouldBe '\u80ff'
+        var encoded = Encoder.encodeString(passthrough, Encoding.PETSCII)
+        encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
+        encoded = Encoder.encodeString(passthrough, Encoding.ATASCII)
+        encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
+        encoded = Encoder.encodeString(passthrough, Encoding.SCREENCODES)
+        encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
+        encoded = Encoder.encodeString(passthrough, Encoding.ISO)
+        encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
+    }
+
     test("invalid encoding immediately errors the parser") {
         val source="""
             main {
@@ -275,3 +297,4 @@ class TestStringEncodings: FunSpec({
         compileText(Cx16Target(), false, source, writeAssembly = false) shouldNotBe null
     }
 })
+
