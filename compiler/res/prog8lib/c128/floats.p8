@@ -25,46 +25,64 @@ romsub $af00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 102-103 
 ; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
 ; (tip: use GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 romsub $af03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
-romsub $af09 = VAL(ubyte length @ A) clobbers(A,X,Y)       ; str -> fac1, $24/25 must point to string in bank1, A=string length   Don't call this from bank0
 
-; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $16/17)
+romsub $af06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
+; romsub $af09 = VAL_1() clobbers(A,X,Y)                      ; convert ASCII string to floating point [not yet implemented!!!]
+
+; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
 romsub $af0c = GETADR() clobbers(X) -> ubyte @ Y, ubyte @ A
+romsub $af0f = FLOATC() clobbers(A,X,Y)                     ; convert address to floating point
 
 romsub $af12 = FSUB(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt from A/Y - fac1
-romsub $af15 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands
-romsub $af18 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt value from A/Y in bank 1
-romsub $af1b = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2
-romsub $af2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
+romsub $af15 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands         NOTE: use FSUBT2() instead!
+romsub $af18 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt value from A/Y
+romsub $af1b = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2      NOTE: use FADDT2() instead!
 romsub $af1e = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
-romsub $af21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
-romsub $af5a = CONUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory bank 1  in A/Y into fac2
-romsub $af5d = ROMUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in current bank in A/Y into fac2
+romsub $af21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2      NOTE: use FMULTT2() instead!
 romsub $af24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
-romsub $af27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
-
-romsub $af63 = MOVFM(uword mflpt @ AY) clobbers(A,X,Y)      ; load mflpt value from memory  in A/Y into fac1
-romsub $af60 = MOVFRM() clobbers(A,X,Y)                     ; load mflpt value from memory  in $24/$25 into fac2
-romsub $af66 = MOVMF(uword mflpt @ XY) clobbers(A,X,Y)      ; store fac1 to memory  X/Y as 5-byte mflpt
-romsub $af69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
-romsub $af6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2
-romsub $af6c = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
-romsub $af51 = SIGN() clobbers(X,Y) -> ubyte @ A            ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
-romsub $af4e = ABS() clobbers(A,X,Y)                        ; fac1 = ABS(fac1)
-romsub $af54 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+romsub $af27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands  NOTE: use FDIVT2() instead!
+romsub $af2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
 romsub $af2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
-romsub $af06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY ($0100)
 romsub $af30 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
-romsub $af36 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** mflpt from A/Y
-romsub $af39 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
 romsub $af33 = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
+romsub $af36 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** float in A/Y
+romsub $af39 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1           NOTE: use FPWRT2() instead!
 romsub $af3c = EXP() clobbers(A,X,Y)                        ; fac1 = EXP(fac1)  (e ** fac1)
-romsub $af57 = RND() clobbers(A,X,Y)                        ; fac1 = RND(fac1) float random number generator
 romsub $af3f = COS() clobbers(A,X,Y)                        ; fac1 = COS(fac1)
 romsub $af42 = SIN() clobbers(A,X,Y)                        ; fac1 = SIN(fac1)
 romsub $af45 = TAN() clobbers(A,X,Y)                        ; fac1 = TAN(fac1)
 romsub $af48 = ATN() clobbers(A,X,Y)                        ; fac1 = ATN(fac1)
+romsub $af4b = ROUND() clobbers(A,X,Y)                      ; round fac1
+romsub $af4e = ABS() clobbers(A,X,Y)                        ; fac1 = ABS(fac1)
+romsub $af51 = SIGN() clobbers(X,Y) -> ubyte @ A            ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+romsub $af54 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+romsub $af57 = RND_0() clobbers(A,X,Y)                      ; fac1 = RND(fac1) float random number generator  NOTE: special cx16 setup required, use RND() stub instead!!
+romsub $af5a = CONUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory  in A/Y into fac2
+romsub $af5d = ROMUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in current bank in A/Y into fac2
+romsub $af60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac1  (use MOVFM instead)
+romsub $af63 = MOVFM(uword mflpt @ AY) clobbers(A,X,Y)      ; load mflpt value from memory  in A/Y into fac1
+romsub $af66 = MOVMF(uword mflpt @ XY) clobbers(A,X,Y)      ; store fac1 to memory  X/Y as 5-byte mflpt
+romsub $af69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
+romsub $af6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded)
 
+; X16 additions
+romsub $af6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
+romsub $af72 = FADDT2() clobbers(A,X,Y)                     ; fac1 += fac2
+romsub $af75 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
+romsub $af78 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1 (?)
+romsub $af7b = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (juse use NEGOP() instead!)
+romsub $af7e = FMULTT2() clobbers(A,X,Y)                    ; fac1 *= fac2
+romsub $af81 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
+romsub $af84 = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
+romsub $af87 = FDIVT2() clobbers(A,X,Y)                     ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
+romsub $af8a = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
+romsub $af8d = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
+romsub $af90 = FLOAT() clobbers(A,X,Y)                      ; FAC = (u8).A
+romsub $af93 = FLOATS() clobbers(A,X,Y)                     ; FAC = (s16)facho+1:facho
+romsub $af9C = QINT() clobbers(A,X,Y)                       ; facho:facho+1:facho+2:facho+3 = u32(FAC)
+romsub $af9f = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
+romsub $afa5 = FPWRT2() clobbers(A,X,Y)                     ; fac1 = fac2 ** fac1
 
 asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
     ; ---- 8 bit signed A -> float in fac1
@@ -81,22 +99,14 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-            stx  P8ZP_SCRATCH_REG
-            sta  _tmp
-            sty  P8ZP_SCRATCH_B1
-            tya
-            ldy  _tmp
-            jsr  GIVAYF                 ; load it as signed... correct afterwards
-            lda  P8ZP_SCRATCH_B1
-            bpl  +
-            lda  #<_flt65536
-            ldy  #>_flt65536
-            jsr  ROMUPK
-            jsr  FADDT
-+           ldx  P8ZP_SCRATCH_REG
-            rts
-_tmp        .byte 0
-_flt65536   .byte 145,0,0,0,0       ; 65536.0
+	phx
+	sty  $64        ; facmo
+	sta  $65        ; facmo+1
+	ldx  #$90
+	sec
+	jsr  FLOATC
+	plx
+	rts
 	}}
 }
 
@@ -108,6 +118,17 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 		tya
 		ldy  P8ZP_SCRATCH_B1
 		jmp  GIVAYF		; this uses the inverse order, Y/A
+	}}
+}
+
+asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
+	; ---- fac1 to signed word in A/Y
+	%asm {{
+		jsr  FTOSWORDYA	; note the inverse Y/A order
+		sta  P8ZP_SCRATCH_B1
+		tya
+		ldy  P8ZP_SCRATCH_B1
+		rts
 	}}
 }
 
@@ -125,8 +146,8 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 asmsub  FREADUY (ubyte value @Y) {
     ; -- 8 bit unsigned Y -> float in fac1
     %asm {{
-        lda  #0
-        jmp  GIVAYF
+        tya
+        jmp  FLOAT
     }}
 }
 
