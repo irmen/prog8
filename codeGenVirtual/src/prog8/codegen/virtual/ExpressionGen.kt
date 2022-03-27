@@ -365,16 +365,58 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 val name = (call.args[0] as PtString).value
                 val size = (call.args[1] as PtNumber).number.toUInt()
                 val align = (call.args[2] as PtNumber).number.toUInt()
-                TODO("Memory($name, $size, $align)")
+                val existing = codeGen.allocations.getMemorySlab(name)
+                val address = if(existing==null)
+                    codeGen.allocations.allocateMemorySlab(name, size, align)
+                else if(existing.second!=size || existing.third!=align) {
+                    codeGen.errors.err("memory slab '$name' already exists with a different size or alignment", call.position)
+                    return VmCodeChunk()
+                }
+                else
+                    existing.first
+                code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, value=address.toInt()))
             }
             "rnd" -> {
                 code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=Syscall.RND.ordinal))
                 if(resultRegister!=0)
                     code += VmCodeInstruction(Instruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0))
             }
+            "peek" -> {
+                val addressReg = regUsage.nextFree()
+                code += translateExpression(call.args.single(), addressReg, regUsage)
+                code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg))
+            }
+            "peekw" -> {
+                val addressReg = regUsage.nextFree()
+                code += translateExpression(call.args.single(), addressReg, regUsage)
+                code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg))
+            }
+            "memory" -> {
+                val memname = (call.args[0] as PtString).value
+                val size = (call.args[1] as PtNumber).number.toInt()
+                val align = (call.args[2] as PtNumber).number.toInt()
+                TODO("memory '$memname', $size, $align")
+            }
             else -> {
-                // TODO builtin functions...
                 TODO("builtinfunc ${call.name}")
+//                code += VmCodeInstruction(Instruction(Opcode.NOP))
+//                for (arg in call.args) {
+//                    code += translateExpression(arg, resultRegister, regUsage)
+//                    code += when(arg.type) {
+//                        in ByteDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1=resultRegister))
+//                        in WordDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1=resultRegister))
+//                        else -> throw AssemblyError("weird arg dt")
+//                    }
+//                }
+//                code += VmCodeInstruction(Instruction(Opcode.CALL), labelArg = listOf("_prog8_builtin", call.name))
+//                for (arg in call.args) {
+//                    code += when(arg.type) {
+//                        in ByteDatatypes -> VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1=resultRegister))
+//                        in WordDatatypes -> VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1=resultRegister))
+//                        else -> throw AssemblyError("weird arg dt")
+//                    }
+//                }
+//                code += VmCodeInstruction(Instruction(Opcode.NOP))
             }
         }
         return code

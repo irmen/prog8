@@ -7,7 +7,10 @@ import prog8.code.core.*
 class VariableAllocator(private val st: SymbolTable, private val program: PtProgram, errors: IErrorReporter) {
 
     private val allocations = mutableMapOf<List<String>, Int>()
-    val freeStart: Int
+    private var freeMemoryStart: Int
+
+    val freeMem: Int
+        get() = freeMemoryStart
 
     init {
         var nextLocation = 0
@@ -24,7 +27,7 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
             nextLocation += memsize
         }
 
-        freeStart = nextLocation
+        freeMemoryStart = nextLocation
     }
 
     fun get(name: List<String>) = allocations.getValue(name)
@@ -68,4 +71,21 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
         }
         return mm
     }
+
+    private val memorySlabsInternal = mutableMapOf<String, Triple<UInt, UInt, UInt>>()
+    internal val memorySlabs: Map<String, Triple<UInt, UInt, UInt>> = memorySlabsInternal
+
+    fun allocateMemorySlab(name: String, size: UInt, align: UInt): UInt {
+        val address =
+            if(align==0u || align==1u)
+                freeMemoryStart.toUInt()
+            else
+                (freeMemoryStart.toUInt() + align-1u) and (0xffffffffu xor (align-1u))
+
+        memorySlabsInternal[name] = Triple(address, size, align)
+        freeMemoryStart = (address + size).toInt()
+        return address
+    }
+
+    fun getMemorySlab(name: String): Triple<UInt, UInt, UInt>? = memorySlabsInternal[name]
 }

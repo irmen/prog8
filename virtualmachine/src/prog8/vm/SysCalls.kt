@@ -32,7 +32,7 @@ enum class Syscall {
     GFX_ENABLE,
     GFX_CLEAR,
     GFX_PLOT,
-    RND
+    RND,
 }
 
 object SysCalls {
@@ -82,6 +82,7 @@ object SysCalls {
             Syscall.RND -> {
                 vm.registers.setB(0, (Random.nextInt() ushr 3).toUByte())
             }
+            else -> TODO("syscall ${call.name}")
         }
     }
 }

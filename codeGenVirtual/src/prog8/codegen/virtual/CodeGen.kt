@@ -56,9 +56,9 @@ class CodeGen(internal val program: PtProgram,
             is PtNop -> VmCodeChunk()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
-            is PtWhen -> TODO()
+            is PtWhen -> TODO("when")
             is PtPipe -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
-            is PtForLoop -> TODO()
+            is PtForLoop -> TODO("for-loop")
             is PtIfElse -> translate(node, regUsage)
             is PtPostIncrDecr -> translate(node, regUsage)
             is PtRepeatLoop -> translate(node, regUsage)
@@ -219,7 +219,19 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(ins)
         }
         else if(array!=null) {
-            TODO("assign to array")
+            val variable = array.variable.targetName
+            var variableAddr = allocations.get(variable)
+            val itemsize = program.memsizer.memorySize(array.type)
+            val fixedIndex = (array.index as? PtNumber)?.number?.toInt()
+            val vmDtArrayIdx = vmType(array.type)
+            if(fixedIndex!=null) {
+                variableAddr += fixedIndex*itemsize
+                code += VmCodeInstruction(Instruction(Opcode.LOADM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr))
+            } else {
+                val indexReg = regUsage.nextFree()
+                code += expressionEval.translateExpression(array.index, indexReg, regUsage)
+                code += VmCodeInstruction(Instruction(Opcode.LOADX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr))
+            }
         }
         else if(memory!=null) {
             val ins =

@@ -8,33 +8,33 @@ prog8_lib {
     %option force_output
 
     sub string_contains(ubyte needle, str haystack) -> ubyte {
-        txt.print(">>>string elt check: ")
-        txt.print_ub(needle)
-        txt.spc()
-        txt.print_uwhex(haystack, true)
-        txt.nl()
-        return 0
+        repeat {
+            if @(haystack)==0
+                return false
+            if @(haystack)==needle
+                return true
+            haystack++
+        }
     }
 
     sub bytearray_contains(ubyte needle, uword haystack_ptr, ubyte num_elements) -> ubyte {
-        txt.print(">>>bytearray elt check: ")
-        txt.print_ub(needle)
-        txt.spc()
-        txt.print_uwhex(haystack_ptr, true)
-        txt.spc()
-        txt.print_ub(num_elements)
-        txt.nl()
-        return 0
+        haystack_ptr--
+        while num_elements {
+            if haystack_ptr[num_elements]==needle
+                return true
+            num_elements--
+        }
+        return false
     }
 
     sub wordarray_contains(ubyte needle, uword haystack_ptr, ubyte num_elements) -> ubyte {
-        txt.print(">>>wordarray elt check: ")
-        txt.print_ub(needle)
-        txt.spc()
-        txt.print_uwhex(haystack_ptr, true)
-        txt.spc()
-        txt.print_ub(num_elements)
-        txt.nl()
-        return 0
+        haystack_ptr += (num_elements-1) * 2
+        while num_elements {
+            if peekw(haystack_ptr)==needle
+                return true
+            haystack_ptr -= 2
+            num_elements--
+        }
+        return false
     }
 }
