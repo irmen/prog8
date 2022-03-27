@@ -10,7 +10,7 @@ main {
 
         repeat 21 {
             txt.print_uw(fib_next())
-            c64.CHROUT('\n')
+            txt.nl()
         }
     }
 

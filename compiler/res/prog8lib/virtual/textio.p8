@@ -19,6 +19,14 @@ sub spc() {
     txt.chrout(' ')
 }
 
+sub lowercase() {
+    ; not supported
+}
+
+sub uppercase() {
+    ; not supported
+}
+
 sub chrout(ubyte char) {
     syscall1(2, char)
 }

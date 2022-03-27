@@ -6,6 +6,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Instruction
 import prog8.vm.Opcode
+import prog8.vm.Syscall
 import prog8.vm.VmDataType
 
 
@@ -359,6 +360,17 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             }
             "lsb" -> {
                 code += translateExpression(call.args.single(), resultRegister, regUsage)
+            }
+            "memory" -> {
+                val name = (call.args[0] as PtString).value
+                val size = (call.args[1] as PtNumber).number.toUInt()
+                val align = (call.args[2] as PtNumber).number.toUInt()
+                TODO("Memory($name, $size, $align)")
+            }
+            "rnd" -> {
+                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=Syscall.RND.ordinal))
+                if(resultRegister!=0)
+                    code += VmCodeInstruction(Instruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0))
             }
             else -> {
                 // TODO builtin functions...

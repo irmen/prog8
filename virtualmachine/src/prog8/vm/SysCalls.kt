@@ -1,6 +1,7 @@
 package prog8.vm
 
 import kotlin.math.min
+import kotlin.random.Random
 
 /*
 SYSCALLS:
@@ -16,6 +17,7 @@ SYSCALLS:
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
+11 = rnd    ; random BYTE
 */
 
 enum class Syscall {
@@ -29,7 +31,8 @@ enum class Syscall {
     SLEEP,
     GFX_ENABLE,
     GFX_CLEAR,
-    GFX_PLOT
+    GFX_PLOT,
+    RND
 }
 
 object SysCalls {
@@ -76,6 +79,9 @@ object SysCalls {
             Syscall.GFX_ENABLE -> vm.gfx_enable()
             Syscall.GFX_CLEAR -> vm.gfx_clear()
             Syscall.GFX_PLOT -> vm.gfx_plot()
+            Syscall.RND -> {
+                vm.registers.setB(0, (Random.nextInt() ushr 3).toUByte())
+            }
         }
     }
 }
