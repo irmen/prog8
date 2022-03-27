@@ -3,10 +3,12 @@ package prog8.codegen.virtual
 import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
+import prog8.code.core.PassByValueDatatypes
+import prog8.code.core.SignedDatatypes
 import prog8.vm.Instruction
 import prog8.vm.Opcode
-import prog8.vm.Syscall
 import prog8.vm.VmDataType
 
 
@@ -52,7 +54,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             is PtPrefix -> code += translate(expr, resultRegister, regUsage)
             is PtArrayIndexer -> code += translate(expr, resultRegister, regUsage)
             is PtBinaryExpression -> code += translate(expr, resultRegister, regUsage)
-            is PtBuiltinFunctionCall -> code += translate(expr, resultRegister, regUsage)
+            is PtBuiltinFunctionCall -> code += codeGen.translateBuiltinFunc(expr, resultRegister, regUsage)
             is PtFunctionCall -> code += translate(expr, resultRegister, regUsage)
             is PtContainmentCheck -> code += translate(expr, resultRegister, regUsage)
             is PtPipe -> code += translate(expr, resultRegister, regUsage)
@@ -132,7 +134,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             }
             "not" -> {
                 val label = codeGen.createLabelName()
-                code += VmCodeInstruction(Instruction(Opcode.BZ, vmDt, reg1=resultRegister), labelArg = label)
+                code += VmCodeInstruction(Instruction(Opcode.BZ, vmDt, reg1=resultRegister, symbol = label))
                 code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=1))
                 code += VmCodeLabel(label)
                 val regMask = regUsage.nextFree()
@@ -300,117 +302,10 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
             code += VmCodeInstruction(Instruction(Opcode.STOREM, vmDt, reg1=argReg, value=mem))
         }
-        code += VmCodeInstruction(Instruction(Opcode.CALL), labelArg=fcall.functionName)
+        code += VmCodeInstruction(Instruction(Opcode.CALL, symbol=fcall.functionName))
         if(!fcall.void && resultRegister!=0) {
             // Call convention: result value is in r0, so put it in the required register instead.   TODO does this work correctly?
             code += VmCodeInstruction(Instruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1=resultRegister, reg2=0))
-        }
-        return code
-    }
-
-    fun translate(call: PtBuiltinFunctionCall, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
-        val code = VmCodeChunk()
-        when(call.name) {
-            "syscall" -> {
-                val vExpr = call.args.single() as PtNumber
-                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=vExpr.number.toInt()))
-            }
-            "syscall1" -> {
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
-                val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += translateExpression(call.args[1], 0, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
-            }
-            "syscall2" -> {
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1))
-                while(regUsage.firstFree<2) {
-                    regUsage.nextFree()
-                }
-                val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += translateExpression(call.args[1], 0, regUsage)
-                code += translateExpression(call.args[2], 1, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 1))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
-            }
-            "syscall3" -> {
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1))
-                code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 2))
-                while(regUsage.firstFree<3) {
-                    regUsage.nextFree()
-                }
-                val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += translateExpression(call.args[1], 0, regUsage)
-                code += translateExpression(call.args[2], 1, regUsage)
-                code += translateExpression(call.args[3], 2, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 2))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 1))
-                code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
-            }
-            "msb" -> {
-                code += translateExpression(call.args.single(), resultRegister, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.SWAP, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister))
-                // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
-            }
-            "lsb" -> {
-                code += translateExpression(call.args.single(), resultRegister, regUsage)
-                // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
-            }
-            "memory" -> {
-                val name = (call.args[0] as PtString).value
-                val size = (call.args[1] as PtNumber).number.toUInt()
-                val align = (call.args[2] as PtNumber).number.toUInt()
-                val existing = codeGen.allocations.getMemorySlab(name)
-                val address = if(existing==null)
-                    codeGen.allocations.allocateMemorySlab(name, size, align)
-                else if(existing.second!=size || existing.third!=align) {
-                    codeGen.errors.err("memory slab '$name' already exists with a different size or alignment", call.position)
-                    return VmCodeChunk()
-                }
-                else
-                    existing.first
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, value=address.toInt()))
-            }
-            "rnd" -> {
-                code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=Syscall.RND.ordinal))
-                if(resultRegister!=0)
-                    code += VmCodeInstruction(Instruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0))
-            }
-            "peek" -> {
-                val addressReg = regUsage.nextFree()
-                code += translateExpression(call.args.single(), addressReg, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg))
-            }
-            "peekw" -> {
-                val addressReg = regUsage.nextFree()
-                code += translateExpression(call.args.single(), addressReg, regUsage)
-                code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg))
-            }
-            else -> {
-                TODO("builtinfunc ${call.name}")
-//                code += VmCodeInstruction(Instruction(Opcode.NOP))
-//                for (arg in call.args) {
-//                    code += translateExpression(arg, resultRegister, regUsage)
-//                    code += when(arg.type) {
-//                        in ByteDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1=resultRegister))
-//                        in WordDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1=resultRegister))
-//                        else -> throw AssemblyError("weird arg dt")
-//                    }
-//                }
-//                code += VmCodeInstruction(Instruction(Opcode.CALL), labelArg = listOf("_prog8_builtin", call.name))
-//                for (arg in call.args) {
-//                    code += when(arg.type) {
-//                        in ByteDatatypes -> VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1=resultRegister))
-//                        in WordDatatypes -> VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1=resultRegister))
-//                        else -> throw AssemblyError("weird arg dt")
-//                    }
-//                }
-//                code += VmCodeInstruction(Instruction(Opcode.NOP))
-            }
         }
         return code
     }

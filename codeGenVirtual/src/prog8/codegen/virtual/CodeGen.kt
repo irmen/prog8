@@ -17,6 +17,7 @@ class CodeGen(internal val program: PtProgram,
 
     internal val allocations = VariableAllocator(symbolTable, program, errors)
     private val expressionEval = ExpressionGen(this)
+    private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
 
     init {
         if(options.dontReinitGlobals)
@@ -52,7 +53,7 @@ class CodeGen(internal val program: PtProgram,
             is PtConstant -> VmCodeChunk() // constants have all been folded into the code
             is PtAssignment -> translate(node, regUsage)
             is PtNodeGroup -> translateGroup(node.children, regUsage)
-            is PtBuiltinFunctionCall -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
+            is PtBuiltinFunctionCall -> translateBuiltinFunc(node, regUsage.nextFree(), regUsage)
             is PtFunctionCall -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
             is PtNop -> VmCodeChunk()
             is PtReturn -> translate(node)
@@ -140,16 +141,16 @@ class CodeGen(internal val program: PtProgram,
             // if and else parts
             val elseLabel = createLabelName()
             val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg), labelArg = elseLabel)
+            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg, symbol = elseLabel))
             code += translateNode(ifElse.ifScope, regUsage)
-            code += VmCodeInstruction(Instruction(Opcode.JUMP), labelArg = afterIfLabel)
+            code += VmCodeInstruction(Instruction(Opcode.JUMP, symbol = afterIfLabel))
             code += VmCodeLabel(elseLabel)
             code += translateNode(ifElse.elseScope, regUsage)
             code += VmCodeLabel(afterIfLabel)
         } else {
             // only if part
             val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg), labelArg = afterIfLabel)
+            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg, symbol = afterIfLabel))
             code += translateNode(ifElse.ifScope, regUsage)
             code += VmCodeLabel(afterIfLabel)
         }
@@ -205,7 +206,7 @@ class CodeGen(internal val program: PtProgram,
         code += VmCodeLabel(repeatLabel)
         code += translateNode(repeat.statements, regUsage)
         code += VmCodeInstruction(Instruction(Opcode.DEC, vmDt, reg1=counterReg))
-        code += VmCodeInstruction(Instruction(Opcode.BNZ, vmDt, reg1=counterReg), labelArg = repeatLabel)
+        code += VmCodeInstruction(Instruction(Opcode.BNZ, vmDt, reg1=counterReg, symbol = repeatLabel))
         return code
     }
 
@@ -214,9 +215,9 @@ class CodeGen(internal val program: PtProgram,
         if(jump.address!=null)
             throw AssemblyError("cannot jump to memory location in the vm target")
         code += if(jump.generatedLabel!=null)
-            VmCodeInstruction(Instruction(Opcode.JUMP), labelArg = listOf(jump.generatedLabel!!))
+            VmCodeInstruction(Instruction(Opcode.JUMP, symbol = listOf(jump.generatedLabel!!)))
         else if(jump.identifier!=null)
-            VmCodeInstruction(Instruction(Opcode.JUMP), labelArg = jump.identifier!!.targetName)
+            VmCodeInstruction(Instruction(Opcode.JUMP, symbol = jump.identifier!!.targetName))
         else
             throw AssemblyError("weird jump")
         return code
@@ -325,4 +326,7 @@ class CodeGen(internal val program: PtProgram,
         labelSequenceNumber++
         return listOf("generated$labelSequenceNumber")
     }
+
+    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk =
+        builtinFuncGen.translate(call, resultRegister, regUsage)
 }

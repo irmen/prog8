@@ -216,11 +216,11 @@ enum class VmDataType {
 data class Instruction(
     val opcode: Opcode,
     val type: VmDataType?=null,
-    val reg1: Int?=null,       // 0-$ffff
-    val reg2: Int?=null,       // 0-$ffff
-    val reg3: Int?=null,       // 0-$ffff
-    val value: Int?=null,      // 0-$ffff
-// TODO add string symbol here as alternative to value
+    val reg1: Int?=null,        // 0-$ffff
+    val reg2: Int?=null,        // 0-$ffff
+    val reg3: Int?=null,        // 0-$ffff
+    val value: Int?=null,       // 0-$ffff
+    val symbol: List<String>?=null    // alternative to value
 ) {
     override fun toString(): String {
         val result = mutableListOf(opcode.name.lowercase())
@@ -246,6 +246,10 @@ data class Instruction(
         }
         value?.let {
             result.add(it.toString())
+            result.add(",")
+        }
+        symbol?.let {
+            result.add("_" + it.joinToString("."))
         }
         if(result.last() == ",")
             result.removeLast()

@@ -69,7 +69,11 @@ print_ones:
 
 sub  print_b  (byte value)   {
     ; ---- print the byte in decimal form, without left padding 0s
-    ; TODO use conv module?
+    if value<0 {
+        chrout('-')
+        value = -value
+    }
+    print_ub(value as ubyte)
 }
 
 str hex_digits = "0123456789abcdef"
@@ -150,7 +154,11 @@ print_ones:
 
 sub  print_w  (word value) {
     ; ---- print the (signed) word in decimal form, without left padding 0's
-    ; TODO use conv module?
+    if value<0 {
+        chrout('-')
+        value = -value
+    }
+    print_uw(value as uword)
 }
 
 sub  input_chars  (uword buffer) -> ubyte  {

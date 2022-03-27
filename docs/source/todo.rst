@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- vm codegen: fix ifelse comparisons such as if x< 0
 - vm codegen: fix primes endless loop stuck on '2'
 - x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get
 - x16: screen_set_mode -> screen_mode + other args https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode

@@ -39,15 +39,7 @@ internal class AssemblyProgram(override val name: String,
         when(line) {
             is VmCodeComment -> write("; ${line.comment}\n")
             is VmCodeInstruction -> {
-                write(line.ins.toString())
-                if(line.labelArg!=null) {
-                    if (line.ins.reg1 != null || line.ins.reg2 != null || line.ins.reg3 != null || line.ins.value != null)
-                        write(",")
-                    else
-                        write(" ")
-                    write("_" + line.labelArg.joinToString("."))
-                }
-                write("\n")
+                write(line.ins.toString() + "\n")
             }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
         }
@@ -59,7 +51,7 @@ internal class AssemblyProgram(override val name: String,
 
 internal sealed class VmCodeLine
 
-internal class VmCodeInstruction(val ins: Instruction, val labelArg: List<String>?=null): VmCodeLine()
+internal class VmCodeInstruction(val ins: Instruction): VmCodeLine()
 internal class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
 
