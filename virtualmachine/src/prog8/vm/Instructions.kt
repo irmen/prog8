@@ -220,6 +220,7 @@ data class Instruction(
     val reg2: Int?=null,       // 0-$ffff
     val reg3: Int?=null,       // 0-$ffff
     val value: Int?=null,      // 0-$ffff
+// TODO add string symbol here as alternative to value
 ) {
     override fun toString(): String {
         val result = mutableListOf(opcode.name.lowercase())

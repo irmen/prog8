@@ -19,7 +19,7 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
                 when (variable.dt) {
                     DataType.STR -> variable.initialStringValue!!.first.length + 1  // include the zero byte
                     in NumericDatatypes -> program.memsizer.memorySize(variable.dt)
-                    in ArrayDatatypes -> program.memsizer.memorySize(variable.dt, variable.arraysize!!)
+                    in ArrayDatatypes -> program.memsizer.memorySize(variable.dt, variable.length!!)
                     else -> throw InternalCompilerException("weird dt")
                 }
 
@@ -55,14 +55,14 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
                     if(variable.initialArrayValue!=null) {
                         variable.initialArrayValue!!.joinToString(",") { it.number!!.toString() }
                     } else {
-                        (1..variable.arraysize!!).joinToString(",") { "0" }
+                        (1..variable.length!!).joinToString(",") { "0" }
                     }
                 }
                 in ArrayDatatypes -> {
                     if(variable.initialArrayValue!==null) {
                         variable.initialArrayValue!!.joinToString(",") { it.number!!.toHex() }
                     } else {
-                        (1..variable.arraysize!!).joinToString(",") { "0" }
+                        (1..variable.length!!).joinToString(",") { "0" }
                     }
                 }
                 else -> throw InternalCompilerException("weird dt")

@@ -11,7 +11,7 @@ sealed class PtNode(val position: Position) {
     val children = mutableListOf<PtNode>()
     lateinit var parent: PtNode
 
-    protected fun printIndented(indent: Int) {
+    fun printIndented(indent: Int) {
         print("    ".repeat(indent))
         print("${this.javaClass.simpleName}  ")
         printProperties()

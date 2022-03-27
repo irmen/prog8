@@ -3,6 +3,21 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- vm codegen: ForLoop
+- vm codegen: fix primes endless loop stuck on '2'
+- x16: screen_set_mode -> screen_mode + other api https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode
+- optimize diskio load_raw on X16 because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
+  note: must still work on c64/c128 that don't have this!
+- major version bump once X16 r39 rom is officially finalized
+- vm codegen: When
+- vm codegen: Pipe expression
+- vm codegen: validate that PtFunctionCall translation works okay with resultregister
+- vm: support no globals re-init option
+- vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address
+- when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
+  It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
+  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
+
 ...
 
 
@@ -62,10 +77,8 @@ Expressions:
 
 Optimizations:
 
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
+- various optimizers should/do skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
   the old CompilerAst, those checks should probably be removed.
-  (most of them avoid the case where extra temporary variables are introduced in an attempt to simplify
-  the expression code generation)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - translateUnaryFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
    compare ``aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()``

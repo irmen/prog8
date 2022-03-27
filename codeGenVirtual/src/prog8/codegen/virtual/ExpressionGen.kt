@@ -83,14 +83,14 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 val call = PtFunctionCall(listOf("prog8_lib", "bytearray_contains"), false, DataType.UBYTE, check.position)
                 call.children.add(check.element)
                 call.children.add(check.iterable)
-                call.children.add(PtNumber(DataType.UBYTE, iterable.arraysize!!.toDouble(), iterable.position))
+                call.children.add(PtNumber(DataType.UBYTE, iterable.length!!.toDouble(), iterable.position))
                 code += translate(call, resultRegister, regUsage)
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 val call = PtFunctionCall(listOf("prog8_lib", "wordarray_contains"), false, DataType.UBYTE, check.position)
                 call.children.add(check.element)
                 call.children.add(check.iterable)
-                call.children.add(PtNumber(DataType.UBYTE, iterable.arraysize!!.toDouble(), iterable.position))
+                call.children.add(PtNumber(DataType.UBYTE, iterable.length!!.toDouble(), iterable.position))
                 code += translate(call, resultRegister, regUsage)
             }
             DataType.ARRAY_F -> TODO("containment check in float-array")
@@ -204,21 +204,17 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             }
             DataType.FLOAT -> {
                 TODO("floating point not yet supported")
-                when(cast.value.type) {
-                    DataType.BYTE -> {
-                        // TODO("byte -> float")
-                    }
-                    DataType.UBYTE -> {
-                        // TODO("ubyte -> float")
-                    }
-                    DataType.WORD -> {
-                        // TODO("word -> float")
-                    }
-                    DataType.UWORD -> {
-                        // TODO("uword -> float")
-                    }
-                    else -> throw AssemblyError("weird cast value type")
-                }
+//                when(cast.value.type) {
+//                    DataType.BYTE -> {
+//                    }
+//                    DataType.UBYTE -> {
+//                    }
+//                    DataType.WORD -> {
+//                    }
+//                    DataType.UWORD -> {
+//                    }
+//                    else -> throw AssemblyError("weird cast value type")
+//                }
             }
             else -> throw AssemblyError("weird cast type")
         }
@@ -229,7 +225,8 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         val code = VmCodeChunk()
         val leftResultReg = regUsage.nextFree()
         val rightResultReg = regUsage.nextFree()
-        // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever.
+        // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever. But only if this would result in a different opcode such as ADD 1 -> INC, MUL 1 -> NOP
+        //       actually optimizing the code should not be done here but in a tailored code optimizer step.
         val leftCode = translateExpression(binExpr.left, leftResultReg, regUsage)
         val rightCode = translateExpression(binExpr.right, rightResultReg, regUsage)
         code += leftCode
@@ -288,7 +285,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 val ins = if(binExpr.type in SignedDatatypes) Opcode.SGES else Opcode.SGE
                 code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
-            else -> TODO("operator ${binExpr.operator}")
+            else -> throw AssemblyError("weird operator ${binExpr.operator}")
         }
         return code
     }
@@ -357,9 +354,11 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             "msb" -> {
                 code += translateExpression(call.args.single(), resultRegister, regUsage)
                 code += VmCodeInstruction(Instruction(Opcode.SWAP, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister))
+                // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
             }
             "lsb" -> {
                 code += translateExpression(call.args.single(), resultRegister, regUsage)
+                // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
             }
             "memory" -> {
                 val name = (call.args[0] as PtString).value
@@ -390,12 +389,6 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 val addressReg = regUsage.nextFree()
                 code += translateExpression(call.args.single(), addressReg, regUsage)
                 code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg))
-            }
-            "memory" -> {
-                val memname = (call.args[0] as PtString).value
-                val size = (call.args[1] as PtNumber).number.toInt()
-                val align = (call.args[2] as PtNumber).number.toInt()
-                TODO("memory '$memname', $size, $align")
             }
             else -> {
                 TODO("builtinfunc ${call.name}")

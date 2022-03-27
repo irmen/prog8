@@ -63,7 +63,14 @@ internal class SymbolTableMaker: IAstVisitor {
                     val initialArray = makeInitialArray(initialArrayLit)
                     if(decl.isArray && decl.datatype !in ArrayDatatypes)
                         throw FatalAstException("array vardecl has mismatched dt ${decl.datatype}")
-                    StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
+                    val numElements =
+                        if(decl.isArray)
+                            decl.arraysize!!.constIndex()
+                        else if(initialStringLit!=null)
+                            initialStringLit.value.length+1  // include the terminating 0-byte
+                        else
+                            null
+                    StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, numElements, decl.zeropage, decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)
                 VarDeclType.MEMORY -> StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), decl.position)

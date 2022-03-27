@@ -480,7 +480,7 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.initialArrayValue, variable.arraysize)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.initialArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }

@@ -1,5 +1,6 @@
 package prog8.codegen.virtual
 
+import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -58,7 +59,7 @@ class CodeGen(internal val program: PtProgram,
             is PtJump -> translate(node)
             is PtWhen -> TODO("when")
             is PtPipe -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
-            is PtForLoop -> TODO("for-loop")
+            is PtForLoop -> translate(node, regUsage)
             is PtIfElse -> translate(node, regUsage)
             is PtPostIncrDecr -> translate(node, regUsage)
             is PtRepeatLoop -> translate(node, regUsage)
@@ -87,6 +88,30 @@ class CodeGen(internal val program: PtProgram,
             else -> TODO("missing codegen for $node")
         }
         code.lines.add(0, VmCodeComment(node.position.toString()))
+        return code
+    }
+
+    private fun translate(forLoop: PtForLoop, regUsage: RegisterUsage): VmCodeChunk {
+        val loopvar = symbolTable.lookup(forLoop.variable.targetName) as StStaticVariable
+        val iterable = forLoop.iterable
+        val code = VmCodeChunk()
+        when(iterable) {
+            is PtRange -> {
+                println("forloop ${loopvar.dt} ${loopvar.scopedName} in range ${iterable} ")
+                iterable.printIndented(0)
+                TODO()
+            }
+            is PtIdentifier -> {
+                val address = allocations.get(iterable.targetName)
+                val variable = symbolTable.lookup(iterable.targetName) as StStaticVariable
+                val length = variable.length!!
+                println("forloop ${loopvar.dt} ${loopvar.scopedName} in $iterable @${address.toHex()} ${length}")
+                val indexReg = regUsage.nextFree()
+                val loopvarReg = regUsage.nextFree()
+                TODO()
+            }
+            else -> throw AssemblyError("weird for iterable")
+        }
         return code
     }
 

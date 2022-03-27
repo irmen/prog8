@@ -7,32 +7,40 @@ main {
         txt.clear_screen()
         txt.print("Welcome to a prog8 pixel shader :-)\n")
 
-        uword @shared chunk = memory("irmen", 4000, 256)
-        txt.print_uwhex(chunk,true)
+        uword ww = 0
+        ubyte bc
+        uword wc
+
+        for bc in "irmen" {
+            ; +5 -> 17
+            txt.chrout(bc)
+            ww++
+        }
+        txt.print_uw(ww)
         txt.nl()
 
-        ubyte bb = 4
-        ubyte[] array = [1,2,3,4,5,6]
-        uword[] warray = [1111,2222,3333]
-        str tekst = "test"
-        uword ww = 19
-        bb = bb in "teststring"
-        bb++
-        bb = bb in [1,2,3,4,5,6]
-        bb++
-        bb = bb in array
-        bb++
-        bb = bb in tekst
-        bb++
-        bb = ww in warray
-        bb++
-        bb = 666 in warray
-        bb ++
-        bb = '?' in tekst
-        bb++
-        txt.print("bb=")
-        txt.print_ub(bb)
+        for wc in [1000,1111,1222] {
+            txt.print_uw(wc)
+            txt.spc()
+            ww++    ; +3 -> 20
+        }
+        txt.print_uw(ww)
         txt.nl()
+
+        for bc in 10 to 20 step 3 {
+            ; 10,13,16,19 -> 4
+            ww++
+        }
+        txt.print_uw(ww)
+        txt.nl()
+        for bc in 30 to 10 step -4 {
+            ; 30,26,22,18,14,10,6,2 -> +8 -> 12
+            ww++
+        }
+        txt.print_uw(ww)
+        txt.nl()
+
+
         sys.exit(99)
 
 

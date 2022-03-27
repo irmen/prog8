@@ -119,7 +119,7 @@ open class StNode(val name: String,
         }
     }
 
-    protected fun printIndented(indent: Int) {
+    fun printIndented(indent: Int) {
         print("    ".repeat(indent))
         when(type) {
             StNodeType.GLOBAL -> print("SYMBOL-TABLE:")
@@ -152,21 +152,24 @@ class StStaticVariable(name: String,
                        val initialNumericValue: Double?,
                        val initialStringValue: StString?,
                        val initialArrayValue: StArray?,
-                       val arraysize: Int?,
+                       val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
 
     init {
-        if(arraysize!=null && initialArrayValue!=null)
-            require(arraysize == initialArrayValue.size)
-        if(arraysize!=null || initialArrayValue!=null)
-            require(initialStringValue==null && initialNumericValue==null)
+        if(length!=null) {
+            require(initialNumericValue == null)
+            if(initialArrayValue!=null)
+                require(length == initialArrayValue.size)
+        }
         if(initialNumericValue!=null)
             require(dt in NumericDatatypes)
-        if(initialArrayValue!=null || arraysize!=null)
+        if(initialArrayValue!=null)
             require(dt in ArrayDatatypes)
-        if(initialStringValue!=null)
+        if(initialStringValue!=null) {
             require(dt == DataType.STR)
+            require(length == initialStringValue.first.length+1)
+        }
     }
 
     override fun printProperties() {

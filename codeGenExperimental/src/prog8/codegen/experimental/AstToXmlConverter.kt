@@ -73,8 +73,8 @@ class AstToXmlConverter(internal val program: PtProgram,
                 xml.elt("var")
                 xml.attr("type", node.dt.name)
                 xml.attr("zpwish", node.zpwish.name)
-                if(node.arraysize!=null)
-                    xml.attr("arraysize", node.arraysize.toString())
+                if(node.length!=null)
+                    xml.attr("length", node.length.toString())
                 if(node.initialNumericValue!=null || node.initialArrayValue!=null || node.initialStringValue!=null) {
                     xml.startChildren()
                     if(node.initialNumericValue!=null) {

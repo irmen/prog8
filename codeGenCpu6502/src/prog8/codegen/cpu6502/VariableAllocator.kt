@@ -63,11 +63,10 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         var numberOfNonIntegerVariables = 0
 
         varsRequiringZp.forEach { variable ->
-            val numElements = numArrayElements(variable)
             val result = zeropage.allocate(
                 variable.scopedName,
                 variable.dt,
-                numElements,
+                variable.length,
                 variable.position,
                 errors
             )
@@ -83,11 +82,10 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
-                val numElements = numArrayElements(variable)
                 val result = zeropage.allocate(
                     variable.scopedName,
                     variable.dt,
-                    numElements,
+                    variable.length,
                     variable.position,
                     errors
                 )
@@ -103,11 +101,10 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                         if(zeropage.free.isEmpty()) {
                             break
                         } else {
-                            val numElements = numArrayElements(variable)
                             val result = zeropage.allocate(
                                 variable.scopedName,
                                 variable.dt,
-                                numElements,
+                                variable.length,
                                 variable.position,
                                 errors
                             )
@@ -137,11 +134,4 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         collect(st)
         return vars
     }
-
-    private fun numArrayElements(variable: StStaticVariable) =
-        when(variable.dt) {
-            DataType.STR -> variable.initialStringValue!!.first.length+1        // 1 extra because of 0 termination char
-            in ArrayDatatypes -> variable.arraysize!!
-            else -> null
-        }
 }
