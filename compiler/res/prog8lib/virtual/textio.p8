@@ -87,14 +87,14 @@ sub  print_uwhex  (uword value, ubyte prefix) {
 sub  print_uw0  (uword value)  {
     ; ---- print the uword value in decimal form, with left padding 0s (5 positions total)
     ; TODO use conv module?
-    ubyte tenthousands = value / 10000 as ubyte
-    value -= tenthousands * 10000
-    ubyte thousands = value / 1000 as ubyte
-    value -= thousands * 1000
-    ubyte hundreds = value / 100 as ubyte
-    value -= hundreds*100
-    ubyte tens = value / 10 as ubyte
-    value -= tens*10
+    ubyte tenthousands = (value / 10000) as ubyte
+    value -= 10000*tenthousands
+    ubyte thousands = (value / 1000) as ubyte
+    value -= 1000*thousands
+    ubyte hundreds = (value / 100) as ubyte
+    value -= 100 as uword * hundreds
+    ubyte tens = (value / 10) as ubyte
+    value -= 10*tens
     chrout(tenthousands+'0')
     chrout(thousands+'0')
     chrout(hundreds+'0')
@@ -104,14 +104,14 @@ sub  print_uw0  (uword value)  {
 
 sub  print_uw  (uword value)  {
     ; ---- print the uword in decimal form, without left padding 0s
-    ubyte tenthousands = value / 10000 as ubyte
-    value -= tenthousands * 10000
-    ubyte thousands = value / 1000 as ubyte
-    value -= thousands * 1000
-    ubyte hundreds = value / 100 as ubyte
-    value -= hundreds*100
-    ubyte tens = value / 10 as ubyte
-    value -= tens*10
+    ubyte tenthousands = (value / 10000) as ubyte
+    value -= 10000*tenthousands
+    ubyte thousands = (value / 1000) as ubyte
+    value -= 1000*thousands
+    ubyte hundreds = (value / 100) as ubyte
+    value -= 100 as uword * hundreds
+    ubyte tens = (value / 10) as ubyte
+    value -= 10*tens
     if tenthousands
         goto print_tenthousands
     if thousands

@@ -8,10 +8,35 @@ sys {
 
     const ubyte target = 255         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL, 255 = virtual
 
+    ; SYSCALLS
+    ; 0 = reset ; resets system
+    ; 1 = exit ; stops program and returns statuscode from r0.w
+    ; 2 = print_c ; print single character
+    ; 3 = print_s ; print 0-terminated string from memory
+    ; 4 = print_u8 ; print unsigned int byte
+    ; 5 = print_u16 ; print unsigned int word
+    ; 6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r65535.w
+    ; 7 = sleep ; sleep amount of milliseconds
+    ; 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
+    ; 9 = gfx_clear   ; clear graphics window with shade in r0.b
+    ; 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
+
+    const ubyte SC_RESET = 0
+    const ubyte SC_EXIT = 1
+    const ubyte SC_PRINT_C = 2
+    const ubyte SC_PRINT_S = 3
+    const ubyte SC_PRINT_U8 = 4
+    const ubyte SC_PRINT_u16 = 5
+    const ubyte SC_INPUT = 6
+    const ubyte SC_SLEEP = 7
+    const ubyte SC_GFX_ENABLE = 8
+    const ubyte SC_GFX_CLEAR = 9
+    const ubyte SC_GFX_PLOT = 10
+
 
     sub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
-        ; TODO
+        syscall(SC_RESET)
     }
 
     sub wait(uword jiffies) {
@@ -38,7 +63,7 @@ sys {
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
-        ;    TODO
+        syscall1(SC_EXIT, returnvalue)
     }
 }
 

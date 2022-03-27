@@ -6,6 +6,18 @@ main {
     sub start() {
         txt.clear_screen()
         txt.print("Welcome to a prog8 pixel shader :-)\n")
+        ubyte bb = 10
+        uword ww = 123
+        bb <<= 4
+        ww <<= 5
+        txt.print("bb=")
+        txt.print_ub(bb)
+        txt.nl()
+        txt.print("ww=")
+        txt.print_uw(ww)
+        txt.nl()
+        sys.exit(99)
+
 
         syscall1(8, 0)      ; enable lo res creen
         ubyte shifter
