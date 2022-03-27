@@ -161,6 +161,12 @@ class StStaticVariable(name: String,
             require(arraysize == initialArrayValue.size)
         if(arraysize!=null || initialArrayValue!=null)
             require(initialStringValue==null && initialNumericValue==null)
+        if(initialNumericValue!=null)
+            require(dt in NumericDatatypes)
+        if(initialArrayValue!=null || arraysize!=null)
+            require(dt in ArrayDatatypes)
+        if(initialStringValue!=null)
+            require(dt == DataType.STR)
     }
 
     override fun printProperties() {

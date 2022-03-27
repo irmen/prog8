@@ -108,6 +108,17 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.BLES -> InsBLES(ins)
             Opcode.BGE -> InsBGEU(ins)
             Opcode.BGES -> InsBGES(ins)
+            Opcode.SEQ -> InsSEQ(ins)
+            Opcode.SNE -> InsSNE(ins)
+            Opcode.SLT -> InsSLT(ins)
+            Opcode.SLTS -> InsSLTS(ins)
+            Opcode.SGT -> InsSGT(ins)
+            Opcode.SGTS -> InsSGTS(ins)
+            Opcode.SLE -> InsSLE(ins)
+            Opcode.SLES -> InsSLES(ins)
+            Opcode.SGE -> InsSGE(ins)
+            Opcode.SGES -> InsSGES(ins)
+
             Opcode.INC -> InsINC(ins)
             Opcode.DEC -> InsDEC(ins)
             Opcode.NEG -> InsNEG(ins)
@@ -135,37 +146,33 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         }
     }
 
-    private fun InsPUSH(ins: Instruction) {
+    private inline fun setResultReg(reg: Int, value: Int, type: VmDataType) {
+        when(type) {
+            VmDataType.BYTE -> registers.setB(reg, value.toUByte())
+            VmDataType.WORD -> registers.setW(reg, value.toUShort())
+        }
+    }
+
+    private fun InsPUSH(i: Instruction) {
         if(valueStack.size>=128)
             throw StackOverflowError("valuestack limit 128 exceeded")
 
-        val value = when(ins.type!!) {
-             VmDataType.BYTE -> {
-                registers.getB(ins.reg1!!).toInt()
-            }
-            VmDataType.WORD -> {
-                registers.getW(ins.reg1!!).toInt()
-            }
+        val value = when(i.type!!) {
+            VmDataType.BYTE -> registers.getB(i.reg1!!).toInt()
+            VmDataType.WORD -> registers.getW(i.reg1!!).toInt()
         }
         valueStack.push(value)
         pc++
     }
 
-    private fun InsPOP(ins: Instruction) {
+    private fun InsPOP(i: Instruction) {
         val value = valueStack.pop()
-        when(ins.type!!) {
-            VmDataType.BYTE -> {
-                registers.setB(ins.reg1!!, value.toUByte())
-            }
-            VmDataType.WORD -> {
-                registers.setW(ins.reg1!!, value.toUShort())
-            }
-        }
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSYSCALL(ins: Instruction) {
-        val call = Syscall.values()[ins.value!!]
+    private fun InsSYSCALL(i: Instruction) {
+        val call = Syscall.values()[i.value!!]
         SysCalls.call(call, this)
         pc++
     }
@@ -176,10 +183,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsLOAD(i: Instruction) {
-        when(i.type!!) {
-            VmDataType.BYTE -> registers.setB(i.reg1!!, i.value!!.toUByte())
-            VmDataType.WORD -> registers.setW(i.reg1!!, i.value!!.toUShort())
-        }
+        setResultReg(i.reg1!!, i.value!!, i.type!!)
         pc++
     }
 
@@ -198,6 +202,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         }
         pc++
     }
+
     private fun InsLOADX(i: Instruction) {
         when (i.type!!) {
             VmDataType.BYTE -> registers.setB(i.reg1!!, memory.getB(i.value!! + registers.getW(i.reg2!!).toInt()))
@@ -268,6 +273,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         }
         pc++
     }
+
     private fun InsSTOREZX(i: Instruction) {
         when (i.type!!) {
             VmDataType.BYTE -> memory.setB(registers.getW(i.reg2!!).toInt() + i.value!!, 0u)
@@ -343,30 +349,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             pc++
     }
 
-    private fun getBranchOperands(i: Instruction): Pair<Int, Int> {
-        return when(i.type) {
-            VmDataType.BYTE -> Pair(registers.getB(i.reg1!!).toInt(), registers.getB(i.reg2!!).toInt())
-            VmDataType.WORD -> Pair(registers.getW(i.reg1!!).toInt(), registers.getW(i.reg2!!).toInt())
-            null -> throw IllegalArgumentException("need type for branch instruction")
-        }
-    }
-
-    private fun getBranchOperandsU(i: Instruction): Pair<UInt, UInt> {
-        return when(i.type) {
-            VmDataType.BYTE -> Pair(registers.getB(i.reg1!!).toUInt(), registers.getB(i.reg2!!).toUInt())
-            VmDataType.WORD -> Pair(registers.getW(i.reg1!!).toUInt(), registers.getW(i.reg2!!).toUInt())
-            null -> throw IllegalArgumentException("need type for branch instruction")
-        }
-    }
-
-    private fun getLogicalOperandsU(i: Instruction): Pair<UInt, UInt> {
-        return when(i.type) {
-            VmDataType.BYTE -> Pair(registers.getB(i.reg2!!).toUInt(), registers.getB(i.reg3!!).toUInt())
-            VmDataType.WORD -> Pair(registers.getW(i.reg2!!).toUInt(), registers.getW(i.reg3!!).toUInt())
-            null -> throw IllegalArgumentException("need type for logical instruction")
-        }
-    }
-
     private fun InsBNE(i: Instruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left!=right)
@@ -440,6 +422,78 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             pc = i.value!!
         else
             pc++
+    }
+
+    private fun InsSEQ(i: Instruction) {
+        val (resultReg: Int, left: Int, right: Int) = getSetOnConditionOperands(i)
+        val value = if(left==right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSNE(i: Instruction) {
+        val (resultReg: Int, left: Int, right: Int) = getSetOnConditionOperands(i)
+        val value = if(left!=right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSLT(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val value = if(left<right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSLTS(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val value = if(left<right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSGT(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val value = if(left>right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSGTS(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val value = if(left>right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSLE(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val value = if(left<=right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSLES(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val value = if(left<=right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+    }
+
+    private fun InsSGE(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val value = if(left>=right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+
+    }
+
+    private fun InsSGES(i: Instruction) {
+        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val value = if(left>=right) 1 else 0
+        setResultReg(resultReg, value, i.type!!)
+        pc++
+
     }
 
     private fun InsINC(i: Instruction) {
@@ -625,6 +679,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun InsSWAP(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = registers.getW(i.reg2!!)
+                val newValue = value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
+                registers.setW(i.reg1!!, newValue.toUShort())
+            }
+            VmDataType.WORD -> TODO("swap.w requires 32-bits registers")
+        }
+        pc++
+    }
+
     private fun InsCOPY(i: Instruction) = doCopy(i.reg1!!, i.reg2!!, i.reg3!!, false)
 
     private fun InsCOPYZ(i: Instruction) = doCopy(i.reg1!!, i.reg2!!, null, true)
@@ -654,16 +720,44 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsSWAP(i: Instruction) {
-        when(i.type!!) {
-            VmDataType.BYTE -> {
-                val value = registers.getW(i.reg2!!)
-                val newValue = value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
-                registers.setW(i.reg1!!, newValue.toUShort())
-            }
-            VmDataType.WORD -> TODO("swap.w requires 32-bits registers")
+    private fun getBranchOperands(i: Instruction): Pair<Int, Int> {
+        return when(i.type) {
+            VmDataType.BYTE -> Pair(registers.getB(i.reg1!!).toInt(), registers.getB(i.reg2!!).toInt())
+            VmDataType.WORD -> Pair(registers.getW(i.reg1!!).toInt(), registers.getW(i.reg2!!).toInt())
+            null -> throw IllegalArgumentException("need type for branch instruction")
         }
-        pc++
+    }
+
+    private fun getBranchOperandsU(i: Instruction): Pair<UInt, UInt> {
+        return when(i.type) {
+            VmDataType.BYTE -> Pair(registers.getB(i.reg1!!).toUInt(), registers.getB(i.reg2!!).toUInt())
+            VmDataType.WORD -> Pair(registers.getW(i.reg1!!).toUInt(), registers.getW(i.reg2!!).toUInt())
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
+    }
+
+    private fun getLogicalOperandsU(i: Instruction): Pair<UInt, UInt> {
+        return when(i.type) {
+            VmDataType.BYTE -> Pair(registers.getB(i.reg2!!).toUInt(), registers.getB(i.reg3!!).toUInt())
+            VmDataType.WORD -> Pair(registers.getW(i.reg2!!).toUInt(), registers.getW(i.reg3!!).toUInt())
+            null -> throw IllegalArgumentException("need type for logical instruction")
+        }
+    }
+
+    private fun getSetOnConditionOperands(ins: Instruction): Triple<Int, Int, Int> {
+        return when(ins.type) {
+            VmDataType.BYTE -> Triple(ins.reg1!!, registers.getB(ins.reg2!!).toInt(), registers.getB(ins.reg3!!).toInt())
+            VmDataType.WORD -> Triple(ins.reg1!!, registers.getW(ins.reg2!!).toInt(), registers.getW(ins.reg3!!).toInt())
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
+    }
+
+    private fun getSetOnConditionOperandsU(ins: Instruction): Triple<Int, UInt, UInt> {
+        return when(ins.type) {
+            VmDataType.BYTE -> Triple(ins.reg1!!, registers.getB(ins.reg2!!).toUInt(), registers.getB(ins.reg3!!).toUInt())
+            VmDataType.WORD -> Triple(ins.reg1!!, registers.getW(ins.reg2!!).toUInt(), registers.getW(ins.reg3!!).toUInt())
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
     }
 
     private var window: GraphicsWindow? = null

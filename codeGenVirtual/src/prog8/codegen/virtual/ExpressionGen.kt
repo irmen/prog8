@@ -1,10 +1,12 @@
 package prog8.codegen.virtual
 
+import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.PassByValueDatatypes
+import prog8.code.core.SignedDatatypes
 import prog8.vm.Instruction
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
@@ -54,7 +56,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             is PtBinaryExpression -> code += translate(expr, resultRegister, regUsage)
             is PtBuiltinFunctionCall -> code += translate(expr, resultRegister, regUsage)
             is PtFunctionCall -> code += translate(expr, resultRegister, regUsage)
-            is PtContainmentCheck -> TODO()
+            is PtContainmentCheck -> code += translate(expr, resultRegister, regUsage)
             is PtPipe -> TODO()
             is PtRange,
             is PtArrayLiteral,
@@ -62,6 +64,21 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             else -> throw AssemblyError("weird expression")
         }
         return code
+    }
+
+    private fun translate(check: PtContainmentCheck, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+        val iterableIdent = check.iterable
+        val iterable = codeGen.symbolTable.flat.getValue(iterableIdent.targetName) as StStaticVariable
+        when(iterable.dt) {
+            DataType.STR -> println("CONTAINMENT CHECK ${check.element} in string $iterable  ${iterable.initialStringValue}")
+            DataType.ARRAY_UB -> println("CONTAINMENT CHECK ${check.element} in UB-array $iterable  ${iterable.initialArrayValue}")
+            DataType.ARRAY_B -> println("CONTAINMENT CHECK ${check.element} in B-array $iterable  ${iterable.initialArrayValue}")
+            DataType.ARRAY_UW -> println("CONTAINMENT CHECK ${check.element} in UW-array $iterable  ${iterable.initialArrayValue}")
+            DataType.ARRAY_W -> println("CONTAINMENT CHECK ${check.element} in W-array $iterable  ${iterable.initialArrayValue}")
+            DataType.ARRAY_F -> TODO("containment check in float-array")
+            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${iterableIdent.targetName}")
+        }
+        return VmCodeChunk()
     }
 
     private fun translate(arrayIx: PtArrayIndexer, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
@@ -194,9 +211,9 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         val code = VmCodeChunk()
         val leftResultReg = regUsage.nextFree()
         val rightResultReg = regUsage.nextFree()
+        // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever.
         val leftCode = translateExpression(binExpr.left, leftResultReg, regUsage)
         val rightCode = translateExpression(binExpr.right, rightResultReg, regUsage)
-        // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever.
         code += leftCode
         code += rightCode
         val vmDt = codeGen.vmType(binExpr.type)
@@ -231,7 +248,28 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             ">>" -> {
                 code += VmCodeInstruction(Instruction(Opcode.LSR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
-            // TODO the other operators: "==", "!=", "<", ">", "<=", ">="
+            "==" -> {
+                code += VmCodeInstruction(Instruction(Opcode.SEQ, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
+            "!=" -> {
+                code += VmCodeInstruction(Instruction(Opcode.SNE, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
+            "<" -> {
+                val ins = if(binExpr.type in SignedDatatypes) Opcode.SLTS else Opcode.SLT
+                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
+            ">" -> {
+                val ins = if(binExpr.type in SignedDatatypes) Opcode.SGTS else Opcode.SGT
+                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
+            "<=" -> {
+                val ins = if(binExpr.type in SignedDatatypes) Opcode.SLES else Opcode.SLE
+                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
+            ">=" -> {
+                val ins = if(binExpr.type in SignedDatatypes) Opcode.SGES else Opcode.SGE
+                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+            }
             else -> TODO("operator ${binExpr.operator}")
         }
         return code

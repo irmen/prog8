@@ -6,6 +6,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.*
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.ElementToArrayTypes
 import prog8.code.core.Position
 import java.util.*
 
@@ -59,6 +61,8 @@ internal class SymbolTableMaker: IAstVisitor {
                     val initialString = if(initialStringLit==null) null else Pair(initialStringLit.value, initialStringLit.encoding)
                     val initialArrayLit = decl.value as? ArrayLiteral
                     val initialArray = makeInitialArray(initialArrayLit)
+                    if(decl.isArray && decl.datatype !in ArrayDatatypes)
+                        throw FatalAstException("array vardecl has mismatched dt ${decl.datatype}")
                     StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, decl.arraysize?.constIndex(), decl.zeropage, decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)

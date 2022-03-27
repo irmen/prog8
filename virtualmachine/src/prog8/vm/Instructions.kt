@@ -74,6 +74,16 @@ bgt         reg1, reg2, value         - jump to location in program given by val
 bgts        reg1, reg2, value         - jump to location in program given by value, if reg1 > reg2 (signed)
 bge         reg1, reg2, value         - jump to location in program given by value, if reg1 >= reg2 (unsigned)
 bges        reg1, reg2, value         - jump to location in program given by value, if reg1 >= reg2 (signed)
+seq         reg1, reg2, reg3          - set reg=1 if reg2 == reg3,  otherwise set reg1=0
+sne         reg1, reg2, reg3          - set reg=1 if reg2 != reg3,  otherwise set reg1=0
+slt         reg1, reg2, reg3          - set reg=1 if reg2 < reg3 (unsigned),  otherwise set reg1=0
+slts        reg1, reg2, reg3          - set reg=1 if reg2 < reg3 (signed),  otherwise set reg1=0
+sle         reg1, reg2, reg3          - set reg=1 if reg2 <= reg3 (unsigned),  otherwise set reg1=0
+sles        reg1, reg2, reg3          - set reg=1 if reg2 <= reg3 (signed),  otherwise set reg1=0
+sgt         reg1, reg2, reg3          - set reg=1 if reg2 > reg3 (unsigned),  otherwise set reg1=0
+sgts        reg1, reg2, reg3          - set reg=1 if reg2 > reg3 (signed),  otherwise set reg1=0
+sge         reg1, reg2, reg3          - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
+sges        reg1, reg2, reg3          - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
 
 TODO: support for the prog8 special branching instructions if_XX (bcc, bcs etc.)
       but we don't have any 'processor flags' whatsoever in the vm so it's a bit weird
@@ -159,6 +169,16 @@ enum class Opcode {
     BLES,
     BGE,
     BGES,
+    SEQ,
+    SNE,
+    SLT,
+    SLTS,
+    SGT,
+    SGTS,
+    SLE,
+    SLES,
+    SGE,
+    SGES,
 
     INC,
     DEC,
@@ -271,6 +291,16 @@ val instructionFormats = mutableMapOf(
         Opcode.BLES to       InstructionFormat(BW, true,  true,  false, true ),
         Opcode.BGE to        InstructionFormat(BW, true,  true,  false, true ),
         Opcode.BGES to       InstructionFormat(BW, true,  true,  false, true ),
+        Opcode.SEQ to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SNE to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SLT to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SLTS to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SGT to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SGTS to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SLE to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SLES to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SGE to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SGES to       InstructionFormat(BW, true,  true,  true,  false),
 
         Opcode.INC to        InstructionFormat(BW, true,  false, false, false),
         Opcode.DEC to        InstructionFormat(BW, true,  false, false, false),
