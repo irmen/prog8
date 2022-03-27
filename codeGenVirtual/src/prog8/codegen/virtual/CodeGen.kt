@@ -57,7 +57,7 @@ class CodeGen(internal val program: PtProgram,
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
             is PtWhen -> TODO()
-            is PtPipe -> TODO()
+            is PtPipe -> expressionEval.translate(node, regUsage.nextFree(), regUsage)
             is PtForLoop -> TODO()
             is PtIfElse -> translate(node, regUsage)
             is PtPostIncrDecr -> translate(node, regUsage)
@@ -78,7 +78,7 @@ class CodeGen(internal val program: PtProgram,
             is PtTypeCast,
             is PtSubroutineParameter,
             is PtNumber,
-            is PtArrayLiteral,
+            is PtArray,
             is PtString -> throw AssemblyError("strings should not occur as separate statement node ${node.position}")
             is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target ${node.position}")
             is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target ${node.position}")

@@ -64,9 +64,15 @@ sub  print_b  (byte value)   {
     ; TODO use conv module?
 }
 
+str hex_digits = "0123456789abcdef"
+
 sub  print_ubhex  (ubyte value, ubyte prefix)  {
     ; ---- print the ubyte in hex form
-    ; TODO use conv module?
+    if prefix
+        chrout('$')
+
+    chrout(hex_digits[value>>4])
+    chrout(hex_digits[value&15])
 }
 
 sub  print_ubbin  (ubyte value, ubyte prefix) {
@@ -81,7 +87,8 @@ sub  print_uwbin  (uword value, ubyte prefix)  {
 
 sub  print_uwhex  (uword value, ubyte prefix) {
     ; ---- print the uword in hexadecimal form (4 digits)
-    ; TODO use conv module?
+    print_ubhex(msb(value), true)
+    print_ubhex(lsb(value), false)
 }
 
 sub  print_uw0  (uword value)  {

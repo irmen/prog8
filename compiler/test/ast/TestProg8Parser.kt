@@ -924,7 +924,7 @@ class TestProg8Parser: FunSpec( {
         val errors = ErrorReporterForTests()
         compileText(C64Target(),  false, text, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "must be an iterable type"
+        errors.errors[0] shouldContain "must be a string or array"
         errors.errors[1] shouldContain "datatype doesn't match"
     }
 

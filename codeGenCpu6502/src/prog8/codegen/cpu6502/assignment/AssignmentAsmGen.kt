@@ -333,154 +333,79 @@ internal class AssignmentAsmGen(private val program: Program,
 
     private fun containmentCheckIntoA(containment: ContainmentCheck) {
         val elementDt = containment.element.inferType(program)
-        val range = containment.iterable as? RangeExpression
-        if(range!=null) {
-            val constRange = range.toConstantIntegerRange()
-            if(constRange!=null)
-                return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), constRange.toList())
-            throw AssemblyError("non const range containment check not supported")
-        }
         val variable = (containment.iterable as? IdentifierReference)?.targetVarDecl(program)
-        if(variable!=null) {
-            if(elementDt istype DataType.FLOAT)
-                throw AssemblyError("containment check of floats not supported")
-            if(variable.origin!=VarDeclOrigin.USERCODE) {
-                when(variable.datatype) {
-                    DataType.STR -> {
-                        require(elementDt.isBytes)
-                        val stringVal = variable.value as StringLiteral
-                        if(stringVal.value.length > ContainmentCheck.max_inlined_string_length) {
-                            // use subroutine
-                            val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
-                            assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                            asmgen.out("  ldy  #${stringVal.value.length}")
-                            asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                            return
-                        } else {
-                            // inline cmp table
-                            val encoded = program.encoding.encodeString(stringVal.value, stringVal.encoding)
-                            return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), encoded.map { it.toInt() })
-                        }
-                    }
-                    DataType.ARRAY_F -> {
-                        // require(elementDt istype DataType.FLOAT)
-                        throw AssemblyError("containment check of floats not supported")
-                    }
-                    in ArrayDatatypes -> {
-                        require(elementDt.isInteger)
-                        val arrayVal = variable.value as ArrayLiteral
-                        val dt = elementDt.getOr(DataType.UNDEFINED)
-                        if(arrayVal.value.size > ContainmentCheck.max_inlined_string_length) {
-                            // use subroutine
-                            val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-                            when(dt) {
-                                in ByteDatatypes -> {
-                                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
-                                    assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                                    asmgen.out("  ldy  #${arrayVal.value.size}")
-                                    asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                                }
-                                in WordDatatypes -> {
-                                    assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
-                                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
-                                    asmgen.out("  ldy  #${arrayVal.value.size}")
-                                    asmgen.out("  jsr  prog8_lib.containment_wordarray")
-                                }
-                                else -> throw AssemblyError("invalid dt")
-                            }
-                            return
-                        } else {
-                            // inline cmp table
-                            val values = arrayVal.value.map { it.constValue(program)!!.number.toInt() }
-                            return containmentCheckIntoA(containment.element, dt, values)
-                        }
-                    }
-                    else -> throw AssemblyError("invalid dt")
-                }
-            }
-            val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
+            ?: throw AssemblyError("invalid containment iterable type")
+
+        if(elementDt istype DataType.FLOAT)
+            throw AssemblyError("containment check of floats not supported")
+        if(variable.origin!=VarDeclOrigin.USERCODE) {
             when(variable.datatype) {
                 DataType.STR -> {
-                    // use subroutine
+                    require(elementDt.isBytes)
+                    val stringVal = variable.value as StringLiteral
+                    val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
                     assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                     assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                    val stringVal = variable.value as StringLiteral
                     asmgen.out("  ldy  #${stringVal.value.length}")
                     asmgen.out("  jsr  prog8_lib.containment_bytearray")
                     return
                 }
-                DataType.ARRAY_F -> throw AssemblyError("containment check of floats not supported")
-                DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                    val arrayVal = variable.value as ArrayLiteral
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
-                    assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                    asmgen.out("  ldy  #${arrayVal.value.size}")
-                    asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                    return
+                DataType.ARRAY_F -> {
+                    // require(elementDt istype DataType.FLOAT)
+                    throw AssemblyError("containment check of floats not supported")
                 }
-                DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                in ArrayDatatypes -> {
+                    require(elementDt.isInteger)
                     val arrayVal = variable.value as ArrayLiteral
-                    assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
-                    asmgen.out("  ldy  #${arrayVal.value.size}")
-                    asmgen.out("  jsr  prog8_lib.containment_wordarray")
+                    val dt = elementDt.getOr(DataType.UNDEFINED)
+                    val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
+                    when(dt) {
+                        in ByteDatatypes -> {
+                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                            assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                            asmgen.out("  ldy  #${arrayVal.value.size}")
+                            asmgen.out("  jsr  prog8_lib.containment_bytearray")
+                        }
+                        in WordDatatypes -> {
+                            assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
+                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
+                            asmgen.out("  ldy  #${arrayVal.value.size}")
+                            asmgen.out("  jsr  prog8_lib.containment_wordarray")
+                        }
+                        else -> throw AssemblyError("invalid dt")
+                    }
                     return
                 }
                 else -> throw AssemblyError("invalid dt")
             }
         }
-        val stringVal = containment.iterable as? StringLiteral
-        if(stringVal!=null) {
-            require(elementDt.isBytes)
-            if(stringVal.value.length > ContainmentCheck.max_inlined_string_length)
-                throw AssemblyError("string should have been inlined in if it was this long")
-            val encoded = program.encoding.encodeString(stringVal.value, stringVal.encoding)
-            return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), encoded.map { it.toInt() })
-        }
-        val arrayVal = containment.iterable as? ArrayLiteral
-        if(arrayVal!=null) {
-            require(elementDt.isInteger)
-            if(arrayVal.value.size > ContainmentCheck.max_inlined_string_length)
-                throw AssemblyError("array should have been inlined in if it was this long")
-            val values = arrayVal.value.map { it.constValue(program)!!.number.toInt() }
-            return containmentCheckIntoA(containment.element, elementDt.getOr(DataType.UNDEFINED), values)
-        }
-
-        throw AssemblyError("invalid containment iterable type")
-    }
-
-    private fun containmentCheckIntoA(element: Expression, dt: DataType, values: List<Number>) {
-        if(values.size<2)
-            throw AssemblyError("containment check against 0 or 1 values should have been optimized away")
-        val containsLabel = asmgen.makeLabel("contains")
-        when(dt) {
-            in ByteDatatypes -> {
-                asmgen.assignExpressionToRegister(element, RegisterOrPair.A, dt==DataType.BYTE)
-                for (value in values) {
-                    asmgen.out("  cmp  #$value |  beq  +")
-                }
-                asmgen.out("""
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
+        val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
+        when(variable.datatype) {
+            DataType.STR -> {
+                // use subroutine
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                val stringVal = variable.value as StringLiteral
+                asmgen.out("  ldy  #${stringVal.value.length}")
+                asmgen.out("  jsr  prog8_lib.containment_bytearray")
+                return
             }
-            in WordDatatypes -> {
-                asmgen.assignExpressionToRegister(element, RegisterOrPair.AY, dt==DataType.WORD)
-                for (value in values) {
-                    asmgen.out("""
-                        cmp  #<$value
-                        bne  +
-                        cpy  #>$value
-                        beq  $containsLabel
-+""")
-                }
-                asmgen.out("""
-                    lda  #0
-                    beq  +
-$containsLabel      lda  #1
-+""")
+            DataType.ARRAY_F -> throw AssemblyError("containment check of floats not supported")
+            DataType.ARRAY_B, DataType.ARRAY_UB -> {
+                val arrayVal = variable.value as ArrayLiteral
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                asmgen.out("  ldy  #${arrayVal.value.size}")
+                asmgen.out("  jsr  prog8_lib.containment_bytearray")
+                return
+            }
+            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+                val arrayVal = variable.value as ArrayLiteral
+                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
+                asmgen.out("  ldy  #${arrayVal.value.size}")
+                asmgen.out("  jsr  prog8_lib.containment_wordarray")
+                return
             }
             else -> throw AssemblyError("invalid dt")
         }

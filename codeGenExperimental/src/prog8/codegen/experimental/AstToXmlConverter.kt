@@ -157,7 +157,7 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtAsmSub -> write(it)
             is PtAddressOf -> write(it)
             is PtArrayIndexer -> write(it)
-            is PtArrayLiteral -> write(it)
+            is PtArray -> write(it)
             is PtBinaryExpression -> write(it)
             is PtBuiltinFunctionCall -> write(it)
             is PtConditionalBranch -> write(it)
@@ -212,7 +212,7 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.endElt()
     }
 
-    private fun write(array: PtArrayLiteral) {
+    private fun write(array: PtArray) {
         xml.elt("array")
         xml.attr("type", array.type.name)
         xml.startChildren()
@@ -271,11 +271,11 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.startChildren()
         xml.elt("element")
         xml.startChildren()
-        writeNode(check.element)
+        writeNode(check.children[0])
         xml.endElt()
         xml.elt("iterable")
         xml.startChildren()
-        writeNode(check.iterable)
+        writeNode(check.children[1])
         xml.endElt()
         xml.endElt()
     }

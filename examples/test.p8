@@ -8,6 +8,7 @@ main {
         txt.print("Welcome to a prog8 pixel shader :-)\n")
         ubyte bb = 4
         ubyte[] array = [1,2,3,4,5,6]
+        uword[] warray = [1111,2222,3333]
         str tekst = "test"
         uword ww = 19
         bb = bb in "teststring"
@@ -17,6 +18,13 @@ main {
         bb = bb in array
         bb++
         bb = bb in tekst
+        bb++
+        bb = ww in warray
+        bb++
+        bb = 666 in warray
+        bb ++
+        bb = '?' in tekst
+        bb++
         txt.print("bb=")
         txt.print_ub(bb)
         txt.nl()

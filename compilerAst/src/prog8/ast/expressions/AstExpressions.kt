@@ -1009,10 +1009,6 @@ class ContainmentCheck(var element: Expression,
         iterable.linkParents(this)
     }
 
-    companion object {
-        const val max_inlined_string_length = 16
-    }
-
     override val isSimple: Boolean = false
     override fun copy() = ContainmentCheck(element.copy(), iterable.copy(), position)
     override fun constValue(program: Program): NumericLiteral? {
@@ -1022,13 +1018,6 @@ class ContainmentCheck(var element: Expression,
                 is ArrayLiteral -> {
                     val exists = (iterable as ArrayLiteral).value.any { it.constValue(program)==elementConst }
                     return NumericLiteral.fromBoolean(exists, position)
-                }
-                is RangeExpression -> {
-                    val intRange = (iterable as RangeExpression).toConstantIntegerRange()
-                    if(intRange!=null && elementConst.type in IntegerDatatypes) {
-                        val exists = elementConst.number.toInt() in intRange
-                        return NumericLiteral.fromBoolean(exists, position)
-                    }
                 }
                 is StringLiteral -> {
                     if(elementConst.type in ByteDatatypes) {
@@ -1045,11 +1034,6 @@ class ContainmentCheck(var element: Expression,
             is ArrayLiteral -> {
                 val array= iterable as ArrayLiteral
                 if(array.value.isEmpty())
-                    return NumericLiteral.fromBoolean(false, position)
-            }
-            is RangeExpression -> {
-                val size = (iterable as RangeExpression).size()
-                if(size!=null && size==0)
                     return NumericLiteral.fromBoolean(false, position)
             }
             is StringLiteral -> {

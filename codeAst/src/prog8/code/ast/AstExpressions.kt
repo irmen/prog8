@@ -26,7 +26,7 @@ class PtArrayIndexer(type: DataType, position: Position): PtExpression(type, pos
 }
 
 
-class PtArrayLiteral(type: DataType, position: Position): PtExpression(type, position)
+class PtArray(type: DataType, position: Position): PtExpression(type, position)
 
 
 class PtBuiltinFunctionCall(val name: String, val void: Boolean, type: DataType, position: Position) : PtExpression(type, position) {
@@ -56,10 +56,10 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 
 
 class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, position) {
-    val element: PtExpression
+    val element: PtExpression   // either a PtIdentifier or PtNumber
         get() = children[0] as PtExpression
     val iterable: PtIdentifier
-        get() = children[0] as PtIdentifier
+        get() = children[1] as PtIdentifier
 }
 
 

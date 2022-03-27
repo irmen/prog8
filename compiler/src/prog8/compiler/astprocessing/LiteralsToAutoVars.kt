@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.ContainmentCheck
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.VarDecl
@@ -27,11 +26,8 @@ internal class LiteralsToAutoVars(private val program: Program,
             errors.err("compilation target doesn't support this text encoding", string.position)
             return noModifications
         }
-        if(string.parent !is VarDecl
-            && string.parent !is WhenChoice
-            && (string.parent !is ContainmentCheck || string.value.length>ContainmentCheck.max_inlined_string_length)) {
+        if(string.parent !is VarDecl && string.parent !is WhenChoice) {
             // replace the literal string by an identifier reference to the interned string
-
             val parentFunc = (string.parent as? IFunctionCall)?.target
             if(parentFunc!=null) {
                 if(parentFunc.nameInSource.size==1 && parentFunc.nameInSource[0]=="memory") {
@@ -57,9 +53,6 @@ internal class LiteralsToAutoVars(private val program: Program,
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
             }
         } else {
-            if(array.parent is ContainmentCheck && array.value.size<ContainmentCheck.max_inlined_string_length)
-                return noModifications
-
             val arrayDt = array.guessDatatype(program)
             if(arrayDt.isKnown) {
                 // turn the array literal it into an identifier reference

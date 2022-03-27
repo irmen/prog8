@@ -369,27 +369,15 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }
             
-                    if 16 in 10 to 20 step 3 {
-                        xx++
-                    }
-            
                     if 'b' in "abcdef" {
                         xx++
                     }
             
-                    if 8 in [2,4,6,8] {
-                        xx++
-                    }
-
                     if xx in name {
                         xx++
                     }
             
                     if xx in values {
-                        xx++
-                    }
-            
-                    if xx in 10 to 20 step 3 {
                         xx++
                     }
             
@@ -425,12 +413,10 @@ class TestCompilerOnRanges: FunSpec({
             
                     xx = 'm' in name
                     xx = 5 in values
-                    xx = 16 in 10 to 20 step 3
                     xx = 'b' in "abcdef"
                     xx = 8 in [2,4,6,8]
                     xx = xx in name
                     xx = xx in values
-                    xx = xx in 10 to 20 step 3
                     xx = xx in "abcdef"
                     xx = xx in [2,4,6,8]
                     xx = ww in [9000,8000,7000]

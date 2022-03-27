@@ -414,8 +414,8 @@ class IntermediateAstMaker(val program: Program) {
         return array
     }
 
-    private fun transform(srcArr: ArrayLiteral): PtArrayLiteral {
-        val arr = PtArrayLiteral(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
+    private fun transform(srcArr: ArrayLiteral): PtArray {
+        val arr = PtArray(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
         for (elt in srcArr.value)
             arr.add(transformExpression(elt))
         return arr
@@ -440,7 +440,10 @@ class IntermediateAstMaker(val program: Program) {
     private fun transform(srcCheck: ContainmentCheck): PtContainmentCheck {
         val check = PtContainmentCheck(srcCheck.position)
         check.add(transformExpression(srcCheck.element))
-        check.add(transformExpression(srcCheck.iterable))
+        if(srcCheck.iterable !is IdentifierReference)
+            throw FatalAstException("iterable in containmentcheck must always be an identifier (referencing string or array) $srcCheck")
+        val iterable = transformExpression(srcCheck.iterable)
+        check.add(iterable)
         return check
     }
 

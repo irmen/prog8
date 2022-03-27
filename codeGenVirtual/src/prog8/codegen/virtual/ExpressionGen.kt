@@ -3,10 +3,7 @@ package prog8.codegen.virtual
 import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.PassByValueDatatypes
-import prog8.code.core.SignedDatatypes
+import prog8.code.core.*
 import prog8.vm.Instruction
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
@@ -57,28 +54,48 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             is PtBuiltinFunctionCall -> code += translate(expr, resultRegister, regUsage)
             is PtFunctionCall -> code += translate(expr, resultRegister, regUsage)
             is PtContainmentCheck -> code += translate(expr, resultRegister, regUsage)
-            is PtPipe -> TODO()
+            is PtPipe -> code += translate(expr, resultRegister, regUsage)
             is PtRange,
-            is PtArrayLiteral,
+            is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
         }
         return code
     }
 
+    internal fun translate(pipe: PtPipe, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+        TODO("Not yet implemented: pipe expression")
+    }
+
     private fun translate(check: PtContainmentCheck, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
-        val iterableIdent = check.iterable
-        val iterable = codeGen.symbolTable.flat.getValue(iterableIdent.targetName) as StStaticVariable
+        val code = VmCodeChunk()
+        code += translateExpression(check.element, resultRegister, regUsage)   // load the element to check in resultRegister
+        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.targetName) as StStaticVariable
         when(iterable.dt) {
-            DataType.STR -> println("CONTAINMENT CHECK ${check.element} in string $iterable  ${iterable.initialStringValue}")
-            DataType.ARRAY_UB -> println("CONTAINMENT CHECK ${check.element} in UB-array $iterable  ${iterable.initialArrayValue}")
-            DataType.ARRAY_B -> println("CONTAINMENT CHECK ${check.element} in B-array $iterable  ${iterable.initialArrayValue}")
-            DataType.ARRAY_UW -> println("CONTAINMENT CHECK ${check.element} in UW-array $iterable  ${iterable.initialArrayValue}")
-            DataType.ARRAY_W -> println("CONTAINMENT CHECK ${check.element} in W-array $iterable  ${iterable.initialArrayValue}")
+            DataType.STR -> {
+                val call = PtFunctionCall(listOf("prog8_lib", "string_contains"), false, DataType.UBYTE, check.position)
+                call.children.add(check.element)
+                call.children.add(check.iterable)
+                code += translate(call, resultRegister, regUsage)
+            }
+            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                val call = PtFunctionCall(listOf("prog8_lib", "bytearray_contains"), false, DataType.UBYTE, check.position)
+                call.children.add(check.element)
+                call.children.add(check.iterable)
+                call.children.add(PtNumber(DataType.UBYTE, iterable.arraysize!!.toDouble(), iterable.position))
+                code += translate(call, resultRegister, regUsage)
+            }
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                val call = PtFunctionCall(listOf("prog8_lib", "wordarray_contains"), false, DataType.UBYTE, check.position)
+                call.children.add(check.element)
+                call.children.add(check.iterable)
+                call.children.add(PtNumber(DataType.UBYTE, iterable.arraysize!!.toDouble(), iterable.position))
+                code += translate(call, resultRegister, regUsage)
+            }
             DataType.ARRAY_F -> TODO("containment check in float-array")
-            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${iterableIdent.targetName}")
+            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.targetName}")
         }
-        return VmCodeChunk()
+        return code
     }
 
     private fun translate(arrayIx: PtArrayIndexer, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
@@ -287,7 +304,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         }
         code += VmCodeInstruction(Instruction(Opcode.CALL), labelArg=fcall.functionName)
         if(!fcall.void && resultRegister!=0) {
-            // Call convention: result value is in r0, so put it in the required register instead.
+            // Call convention: result value is in r0, so put it in the required register instead.   TODO does this work correctly?
             code += VmCodeInstruction(Instruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1=resultRegister, reg2=0))
         }
         return code
@@ -335,6 +352,13 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 2))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 1))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
+            }
+            "msb" -> {
+                code += translateExpression(call.args.single(), resultRegister, regUsage)
+                code += VmCodeInstruction(Instruction(Opcode.SWAP, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister))
+            }
+            "lsb" -> {
+                code += translateExpression(call.args.single(), resultRegister, regUsage)
             }
             else -> {
                 // TODO builtin functions...
