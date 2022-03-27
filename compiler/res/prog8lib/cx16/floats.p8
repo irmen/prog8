@@ -156,6 +156,23 @@ sub  print_f  (float value) {
 	}}
 }
 
+sub pow(float value, float power) -> float {
+    %asm {{
+        phx
+        phy
+        lda  #<value
+        ldy  #>value
+        jsr  floats.CONUPK
+        lda  #<power
+        ldy  #>power
+        jsr  floats.MOVFM
+        jsr  floats.FPWRT       ; cx16 doesn't have FPWR
+        ply
+        plx
+        rts
+    }}
+}
+
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"
 

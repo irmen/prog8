@@ -15,7 +15,7 @@ import kotlin.math.round
 
 val AssociativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
 val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
-val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "**", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
+val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
 val LogicalOperators = setOf("and", "or", "xor", "not")
 val BitwiseOperators = setOf("&", "|", "^")
 
@@ -198,7 +198,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
         return when (operator) {
-            "+", "-", "*", "**", "%", "/" -> {
+            "+", "-", "*", "%", "/" -> {
                 if (!leftDt.isKnown || !rightDt.isKnown)
                     InferredTypes.unknown()
                 else {

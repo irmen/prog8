@@ -147,7 +147,7 @@ arrayindex:  '[' expression ']' ;
 assignment :  assign_target '=' expression ;
 
 augassignment :
-	assign_target operator=('+=' | '-=' | '/=' | '*=' | '**=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
+	assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
 	;
 
 assign_target:
@@ -162,7 +162,6 @@ expression :
 	'(' expression ')'
 	| functioncall
 	| <assoc=right> prefix = ('+'|'-'|'~') expression
-	| left = expression EOL? bop = '**' EOL? right = expression
 	| left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
 	| left = expression EOL? bop = ('+' | '-' ) EOL? right = expression
 	| left = expression EOL? bop = ('<<' | '>>' ) EOL? right = expression

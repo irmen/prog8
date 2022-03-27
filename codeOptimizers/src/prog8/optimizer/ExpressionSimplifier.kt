@@ -256,7 +256,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             "/" -> optimizeDivision(expr, leftVal, rightVal)
             "+" -> optimizeAdd(expr, leftVal, rightVal)
             "-" -> optimizeSub(expr, leftVal, rightVal)
-            "**" -> optimizePower(expr, leftVal, rightVal)
             "%" -> optimizeRemainder(expr, leftVal, rightVal)
             ">>" -> optimizeShiftRight(expr, rightVal)
             "<<" -> optimizeShiftLeft(expr, rightVal)
@@ -431,75 +430,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
 
-
-        return null
-    }
-
-    private fun optimizePower(expr: BinaryExpression, leftVal: NumericLiteral?, rightVal: NumericLiteral?): Expression? {
-        if (leftVal == null && rightVal == null)
-            return null
-
-        if (rightVal != null) {
-            // right value is a constant, see if we can optimize
-            val rightConst: NumericLiteral = rightVal
-            when (rightConst.number) {
-                -3.0 -> {
-                    // -1/(left*left*left)
-                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
-                            BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position),
-                            expr.position)
-                }
-                -2.0 -> {
-                    // -1/(left*left)
-                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
-                            BinaryExpression(expr.left, "*", expr.left, expr.position),
-                            expr.position)
-                }
-                -1.0 -> {
-                    // -1/left
-                    return BinaryExpression(NumericLiteral(DataType.FLOAT, -1.0, expr.position), "/",
-                            expr.left, expr.position)
-                }
-                0.0 -> {
-                    // 1
-                    return NumericLiteral(rightConst.type, 1.0, expr.position)
-                }
-                0.5 -> {
-                    // sqrt(left)
-                    return FunctionCallExpression(IdentifierReference(listOf("sqrt"), expr.position), mutableListOf(expr.left), expr.position)
-                }
-                1.0 -> {
-                    // left
-                    return expr.left
-                }
-                2.0 -> {
-                    // left*left
-                    return BinaryExpression(expr.left, "*", expr.left, expr.position)
-                }
-                3.0 -> {
-                    // left*left*left
-                    return BinaryExpression(expr.left, "*", BinaryExpression(expr.left, "*", expr.left, expr.position), expr.position)
-                }
-            }
-        }
-        if (leftVal != null) {
-            // left value is a constant, see if we can optimize
-            when (leftVal.number) {
-                -1.0 -> {
-                    // -1
-                    return NumericLiteral(DataType.FLOAT, -1.0, expr.position)
-                }
-                0.0 -> {
-                    // 0
-                    return NumericLiteral(leftVal.type, 0.0, expr.position)
-                }
-                1.0 -> {
-                    //1
-                    return NumericLiteral(leftVal.type, 1.0, expr.position)
-                }
-
-            }
-        }
 
         return null
     }

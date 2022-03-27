@@ -70,7 +70,6 @@ class AsmGen(internal val program: Program,
     }
 
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
-    internal fun haveFPWRcall() = options.compTarget.name=="cx16"
 
     private var generatedLabelSequenceNumber: Int = 0
 

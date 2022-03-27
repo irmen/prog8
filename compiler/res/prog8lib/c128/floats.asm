@@ -328,25 +328,6 @@ _internal	ldx  #<fmath_float1
 		jmp  push_float
 		.pend
 
-
-pow_f		.proc
-		; -- push f1 ** f2 on stack
-		lda  #<fmath_float2
-		ldy  #>fmath_float2
-		jsr  pop_float
-		lda  #<fmath_float1
-		ldy  #>fmath_float1
-		jsr  pop_float
-		stx  P8ZP_SCRATCH_REG
-		lda  #<fmath_float1
-		ldy  #>fmath_float1
-		jsr  ROMUPK		; fac2 = float1
-		lda  #<fmath_float2
-		ldy  #>fmath_float2
-		jsr  FPWR
-		jmp  push_fac1._internal
-		.pend
-
 div_f		.proc
 		; -- push f1/f2 on stack
 		jsr  pop_2_floats_f2_in_fac1

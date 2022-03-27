@@ -1590,14 +1590,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
-            "**" -> {
-                asmgen.out("""
-                    lda  #<$name
-                    ldy  #>$name
-                    jsr  floats.CONUPK
-                    jsr  floats.FPWRT
-                """)
-            }
             "+" -> {
                 asmgen.out("""
                     lda  #<$name
@@ -1644,28 +1636,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val otherName = asmgen.asmVariableName(ident)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
-            "**" -> {
-                if(asmgen.haveFPWRcall()) {
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$otherName
-                        ldy  #>$otherName
-                        jsr  floats.FPWR
-                    """)
-                } else
-                    // cx16 doesn't have FPWR() only FPWRT()
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$otherName
-                        ldy  #>$otherName
-                        jsr  floats.MOVFM
-                        jsr  floats.FPWRT
-                    """)
-            }
             "+" -> {
                 asmgen.out("""
                     lda  #<$name
@@ -1721,28 +1691,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         val constValueName = allocator.getFloatAsmConst(value)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
-            "**" -> {
-                if(asmgen.haveFPWRcall()) {
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$constValueName
-                        ldy  #>$constValueName
-                        jsr  floats.FPWR
-                    """)
-                } else
-                    // cx16 doesn't have FPWR() only FPWRT()
-                    asmgen.out("""
-                        lda  #<$name
-                        ldy  #>$name
-                        jsr  floats.CONUPK
-                        lda  #<$constValueName
-                        ldy  #>$constValueName
-                        jsr  floats.MOVFM
-                        jsr  floats.FPWRT
-                    """)
-            }
             "+" -> {
                 if (value == 0.0)
                     return

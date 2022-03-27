@@ -7,7 +7,6 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.code.core.DataType
 import prog8.code.core.IntegerDatatypes
 import prog8.code.core.Position
-import kotlin.math.pow
 
 
 class ConstExprEvaluator {
@@ -20,7 +19,6 @@ class ConstExprEvaluator {
                 "*" -> multiply(left, right)
                 "/" -> divide(left, right)
                 "%" -> remainder(left, right)
-                "**" -> power(left, right)
                 "&" -> bitwiseand(left, right)
                 "|" -> bitwiseor(left, right)
                 "^" -> bitwisexor(left, right)
@@ -148,23 +146,6 @@ class ConstExprEvaluator {
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
-    }
-
-    private fun power(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot calculate $left ** $right"
-        return when (left.type) {
-            in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.optimalNumeric(left.number.toInt().toDouble().pow(right.number.toInt()), left.position)
-                DataType.FLOAT -> NumericLiteral(DataType.FLOAT, left.number.toInt().toDouble().pow(right.number), left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            DataType.FLOAT -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral(DataType.FLOAT, left.number.pow(right.number.toInt()), left.position)
-                DataType.FLOAT -> NumericLiteral(DataType.FLOAT, left.number.pow(right.number), left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
     }
 
     private fun plus(left: NumericLiteral, right: NumericLiteral): NumericLiteral {

@@ -231,7 +231,6 @@ internal class ExpressionGen(val codeGen: CodeGen) {
             ">>" -> {
                 code += VmCodeInstruction(Instruction(Opcode.LSR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
-            "**" -> throw AssemblyError("** operator requires floating point ${binExpr.position}")
             // TODO the other operators: "==", "!=", "<", ">", "<=", ">="
             else -> TODO("operator ${binExpr.operator}")
         }

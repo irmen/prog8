@@ -735,7 +735,6 @@ internal class ExpressionsAsmGen(private val program: Program,
 
     private fun translateBinaryOperatorBytes(operator: String, types: DataType) {
         when(operator) {
-            "**" -> throw AssemblyError("** operator requires floats")
             "*" -> asmgen.out("  jsr  prog8_lib.mul_byte")  //  the optimized routines should have been checked earlier
             "/" -> asmgen.out(if(types==DataType.UBYTE) "  jsr  prog8_lib.idiv_ub" else "  jsr  prog8_lib.idiv_b")
             "%" -> {
@@ -777,7 +776,6 @@ internal class ExpressionsAsmGen(private val program: Program,
 
     private fun translateBinaryOperatorWords(operator: String, dt: DataType) {
         when(operator) {
-            "**" -> throw AssemblyError("** operator requires floats")
             "*" -> asmgen.out("  jsr  prog8_lib.mul_word")
             "/" -> asmgen.out(if(dt==DataType.UWORD) "  jsr  prog8_lib.idiv_uw" else "  jsr  prog8_lib.idiv_w")
             "%" -> {
@@ -812,7 +810,6 @@ internal class ExpressionsAsmGen(private val program: Program,
 
     private fun translateBinaryOperatorFloats(operator: String) {
         when(operator) {
-            "**" -> asmgen.out(" jsr  floats.pow_f")
             "*" -> asmgen.out("  jsr  floats.mul_f")
             "/" -> asmgen.out("  jsr  floats.div_f")
             "+" -> asmgen.out("  jsr  floats.add_f")
