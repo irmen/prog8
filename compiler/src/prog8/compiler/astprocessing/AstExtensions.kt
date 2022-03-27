@@ -107,8 +107,13 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
 internal fun Program.variousCleanups(errors: IErrorReporter, options: CompilationOptions) {
     val process = VariousCleanups(this, errors, options)
     process.visit(this)
-    if(errors.noErrors())
-        process.applyModifications()
+    if(errors.noErrors()) {
+        if(process.applyModifications()>0) {
+            process.visit(this)
+            if(errors.noErrors())
+                process.applyModifications()
+        }
+    }
 }
 
 internal fun Program.moveMainAndStartToFirst() {

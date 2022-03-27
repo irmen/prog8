@@ -3,15 +3,17 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm codegen: ForLoop
 - vm codegen: fix primes endless loop stuck on '2'
-- x16: screen_set_mode -> screen_mode + other api https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode
+- x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get
+- x16: screen_set_mode -> screen_mode + other args https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode
 - optimize diskio load_raw on X16 because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
 - major version bump once X16 r39 rom is officially finalized
+- vm codegen: ForLoop
 - vm codegen: When
 - vm codegen: Pipe expression
 - vm codegen: validate that PtFunctionCall translation works okay with resultregister
+- vm codegen: postincrdecr arrayvalue
 - vm: support no globals re-init option
 - vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
