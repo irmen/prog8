@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm codegen: fix ifelse comparisons such as if x< 0
 - vm codegen: fix primes endless loop stuck on '2'
 - x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
     and https://github.com/commanderx16/x16-docs/commit/21238aedc641da91df88e04c4ce9bf3324a3c12d
@@ -13,6 +12,7 @@ For next release
    broken examples: amiga, colorbars, cube3d, highresbitmap, rasterbars, tehtriz, testgfx2, testvtui
    can we make the code read the new layout from vera registers instead of hardcoding it?
 - x16: check new ZP free addresses https://github.com/commanderx16/x16-docs/commit/541f2ce9e61d1d0d0e157d7f52fe16bc0895e6f0
+    and https://www.commanderx16.com/forum/index.php?/topic/363-keep-zero-page-empty-as-much-as-possible/#comment-18561
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
 - major compiler version bump once X16 r39 rom is officially finalized
@@ -23,6 +23,7 @@ For next release
 - vm codegen: postincrdecr arrayvalue
 - vm: support no globals re-init option
 - vm: how to remove all unused subroutines? (for asm, 64tass used to do this)
+- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks'
 - vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.

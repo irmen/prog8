@@ -17,7 +17,9 @@ SYSCALLS:
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-11 = rnd    ; random BYTE
+11 = rnd        ; random BYTE
+12 = wait       ; wait certain amount of jiffies (1/60 sec)
+13 = waitvsync  ; wait on vsync
 */
 
 enum class Syscall {
@@ -33,6 +35,8 @@ enum class Syscall {
     GFX_CLEAR,
     GFX_PLOT,
     RND,
+    WAIT,
+    WAITVSYNC
 }
 
 object SysCalls {
@@ -45,13 +49,13 @@ object SysCalls {
                 vm.exit()
             }
             Syscall.PRINT_C -> {
-                val char = vm.registers.getB(0).toInt()
+                val char = vm.registers.getUB(0).toInt()
                 print(Char(char))
             }
             Syscall.PRINT_S -> {
-                var addr = vm.registers.getW(0).toInt()
+                var addr = vm.registers.getUW(0).toInt()
                 while(true) {
-                    val char = vm.memory.getB(addr).toInt()
+                    val char = vm.memory.getUB(addr).toInt()
                     if(char==0)
                         break
                     print(Char(char))
@@ -59,29 +63,34 @@ object SysCalls {
                 }
             }
             Syscall.PRINT_U8 -> {
-                print(vm.registers.getB(0))
+                print(vm.registers.getUB(0))
             }
             Syscall.PRINT_U16 -> {
-                print(vm.registers.getW(0))
+                print(vm.registers.getUW(0))
             }
             Syscall.INPUT -> {
                 var input = readln()
-                val maxlen = vm.registers.getB(1).toInt()
+                val maxlen = vm.registers.getUB(1).toInt()
                 if(maxlen>0)
                     input = input.substring(0, min(input.length, maxlen))
-                vm.memory.setString(vm.registers.getW(0).toInt(), input, true)
-                vm.registers.setW(65535, input.length.toUShort())
+                vm.memory.setString(vm.registers.getUW(0).toInt(), input, true)
+                vm.registers.setUW(65535, input.length.toUShort())
             }
             Syscall.SLEEP -> {
-                val duration = vm.registers.getW(0).toLong()
+                val duration = vm.registers.getUW(0).toLong()
                 Thread.sleep(duration)
             }
             Syscall.GFX_ENABLE -> vm.gfx_enable()
             Syscall.GFX_CLEAR -> vm.gfx_clear()
             Syscall.GFX_PLOT -> vm.gfx_plot()
             Syscall.RND -> {
-                vm.registers.setB(0, (Random.nextInt() ushr 3).toUByte())
+                vm.registers.setUB(0, (Random.nextInt() ushr 3).toUByte())
             }
+            Syscall.WAIT -> {
+                val millis = vm.registers.getUW(0).toLong() * 1000/60
+                Thread.sleep(millis)
+            }
+            Syscall.WAITVSYNC -> vm.waitvsync()
             else -> TODO("syscall ${call.name}")
         }
     }

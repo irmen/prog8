@@ -10,15 +10,27 @@ class Registers {
         registers.fill(0u)
     }
 
-    fun setB(reg: Int, value: UByte) {
+    fun setUB(reg: Int, value: UByte) {
         registers[reg] = registers[reg] and 0xff00u or value.toUShort()
     }
 
-    fun setW(reg: Int, value: UShort) {
+    fun setSB(reg: Int, value: Byte) {
+        registers[reg] = registers[reg] and 0xff00u or (value.toUShort() and 0x00ffu)
+    }
+
+    fun setUW(reg: Int, value: UShort) {
         registers[reg] = value
     }
 
-    fun getB(reg: Int) = registers[reg].toUByte()
+    fun setSW(reg: Int, value: Short) {
+        registers[reg] = value.toUShort()
+    }
 
-    fun getW(reg: Int) = registers[reg]
+    fun getUB(reg: Int) = registers[reg].toUByte()
+
+    fun getSB(reg: Int) = registers[reg].toByte()
+
+    fun getUW(reg: Int) = registers[reg]
+
+    fun getSW(reg: Int) = registers[reg].toShort()
 }

@@ -32,14 +32,14 @@ class Assembler {
                     "ubyte", "byte" -> {
                         val array = values.split(',').map { parseValue(it.trim(), 0) }
                         for (value in array) {
-                            memory.setB(address, value.toUByte())
+                            memory.setUB(address, value.toUByte())
                             address++
                         }
                     }
                     "uword", "word" -> {
                         val array = values.split(',').map { parseValue(it.trim(), 0) }
                         for (value in array) {
-                            memory.setW(address, value.toUShort())
+                            memory.setUW(address, value.toUShort())
                             address++
                         }
                     }

@@ -233,7 +233,8 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         val rightCode = translateExpression(binExpr.right, rightResultReg, regUsage)
         code += leftCode
         code += rightCode
-        val vmDt = codeGen.vmType(binExpr.type)
+        val vmDt = codeGen.vmType(binExpr.left.type)
+        val signed = binExpr.left.type in SignedDatatypes
         when(binExpr.operator) {
             "+" -> {
                 code += VmCodeInstruction(Instruction(Opcode.ADD, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
@@ -263,7 +264,8 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.LSL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             ">>" -> {
-                code += VmCodeInstruction(Instruction(Opcode.LSR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                val opc = if(signed) Opcode.ASR else Opcode.LSR
+                code += VmCodeInstruction(Instruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             "==" -> {
                 code += VmCodeInstruction(Instruction(Opcode.SEQ, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
@@ -272,19 +274,19 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.SNE, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             "<" -> {
-                val ins = if(binExpr.type in SignedDatatypes) Opcode.SLTS else Opcode.SLT
+                val ins = if(signed) Opcode.SLTS else Opcode.SLT
                 code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             ">" -> {
-                val ins = if(binExpr.type in SignedDatatypes) Opcode.SGTS else Opcode.SGT
+                val ins = if(signed) Opcode.SGTS else Opcode.SGT
                 code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             "<=" -> {
-                val ins = if(binExpr.type in SignedDatatypes) Opcode.SLES else Opcode.SLE
+                val ins = if(signed) Opcode.SLES else Opcode.SLE
                 code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             ">=" -> {
-                val ins = if(binExpr.type in SignedDatatypes) Opcode.SGES else Opcode.SGE
+                val ins = if(signed) Opcode.SGES else Opcode.SGE
                 code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
             }
             else -> throw AssemblyError("weird operator ${binExpr.operator}")

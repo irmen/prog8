@@ -115,11 +115,11 @@ and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
 lsr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits
+asr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits (signed)
 lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bits
 ror         reg1, reg2, reg3                 - reg1 = rotate reg2 right by reg3 bits, not using carry
 rol         reg1, reg2, reg3                 - reg1 = rotate reg2 left by reg3 bits, not using carry
 
-TODO add asr? (arithmetical shift right, so with sign bit)
 TODO also add ror/rol variants using the carry bit? These do map directly on 6502 and 68k instructions.
 
 
@@ -131,6 +131,7 @@ breakpoint                            - trigger a breakpoint
 copy        reg1, reg2,   length      - copy memory from ptrs in reg1 to reg3, length bytes
 copyz       reg1, reg2                - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
 swap [b, w] reg1, reg2                - reg1 = swapped lsb and msb from register reg2 (16 bits) or lsw and msw (32 bits)
+concat [b, w] reg1, reg2, reg3        - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented, requires 32bits regs)
 push [b, w] reg1                      - push value in reg1 on the stack
 pop [b, w]  reg1                      - pop value from stack into reg1
 
@@ -143,7 +144,6 @@ enum class Opcode {
     LOADI,
     LOADX,
     LOADR,
-    SWAPREG,
     STOREM,
     STOREI,
     STOREX,
@@ -194,6 +194,7 @@ enum class Opcode {
     AND,
     OR,
     XOR,
+    ASR,
     LSR,
     LSL,
     ROR,
@@ -202,6 +203,8 @@ enum class Opcode {
     PUSH,
     POP,
     SWAP,
+    SWAPREG,
+    CONCAT,
     COPY,
     COPYZ,
     BREAKPOINT
@@ -321,6 +324,7 @@ val instructionFormats = mutableMapOf(
         Opcode.AND to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.OR to         InstructionFormat(BW, true,  true,  true,  false),
         Opcode.XOR to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ASR to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.LSR to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.LSL to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.ROR to        InstructionFormat(BW, true,  true,  true,  false),
@@ -331,5 +335,6 @@ val instructionFormats = mutableMapOf(
         Opcode.SWAP to       InstructionFormat(BW, true,  true,  false, false),
         Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
         Opcode.POP to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.CONCAT to     InstructionFormat(BW, true,  true,  true,  false),
         Opcode.BREAKPOINT to InstructionFormat(NN, false, false, false, false)
 )

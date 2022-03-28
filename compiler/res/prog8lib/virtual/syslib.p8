@@ -32,6 +32,9 @@ sys {
     const ubyte SC_GFX_ENABLE = 8
     const ubyte SC_GFX_CLEAR = 9
     const ubyte SC_GFX_PLOT = 10
+    const ubyte SC_RND = 11
+    const ubyte SC_WAIT = 12
+    const ubyte SC_WAITVSYNC = 13
 
 
     sub  reset_system()  {
@@ -41,24 +44,34 @@ sys {
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        ;     TODO
+        syscall1(SC_WAIT, jiffies)
     }
 
     sub waitvsync() {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        ;     TODO
+        syscall(SC_WAITVSYNC)
     }
 
     sub memcopy(uword source, uword target, uword count)  {
-        ;   TODO
+        repeat count {
+            @(target) = @(source)
+            source++
+            target++
+        }
     }
 
     sub memset(uword mem, uword numbytes, ubyte value)  {
-        ;  TODO
+        repeat numbytes {
+            @(mem) = value
+            mem++
+        }
     }
 
     sub memsetw(uword mem, uword numwords, uword value)  {
-        ; TODO
+        repeat numwords {
+            pokew(mem, value)
+            mem+=2
+        }
     }
 
     sub exit(ubyte returnvalue) {

@@ -92,6 +92,13 @@ internal class BuiltinFuncGen(val codeGen: CodeGen, val exprGen: ExpressionGen) 
                 code += exprGen.translateExpression(call.args.single(), addressReg, regUsage)
                 code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg))
             }
+            "mkword" -> {
+                val msbReg = regUsage.nextFree()
+                val lsbReg = regUsage.nextFree()
+                code += exprGen.translateExpression(call.args[0], msbReg, regUsage)
+                code += exprGen.translateExpression(call.args[1], lsbReg, regUsage)
+                code += VmCodeInstruction(Instruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg, reg3=lsbReg))
+            }
             else -> {
                 TODO("builtinfunc ${call.name}")
 //                code += VmCodeInstruction(Instruction(Opcode.NOP))

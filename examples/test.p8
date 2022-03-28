@@ -4,39 +4,13 @@
 
 main {
     sub start() {
-
-        byte bb = -9
-        word ww = -1234
-        if bb<0 {
-            txt.print("bb <0!\n")
-        } else {
-            txt.print("comparison error!\n")
-        }
-        if ww<0 {
-            txt.print("ww <0!\n")
-        } else {
-            txt.print("comparison error!\n")
-        }
-        if bb>0 {
-            txt.print("comparison error!\n")
-        } else {
-            txt.print("bb not >0\n")
-        }
-        if ww>0 {
-            txt.print("comparison error!\n")
-        } else {
-            txt.print("ww not >0\n")
-        }
-
-        txt.print_w(ww)
-        txt.spc()
-        ww <<= 3
-        txt.print_w(ww)
+        ubyte x1 = $ea
+        ubyte x2 = $31
+        uword uw = mkword(x1, $99)
+        txt.print_uwhex(uw, true)
         txt.nl()
-        txt.print_b(bb)
-        txt.spc()
-        bb <<= 3
-        txt.print_b(bb)
+        uw = mkword(x1, x2)
+        txt.print_uwhex(uw, true)
         txt.nl()
 
         sys.exit(99)
@@ -80,6 +54,7 @@ main {
 ;        sys.exit(99)
 
 
+        ; the "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen
 ;        ubyte shifter
 ;
