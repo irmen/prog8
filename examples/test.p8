@@ -4,39 +4,35 @@
 
 main {
     sub start() {
-        ubyte x1 = $ea
-        ubyte x2 = $31
-        uword uw = mkword(x1, $99)
-        txt.print_uwhex(uw, true)
-        txt.nl()
-        uw = mkword(x1, x2)
-        txt.print_uwhex(uw, true)
+        txt.clear_screen()
+        txt.print("Welcome to a prog8 pixel shader :-)\n")
+        uword ww = 0
+        ubyte bc
+        uword wc
+
+        for bc in "irmen" {
+            txt.chrout(bc)
+            ww++
+        }
+        txt.print_uw(ww)    ; 5
         txt.nl()
 
-        sys.exit(99)
+        for bc in [10,11,12] {
+            txt.print_ub(bc)
+            txt.spc()
+            ww++
+        }
+        txt.print_uw(ww)        ; 8
+        txt.nl()
 
-;        txt.clear_screen()
-;        txt.print("Welcome to a prog8 pixel shader :-)\n")
-;        uword ww = 0
-;        ubyte bc
-;        uword wc
-;
-;        for bc in "irmen" {
-;            ; +5 -> 17
-;            txt.chrout(bc)
-;            ww++
-;        }
-;        txt.print_uw(ww)
-;        txt.nl()
-;
-;        for wc in [1000,1111,1222] {
-;            txt.print_uw(wc)
-;            txt.spc()
-;            ww++    ; +3 -> 20
-;        }
-;        txt.print_uw(ww)
-;        txt.nl()
-;
+        for wc in [4096,8192,16384] {
+            txt.print_uw(wc)
+            txt.spc()
+            ww++
+        }
+        txt.print_uw(ww)        ; 11
+        txt.nl()
+
 ;        for bc in 10 to 20 step 3 {
 ;            ; 10,13,16,19 -> 4
 ;            ww++
@@ -50,8 +46,8 @@ main {
 ;        txt.print_uw(ww)
 ;        txt.nl()
 ;
-;
-;        sys.exit(99)
+
+        sys.exit(99)
 
 
         ; the "pixelshader":

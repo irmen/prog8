@@ -12,18 +12,9 @@ import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
 
-internal class RegisterUsage(var firstFree: Int=0) {
-    fun nextFree(): Int {
-        val result = firstFree
-        firstFree++
-        return result
-    }
-}
-
-
-internal class ExpressionGen(val codeGen: CodeGen) {
-    fun translateExpression(expr: PtExpression, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
-        require(regUsage.firstFree > resultRegister)
+internal class ExpressionGen(private val codeGen: CodeGen) {
+    fun translateExpression(expr: PtExpression, resultRegister: Int): VmCodeChunk {
+        require(codeGen.vmRegisters.peekNext() > resultRegister)
 
         val code = VmCodeChunk()
         val vmDt = codeGen.vmType(expr.type)
@@ -46,18 +37,18 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem))
             }
             is PtMemoryByte -> {
-                val addressRegister = regUsage.nextFree()
-                val addressExprCode = translateExpression(expr.address, addressRegister, regUsage)
+                val addressRegister = codeGen.vmRegisters.nextFree()
+                val addressExprCode = translateExpression(expr.address, addressRegister)
                 code += addressExprCode
             }
-            is PtTypeCast -> code += translate(expr, resultRegister, regUsage)
-            is PtPrefix -> code += translate(expr, resultRegister, regUsage)
-            is PtArrayIndexer -> code += translate(expr, resultRegister, regUsage)
-            is PtBinaryExpression -> code += translate(expr, resultRegister, regUsage)
-            is PtBuiltinFunctionCall -> code += codeGen.translateBuiltinFunc(expr, resultRegister, regUsage)
-            is PtFunctionCall -> code += translate(expr, resultRegister, regUsage)
-            is PtContainmentCheck -> code += translate(expr, resultRegister, regUsage)
-            is PtPipe -> code += translate(expr, resultRegister, regUsage)
+            is PtTypeCast -> code += translate(expr, resultRegister)
+            is PtPrefix -> code += translate(expr, resultRegister)
+            is PtArrayIndexer -> code += translate(expr, resultRegister)
+            is PtBinaryExpression -> code += translate(expr, resultRegister)
+            is PtBuiltinFunctionCall -> code += codeGen.translateBuiltinFunc(expr, resultRegister)
+            is PtFunctionCall -> code += translate(expr, resultRegister)
+            is PtContainmentCheck -> code += translate(expr, resultRegister)
+            is PtPipe -> code += translate(expr, resultRegister)
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
@@ -66,34 +57,34 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    internal fun translate(pipe: PtPipe, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    internal fun translate(pipe: PtPipe, resultRegister: Int): VmCodeChunk {
         TODO("Not yet implemented: pipe expression")
     }
 
-    private fun translate(check: PtContainmentCheck, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    private fun translate(check: PtContainmentCheck, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += translateExpression(check.element, resultRegister, regUsage)   // load the element to check in resultRegister
+        code += translateExpression(check.element, resultRegister)   // load the element to check in resultRegister
         val iterable = codeGen.symbolTable.flat.getValue(check.iterable.targetName) as StStaticVariable
         when(iterable.dt) {
             DataType.STR -> {
                 val call = PtFunctionCall(listOf("prog8_lib", "string_contains"), false, DataType.UBYTE, check.position)
                 call.children.add(check.element)
                 call.children.add(check.iterable)
-                code += translate(call, resultRegister, regUsage)
+                code += translate(call, resultRegister)
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 val call = PtFunctionCall(listOf("prog8_lib", "bytearray_contains"), false, DataType.UBYTE, check.position)
                 call.children.add(check.element)
                 call.children.add(check.iterable)
                 call.children.add(PtNumber(DataType.UBYTE, iterable.length!!.toDouble(), iterable.position))
-                code += translate(call, resultRegister, regUsage)
+                code += translate(call, resultRegister)
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 val call = PtFunctionCall(listOf("prog8_lib", "wordarray_contains"), false, DataType.UBYTE, check.position)
                 call.children.add(check.element)
                 call.children.add(check.iterable)
                 call.children.add(PtNumber(DataType.UBYTE, iterable.length!!.toDouble(), iterable.position))
-                code += translate(call, resultRegister, regUsage)
+                code += translate(call, resultRegister)
             }
             DataType.ARRAY_F -> TODO("containment check in float-array")
             else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.targetName}")
@@ -101,14 +92,14 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    private fun translate(arrayIx: PtArrayIndexer, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    private fun translate(arrayIx: PtArrayIndexer, resultRegister: Int): VmCodeChunk {
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type)
         val vmDt = codeGen.vmType(arrayIx.type)
         val code = VmCodeChunk()
-        val idxReg = regUsage.nextFree()
-        code += translateExpression(arrayIx.index, idxReg, regUsage)
+        val idxReg = codeGen.vmRegisters.nextFree()
+        code += translateExpression(arrayIx.index, idxReg)
         if(eltSize>1) {
-            val factorReg = regUsage.nextFree()
+            val factorReg = codeGen.vmRegisters.nextFree()
             code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize))
             code += VmCodeInstruction(Instruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=factorReg))
         }
@@ -117,9 +108,9 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    private fun translate(expr: PtPrefix, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    private fun translate(expr: PtPrefix, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += translateExpression(expr.value, resultRegister, regUsage)
+        code += translateExpression(expr.value, resultRegister)
         val vmDt = codeGen.vmType(expr.type)
         when(expr.operator) {
             "+" -> { }
@@ -127,7 +118,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.NEG, vmDt, reg1=resultRegister))
             }
             "~" -> {
-                val regMask = regUsage.nextFree()
+                val regMask = codeGen.vmRegisters.nextFree()
                 val mask = if(vmDt==VmDataType.BYTE) 0x00ff else 0xffff
                 code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=regMask, value=mask))
                 code += VmCodeInstruction(Instruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask))
@@ -137,7 +128,7 @@ internal class ExpressionGen(val codeGen: CodeGen) {
                 code += VmCodeInstruction(Instruction(Opcode.BZ, vmDt, reg1=resultRegister, symbol = label))
                 code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=1))
                 code += VmCodeLabel(label)
-                val regMask = regUsage.nextFree()
+                val regMask = codeGen.vmRegisters.nextFree()
                 code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=regMask, value=1))
                 code += VmCodeInstruction(Instruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask))
             }
@@ -146,11 +137,11 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    private fun translate(cast: PtTypeCast, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    private fun translate(cast: PtTypeCast, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(cast.type==cast.value.type)
             return code
-        code += translateExpression(cast.value, resultRegister, regUsage)
+        code += translateExpression(cast.value, resultRegister)
         when(cast.type) {
             DataType.UBYTE -> {
                 when(cast.value.type) {
@@ -223,14 +214,14 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    private fun translate(binExpr: PtBinaryExpression, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    private fun translate(binExpr: PtBinaryExpression, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        val leftResultReg = regUsage.nextFree()
-        val rightResultReg = regUsage.nextFree()
+        val leftResultReg = codeGen.vmRegisters.nextFree()
+        val rightResultReg = codeGen.vmRegisters.nextFree()
         // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever. But only if this would result in a different opcode such as ADD 1 -> INC, MUL 1 -> NOP
         //       actually optimizing the code should not be done here but in a tailored code optimizer step.
-        val leftCode = translateExpression(binExpr.left, leftResultReg, regUsage)
-        val rightCode = translateExpression(binExpr.right, rightResultReg, regUsage)
+        val leftCode = translateExpression(binExpr.left, leftResultReg)
+        val rightCode = translateExpression(binExpr.right, rightResultReg)
         code += leftCode
         code += rightCode
         val vmDt = codeGen.vmType(binExpr.left.type)
@@ -294,12 +285,12 @@ internal class ExpressionGen(val codeGen: CodeGen) {
         return code
     }
 
-    fun translate(fcall: PtFunctionCall, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    fun translate(fcall: PtFunctionCall, resultRegister: Int): VmCodeChunk {
         val subroutine = codeGen.symbolTable.flat.getValue(fcall.functionName) as StSub
         val code = VmCodeChunk()
         for ((arg, parameter) in fcall.args.zip(subroutine.parameters)) {
-            val argReg = regUsage.nextFree()
-            code += translateExpression(arg, argReg, regUsage)
+            val argReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(arg, argReg)
             val vmDt = codeGen.vmType(parameter.type)
             val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
             code += VmCodeInstruction(Instruction(Opcode.STOREM, vmDt, reg1=argReg, value=mem))

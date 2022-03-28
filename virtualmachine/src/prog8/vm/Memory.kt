@@ -27,22 +27,22 @@ class Memory {
     }
 
     fun getUW(address: Int): UShort {
-        return (256u*mem[address] + mem[address+1]).toUShort()
+        return (256u*mem[address+1] + mem[address]).toUShort()
     }
 
     fun getSW(address: Int): Short {
-        return (mem[address].toInt()*256 + mem[address+1].toInt()).toShort()
+        return (mem[address+1].toInt()*256 + mem[address].toInt()).toShort()
     }
 
     fun setUW(address: Int, value: UShort) {
-        mem[address]  = (value.toInt() ushr 8).toUByte()
-        mem[address+1] = value.toUByte()
+        mem[address+1]  = (value.toInt() ushr 8).toUByte()
+        mem[address] = value.toUByte()
     }
 
     fun setSW(address: Int, value: Short) {
         val uv = value.toUShort()
-        mem[address]  = (uv.toInt() ushr 8).toUByte()
-        mem[address+1] = uv.toUByte()
+        mem[address+1]  = (uv.toInt() ushr 8).toUByte()
+        mem[address] = uv.toUByte()
     }
 
     // for now, no LONG 32-bits and no FLOAT support.

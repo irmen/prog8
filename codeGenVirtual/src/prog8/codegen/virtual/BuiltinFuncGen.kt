@@ -8,9 +8,9 @@ import prog8.vm.Opcode
 import prog8.vm.Syscall
 import prog8.vm.VmDataType
 
-internal class BuiltinFuncGen(val codeGen: CodeGen, val exprGen: ExpressionGen) {
+internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen: ExpressionGen) {
 
-    fun translate(call: PtBuiltinFunctionCall, resultRegister: Int, regUsage: RegisterUsage): VmCodeChunk {
+    fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         when(call.name) {
             "syscall" -> {
@@ -20,19 +20,19 @@ internal class BuiltinFuncGen(val codeGen: CodeGen, val exprGen: ExpressionGen) 
             "syscall1" -> {
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
                 val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += exprGen.translateExpression(call.args[1], 0, regUsage)
+                code += exprGen.translateExpression(call.args[1], 0)
                 code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
             }
             "syscall2" -> {
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1))
-                while(regUsage.firstFree<2) {
-                    regUsage.nextFree()
+                while(codeGen.vmRegisters.peekNext()<2) {
+                    codeGen.vmRegisters.nextFree()
                 }
                 val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += exprGen.translateExpression(call.args[1], 0, regUsage)
-                code += exprGen.translateExpression(call.args[2], 1, regUsage)
+                code += exprGen.translateExpression(call.args[1], 0)
+                code += exprGen.translateExpression(call.args[2], 1)
                 code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 1))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
@@ -41,25 +41,25 @@ internal class BuiltinFuncGen(val codeGen: CodeGen, val exprGen: ExpressionGen) 
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1 = 0))
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1))
                 code += VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1 = 2))
-                while(regUsage.firstFree<3) {
-                    regUsage.nextFree()
+                while(codeGen.vmRegisters.peekNext()<3) {
+                    codeGen.vmRegisters.nextFree()
                 }
                 val callNr = (call.args[0] as PtNumber).number.toInt()
-                code += exprGen.translateExpression(call.args[1], 0, regUsage)
-                code += exprGen.translateExpression(call.args[2], 1, regUsage)
-                code += exprGen.translateExpression(call.args[3], 2, regUsage)
+                code += exprGen.translateExpression(call.args[1], 0)
+                code += exprGen.translateExpression(call.args[2], 1)
+                code += exprGen.translateExpression(call.args[3], 2)
                 code += VmCodeInstruction(Instruction(Opcode.SYSCALL, value=callNr))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 2))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.WORD, reg1 = 1))
                 code += VmCodeInstruction(Instruction(Opcode.POP, VmDataType.BYTE, reg1 = 0))
             }
             "msb" -> {
-                code += exprGen.translateExpression(call.args.single(), resultRegister, regUsage)
+                code += exprGen.translateExpression(call.args.single(), resultRegister)
                 code += VmCodeInstruction(Instruction(Opcode.SWAP, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister))
                 // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
             }
             "lsb" -> {
-                code += exprGen.translateExpression(call.args.single(), resultRegister, regUsage)
+                code += exprGen.translateExpression(call.args.single(), resultRegister)
                 // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
             }
             "memory" -> {
@@ -83,27 +83,27 @@ internal class BuiltinFuncGen(val codeGen: CodeGen, val exprGen: ExpressionGen) 
                     code += VmCodeInstruction(Instruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0))
             }
             "peek" -> {
-                val addressReg = regUsage.nextFree()
-                code += exprGen.translateExpression(call.args.single(), addressReg, regUsage)
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args.single(), addressReg)
                 code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg))
             }
             "peekw" -> {
-                val addressReg = regUsage.nextFree()
-                code += exprGen.translateExpression(call.args.single(), addressReg, regUsage)
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args.single(), addressReg)
                 code += VmCodeInstruction(Instruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg))
             }
             "mkword" -> {
-                val msbReg = regUsage.nextFree()
-                val lsbReg = regUsage.nextFree()
-                code += exprGen.translateExpression(call.args[0], msbReg, regUsage)
-                code += exprGen.translateExpression(call.args[1], lsbReg, regUsage)
+                val msbReg = codeGen.vmRegisters.nextFree()
+                val lsbReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], msbReg)
+                code += exprGen.translateExpression(call.args[1], lsbReg)
                 code += VmCodeInstruction(Instruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg, reg3=lsbReg))
             }
             else -> {
                 TODO("builtinfunc ${call.name}")
 //                code += VmCodeInstruction(Instruction(Opcode.NOP))
 //                for (arg in call.args) {
-//                    code += translateExpression(arg, resultRegister, regUsage)
+//                    code += translateExpression(arg, resultRegister)
 //                    code += when(arg.type) {
 //                        in ByteDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.BYTE, reg1=resultRegister))
 //                        in WordDatatypes -> VmCodeInstruction(Instruction(Opcode.PUSH, VmDataType.WORD, reg1=resultRegister))
