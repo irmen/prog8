@@ -5,17 +5,24 @@ For next release
 ^^^^^^^^^^^^^^^^
 - vm codegen: fix ifelse comparisons such as if x< 0
 - vm codegen: fix primes endless loop stuck on '2'
+- x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
+    and https://github.com/commanderx16/x16-docs/commit/21238aedc641da91df88e04c4ce9bf3324a3c12d
 - x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get
 - x16: screen_set_mode -> screen_mode + other args https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode
-- optimize diskio load_raw on X16 because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
+- x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185 this may break certain things in gfx2 and elsewhere. Such as font rendering
+   broken examples: amiga, colorbars, cube3d, highresbitmap, rasterbars, tehtriz, testgfx2, testvtui
+   can we make the code read the new layout from vera registers instead of hardcoding it?
+- x16: check new ZP free addresses https://github.com/commanderx16/x16-docs/commit/541f2ce9e61d1d0d0e157d7f52fe16bc0895e6f0
+- x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
-- major version bump once X16 r39 rom is officially finalized
+- major compiler version bump once X16 r39 rom is officially finalized
 - vm codegen: ForLoop
 - vm codegen: When
 - vm codegen: Pipe expression
 - vm codegen: validate that PtFunctionCall translation works okay with resultregister
 - vm codegen: postincrdecr arrayvalue
 - vm: support no globals re-init option
+- vm: how to remove all unused subroutines? (for asm, 64tass used to do this)
 - vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.

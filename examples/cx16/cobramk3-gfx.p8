@@ -26,7 +26,8 @@ main {
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
             cx16.GRAPH_set_colors(0, 0, 0)
-            cx16.GRAPH_draw_rect(32, 10, 256, 185, 0, true)
+            ; cx16.GRAPH_clear()
+            cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, false)
 
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
@@ -119,7 +120,7 @@ _ones       pla
     }
 
     const uword screen_width = 320
-    const ubyte screen_height = 200
+    const ubyte screen_height = 240
 
     sub draw_lines() {
         ; simple routine that draw all edges, exactly once, but no hidden line removal.
@@ -207,8 +208,8 @@ _ones       pla
         edgestodraw[edgeidx] = false
         ubyte vFrom = shipdata.edgesFrom[edgeidx]
         ubyte vTo = shipdata.edgesTo[edgeidx]
-        word persp1 = 200 + rotatedz[vFrom]/256
-        word persp2 = 200 + rotatedz[vTo]/256
+        word persp1 = 170 + rotatedz[vFrom]/256
+        word persp2 = 170 + rotatedz[vTo]/256
         cx16.GRAPH_draw_line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
             rotatedy[vFrom] / persp1 + screen_height/2 as uword,
             rotatedx[vTo] / persp2 + screen_width/2 as uword,

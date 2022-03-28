@@ -4,7 +4,7 @@
 
 main {
     const uword width = 256
-    const uword height = 200
+    const uword height = 240
     const ubyte max_iter = 16       ; 32 actually looks pretty nice but takes longer
 
     sub start()  {
@@ -16,10 +16,10 @@ main {
     }
 
     sub mandel() {
-        const float XL=-2.000
-        const float XU=0.500
-        const float YL=-1.100
-        const float YU=1.100
+        const float XL=-2.200
+        const float XU=0.800
+        const float YL=-1.300
+        const float YU=1.300
         float dx = (XU-XL)/width
         float dy = (YU-YL)/height
         ubyte pixelx
@@ -57,7 +57,7 @@ main {
         void cx16.screen_set_mode($80)
 
         txt.plot(32, 5)
-        txt.print("256*200")
+        txt.print("256*240")
         txt.plot(32, 6)
         txt.print("mandel-")
         txt.plot(33, 7)

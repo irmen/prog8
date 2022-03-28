@@ -18,7 +18,7 @@ main {
         ubyte pix=0
         ubyte ypos
         cx16.FB_cursor_position(0, 0)
-        for ypos in 0 to 199 {
+        for ypos in 0 to 239 {
             repeat 320/2 {
                 cx16.FB_set_pixel((pix&15)<<4 | (pix&15))
                 pix++
@@ -397,7 +397,7 @@ irq {
         phase++
         next_rasterline += increment
 
-        if next_rasterline > 400 {
+        if next_rasterline >= 480 {
             next_rasterline = 0
             phase = 0
         }

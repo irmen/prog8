@@ -43,11 +43,12 @@ irq {
 
     ubyte[32] pixels = 0 to 31
 
+    const ubyte y_offset = 6
     sub irqhandler() {
-        next_irq_line += 6
+        next_irq_line += y_offset
         anim1 += 4
         anim2 += 6
-        if next_irq_line > 400 {
+        if next_irq_line > 480-y_offset {
             av1++
             av2 += 2
             anim1 = av1
