@@ -24,8 +24,9 @@ main {
         }
         txt.print_uw(ww)        ; 8
         txt.nl()
+        txt.nl()
 
-        for wc in [4096,8192,16384] {
+        for wc in [4097,8193,16385] {
             txt.print_uw(wc)
             txt.spc()
             ww++
@@ -33,19 +34,24 @@ main {
         txt.print_uw(ww)        ; 11
         txt.nl()
 
-;        for bc in 10 to 20 step 3 {
-;            ; 10,13,16,19 -> 4
-;            ww++
-;        }
-;        txt.print_uw(ww)
-;        txt.nl()
-;        for bc in 30 to 10 step -4 {
-;            ; 30,26,22,18,14,10,6,2 -> +8 -> 12
-;            ww++
-;        }
-;        txt.print_uw(ww)
-;        txt.nl()
-;
+        for bc in 10 to 20 step 3 {
+            ; 10,13,16,19
+            txt.print_ub(bc)
+            txt.spc()
+            ww++
+        }
+        txt.print_uw(ww)        ; 15
+        txt.nl()
+
+        for bc in 30 to 10 step -4 {
+            ; 30,26,22,18,14,10,6,2
+            txt.print_ub(bc)
+            txt.spc()
+            ww++
+        }
+        txt.print_uw(ww)    ; 23
+        txt.nl()
+
 
         sys.exit(99)
 

@@ -4,6 +4,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram
 import prog8.vm.Instruction
 import prog8.vm.Opcode
+import prog8.vm.VmDataType
 import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
@@ -51,7 +52,17 @@ internal class AssemblyProgram(override val name: String,
 
 internal sealed class VmCodeLine
 
-internal class VmCodeInstruction(val ins: Instruction): VmCodeLine()
+internal class VmCodeInstruction(
+    opcode: Opcode,
+    type: VmDataType?=null,
+    reg1: Int?=null,        // 0-$ffff
+    reg2: Int?=null,        // 0-$ffff
+    reg3: Int?=null,        // 0-$ffff
+    value: Int?=null,       // 0-$ffff
+    symbol: List<String>?=null    // alternative to value
+    ): VmCodeLine() {
+        val ins = Instruction(opcode, type, reg1, reg2, reg3, value, symbol)
+    }
 internal class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
 

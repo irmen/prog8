@@ -33,7 +33,6 @@ loadm       reg1,         address     - load reg1 with value in memory address
 loadi       reg1, reg2                - load reg1 with value in memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value in memory address, indexed by value in reg2
 loadr       reg1, reg2                - load reg1 with value in register reg2
-swapreg     reg1, reg2                - swap values in reg1 and reg2
 
 storem      reg1,         address     - store reg1 in memory address
 storei      reg1, reg2                - store reg1 in memory indirect, memory pointed to by reg2
@@ -130,7 +129,8 @@ nop                                   - do nothing
 breakpoint                            - trigger a breakpoint
 copy        reg1, reg2,   length      - copy memory from ptrs in reg1 to reg3, length bytes
 copyz       reg1, reg2                - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
-swap [b, w] reg1, reg2                - reg1 = swapped lsb and msb from register reg2 (16 bits) or lsw and msw (32 bits)
+swap [b, w] reg1                      - swap lsb and msb in register reg1 (16 bits) or lsw and msw (32 bits)
+swapreg     reg1, reg2                - swap values in reg1 and reg2
 concat [b, w] reg1, reg2, reg3        - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented, requires 32bits regs)
 push [b, w] reg1                      - push value in reg1 on the stack
 pop [b, w]  reg1                      - pop value from stack into reg1
@@ -227,8 +227,17 @@ data class Instruction(
 ) {
     override fun toString(): String {
         val result = mutableListOf(opcode.name.lowercase())
-        if(instructionFormats.getValue(opcode).datatypes.isNotEmpty() && type==null)
-            throw IllegalArgumentException("opcode $opcode requires type")
+        val format = instructionFormats.getValue(opcode)
+        if(format.datatypes.isNotEmpty() && type==null)
+            throw IllegalArgumentException("missing type")
+
+        if(format.reg1 && reg1==null ||
+                format.reg2 && reg2==null ||
+                format.reg3 && reg3==null)
+            throw IllegalArgumentException("missing a register")
+
+        if(format.value && (value==null && symbol==null))
+            throw IllegalArgumentException("missing a value or symbol")
 
         when(type) {
             VmDataType.BYTE -> result.add(".b ")
@@ -332,7 +341,7 @@ val instructionFormats = mutableMapOf(
 
         Opcode.COPY to       InstructionFormat(NN, true,  true,  false, true ),
         Opcode.COPYZ to      InstructionFormat(NN, true,  true,  false, false),
-        Opcode.SWAP to       InstructionFormat(BW, true,  true,  false, false),
+        Opcode.SWAP to       InstructionFormat(BW, true,  false, false, false),
         Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
         Opcode.POP to        InstructionFormat(BW, true,  false, false, false),
         Opcode.CONCAT to     InstructionFormat(BW, true,  true,  true,  false),

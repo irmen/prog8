@@ -36,7 +36,8 @@ enum class Syscall {
     GFX_PLOT,
     RND,
     WAIT,
-    WAITVSYNC
+    WAITVSYNC,
+    TMP_PRINT_UW
 }
 
 object SysCalls {
@@ -91,6 +92,9 @@ object SysCalls {
                 Thread.sleep(millis)
             }
             Syscall.WAITVSYNC -> vm.waitvsync()
+            Syscall.TMP_PRINT_UW -> {
+                println("VM: UW=${vm.registers.getUW(0)}")
+            }
             else -> TODO("syscall ${call.name}")
         }
     }

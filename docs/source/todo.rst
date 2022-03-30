@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: memory: reading/writing of words seems buggy. add tests+fix
 - x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
     and https://github.com/commanderx16/x16-docs/commit/21238aedc641da91df88e04c4ce9bf3324a3c12d
 - x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get

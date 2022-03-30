@@ -4,10 +4,8 @@ import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.vm.Instruction
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
-import java.lang.Math.pow
 import kotlin.math.pow
 
 
@@ -82,7 +80,7 @@ class CodeGen(internal val program: PtProgram,
             is PtPostIncrDecr -> translate(node)
             is PtRepeatLoop -> translate(node)
             is PtLabel -> VmCodeChunk(VmCodeLabel(node.scopedName))
-            is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Instruction(Opcode.BREAKPOINT)))
+            is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Opcode.BREAKPOINT))
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -129,14 +127,14 @@ class CodeGen(internal val program: PtProgram,
                 val endLabel = createLabelName()
                 if(iterableVar.dt==DataType.STR) {
                     // iterate over a zero-terminated string
-                    code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0))
+                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Instruction(Opcode.LOADX, VmDataType.BYTE, reg1=0, reg2=indexReg, value = arrayAddress))
-                    code += VmCodeInstruction(Instruction(Opcode.BZ, VmDataType.BYTE, reg1=0, symbol = endLabel))
-                    code += VmCodeInstruction(Instruction(Opcode.STOREM, VmDataType.BYTE, reg1=0, value = loopvarAddress))
+                    code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=0, reg2=indexReg, value = arrayAddress)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=0, symbol = endLabel)
+                    code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
-                    code += VmCodeInstruction(Instruction(Opcode.INC, VmDataType.BYTE, reg1=indexReg))
-                    code += VmCodeInstruction(Instruction(Opcode.JUMP, symbol = loopLabel))
+                    code += VmCodeInstruction(Opcode.INC, VmDataType.BYTE, reg1=indexReg)
+                    code += VmCodeInstruction(Opcode.JUMP, symbol = loopLabel)
                     code += VmCodeLabel(endLabel)
                 } else {
                     // iterate over array
@@ -154,15 +152,15 @@ class CodeGen(internal val program: PtProgram,
                     goto _loop
                     _end: ...
                      */
-                    code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0))
-                    code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes))
+                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
+                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                     code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Instruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, symbol = endLabel))
-                    code += VmCodeInstruction(Instruction(Opcode.LOADX, vmType(elementDt), reg1=0, reg2=indexReg, value=arrayAddress))
-                    code += VmCodeInstruction(Instruction(Opcode.STOREM, vmType(elementDt), reg1=0, value = loopvarAddress))
+                    code += VmCodeInstruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, symbol = endLabel)
+                    code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=0, reg2=indexReg, value=arrayAddress)
+                    code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += addConst(VmDataType.BYTE, indexReg, elementSize)
-                    code += VmCodeInstruction(Instruction(Opcode.JUMP, symbol = loopLabel))
+                    code += VmCodeInstruction(Opcode.JUMP, symbol = loopLabel)
                     code += VmCodeLabel(endLabel)
                 }
             }
@@ -176,12 +174,12 @@ class CodeGen(internal val program: PtProgram,
         when(value) {
             0u -> { /* do nothing */ }
             1u -> {
-                code += VmCodeInstruction(Instruction(Opcode.INC, dt, reg1=reg))
+                code += VmCodeInstruction(Opcode.INC, dt, reg1=reg)
             }
             else -> {
                 val valueReg = vmRegisters.nextFree()
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, dt, reg1=valueReg, value=value.toInt()))
-                code += VmCodeInstruction(Instruction(Opcode.ADD, dt, reg1=reg, reg2=reg, reg3=valueReg))
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value=value.toInt())
+                code += VmCodeInstruction(Opcode.ADD, dt, reg1=reg, reg2=reg, reg3=valueReg)
             }
         }
         return code
@@ -194,17 +192,17 @@ class CodeGen(internal val program: PtProgram,
         val pow2 = powersOfTwo.indexOf(factor.toInt())
         if(pow2>=1) {
             // just shift bits
-            code += VmCodeInstruction(Instruction(Opcode.LSL, dt, reg1=reg, reg2=reg, reg3=pow2))
+            code += VmCodeInstruction(Opcode.LSL, dt, reg1=reg, reg2=reg, reg3=pow2)
         } else {
             when(factor) {
                 0u -> {
-                    code += VmCodeInstruction(Instruction(Opcode.LOAD, dt, reg1=reg, value=0))
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
                 }
                 1u -> { /* do nothing */ }
                 else -> {
                     val factorReg = vmRegisters.nextFree()
-                    code += VmCodeInstruction(Instruction(Opcode.LOAD, dt, reg1=factorReg, value=factor.toInt()))
-                    code += VmCodeInstruction(Instruction(Opcode.MUL, dt, reg1=reg, reg2=reg, reg3=factorReg))
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value=factor.toInt())
+                    code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=reg, reg3=factorReg)
                 }
             }
         }
@@ -236,16 +234,16 @@ class CodeGen(internal val program: PtProgram,
             // if and else parts
             val elseLabel = createLabelName()
             val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg, symbol = elseLabel))
+            code += VmCodeInstruction(branch, vmDt, reg1=conditionReg, symbol = elseLabel)
             code += translateNode(ifElse.ifScope)
-            code += VmCodeInstruction(Instruction(Opcode.JUMP, symbol = afterIfLabel))
+            code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
             code += VmCodeLabel(elseLabel)
             code += translateNode(ifElse.elseScope)
             code += VmCodeLabel(afterIfLabel)
         } else {
             // only if part
             val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(Instruction(branch, vmDt, reg1=conditionReg, symbol = afterIfLabel))
+            code += VmCodeInstruction(branch, vmDt, reg1=conditionReg, symbol = afterIfLabel)
             code += translateNode(ifElse.ifScope)
             code += VmCodeLabel(afterIfLabel)
         }
@@ -266,15 +264,15 @@ class CodeGen(internal val program: PtProgram,
         val resultReg = vmRegisters.nextFree()
         if(ident!=null) {
             val address = allocations.get(ident.targetName)
-            code += VmCodeInstruction(Instruction(Opcode.LOADM, vmDt, reg1=resultReg, value = address))
-            code += VmCodeInstruction(Instruction(operation, vmDt, reg1=resultReg))
-            code += VmCodeInstruction(Instruction(Opcode.STOREM, vmDt, reg1=resultReg, value = address))
+            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultReg, value = address)
+            code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
+            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultReg, value = address)
         } else if(memory!=null) {
             val addressReg = vmRegisters.nextFree()
             code += expressionEval.translateExpression(memory.address, addressReg)
-            code += VmCodeInstruction(Instruction(Opcode.LOADI, vmDt, reg1=resultReg, reg2=addressReg))
-            code += VmCodeInstruction(Instruction(operation, vmDt, reg1=resultReg))
-            code += VmCodeInstruction(Instruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg))
+            code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1=resultReg, reg2=addressReg)
+            code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
+            code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg)
         } else if (array!=null) {
             TODO("postincrdecr array")
         } else
@@ -300,8 +298,8 @@ class CodeGen(internal val program: PtProgram,
         val repeatLabel = createLabelName()
         code += VmCodeLabel(repeatLabel)
         code += translateNode(repeat.statements)
-        code += VmCodeInstruction(Instruction(Opcode.DEC, vmDt, reg1=counterReg))
-        code += VmCodeInstruction(Instruction(Opcode.BNZ, vmDt, reg1=counterReg, symbol = repeatLabel))
+        code += VmCodeInstruction(Opcode.DEC, vmDt, reg1=counterReg)
+        code += VmCodeInstruction(Opcode.BNZ, vmDt, reg1=counterReg, symbol = repeatLabel)
         return code
     }
 
@@ -310,9 +308,9 @@ class CodeGen(internal val program: PtProgram,
         if(jump.address!=null)
             throw AssemblyError("cannot jump to memory location in the vm target")
         code += if(jump.generatedLabel!=null)
-            VmCodeInstruction(Instruction(Opcode.JUMP, symbol = listOf(jump.generatedLabel!!)))
+            VmCodeInstruction(Opcode.JUMP, symbol = listOf(jump.generatedLabel!!))
         else if(jump.identifier!=null)
-            VmCodeInstruction(Instruction(Opcode.JUMP, symbol = jump.identifier!!.targetName))
+            VmCodeInstruction(Opcode.JUMP, symbol = jump.identifier!!.targetName)
         else
             throw AssemblyError("weird jump")
         return code
@@ -336,8 +334,7 @@ class CodeGen(internal val program: PtProgram,
         val vmDt = vmType(assignment.value.type)
         if(ident!=null) {
             val address = allocations.get(ident.targetName)
-            val ins = Instruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=address)
-            code += VmCodeInstruction(ins)
+            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=address)
         }
         else if(array!=null) {
             val variable = array.variable.targetName
@@ -347,23 +344,21 @@ class CodeGen(internal val program: PtProgram,
             val vmDtArrayIdx = vmType(array.type)
             if(fixedIndex!=null) {
                 variableAddr += fixedIndex*itemsize
-                code += VmCodeInstruction(Instruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr))
+                code += VmCodeInstruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr)
             } else {
                 val indexReg = vmRegisters.nextFree()
                 code += expressionEval.translateExpression(array.index, indexReg)
-                code += VmCodeInstruction(Instruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr))
+                code += VmCodeInstruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
             }
         }
         else if(memory!=null) {
-            val ins =
-                if(memory.address is PtNumber) {
-                    Instruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
-                } else {
-                    val addressRegister = vmRegisters.nextFree()
-                    code += expressionEval.translateExpression(assignment.value, addressRegister)
-                    Instruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressRegister)
-                }
-            code += VmCodeInstruction(ins)
+            if(memory.address is PtNumber) {
+                code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
+            } else {
+                val addressRegister = vmRegisters.nextFree()
+                code += expressionEval.translateExpression(assignment.value, addressRegister)
+                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressRegister)
+            }
         }
         else
             throw AssemblyError("weird assigntarget")
@@ -377,7 +372,7 @@ class CodeGen(internal val program: PtProgram,
             // Call Convention: return value is always returned in r0
             code += expressionEval.translateExpression(value, 0)
         }
-        code += VmCodeInstruction(Instruction(Opcode.RETURN))
+        code += VmCodeInstruction(Opcode.RETURN)
         return code
     }
 

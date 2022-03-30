@@ -40,7 +40,7 @@ class Assembler {
                         val array = values.split(',').map { parseValue(it.trim(), 0) }
                         for (value in array) {
                             memory.setUW(address, value.toUShort())
-                            address++
+                            address += 2
                         }
                     }
                     else -> throw IllegalArgumentException("mem instr $what")

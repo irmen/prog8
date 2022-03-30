@@ -7,7 +7,6 @@ import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.PassByValueDatatypes
 import prog8.code.core.SignedDatatypes
-import prog8.vm.Instruction
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
@@ -21,20 +20,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
 
         when (expr) {
             is PtNumber -> {
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=expr.number.toInt()))
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=expr.number.toInt())
             }
             is PtIdentifier -> {
                 val mem = codeGen.allocations.get(expr.targetName)
                 code += if(expr.type in PassByValueDatatypes) {
-                    VmCodeInstruction(Instruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=mem))
+                    VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=mem)
                 } else {
                     // for strings and arrays etc., load the *address* of the value instead
-                    VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem))
+                    VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
                 }
             }
             is PtAddressOf -> {
                 val mem = codeGen.allocations.get(expr.identifier.targetName)
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem))
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
             }
             is PtMemoryByte -> {
                 val addressRegister = codeGen.vmRegisters.nextFree()
@@ -100,11 +99,11 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         code += translateExpression(arrayIx.index, idxReg)
         if(eltSize>1) {
             val factorReg = codeGen.vmRegisters.nextFree()
-            code += VmCodeInstruction(Instruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize))
-            code += VmCodeInstruction(Instruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=factorReg))
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize)
+            code += VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=factorReg)
         }
         val arrayLocation = codeGen.allocations.get(arrayIx.variable.targetName)
-        code += VmCodeInstruction(Instruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation))
+        code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
         return code
     }
 
@@ -115,22 +114,22 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         when(expr.operator) {
             "+" -> { }
             "-" -> {
-                code += VmCodeInstruction(Instruction(Opcode.NEG, vmDt, reg1=resultRegister))
+                code += VmCodeInstruction(Opcode.NEG, vmDt, reg1=resultRegister)
             }
             "~" -> {
                 val regMask = codeGen.vmRegisters.nextFree()
                 val mask = if(vmDt==VmDataType.BYTE) 0x00ff else 0xffff
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=regMask, value=mask))
-                code += VmCodeInstruction(Instruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask))
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value=mask)
+                code += VmCodeInstruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask)
             }
             "not" -> {
                 val label = codeGen.createLabelName()
-                code += VmCodeInstruction(Instruction(Opcode.BZ, vmDt, reg1=resultRegister, symbol = label))
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=1))
+                code += VmCodeInstruction(Opcode.BZ, vmDt, reg1=resultRegister, symbol = label)
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=1)
                 code += VmCodeLabel(label)
                 val regMask = codeGen.vmRegisters.nextFree()
-                code += VmCodeInstruction(Instruction(Opcode.LOAD, vmDt, reg1=regMask, value=1))
-                code += VmCodeInstruction(Instruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask))
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value=1)
+                code += VmCodeInstruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=regMask)
             }
             else -> throw AssemblyError("weird prefix operator")
         }
@@ -165,11 +164,11 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 when(cast.value.type) {
                     DataType.BYTE -> {
                         // byte -> uword:   sign extend
-                        code += VmCodeInstruction(Instruction(Opcode.EXTS, type = VmDataType.BYTE, reg1 = resultRegister))
+                        code += VmCodeInstruction(Opcode.EXTS, type = VmDataType.BYTE, reg1 = resultRegister)
                     }
                     DataType.UBYTE -> {
                         // ubyte -> uword:   sign extend
-                        code += VmCodeInstruction(Instruction(Opcode.EXT, type = VmDataType.BYTE, reg1 = resultRegister))
+                        code += VmCodeInstruction(Opcode.EXT, type = VmDataType.BYTE, reg1 = resultRegister)
                     }
                     DataType.WORD -> { }
                     DataType.FLOAT -> {
@@ -182,11 +181,11 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 when(cast.value.type) {
                     DataType.BYTE -> {
                         // byte -> word:   sign extend
-                        code += VmCodeInstruction(Instruction(Opcode.EXTS, type = VmDataType.BYTE, reg1 = resultRegister))
+                        code += VmCodeInstruction(Opcode.EXTS, type = VmDataType.BYTE, reg1 = resultRegister)
                     }
                     DataType.UBYTE -> {
                         // byte -> word:   sign extend
-                        code += VmCodeInstruction(Instruction(Opcode.EXT, type = VmDataType.BYTE, reg1 = resultRegister))
+                        code += VmCodeInstruction(Opcode.EXT, type = VmDataType.BYTE, reg1 = resultRegister)
                     }
                     DataType.UWORD -> { }
                     DataType.FLOAT -> {
@@ -228,57 +227,57 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val signed = binExpr.left.type in SignedDatatypes
         when(binExpr.operator) {
             "+" -> {
-                code += VmCodeInstruction(Instruction(Opcode.ADD, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.ADD, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "-" -> {
-                code += VmCodeInstruction(Instruction(Opcode.SUB, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.SUB, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "*" -> {
-                code += VmCodeInstruction(Instruction(Opcode.MUL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.MUL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "/" -> {
-                code += VmCodeInstruction(Instruction(Opcode.DIV, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.DIV, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "%" -> {
-                code += VmCodeInstruction(Instruction(Opcode.MOD, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.MOD, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "|", "or" -> {
-                code += VmCodeInstruction(Instruction(Opcode.OR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.OR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "&", "and" -> {
-                code += VmCodeInstruction(Instruction(Opcode.AND, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.AND, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "^", "xor" -> {
-                code += VmCodeInstruction(Instruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "<<" -> {
-                code += VmCodeInstruction(Instruction(Opcode.LSL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.LSL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             ">>" -> {
                 val opc = if(signed) Opcode.ASR else Opcode.LSR
-                code += VmCodeInstruction(Instruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "==" -> {
-                code += VmCodeInstruction(Instruction(Opcode.SEQ, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.SEQ, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "!=" -> {
-                code += VmCodeInstruction(Instruction(Opcode.SNE, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(Opcode.SNE, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "<" -> {
                 val ins = if(signed) Opcode.SLTS else Opcode.SLT
-                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             ">" -> {
                 val ins = if(signed) Opcode.SGTS else Opcode.SGT
-                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "<=" -> {
                 val ins = if(signed) Opcode.SLES else Opcode.SLE
-                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             ">=" -> {
                 val ins = if(signed) Opcode.SGES else Opcode.SGE
-                code += VmCodeInstruction(Instruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg))
+                code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             else -> throw AssemblyError("weird operator ${binExpr.operator}")
         }
@@ -293,12 +292,12 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             code += translateExpression(arg, argReg)
             val vmDt = codeGen.vmType(parameter.type)
             val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-            code += VmCodeInstruction(Instruction(Opcode.STOREM, vmDt, reg1=argReg, value=mem))
+            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=argReg, value=mem)
         }
-        code += VmCodeInstruction(Instruction(Opcode.CALL, symbol=fcall.functionName))
+        code += VmCodeInstruction(Opcode.CALL, symbol=fcall.functionName)
         if(!fcall.void && resultRegister!=0) {
             // Call convention: result value is in r0, so put it in the required register instead.   TODO does this work correctly?
-            code += VmCodeInstruction(Instruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1=resultRegister, reg2=0))
+            code += VmCodeInstruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1=resultRegister, reg2=0)
         }
         return code
     }
