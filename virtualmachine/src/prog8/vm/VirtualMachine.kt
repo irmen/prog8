@@ -121,7 +121,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.SGES -> InsSGES(ins)
 
             Opcode.INC -> InsINC(ins)
+            Opcode.INCM -> InsINCM(ins)
             Opcode.DEC -> InsDEC(ins)
+            Opcode.DECM -> InsDECM(ins)
             Opcode.NEG -> InsNEG(ins)
             Opcode.ADD -> InsADD(ins)
             Opcode.SUB -> InsSUB(ins)
@@ -507,10 +509,26 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun InsINCM(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value)+1u).toUByte())
+            VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value)+1u).toUShort())
+        }
+        pc++
+    }
+
     private fun InsDEC(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1)-1u).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1)-1u).toUShort())
+        }
+        pc++
+    }
+
+    private fun InsDECM(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value)-1u).toUByte())
+            VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value)-1u).toUShort())
         }
         pc++
     }

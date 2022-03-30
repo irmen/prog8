@@ -126,8 +126,8 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
         get() = children[0] as PtExpression
     val to: PtExpression
         get() = children[1] as PtExpression
-    val step: PtExpression
-        get() = children[2] as PtExpression
+    val step: PtNumber
+        get() = children[2] as PtNumber
 
     override fun printProperties() {}
 }

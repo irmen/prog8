@@ -483,7 +483,7 @@ class IntermediateAstMaker(val program: Program) {
         val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))
         range.add(transformExpression(srcRange.to))
-        range.add(transformExpression(srcRange.step))
+        range.add(transformExpression(srcRange.step) as PtNumber)
         return range
     }
 

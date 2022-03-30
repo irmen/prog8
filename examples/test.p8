@@ -34,8 +34,11 @@ main {
         txt.print_uw(ww)        ; 11
         txt.nl()
 
-        for bc in 10 to 20 step 3 {
-            ; 10,13,16,19
+        const ubyte rfrom = 10
+        const ubyte rto = 17
+
+        for bc in rfrom to rto step 2 {
+            ; 10,12,14,16
             txt.print_ub(bc)
             txt.spc()
             ww++
@@ -43,7 +46,7 @@ main {
         txt.print_uw(ww)        ; 15
         txt.nl()
 
-        for bc in 30 to 10 step -4 {
+        for bc in 30 to 0 step -4 {
             ; 30,26,22,18,14,10,6,2
             txt.print_ub(bc)
             txt.spc()

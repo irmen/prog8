@@ -54,6 +54,8 @@ class CodeGen(internal val program: PtProgram,
             vmprog.addBlock(translate(block))
         }
 
+        println("Vm codegen: amount of vm registers=${vmRegisters.peekNext()}")
+
         return vmprog
     }
 
@@ -103,7 +105,7 @@ class CodeGen(internal val program: PtProgram,
             is PtConditionalBranch -> throw AssemblyError("conditional branches not supported in vm target due to lack of cpu flags ${node.position}")
             else -> TODO("missing codegen for $node")
         }
-        if(code.lines.isNotEmpty())
+        if(code.lines.isNotEmpty() && node.position.line!=0)
             code.lines.add(0, VmCodeComment(node.position.toString()))
         return code
     }
@@ -114,9 +116,10 @@ class CodeGen(internal val program: PtProgram,
         val code = VmCodeChunk()
         when(iterable) {
             is PtRange -> {
-                TODO("forloop ${loopvar.dt} ${loopvar.scopedName} in range ${iterable} ")
-                iterable.printIndented(0)
-                TODO("forloop over range")
+                if(iterable.from is PtNumber && iterable.to is PtNumber)
+                    code += translateForInConstantRange(forLoop, loopvar)
+                else
+                    code += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
                 val arrayAddress = allocations.get(iterable.targetName)
@@ -139,19 +142,9 @@ class CodeGen(internal val program: PtProgram,
                 } else {
                     // iterate over array
                     val elementDt = ArrayToElementTypes.getValue(iterable.type)
-                    val elementSize = program.memsizer.memorySize(elementDt).toUInt()
-                    val lengthBytes = iterableVar.length!! * elementSize.toInt()
+                    val elementSize = program.memsizer.memorySize(elementDt)
+                    val lengthBytes = iterableVar.length!! * elementSize
                     val lengthReg = vmRegisters.nextFree()
-                    /*
-                    index = 0
-                    _loop:
-                    if index==(length * <element_size>) goto _end
-                    loopvar = read_mem(iterable+index)
-                    <statements>
-                    index += <elementsize>
-                    goto _loop
-                    _end: ...
-                     */
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                     code += VmCodeLabel(loopLabel)
@@ -159,7 +152,7 @@ class CodeGen(internal val program: PtProgram,
                     code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=0, reg2=indexReg, value=arrayAddress)
                     code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
-                    code += addConst(VmDataType.BYTE, indexReg, elementSize)
+                    code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
                     code += VmCodeInstruction(Opcode.JUMP, symbol = loopLabel)
                     code += VmCodeLabel(endLabel)
                 }
@@ -169,17 +162,111 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun addConst(dt: VmDataType, reg: Int, value: UInt): VmCodeChunk {
+    private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): VmCodeChunk {
+        val iterable = forLoop.iterable as PtRange
+        TODO("forloop ${loopvar.dt} ${loopvar.scopedName} in non-constant range ${iterable} ")
+        iterable.printIndented(0)
+    }
+
+    private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): VmCodeChunk {
+        val iterable = forLoop.iterable as PtRange
+        val step = iterable.step.number.toInt()
+        val range = IntProgression.fromClosedRange(
+            (iterable.from as PtNumber).number.toInt(),
+            (iterable.to as PtNumber).number.toInt() + step,
+            step)
+        if (range.isEmpty() || range.step==0)
+            throw AssemblyError("empty range or step 0")
+
+        val loopLabel = createLabelName()
+        val loopvarAddress = allocations.get(loopvar.scopedName)
+        val indexReg = vmRegisters.nextFree()
+        val endvalueReg = vmRegisters.nextFree()
+        val vmDt = vmType(loopvar.dt)
+        val code = VmCodeChunk()
+        code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=endvalueReg, value=range.last)
+        code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=indexReg, value=range.first)
+        code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=indexReg, value=loopvarAddress)
+        code += VmCodeLabel(loopLabel)
+        code += translateNode(forLoop.statements)
+        if(range.step==1 || range.step==2) {
+            code += addConstMem(vmDt, loopvarAddress.toUInt(), range.step)
+            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = indexReg, value = loopvarAddress)
+        } else {
+            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = indexReg, value = loopvarAddress)
+            code += addConstReg(vmDt, indexReg, range.step)
+            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = indexReg, value = loopvarAddress)
+        }
+        code += VmCodeInstruction(Opcode.BNE, vmDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
+        return code
+    }
+
+    private fun addConstReg(dt: VmDataType, reg: Int, value: Int): VmCodeChunk {
         val code = VmCodeChunk()
         when(value) {
-            0u -> { /* do nothing */ }
-            1u -> {
+            0 -> { /* do nothing */ }
+            1 -> {
                 code += VmCodeInstruction(Opcode.INC, dt, reg1=reg)
+            }
+            2 -> {
+                code += VmCodeInstruction(Opcode.INC, dt, reg1=reg)
+                code += VmCodeInstruction(Opcode.INC, dt, reg1=reg)
+            }
+            -1 -> {
+                code += VmCodeInstruction(Opcode.DEC, dt, reg1=reg)
+            }
+            -2 -> {
+                code += VmCodeInstruction(Opcode.DEC, dt, reg1=reg)
+                code += VmCodeInstruction(Opcode.DEC, dt, reg1=reg)
             }
             else -> {
                 val valueReg = vmRegisters.nextFree()
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value=value.toInt())
-                code += VmCodeInstruction(Opcode.ADD, dt, reg1=reg, reg2=reg, reg3=valueReg)
+                if(value>0) {
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value= value)
+                    code += VmCodeInstruction(Opcode.ADD, dt, reg1 = reg, reg2 = reg, reg3 = valueReg)
+                }
+                else {
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value= -value)
+                    code += VmCodeInstruction(Opcode.SUB, dt, reg1 = reg, reg2 = reg, reg3 = valueReg)
+                }
+            }
+        }
+        return code
+    }
+
+    private fun addConstMem(dt: VmDataType, address: UInt, value: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        when(value) {
+            0 -> { /* do nothing */ }
+            1 -> {
+                code += VmCodeInstruction(Opcode.INCM, dt, value=address.toInt())
+            }
+            2 -> {
+                code += VmCodeInstruction(Opcode.INCM, dt, value=address.toInt())
+                code += VmCodeInstruction(Opcode.INCM, dt, value=address.toInt())
+            }
+            -1 -> {
+                code += VmCodeInstruction(Opcode.DECM, dt, value=address.toInt())
+            }
+            -2 -> {
+                code += VmCodeInstruction(Opcode.DECM, dt, value=address.toInt())
+                code += VmCodeInstruction(Opcode.DECM, dt, value=address.toInt())
+            }
+            else -> {
+                val valueReg = vmRegisters.nextFree()
+                val operandReg = vmRegisters.nextFree()
+                if(value>0) {
+                    code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=value)
+                    code += VmCodeInstruction(Opcode.ADD, dt, reg1 = valueReg, reg2 = valueReg, reg3 = operandReg)
+                    code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
+                }
+                else {
+                    code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=-value)
+                    code += VmCodeInstruction(Opcode.SUB, dt, reg1 = valueReg, reg2 = valueReg, reg3 = operandReg)
+                    code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
+                }
             }
         }
         return code

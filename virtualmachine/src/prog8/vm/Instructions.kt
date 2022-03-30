@@ -61,28 +61,28 @@ BRANCHING
 ---------
 All have type b or w.
 
-bz          reg1, value               - branch if reg1 is zero
-bnz         reg1, value               - branch if reg1 is not zero
-beq         reg1, reg2, value         - jump to location in program given by value, if reg1 == reg2
-bne         reg1, reg2, value         - jump to location in program given by value, if reg1 != reg2
-blt         reg1, reg2, value         - jump to location in program given by value, if reg1 < reg2 (unsigned)
-blts        reg1, reg2, value         - jump to location in program given by value, if reg1 < reg2 (signed)
-ble         reg1, reg2, value         - jump to location in program given by value, if reg1 <= reg2 (unsigned)
-bles        reg1, reg2, value         - jump to location in program given by value, if reg1 <= reg2 (signed)
-bgt         reg1, reg2, value         - jump to location in program given by value, if reg1 > reg2 (unsigned)
-bgts        reg1, reg2, value         - jump to location in program given by value, if reg1 > reg2 (signed)
-bge         reg1, reg2, value         - jump to location in program given by value, if reg1 >= reg2 (unsigned)
-bges        reg1, reg2, value         - jump to location in program given by value, if reg1 >= reg2 (signed)
-seq         reg1, reg2, reg3          - set reg=1 if reg2 == reg3,  otherwise set reg1=0
-sne         reg1, reg2, reg3          - set reg=1 if reg2 != reg3,  otherwise set reg1=0
-slt         reg1, reg2, reg3          - set reg=1 if reg2 < reg3 (unsigned),  otherwise set reg1=0
-slts        reg1, reg2, reg3          - set reg=1 if reg2 < reg3 (signed),  otherwise set reg1=0
-sle         reg1, reg2, reg3          - set reg=1 if reg2 <= reg3 (unsigned),  otherwise set reg1=0
-sles        reg1, reg2, reg3          - set reg=1 if reg2 <= reg3 (signed),  otherwise set reg1=0
-sgt         reg1, reg2, reg3          - set reg=1 if reg2 > reg3 (unsigned),  otherwise set reg1=0
-sgts        reg1, reg2, reg3          - set reg=1 if reg2 > reg3 (signed),  otherwise set reg1=0
-sge         reg1, reg2, reg3          - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
-sges        reg1, reg2, reg3          - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
+bz          reg1,             location  - branch to location if reg1 is zero
+bnz         reg1,             location  - branch to location if reg1 is not zero
+beq         reg1, reg2,       location  - jump to location in program given by location, if reg1 == reg2
+bne         reg1, reg2,       location  - jump to location in program given by location, if reg1 != reg2
+blt         reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (unsigned)
+blts        reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (signed)
+ble         reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (unsigned)
+bles        reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (signed)
+bgt         reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (unsigned)
+bgts        reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (signed)
+bge         reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (unsigned)
+bges        reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (signed)
+seq         reg1, reg2, reg3            - set reg=1 if reg2 == reg3,  otherwise set reg1=0
+sne         reg1, reg2, reg3            - set reg=1 if reg2 != reg3,  otherwise set reg1=0
+slt         reg1, reg2, reg3            - set reg=1 if reg2 < reg3 (unsigned),  otherwise set reg1=0
+slts        reg1, reg2, reg3            - set reg=1 if reg2 < reg3 (signed),  otherwise set reg1=0
+sle         reg1, reg2, reg3            - set reg=1 if reg2 <= reg3 (unsigned),  otherwise set reg1=0
+sles        reg1, reg2, reg3            - set reg=1 if reg2 <= reg3 (signed),  otherwise set reg1=0
+sgt         reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (unsigned),  otherwise set reg1=0
+sgts        reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (signed),  otherwise set reg1=0
+sge         reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
+sges        reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
 
 TODO: support for the prog8 special branching instructions if_XX (bcc, bcs etc.)
       but we don't have any 'processor flags' whatsoever in the vm so it's a bit weird
@@ -95,7 +95,9 @@ All have type b or w. Note: result types are the same as operand types! E.g. byt
 ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (latter not yet implemented as we don't have longs yet)
 exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: latter ext.w, not yet implemented as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
+incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
+decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
 add         reg1, reg2, reg3                - reg1 = reg2+reg3 (unsigned + signed)
 sub         reg1, reg2, reg3                - reg1 = reg2-reg3 (unsigned + signed)
@@ -181,7 +183,9 @@ enum class Opcode {
     SGES,
 
     INC,
+    INCM,
     DEC,
+    DECM,
     NEG,
     ADD,
     SUB,
@@ -225,19 +229,22 @@ data class Instruction(
     val value: Int?=null,       // 0-$ffff
     val symbol: List<String>?=null    // alternative to value
 ) {
-    override fun toString(): String {
-        val result = mutableListOf(opcode.name.lowercase())
+    init {
         val format = instructionFormats.getValue(opcode)
         if(format.datatypes.isNotEmpty() && type==null)
             throw IllegalArgumentException("missing type")
 
         if(format.reg1 && reg1==null ||
-                format.reg2 && reg2==null ||
-                format.reg3 && reg3==null)
+            format.reg2 && reg2==null ||
+            format.reg3 && reg3==null)
             throw IllegalArgumentException("missing a register")
 
         if(format.value && (value==null && symbol==null))
             throw IllegalArgumentException("missing a value or symbol")
+    }
+
+    override fun toString(): String {
+        val result = mutableListOf(opcode.name.lowercase())
 
         when(type) {
             VmDataType.BYTE -> result.add(".b ")
@@ -320,7 +327,9 @@ val instructionFormats = mutableMapOf(
         Opcode.SGES to       InstructionFormat(BW, true,  true,  true,  false),
 
         Opcode.INC to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.INCM to       InstructionFormat(BW, false, false, false, true ),
         Opcode.DEC to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.DECM to       InstructionFormat(BW, false, false, false, true ),
         Opcode.NEG to        InstructionFormat(BW, true,  false, false, false),
         Opcode.ADD to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.SUB to        InstructionFormat(BW, true,  true,  true,  false),

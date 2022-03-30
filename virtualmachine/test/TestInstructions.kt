@@ -47,23 +47,20 @@ class TestInstructions: FunSpec({
     }
 
     test("missing type should fail") {
-        val ins = Instruction(Opcode.BZ, reg1=42, value=9999)
         shouldThrow<IllegalArgumentException> {
-            ins.toString()
+            Instruction(Opcode.BZ, reg1=42, value=9999)
         }
     }
 
     test("missing registers should fail") {
-        val ins = Instruction(Opcode.BZ, VmDataType.BYTE, value=9999)
         shouldThrow<IllegalArgumentException> {
-            ins.toString()
+            Instruction(Opcode.BZ, VmDataType.BYTE, value=9999)
         }
     }
 
     test("missing value should fail") {
-        val ins = Instruction(Opcode.BZ, VmDataType.BYTE, reg1=42)
         shouldThrow<IllegalArgumentException> {
-            ins.toString()
+            Instruction(Opcode.BZ, VmDataType.BYTE, reg1=42)
         }
     }
 
