@@ -6,20 +6,20 @@ For next release
 - x16: screen_set_mode -> screen_mode + other args https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-screen_mode
 - x16: change mouse_config API https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-mouse_config
    also add mouse_config2() ? that does the screen_mode() trick internally for you?
+- x16: check new ZP free addresses https://github.com/commanderx16/x16-docs/commit/541f2ce9e61d1d0d0e157d7f52fe16bc0895e6f0
+    and https://www.commanderx16.com/forum/index.php?/topic/363-keep-zero-page-empty-as-much-as-possible/#comment-18561
 - x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
     and https://github.com/commanderx16/x16-docs/commit/21238aedc641da91df88e04c4ce9bf3324a3c12d
 - x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get
 - x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185 this may break certain things in gfx2 and elsewhere. Such as font rendering
    broken examples: amiga, colorbars, cube3d, highresbitmap, rasterbars, tehtriz, testgfx2, testvtui
    can we make the code read the new layout from vera registers instead of hardcoding it?
-- x16: check new ZP free addresses https://github.com/commanderx16/x16-docs/commit/541f2ce9e61d1d0d0e157d7f52fe16bc0895e6f0
-    and https://www.commanderx16.com/forum/index.php?/topic/363-keep-zero-page-empty-as-much-as-possible/#comment-18561
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
-- vm codegen: ForLoop
+
 - vm codegen: When
 - vm codegen: Pipe expression
-- vm codegen: validate that PtFunctionCall translation works okay with resultregister
+- vm codegen: validate that PtFunctionCall translation works okay with resultregister, and multiple paramsters in correct order
 - vm codegen: postincrdecr arrayvalue
 - vm: support no globals re-init option
 - vm: how to remove all unused subroutines? (for asm, 64tass used to do this)

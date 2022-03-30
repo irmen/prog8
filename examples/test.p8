@@ -34,8 +34,8 @@ main {
         txt.print_uw(ww)        ; 11
         txt.nl()
 
-        const ubyte rfrom = 10
-        const ubyte rto = 17
+        ubyte rfrom = 10
+        ubyte rto = 17
 
         for bc in rfrom to rto step 2 {
             ; 10,12,14,16

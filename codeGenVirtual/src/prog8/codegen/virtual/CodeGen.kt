@@ -9,7 +9,7 @@ import prog8.vm.VmDataType
 import kotlin.math.pow
 
 
-internal class VmRegisterPool() {
+internal class VmRegisterPool {
     private var firstFree: Int=3    // registers 0,1,2 are reserved
     
     fun peekNext() = firstFree
@@ -164,8 +164,32 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): VmCodeChunk {
         val iterable = forLoop.iterable as PtRange
-        TODO("forloop ${loopvar.dt} ${loopvar.scopedName} in non-constant range ${iterable} ")
-        iterable.printIndented(0)
+        val step = iterable.step.number.toInt()
+        if (step==0)
+            throw AssemblyError("step 0")
+        val indexReg = vmRegisters.nextFree()
+        val endvalueReg = vmRegisters.nextFree()
+        val loopvarAddress = allocations.get(loopvar.scopedName)
+        val loopvarDt = vmType(loopvar.dt)
+        val loopLabel = createLabelName()
+        val code = VmCodeChunk()
+
+        code += expressionEval.translateExpression(iterable.to, endvalueReg)
+        code += expressionEval.translateExpression(iterable.from, indexReg)
+        code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
+        code += VmCodeLabel(loopLabel)
+        code += translateNode(forLoop.statements)
+        if(step<3) {
+            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
+            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+        } else {
+            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+            code += addConstReg(loopvarDt, indexReg, step)
+            code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+        }
+        val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
+        code += VmCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
+        return code
     }
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): VmCodeChunk {
@@ -182,22 +206,23 @@ class CodeGen(internal val program: PtProgram,
         val loopvarAddress = allocations.get(loopvar.scopedName)
         val indexReg = vmRegisters.nextFree()
         val endvalueReg = vmRegisters.nextFree()
-        val vmDt = vmType(loopvar.dt)
+        val loopvarDt = vmType(loopvar.dt)
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=endvalueReg, value=range.last)
-        code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=indexReg, value=range.first)
-        code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=indexReg, value=loopvarAddress)
+        code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=endvalueReg, value=range.last)
+        code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=range.first)
+        code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        if(range.step==1 || range.step==2) {
-            code += addConstMem(vmDt, loopvarAddress.toUInt(), range.step)
-            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = indexReg, value = loopvarAddress)
+        if(range.step<3) {
+            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), range.step)
+            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         } else {
-            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = indexReg, value = loopvarAddress)
-            code += addConstReg(vmDt, indexReg, range.step)
-            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = indexReg, value = loopvarAddress)
+            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+            code += addConstReg(loopvarDt, indexReg, range.step)
+            code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         }
-        code += VmCodeInstruction(Opcode.BNE, vmDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
+        // TODO more optimal loop instruction for loops ending on 0 (BNZ?)
+        code += VmCodeInstruction(Opcode.BNE, loopvarDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
         return code
     }
 
