@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- x16: change mouse_config API https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-mouse_config
-   also add mouse_config2() ? that does the screen_mode() trick internally for you?
 - x16: check new ZP free addresses https://github.com/commanderx16/x16-docs/commit/541f2ce9e61d1d0d0e157d7f52fe16bc0895e6f0
     and https://www.commanderx16.com/forum/index.php?/topic/363-keep-zero-page-empty-as-much-as-possible/#comment-18561
 - x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
