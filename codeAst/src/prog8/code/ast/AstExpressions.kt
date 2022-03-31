@@ -56,7 +56,7 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 
 
 class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, position) {
-    val element: PtExpression   // either a PtIdentifier or PtNumber
+    val element: PtExpression
         get() = children[0] as PtExpression
     val iterable: PtIdentifier
         get() = children[1] as PtIdentifier
