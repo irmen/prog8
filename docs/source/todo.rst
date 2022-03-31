@@ -16,11 +16,12 @@ For next release
    can we make the code read the new layout from vera registers instead of hardcoding it?
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
+- x16: cleanup references to r38/r39 in the docs and code
+- x16: fix the separate applications as well (assembler, ...)
 
 - vm codegen: When
 - vm codegen: Pipe expression
 - vm codegen: validate that PtFunctionCall translation works okay with resultregister, and multiple paramsters in correct order
-- vm codegen: postincrdecr arrayvalue
 - vm: support no globals re-init option
 - vm: how to remove all unused subroutines? (for asm, 64tass used to do this)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks'

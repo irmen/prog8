@@ -6,55 +6,30 @@ main {
     sub start() {
         txt.clear_screen()
         txt.print("Welcome to a prog8 pixel shader :-)\n")
-        uword ww = 0
-        ubyte bc
-        uword wc
 
-        for bc in "irmen" {
-            txt.chrout(bc)
-            ww++
-        }
-        txt.print_uw(ww)    ; 5
+        byte[] barr = [-1,-2,-3]
+        uword[] uwarr = [1111,2222,3333]
+
+        txt.print_b(barr[2])
+        txt.spc()
+        txt.print_uw(uwarr[2])
         txt.nl()
 
-        for bc in [10,11,12] {
-            txt.print_ub(bc)
-            txt.spc()
-            ww++
-        }
-        txt.print_uw(ww)        ; 8
-        txt.nl()
-        txt.nl()
+        barr[2] --
+        uwarr[2] --
 
-        for wc in [4097,8193,16385] {
-            txt.print_uw(wc)
-            txt.spc()
-            ww++
-        }
-        txt.print_uw(ww)        ; 11
+        txt.print_b(barr[2])
+        txt.spc()
+        txt.print_uw(uwarr[2])
         txt.nl()
 
-        ubyte rfrom = 10
-        ubyte rto = 17
+        barr[2] ++
+        uwarr[2] ++
 
-        for bc in rfrom to rto step 2 {
-            ; 10,12,14,16
-            txt.print_ub(bc)
-            txt.spc()
-            ww++
-        }
-        txt.print_uw(ww)        ; 15
+        txt.print_b(barr[2])
+        txt.spc()
+        txt.print_uw(uwarr[2])
         txt.nl()
-
-        for bc in 30 to 0 step -4 {
-            ; 30,26,22,18,14,10,6,2
-            txt.print_ub(bc)
-            txt.spc()
-            ww++
-        }
-        txt.print_uw(ww)    ; 23
-        txt.nl()
-
 
         sys.exit(99)
 

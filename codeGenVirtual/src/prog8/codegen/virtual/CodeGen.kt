@@ -386,7 +386,25 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
             code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg)
         } else if (array!=null) {
-            TODO("postincrdecr array")
+            val variable = array.variable.targetName
+            var variableAddr = allocations.get(variable)
+            val itemsize = program.memsizer.memorySize(array.type)
+            val fixedIndex = (array.index as? PtNumber)?.number?.toInt()
+            val memOp = when(postIncrDecr.operator) {
+                "++" -> Opcode.INCM
+                "--" -> Opcode.DECM
+                else -> throw AssemblyError("weird operator")
+            }
+            if(fixedIndex!=null) {
+                variableAddr += fixedIndex*itemsize
+                code += VmCodeInstruction(memOp, vmDt, value=variableAddr)
+            } else {
+                val indexReg = vmRegisters.nextFree()
+                code += expressionEval.translateExpression(array.index, indexReg)
+                code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
+                code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
+                code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
+            }
         } else
             throw AssemblyError("weird assigntarget")
 
@@ -526,7 +544,7 @@ class CodeGen(internal val program: PtProgram,
     private var labelSequenceNumber = 0
     internal fun createLabelName(): List<String> {
         labelSequenceNumber++
-        return listOf("generated$labelSequenceNumber")
+        return listOf("prog8_label_gen_$labelSequenceNumber")
     }
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk =
