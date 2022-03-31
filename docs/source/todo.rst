@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- x16: check additional FP lib changes https://github.com/commanderx16/x16-rom/commit/ae608673f0210953172d6837acfbb231d62ddbd1
-    and https://github.com/commanderx16/x16-docs/commit/21238aedc641da91df88e04c4ce9bf3324a3c12d
-- x16: check joystick support (petaxian, own stuff) because of api change in r39 kernal https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer's%20Reference%20Guide.md#function-name-joystick_get
 - x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185 this may break certain things in gfx2 and elsewhere. Such as font rendering
    broken examples: amiga, colorbars, cube3d, highresbitmap, rasterbars, tehtriz, testgfx2, testvtui
    can we make the code read the new layout from vera registers instead of hardcoding it?

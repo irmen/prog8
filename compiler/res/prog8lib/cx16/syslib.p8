@@ -373,6 +373,8 @@ romsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A
 romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
+romsub $fec6 = i2c_read_byte(ubyte device @X, ubyte offset @Y) clobbers (A,X,Y) -> ubyte @A, ubyte @Pc
+romsub $fec9 = i2c_write_byte(ubyte device @X, ubyte offset @Y, ubyte data @A) clobbers (A,X,Y) -> ubyte @Pc
 romsub $fef0 = sprite_set_image(uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc
 romsub $fef3 = sprite_set_position(uword x @R0, uword y @R1, ubyte number @A)  clobbers(A,X,Y)
 romsub $fee4 = memory_fill(uword address @R0, uword num_bytes @R1, ubyte value @A)  clobbers(A,X,Y)
