@@ -3,8 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185 this may break certain things in gfx2 and elsewhere. Such as font rendering
-   broken examples: amiga, colorbars, cube3d, highresbitmap, rasterbars, tehtriz, testgfx2, testvtui
+- x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185
+   this breaks setcc() and other things.  broken examples: colorbars, cube3d, rasterbars, tehtriz, testvtui
    can we make the code read the new layout from vera registers instead of hardcoding it?
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!

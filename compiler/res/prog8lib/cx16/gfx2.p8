@@ -754,21 +754,14 @@ _done
         }}
     }
 
-    const ubyte charset_orig_bank = $0
-    const uword charset_orig_addr = $f800        ; in bank 0, so $0f800
     const ubyte charset_bank = $1
     const uword charset_addr = $f000       ; in bank 1, so $1f000
 
     sub text_charset(ubyte charset) {
-        ; -- make a copy of the selected character set to use with text()
+        ; -- select the text charset to use with the text() routine
         ;    the charset number is the same as for the cx16.screen_set_charset() ROM function.
         ;    1 = ISO charset, 2 = PETSCII uppercase+graphs, 3= PETSCII uppercase+lowercase.
         cx16.screen_set_charset(charset, 0)
-        cx16.vaddr(charset_orig_bank, charset_orig_addr, 0, 1)
-        cx16.vaddr(charset_bank, charset_addr, 1, 1)
-        repeat 256*8 {
-            cx16.VERA_DATA1 = cx16.VERA_DATA0
-        }
     }
 
     sub text(uword @zp x, uword y, ubyte color, uword sctextptr) {
