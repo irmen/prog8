@@ -294,7 +294,7 @@ cx16 {
 romsub $ff4a = close_all(ubyte device @A)  clobbers(A,X,Y)
 romsub $ff59 = lkupla(ubyte la @A)  clobbers(A,X,Y)
 romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
-romsub $ff5f = screen_set_mode(ubyte mode @A)  clobbers(A, X, Y) -> ubyte @Pc
+romsub $ff5f = screen_mode(ubyte mode @A, ubyte getCurrent @Pc)  clobbers(A, X, Y) -> ubyte @Pc
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 ; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
 romsub $ff6e = jsrfar()

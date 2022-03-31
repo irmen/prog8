@@ -16,7 +16,7 @@ main {
         uword angley
         uword anglez
 
-        void cx16.screen_set_mode($80)
+        void cx16.screen_mode($80, false)
         cx16.GRAPH_init(0)
         cx16.GRAPH_set_colors(13, 6, 6)
         cx16.GRAPH_clear()
@@ -27,7 +27,7 @@ main {
 
             cx16.GRAPH_set_colors(0, 0, 0)
             ; cx16.GRAPH_clear()
-            cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, false)
+            cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
 
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()

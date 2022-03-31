@@ -14,14 +14,14 @@ graphics {
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
-        void cx16.screen_set_mode($80)
+        void cx16.screen_mode($80, false)
         cx16.GRAPH_init(0)
         clear_screen(1, 0)
     }
 
     sub disable_bitmap_mode() {
         ; enables text mode, erase the text screen, color white
-        void cx16.screen_set_mode(2)
+        void cx16.screen_mode(0, false)
         txt.fill_screen(' ', 1)     ; doesn't seem to fully clear the text screen after returning from gfx mode
     }
 

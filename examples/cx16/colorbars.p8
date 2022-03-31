@@ -6,7 +6,7 @@
 main {
     sub start() {
         ; make palette color 1 black so we can print black letters over the background color 0
-        void cx16.screen_set_mode(0)
+        void cx16.screen_mode(3, false)
         cx16.vpoke(1, $fa02, $0)
         cx16.vpoke(1, $fa03, $0)
         txt.color(1)

@@ -6,7 +6,7 @@ main {
 
     sub start() {
         ; palette.set_rgb(&colors, len(colors))
-        void cx16.screen_set_mode(128)   ; low-res bitmap 256 colors
+        void cx16.screen_mode(128, false)   ; low-res bitmap 256 colors
 
         cx16.FB_init()
 

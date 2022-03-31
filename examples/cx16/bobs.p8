@@ -8,7 +8,7 @@
 
 main {
     sub start() {
-        void cx16.screen_set_mode(0)
+        void cx16.screen_mode(3, false)
         txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
         sys.wait(120)
         txt.print("\n\n the manual says: '128'.\n")

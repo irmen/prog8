@@ -22,7 +22,7 @@ main {
 
         ; Not yet implemented in ROM:  cx16.FB_set_palette(&colors, 0, len(colors)*3)
         palette.set_rgb(&colors, len(colors))
-        void cx16.screen_set_mode(128)   ; low-res bitmap 256 colors
+        void cx16.screen_mode(128, false)   ; low-res bitmap 256 colors
         cx16.FB_init()
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch display all the way to the bottom
         cx16.set_rasterirq(&irq.irqhandler, 0)

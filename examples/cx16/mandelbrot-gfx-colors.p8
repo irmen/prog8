@@ -54,7 +54,7 @@ main {
     }
 
     sub initialize() {
-        void cx16.screen_set_mode($80)
+        void cx16.screen_mode($80, false)
 
         txt.plot(32, 5)
         txt.print("256*240")
