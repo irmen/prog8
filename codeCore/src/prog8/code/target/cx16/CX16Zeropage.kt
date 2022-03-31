@@ -12,8 +12,12 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 
 
     init {
-        if (options.floats && options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE))
-            throw InternalCompilerException("when floats are enabled, zero page type should be 'basicsafe' or 'dontuse'")
+        if (options.floats && options.zeropage !in arrayOf(
+                ZeropageType.FLOATSAFE,
+                ZeropageType.BASICSAFE,
+                ZeropageType.DONTUSE
+            ))
+            throw InternalCompilerException("when floats are enabled, zero page type should be 'floatsafe' or 'basicsafe' or 'dontuse'")
 
         // the addresses 0x02 to 0x21 (inclusive) are taken for sixteen virtual 16-bit api registers.
 
@@ -25,6 +29,10 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
                 ZeropageType.KERNALSAFE -> {
                     free.addAll(0x22u..0x7fu)
                     free.addAll(0xa9u..0xffu)
+                }
+                ZeropageType.FLOATSAFE -> {
+                    free.addAll(0x22u..0x7fu)
+                    free.addAll(0xd4u..0xffu)
                 }
                 ZeropageType.BASICSAFE -> {
                     free.addAll(0x22u..0x7fu)

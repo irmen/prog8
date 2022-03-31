@@ -276,11 +276,6 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
                 // error will be printed by the astchecker
             }
 
-    if (zpType == ZeropageType.FLOATSAFE && compTarget.name == Cx16Target.NAME) {
-        System.err.println("Warning: zp option floatsafe changed to basicsafe for cx16 target")
-        zpType = ZeropageType.BASICSAFE
-    }
-
     val zpReserved = toplevelModule.statements
         .asSequence()
         .filter { it is Directive && it.directive == "%zpreserved" }
