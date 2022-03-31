@@ -13,6 +13,9 @@ txt {
 const ubyte DEFAULT_WIDTH = 80
 const ubyte DEFAULT_HEIGHT = 60
 
+const ubyte VERA_TEXTMATRIX_BANK = 1
+const uword VERA_TEXTMATRIX_ADDR = $b000
+
 
 sub clear_screen() {
     txt.chrout(147)
@@ -44,7 +47,7 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
-	    sty  _ly+1
+        sty  _ly+1
         phx
         pha
         jsr  c64.SCREEN             ; get dimensions in X/Y
@@ -52,11 +55,8 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
         lsr  a
         lsr  a
         sta  _lx+1
-        stz  cx16.VERA_CTRL
         lda  #%00010000
-        sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
-        stz  cx16.VERA_ADDR_L       ; start at (0,0)
-        stz  cx16.VERA_ADDR_M
+        jsr  set_vera_textmatrix_addresses
         pla
 _lx     ldx  #0                     ; modified
         phy
@@ -79,6 +79,16 @@ _ly     ldy  #1                     ; modified
         bra  _lx
 +       plx
         rts
+
+set_vera_textmatrix_addresses:
+        stz  cx16.VERA_CTRL
+        ora  #VERA_TEXTMATRIX_BANK
+        sta  cx16.VERA_ADDR_H
+        stz  cx16.VERA_ADDR_L       ; start at (0,0)
+        lda  #>VERA_TEXTMATRIX_ADDR
+        sta  cx16.VERA_ADDR_M
+        rts
+
         }}
 }
 
@@ -93,11 +103,8 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         lsr  a
         lsr  a
         sta  _lx+1
-        stz  cx16.VERA_CTRL
         lda  #%00100000
-        sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
-        stz  cx16.VERA_ADDR_L       ; start at (0,0)
-        stz  cx16.VERA_ADDR_M
+        jsr  fill_screen.set_vera_textmatrix_addresses
         pla
 _lx     ldx  #0                     ; modified
 -       sta  cx16.VERA_DATA0
@@ -129,10 +136,8 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
         sta  _lx+1
         stz  cx16.VERA_CTRL
         lda  #%00100000
-        sta  cx16.VERA_ADDR_H       ; enable auto increment by 2, bank 0.
-        lda  #1
-        sta  cx16.VERA_ADDR_L       ; start at (1,0)
-        stz  cx16.VERA_ADDR_M
+        jsr  fill_screen.set_vera_textmatrix_addresses
+        inc  cx16.VERA_ADDR_L       ; start at (1,0) - the color attribute byte
 _lx     ldx  #0                     ; modified
 _la     lda  #0                     ; modified
 -       sta  cx16.VERA_DATA0
@@ -190,7 +195,7 @@ sub iso_off() {
 
 
 asmsub  scroll_left() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character to the left
+	; ---- scroll the whole screen 1 character to the left   TODO optimize this more?
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
@@ -202,15 +207,18 @@ asmsub  scroll_left() clobbers(A, Y)  {
 
 _nextline
         stz  cx16.VERA_CTRL     ; data port 0: source column
-        lda  #%00010000         ; auto increment 1
+        lda  #%00010000 | VERA_TEXTMATRIX_BANK        ; auto increment 1
         sta  cx16.VERA_ADDR_H
         lda  #2
         sta  cx16.VERA_ADDR_L   ; begin in column 1
-        ldy  P8ZP_SCRATCH_B1
+        lda  P8ZP_SCRATCH_B1
+        clc
+        adc  #>VERA_TEXTMATRIX_ADDR
+        tay
         sty  cx16.VERA_ADDR_M
         lda  #1
         sta  cx16.VERA_CTRL     ; data port 1: destination column
-        lda  #%00010000         ; auto increment 1
+        lda  #%00010000  | VERA_TEXTMATRIX_BANK         ; auto increment 1
         sta  cx16.VERA_ADDR_H
         stz  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
@@ -233,7 +241,7 @@ _lx     ldx  #0                ; modified
 }
 
 asmsub  scroll_right() clobbers(A)  {
-	; ---- scroll the whole screen 1 character to the right
+	; ---- scroll the whole screen 1 character to the right  TODO optimize this more?
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
@@ -252,17 +260,20 @@ asmsub  scroll_right() clobbers(A)  {
 
 _nextline
         stz  cx16.VERA_CTRL     ; data port 0: source column
-        lda  #%00011000         ; auto decrement 1
+        lda  #%00011000 | VERA_TEXTMATRIX_BANK        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
-_rcol   lda  #79*2-1             ; modified
+_rcol   lda  #79*2-1            ; modified
         sta  cx16.VERA_ADDR_L   ; begin in rightmost column minus one
-        ldy  P8ZP_SCRATCH_B1
+        lda  P8ZP_SCRATCH_B1
+        clc
+        adc  #>VERA_TEXTMATRIX_ADDR
+        tay
         sty  cx16.VERA_ADDR_M
         lda  #1
         sta  cx16.VERA_CTRL     ; data port 1: destination column
-        lda  #%00011000         ; auto decrement 1
+        lda  #%00011000 | VERA_TEXTMATRIX_BANK        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
-_rcol2  lda  #79*2+1            ; modified
+_rcol2  lda  #79*2+1           ; modified
         sta  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
 
@@ -284,7 +295,7 @@ _lx     ldx  #0                 ; modified
 }
 
 asmsub  scroll_up() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character up
+	; ---- scroll the whole screen 1 character up   TODO optimize this more?
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
@@ -293,17 +304,18 @@ asmsub  scroll_up() clobbers(A, Y)  {
 	    dey
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL         ; data port 0 is source
-        lda  #1
+        lda  #1 | (>VERA_TEXTMATRIX_ADDR)
         sta  cx16.VERA_ADDR_M       ; start at second line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000
+        lda  #%00010000 | VERA_TEXTMATRIX_BANK
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
         lda  #1
         sta  cx16.VERA_CTRL         ; data port 1 is destination
-        stz  cx16.VERA_ADDR_M       ; start at top line
+        lda  #>VERA_TEXTMATRIX_ADDR
+        sta  cx16.VERA_ADDR_M       ; start at top line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000
+        lda  #%00010000 | VERA_TEXTMATRIX_BANK
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
@@ -333,7 +345,7 @@ _nextline
 }
 
 asmsub  scroll_down() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character down
+	; ---- scroll the whole screen 1 character down     TODO optimize this more?
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
@@ -343,17 +355,23 @@ asmsub  scroll_down() clobbers(A, Y)  {
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL         ; data port 0 is source
         dey
-        sty  cx16.VERA_ADDR_M       ; start at line before bottom line
+        tya
+        clc
+        adc  #>VERA_TEXTMATRIX_ADDR
+        sta  cx16.VERA_ADDR_M       ; start at line before bottom line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000
+        lda  #%00010000 | VERA_TEXTMATRIX_BANK
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
         lda  #1
         sta  cx16.VERA_CTRL         ; data port 1 is destination
         iny
-        sty  cx16.VERA_ADDR_M       ; start at bottom line
+        tya
+        clc
+        adc  #>VERA_TEXTMATRIX_ADDR
+        sta  cx16.VERA_ADDR_M       ; start at bottom line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000
+        lda  #%00010000 | VERA_TEXTMATRIX_BANK
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
@@ -610,12 +628,16 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
 	; ---- sets the character in the screen matrix at the given position
 	%asm {{
             pha
+            stz  cx16.VERA_CTRL
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             txa
             asl  a
-            stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
             sta  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             pla
             sta  cx16.VERA_DATA0
             rts
@@ -626,10 +648,16 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
 	%asm  {{
             asl  a
+            pha
             stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
+            pla
             sta  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
             rts
 	}}
@@ -641,13 +669,17 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 	;            use the high nybble in A to set the Bg color!
 	%asm {{
             pha
+            stz  cx16.VERA_CTRL
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             txa
             asl  a
             ina
-            stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
             sta  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             pla
             sta  cx16.VERA_DATA0
             rts
@@ -659,17 +691,23 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	%asm  {{
             asl  a
             ina
+            pha
             stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
+            pla
             sta  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
             rts
 	}}
 }
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
-	; ---- set char+color at the given position on the screen
+	; ---- set char+color at the given position on the screen  TODO optimize this better
 	;      note: color handling is the same as on the C64: it only sets the foreground color.
 	;            use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors.
 	%asm {{
@@ -682,15 +720,23 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
             and  #$0f
             sta  P8ZP_SCRATCH_B1
             stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  char
             sta  cx16.VERA_DATA0
             inx
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
             and  #$f0
             ora  P8ZP_SCRATCH_B1
@@ -701,7 +747,7 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 }
 
 sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
-	; ---- set char+color at the given position on the screen
+	; ---- set char+color at the given position on the screen  TODO optimize this
 	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
 	;            use the high nybble in A to set the Bg color!
 	%asm {{
@@ -711,15 +757,23 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
             tax
             ldy  row
             stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  char
             sta  cx16.VERA_DATA0
             inx
-            stz  cx16.VERA_ADDR_H
+            lda  #VERA_TEXTMATRIX_BANK
+            sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
-            sty  cx16.VERA_ADDR_M
+            tya
+            clc
+            adc  #>VERA_TEXTMATRIX_ADDR
+            sta  cx16.VERA_ADDR_M
             lda  colors
             sta  cx16.VERA_DATA0
             plx

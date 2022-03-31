@@ -180,20 +180,6 @@ If you're targeting the CommanderX16 instead, there's a choice of the official `
 and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
 using the ``-emu`` or ``-emu2`` command line options)
 
-.. attention:: **Commander-X16 r38 versus r39**
-
-    Starting with Prog8 7.0 the CX16 compilation target is configured for the upcoming r39 version of the emulator
-    and roms, that are most accurately reflecting the current state of the hardware design of the CX16.
-    Unfortunately, r39 has not yet been officially released. At the time of writing, r38 is still
-    the latest official release. So, you have to either compile the r39 emulator+roms from the source in git yourself
-    or obtain a precompiled version from someone else. You can contact me if you require help doing this and use Linux.
-    A cx16 program compiled by prog8 7.0 is meant for r39 but *may* still work on the older v38 release of the emulator!
-    For this to work you should make sure that the program is not using floating point, nor the ram/rom bank switching logic provided by the libraries.
-    You can also choose to just stick with Prog8 6.4 (which still targets cx16 v38) and wait it out till
-    the emulator r39 is officially released - but you won't be able to benefit from the compiler improvements
-    made since that old release of prog8.
-
-
 
 .. toctree::
     :maxdepth: 2

@@ -4,12 +4,12 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185
-   this breaks setcc() and other things.  broken examples: colorbars, cube3d, rasterbars, tehtriz, testvtui
-   can we make the code read the new layout from vera registers instead of hardcoding it?
+   (partly)broken examples: colorbars, rasterbars, tehtriz, testvtui
+   something is wrong with the screen colors. Palette offset?
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
-- x16: cleanup references to r38/r39 in the docs and code
-- x16: fix the separate applications as well (assembler, ...)
+- x16: fix the separate applications as well (assembler, wormfood, ...)
+- x16: fix Petaxian colors.
 
 - vm codegen: When
 - vm codegen: Pipe expression
