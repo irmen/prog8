@@ -3,11 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- x16: new vera memory layout https://github.com/commanderx16/x16-rom/issues/185
-   (partly)broken examples: colorbars (no bars), testvtui (VTUI lib not updated for new r39 yet)
+- fix assembler application compiler crash
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
-- x16: fix the separate applications as well (assembler, ...)
+- x16: fix wormfood (requires new VTUI lib)
 
 - vm codegen: When
 - vm codegen: Pipe expression

@@ -72,15 +72,17 @@ irq {
     sub make_new_gradient() {
         colors.random_half_bar()
         colors.mirror_bar()
-        sys.memcopy(colors.reds, &blinds_lines_reds+32+16, len(colors.reds))
-        sys.memcopy(colors.greens, &blinds_lines_greens+32+16, len(colors.greens))
-        sys.memcopy(colors.blues, &blinds_lines_blues+32+16, len(colors.blues))
+        ; can't use sys.memcopy due to overlapping buffer
+        cx16.memory_copy(colors.reds, &blinds_lines_reds+32+16, len(colors.reds))
+        cx16.memory_copy(colors.greens, &blinds_lines_greens+32+16, len(colors.greens))
+        cx16.memory_copy(colors.blues, &blinds_lines_blues+32+16, len(colors.blues))
     }
 
     sub shift_gradient() {
-        sys.memcopy(&blinds_lines_reds+1, blinds_lines_reds, len(blinds_lines_reds)-1)
-        sys.memcopy(&blinds_lines_greens+1, blinds_lines_greens, len(blinds_lines_greens)-1)
-        sys.memcopy(&blinds_lines_blues+1, blinds_lines_blues, len(blinds_lines_blues)-1)
+        ; can't use sys.memcopy due to overlapping buffer
+        cx16.memory_copy(&blinds_lines_reds+1, blinds_lines_reds, len(blinds_lines_reds)-1)
+        cx16.memory_copy(&blinds_lines_greens+1, blinds_lines_greens, len(blinds_lines_greens)-1)
+        cx16.memory_copy(&blinds_lines_blues+1, blinds_lines_blues, len(blinds_lines_blues)-1)
     }
 
     asmsub set_scanline_color(ubyte color_ix @Y) {
