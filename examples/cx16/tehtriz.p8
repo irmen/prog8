@@ -32,7 +32,10 @@ main {
 
 
     sub start() {
-        void cx16.screen_mode(3, false)       ; low res
+        void cx16.screen_mode(3, false)     ; low res
+        txt.color2(7,0)                     ; make sure correct screen colors are (re)set
+        txt.clear_screen()
+
         sound.init()
         newGame()
         drawBoard()

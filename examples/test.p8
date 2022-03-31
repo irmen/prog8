@@ -14,6 +14,10 @@ main {
         txt.setcc2(11,4,'*',$05)
         txt.setcc2(12,4,'*',$d0)
 
+        sys.wait(100)
+        cx16.screen_mode(0, false)
+        sys.wait(100)
+
 
 ;        byte[] barr = [-1,-2,-3]
 ;        uword[] uwarr = [1111,2222,3333]

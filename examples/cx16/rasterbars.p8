@@ -9,6 +9,9 @@ main {
 
     sub start() {
         void cx16.screen_mode(3, false)
+        txt.color2(14,0)           ; make sure correct screen colors are (re)set
+        txt.clear_screen()
+
         txt.plot(14,14)
         txt.print("raster bars!")
 
