@@ -88,10 +88,23 @@ asmsub RDTIM16() -> uword @AY {
 
 cx16 {
 
-; irq and hardware vectors:
+; irq, system and hardware vectors:
     &uword  CINV            = $0314     ; IRQ vector (in ram)
     &uword  CBINV           = $0316     ; BRK vector (in ram)
     &uword  NMINV           = $0318     ; NMI vector (in ram)
+    &uword  IOPEN           = $031a
+    &uword  ICLOSE          = $031c
+    &uword  ICHKIN          = $031e
+    &uword  ICKOUT          = $0320
+    &uword  ICLRCH          = $0322
+    &uword  IBASIN          = $0324
+    &uword  IBSOUT          = $0326
+    &uword  ISTOP           = $0328
+    &uword  IGETIN          = $032a
+    &uword  ICLALL          = $032c
+    &uword  KEYHDL          = $032e     ; keyboard scan code handler
+    &uword  ILOAD           = $0330
+    &uword  ISAVE           = $0332
     &uword  NMI_VEC         = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
     &uword  RESET_VEC       = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
     &uword  IRQ_VEC         = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
@@ -303,41 +316,6 @@ romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
 romsub $ff7a = cmpare(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
 romsub $ff7d = primm()
 
-; X16 additions
-romsub $ff44 = macptr()  clobbers(A,X,Y)
-romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)  clobbers(A,X,Y)
-romsub $ff68 = mouse_config(ubyte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
-romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
-romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
-romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
-romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
-romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to don't have the hassle to deal with multiple return values
-romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
-romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
-
-asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
-    ; -- convenience wrapper function that handles the screen resolution for mouse_config() for you
-    %asm {{
-        sec
-        jsr  cx16.screen_mode       ; set current screen mode and res in A, X, Y
-        lda  #1
-        jmp  cx16.mouse_config
-    }}
-}
-
-asmsub mouse_pos() -> ubyte @A {
-    ; -- short wrapper around mouse_get() kernal routine:
-    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
-    %asm {{
-        phx
-        ldx  #cx16.r0
-        jsr  cx16.mouse_get
-        plx
-        rts
-    }}
-}
-
-
 ; It's not documented what registers are clobbered, so we assume the worst for all following kernal routines...:
 
 ; high level graphics & fonts
@@ -386,9 +364,48 @@ romsub $fede = console_put_char(ubyte char @A, ubyte wrapping @Pc)  clobbers(A,X
 romsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
 romsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
 romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
-romsub $fed2 = kbdbuf_put(ubyte key @A)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
+
+romsub $ff44 = macptr()  clobbers(A,X,Y)
+romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)  clobbers(A,X,Y)
+romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
+romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
+
+; keyboard, mouse, joystick
+romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X, ubyte @Pz       ; key in A, queue length in X
+romsub $febd = kbdbuf_peek2() -> uword @AX, ubyte @Pz   ; alternative to above to not have the hassle to deal with multiple return values
+romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
+romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
+romsub $ff68 = mouse_config(ubyte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
+romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
+romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
+romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
+romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
+romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
+
+asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
+    ; -- convenience wrapper function that handles the screen resolution for mouse_config() for you
+    %asm {{
+        sec
+        jsr  cx16.screen_mode       ; set current screen mode and res in A, X, Y
+        lda  #1
+        jmp  cx16.mouse_config
+    }}
+}
+
+asmsub mouse_pos() -> ubyte @A {
+    ; -- short wrapper around mouse_get() kernal routine:
+    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
+    %asm {{
+        phx
+        ldx  #cx16.r0
+        jsr  cx16.mouse_get
+        plx
+        rts
+    }}
+}
+
 
 ; ---- end of kernal routines ----
 
