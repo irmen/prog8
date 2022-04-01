@@ -29,8 +29,6 @@ internal class BeforeAsmAstChanger(val program: Program,
     }
 
     override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
-        if(containment.element !is IdentifierReference && containment.element !is NumericLiteral)
-            throw InternalCompilerException("element in containmentcheck should be identifier or constant number")
         if(containment.iterable !is IdentifierReference)
             throw InternalCompilerException("iterable in containmentcheck should be identifier (referencing string or array)")
         return noModifications

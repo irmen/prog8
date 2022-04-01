@@ -4,6 +4,7 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
+import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
@@ -232,15 +233,14 @@ class IntermediateAstMaker(val program: Program) {
         }
         // instead of just assigning to the parameters, another way is to use push()/pop()
         if(previousNodes.isNotEmpty()) {
-            val first = previousNodes[0] as? FunctionCallStatement
-            if(first!=null && first.target.nameInSource == listOf("pop")) {
-                val numPops = previousNodes.indexOfFirst { (it as? FunctionCallStatement)?.target?.nameInSource != listOf("pop") }
+            val first = previousNodes[0] as? IFunctionCall
+            if(first!=null && (first.target.nameInSource.singleOrNull() in arrayOf("pop", "popw"))) {
+                val numPops = previousNodes.indexOfFirst { (it as? IFunctionCall)?.target?.nameInSource?.singleOrNull() !in arrayOf("pop", "popw") }
                 val pops = previousNodes.subList(0, numPops)
-                val pushes = previousNodes.subList(numPops, numPops+numPops)
-                // TODO one of these has to be reversed?
+                val pushes = previousNodes.subList(numPops, numPops+numPops).reversed()
                 for ((push, pop) in pushes.zip(pops)) {
-                    val name = ((pop as FunctionCallStatement).args.single() as IdentifierReference).nameInSource.last()
-                    val arg = (push as FunctionCallStatement).args.single()
+                    val name = ((pop as IFunctionCall).args.single() as IdentifierReference).nameInSource.last()
+                    val arg = (push as IFunctionCall).args.single()
                     paramValues[name] = arg
                 }
             }
