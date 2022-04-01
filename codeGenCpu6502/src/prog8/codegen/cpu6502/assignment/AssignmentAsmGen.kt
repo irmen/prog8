@@ -344,8 +344,10 @@ internal class AssignmentAsmGen(private val program: Program,
                     require(elementDt.isBytes)
                     val stringVal = variable.value as StringLiteral
                     val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                     assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                    asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
+                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                    asmgen.restoreRegisterLocal(CpuRegister.A)
                     asmgen.out("  ldy  #${stringVal.value.length}")
                     asmgen.out("  jsr  prog8_lib.containment_bytearray")
                     return
@@ -361,8 +363,10 @@ internal class AssignmentAsmGen(private val program: Program,
                     val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
                     when(dt) {
                         in ByteDatatypes -> {
-                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                             assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                            asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
+                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                            asmgen.restoreRegisterLocal(CpuRegister.A)
                             asmgen.out("  ldy  #${arrayVal.value.size}")
                             asmgen.out("  jsr  prog8_lib.containment_bytearray")
                         }
@@ -383,8 +387,10 @@ internal class AssignmentAsmGen(private val program: Program,
         when(variable.datatype) {
             DataType.STR -> {
                 // use subroutine
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                asmgen.restoreRegisterLocal(CpuRegister.A)
                 val stringVal = variable.value as StringLiteral
                 asmgen.out("  ldy  #${stringVal.value.length}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -393,8 +399,10 @@ internal class AssignmentAsmGen(private val program: Program,
             DataType.ARRAY_F -> throw AssemblyError("containment check of floats not supported")
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 val arrayVal = variable.value as ArrayLiteral
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
+                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                asmgen.restoreRegisterLocal(CpuRegister.A)
                 asmgen.out("  ldy  #${arrayVal.value.size}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
