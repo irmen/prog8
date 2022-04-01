@@ -1092,6 +1092,7 @@ class Pipe(override var source: Expression,
 // Calls to builtin functions will be replaced with this node just before handing the Ast to the codegen.
 // this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
 // in the codegen, because they have been converted into GoSub (for instance) or this node.
+// However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc etc) this is all moot.
 class BuiltinFunctionCallStatement(override var target: IdentifierReference,
                                    override var args: MutableList<Expression>,
                                    override val position: Position) : Statement(), IFunctionCall {

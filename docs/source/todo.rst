@@ -6,7 +6,6 @@ For next release
 - x16: add new keyboard APIs https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer%27s%20Reference%20Guide.md#keyboard
 - x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
   note: must still work on c64/c128 that don't have this!
-- x16: fix wormfood (requires new VTUI lib)
 
 - vm codegen: When
 - vm codegen: Pipe expression
