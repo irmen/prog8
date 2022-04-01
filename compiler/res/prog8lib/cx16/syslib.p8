@@ -373,8 +373,8 @@ romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uwor
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
 ; keyboard, mouse, joystick
-romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X, ubyte @Pz       ; key in A, queue length in X
-romsub $febd = kbdbuf_peek2() -> uword @AX, ubyte @Pz   ; alternative to above to not have the hassle to deal with multiple return values
+romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X     ; key in A, queue length in X
+romsub $febd = kbdbuf_peek2() -> uword @AX             ; alternative to above to not have the hassle to deal with multiple return values
 romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
 romsub $ff68 = mouse_config(ubyte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
