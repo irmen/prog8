@@ -20,13 +20,14 @@ cx16diskio {
 
     ; Use kernal LOAD routine to load the given file in memory.
     ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
-    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
     ; The load address is mandatory. Returns the number of bytes loaded.
+    ; If you load into regular system ram, use cx16.getrambank() for the bank argument,
+    ; or alternatively make sure to reset the correct ram bank yourself after the load!
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
     sub load_raw(ubyte drivenumber, uword filenameptr, ubyte bank, uword address) -> uword {
         cx16.rambank(bank)
-        return diskio.load_raw(drivenumber, filenameptr, address)
+        return diskio.load_headerless_cx16(drivenumber, filenameptr, address, true)
     }
 
     ; For use directly after a load or load_raw call (don't mess with the ram bank yet):

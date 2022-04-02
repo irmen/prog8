@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- x16: optimize diskio load_raw because headerless files are now supported https://github.com/commanderx16/x16-rom/pull/216
-  note: must still work on c64/c128 that don't have this!
-
 - vm codegen: When
 - vm codegen: Pipe expression
 - vm codegen: validate that PtFunctionCall translation works okay with resultregister, and multiple paramsters in correct order
