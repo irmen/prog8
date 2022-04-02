@@ -297,7 +297,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         }
         code += VmCodeInstruction(Opcode.CALL, symbol=fcall.functionName)
         if(!fcall.void && resultRegister!=0) {
-            // Call convention: result value is in r0, so put it in the required register instead.   TODO does this work correctly?
+            // Call convention: result value is in r0, so put it in the required register instead.
             code += VmCodeInstruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1=resultRegister, reg2=0)
         }
         return code

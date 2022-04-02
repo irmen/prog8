@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm codegen: When
 - vm codegen: Pipe expression
 - vm: support no globals re-init option
 - vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address, to make the output more human-readable

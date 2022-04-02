@@ -5,8 +5,32 @@
 
 main {
 
+    sub calculate(ubyte value) -> uword {
+        when value {
+            1 -> return "one"
+            2 -> return "two"
+            3 -> return "three"
+            4,5,6 -> return "four to six"
+            else -> return "other"
+        }
+    }
+
     sub start() {
 
+        txt.print(calculate(0))
+        txt.nl()
+        txt.print(calculate(1))
+        txt.nl()
+        txt.print(calculate(2))
+        txt.nl()
+        txt.print(calculate(3))
+        txt.nl()
+        txt.print(calculate(4))
+        txt.nl()
+        txt.print(calculate(5))
+        txt.nl()
+        txt.print(calculate(50))
+        txt.nl()
 
         ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen

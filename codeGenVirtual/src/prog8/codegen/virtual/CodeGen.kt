@@ -75,7 +75,7 @@ class CodeGen(internal val program: PtProgram,
             is PtNop -> VmCodeChunk()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
-            is PtWhen -> TODO("when")
+            is PtWhen -> translate(node)
             is PtPipe -> expressionEval.translate(node, 0)
             is PtForLoop -> translate(node)
             is PtIfElse -> translate(node)
@@ -107,6 +107,47 @@ class CodeGen(internal val program: PtProgram,
         }
         if(code.lines.isNotEmpty() && node.position.line!=0)
             code.lines.add(0, VmCodeComment(node.position.toString()))
+        return code
+    }
+
+    private fun translate(whenStmt: PtWhen): VmCodeChunk {
+        if(whenStmt.choices.children.isEmpty())
+            return VmCodeChunk()
+        val code = VmCodeChunk()
+        val valueReg = vmRegisters.nextFree()
+        val choiceReg = vmRegisters.nextFree()
+        val valueDt = vmType(whenStmt.value.type)
+        code += expressionEval.translateExpression(whenStmt.value, valueReg)
+        val choices = whenStmt.choices.children.map {it as PtWhenChoice }
+        val endLabel = createLabelName()
+        for (choice in choices) {
+            if(choice.isElse) {
+                code += translateNode(choice.statements)
+            } else {
+                val skipLabel = createLabelName()
+                val values = choice.values.children.map {it as PtNumber}
+                if(values.size==1) {
+                    code += VmCodeInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=values[0].number.toInt())
+                    code += VmCodeInstruction(Opcode.BNE, valueDt, reg1=valueReg, reg2=choiceReg, symbol = skipLabel)
+                    code += translateNode(choice.statements)
+                    if(choice.statements.children.last() !is PtReturn)
+                        code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+                } else {
+                    val matchLabel = createLabelName()
+                    for (value in values) {
+                        code += VmCodeInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=value.number.toInt())
+                        code += VmCodeInstruction(Opcode.BEQ, valueDt, reg1=valueReg, reg2=choiceReg, symbol = matchLabel)
+                    }
+                    code += VmCodeInstruction(Opcode.JUMP, symbol = skipLabel)
+                    code += VmCodeLabel(matchLabel)
+                    code += translateNode(choice.statements)
+                    if(choice.statements.children.last() !is PtReturn)
+                        code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+                }
+                code += VmCodeLabel(skipLabel)
+            }
+        }
+        code += VmCodeLabel(endLabel)
         return code
     }
 
