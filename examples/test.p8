@@ -7,15 +7,8 @@ main {
 
     sub start() {
 
-        txt.print("keyboard api test\n")
 
-        cx16.kbdbuf_put('l')
-        cx16.kbdbuf_put('o')
-        cx16.kbdbuf_put('a')
-        cx16.kbdbuf_put('d')
-        cx16.kbdbuf_put(13)
-
-        ; the "pixelshader":
+        ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen
 ;        ubyte shifter
 ;

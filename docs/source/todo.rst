@@ -5,11 +5,10 @@ For next release
 ^^^^^^^^^^^^^^^^
 - vm codegen: When
 - vm codegen: Pipe expression
-- vm codegen: validate that PtFunctionCall translation works okay with resultregister, and multiple paramsters in correct order
 - vm: support no globals re-init option
-- vm: how to remove all unused subroutines? (for asm, 64tass used to do this)
-- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks'
-- vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address
+- vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address, to make the output more human-readable
+- vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
+- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
@@ -41,7 +40,6 @@ Compiler:
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (scenario sought)
 - consider adding McCarthy evaluation to shortcircuit and and or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
-- use more of Result<> to handle errors/ nulls better?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
@@ -73,8 +71,8 @@ Expressions:
 
 Optimizations:
 
-- various optimizers should/do skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
-  the old CompilerAst, those checks should probably be removed.
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
+  the old CompilerAst, those checks should probably be removed, or be made permanent
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - translateUnaryFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
    compare ``aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()``

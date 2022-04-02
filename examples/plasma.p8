@@ -20,6 +20,7 @@ main {
 
     sub start() {
         txt.color(1)
+        txt.clear_screen()
         txt.print("creating charset...\n")
         makechar()
 

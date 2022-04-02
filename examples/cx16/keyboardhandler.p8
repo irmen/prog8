@@ -23,9 +23,9 @@ main {
     }
 
     sub keyboard_scancode_handler(ubyte prefix, ubyte scancode, ubyte updown) {
-        txt.print_ub(prefix)
-        txt.spc()
-        txt.print_ub(scancode)
+        txt.print_ubhex(prefix, true)
+        txt.chrout(':')
+        txt.print_ubhex(scancode, true)
         txt.spc()
         if updown
             txt.chrout('u')
@@ -43,11 +43,12 @@ asm_shim:
             php
             pha
             phx
-            sta  scancode
             stz  updown
             bcc  +
             inc  updown
-+           jsr  keyboard_scancode_handler
++           stx  prefix
+            sta  scancode
+            jsr  keyboard_scancode_handler
             plx
             pla
             plp

@@ -121,7 +121,7 @@ lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bi
 ror         reg1, reg2, reg3                 - reg1 = rotate reg2 right by reg3 bits, not using carry
 rol         reg1, reg2, reg3                 - reg1 = rotate reg2 left by reg3 bits, not using carry
 
-TODO also add ror/rol variants using the carry bit? These do map directly on 6502 and 68k instructions.
+TODO also add ror/rol variants using the carry bit? These do map directly on 6502 and 68k instructions. But the VM doesn't have carry status bit yet.
 
 
 MISC

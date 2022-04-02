@@ -7,20 +7,20 @@ main {
 
     sub start() {
 
-        cx16.clock_set_date_time(mkword(8, 2020 - 1900), mkword(19, 27), mkword(0, 16), 0)
+        cx16.clock_set_date_time(mkword(8, 2022 - 1900), mkword(19, 27), mkword(30, 16), 0)
         txt.lowercase()
 
         repeat {
             txt.chrout(19)      ; HOME
             txt.print("\n yyyy-mm-dd HH:MM:SS.jj\n\n")
             void cx16.clock_get_date_time()
-            txt.chrout(' ')
+            txt.spc()
             print_date()
-            txt.chrout(' ')
+            txt.spc()
             print_time()
 
-            txt.chrout('\n')
-            txt.chrout('\n')
+            txt.nl()
+            txt.nl()
             uword jiffies = c64.RDTIM16()
             txt.print_uw(jiffies)
 	}
