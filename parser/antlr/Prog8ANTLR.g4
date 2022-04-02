@@ -27,7 +27,8 @@ NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
 BIN_INTEGER :  '%' ('0' | '1')+ ;
-ADDRESS_OF: '&';
+ADDRESS_OF: '&' ;
+INVALID_AND_COMPOSITE: '&&' ;
 
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? FNUMBER)? ;	// sign comes later from unary expression
 fragment FNUMBER :  ('0' .. '9') + ('.' ('0' .. '9') +)? ;

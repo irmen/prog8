@@ -49,5 +49,17 @@ main {
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("invalid && operator") {
+        val text="""
+main {
+    sub start() {
+        uword b1
+        uword b2
+        uword b3 = b1 && b2     ; invalid syntax: '&&' is not an operator, 'and' should be used instead
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
+    }
 })
 
