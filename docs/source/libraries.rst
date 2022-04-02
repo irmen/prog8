@@ -31,6 +31,9 @@ syslib
 The "system library" for your target machine. It contains many system-specific definitions such
 as ROM/kernal subroutine definitions, memory location constants, and utility subroutines.
 
+Depending on the compilation target, other routines may also be available in here specific to that target.
+Best is to check the source code of the correct syslib module.
+
 Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
 to write programs that work on both targets without modifications.
 
@@ -136,15 +139,6 @@ Provides several routines that deal with disk drive I/O, such as:
 - load and save data from and to the disk
 - delete and rename files on the disk
 
-.. attention::
-    **CX16 specific note**
-    The cx16 emulators provide a convenience feature called 'host filesystem passthrough' where basically
-    the directory on your host system is treated as the "disk drive" in the emulator.
-    In this mode, most of the I/O routines in the machine's kernal, and by extension the ones in this
-    module, *don't work*.  You have to use a sd-card mounted disk image to be able to use all routines.
-    Regular ``load()`` (but not ``load_raw()``) works just fine even with the host filesystem.
-    Another thing to pay attention to is the capitalization of filenames due to the petscii translation involved.
-
 
 string
 ------
@@ -212,7 +206,7 @@ Monochrome bitmap graphics routines, fixed 320*200 resolution:
 This library is available both on the C64 and the Cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
 That also means though that it is constrained to 320*200 resolution on the Cx16 as well.
-Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing.
+Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing (only on Cx16).
 
 
 math
@@ -223,14 +217,14 @@ The compiler needs it to implement most of the math operations in your programs.
 
 cx16logo
 --------
-A 'fun' module that contains the Commander X16 logo and that allows you
-to print it anywhere on the screen.
+Just a fun module that contains the Commander X16 logo in PETSCII graphics
+and allows you to print it anywhere on the screen.
 
 
 prog8_lib
 ---------
 Low level language support. You should not normally have to bother with this directly.
-The compiler needs it for verious built-in system routines.
+The compiler needs it for various built-in system routines.
 
 
 gfx2  (cx16 only)
