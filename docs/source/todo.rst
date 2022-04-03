@@ -5,6 +5,7 @@ For next release
 ^^^^^^^^^^^^^^^^
 - vm: support no globals re-init option
 - vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
+- vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address, to make the output more human-readable
 - vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too

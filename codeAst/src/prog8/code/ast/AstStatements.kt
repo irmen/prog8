@@ -38,15 +38,13 @@ class PtSubroutineParameter(val name: String, val type: DataType, position: Posi
 }
 
 
-class PtAssignment(val augmentable: Boolean, position: Position) : PtNode(position) {
+class PtAssignment(position: Position) : PtNode(position) {
     val target: PtAssignTarget
         get() = children[0] as PtAssignTarget
     val value: PtExpression
         get() = children[1] as PtExpression
 
-    override fun printProperties() {
-        print("aug=$augmentable")
-    }
+    override fun printProperties() { }
 }
 
 

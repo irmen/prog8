@@ -96,7 +96,7 @@ class IntermediateAstMaker(val program: Program) {
             return PtNop(srcAssign.position)
         }
 
-        val assign = PtAssignment(srcAssign.isAugmentable, srcAssign.position)
+        val assign = PtAssignment(srcAssign.position)
         assign.add(transform(srcAssign.target))
         assign.add(transformExpression(srcAssign.value))
         return assign

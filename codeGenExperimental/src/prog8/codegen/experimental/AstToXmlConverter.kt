@@ -445,7 +445,6 @@ class AstToXmlConverter(internal val program: PtProgram,
 
     private fun write(assign: PtAssignment) {
         xml.elt("assign")
-        xml.attr("aug", assign.augmentable.toString())
         xml.pos(assign.position)
         xml.startChildren()
         write(assign.target)
