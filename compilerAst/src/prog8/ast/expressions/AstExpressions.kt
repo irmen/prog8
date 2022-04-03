@@ -987,8 +987,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
                 // multiple return values. Can occur for asmsub routines. If there is exactly one register return value, take that.
                 val registerReturns = stmt.asmReturnvaluesRegisters.filter {it.registerOrPair != null }
                 if(registerReturns.size==1) {
-                    val reg = registerReturns.single().registerOrPair!!
-                    return when(reg) {
+                    return when(registerReturns.single().registerOrPair!!) {
                         RegisterOrPair.A,
                         RegisterOrPair.X,
                         RegisterOrPair.Y -> InferredTypes.InferredType.known(DataType.UBYTE)

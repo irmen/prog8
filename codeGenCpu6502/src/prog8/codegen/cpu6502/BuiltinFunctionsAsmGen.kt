@@ -56,7 +56,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     ident
                 }
             }
-        val argExpressions = mutableListOf(argExpression);
+        val argExpressions = mutableListOf(argExpression)
         val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
         fcall.linkParents(scope)
         translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)

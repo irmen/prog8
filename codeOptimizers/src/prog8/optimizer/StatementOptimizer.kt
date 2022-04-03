@@ -7,7 +7,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import prog8.code.target.virtual.VirtualMachineDefinition
 import kotlin.math.floor
 
 

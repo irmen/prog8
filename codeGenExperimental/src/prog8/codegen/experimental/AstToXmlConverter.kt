@@ -612,7 +612,7 @@ class AstToXmlConverter(internal val program: PtProgram,
         }
         if(asmSub.clobbers.isNotEmpty()) {
             xml.elt("clobbers")
-            xml.attr("registers", asmSub.clobbers.map {it.name}.joinToString(","))
+            xml.attr("registers", asmSub.clobbers.joinToString(",") { it.name })
             xml.endElt()
         }
         if(asmSub.retvalRegisters.isNotEmpty()) {

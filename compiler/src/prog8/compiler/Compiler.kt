@@ -265,7 +265,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         .flatMap { (it as Directive).args }.toSet()
     val floatsEnabled = allOptions.any { it.name == "enable_floats" }
     val noSysInit = allOptions.any { it.name == "no_sysinit" }
-    var zpType: ZeropageType =
+    val zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
         else

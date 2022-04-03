@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
-import prog8.code.ast.PtIdentifier
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 

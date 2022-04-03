@@ -7,7 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.*
 import prog8.code.core.ArrayDatatypes
-import prog8.code.core.ElementToArrayTypes
 import prog8.code.core.Position
 import java.util.*
 

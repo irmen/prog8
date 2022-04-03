@@ -34,7 +34,7 @@ class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling
         contentPane.background = Color.BLACK
         isResizable = false
         isLocationByPlatform = true
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        defaultCloseOperation = EXIT_ON_CLOSE
         image = graphicsConfiguration.createCompatibleImage(pixelWidth, pixelHeight, Transparency.OPAQUE)
         contentPane.add(BitmapScreenPanel(image, pixelScaling), BorderLayout.CENTER)
         pack()
