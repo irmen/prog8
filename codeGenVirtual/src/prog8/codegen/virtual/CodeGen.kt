@@ -35,19 +35,16 @@ class CodeGen(internal val program: PtProgram,
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     internal val vmRegisters = VmRegisterPool()
 
-    init {
-        if(options.dontReinitGlobals)
-            TODO("support no globals re-init in vm")
-    }
-
     override fun compileToAssembly(): IAssemblyProgram? {
         val vmprog = AssemblyProgram(program.name, allocations)
 
-        // collect global variables initializers
-        program.allBlocks().forEach {
-            val code = VmCodeChunk()
-            it.children.filterIsInstance<PtAssignment>().forEach { assign -> code += translate(assign) }
-            vmprog.addGlobalInits(code)
+        if(!options.dontReinitGlobals) {
+            // collect global variables initializers
+            program.allBlocks().forEach {
+                val code = VmCodeChunk()
+                it.children.filterIsInstance<PtAssignment>().forEach { assign -> code += translate(assign) }
+                vmprog.addGlobalInits(code)
+            }
         }
 
         for (block in program.allBlocks()) {

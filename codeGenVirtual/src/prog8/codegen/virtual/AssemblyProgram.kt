@@ -27,8 +27,10 @@ internal class AssemblyProgram(override val name: String,
             }
             out.write("------PROGRAM------\n")
 
-            out.write("; global var inits\n")
-            globalInits.forEach { out.writeLine(it) }
+            if(!options.dontReinitGlobals) {
+                out.write("; global var inits\n")
+                globalInits.forEach { out.writeLine(it) }
+            }
 
             out.write("; actual program code\n")
             blocks.asSequence().flatMap { it.lines }.forEach { line->out.writeLine(line) }

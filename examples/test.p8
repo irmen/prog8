@@ -1,34 +1,16 @@
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
+
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
 
-    sub func1(ubyte arg1) -> uword {
-        return arg1 * 3
-    }
-
-    sub func2(uword arg1) -> uword {
-        return arg1+1000
-    }
-
-    sub func3(uword arg1) {
-        txt.print_uw(arg1+2000)
-        txt.nl()
-    }
+    ubyte global = 42
 
     sub start() {
-
-        ubyte source = 99
-
-        uword result = func2(func1(cos8u(sin8u(source))))
-        txt.print_uw(result)    ; 1043
-        txt.nl()
-        result = source |> sin8u() |> cos8u() |> func1() |> func2()
-        txt.print_uw(result)    ; 1043
-        txt.nl()
-        source |> sin8u() |> cos8u() |> func1() |> func3()      ; 2043
+        txt.print_ub(global)
+        global++
 
         ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen
