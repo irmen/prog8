@@ -98,6 +98,18 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 code += exprGen.translateExpression(call.args[1], lsbReg)
                 code += VmCodeInstruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg, reg3=lsbReg)
             }
+            "sin8u" -> {
+                code += exprGen.translateExpression(call.args[0], 0)
+                code += VmCodeInstruction(Opcode.SYSCALL, value=Syscall.SIN8U.ordinal)
+                if(resultRegister!=0)
+                    code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
+            }
+            "cos8u" -> {
+                code += exprGen.translateExpression(call.args[0], 0)
+                code += VmCodeInstruction(Opcode.SYSCALL, value=Syscall.COS8U.ordinal)
+                if(resultRegister!=0)
+                    code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
+            }
             else -> {
                 TODO("builtinfunc ${call.name}")
 //                code += VmCodeInstruction(Opcode.NOP))

@@ -211,8 +211,14 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
         val (target, _) = targetOf(srcCall.target)
-        val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val call = PtFunctionCall(target, false, type, srcCall.position)
+        val type = srcCall.inferType(program).getOrElse {
+            if((srcCall.parent as? Pipe)?.segments?.last() === srcCall)
+                // for a pipe, the last segment is allowed to be a call to a function not returning anything.
+                DataType.UNDEFINED
+            else
+                throw FatalAstException("unknown dt $srcCall")
+        }
+        val call = PtFunctionCall(target, type==DataType.UNDEFINED, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -291,8 +297,7 @@ class IntermediateAstMaker(val program: Program) {
         PtLabel(label.name, label.position)
 
     private fun transform(srcPipe: Pipe): PtPipe {
-        val type = srcPipe.segments.last().inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val pipe = PtPipe(type, true, srcPipe.position)
+        val pipe = PtPipe(DataType.UNDEFINED, true, srcPipe.position)
         pipe.add(transformExpression(srcPipe.source))
         for (segment in srcPipe.segments)
             pipe.add(transformExpression(segment))

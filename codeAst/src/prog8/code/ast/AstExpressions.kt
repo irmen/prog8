@@ -107,6 +107,9 @@ class PtPipe(type: DataType, val void: Boolean, position: Position) : PtExpressi
             require(type!=DataType.UNDEFINED)
     }
 
+    val segments: List<PtExpression>
+        get() = children.map { it as PtExpression }
+
     override fun printProperties() {}
 }
 

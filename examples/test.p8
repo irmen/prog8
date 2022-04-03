@@ -5,32 +5,30 @@
 
 main {
 
-    sub calculate(ubyte value) -> uword {
-        when value {
-            1 -> return "one"
-            2 -> return "two"
-            3 -> return "three"
-            4,5,6 -> return "four to six"
-            else -> return "other"
-        }
+    sub func1(ubyte arg1) -> uword {
+        return arg1 * 3
+    }
+
+    sub func2(uword arg1) -> uword {
+        return arg1+1000
+    }
+
+    sub func3(uword arg1) {
+        txt.print_uw(arg1+2000)
+        txt.nl()
     }
 
     sub start() {
 
-        txt.print(calculate(0))
+        ubyte source = 99
+
+        uword result = func2(func1(cos8u(sin8u(source))))
+        txt.print_uw(result)    ; 1043
         txt.nl()
-        txt.print(calculate(1))
+        result = source |> sin8u() |> cos8u() |> func1() |> func2()
+        txt.print_uw(result)    ; 1043
         txt.nl()
-        txt.print(calculate(2))
-        txt.nl()
-        txt.print(calculate(3))
-        txt.nl()
-        txt.print(calculate(4))
-        txt.nl()
-        txt.print(calculate(5))
-        txt.nl()
-        txt.print(calculate(50))
-        txt.nl()
+        source |> sin8u() |> cos8u() |> func1() |> func3()      ; 2043
 
         ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen

@@ -1,6 +1,6 @@
 package prog8.vm
 
-import kotlin.math.min
+import kotlin.math.*
 import kotlin.random.Random
 
 /*
@@ -20,6 +20,8 @@ SYSCALLS:
 11 = rnd        ; random BYTE
 12 = wait       ; wait certain amount of jiffies (1/60 sec)
 13 = waitvsync  ; wait on vsync
+14 = sin8u
+15 = cos8u
 */
 
 enum class Syscall {
@@ -37,7 +39,8 @@ enum class Syscall {
     RND,
     WAIT,
     WAITVSYNC,
-    TMP_PRINT_UW
+    SIN8U,
+    COS8U
 }
 
 object SysCalls {
@@ -92,8 +95,17 @@ object SysCalls {
                 Thread.sleep(millis)
             }
             Syscall.WAITVSYNC -> vm.waitvsync()
-            Syscall.TMP_PRINT_UW -> {
-                println("VM: UW=${vm.registers.getUW(0)}")
+            Syscall.SIN8U -> {
+                val arg = vm.registers.getUB(0).toDouble()
+                val rad = arg /256.0 * 2.0 * PI
+                val answer = truncate(128.0 + 127.5 * sin(rad))
+                vm.registers.setUB(0, answer.toUInt().toUByte())
+            }
+            Syscall.COS8U -> {
+                val arg = vm.registers.getUB(0).toDouble()
+                val rad = arg /256.0 * 2.0 * PI
+                val answer = truncate(128.0 + 127.5 * cos(rad))
+                vm.registers.setUB(0, answer.toUInt().toUByte())
             }
             else -> TODO("syscall ${call.name}")
         }

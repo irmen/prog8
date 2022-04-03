@@ -16,22 +16,30 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         require(codeGen.vmRegisters.peekNext() > resultRegister)
 
         val code = VmCodeChunk()
-        val vmDt = codeGen.vmType(expr.type)
 
         when (expr) {
             is PtNumber -> {
+                val vmDt = codeGen.vmType(expr.type)
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=expr.number.toInt())
             }
             is PtIdentifier -> {
-                val mem = codeGen.allocations.get(expr.targetName)
-                code += if(expr.type in PassByValueDatatypes) {
-                    VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=mem)
+                val vmDt = codeGen.vmType(expr.type)
+                if(expr.targetName[0].startsWith(":vmreg-")) {
+                    // special direct reference to a register in the VM
+                    val reg = expr.targetName[0].substring(7).toInt()
+                    code += VmCodeInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=reg)
                 } else {
-                    // for strings and arrays etc., load the *address* of the value instead
-                    VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
+                    val mem = codeGen.allocations.get(expr.targetName)
+                    code += if (expr.type in PassByValueDatatypes) {
+                        VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, value = mem)
+                    } else {
+                        // for strings and arrays etc., load the *address* of the value instead
+                        VmCodeInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, value = mem)
+                    }
                 }
             }
             is PtAddressOf -> {
+                val vmDt = codeGen.vmType(expr.type)
                 val mem = codeGen.allocations.get(expr.identifier.targetName)
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
             }
@@ -57,7 +65,41 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
     }
 
     internal fun translate(pipe: PtPipe, resultRegister: Int): VmCodeChunk {
-        TODO("Not yet implemented: pipe expression")
+        val segments = pipe.segments
+        var valueDt = segments[0].type
+        var valueReg = if(pipe.void) codeGen.vmRegisters.nextFree() else resultRegister
+
+        fun addImplicitArgToSegment(segment: PtExpression, sourceReg: Int, sourceDt: DataType): PtExpression {
+            return when (segment) {
+                is PtFunctionCall -> {
+                    val segWithArg = PtFunctionCall(segment.functionName, segment.void, segment.type, segment.position)
+                    segWithArg.children.add(0, PtIdentifier(listOf(":vmreg-$sourceReg"), listOf(":vmreg-$sourceReg"), sourceDt, segment.position))
+                    segWithArg
+                }
+                is PtBuiltinFunctionCall -> {
+                    val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.type, segment.position)
+                    segWithArg.children.add(0, PtIdentifier(listOf(":vmreg-$sourceReg"), listOf(":vmreg-$sourceReg"), sourceDt, segment.position))
+                    segWithArg
+                }
+                else -> throw AssemblyError("weird segment type")
+            }
+        }
+
+        val code = VmCodeChunk()
+        code += translateExpression(segments[0], valueReg)
+        for (segment in segments.subList(1, segments.size-1)) {
+            val sourceReg = valueReg
+            val sourceDt = valueDt
+            if(segment.type!=valueDt) {
+                valueDt = segment.type
+                valueReg = codeGen.vmRegisters.nextFree()
+            }
+            val segmentWithImplicitArgument = addImplicitArgToSegment(segment, sourceReg, sourceDt)
+            code += translateExpression(segmentWithImplicitArgument, valueReg)
+        }
+        val segWithArg = addImplicitArgToSegment(segments.last(), valueReg, valueDt)
+        code += translateExpression(segWithArg, resultRegister)
+        return code
     }
 
     private fun translate(check: PtContainmentCheck, resultRegister: Int): VmCodeChunk {
