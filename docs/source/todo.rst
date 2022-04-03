@@ -3,15 +3,17 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm codegen/assembler: variable memory locations should also be referenced by the variable name instead of just the address, to make the output more human-readable
-- vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
-  so we have a set of byte registers, a set of word registers, and other sets if we introduce other types.
-- vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
-- vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
-- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
-- when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
-  It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
-  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
+- cx16 textio: optimize the 4 scroll routines and setcc/setcc2.
+- vm: implement all operators in the virtualmachine
+- vm: codegen: more optimal code for loops ending on 0 (BNZ?)
+- pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
+- writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
+- allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
+- make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
+  but this requires all identifiers in the inlined expression to be changed to fully scoped names.
+  If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code size bloat.
+  Inlined subroutines cannot contain further nested subroutines!
+  Once this works, look for library subroutines that should be inlined.
 
 ...
 
@@ -27,26 +29,29 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- vm: codegen: various TODOs to tweak code
+- vm: expressionGen: various TODOs to tweak code
+- vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
+  so we have a set of byte registers, a set of word registers, and other sets if we introduce other types.
+- vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
+- vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
+- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
+- when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
+  It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
+  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
 - vm code gen: don't reuse registers and don't pre allocate variables? (except strings + arrays) but instead put them into registers too
     then we ALMOST have Static Single Assignment form in the VM code.  But what can we use that for?
-- pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
-- writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
-- allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
-- make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
-  but this requires all identifiers in the inlined expression to be changed to fully scoped names.
-  If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code bloat.
-  Inlined subroutines cannot contain further nested subroutines!
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (scenario sought)
-- consider adding McCarthy evaluation to shortcircuit and and or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
+- consider adding McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
-- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for this)
+ Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256
 
 Libraries:

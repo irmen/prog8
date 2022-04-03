@@ -11,6 +11,7 @@ main {
     sub start() {
         txt.print_ub(global)
         global++
+        rol2(global)
 
         ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen

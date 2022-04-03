@@ -15,13 +15,11 @@
 ;   mode 1 = bitmap 320 x 240 monochrome
 ;   mode 2 = bitmap 320 x 240 x 4c (TODO not yet implemented)
 ;   mode 3 = bitmap 320 x 240 x 16c (TODO not yet implemented)
-;   mode 4 = bitmap 320 x 240 x 256c
+;   mode 4 = bitmap 320 x 240 x 256c  (like SCREEN $80 but using this api instead of kernal)
 ;   mode 5 = bitmap 640 x 480 monochrome
 ;   mode 6 = bitmap 640 x 480 x 4c
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
-
-; TODO can we make a FB vector table and emulation routines for the Cx16s' GRAPH_init() call? to replace the builtin 320x200 fb driver?
 
 gfx2 {
 

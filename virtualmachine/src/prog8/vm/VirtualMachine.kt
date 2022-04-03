@@ -588,7 +588,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 if(right==0.toUByte()) 0xffu
                 else left % right
             }
-            else -> TODO("operator $operator")
+            else -> TODO("operator byte $operator")
         }
         registers.setUB(reg1, result.toUByte())
     }
@@ -608,7 +608,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 if(right==0.toUShort()) 0xffffu
                 else left % right
             }
-            else -> TODO("operator $operator")
+            else -> TODO("operator word $operator")
         }
         registers.setUW(reg1, result.toUShort())
     }
