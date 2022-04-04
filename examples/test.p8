@@ -7,13 +7,9 @@
 main {
 
     sub start() {
-        ubyte counter
+        uword[] array = [1111,2222,3333,4444,5555]
 
-        repeat 256 {
-            txt.print_ub(counter)
-            txt.spc()
-            counter ++
-        }
+        txt.print_uw(array[3])
         txt.nl()
 
         ; a "pixelshader":

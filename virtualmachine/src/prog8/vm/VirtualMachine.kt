@@ -588,7 +588,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 if(right==0.toUByte()) 0xffu
                 else left % right
             }
-            else -> TODO("operator byte $operator")
+            else -> throw IllegalArgumentException("operator byte $operator")
         }
         registers.setUB(reg1, result.toUByte())
     }
@@ -608,7 +608,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 if(right==0.toUShort()) 0xffffu
                 else left % right
             }
-            else -> TODO("operator word $operator")
+            else -> throw IllegalArgumentException("operator word $operator")
         }
         registers.setUW(reg1, result.toUShort())
     }
@@ -624,7 +624,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsEXT(i: Instruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1).toUShort())
-            VmDataType.WORD -> TODO("ext.w requires 32 bits registers")
+            VmDataType.WORD -> TODO("ext.w not yet supported, requires 32 bits registers")
         }
         pc++
     }
@@ -632,7 +632,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsEXTS(i: Instruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1).toShort())
-            VmDataType.WORD -> TODO("ext.w requires 32 bits registers")
+            VmDataType.WORD -> TODO("exts.w not yet supported, requires 32 bits registers")
         }
         pc++
     }
@@ -716,7 +716,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val newValue = value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
                 registers.setUW(i.reg1, newValue.toUShort())
             }
-            VmDataType.WORD -> TODO("swap.w requires 32-bits registers")
+            VmDataType.WORD -> TODO("swap.w not yet supported, requires 32-bits registers")
         }
         pc++
     }
@@ -728,7 +728,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val lsb = registers.getUB(i.reg3!!)
                 registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
-            VmDataType.WORD -> TODO("swap.w requires 32-bits registers")
+            VmDataType.WORD -> TODO("concat.w not yet supported, requires 32-bits registers")
         }
         pc++
     }

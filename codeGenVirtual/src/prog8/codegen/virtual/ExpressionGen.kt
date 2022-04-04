@@ -138,15 +138,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val vmDt = codeGen.vmType(arrayIx.type)
         val code = VmCodeChunk()
         val idxReg = codeGen.vmRegisters.nextFree()
-        // TODO: optimized code when the index is a constant value
-        code += translateExpression(arrayIx.index, idxReg)
-        if(eltSize>1) {
-            val factorReg = codeGen.vmRegisters.nextFree()
-            code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize)
-            code += VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=idxReg, reg3=factorReg)
-        }
         val arrayLocation = codeGen.allocations.get(arrayIx.variable.targetName)
-        code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
+        if(arrayIx.index is PtNumber) {
+            // optimized code when index is known - just calculate the memory address here
+            val memOffset = (arrayIx.index as PtNumber).number.toInt() * eltSize
+            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=arrayLocation+memOffset)
+        } else {
+            code += translateExpression(arrayIx.index, idxReg)
+            if(eltSize>1) {
+                val factorReg = codeGen.vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize)
+                code += VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=idxReg, reg3=factorReg)
+            }
+            code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
+        }
         return code
     }
 
