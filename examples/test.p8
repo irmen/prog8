@@ -9,9 +9,24 @@ main {
     ubyte global = 42
 
     sub start() {
-        txt.print_ub(global)
-        global++
-        rol2(global)
+        uword begin = c64.RDTIM16()
+
+        ubyte shift
+        repeat 60 {
+            ubyte yy
+            for yy in 0 to 59 {
+                ubyte xx
+                for xx in 0 to 79 {
+                    ubyte color = yy+xx+shift
+                    txt.setcc2(xx,yy,81,color)       ; 356
+                }
+            }
+            shift++
+        }
+
+        uword duration = c64.RDTIM16()-begin
+        txt.print_uw(duration)
+        txt.print("     \n")
 
         ; a "pixelshader":
 ;        syscall1(8, 0)      ; enable lo res creen

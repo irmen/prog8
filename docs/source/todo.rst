@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- cx16 textio: optimize the 4 scroll routines and setcc/setcc2.
 - vm: implement all operators in the virtualmachine
 - vm: codegen: more optimal code for loops ending on 0 (BNZ?)
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.

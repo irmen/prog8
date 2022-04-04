@@ -195,7 +195,7 @@ sub iso_off() {
 
 
 asmsub  scroll_left() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character to the left   TODO optimize this more?
+	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
@@ -241,7 +241,7 @@ _lx     ldx  #0                ; modified
 }
 
 asmsub  scroll_right() clobbers(A)  {
-	; ---- scroll the whole screen 1 character to the right  TODO optimize this more?
+	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
@@ -295,7 +295,7 @@ _lx     ldx  #0                 ; modified
 }
 
 asmsub  scroll_up() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character up   TODO optimize this more?
+	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
@@ -345,7 +345,7 @@ _nextline
 }
 
 asmsub  scroll_down() clobbers(A, Y)  {
-	; ---- scroll the whole screen 1 character down     TODO optimize this more?
+	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
@@ -635,7 +635,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
             asl  a
             sta  cx16.VERA_ADDR_L
             tya
-            clc
+            ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             pla
@@ -655,7 +655,7 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
             pla
             sta  cx16.VERA_ADDR_L
             tya
-            clc
+            ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
@@ -677,7 +677,7 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
             ina
             sta  cx16.VERA_ADDR_L
             tya
-            clc
+            ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             pla
@@ -698,7 +698,7 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
             pla
             sta  cx16.VERA_ADDR_L
             tya
-            clc
+            ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
@@ -707,36 +707,29 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 }
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
-	; ---- set char+color at the given position on the screen  TODO optimize this better
-	;      note: color handling is the same as on the C64: it only sets the foreground color.
-	;            use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors.
+	; ---- set char+color at the given position on the screen
+	;      note: color handling is the same as on the C64: it only sets the foreground color and leaves the background color as is.
+	;            Use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors (is faster as well).
 	%asm {{
             phx
             lda  column
             asl  a
             tax
             ldy  row
-            lda  charcolor
-            and  #$0f
-            sta  P8ZP_SCRATCH_B1
             stz  cx16.VERA_CTRL
             lda  #VERA_TEXTMATRIX_BANK
             sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
             tya
-            clc
+            ;clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             lda  char
             sta  cx16.VERA_DATA0
-            inx
-            lda  #VERA_TEXTMATRIX_BANK
-            sta  cx16.VERA_ADDR_H
-            stx  cx16.VERA_ADDR_L
-            tya
-            clc
-            adc  #>VERA_TEXTMATRIX_ADDR
-            sta  cx16.VERA_ADDR_M
+            inc  cx16.VERA_ADDR_L
+            lda  charcolor
+            and  #$0f
+            sta  P8ZP_SCRATCH_B1
             lda  cx16.VERA_DATA0
             and  #$f0
             ora  P8ZP_SCRATCH_B1
@@ -747,9 +740,9 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 }
 
 sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
-	; ---- set char+color at the given position on the screen  TODO optimize this
+	; ---- set char+color at the given position on the screen
 	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
-	;            use the high nybble in A to set the Bg color!
+	;            use the high nybble in A to set the Bg color! Is a bit faster than setcc() too.
 	%asm {{
             phx
             lda  column
@@ -761,19 +754,12 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
             sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
             tya
-            clc
+            ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
             lda  char
             sta  cx16.VERA_DATA0
-            inx
-            lda  #VERA_TEXTMATRIX_BANK
-            sta  cx16.VERA_ADDR_H
-            stx  cx16.VERA_ADDR_L
-            tya
-            clc
-            adc  #>VERA_TEXTMATRIX_ADDR
-            sta  cx16.VERA_ADDR_M
+            inc  cx16.VERA_ADDR_L
             lda  colors
             sta  cx16.VERA_DATA0
             plx
