@@ -3,6 +3,7 @@ package prog8.codegen.virtual
 import prog8.code.ast.PtBuiltinFunctionCall
 import prog8.code.ast.PtNumber
 import prog8.code.ast.PtString
+import prog8.code.core.WordDatatypes
 import prog8.vm.Opcode
 import prog8.vm.Syscall
 import prog8.vm.VmDataType
@@ -82,6 +83,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                     code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
             }
             "peek" -> {
+                // should just be a memory read
                 val addressReg = codeGen.vmRegisters.nextFree()
                 code += exprGen.translateExpression(call.args.single(), addressReg)
                 code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg)
@@ -90,6 +92,21 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 val addressReg = codeGen.vmRegisters.nextFree()
                 code += exprGen.translateExpression(call.args.single(), addressReg)
                 code += VmCodeInstruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg)
+            }
+            "poke" -> {
+                // should just be a memory write
+                val addressReg = codeGen.vmRegisters.nextFree()
+                val valueReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg)
+                code += exprGen.translateExpression(call.args[1], valueReg)
+                code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = addressReg, reg2=valueReg)
+            }
+            "pokew" -> {
+                val addressReg = codeGen.vmRegisters.nextFree()
+                val valueReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg)
+                code += exprGen.translateExpression(call.args[1], valueReg)
+                code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = addressReg, reg2=valueReg)
             }
             "mkword" -> {
                 val msbReg = codeGen.vmRegisters.nextFree()

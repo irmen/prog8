@@ -114,6 +114,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(valuetype in IterableDatatypes && targettype==DataType.UWORD)
                         // special case, don't typecast STR/arrays to UWORD, we support those assignments "directly"
                         return noModifications
+                    if((assignment.value as? BinaryExpression)?.operator in ComparisonOperators) {
+                        // special case, treat a boolean comparison result as the same type as the target value to avoid needless casts later
+                        return noModifications
+                    }
                     val modifications = mutableListOf<IAstModification>()
                     addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
                     return modifications

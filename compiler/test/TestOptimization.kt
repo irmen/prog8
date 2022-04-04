@@ -253,7 +253,7 @@ class TestOptimization: FunSpec({
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
-    test("typecasted assignment from ubyte logical expressoin to uword var") {
+    test("not-typecasted assignment from ubyte logical expression to uword var") {
         val src = """
             main {
                 sub start() {
@@ -265,13 +265,11 @@ class TestOptimization: FunSpec({
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
 
-        // ww = ((( not bb as uword)  or  not ww) as uword)
         val wwAssign = result.program.entrypoint.statements.last() as Assignment
-        val expr = wwAssign.value as TypecastExpression
+        val expr = wwAssign.value as BinaryExpression
 
         wwAssign.target.identifier?.nameInSource shouldBe listOf("ww")
-        expr.type shouldBe DataType.UWORD
-        expr.expression.inferType(result.program) istype DataType.UBYTE shouldBe true
+        expr.inferType(result.program) istype DataType.UWORD shouldBe true
     }
 
     test("intermediate assignment steps have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {

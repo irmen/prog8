@@ -713,7 +713,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val value = registers.getUW(i.reg1!!)
-                val newValue = 0xea31 // value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
+                val newValue = value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
                 registers.setUW(i.reg1, newValue.toUShort())
             }
             VmDataType.WORD -> TODO("swap.w requires 32-bits registers")

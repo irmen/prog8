@@ -195,8 +195,21 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
 
     override fun referencesIdentifier(nameInSource: List<String>) = left.referencesIdentifier(nameInSource) || right.referencesIdentifier(nameInSource)
     override fun inferType(program: Program): InferredTypes.InferredType {
+
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
+
+        fun dynamicBooleanType(): InferredTypes.InferredType {
+            // as a special case, an expression yielding a boolean result, adapts the result
+            // type to what is required (byte or word), to avoid useless type casting
+            return if(parent is TypecastExpression)
+                InferredTypes.InferredType.known((parent as TypecastExpression).type)
+            else if(parent is Assignment)
+                (parent as Assignment).target.inferType(program)
+            else
+                InferredTypes.InferredType.known(DataType.UBYTE)
+        }
+
         return when (operator) {
             "+", "-", "*", "%", "/" -> {
                 if (!leftDt.isKnown || !rightDt.isKnown)
@@ -221,12 +234,13 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "and", "or", "xor",
             "<", ">",
             "<=", ">=",
-            "==", "!=" -> InferredTypes.knownFor(DataType.UBYTE)
+            "==", "!=" -> dynamicBooleanType()
             "<<", ">>" -> leftDt
-            "in" -> InferredTypes.knownFor(DataType.UBYTE)
+            "in" -> dynamicBooleanType()
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
+
 
     companion object {
         fun commonDatatype(leftDt: DataType, rightDt: DataType,
