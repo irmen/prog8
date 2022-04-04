@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: codegen: more optimal code for loops ending on 0 (BNZ?)
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type

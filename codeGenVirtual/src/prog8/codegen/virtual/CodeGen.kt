@@ -231,36 +231,44 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): VmCodeChunk {
-        val iterable = forLoop.iterable as PtRange
-        val step = iterable.step.number.toInt()
-        val range = IntProgression.fromClosedRange(
-            (iterable.from as PtNumber).number.toInt(),
-            (iterable.to as PtNumber).number.toInt() + step,
-            step)
-        if (range.isEmpty() || range.step==0)
-            throw AssemblyError("empty range or step 0")
-
         val loopLabel = createLabelName()
         val loopvarAddress = allocations.get(loopvar.scopedName)
         val indexReg = vmRegisters.nextFree()
-        val endvalueReg = vmRegisters.nextFree()
         val loopvarDt = vmType(loopvar.dt)
+        val iterable = forLoop.iterable as PtRange
+        val step = iterable.step.number.toInt()
+        val rangeStart = (iterable.from as PtNumber).number.toInt()
+        val rangeEndUntyped = (iterable.to as PtNumber).number.toInt() + step
+        if(step==0)
+            throw AssemblyError("step 0")
+        if(step>0 && rangeEndUntyped<rangeStart || step<0 && rangeEndUntyped>rangeStart)
+            throw AssemblyError("empty range")
+        val rangeEndWrapped = if(loopvarDt==VmDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=endvalueReg, value=range.last)
-        code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=range.first)
+        val endvalueReg: Int
+        if(rangeEndWrapped!=0) {
+            endvalueReg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1 = endvalueReg, value = rangeEndWrapped)
+        } else {
+            endvalueReg = 0
+        }
+        code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        if(range.step<3) {
-            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), range.step)
+        if(step<3) {
+            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         } else {
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-            code += addConstReg(loopvarDt, indexReg, range.step)
+            code += addConstReg(loopvarDt, indexReg, step)
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         }
-        // TODO more optimal loop instruction for loops ending on 0 (BNZ?)
-        code += VmCodeInstruction(Opcode.BNE, loopvarDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
+        code += if(rangeEndWrapped==0) {
+            VmCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, symbol = loopLabel)
+        } else {
+            VmCodeInstruction(Opcode.BNE, loopvarDt, reg1 = indexReg, reg2 = endvalueReg, symbol = loopLabel)
+        }
         return code
     }
 

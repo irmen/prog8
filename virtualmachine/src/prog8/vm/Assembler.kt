@@ -132,6 +132,19 @@ class Assembler {
                     throw IllegalArgumentException("invalid reg3 for $line")
                 if(!format.value && value!=null)
                     throw IllegalArgumentException("invalid value for $line")
+                if(value!=null) {
+                    when (type) {
+                        VmDataType.BYTE -> {
+                            if (value < -128 || value > 255)
+                                throw IllegalArgumentException("value out of range for byte: $value")
+                        }
+                        VmDataType.WORD -> {
+                            if (value < -32768 || value > 65535)
+                                throw IllegalArgumentException("value out of range for word: $value")
+                        }
+                        null -> {}
+                    }
+                }
                 program.add(Instruction(opcode, type, reg1, reg2, reg3, value))
             }
         }

@@ -7,13 +7,13 @@
 main {
 
     sub start() {
-        ubyte value1 = 99
-        ubyte value2 = 222
+        ubyte counter
 
-        uword @shared result = $ffff
-        result = value1 != value2
-
-        txt.print_uwhex(result, true)
+        repeat 256 {
+            txt.print_ub(counter)
+            txt.spc()
+            counter ++
+        }
         txt.nl()
 
         ; a "pixelshader":

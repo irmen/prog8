@@ -64,6 +64,22 @@ internal class VmCodeInstruction(
     symbol: List<String>?=null    // alternative to value
     ): VmCodeLine() {
         val ins = Instruction(opcode, type, reg1, reg2, reg3, value, symbol)
+
+        init {
+            if(value!=null) {
+                when (type) {
+                    VmDataType.BYTE -> {
+                        if (value < -128 || value > 255)
+                            throw IllegalArgumentException("value out of range for byte: $value")
+                    }
+                    VmDataType.WORD -> {
+                        if (value < -32768 || value > 65535)
+                            throw IllegalArgumentException("value out of range for word: $value")
+                    }
+                    null -> {}
+                }
+            }
+        }
     }
 internal class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
