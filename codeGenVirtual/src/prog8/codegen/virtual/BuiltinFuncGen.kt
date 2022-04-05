@@ -1,13 +1,11 @@
 package prog8.codegen.virtual
 
-import prog8.code.StArray
 import prog8.code.StStaticVariable
 import prog8.code.ast.PtBuiltinFunctionCall
 import prog8.code.ast.PtIdentifier
 import prog8.code.ast.PtNumber
 import prog8.code.ast.PtString
 import prog8.code.core.DataType
-import prog8.code.core.WordDatatypes
 import prog8.vm.Opcode
 import prog8.vm.Syscall
 import prog8.vm.VmDataType
@@ -22,14 +20,11 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 code += VmCodeInstruction(Opcode.SYSCALL, value=vExpr.number.toInt())
             }
             "syscall1" -> {
-                code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 0)
                 val callNr = (call.args[0] as PtNumber).number.toInt()
                 code += exprGen.translateExpression(call.args[1], 0)
                 code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
-                code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 0)
             }
             "syscall2" -> {
-                code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 0)
                 code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1)
                 while(codeGen.vmRegisters.peekNext()<2) {
                     codeGen.vmRegisters.nextFree()
@@ -39,10 +34,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 code += exprGen.translateExpression(call.args[2], 1)
                 code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
                 code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
-                code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 0)
             }
             "syscall3" -> {
-                code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 0)
                 code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1)
                 code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 2)
                 while(codeGen.vmRegisters.peekNext()<3) {
@@ -55,7 +48,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
                 code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 2)
                 code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
-                code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 0)
             }
             "msb" -> {
                 code += exprGen.translateExpression(call.args.single(), resultRegister)

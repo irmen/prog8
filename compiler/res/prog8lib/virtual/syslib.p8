@@ -39,17 +39,17 @@ sys {
 
     sub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
-        syscall(SC_RESET)
+        void syscall(SC_RESET)
     }
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        syscall1(SC_WAIT, jiffies)
+        void syscall1(SC_WAIT, jiffies)
     }
 
     sub waitvsync() {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        syscall(SC_WAITVSYNC)
+        void syscall(SC_WAITVSYNC)
     }
 
     sub memcopy(uword source, uword target, uword count)  {
@@ -76,7 +76,7 @@ sys {
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
-        syscall1(SC_EXIT, returnvalue)
+        void syscall1(SC_EXIT, returnvalue)
     }
 }
 

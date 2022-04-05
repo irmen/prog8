@@ -12,7 +12,7 @@ SYSCALLS:
 3 = print_s ; print 0-terminated string from memory
 4 = print_u8 ; print unsigned int byte
 5 = print_u16 ; print unsigned int word
-6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r65535.w
+6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r0.w
 7 = sleep ; sleep amount of milliseconds
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
@@ -90,7 +90,7 @@ object SysCalls {
                 if(maxlen>0)
                     input = input.substring(0, min(input.length, maxlen))
                 vm.memory.setString(vm.registers.getUW(0).toInt(), input, true)
-                vm.registers.setUW(65535, input.length.toUShort())
+                vm.registers.setUW(0, input.length.toUShort())
             }
             Syscall.SLEEP -> {
                 val duration = vm.registers.getUW(0).toLong()

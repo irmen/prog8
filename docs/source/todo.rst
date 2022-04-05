@@ -4,7 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
-- writeAssembly(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
+- createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names.
@@ -48,7 +48,7 @@ Compiler:
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
   (but we lose the optimizing aspect of the assembler where it strips out unused code.
   There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
+- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256
 
 Libraries:
@@ -82,6 +82,5 @@ Optimizations:
 - AssignmentAsmGen.assignExpression() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
-- AssignmentAsmGen: "real optimized code for comparison expressions that yield a boolean result value"
 - automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
