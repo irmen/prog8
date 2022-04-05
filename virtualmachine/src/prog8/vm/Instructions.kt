@@ -214,6 +214,16 @@ enum class Opcode {
     BREAKPOINT
 }
 
+val OpcodesWithAddress = setOf(
+    Opcode.LOADM,
+    Opcode.LOADX,
+    Opcode.STOREM,
+    Opcode.STOREX,
+    Opcode.STOREZ,
+    Opcode.STOREZX
+)
+
+
 enum class VmDataType {
     BYTE,
     WORD

@@ -22,6 +22,12 @@ SYSCALLS:
 13 = waitvsync  ; wait on vsync
 14 = sin8u
 15 = cos8u
+16 = sort_ubyte array
+17 = sort_byte array
+18 = sort_uword array
+19 = sort_word array
+20 = reverse_bytes array
+21 = reverse_words array
 */
 
 enum class Syscall {
@@ -40,7 +46,13 @@ enum class Syscall {
     WAIT,
     WAITVSYNC,
     SIN8U,
-    COS8U
+    COS8U,
+    SORT_UBYTE,
+    SORT_BYTE,
+    SORT_UWORD,
+    SORT_WORD,
+    REVERSE_BYTES,
+    REVERSE_WORDS
 }
 
 object SysCalls {
@@ -106,6 +118,66 @@ object SysCalls {
                 val rad = arg /256.0 * 2.0 * PI
                 val answer = truncate(128.0 + 127.5 * cos(rad))
                 vm.registers.setUB(0, answer.toUInt().toUByte())
+            }
+            Syscall.SORT_UBYTE -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
+                    vm.memory.getUB(it)
+                }.sorted()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setUB(address+index, value)
+                }
+            }
+            Syscall.SORT_BYTE -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
+                    vm.memory.getSB(it)
+                }.sorted()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setSB(address+index, value)
+                }
+            }
+            Syscall.SORT_UWORD -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
+                    vm.memory.getUW(it)
+                }.sorted()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setUW(address+index*2, value)
+                }
+            }
+            Syscall.SORT_WORD -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
+                    vm.memory.getSW(it)
+                }.sorted()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setSW(address+index*2, value)
+                }
+            }
+            Syscall.REVERSE_BYTES -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
+                    vm.memory.getUB(it)
+                }.reversed()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setUB(address+index, value)
+                }
+            }
+            Syscall.REVERSE_WORDS -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
+                    vm.memory.getUW(it)
+                }.reversed()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setUW(address+index*2, value)
+                }
             }
             else -> TODO("syscall ${call.name}")
         }

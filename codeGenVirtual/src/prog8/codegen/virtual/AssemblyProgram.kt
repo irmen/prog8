@@ -4,6 +4,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram
 import prog8.vm.Instruction
 import prog8.vm.Opcode
+import prog8.vm.OpcodesWithAddress
 import prog8.vm.VmDataType
 import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
@@ -66,7 +67,7 @@ internal class VmCodeInstruction(
         val ins = Instruction(opcode, type, reg1, reg2, reg3, value, symbol)
 
         init {
-            if(value!=null) {
+            if(value!=null && opcode !in OpcodesWithAddress) {
                 when (type) {
                     VmDataType.BYTE -> {
                         if (value < -128 || value > 255)

@@ -132,7 +132,7 @@ class Assembler {
                     throw IllegalArgumentException("invalid reg3 for $line")
                 if(!format.value && value!=null)
                     throw IllegalArgumentException("invalid value for $line")
-                if(value!=null) {
+                if(value!=null && opcode !in OpcodesWithAddress) {
                     when (type) {
                         VmDataType.BYTE -> {
                             if (value < -128 || value > 255)
@@ -161,6 +161,9 @@ class Assembler {
     }
 
     private fun parseValue(value: String, pc: Int): Int {
+        if(value.startsWith("-")) {
+            return -parseValue(value.substring(1), pc)
+        }
         if(value.startsWith('$'))
             return value.substring(1).toInt(16)
         if(value.startsWith('%'))
