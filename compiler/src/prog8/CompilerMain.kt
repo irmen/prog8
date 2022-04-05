@@ -4,15 +4,18 @@ import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.code.core.CbmPrgLauncherType
 import prog8.code.target.*
+import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.StandardWatchEventKinds
 import java.time.LocalDateTime
 import kotlin.system.exitProcess
+
 
 
 fun main(args: Array<String>) {
@@ -46,6 +49,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')")
         .default(C64Target.NAME)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt listing in the VM instead")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -74,6 +78,10 @@ private fun compileMain(args: Array<String>): Boolean {
     if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME, AtariTarget.NAME, VMTarget.NAME)) {
         System.err.println("Invalid compilation target: $compilationTarget")
         return false
+    }
+
+    if(startVm==true) {
+        return runVm(moduleFiles.first())
     }
 
     if(watchMode==true) {
@@ -182,5 +190,16 @@ private fun compileMain(args: Array<String>): Boolean {
         }
     }
 
+    return true
+}
+
+fun runVm(listingFilename: String): Boolean {
+    val name =
+        if(listingFilename.endsWith(".p8virt"))
+            listingFilename.substring(0, listingFilename.length-7)
+        else
+            listingFilename
+    val vmdef = VirtualMachineDefinition()
+    vmdef.launchEmulator(0, Paths.get(name))
     return true
 }
