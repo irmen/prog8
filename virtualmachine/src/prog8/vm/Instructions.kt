@@ -7,6 +7,7 @@ Virtual machine:
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries.
+Status registers: Carry.
 
 
 Instruction serialization format possibility:
@@ -59,8 +60,10 @@ return                                - restore last saved instruction location 
 
 BRANCHING
 ---------
-All have type b or w.
+All have type b or w except the branches that only check status bits.
 
+bstcc                         location  - branch to location if Status bit Carry is Clear
+bstcs                         location  - branch to location if Status bit Carry is Set
 bz          reg1,             location  - branch to location if reg1 is zero
 bnz         reg1,             location  - branch to location if reg1 is not zero
 beq         reg1, reg2,       location  - jump to location in program given by location, if reg1 == reg2
@@ -84,7 +87,7 @@ sgts        reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (signed),  ot
 sge         reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
 sges        reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
 
-TODO: support for the prog8 special branching instructions if_XX (bcc, bcs etc.)
+TODO: support for the other prog8 special branching instructions if_XX (bpl, bmi etc.)
       but we don't have any 'processor flags' whatsoever in the vm so it's a bit weird
 
 
@@ -105,7 +108,7 @@ mul         reg1, reg2, reg3                - unsigned multiply reg1=reg2*reg3  
 div         reg1, reg2, reg3                - unsigned division reg1=reg2/reg3  note: division by zero yields max signed int $ff/$ffff
 mod         reg1, reg2, reg3                - remainder (modulo) of unsigned division reg1=reg2%reg3  note: division by zero yields max signed int $ff/$ffff
 
-TODO signed mul/div/mod?
+NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
 
 LOGICAL/BITWISE
@@ -115,27 +118,29 @@ All have type b or w.
 and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits
-asr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits (signed)
-lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bits
-ror         reg1, reg2, reg3                 - reg1 = rotate reg2 right by reg3 bits, not using carry
-rol         reg1, reg2, reg3                 - reg1 = rotate reg2 left by reg3 bits, not using carry
-
-TODO also add ror/rol variants using the carry bit? These do map directly on 6502 and 68k instructions. But the VM doesn't have carry status bit yet.
+lsr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits + set Carry to shifted bit
+asr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
+lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bits  + set Carry to shifted bit
+ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
+roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
+rol         reg1                             - rotate reg1 left by 1bits, not using carry  + set Carry to shifted bit
+roxl        reg1                             - rotate reg1 left by 1bits, using carry,  + set Carry to shifted bit
 
 
 MISC
 ----
 
-nop                                   - do nothing
-breakpoint                            - trigger a breakpoint
-copy        reg1, reg2,   length      - copy memory from ptrs in reg1 to reg3, length bytes
-copyz       reg1, reg2                - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
-swap [b, w] reg1                      - swap lsb and msb in register reg1 (16 bits) or lsw and msw (32 bits)
-swapreg     reg1, reg2                - swap values in reg1 and reg2
-concat [b, w] reg1, reg2, reg3        - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented, requires 32bits regs)
-push [b, w] reg1                      - push value in reg1 on the stack
-pop [b, w]  reg1                      - pop value from stack into reg1
+clc                                     - clear Carry status bit
+sec                                     - set Carry status bit
+nop                                     - do nothing
+breakpoint                              - trigger a breakpoint
+copy        reg1, reg2,   length        - copy memory from ptrs in reg1 to reg3, length bytes
+copyz       reg1, reg2                  - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
+swap [b, w] reg1                        - swap lsb and msb in register reg1 (16 bits) or lsw and msw (32 bits)
+swapreg     reg1, reg2                  - swap values in reg1 and reg2
+concat [b, w] reg1, reg2, reg3          - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented, requires 32bits regs)
+push [b, w] reg1                        - push value in reg1 on the stack
+pop [b, w]  reg1                        - pop value from stack into reg1
 
  */
 
@@ -159,6 +164,9 @@ enum class Opcode {
     CALLI,
     SYSCALL,
     RETURN,
+
+    BSTCC,
+    BSTCS,
     BZ,
     BNZ,
     BEQ,
@@ -202,8 +210,12 @@ enum class Opcode {
     LSR,
     LSL,
     ROR,
+    ROXR,
     ROL,
+    ROXL,
 
+    CLC,
+    SEC,
     PUSH,
     POP,
     SWAP,
@@ -248,6 +260,11 @@ data class Instruction(
             format.reg2 && reg2==null ||
             format.reg3 && reg3==null)
             throw IllegalArgumentException("missing a register")
+
+        if(!format.reg1 && reg1!=null ||
+            !format.reg2 && reg2!=null ||
+            !format.reg3 && reg3!=null)
+            throw IllegalArgumentException("too many registers")
 
         if(format.value && (value==null && symbol==null))
             throw IllegalArgumentException("missing a value or symbol")
@@ -313,6 +330,9 @@ val instructionFormats = mutableMapOf(
         Opcode.CALLI to      InstructionFormat(NN, true,  false, false, false),
         Opcode.SYSCALL to    InstructionFormat(NN, false, false, false, true ),
         Opcode.RETURN to     InstructionFormat(NN, false, false, false, false),
+
+        Opcode.BSTCC to      InstructionFormat(NN, false,  false, false, true ),
+        Opcode.BSTCS to      InstructionFormat(NN, false,  false, false, true ),
         Opcode.BZ to         InstructionFormat(BW, true,  false, false, true ),
         Opcode.BNZ to        InstructionFormat(BW, true,  false, false, true ),
         Opcode.BEQ to        InstructionFormat(BW, true,  true,  false, true ),
@@ -355,8 +375,10 @@ val instructionFormats = mutableMapOf(
         Opcode.ASR to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.LSR to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.LSL to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ROR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ROL to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ROR to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.ROXR to       InstructionFormat(BW, true,  false, false, false),
+        Opcode.ROL to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.ROXL to       InstructionFormat(BW, true,  false, false, false),
 
         Opcode.COPY to       InstructionFormat(NN, true,  true,  false, true ),
         Opcode.COPYZ to      InstructionFormat(NN, true,  true,  false, false),
@@ -364,5 +386,7 @@ val instructionFormats = mutableMapOf(
         Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
         Opcode.POP to        InstructionFormat(BW, true,  false, false, false),
         Opcode.CONCAT to     InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.CLC to        InstructionFormat(NN, false, false, false, false),
+        Opcode.SEC to        InstructionFormat(NN, false, false, false, false),
         Opcode.BREAKPOINT to InstructionFormat(NN, false, false, false, false)
 )

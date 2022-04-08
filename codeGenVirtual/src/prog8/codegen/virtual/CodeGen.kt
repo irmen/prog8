@@ -57,7 +57,7 @@ class CodeGen(internal val program: PtProgram,
     }
 
 
-    private fun translateNode(node: PtNode): VmCodeChunk {
+    internal fun translateNode(node: PtNode): VmCodeChunk {
         val code = when(node) {
             is PtBlock -> translate(node)
             is PtSub -> translate(node)
@@ -80,6 +80,7 @@ class CodeGen(internal val program: PtProgram,
             is PtRepeatLoop -> translate(node)
             is PtLabel -> VmCodeChunk(VmCodeLabel(node.scopedName))
             is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Opcode.BREAKPOINT))
+            is PtConditionalBranch -> translate(node)
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -99,11 +100,37 @@ class CodeGen(internal val program: PtProgram,
             is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target ${node.position}")
             is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target ${node.position}")
             is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target ${node.position}")
-            is PtConditionalBranch -> throw AssemblyError("conditional branches not supported in vm target due to lack of cpu flags ${node.position}")
             else -> TODO("missing codegen for $node")
         }
         if(code.lines.isNotEmpty() && node.position.line!=0)
             code.lines.add(0, VmCodeComment(node.position.toString()))
+        return code
+    }
+
+    private fun translate(branch: PtConditionalBranch): VmCodeChunk {
+        val code = VmCodeChunk()
+        val elseLabel = createLabelName()
+        when(branch.condition) {
+            BranchCondition.CS -> {
+                code += VmCodeInstruction(Opcode.BSTCC, symbol = elseLabel)
+            }
+            BranchCondition.CC -> {
+                code += VmCodeInstruction(Opcode.BSTCS, symbol = elseLabel)
+            }
+            else -> {
+                throw AssemblyError("conditional branch ${branch.condition} not supported in vm target due to lack of cpu flags ${branch.position}")
+            }
+        }
+        code += translateNode(branch.trueScope)
+        if(branch.falseScope.children.isNotEmpty()) {
+            val endLabel = createLabelName()
+            code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+            code += VmCodeLabel(elseLabel)
+            code += translateNode(branch.falseScope)
+            code += VmCodeLabel(endLabel)
+        } else {
+            code += VmCodeLabel(elseLabel)
+        }
         return code
     }
 

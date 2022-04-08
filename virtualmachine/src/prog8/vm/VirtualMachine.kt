@@ -19,6 +19,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     val valueStack = Stack<Int>()       // max 128 entries
     var pc = 0
     var stepCount = 0
+    var statusCarry = false
 
     init {
         if(program.size>65536)
@@ -58,6 +59,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc = 0
         stepCount = 0
         callStack.clear()
+        statusCarry = false
     }
 
     fun exit() {
@@ -97,6 +99,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.CALLI -> InsCALLI(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
+            Opcode.BSTCC -> InsBSTCC(ins)
+            Opcode.BSTCS -> InsBSTCS(ins)
             Opcode.BZ -> InsBZ(ins)
             Opcode.BNZ -> InsBNZ(ins)
             Opcode.BEQ -> InsBEQ(ins)
@@ -138,8 +142,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.ASR -> InsASR(ins)
             Opcode.LSR -> InsLSR(ins)
             Opcode.LSL -> InsLSL(ins)
-            Opcode.ROR -> InsROR(ins)
-            Opcode.ROL -> InsROL(ins)
+            Opcode.ROR -> InsROR(ins, false)
+            Opcode.ROXR -> InsROR(ins, true)
+            Opcode.ROL -> InsROL(ins, false)
+            Opcode.ROXL -> InsROL(ins, true)
             Opcode.SWAP -> InsSWAP(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
@@ -310,6 +316,20 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             exit()
         else
             pc = callStack.pop()
+    }
+
+    private fun InsBSTCC(i: Instruction) {
+        if(!statusCarry)
+            pc = i.value!!
+        else
+            pc++
+    }
+
+    private fun InsBSTCS(i: Instruction) {
+        if(statusCarry)
+            pc = i.value!!
+        else
+            pc++
     }
 
     private fun InsBZ(i: Instruction) {
@@ -666,6 +686,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsASR(i: Instruction) {
         val (left: Int, right: Int) = getLogicalOperandsS(i)
+        statusCarry = (left and 1)!=0
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, (left shr right).toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, (left shr right).toShort())
@@ -675,6 +696,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsLSR(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        statusCarry = (left and 1u)!=0u
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left shr right.toInt()).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left shr right.toInt()).toUShort())
@@ -685,28 +707,72 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsLSL(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (left shl right.toInt()).toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (left shl right.toInt()).toUShort())
+            VmDataType.BYTE -> {
+                statusCarry = (left and 0x80u)!=0u
+                registers.setUB(i.reg1!!, (left shl right.toInt()).toUByte())
+            }
+            VmDataType.WORD -> {
+                statusCarry = (left and 0x8000u)!=0u
+                registers.setUW(i.reg1!!, (left shl right.toInt()).toUShort())
+            }
         }
         pc++
     }
 
-    private fun InsROR(i: Instruction) {
-        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
-        when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (left.rotateRight(right.toInt()).toUByte()))
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (left.rotateRight(right.toInt()).toUShort()))
+    private fun InsROR(i: Instruction, useCarry: Boolean) {
+        val newStatusCarry: Boolean
+        when (i.type!!) {
+            VmDataType.BYTE -> {
+                val orig = registers.getUB(i.reg1!!)
+                newStatusCarry = (orig.toInt() and 1) != 0
+                val rotated: UByte = if (useCarry) {
+                    val carry = if (statusCarry) 0x80u else 0x00u
+                    (orig.toUInt().rotateRight(1) or carry).toUByte()
+                } else
+                    orig.rotateRight(1)
+                registers.setUB(i.reg1, rotated)
+            }
+            VmDataType.WORD -> {
+                val orig = registers.getUW(i.reg1!!)
+                newStatusCarry = (orig.toInt() and 1) != 0
+                val rotated: UShort = if (useCarry) {
+                    val carry = if (statusCarry) 0x8000u else 0x0000u
+                    (orig.toUInt().rotateRight(1) or carry).toUShort()
+                } else
+                    orig.rotateRight(1)
+                registers.setUW(i.reg1, rotated)
+            }
         }
         pc++
+        statusCarry = newStatusCarry
     }
 
-    private fun InsROL(i: Instruction) {
-        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
-        when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (left.rotateLeft(right.toInt()).toUByte()))
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (left.rotateLeft(right.toInt()).toUShort()))
+    private fun InsROL(i: Instruction, useCarry: Boolean) {
+        val newStatusCarry: Boolean
+        when (i.type!!) {
+            VmDataType.BYTE -> {
+                val orig = registers.getUB(i.reg1!!)
+                newStatusCarry = (orig.toInt() and 0x80) != 0
+                val rotated: UByte = if (useCarry) {
+                    val carry = if (statusCarry) 1u else 0u
+                    (orig.toUInt().rotateLeft(1) or carry).toUByte()
+                } else
+                    orig.rotateLeft(1)
+                registers.setUB(i.reg1, rotated)
+            }
+            VmDataType.WORD -> {
+                val orig = registers.getUW(i.reg1!!)
+                newStatusCarry = (orig.toInt() and 0x8000) != 0
+                val rotated: UShort = if (useCarry) {
+                    val carry = if (statusCarry) 1u else 0u
+                    (orig.toUInt().rotateLeft(1) or carry).toUShort()
+                } else
+                    orig.rotateLeft(1)
+                registers.setUW(i.reg1, rotated)
+            }
         }
         pc++
+        statusCarry = newStatusCarry
     }
 
     private fun InsSWAP(i: Instruction) {

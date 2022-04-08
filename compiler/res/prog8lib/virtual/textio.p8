@@ -90,11 +90,29 @@ sub  print_ubhex  (ubyte value, ubyte prefix)  {
 sub  print_ubbin  (ubyte value, ubyte prefix) {
     ; ---- print the ubyte in binary form
     ; TODO use conv module?
+    if prefix
+        chrout('%')
+    repeat 8 {
+        rol(value)
+        if_cc
+            txt.chrout('0')
+        else
+            txt.chrout('1')
+    }
 }
 
 sub  print_uwbin  (uword value, ubyte prefix)  {
     ; ---- print the uword in binary form
     ; TODO use conv module?
+    if prefix
+        chrout('%')
+    repeat 16 {
+        rol(value)
+        if_cc
+            txt.chrout('0')
+        else
+            txt.chrout('1')
+    }
 }
 
 sub  print_uwhex  (uword value, ubyte prefix) {

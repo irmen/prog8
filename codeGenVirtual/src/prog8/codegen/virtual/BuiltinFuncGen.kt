@@ -1,10 +1,7 @@
 package prog8.codegen.virtual
 
 import prog8.code.StStaticVariable
-import prog8.code.ast.PtBuiltinFunctionCall
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtNumber
-import prog8.code.ast.PtString
+import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.vm.Opcode
 import prog8.vm.Syscall
@@ -154,6 +151,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
                 code += VmCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
             }
+            "rol" -> RolRor2(Opcode.ROXL, call, resultRegister, code)
+            "ror" -> RolRor2(Opcode.ROXR, call, resultRegister, code)
+            "rol2" -> RolRor2(Opcode.ROL, call, resultRegister, code)
+            "ror2" -> RolRor2(Opcode.ROR, call, resultRegister, code)
             else -> {
                 TODO("builtinfunc ${call.name}")
 //                code += VmCodeInstruction(Opcode.NOP))
@@ -177,6 +178,19 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             }
         }
         return code
+    }
+
+    private fun RolRor2(opcode: Opcode, call: PtBuiltinFunctionCall, resultRegister: Int, code: VmCodeChunk) {
+        // bit rotate left without carry, in-place
+        val vmDt = codeGen.vmType(call.args[0].type)
+        code += exprGen.translateExpression(call.args[0], resultRegister)
+        code += VmCodeInstruction(opcode, vmDt, reg1=resultRegister)
+        val assignment = PtAssignment(call.position)
+        val target = PtAssignTarget(call.position)
+        target.children.add(call.args[0])
+        assignment.children.add(target)
+        assignment.children.add(PtIdentifier(listOf(":vmreg-$resultRegister"), listOf(":vmreg-$resultRegister"), call.args[0].type, call.position))
+        code += codeGen.translateNode(assignment)
     }
 
 }

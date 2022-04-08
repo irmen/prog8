@@ -6,6 +6,7 @@
 
 main {
     sub start() {
+
         ; a "pixelshader":
         void syscall1(8, 0)      ; enable lo res creen
         ubyte shifter
