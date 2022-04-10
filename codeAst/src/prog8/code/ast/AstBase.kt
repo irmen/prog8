@@ -30,6 +30,10 @@ sealed class PtNode(val position: Position) {
         children.add(index, child)
         child.parent = this
     }
+
+    fun definingBlock() = findParentNode<PtBlock>(this)
+    fun definingSub() = findParentNode<PtSub>(this)
+    fun definingAsmSub() = findParentNode<PtAsmSub>(this)
 }
 
 
@@ -115,4 +119,18 @@ class PtNop(position: Position): PtNode(position) {
 
 class PtScopeVarsDecls(position: Position): PtNode(position) {
     override fun printProperties() {}
+}
+
+
+
+// find the parent node of a specific type or interface
+// (useful to figure out in what namespace/block something is defined, etc.)
+inline fun <reified T> findParentNode(node: PtNode): T? {
+    var candidate = node.parent
+    while(candidate !is T && candidate !is PtProgram)
+        candidate = candidate.parent
+    return if(candidate is PtProgram)
+        null
+    else
+        candidate as T
 }
