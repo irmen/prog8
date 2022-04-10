@@ -131,8 +131,21 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transform(srcBlock: Block): PtBlock {
+        var alignment = PtBlock.BlockAlignment.NONE
+        var forceOutput = false
+        val directives = srcBlock.statements.filterIsInstance<Directive>()
+        for (directive in directives.filter { it.directive == "%option" }) {
+            for (arg in directive.args) {
+                when (arg.name) {
+                    "align_word" -> alignment = PtBlock.BlockAlignment.WORD
+                    "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
+                    "force_output" -> forceOutput=true
+                    else -> throw FatalAstException("weird directive option: ${arg.name}")
+                }
+            }
+        }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
-        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, srcBlock.position)
+        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, srcBlock.position)
         if(vardecls.isNotEmpty()) block.add(makeScopeVarsDecls(vardecls, srcBlock.position))
         for (stmt in statements)
             block.add(transformStatement(stmt))
@@ -185,7 +198,7 @@ class IntermediateAstMaker(val program: Program) {
                 PtInlineAssembly(assembly, directive.position)
             }
             else -> {
-                // other directives don't output any code
+                // other directives don't output any code (but could end up in option flags somewhere else)
                 PtNop(directive.position)
             }
         }

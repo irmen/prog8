@@ -80,10 +80,18 @@ class PtProgram(
 class PtBlock(name: String,
               val address: UInt?,
               val library: Boolean,
+              val forceOutput: Boolean,
+              val alignment: BlockAlignment,
               position: Position
 ) : PtNamedNode(name, position) {
     override fun printProperties() {
-        print("$name  addr=$address  library=$library")
+        print("$name  addr=$address  library=$library  forceOutput=$forceOutput  alignment=$alignment")
+    }
+
+    enum class BlockAlignment {
+        NONE,
+        WORD,
+        PAGE
     }
 }
 

@@ -5,7 +5,11 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
+    %option align_word
+    %option force_output
+
     sub start() {
+
         ; a "pixelshader":
         void syscall1(8, 0)      ; enable lo res creen
         ubyte shifter
