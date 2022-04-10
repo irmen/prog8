@@ -5,16 +5,15 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
-    %option align_word
-    %option force_output
-
     sub start() {
+
+        pokemon(1,0)
 
         ; a "pixelshader":
         void syscall1(8, 0)      ; enable lo res creen
         ubyte shifter
 
-        shifter >>= 1
+        ; pokemon(1,0)
 
         repeat {
             uword xx
