@@ -372,23 +372,29 @@ class CodeGen(internal val program: PtProgram,
 
     private val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
-    private fun multiplyByConst(dt: VmDataType, reg: Int, factor: UInt): VmCodeChunk {
+    internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
+        require(factor>=0)
         val code = VmCodeChunk()
-        val pow2 = powersOfTwo.indexOf(factor.toInt())
-        if(pow2>=1) {
-            // just shift bits
-            code += VmCodeInstruction(Opcode.LSL, dt, reg1=reg, reg2=reg, reg3=pow2)
+        if(factor==1)
+            return code
+        val pow2 = powersOfTwo.indexOf(factor)
+        if(pow2==1) {
+            // just shift 1 bit
+            code += VmCodeInstruction(Opcode.LSL, dt, reg1=reg)
+        }
+        else if(pow2>=1) {
+            // just shift multiple bits
+            val pow2reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
+            code += VmCodeInstruction(Opcode.LSLM, dt, reg1=reg, reg2=reg, reg3=pow2reg)
         } else {
-            when(factor) {
-                0u -> {
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
-                }
-                1u -> { /* do nothing */ }
-                else -> {
-                    val factorReg = vmRegisters.nextFree()
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value=factor.toInt())
-                    code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=reg, reg3=factorReg)
-                }
+            if (factor == 0) {
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
+            }
+            else {
+                val factorReg = vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
+                code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=reg, reg3=factorReg)
             }
         }
         return code

@@ -118,9 +118,12 @@ All have type b or w.
 and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits + set Carry to shifted bit
-asr         reg1, reg2, reg3                 - reg1 = shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
-lsl         reg1, reg2, reg3                 - reg1 = shift reg2 left by reg3 bits  + set Carry to shifted bit
+lsrm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
+asrm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
+lslm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
+lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
+asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
+lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
 ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
 roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
 rol         reg1                             - rotate reg1 left by 1bits, not using carry  + set Carry to shifted bit
@@ -136,9 +139,9 @@ nop                                     - do nothing
 breakpoint                              - trigger a breakpoint
 copy        reg1, reg2,   length        - copy memory from ptrs in reg1 to reg3, length bytes
 copyz       reg1, reg2                  - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
-swap [b, w] reg1                        - swap lsb and msb in register reg1 (16 bits) or lsw and msw (32 bits)
+msig [b, w] reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
 swapreg     reg1, reg2                  - swap values in reg1 and reg2
-concat [b, w] reg1, reg2, reg3          - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented, requires 32bits regs)
+concat [b, w] reg1, reg2, reg3          - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented; requires 32bits regs)
 push [b, w] reg1                        - push value in reg1 on the stack
 pop [b, w]  reg1                        - pop value from stack into reg1
 
@@ -206,6 +209,9 @@ enum class Opcode {
     AND,
     OR,
     XOR,
+    ASRM,
+    LSRM,
+    LSLM,
     ASR,
     LSR,
     LSL,
@@ -218,7 +224,7 @@ enum class Opcode {
     SEC,
     PUSH,
     POP,
-    SWAP,
+    MSIG,
     SWAPREG,
     CONCAT,
     COPY,
@@ -331,8 +337,8 @@ val instructionFormats = mutableMapOf(
         Opcode.SYSCALL to    InstructionFormat(NN, false, false, false, true ),
         Opcode.RETURN to     InstructionFormat(NN, false, false, false, false),
 
-        Opcode.BSTCC to      InstructionFormat(NN, false,  false, false, true ),
-        Opcode.BSTCS to      InstructionFormat(NN, false,  false, false, true ),
+        Opcode.BSTCC to      InstructionFormat(NN, false,  false,false, true ),
+        Opcode.BSTCS to      InstructionFormat(NN, false,  false,false, true ),
         Opcode.BZ to         InstructionFormat(BW, true,  false, false, true ),
         Opcode.BNZ to        InstructionFormat(BW, true,  false, false, true ),
         Opcode.BEQ to        InstructionFormat(BW, true,  true,  false, true ),
@@ -372,9 +378,12 @@ val instructionFormats = mutableMapOf(
         Opcode.AND to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.OR to         InstructionFormat(BW, true,  true,  true,  false),
         Opcode.XOR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ASR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSL to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ASRM to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.LSRM to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.LSLM to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ASR to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.LSR to        InstructionFormat(BW, true,  false, false, false),
+        Opcode.LSL to        InstructionFormat(BW, true,  false, false, false),
         Opcode.ROR to        InstructionFormat(BW, true,  false, false, false),
         Opcode.ROXR to       InstructionFormat(BW, true,  false, false, false),
         Opcode.ROL to        InstructionFormat(BW, true,  false, false, false),
@@ -382,7 +391,7 @@ val instructionFormats = mutableMapOf(
 
         Opcode.COPY to       InstructionFormat(NN, true,  true,  false, true ),
         Opcode.COPYZ to      InstructionFormat(NN, true,  true,  false, false),
-        Opcode.SWAP to       InstructionFormat(BW, true,  false, false, false),
+        Opcode.MSIG to       InstructionFormat(BW, true,  true,  false, false),
         Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
         Opcode.POP to        InstructionFormat(BW, true,  false, false, false),
         Opcode.CONCAT to     InstructionFormat(BW, true,  true,  true,  false),

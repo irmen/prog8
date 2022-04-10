@@ -140,6 +140,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.AND -> InsAND(ins)
             Opcode.OR -> InsOR(ins)
             Opcode.XOR -> InsXOR(ins)
+            Opcode.ASRM -> InsASRM(ins)
+            Opcode.LSRM -> InsLSRM(ins)
+            Opcode.LSLM -> InsLSLM(ins)
             Opcode.ASR -> InsASR(ins)
             Opcode.LSR -> InsLSR(ins)
             Opcode.LSL -> InsLSL(ins)
@@ -147,7 +150,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.ROXR -> InsROR(ins, true)
             Opcode.ROL -> InsROL(ins, false)
             Opcode.ROXL -> InsROL(ins, true)
-            Opcode.SWAP -> InsSWAP(ins)
+            Opcode.MSIG -> InsMSIG(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
@@ -685,7 +688,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsASR(i: Instruction) {
+    private fun InsASRM(i: Instruction) {
         val (left: Int, right: Int) = getLogicalOperandsS(i)
         statusCarry = (left and 1)!=0
         when(i.type!!) {
@@ -695,7 +698,23 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsLSR(i: Instruction) {
+    private fun InsASR(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = registers.getSB(i.reg1!!).toInt()
+                statusCarry = (value and 1)!=0
+                registers.setSB(i.reg1, (value shr 1).toByte())
+            }
+            VmDataType.WORD -> {
+                val value = registers.getSW(i.reg1!!).toInt()
+                statusCarry = (value and 1)!=0
+                registers.setSW(i.reg1, (value shr 1).toShort())
+            }
+        }
+        pc++
+    }
+
+    private fun InsLSRM(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         statusCarry = (left and 1u)!=0u
         when(i.type!!) {
@@ -705,7 +724,23 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsLSL(i: Instruction) {
+    private fun InsLSR(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!).toInt()
+                statusCarry = (value and 1)!=0
+                registers.setUB(i.reg1, (value shr 1).toUByte())
+            }
+            VmDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!).toInt()
+                statusCarry = (value and 1)!=0
+                registers.setUW(i.reg1, (value shr 1).toUShort())
+            }
+        }
+        pc++
+    }
+
+    private fun InsLSLM(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -715,6 +750,22 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.WORD -> {
                 statusCarry = (left and 0x8000u)!=0u
                 registers.setUW(i.reg1!!, (left shl right.toInt()).toUShort())
+            }
+        }
+        pc++
+    }
+
+    private fun InsLSL(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!).toInt()
+                statusCarry = (value and 0x80)!=0
+                registers.setUB(i.reg1, (value shl 1).toUByte())
+            }
+            VmDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!).toInt()
+                statusCarry = (value and 0x8000)!=0
+                registers.setUW(i.reg1, (value shl 1).toUShort())
             }
         }
         pc++
@@ -776,14 +827,14 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsSWAP(i: Instruction) {
+    private fun InsMSIG(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
-                val value = registers.getUW(i.reg1!!)
-                val newValue = value.toUByte()*256u + (value.toInt() ushr 8).toUInt()
-                registers.setUW(i.reg1, newValue.toUShort())
+                val value = registers.getUW(i.reg2!!)
+                val newValue = value.toInt() ushr 8
+                registers.setUB(i.reg1!!, newValue.toUByte())
             }
-            VmDataType.WORD -> TODO("swap.w not yet supported, requires 32-bits registers")
+            VmDataType.WORD -> TODO("msig.w not yet supported, requires 32-bits registers")
         }
         pc++
     }

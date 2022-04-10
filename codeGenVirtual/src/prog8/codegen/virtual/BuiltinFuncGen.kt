@@ -133,7 +133,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcPoke(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        // should just be a memory write
         val addressReg = codeGen.vmRegisters.nextFree()
         val valueReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
@@ -152,7 +151,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcPeek(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        // should just be a memory read
         val code = VmCodeChunk()
         val addressReg = codeGen.vmRegisters.nextFree()
         code += exprGen.translateExpression(call.args.single(), addressReg)
@@ -187,6 +185,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcLsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        // TODO optimized code gen
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args.single(), resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
@@ -194,9 +193,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcMsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        // TODO optimized code gen
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args.single(), resultRegister)
-        code += VmCodeInstruction(Opcode.SWAP, VmDataType.BYTE, reg1 = resultRegister)
+        code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
         return code
     }
@@ -248,7 +248,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcRolRor2(opcode: Opcode, call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        // bit rotate left without carry, in-place
         val vmDt = codeGen.vmType(call.args[0].type)
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], resultRegister)

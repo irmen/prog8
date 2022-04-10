@@ -145,11 +145,8 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=arrayLocation+memOffset)
         } else {
             code += translateExpression(arrayIx.index, idxReg)
-            if(eltSize>1) {
-                val factorReg = codeGen.vmRegisters.nextFree()
-                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=factorReg, value=eltSize)
-                code += VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=idxReg, reg2=idxReg, reg3=factorReg)
-            }
+            if(eltSize>1)
+                code += codeGen.multiplyByConst(VmDataType.BYTE, idxReg, eltSize)
             code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
         }
         return code
@@ -267,6 +264,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val rightResultReg = codeGen.vmRegisters.nextFree()
         // TODO: optimized codegen when left or right operand is known 0 or 1 or whatever. But only if this would result in a different opcode such as ADD 1 -> INC, MUL 1 -> NOP
         //       actually optimizing the code should not be done here but in a tailored code optimizer step.
+        //       multiplyByConst()
         val leftCode = translateExpression(binExpr.left, leftResultReg)
         val rightCode = translateExpression(binExpr.right, rightResultReg)
         code += leftCode
@@ -299,10 +297,10 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 code += VmCodeInstruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "<<" -> {
-                code += VmCodeInstruction(Opcode.LSL, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
+                code += VmCodeInstruction(Opcode.LSLM, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             ">>" -> {
-                val opc = if(signed) Opcode.ASR else Opcode.LSR
+                val opc = if(signed) Opcode.ASRM else Opcode.LSRM
                 code += VmCodeInstruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
             }
             "==" -> {
