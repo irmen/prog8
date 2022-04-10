@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.target.virtual.IVirtualMachineRunner
 import java.awt.Toolkit
 import java.util.*
 import kotlin.math.roundToInt
@@ -902,5 +903,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     fun waitvsync() {
         Toolkit.getDefaultToolkit().sync()      // not really the same as wait on vsync, but there's noting else
+    }
+}
+
+
+class VmRunner(): IVirtualMachineRunner {
+    override fun runProgram(source: String, throttle: Boolean) {
+        val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)
+        val memory = Memory()
+        val assembler = Assembler()
+        assembler.initializeMemory(memsrc, memory)
+        val program = assembler.assembleProgram(programsrc)
+        val vm = VirtualMachine(memory, program)
+        vm.run(throttle = true)
     }
 }

@@ -1,5 +1,7 @@
 package prog8.vm
 
+import prog8.code.core.unescape
+
 
 class Assembler {
     private val labels = mutableMapOf<String, Int>()
@@ -22,11 +24,11 @@ class Assembler {
                 var address = parseValue(addr, 0)
                 when(what) {
                     "str" -> {
-                        val string = unescape(values.trim('"'))
+                        val string = values.trim('"').unescape()
                         memory.setString(address, string, false)
                     }
                     "strz" -> {
-                        val string = unescape(values.trim('"'))
+                        val string = values.trim('"').unescape()
                         memory.setString(address, string, true)
                     }
                     "ubyte", "byte" -> {
@@ -184,46 +186,5 @@ class Assembler {
             ".w" -> VmDataType.WORD
             else -> throw IllegalArgumentException("invalid type $typestr")
         }
-    }
-
-    private fun unescape(str: String): String {
-        val result = mutableListOf<Char>()
-        val iter = str.iterator()
-        while(iter.hasNext()) {
-            val c = iter.nextChar()
-            if(c=='\\') {
-                val ec = iter.nextChar()
-                result.add(when(ec) {
-                    '\\' -> '\\'
-                    'n' -> '\n'
-                    'r' -> '\r'
-                    '"' -> '"'
-                    '\'' -> '\''
-                    'u' -> {
-                        try {
-                            "${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}${iter.nextChar()}".toInt(16).toChar()
-                        } catch (sb: StringIndexOutOfBoundsException) {
-                            throw IllegalArgumentException("invalid \\u escape sequence")
-                        } catch (nf: NumberFormatException) {
-                            throw IllegalArgumentException("invalid \\u escape sequence")
-                        }
-                    }
-                    'x' -> {
-                        try {
-                            val hex = ("" + iter.nextChar() + iter.nextChar()).toInt(16)
-                            hex.toChar()
-                        } catch (sb: StringIndexOutOfBoundsException) {
-                            throw IllegalArgumentException("invalid \\x escape sequence")
-                        } catch (nf: NumberFormatException) {
-                            throw IllegalArgumentException("invalid \\x escape sequence")
-                        }
-                    }
-                    else -> throw IllegalArgumentException("invalid escape char in string: \\$ec")
-                })
-            } else {
-                result.add(c)
-            }
-        }
-        return result.joinToString("")
     }
 }

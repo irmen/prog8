@@ -1,7 +1,6 @@
 package prog8.codegen.cpu6502
 
 import prog8.ast.Program
-import prog8.ast.antlr.escape
 import prog8.ast.statements.*
 import prog8.code.*
 import prog8.code.core.*
@@ -572,7 +571,7 @@ internal class ProgramAndVarsGen(
     }
 
     private fun outputStringvar(varname: String, encoding: Encoding, value: String) {
-        asmgen.out("$varname\t; $encoding:\"${escape(value).replace("\u0000", "<NULL>")}\"")
+        asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"")
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))

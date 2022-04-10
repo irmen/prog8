@@ -1,6 +1,5 @@
 package prog8.ast
 
-import prog8.ast.antlr.escape
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -288,16 +287,16 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(char: CharLiteral) {
         if(char.encoding==Encoding.DEFAULT)
-            output("'${escape(char.value.toString())}'")
+            output("'${char.value.escape()}'")
         else
-            output("${char.encoding.prefix}:'${escape(char.value.toString())}'")
+            output("${char.encoding.prefix}:'${char.value.escape()}'")
     }
 
     override fun visit(string: StringLiteral) {
         if(string.encoding==Encoding.DEFAULT)
-            output("\"${escape(string.value)}\"")
+            output("\"${string.value.escape()}\"")
         else
-            output("${string.encoding.prefix}:\"${escape(string.value)}\"")
+            output("${string.encoding.prefix}:\"${string.value.escape()}\"")
     }
 
     override fun visit(array: ArrayLiteral) {

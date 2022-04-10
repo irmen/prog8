@@ -35,15 +35,15 @@ class TestInstructions: FunSpec({
     }
 
     test("with label") {
-        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, reg2=22, reg3=33, symbol = listOf("a","b","c"))
+        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, symbol = listOf("a","b","c"))
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe VmDataType.WORD
         ins.reg1 shouldBe 11
-        ins.reg2 shouldBe 22
-        ins.reg3 shouldBe 33
+        ins.reg2 shouldBe null
+        ins.reg3 shouldBe null
         ins.value shouldBe null
         ins.symbol shouldBe listOf("a","b","c")
-        ins.toString() shouldBe "bz.w r11,r22,r33,_a.b.c"
+        ins.toString() shouldBe "bz.w r11,_a.b.c"
     }
 
     test("missing type should fail") {

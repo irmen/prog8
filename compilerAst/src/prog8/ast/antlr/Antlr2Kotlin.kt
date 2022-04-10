@@ -458,7 +458,12 @@ private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
             Encoding.DEFAULT
-    return CharLiteral(unescape(text.substring(1, text.length-1), toPosition())[0], encoding, toPosition())
+    val raw = text.substring(1, text.length - 1)
+    try {
+        return CharLiteral.fromEscaped(raw, encoding, toPosition())
+    } catch(ex: IllegalArgumentException) {
+        throw SyntaxError(ex.message!!, toPosition())
+    }
 }
 
 private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
@@ -470,7 +475,12 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
             Encoding.DEFAULT
-    return StringLiteral(unescape(text.substring(1, text.length-1), toPosition()), encoding, toPosition())
+    val raw = text.substring(1, text.length-1)
+    try {
+        return StringLiteral.fromEscaped(raw, encoding, toPosition())
+    } catch(ex: IllegalArgumentException) {
+        throw SyntaxError(ex.message!!, toPosition())
+    }
 }
 
 private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {

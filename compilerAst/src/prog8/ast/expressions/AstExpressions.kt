@@ -1,7 +1,6 @@
 package prog8.ast.expressions
 
 import prog8.ast.*
-import prog8.ast.antlr.escape
 import prog8.ast.base.ExpressionError
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.UndefinedSymbolError
@@ -597,6 +596,13 @@ class CharLiteral(val value: Char,
         this.parent = parent
     }
 
+    companion object {
+        fun fromEscaped(raw: String, encoding: Encoding, position: Position): CharLiteral {
+            val unescaped = raw.unescape()
+            return CharLiteral(unescaped[0], encoding, position)
+        }
+    }
+
     override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -613,7 +619,7 @@ class CharLiteral(val value: Char,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
-    override fun toString(): String = "'${escape(value.toString())}'"
+    override fun toString(): String = "'${value.escape()}'"
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
     operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
@@ -633,6 +639,13 @@ class StringLiteral(val value: String,
         this.parent = parent
     }
 
+    companion object {
+        fun fromEscaped(raw: String, encoding: Encoding, position: Position): StringLiteral {
+            val unescaped = raw.unescape()
+            return StringLiteral(unescaped, encoding, position)
+        }
+    }
+
     override val isSimple = true
     override fun copy() = StringLiteral(value, encoding, position)
 
@@ -645,7 +658,7 @@ class StringLiteral(val value: String,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun toString(): String = "'${escape(value)}'"
+    override fun toString(): String = "'${value.escape()}'"
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.STR)
     operator fun compareTo(other: StringLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
