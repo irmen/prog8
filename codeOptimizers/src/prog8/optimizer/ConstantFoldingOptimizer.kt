@@ -11,6 +11,7 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.core.AssociativeOperators
 import prog8.code.core.DataType
 import prog8.code.core.IntegerDatatypes
 

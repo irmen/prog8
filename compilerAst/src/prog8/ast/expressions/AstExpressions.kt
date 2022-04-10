@@ -13,23 +13,6 @@ import java.util.*
 import kotlin.math.abs
 import kotlin.math.round
 
-val AssociativeOperators = setOf("+", "*", "&", "|", "^", "or", "and", "xor", "==", "!=")
-val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
-val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
-val LogicalOperators = setOf("and", "or", "xor", "not")
-val BitwiseOperators = setOf("&", "|", "^")
-
-fun invertedComparisonOperator(operator: String) =
-    when (operator) {
-        "==" -> "!="
-        "!=" -> "=="
-        "<" -> ">="
-        ">" -> "<="
-        "<=" -> ">"
-        ">=" -> "<"
-        else -> null
-    }
-
 
 sealed class Expression: Node {
     abstract override fun copy(): Expression

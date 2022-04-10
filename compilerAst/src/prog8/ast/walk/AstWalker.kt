@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.core.AssociativeOperators
 
 
 interface IAstModification {
