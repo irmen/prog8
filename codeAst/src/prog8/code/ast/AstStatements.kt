@@ -62,7 +62,7 @@ class PtAssignTarget(position: Position) : PtNode(position) {
                 is PtIdentifier -> tgt.type
                 is PtArrayIndexer -> tgt.type       // TODO array to elt type?
                 is PtMemoryByte -> tgt.type
-                else -> throw AssemblyError("weird dt")
+                else -> throw AssemblyError("weird target $tgt")
             }
         }
 

@@ -18,24 +18,24 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val code = VmCodeChunk()
 
         when (expr) {
+            is PtMachineRegister -> {
+                if(resultRegister!=expr.register) {
+                    val vmDt = codeGen.vmType(expr.type)
+                    code += VmCodeInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=expr.register)
+                }
+            }
             is PtNumber -> {
                 val vmDt = codeGen.vmType(expr.type)
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=expr.number.toInt())
             }
             is PtIdentifier -> {
                 val vmDt = codeGen.vmType(expr.type)
-                if(expr.targetName[0].startsWith(":vmreg-")) {
-                    // special direct reference to a register in the VM
-                    val reg = expr.targetName[0].substring(7).toInt()
-                    code += VmCodeInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=reg)
+                val mem = codeGen.allocations.get(expr.targetName)
+                code += if (expr.type in PassByValueDatatypes) {
+                    VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, value = mem)
                 } else {
-                    val mem = codeGen.allocations.get(expr.targetName)
-                    code += if (expr.type in PassByValueDatatypes) {
-                        VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, value = mem)
-                    } else {
-                        // for strings and arrays etc., load the *address* of the value instead
-                        VmCodeInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, value = mem)
-                    }
+                    // for strings and arrays etc., load the *address* of the value instead
+                    VmCodeInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, value = mem)
                 }
             }
             is PtAddressOf -> {
@@ -45,8 +45,9 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             }
             is PtMemoryByte -> {
                 val addressRegister = codeGen.vmRegisters.nextFree()
-                val addressExprCode = translateExpression(expr.address, addressRegister)
-                code += addressExprCode
+                code += translateExpression(expr.address, addressRegister)
+                // TODO use LOADM if adress is constant
+                code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1=resultRegister, reg2=addressRegister)
             }
             is PtTypeCast -> code += translate(expr, resultRegister)
             is PtPrefix -> code += translate(expr, resultRegister)
@@ -73,12 +74,12 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             return when (segment) {
                 is PtFunctionCall -> {
                     val segWithArg = PtFunctionCall(segment.functionName, segment.void, segment.type, segment.position)
-                    segWithArg.children.add(0, PtIdentifier(listOf(":vmreg-$sourceReg"), listOf(":vmreg-$sourceReg"), sourceDt, segment.position))
+                    segWithArg.children.add(0, PtMachineRegister(sourceReg, sourceDt, segment.position))
                     segWithArg
                 }
                 is PtBuiltinFunctionCall -> {
                     val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.hasNoSideEffects, segment.type, segment.position)
-                    segWithArg.children.add(0, PtIdentifier(listOf(":vmreg-$sourceReg"), listOf(":vmreg-$sourceReg"), sourceDt, segment.position))
+                    segWithArg.children.add(0, PtMachineRegister(sourceReg, sourceDt, segment.position))
                     segWithArg
                 }
                 else -> throw AssemblyError("weird segment type")

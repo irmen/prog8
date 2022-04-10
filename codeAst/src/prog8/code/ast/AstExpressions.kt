@@ -188,5 +188,13 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 }
 
 
+// special node that isn't created from compiling user code, but used internally
+class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position) {
+    override fun printProperties() {
+        print("reg=$register  $type")
+    }
+}
+
+
 fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else null
 fun constIntValue(expr: PtExpression): Int? = if(expr is PtNumber) expr.number.toInt() else null

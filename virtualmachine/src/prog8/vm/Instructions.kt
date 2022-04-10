@@ -39,7 +39,7 @@ storem      reg1,         address     - store reg1 in memory address
 storei      reg1, reg2                - store reg1 in memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 in memory address, indexed by value in reg2
 storez                    address     - store zero in memory address
-storezi     reg1                      - store zero in memory pointed to by reg
+storezi     reg1                      - store zero in memory pointed to by reg1
 storezx     reg1,         address     - store zero in memory address, indexed by value in reg
 
 

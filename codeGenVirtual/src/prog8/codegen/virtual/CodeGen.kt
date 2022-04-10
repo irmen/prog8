@@ -96,7 +96,7 @@ class CodeGen(internal val program: PtProgram,
             is PtSubroutineParameter,
             is PtNumber,
             is PtArray,
-            is PtString -> throw AssemblyError("strings should not occur as separate statement node ${node.position}")
+            is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target ${node.position}")
             is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target ${node.position}")
             is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target ${node.position}")
@@ -461,6 +461,7 @@ class CodeGen(internal val program: PtProgram,
         } else if(memory!=null) {
             val addressReg = vmRegisters.nextFree()
             code += expressionEval.translateExpression(memory.address, addressReg)
+            // TODO use LOADM/STOREM if address is constant
             code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1=resultReg, reg2=addressReg)
             code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
             code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg)
@@ -533,10 +534,16 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(assignment: PtAssignment): VmCodeChunk {
         // TODO can in-place assignments be optimized more?
-
+        if(assignment.target.children.single() is PtMachineRegister)
+            throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
         val code = VmCodeChunk()
-        val resultRegister = vmRegisters.nextFree()
-        code += expressionEval.translateExpression(assignment.value, resultRegister)
+        val resultRegister = if(assignment.value is PtMachineRegister) {
+            (assignment.value as PtMachineRegister).register
+        } else {
+            val reg = vmRegisters.nextFree()
+            code += expressionEval.translateExpression(assignment.value, reg)
+            reg
+        }
         val ident = assignment.target.identifier
         val memory = assignment.target.memory
         val array = assignment.target.array
@@ -561,12 +568,13 @@ class CodeGen(internal val program: PtProgram,
             }
         }
         else if(memory!=null) {
+            require(vmDt==VmDataType.BYTE)
             if(memory.address is PtNumber) {
                 code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
             } else {
-                val addressRegister = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(assignment.value, addressRegister)
-                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressRegister)
+                val addressReg = vmRegisters.nextFree()
+                code += expressionEval.translateExpression(assignment.value, addressReg)
+                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
             }
         }
         else

@@ -29,6 +29,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "cos8u" -> funcCos8u(call, resultRegister)
             "sort" -> funcSort(call)
             "reverse" -> funcReverse(call)
+            "swap" -> funcSwap(call)
             "rol" -> funcRolRor2(Opcode.ROXL, call, resultRegister)
             "ror" -> funcRolRor2(Opcode.ROXR, call, resultRegister)
             "rol2" -> funcRolRor2(Opcode.ROL, call, resultRegister)
@@ -55,6 +56,19 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 //                code += VmCodeInstruction(Opcode.NOP))
             }
         }
+    }
+
+    private fun funcSwap(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val left = call.args[0]
+        val right = call.args[1]
+        val leftReg = codeGen.vmRegisters.nextFree()
+        val rightReg = codeGen.vmRegisters.nextFree()
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(left, leftReg)
+        code += exprGen.translateExpression(right, rightReg)
+        code += assignRegisterTo(left, rightReg)
+        code += assignRegisterTo(right, leftReg)
+        return code
     }
 
     private fun funcReverse(call: PtBuiltinFunctionCall): VmCodeChunk {
@@ -128,7 +142,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], addressReg)
         code += exprGen.translateExpression(call.args[1], valueReg)
-        code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = addressReg, reg2=valueReg)
+        // TODO use STOREM if constant address
+        code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2=addressReg)
         return code
     }
 
@@ -138,7 +153,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], addressReg)
         code += exprGen.translateExpression(call.args[1], valueReg)
-        code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = addressReg, reg2=valueReg)
+        // TODO use STOREM if constant address
+        code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2=addressReg)
         return code
     }
 
@@ -146,6 +162,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val addressReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args.single(), addressReg)
+        // TODO use LOADM if constant address
         code += VmCodeInstruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg)
         return code
     }
@@ -154,6 +171,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         val addressReg = codeGen.vmRegisters.nextFree()
         code += exprGen.translateExpression(call.args.single(), addressReg)
+        // TODO use LOADM if constant address
         code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg)
         return code
     }
@@ -252,11 +270,17 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], resultRegister)
         code += VmCodeInstruction(opcode, vmDt, reg1=resultRegister)
-        val assignment = PtAssignment(call.position)
-        val target = PtAssignTarget(call.position)
-        target.children.add(call.args[0])
-        assignment.children.add(target)
-        assignment.children.add(PtIdentifier(listOf(":vmreg-$resultRegister"), listOf(":vmreg-$resultRegister"), call.args[0].type, call.position))
+        code += assignRegisterTo(call.args[0], resultRegister)
+        return code
+    }
+
+    private fun assignRegisterTo(target: PtExpression, register: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        val assignment = PtAssignment(target.position)
+        val assignTarget = PtAssignTarget(target.position)
+        assignTarget.children.add(target)
+        assignment.children.add(assignTarget)
+        assignment.children.add(PtMachineRegister(register, target.type, target.position))
         code += codeGen.translateNode(assignment)
         return code
     }
