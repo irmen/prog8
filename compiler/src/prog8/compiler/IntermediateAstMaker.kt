@@ -149,7 +149,8 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
         val type = builtinFunctionReturnType(srcNode.name, srcNode.args, program).getOr(DataType.UNDEFINED)
-        val call = PtBuiltinFunctionCall(srcNode.name, true, type, srcNode.position)
+        val noSideFx = BuiltinFunctions.getValue(srcNode.name).pure
+        val call = PtBuiltinFunctionCall(srcNode.name, true, noSideFx, type, srcNode.position)
         for (arg in srcNode.args)
             call.add(transformExpression(arg))
         return call
@@ -436,7 +437,8 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcCall: BuiltinFunctionCall): PtBuiltinFunctionCall {
         val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val call = PtBuiltinFunctionCall(srcCall.name, false, type, srcCall.position)
+        val noSideFx = BuiltinFunctions.getValue(srcCall.name).pure
+        val call = PtBuiltinFunctionCall(srcCall.name, false, noSideFx, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call

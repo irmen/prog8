@@ -38,7 +38,11 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
 }
 
 
-class PtBuiltinFunctionCall(val name: String, val void: Boolean, type: DataType, position: Position) : PtExpression(type, position) {
+class PtBuiltinFunctionCall(val name: String,
+                            val void: Boolean,
+                            val hasNoSideEffects: Boolean,
+                            type: DataType,
+                            position: Position) : PtExpression(type, position) {
     init {
         if(!void)
             require(type!=DataType.UNDEFINED)
@@ -47,7 +51,7 @@ class PtBuiltinFunctionCall(val name: String, val void: Boolean, type: DataType,
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
     override fun printProperties() {
-        print("$name void=$void")
+        print("$name void=$void noSideFx=$hasNoSideEffects")
     }
 }
 

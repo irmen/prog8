@@ -77,7 +77,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     segWithArg
                 }
                 is PtBuiltinFunctionCall -> {
-                    val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.type, segment.position)
+                    val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.hasNoSideEffects, segment.type, segment.position)
                     segWithArg.children.add(0, PtIdentifier(listOf(":vmreg-$sourceReg"), listOf(":vmreg-$sourceReg"), sourceDt, segment.position))
                     segWithArg
                 }
