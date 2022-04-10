@@ -3,6 +3,8 @@ package prog8.code.ast
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
+import java.util.*
+import kotlin.math.round
 
 
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
@@ -26,7 +28,14 @@ class PtArrayIndexer(type: DataType, position: Position): PtExpression(type, pos
 }
 
 
-class PtArray(type: DataType, position: Position): PtExpression(type, position)
+class PtArray(type: DataType, position: Position): PtExpression(type, position) {
+    override fun hashCode(): Int = Objects.hash(children, type)
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is PtArray)
+            return false
+        return type==other.type && children == other.children
+    }
+}
 
 
 class PtBuiltinFunctionCall(val name: String, val void: Boolean, type: DataType, position: Position) : PtExpression(type, position) {
@@ -95,9 +104,28 @@ class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) 
 
 
 class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
+
+    init {
+        if(type!=DataType.FLOAT) {
+            val rounded = round(number)
+            if (rounded != number)
+                throw IllegalArgumentException("refused rounding of float to avoid loss of precision")
+        }
+    }
+
     override fun printProperties() {
         print("$number ($type)")
     }
+
+    override fun hashCode(): Int = Objects.hash(type, number)
+
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is PtNumber)
+            return false
+        return number==other.number
+    }
+
+    operator fun compareTo(other: PtNumber): Int = number.compareTo(other.number)
 }
 
 
@@ -139,6 +167,13 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
     override fun printProperties() {
         print("$encoding:\"$value\"")
+    }
+
+    override fun hashCode(): Int = Objects.hash(value, encoding)
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is PtString)
+            return false
+        return value==other.value && encoding == other.encoding
     }
 }
 
