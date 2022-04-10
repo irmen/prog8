@@ -182,3 +182,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
     val value: PtExpression
         get() = children.single() as PtExpression
 }
+
+
+fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else null
+fun constIntValue(expr: PtExpression): Int? = if(expr is PtNumber) expr.number.toInt() else null

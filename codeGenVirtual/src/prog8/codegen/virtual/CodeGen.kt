@@ -399,7 +399,7 @@ class CodeGen(internal val program: PtProgram,
         var condition = ifElse.condition
 
         val cond = ifElse.condition as? PtBinaryExpression
-        if((cond?.right as? PtNumber)?.number==0.0) {
+        if(cond!=null && constValue(cond.right)==0.0) {
             if(cond.operator == "==") {
                 // if X==0 ...   so we branch on Not-zero instead.
                 branch = Opcode.BNZ
@@ -462,7 +462,7 @@ class CodeGen(internal val program: PtProgram,
             val variable = array.variable.targetName
             var variableAddr = allocations.get(variable)
             val itemsize = program.memsizer.memorySize(array.type)
-            val fixedIndex = (array.index as? PtNumber)?.number?.toInt()
+            val fixedIndex = constIntValue(array.index)
             val memOp = when(postIncrDecr.operator) {
                 "++" -> Opcode.INCM
                 "--" -> Opcode.DECM
@@ -485,13 +485,13 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(repeat: PtRepeatLoop): VmCodeChunk {
-        if((repeat.count as? PtNumber)?.number==0.0)
-            return VmCodeChunk()
-        if((repeat.count as? PtNumber)?.number==1.0)
-            return translateGroup(repeat.children)
-        if((repeat.count as? PtNumber)?.number==256.0) {
-            // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
-            repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
+        when (constIntValue(repeat.count)) {
+            0 -> return VmCodeChunk()
+            1 -> return translateGroup(repeat.children)
+            256 -> {
+                // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
+                repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
+            }
         }
 
         val code = VmCodeChunk()
@@ -543,7 +543,7 @@ class CodeGen(internal val program: PtProgram,
             val variable = array.variable.targetName
             var variableAddr = allocations.get(variable)
             val itemsize = program.memsizer.memorySize(array.type)
-            val fixedIndex = (array.index as? PtNumber)?.number?.toInt()
+            val fixedIndex = constIntValue(array.index)
             val vmDtArrayIdx = vmType(array.type)
             if(fixedIndex!=null) {
                 variableAddr += fixedIndex*itemsize
