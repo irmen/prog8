@@ -18,11 +18,11 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "msb" -> funcMsb(call, resultRegister)
             "lsb" -> funcLsb(call, resultRegister)
             "memory" -> funcMemory(call, resultRegister)
-            "rnd" -> funcRnd(call, resultRegister)
+            "rnd" -> funcRnd(resultRegister)
             "peek" -> funcPeek(call, resultRegister)
             "peekw" -> funcPeekW(call, resultRegister)
-            "poke" -> funcPoke(call, resultRegister)
-            "pokew" -> funcPokeW(call, resultRegister)
+            "poke" -> funcPoke(call)
+            "pokew" -> funcPokeW(call)
             "pokemon" -> VmCodeChunk()
             "mkword" -> funcMkword(call, resultRegister)
             "sin8u" -> funcSin8u(call, resultRegister)
@@ -136,47 +136,65 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         return code
     }
 
-    private fun funcPokeW(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val addressReg = codeGen.vmRegisters.nextFree()
-        val valueReg = codeGen.vmRegisters.nextFree()
+    private fun funcPokeW(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], addressReg)
-        code += exprGen.translateExpression(call.args[1], valueReg)
-        // TODO use STOREM if constant address
-        code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2=addressReg)
+        val valueReg = codeGen.vmRegisters.nextFree()
+        if(call.args[0] is PtNumber) {
+            val address = (call.args[0] as PtNumber).number.toInt()
+            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += VmCodeInstruction(Opcode.STOREM, VmDataType.WORD, reg1 = valueReg, value=address)
+        } else {
+            val addressReg = codeGen.vmRegisters.nextFree()
+            code += exprGen.translateExpression(call.args[0], addressReg)
+            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2 = addressReg)
+        }
         return code
     }
 
-    private fun funcPoke(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val addressReg = codeGen.vmRegisters.nextFree()
-        val valueReg = codeGen.vmRegisters.nextFree()
+    private fun funcPoke(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], addressReg)
-        code += exprGen.translateExpression(call.args[1], valueReg)
-        // TODO use STOREM if constant address
-        code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2=addressReg)
+        val valueReg = codeGen.vmRegisters.nextFree()
+        if(call.args[0] is PtNumber) {
+            val address = (call.args[0] as PtNumber).number.toInt()
+            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1 = valueReg, value=address)
+        } else {
+            val addressReg = codeGen.vmRegisters.nextFree()
+            code += exprGen.translateExpression(call.args[0], addressReg)
+            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2 = addressReg)
+        }
         return code
     }
 
     private fun funcPeekW(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val addressReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), addressReg)
-        // TODO use LOADM if constant address
-        code += VmCodeInstruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2=addressReg)
+        if(call.args[0] is PtNumber) {
+            val address = (call.args[0] as PtNumber).number.toInt()
+            code += VmCodeInstruction(Opcode.LOADM, VmDataType.WORD, reg1 = resultRegister, value = address)
+        } else {
+            val addressReg = codeGen.vmRegisters.nextFree()
+            code += exprGen.translateExpression(call.args.single(), addressReg)
+            code += VmCodeInstruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2 = addressReg)
+        }
         return code
     }
 
     private fun funcPeek(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        val addressReg = codeGen.vmRegisters.nextFree()
-        code += exprGen.translateExpression(call.args.single(), addressReg)
-        // TODO use LOADM if constant address
-        code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2=addressReg)
+        if(call.args[0] is PtNumber) {
+            val address = (call.args[0] as PtNumber).number.toInt()
+            code += VmCodeInstruction(Opcode.LOADM, VmDataType.BYTE, reg1 = resultRegister, value = address)
+        } else {
+            val addressReg = codeGen.vmRegisters.nextFree()
+            code += exprGen.translateExpression(call.args.single(), addressReg)
+            code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2 = addressReg)
+        }
         return code
     }
 
-    private fun funcRnd(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+    private fun funcRnd(resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         code += VmCodeInstruction(Opcode.SYSCALL, value= Syscall.RND.ordinal)
         if(resultRegister!=0)
@@ -203,7 +221,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcLsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        // TODO optimized code gen
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args.single(), resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
@@ -211,7 +228,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     }
 
     private fun funcMsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        // TODO optimized code gen
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args.single(), resultRegister)
         code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister)

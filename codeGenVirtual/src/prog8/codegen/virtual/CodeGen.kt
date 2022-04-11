@@ -459,12 +459,18 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
             code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultReg, value = address)
         } else if(memory!=null) {
-            val addressReg = vmRegisters.nextFree()
-            code += expressionEval.translateExpression(memory.address, addressReg)
-            // TODO use LOADM/STOREM if address is constant
-            code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1=resultReg, reg2=addressReg)
-            code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
-            code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultReg, reg2=addressReg)
+            if(memory.address is PtNumber) {
+                val address = (memory.address as PtNumber).number.toInt()
+                code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, value = address)
+                code += VmCodeInstruction(operation, vmDt, reg1 = resultReg)
+                code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, value=address)
+            } else {
+                val addressReg = vmRegisters.nextFree()
+                code += expressionEval.translateExpression(memory.address, addressReg)
+                code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = addressReg)
+                code += VmCodeInstruction(operation, vmDt, reg1 = resultReg)
+                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1 = resultReg, reg2 = addressReg)
+            }
         } else if (array!=null) {
             val variable = array.variable.targetName
             var variableAddr = allocations.get(variable)

@@ -44,10 +44,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
             }
             is PtMemoryByte -> {
-                val addressRegister = codeGen.vmRegisters.nextFree()
-                code += translateExpression(expr.address, addressRegister)
-                // TODO use LOADM if adress is constant
-                code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1=resultRegister, reg2=addressRegister)
+                if(expr.address is PtNumber) {
+                    val address = (expr.address as PtNumber).number.toInt()
+                    code += VmCodeInstruction(Opcode.LOADM, VmDataType.BYTE, reg1=resultRegister, value = address)
+                } else {
+                    val addressRegister = codeGen.vmRegisters.nextFree()
+                    code += translateExpression(expr.address, addressRegister)
+                    code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1=resultRegister, reg2=addressRegister)
+                }
             }
             is PtTypeCast -> code += translate(expr, resultRegister)
             is PtPrefix -> code += translate(expr, resultRegister)
