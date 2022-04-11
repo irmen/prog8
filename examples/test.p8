@@ -7,11 +7,14 @@
 main {
     sub start() {
 
-        pokew($1000, $ea31)
-        poke($1001, $44)
-        txt.print_uwhex(peekw($1000), true)
+        word zz = 0
+        txt.print_b(sgn(zz))
         txt.nl()
-        txt.print_ubhex(peek($1001), true)
+        zz = -100
+        txt.print_b(sgn(zz))
+        txt.nl()
+        zz = 9999
+        txt.print_b(sgn(zz))
         txt.nl()
 
 ;        uword other = $fe4a

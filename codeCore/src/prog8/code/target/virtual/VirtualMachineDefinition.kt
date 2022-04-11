@@ -44,5 +44,5 @@ class VirtualMachineDefinition: IMachineDefinition {
 }
 
 interface IVirtualMachineRunner {
-    fun runProgram(program: String, throttle: Boolean)
+    fun runProgram(source: String, throttle: Boolean)
 }

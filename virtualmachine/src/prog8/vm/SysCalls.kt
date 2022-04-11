@@ -18,16 +18,17 @@ SYSCALLS:
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
 11 = rnd        ; random BYTE
-12 = wait       ; wait certain amount of jiffies (1/60 sec)
-13 = waitvsync  ; wait on vsync
-14 = sin8u
-15 = cos8u
-16 = sort_ubyte array
-17 = sort_byte array
-18 = sort_uword array
-19 = sort_word array
-20 = reverse_bytes array
-21 = reverse_words array
+12 = rndw       ; random WORD
+13 = wait       ; wait certain amount of jiffies (1/60 sec)
+14 = waitvsync  ; wait on vsync
+15 = sin8u
+16 = cos8u
+17 = sort_ubyte array
+18 = sort_byte array
+19 = sort_uword array
+20 = sort_word array
+21 = reverse_bytes array
+22 = reverse_words array
 */
 
 enum class Syscall {
@@ -43,6 +44,7 @@ enum class Syscall {
     GFX_CLEAR,
     GFX_PLOT,
     RND,
+    RNDW,
     WAIT,
     WAITVSYNC,
     SIN8U,
@@ -100,7 +102,10 @@ object SysCalls {
             Syscall.GFX_CLEAR -> vm.gfx_clear()
             Syscall.GFX_PLOT -> vm.gfx_plot()
             Syscall.RND -> {
-                vm.registers.setUB(0, (Random.nextInt() ushr 3).toUByte())
+                vm.registers.setUB(0, Random.nextInt().toUByte())
+            }
+            Syscall.RNDW -> {
+                vm.registers.setUW(0, Random.nextInt().toUShort())
             }
             Syscall.WAIT -> {
                 val millis = vm.registers.getUW(0).toLong() * 1000/60

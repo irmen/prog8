@@ -6,7 +6,7 @@ Virtual machine:
 
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
-Value stack, max 128 entries.
+Value stack, max 128 entries of 1 byte each.
 Status registers: Carry.
 
 
@@ -107,6 +107,8 @@ sub         reg1, reg2, reg3                - reg1 = reg2-reg3 (unsigned + signe
 mul         reg1, reg2, reg3                - unsigned multiply reg1=reg2*reg3  note: byte*byte->byte, no type extension to word!
 div         reg1, reg2, reg3                - unsigned division reg1=reg2/reg3  note: division by zero yields max signed int $ff/$ffff
 mod         reg1, reg2, reg3                - remainder (modulo) of unsigned division reg1=reg2%reg3  note: division by zero yields max signed int $ff/$ffff
+sqrt        reg1, reg2                      - reg1 is the square root of reg2 (for .w and .b both , the result is a byte)
+sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
@@ -203,6 +205,8 @@ enum class Opcode {
     MUL,
     DIV,
     MOD,
+    SQRT,
+    SGN,
     EXT,
     EXTS,
 
@@ -227,8 +231,6 @@ enum class Opcode {
     MSIG,
     SWAPREG,
     CONCAT,
-    COPY,
-    COPYZ,
     BREAKPOINT
 }
 
@@ -372,6 +374,8 @@ val instructionFormats = mutableMapOf(
         Opcode.MUL to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.DIV to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.MOD to        InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.SQRT to       InstructionFormat(BW, true,  true,  false, false),
+        Opcode.SGN to        InstructionFormat(BW, true,  true,  false, false),
         Opcode.EXT to        InstructionFormat(BW, true,  false, false, false),
         Opcode.EXTS to       InstructionFormat(BW, true,  false, false, false),
 
@@ -389,8 +393,6 @@ val instructionFormats = mutableMapOf(
         Opcode.ROL to        InstructionFormat(BW, true,  false, false, false),
         Opcode.ROXL to       InstructionFormat(BW, true,  false, false, false),
 
-        Opcode.COPY to       InstructionFormat(NN, true,  true,  false, true ),
-        Opcode.COPYZ to      InstructionFormat(NN, true,  true,  false, false),
         Opcode.MSIG to       InstructionFormat(BW, true,  true,  false, false),
         Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
         Opcode.POP to        InstructionFormat(BW, true,  false, false, false),

@@ -4,6 +4,8 @@ import prog8.code.target.virtual.IVirtualMachineRunner
 import java.awt.Toolkit
 import java.util.*
 import kotlin.math.roundToInt
+import kotlin.math.sign
+import kotlin.math.sqrt
 
 
 class ProgramExitException(val status: Int): Exception()
@@ -17,7 +19,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     val registers = Registers()
     val program: Array<Instruction> = program.toTypedArray()
     val callStack = Stack<Int>()
-    val valueStack = Stack<Int>()       // max 128 entries
+    val valueStack = Stack<UByte>()       // max 128 entries
     var pc = 0
     var stepCount = 0
     var statusCarry = false
@@ -135,6 +137,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.MUL -> InsMUL(ins)
             Opcode.DIV -> InsDIV(ins)
             Opcode.MOD -> InsMOD(ins)
+            Opcode.SQRT -> InsSQRT(ins)
+            Opcode.SGN -> InsSGN(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
             Opcode.AND -> InsAND(ins)
@@ -154,8 +158,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
-            Opcode.COPY -> InsCOPY(ins)
-            Opcode.COPYZ -> InsCOPYZ(ins)
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
@@ -172,17 +174,32 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         if(valueStack.size>=128)
             throw StackOverflowError("valuestack limit 128 exceeded")
 
-        val value = when(i.type!!) {
-            VmDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
-            VmDataType.WORD -> registers.getUW(i.reg1!!).toInt()
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = registers.getUB(i.reg1!!)
+                valueStack.push(value)
+            }
+            VmDataType.WORD -> {
+                val value = registers.getUW(i.reg1!!)
+                valueStack.push((value and 255u).toUByte())
+                valueStack.push((value.toInt() ushr 8).toUByte())
+            }
         }
-        valueStack.push(value)
         pc++
     }
 
     private fun InsPOP(i: Instruction) {
-        val value = valueStack.pop()
-        setResultReg(i.reg1!!, value, i.type!!)
+        val value = when(i.type!!) {
+            VmDataType.BYTE -> {
+                valueStack.pop().toInt()
+            }
+            VmDataType.WORD -> {
+                val msb = valueStack.pop()
+                val lsb = valueStack.pop()
+                (msb.toInt() shl 8) + lsb.toInt()
+            }
+        }
+        setResultReg(i.reg1!!, value, i.type)
         pc++
     }
 
@@ -597,6 +614,22 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun InsSQRT(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
+            VmDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
+        }
+        pc++
+    }
+
+    private fun InsSGN(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
+            VmDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
+        }
+        pc++
+    }
+
     private fun arithByte(operator: String, reg1: Int, reg2: Int, reg3: Int?, value: UByte?) {
         val left = registers.getUB(reg2)
         val right = value ?: registers.getUB(reg3!!)
@@ -851,35 +884,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsCOPY(i: Instruction) = doCopy(i.reg1!!, i.reg2!!, i.reg3!!, false)
-
-    private fun InsCOPYZ(i: Instruction) = doCopy(i.reg1!!, i.reg2!!, null, true)
-
-    private fun doCopy(reg1: Int, reg2: Int, length: Int?, untilzero: Boolean) {
-        var from = registers.getUW(reg1).toInt()
-        var to = registers.getUW(reg2).toInt()
-        if(untilzero) {
-            while(true) {
-                val char = memory.getUB(from)
-                memory.setUB(to, char)
-                if(char.toInt()==0)
-                    break
-                from++
-                to++
-            }
-        } else {
-            var len = length!!
-            while(len>0) {
-                val char = memory.getUB(from)
-                memory.setUB(to, char)
-                from++
-                to++
-                len--
-            }
-        }
-        pc++
-    }
-
     private fun getBranchOperands(i: Instruction): Pair<Int, Int> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
@@ -957,7 +961,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 }
 
-
+// probably called via reflection
 class VmRunner(): IVirtualMachineRunner {
     override fun runProgram(source: String, throttle: Boolean) {
         val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)

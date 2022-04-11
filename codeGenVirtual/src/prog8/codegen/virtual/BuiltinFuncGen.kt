@@ -2,6 +2,7 @@ package prog8.codegen.virtual
 
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
+import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.vm.Opcode
 import prog8.vm.Syscall
@@ -11,6 +12,54 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         return when(call.name) {
+            "cmp" -> TODO()
+            "max" -> TODO()
+            "min" -> TODO()
+            "sum" -> TODO()
+            "abs" -> TODO()
+            "sgn" -> funcSgn(call, resultRegister)
+            "sin" -> TODO("floats not yet implemented")
+            "sin8" -> TODO()
+            "sin16" -> TODO()
+            "sin16u" -> TODO()
+            "sinr8" -> TODO()
+            "sinr8u" -> TODO()
+            "sinr16" -> TODO()
+            "sinr16u" -> TODO()
+            "cos" -> TODO("floats not yet implemented")
+            "cos8" -> TODO()
+            "cos16" -> TODO()
+            "cos16u" -> TODO()
+            "cosr8" -> TODO()
+            "cosr8u" -> TODO()
+            "cosr16" -> TODO()
+            "cosr16u" -> TODO()
+            "tan" -> TODO("floats not yet implemented")
+            "atan" -> TODO("floats not yet implemented")
+            "ln" -> TODO("floats not yet implemented")
+            "log2" -> TODO("floats not yet implemented")
+            "sqrt16" -> funcSqrt16(call, resultRegister)
+            "sqrt" -> TODO("floats not yet implemented")
+            "rad" -> TODO("floats not yet implemented")
+            "deg" -> TODO("floats not yet implemented")
+            "round" -> TODO("floats not yet implemented")
+            "floor" -> TODO("floats not yet implemented")
+            "ceil" -> TODO("floats not yet implemented")
+            "any" -> TODO()
+            "all" -> TODO()
+            "pop" -> funcPop(call)
+            "popw" -> funcPopw(call)
+            "push" -> funcPush(call)
+            "pushw" -> funcPushw(call)
+            "rsave",
+            "rsavex",
+            "rrestore",
+            "rrestorex" -> VmCodeChunk() // vm doesn't have registers to save/restore
+            "rnd" -> funcRnd(resultRegister)
+            "rndw" -> funcRndw(resultRegister)
+            "rndf" -> TODO("floats not yet implemented")
+            "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
+            "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
             "syscall" -> funcSyscall(call)
             "syscall1" -> funcSyscall1(call)
             "syscall2" -> funcSyscall2(call)
@@ -18,7 +67,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "msb" -> funcMsb(call, resultRegister)
             "lsb" -> funcLsb(call, resultRegister)
             "memory" -> funcMemory(call, resultRegister)
-            "rnd" -> funcRnd(resultRegister)
             "peek" -> funcPeek(call, resultRegister)
             "peekw" -> funcPeekW(call, resultRegister)
             "poke" -> funcPoke(call)
@@ -34,28 +82,50 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "ror" -> funcRolRor2(Opcode.ROXR, call, resultRegister)
             "rol2" -> funcRolRor2(Opcode.ROL, call, resultRegister)
             "ror2" -> funcRolRor2(Opcode.ROR, call, resultRegister)
-            else -> {
-                TODO("builtinfunc ${call.name}")
-//                code += VmCodeInstruction(Opcode.NOP))
-//                for (arg in call.args) {
-//                    code += translateExpression(arg, resultRegister)
-//                    code += when(arg.type) {
-//                        in ByteDatatypes -> VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=resultRegister))
-//                        in WordDatatypes -> VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=resultRegister))
-//                        else -> throw AssemblyError("weird arg dt")
-//                    }
-//                }
-//                code += VmCodeInstruction(Opcode.CALL), labelArg = listOf("_prog8_builtin", call.name))
-//                for (arg in call.args) {
-//                    code += when(arg.type) {
-//                        in ByteDatatypes -> VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=resultRegister))
-//                        in WordDatatypes -> VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1=resultRegister))
-//                        else -> throw AssemblyError("weird arg dt")
-//                    }
-//                }
-//                code += VmCodeInstruction(Opcode.NOP))
-            }
+            else -> TODO("builtinfunc ${call.name}")
         }
+    }
+
+    private fun funcSgn(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args.single(), 0)
+        code += VmCodeInstruction(Opcode.SGN, codeGen.vmType(call.type), reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcSqrt16(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args.single(), 0)
+        code += VmCodeInstruction(Opcode.SQRT, VmDataType.WORD, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcPop(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=0)
+        code += assignRegisterTo(call.args.single(), 0)
+        return code
+    }
+
+    private fun funcPopw(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1=0)
+        code += assignRegisterTo(call.args.single(), 0)
+        return code
+    }
+
+    private fun funcPush(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args.single(), 0)
+        code += VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=0)
+        return code
+    }
+
+    private fun funcPushw(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args.single(), 0)
+        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=0)
+        return code
     }
 
     private fun funcSwap(call: PtBuiltinFunctionCall): VmCodeChunk {
@@ -199,6 +269,14 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += VmCodeInstruction(Opcode.SYSCALL, value= Syscall.RND.ordinal)
         if(resultRegister!=0)
             code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcRndw(resultRegister: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += VmCodeInstruction(Opcode.SYSCALL, value= Syscall.RNDW.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, VmDataType.WORD, reg1=resultRegister, reg2=0)
         return code
     }
 
