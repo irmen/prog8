@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: add support for all builtin functions
+- can't use abs() etc in pipe expression because return type depends on argument type
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type

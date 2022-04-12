@@ -1,4 +1,5 @@
 %import syslib
+%import math
 
 main {
 
@@ -31,7 +32,7 @@ irq {
             c64.EXTCOL = 0
             color = 0
             yanim += 2
-            c64.RASTER = sin8u(yanim)/2+30  ; new start of raster Irq
+            c64.RASTER = math.sin8u(yanim)/2+30  ; new start of raster Irq
         }
         c64.SCROLY &= $7f    ; set high bit of the raster pos to zero
     }

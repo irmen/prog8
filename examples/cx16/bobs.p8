@@ -1,6 +1,7 @@
 %import palette
 %import conv
 %import textio
+%import math
 
 ; "unlimited sprites / bobs" demo effect.
 ; Note that everything is prog8, no inline assembly used/required.
@@ -97,8 +98,8 @@ main {
     sub blit(ubyte vmembase) {
         ubyte bank = vmembase>=32
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
-        uword blit_x = (cos8u(msb(anim1)) as uword) + sin8u(msb(anim2))/6
-        ubyte blit_y = sin8u(msb(anim3))/2  + cos8u(msb(anim4))/5
+        uword blit_x = (math.cos8u(msb(anim1)) as uword) + math.sin8u(msb(anim2))/6
+        ubyte blit_y = math.sin8u(msb(anim3))/2  + math.cos8u(msb(anim4))/5
         vmem += blit_x/8 + (blit_y as uword) * 40
 
         bitshift(lsb(blit_x) & 7)

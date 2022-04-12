@@ -22,7 +22,7 @@ class TestIntermediateAst: FunSpec({
                     ubyte cc
                     ubyte[] array = [1,2,3]
                     cc = 11 in array
-                    cc = cc |> sin8u() |> cos8u()
+                    cc = cc |> lsb() |> sqrt16()
                 }
             }
         """

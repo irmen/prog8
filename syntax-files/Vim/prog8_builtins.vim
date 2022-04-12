@@ -7,8 +7,8 @@
 " Built-in functions
 
 " Math functions
-syn keyword prog8BuiltInFunc abs atan ceil cos cos8u cos8 cos16u cos16 cosr8 cosr8u cosr16 cosr16u deg floor
-syn keyword prog8BuiltInFunc ln log2 rad round sin sgn sin8u sin8 sin16u sin16 sinr8 sinr8u sinr16 sinr16u
+syn keyword prog8BuiltInFunc abs atan ceil cos deg floor
+syn keyword prog8BuiltInFunc ln log2 rad round sin sgn
 syn keyword prog8BuiltInFunc sqrt16 sqrt tan
 
 " Array functions

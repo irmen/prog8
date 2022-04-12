@@ -1,6 +1,7 @@
 %import syslib
 %import test_stack
 %import textio
+%import math
 
 ;  converted from plasma test program for cc65.
 ;  which is (w)2001 by groepaz/hitmen
@@ -61,14 +62,14 @@ main {
         ubyte @zp y
 
         for y in 24 downto 0 {
-            ybuf[y] = sin8u(c1a) + sin8u(c1b)
+            ybuf[y] = math.sin8u(c1a) + math.sin8u(c1b)
             c1a += 4
             c1b += 9
         }
         c1A += 3
         c1B -= 5
         for x in 39 downto 0 {
-            xbuf[x] = sin8u(c2a) + sin8u(c2b)
+            xbuf[x] = math.sin8u(c2a) + math.sin8u(c2b)
             c2a += 3
             c2b += 7
         }
@@ -98,7 +99,7 @@ main {
         ubyte[8] bittab = [ $01, $02, $04, $08, $10, $20, $40, $80 ]
         ubyte c
         for c in 0 to 255 {
-            ubyte @zp s = sin8u(c)
+            ubyte @zp s = math.sin8u(c)
             ubyte i
             for i in 0 to 7 {
                 ubyte b=0

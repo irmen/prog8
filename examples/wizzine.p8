@@ -1,4 +1,5 @@
 %import syslib
+%import math
 %zeropage basicsafe
 
 
@@ -53,8 +54,8 @@ irq {
         ubyte @zp spri
         for spri in 7 downto 0 {
             c64.EXTCOL++
-            uword @zp x = sin8u(angle1-spri*16) as uword + 50
-            ubyte @zp y = sin8u(angle2-spri*16) / 2 + 70
+            uword @zp x = math.sin8u(angle1-spri*16) as uword + 50
+            ubyte @zp y = math.sin8u(angle2-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(y, lsb(x))
             c64.MSIGX <<= 1
             if msb(x) c64.MSIGX++

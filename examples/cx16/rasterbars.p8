@@ -1,5 +1,6 @@
 %import textio
 %import palette
+%import math
 
 ; horizontal raster bars
 ; also see: kefrenbars.p8
@@ -48,7 +49,7 @@ irq {
 
         if color_idx==0 {
             yanim++
-            next_irq_line = $0030 + sin8u(yanim)
+            next_irq_line = $0030 + math.sin8u(yanim)
         } else {
             next_irq_line += barheight
         }

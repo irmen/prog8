@@ -10,21 +10,21 @@ import prog8.compiler.BuiltinFunctions
 class TestBuiltinFunctions: FunSpec({
 
     test("pure func with fixed type") {
-        val func = BuiltinFunctions.getValue("sin8u")
-        func.name shouldBe "sin8u"
+        val func = BuiltinFunctions.getValue("sgn")
+        func.name shouldBe "sgn"
         func.parameters.size shouldBe 1
-        func.parameters[0].name shouldBe "angle8"
-        func.parameters[0].possibleDatatypes shouldBe arrayOf(DataType.UBYTE)
+        func.parameters[0].name shouldBe "value"
+        func.parameters[0].possibleDatatypes shouldBe NumericDatatypes
         func.pure shouldBe true
         func.hasReturn shouldBe true
-        func.returnType shouldBe DataType.UBYTE
+        func.returnType shouldBe DataType.BYTE
 
         val conv = func.callConvention(listOf(DataType.UBYTE))
         conv.params.size shouldBe 1
         conv.params[0].dt shouldBe DataType.UBYTE
         conv.params[0].reg shouldBe RegisterOrPair.A
         conv.params[0].variable shouldBe false
-        conv.returns.dt shouldBe DataType.UBYTE
+        conv.returns.dt shouldBe DataType.BYTE
         conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe RegisterOrPair.A
     }

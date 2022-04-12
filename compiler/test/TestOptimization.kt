@@ -334,7 +334,7 @@ class TestOptimization: FunSpec({
             main {
                 sub start() {
                     ubyte r
-                    ubyte @shared bb = (cos8(r)/2 + 100) as ubyte
+                    ubyte @shared bb = (sgn(r)*2 + 100) as ubyte
                 }
             }
         """
@@ -343,8 +343,8 @@ class TestOptimization: FunSpec({
         ubyte r
         r = 0
         ubyte bb
-        prog8_lib.retval_interm_b = cos8(r)
-        prog8_lib.retval_interm_b >>= 1
+        prog8_lib.retval_interm_b = sgn(r)
+        prog8_lib.retval_interm_b <<= 1
         prog8_lib.retval_interm_b += 100
         bb = prog8_lib.retval_interm_b
         return
@@ -604,7 +604,7 @@ class TestOptimization: FunSpec({
                 uword @shared zz
                 zz += 60            ; NOT ok to remove initializer, should evaluate to 60
                 ubyte @shared xx
-                xx = 6+sin8u(xx)     ; is not an initializer because it references xx
+                xx = 6+abs(xx)   ; is not an initializer because it references xx
             }
         }
         """
@@ -617,7 +617,7 @@ class TestOptimization: FunSpec({
         zz = 60
         ubyte xx
         xx = 0
-        xx = sin8u(xx)
+        xx = abs(xx)
         xx += 6
          */
         val stmts = result.program.entrypoint.statements

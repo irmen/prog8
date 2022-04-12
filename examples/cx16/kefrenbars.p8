@@ -1,4 +1,5 @@
 %import palette
+%import math
 %option no_sysinit
 
 ; Vertical rasterbars a.k.a. "Kefren bars"
@@ -59,7 +60,7 @@ irq {
             cx16.FB_fill_pixels(320, 1, 0)
         } else {
             ; add new bar
-            cx16.FB_cursor_position(sin8u(anim1)/2 + cos8u(anim2)/2 + $0010, 0)
+            cx16.FB_cursor_position(math.sin8u(anim1)/2 + math.cos8u(anim2)/2 + $0010, 0)
             cx16.FB_set_pixels(pixels, len(pixels))
         }
 

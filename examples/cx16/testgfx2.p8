@@ -1,6 +1,8 @@
 %import gfx2
 %import textio
 %import test_stack
+%import math
+
 
 main {
 
@@ -170,10 +172,10 @@ main {
 
         ubyte i
         for i in 0 to 254 step 4 {
-            uword x1 = ((gfx2.width-256)/2 as uword) + sin8u(i)
-            uword y1 = (gfx2.height-128)/2 + cos8u(i)/2
-            uword x2 = ((gfx2.width-64)/2 as uword) + sin8u(i)/4
-            uword y2 = (gfx2.height-64)/2 + cos8u(i)/4
+            uword x1 = ((gfx2.width-256)/2 as uword) + math.sin8u(i)
+            uword y1 = (gfx2.height-128)/2 + math.cos8u(i)/2
+            uword x2 = ((gfx2.width-64)/2 as uword) + math.sin8u(i)/4
+            uword y2 = (gfx2.height-64)/2 + math.cos8u(i)/4
             gfx2.line(x1, y1, x2, y2, i+1)
         }
 

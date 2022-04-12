@@ -1,5 +1,6 @@
 %import syslib
 %import graphics
+%import math
 
 ; Note: this program is compatible with C64 and CX16.
 
@@ -45,12 +46,12 @@ main {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        word wcosa = cos8(ax)
-        word wsina = sin8(ax)
-        word wcosb = cos8(ay)
-        word wsinb = sin8(ay)
-        word wcosc = cos8(az)
-        word wsinc = sin8(az)
+        word wcosa = math.cos8(ax)
+        word wsina = math.sin8(ax)
+        word wcosb = math.cos8(ay)
+        word wsinb = math.sin8(ay)
+        word wcosc = math.cos8(az)
+        word wsinc = math.sin8(az)
 
         word wcosa_sinb = wcosa*wsinb / 128
         word wsina_sinb = wsina*wsinb / 128

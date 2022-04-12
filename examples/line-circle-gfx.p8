@@ -1,5 +1,6 @@
 %import graphics
 %import test_stack
+%import math
 
 ; Note: this program is compatible with C64 and CX16.
 
@@ -38,10 +39,10 @@ main {
     sub draw_lines() {
         ubyte i
         for i in 0 to 255 step 4 {
-            uword x1 = ((graphics.WIDTH-256)/2 as uword) + sin8u(i)
-            uword y1 = (graphics.HEIGHT-128)/2 + cos8u(i)/2
-            uword x2 = ((graphics.WIDTH-64)/2 as uword) + sin8u(i)/4
-            uword y2 = (graphics.HEIGHT-64)/2 + cos8u(i)/4
+            uword x1 = ((graphics.WIDTH-256)/2 as uword) + math.sin8u(i)
+            uword y1 = (graphics.HEIGHT-128)/2 + math.cos8u(i)/2
+            uword x2 = ((graphics.WIDTH-64)/2 as uword) + math.sin8u(i)/4
+            uword y2 = (graphics.HEIGHT-64)/2 + math.cos8u(i)/4
             graphics.line(x1, lsb(y1), x2, lsb(y2))
         }
     }

@@ -267,8 +267,8 @@ class TestPipes: FunSpec({
                     uword @shared ww = startvalue(99) |> addword()
                                         |> addword()
                                         
-                    ubyte @shared cc = 30 |> sin8u() |> cos8u()
-                    cc = cc |> sin8u() |> cos8u()
+                    ubyte @shared cc = 30 |> abs() |> sqrt16()
+                    cc = cc |> abs() |> sqrt16()
                 }
 
                 sub startvalue(ubyte arg) -> uword {
@@ -308,9 +308,9 @@ class TestPipes: FunSpec({
         value.source shouldBe NumericLiteral(DataType.UBYTE, 30.0, Position.DUMMY)
         value.segments.size shouldBe 2
         call = value.segments[0] as IFunctionCall
-        call.target.nameInSource shouldBe listOf("sin8u")
+        call.target.nameInSource shouldBe listOf("abs")
         call = value.segments[1] as IFunctionCall
-        call.target.nameInSource shouldBe listOf("cos8u")
+        call.target.nameInSource shouldBe listOf("sqrt16")
 
         assigncc = stmts[6] as Assignment
         val pipecc = assigncc.value as PipeExpression
@@ -333,8 +333,8 @@ class TestPipes: FunSpec({
                     uword @shared ww = startvalue(99) |> addword()
                                         |> addword()
                                         
-                    ubyte @shared cc = 30 |> sin8u() |> cos8u()     ; will be optimized away into a const number
-                    cc = cc |> sin8u() |> cos8u()
+                    ubyte @shared cc = 80 |> abs() |> sqrt16()     ; will be optimized away into a const number
+                    cc = cc |> abs() |> sqrt16()
                 }
 
                 sub startvalue(ubyte arg) -> uword {
@@ -366,16 +366,16 @@ class TestPipes: FunSpec({
 
         var assigncc = stmts[5] as Assignment
         val value = assigncc.value as NumericLiteral
-        value.number shouldBe 190.0
+        value.number shouldBe 8.0
 
         assigncc = stmts[6] as Assignment
         val pipecc = assigncc.value as PipeExpression
         pipecc.source shouldBe instanceOf<BuiltinFunctionCall>()
-        (pipecc.source as BuiltinFunctionCall).target.nameInSource shouldBe listOf("sin8u")
+        (pipecc.source as BuiltinFunctionCall).target.nameInSource shouldBe listOf("abs")
 
         pipecc.segments.size shouldBe 1
         pipecc.segments[0] shouldBe instanceOf<BuiltinFunctionCall>()
-        (pipecc.segments[0] as BuiltinFunctionCall).target.nameInSource shouldBe listOf("cos8u")
+        (pipecc.segments[0] as BuiltinFunctionCall).target.nameInSource shouldBe listOf("sqrt16")
     }
 
     test("incorrect type in pipe expression") {
@@ -455,7 +455,7 @@ class TestPipes: FunSpec({
                     uword ww = startvalue() |> addword()
                                         |> addword()
                                         
-                    ubyte cc = 30 |> sin8u(99) |> cos8u(22)
+                    ubyte cc = 30 |> abs(99) |> sqrt16(22)
                 }
 
                 sub startvalue(ubyte arg) -> uword {
@@ -469,7 +469,7 @@ class TestPipes: FunSpec({
         compileText(C64Target(), optimize = false, text, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain ":4:32: invalid number of arguments"
-        errors.errors[1] shouldContain ":7:44: invalid number of arguments"
-        errors.errors[2] shouldContain ":7:57: invalid number of arguments"
+        errors.errors[1] shouldContain ":7:42: invalid number of arguments"
+        errors.errors[2] shouldContain ":7:56: invalid number of arguments"
     }
 })

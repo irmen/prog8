@@ -1,3 +1,4 @@
+%import math
 %import textio
 %zeropage basicsafe
 
@@ -12,8 +13,8 @@ main {
 
     sub start()  {
         repeat {
-            ubyte x = msb(sin8u(msb(anglex)) * screenwidth)
-            ubyte y = msb(cos8u(msb(angley)) * screenheight)
+            ubyte x = msb(math.sin8u(msb(anglex)) * screenwidth)
+            ubyte y = msb(math.cos8u(msb(angley)) * screenheight)
             txt.setcc(x, y, 81, color)
             anglex+=366
             angley+=291
