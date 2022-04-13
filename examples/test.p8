@@ -7,14 +7,21 @@
 main {
     sub start() {
 
-        word zz = 0
-        txt.print_b(sgn(zz))
+        word[] values = [1111, -222, -9999, 88, 20222, 0, 0, 1111]
+        word[] values2 = [0,0,0,0,0,1,0,0,0]
+        txt.print_w(max("abcde"))
         txt.nl()
-        zz = -100
-        txt.print_b(sgn(zz))
+        txt.print_w(max(values))
         txt.nl()
-        zz = 9999
-        txt.print_b(sgn(zz))
+        txt.print_w(min(values))
+        txt.nl()
+        txt.print_w(sum(values))
+        txt.nl()
+        txt.print_ub(any(values))
+        txt.nl()
+        txt.print_ub(any(values2))
+        txt.nl()
+        txt.print_ub(all(values))
         txt.nl()
 
 ;        uword other = $fe4a

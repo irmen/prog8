@@ -214,6 +214,67 @@ math
 Low level math routines. You should not normally have to bother with this directly.
 The compiler needs it to implement most of the math operations in your programs.
 
+However there's a bunch of integer trig functions in here too that use lookup tables
+to quickly calculate sine and cosines. Usually a custom lookup table is the way to go if your
+application needs this, but perhaps the provided ones can be of service too:
+
+sin8u(x)
+    Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
+
+sin8(x)
+    Fast 8-bit byte sine of angle 0..255, result is in range -127..127
+
+sin16u(x)
+    Fast 16-bit uword sine of angle 0..255, result is in range 0..65535
+
+sin16(x)
+    Fast 16-bit word sine of angle 0..255, result is in range -32767..32767
+
+sinr8u(x)
+    Fast 8-bit ubyte sine of angle 0..179 (each is a 2 degree step), result is in range 0..255
+    Angles 180..255 will yield a garbage result!
+
+sinr8(x)
+    Fast 8-bit byte sine of angle 0..179 (each is a 2 degree step), result is in range -127..127
+    Angles 180..255 will yield a garbage result!
+
+sinr16u(x)
+    Fast 16-bit uword sine of angle 0..179 (each is a 2 degree step), result is in range 0..65535
+    Angles 180..255 will yield a garbage result!
+
+sinr16(x)
+    Fast 16-bit word sine of angle 0..179 (each is a 2 degree step), result is in range -32767..32767
+    Angles 180..255 will yield a garbage result!
+
+
+cos8u(x)
+    Fast 8-bit ubyte cosine of angle 0..255, result is in range 0..255
+
+cos8(x)
+    Fast 8-bit byte cosine of angle 0..255, result is in range -127..127
+
+cos16u(x)
+    Fast 16-bit uword cosine of angle 0..255, result is in range 0..65535
+
+cos16(x)
+   Fast 16-bit word cosine of angle 0..255, result is in range -32767..32767
+
+cosr8u(x)
+    Fast 8-bit ubyte cosine of angle 0..179 (each is a 2 degree step), result is in range 0..255
+    Angles 180..255 will yield a garbage result!
+
+cosr8(x)
+    Fast 8-bit byte cosine of angle 0..179 (each is a 2 degree step), result is in range -127..127
+    Angles 180..255 will yield a garbage result!
+
+cosr16u(x)
+    Fast 16-bit uword cosine of angle 0..179 (each is a 2 degree step), result is in range 0..65535
+    Angles 180..255 will yield a garbage result!
+
+cosr16(x)
+    Fast 16-bit word cosine of angle 0..179 (each is a 2 degree step), result is in range -32767..32767
+    Angles 180..255 will yield a garbage result!
+
 
 cx16logo
 --------

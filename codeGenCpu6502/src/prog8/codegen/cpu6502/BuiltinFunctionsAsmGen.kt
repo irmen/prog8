@@ -1575,8 +1575,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     private fun outputAddressAndLenghtOfArray(arg: Expression) {
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as IdentifierReference
+        val arrayVar = arg.targetVarDecl(program)!!
+        if(!arrayVar.isArray)
+            throw AssemblyError("length of non-array requested")
+        val size = arrayVar.arraysize!!.constIndex()!!
         val identifierName = asmgen.asmVariableName(arg)
-        val size = arg.targetVarDecl(program)!!.arraysize!!.constIndex()!!
         asmgen.out("""
                     lda  #<$identifierName
                     ldy  #>$identifierName

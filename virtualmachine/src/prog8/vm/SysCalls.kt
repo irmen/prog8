@@ -21,14 +21,12 @@ SYSCALLS:
 12 = rndw       ; random WORD
 13 = wait       ; wait certain amount of jiffies (1/60 sec)
 14 = waitvsync  ; wait on vsync
-15 = sin8u
-16 = cos8u
-17 = sort_ubyte array
-18 = sort_byte array
-19 = sort_uword array
-20 = sort_word array
-21 = reverse_bytes array
-22 = reverse_words array
+15 = sort_ubyte array
+16 = sort_byte array
+17 = sort_uword array
+18 = sort_word array
+19 = reverse_bytes array
+20 = reverse_words array
 */
 
 enum class Syscall {
@@ -47,14 +45,12 @@ enum class Syscall {
     RNDW,
     WAIT,
     WAITVSYNC,
-    SIN8U,
-    COS8U,
     SORT_UBYTE,
     SORT_BYTE,
     SORT_UWORD,
     SORT_WORD,
-    REVERSE_BYTES,
-    REVERSE_WORDS
+    REVERSE_BYTES,      // TODO not as syscall
+    REVERSE_WORDS       // TODO not as syscall
 }
 
 object SysCalls {
@@ -112,18 +108,6 @@ object SysCalls {
                 Thread.sleep(millis)
             }
             Syscall.WAITVSYNC -> vm.waitvsync()
-            Syscall.SIN8U -> {
-                val arg = vm.registers.getUB(0).toDouble()
-                val rad = arg /256.0 * 2.0 * PI
-                val answer = truncate(128.0 + 127.5 * sin(rad))
-                vm.registers.setUB(0, answer.toUInt().toUByte())
-            }
-            Syscall.COS8U -> {
-                val arg = vm.registers.getUB(0).toDouble()
-                val rad = arg /256.0 * 2.0 * PI
-                val answer = truncate(128.0 + 127.5 * cos(rad))
-                vm.registers.setUB(0, answer.toUInt().toUByte())
-            }
             Syscall.SORT_UBYTE -> {
                 val address = vm.registers.getUW(0).toInt()
                 val length = vm.registers.getUB(1).toInt()

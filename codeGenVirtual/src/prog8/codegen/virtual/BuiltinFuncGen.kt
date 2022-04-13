@@ -12,11 +12,13 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         return when(call.name) {
-            "cmp" -> TODO("cmp() can't be used on vm because no processor status bits implemented")
-            "max" -> TODO()
+            "max" -> funcMax(call, resultRegister)
             "min" -> TODO()
             "sum" -> TODO()
-            "abs" -> TODO()
+            "any" -> TODO()
+            "all" -> TODO()
+            "abs" -> TODO("abs once we can compare plus minus")
+            "cmp" -> TODO("cmp() can't be used on vm because no processor status bits implemented")
             "sgn" -> funcSgn(call, resultRegister)
             "sin" -> TODO("floats not yet implemented")
             "cos" -> TODO("floats not yet implemented")
@@ -31,8 +33,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "round" -> TODO("floats not yet implemented")
             "floor" -> TODO("floats not yet implemented")
             "ceil" -> TODO("floats not yet implemented")
-            "any" -> TODO()
-            "all" -> TODO()
             "pop" -> funcPop(call)
             "popw" -> funcPopw(call)
             "push" -> funcPush(call)
@@ -59,8 +59,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "pokew" -> funcPokeW(call)
             "pokemon" -> VmCodeChunk()
             "mkword" -> funcMkword(call, resultRegister)
-            "sin8u" -> funcSin8u(call, resultRegister)
-            "cos8u" -> funcCos8u(call, resultRegister)
             "sort" -> funcSort(call)
             "reverse" -> funcReverse(call)
             "swap" -> funcSwap(call)
@@ -70,6 +68,25 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "ror2" -> funcRolRor2(Opcode.ROR, call, resultRegister)
             else -> TODO("builtinfunc ${call.name}")
         }
+    }
+
+    private fun funcMax(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        val arrayName = (call.args.single() as PtIdentifier).targetName
+        val array = codeGen.symbolTable.flat.getValue(arrayName) as StStaticVariable
+        when (array.dt) {
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                TODO("max word array")
+            }
+            DataType.STR -> {
+                TODO("max string")
+            }
+            else -> {
+                TODO("max byte array")
+            }
+        }
+
+        return code
     }
 
     private fun funcSgn(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
@@ -161,24 +178,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += exprGen.translateExpression(call.args[0], 0)
         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
         code += VmCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
-        return code
-    }
-
-    private fun funcCos8u(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=Syscall.COS8U.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
-        return code
-    }
-
-    private fun funcSin8u(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=Syscall.SIN8U.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
         return code
     }
 
