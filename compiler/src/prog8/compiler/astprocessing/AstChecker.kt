@@ -1069,11 +1069,15 @@ internal class AstChecker(private val program: Program,
                     errors.err("swap requires args of numerical type", position)
             }
             else if(target.name=="all" || target.name=="any") {
-                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR) {
+                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
+                    || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
                 }
-                if(args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
-                    errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
+            }
+            else if(target.name=="min" || target.name=="max") {
+                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
+                    || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
+                    errors.err("min/max operate on arrays, not on strings", position)
                 }
             }
         } else if(target is Subroutine) {

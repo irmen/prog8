@@ -2,6 +2,7 @@ package prog8.codegen.virtual
 
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
+import prog8.code.core.ArrayToElementTypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.vm.Opcode
@@ -13,10 +14,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         return when(call.name) {
             "max" -> funcMax(call, resultRegister)
-            "min" -> TODO()
-            "sum" -> TODO()
-            "any" -> TODO()
-            "all" -> TODO()
+            "min" -> funcMin(call, resultRegister)
+            "sum" -> funcSum(call, resultRegister)
+            "any" -> funcAny(call, resultRegister)
+            "all" -> funcAll(call, resultRegister)
             "abs" -> TODO("abs once we can compare plus minus")
             "cmp" -> TODO("cmp() can't be used on vm because no processor status bits implemented")
             "sgn" -> funcSgn(call, resultRegister)
@@ -70,22 +71,113 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         }
     }
 
-    private fun funcMax(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+    private fun funcSum(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val arrayName = call.args[0] as PtIdentifier
+        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
+        val syscall =
+            when(array.dt) {
+                DataType.ARRAY_UB,
+                DataType.ARRAY_B -> Syscall.SUM_BYTE
+                DataType.ARRAY_UW,
+                DataType.ARRAY_W -> Syscall.SUM_WORD
+                DataType.ARRAY_F -> TODO("float sum")
+                else -> throw IllegalArgumentException("weird type")
+            }
         val code = VmCodeChunk()
-        val arrayName = (call.args.single() as PtIdentifier).targetName
-        val array = codeGen.symbolTable.flat.getValue(arrayName) as StStaticVariable
-        when (array.dt) {
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                TODO("max word array")
-            }
-            DataType.STR -> {
-                TODO("max string")
-            }
-            else -> {
-                TODO("max byte array")
-            }
-        }
+        code += exprGen.translateExpression(call.args[0], 0)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
+        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
+        return code
+    }
 
+    private fun funcAny(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val arrayName = call.args[0] as PtIdentifier
+        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
+        val syscall =
+            when(array.dt) {
+                DataType.ARRAY_UB,
+                DataType.ARRAY_B -> Syscall.ANY_BYTE
+                DataType.ARRAY_UW,
+                DataType.ARRAY_W -> Syscall.ANY_WORD
+                DataType.ARRAY_F -> TODO("float any")
+                else -> throw IllegalArgumentException("weird type")
+            }
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args[0], 0)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
+        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcAll(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val arrayName = call.args[0] as PtIdentifier
+        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
+        val syscall =
+            when(array.dt) {
+                DataType.ARRAY_UB,
+                DataType.ARRAY_B -> Syscall.ALL_BYTE
+                DataType.ARRAY_UW,
+                DataType.ARRAY_W -> Syscall.ALL_WORD
+                DataType.ARRAY_F -> TODO("float all")
+                else -> throw IllegalArgumentException("weird type")
+            }
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args[0], 0)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
+        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcMax(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val arrayName = call.args[0] as PtIdentifier
+        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
+        val syscall =
+            when(array.dt) {
+                DataType.ARRAY_UB -> Syscall.MAX_UBYTE
+                DataType.ARRAY_B -> Syscall.MAX_BYTE
+                DataType.ARRAY_UW -> Syscall.MAX_UWORD
+                DataType.ARRAY_W -> Syscall.MAX_WORD
+                DataType.ARRAY_F -> TODO("float max")
+                else -> throw IllegalArgumentException("weird type")
+            }
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args[0], 0)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
+        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcMin(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val arrayName = call.args[0] as PtIdentifier
+        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
+        val syscall =
+            when(array.dt) {
+                DataType.ARRAY_UB -> Syscall.MIN_UBYTE
+                DataType.ARRAY_B -> Syscall.MIN_BYTE
+                DataType.ARRAY_UW -> Syscall.MIN_UWORD
+                DataType.ARRAY_W -> Syscall.MIN_WORD
+                DataType.ARRAY_F -> TODO("float min")
+                else -> throw IllegalArgumentException("weird type")
+            }
+        val code = VmCodeChunk()
+        code += exprGen.translateExpression(call.args[0], 0)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
+        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
+        if(resultRegister!=0)
+            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
         return code
     }
 
@@ -151,7 +243,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             when(array.dt) {
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> Syscall.REVERSE_BYTES
                 DataType.ARRAY_UW, DataType.ARRAY_W -> Syscall.REVERSE_WORDS
-                DataType.FLOAT -> TODO("reverse floats")
+                DataType.ARRAY_F -> TODO("float reverse")
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val code = VmCodeChunk()
@@ -170,7 +262,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 DataType.ARRAY_B -> Syscall.SORT_BYTE
                 DataType.ARRAY_UW -> Syscall.SORT_UWORD
                 DataType.ARRAY_W -> Syscall.SORT_WORD
-                DataType.FLOAT -> TODO("float sort")
+                DataType.ARRAY_F -> TODO("float sort")
                 DataType.STR -> Syscall.SORT_UBYTE
                 else -> throw IllegalArgumentException("weird type to sort")
             }
