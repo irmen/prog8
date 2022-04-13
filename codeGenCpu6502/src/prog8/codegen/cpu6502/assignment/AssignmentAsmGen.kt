@@ -229,7 +229,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
-                    val returntype = builtinFunctionReturnType(value.name, value.args, program)
+                    val returntype = builtinFunctionReturnType(value.name)
                     if(!returntype.isKnown)
                         throw AssemblyError("unknown dt")
                     when(returntype.getOr(DataType.UNDEFINED)) {

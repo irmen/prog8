@@ -496,7 +496,7 @@ internal class AstChecker(private val program: Program,
                 if(constVal==null) {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCallExpression)
+                        if (assignment.value !is FunctionCallExpression && assignment.value !is PipeExpression)
                             errors.err("assignment value is invalid or has no proper datatype, maybe forgot '&' (address-of)", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
@@ -986,14 +986,7 @@ internal class AstChecker(private val program: Program,
             }
         }
         else if(targetStatement is BuiltinFunctionPlaceholder) {
-            val args = if(functionCallExpr.parent is IPipe) {
-                // pipe segment, add implicit first argument
-                val firstArgDt = BuiltinFunctions.getValue(targetStatement.name).parameters.first().possibleDatatypes.first()
-                listOf(defaultZero(firstArgDt, functionCallExpr.position)) + functionCallExpr.args
-            } else {
-                functionCallExpr.args
-            }
-            if(builtinFunctionReturnType(targetStatement.name, args, program).isUnknown) {
+            if(builtinFunctionReturnType(targetStatement.name).isUnknown) {
                 if(functionCallExpr.parent is Expression || functionCallExpr.parent is Assignment)
                     errors.err("function doesn't return a value", functionCallExpr.position)
             }
@@ -1072,12 +1065,6 @@ internal class AstChecker(private val program: Program,
                 if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
                     || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
-                }
-            }
-            else if(target.name=="min" || target.name=="max") {
-                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
-                    || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
-                    errors.err("min/max operate on arrays, not on strings", position)
                 }
             }
         } else if(target is Subroutine) {
@@ -1509,7 +1496,7 @@ internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statem
             else
                 errors.warn("result values of subroutine call are discarded (use void?)", call.position)
         } else if (target is BuiltinFunctionPlaceholder) {
-            val rt = builtinFunctionReturnType(target.name, call.args, program)
+            val rt = builtinFunctionReturnType(target.name)
             if (rt.isKnown)
                 errors.warn("result value of a function call is discarded (use void?)", call.position)
         }

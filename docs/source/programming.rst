@@ -611,7 +611,7 @@ In most places where a number or other value is expected, you can use just the n
 If possible, the expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
 Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 Expressions can contain procedure and function calls.
-There are various built-in functions such as sin(), cos(), min(), max() that can be used in expressions (see :ref:`builtinfunctions`).
+There are various built-in functions such as sin(), cos() that can be used in expressions (see :ref:`builtinfunctions`).
 You can also reference idendifiers defined elsewhere in your code.
 
 Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
@@ -804,18 +804,9 @@ len(x)
     (use the ``string.length`` routine if you want to dynamically determine the length by counting to the
     first 0-byte)
 
-max(x)
-    Maximum of the values in the array value x
-
-min(x)
-    Minimum of the values in the array value x
-
 reverse(array)
     Reverse the values in the array (in-place).
     Can be used after sort() to sort an array in descending order.
-
-sum(x)
-    Sum of the values in the array value x
 
 sort(array)
     Sort the array in ascending order (in-place)

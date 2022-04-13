@@ -986,7 +986,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {
-                return program.builtinFunctions.returnType(target.nameInSource[0], this.args)
+                return program.builtinFunctions.returnType(target.nameInSource[0])
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())
@@ -1164,5 +1164,5 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
-    override fun inferType(program: Program) = program.builtinFunctions.returnType(name, this.args)
+    override fun inferType(program: Program) = program.builtinFunctions.returnType(name)
 }

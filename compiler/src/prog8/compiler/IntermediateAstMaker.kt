@@ -161,7 +161,7 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
-        val type = builtinFunctionReturnType(srcNode.name, srcNode.args, program).getOr(DataType.UNDEFINED)
+        val type = builtinFunctionReturnType(srcNode.name).getOr(DataType.UNDEFINED)
         val noSideFx = BuiltinFunctions.getValue(srcNode.name).pure
         val call = PtBuiltinFunctionCall(srcNode.name, true, noSideFx, type, srcNode.position)
         for (arg in srcNode.args)

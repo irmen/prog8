@@ -7,19 +7,8 @@
 main {
     sub start() {
 
-        word[] values = [1111, -222, -9999, 88, 20222, 0, 0, 1111]
-        word[] values2 = [0,0,0,0,0,1,0,0,0]
-        txt.print_w(max(values))
-        txt.nl()
-        txt.print_w(min(values))
-        txt.nl()
-        txt.print_w(sum(values))
-        txt.nl()
-        txt.print_ub(any(values))
-        txt.nl()
-        txt.print_ub(any(values2))
-        txt.nl()
-        txt.print_ub(all(values))
+        ubyte qq = 99 as ubyte |> abs() |> abs()
+        txt.print_ub(qq)
         txt.nl()
 
 ;        uword other = $fe4a

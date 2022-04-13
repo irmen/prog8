@@ -133,7 +133,7 @@ class TestPipes: FunSpec({
 
                     9999 |> abs() |> txt.print_uw()
                     9999 |> txt.print_uw()
-                    99 |> abs() |> txt.print_ub()
+                    99 |> abs() |> lsb() |> txt.print_ub()
                     99 |> txt.print_ub()
                 }
 
@@ -411,7 +411,7 @@ class TestPipes: FunSpec({
                     uword ww = 9999
                     ubyte bb = 99
                     ww |> abs() |> txt.print_uw()
-                    bb |> abs() |> txt.print_ub()
+                    bb |> abs() |> lsb() |> txt.print_ub()
                 }
             }
         """
@@ -425,8 +425,9 @@ class TestPipes: FunSpec({
 
         val pipebb = stmts[5] as Pipe
         pipebb.source shouldBe instanceOf<BuiltinFunctionCall>()
-        pipebb.segments.size shouldBe 1
+        pipebb.segments.size shouldBe 2
         pipebb.segments[0] shouldBe instanceOf<IFunctionCall>()
+        pipebb.segments[1] shouldBe instanceOf<IFunctionCall>()
     }
 
     test("pipe statement with type errors") {

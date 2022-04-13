@@ -11,12 +11,12 @@ internal object DummyFunctions : IBuiltinFunctions {
     override val names: Set<String> = emptySet()
     override val purefunctionNames: Set<String> = emptySet()
     override fun constValue(
-        name: String,
+        funcName: String,
         args: List<Expression>,
         position: Position,
     ): NumericLiteral? = null
 
-    override fun returnType(name: String, args: MutableList<Expression>) = InferredTypes.InferredType.unknown()
+    override fun returnType(funcName: String) = InferredTypes.InferredType.unknown()
 }
 
 internal object DummyMemsizer : IMemSizer {

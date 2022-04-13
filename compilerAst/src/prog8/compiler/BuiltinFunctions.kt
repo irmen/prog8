@@ -38,36 +38,26 @@ class FParam(val name: String, val possibleDatatypes: Array<DataType>)
 class FSignature(val name: String,
                  val pure: Boolean,      // does it have side effects?
                  val parameters: List<FParam>,
-                 val hasReturn: Boolean,        // is there a return value at all?
-                 val returnType: DataType?,     // specify return type if fixed, otherwise null if it depends on the arguments
+                 val returnType: DataType?,
                  val constExpressionFunc: ConstExpressionCaller? = null) {
 
-    init {
-        require(hasReturn || returnType==null) { "$name has invalid return spec" }
-    }
-
     fun callConvention(actualParamTypes: List<DataType>): CallConvention {
-        val returns: ReturnConvention
-        if(hasReturn) {
-            returns = when (returnType) {
-                DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A, false)
-                DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY, false)
-                DataType.FLOAT -> ReturnConvention(returnType, null, true)
-                in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY, false)
-                else -> {
-                    // return type depends on arg type
-                    when (val paramType = actualParamTypes.first()) {
-                        DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
-                        DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                        DataType.FLOAT -> ReturnConvention(paramType, null, true)
-                        in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                        else -> ReturnConvention(paramType, null, false)
-                    }
+        val returns: ReturnConvention = when (returnType) {
+            DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A, false)
+            DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY, false)
+            DataType.FLOAT -> ReturnConvention(returnType, null, true)
+            in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY, false)
+            null -> ReturnConvention(null, null, false)
+            else -> {
+                // return type depends on arg type
+                when (val paramType = actualParamTypes.first()) {
+                    DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
+                    DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
+                    DataType.FLOAT -> ReturnConvention(paramType, null, true)
+                    in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY, false)
+                    else -> ReturnConvention(paramType, null, false)
                 }
             }
-        } else {
-            require(returnType==null)
-            returns = ReturnConvention(null, null, false)
         }
 
         return when {
@@ -95,167 +85,78 @@ class FSignature(val name: String,
 
 private val functionSignatures: List<FSignature> = listOf(
     // this set of function have no return value and operate in-place:
-    FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), false,null),
-    FSignature("ror"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), false, null),
-    FSignature("rol2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), false, null),
-    FSignature("ror2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), false, null),
-    FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), false, null),
-    FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), false, null),
+    FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("ror"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("rol2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("ror2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
+    FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
+    FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
     // cmp returns a status in the carry flag, but not a proper return value
-    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), false, null),
-    // these few have a return value depending on the argument(s):
-    FSignature("max"         , true, listOf(FParam("values", ArrayDatatypes)), true, null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMax) },    // type depends on args
-    FSignature("min"         , true, listOf(FParam("values", ArrayDatatypes)), true, null) { a, p, prg -> collectionArg(a, p, prg, ::builtinMin) },    // type depends on args
-    FSignature("sum"         , true, listOf(FParam("values", ArrayDatatypes)), true, null) { a, p, prg -> collectionArg(a, p, prg, ::builtinSum) },      // type depends on args
-    FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), true, null, ::builtinAbs),      // type depends on argument
-    FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), true, null, ::builtinLen),    // type is UBYTE or UWORD depending on actual length
-    FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), true, DataType.UBYTE, ::builtinSizeof),
+    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
+    FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), DataType.UWORD, ::builtinAbs),
+    FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     // normal functions follow:
-    FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), true, DataType.BYTE, ::builtinSgn ),
-    FSignature("sin"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
-    FSignature("cos"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::cos) },
-    FSignature("tan"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::tan) },
-    FSignature("atan"        , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::atan) },
-    FSignature("ln"          , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::log) },
-    FSignature("log2"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, ::log2) },
-    FSignature("sqrt16"      , true, listOf(FParam("value", arrayOf(DataType.UWORD))), true, DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
-    FSignature("sqrt"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
-    FSignature("rad"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
-    FSignature("deg"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
-    FSignature("round"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, ::round) },
-    FSignature("floor"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
-    FSignature("ceil"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), true, DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
-    FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), true, DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
-    FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), true, DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
-    FSignature("lsb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), true, DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
-    FSignature("msb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), true, DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
-    FSignature("mkword"      , true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), true, DataType.UWORD, ::builtinMkword),
-    FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), true, DataType.UBYTE),
-    FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), true, DataType.UWORD),
-    FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), false,null),
-    FSignature("pokemon"     , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), false,null),
-    FSignature("pokew"       , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UWORD))), false,null),
-    FSignature("pop"         , false, listOf(FParam("target", ByteDatatypes)), false, null),
-    FSignature("popw"        , false, listOf(FParam("target", WordDatatypes)), false, null),
-    FSignature("push"        , false, listOf(FParam("value", ByteDatatypes)), false, null),
-    FSignature("pushw"       , false, listOf(FParam("value", WordDatatypes)), false, null),
-    FSignature("rsave"       , false, emptyList(), false,null),
-    FSignature("rsavex"      , false, emptyList(), false,null),
-    FSignature("rrestore"    , false, emptyList(), false,null),
-    FSignature("rrestorex"   , false, emptyList(), false,null),
-    FSignature("rnd"         , false, emptyList(), true, DataType.UBYTE),
-    FSignature("rndw"        , false, emptyList(), true, DataType.UWORD),
-    FSignature("rndf"        , false, emptyList(), true, DataType.FLOAT),
-    FSignature("memory"      , true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), true, DataType.UWORD),
-    FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), false, null),
-    FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), false, null),
-    FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), false, null),
-    FSignature("syscall"     , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE))), true, DataType.UWORD, null),
-    FSignature("syscall1"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD))), true, DataType.UWORD, null),
-    FSignature("syscall2"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD))), true, DataType.UWORD, null),
-    FSignature("syscall3"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD)), FParam("arg3", arrayOf(DataType.UWORD))), true, DataType.UWORD, null),
+    FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
+    FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
+    FSignature("sin"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sin) },
+    FSignature("cos"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::cos) },
+    FSignature("tan"         , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::tan) },
+    FSignature("atan"        , true, listOf(FParam("rads", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::atan) },
+    FSignature("ln"          , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::log) },
+    FSignature("log2"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, ::log2) },
+    FSignature("sqrt16"      , true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    FSignature("sqrt"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::sqrt) },
+    FSignature("rad"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toRadians) },
+    FSignature("deg"         , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArg(a, p, prg, Math::toDegrees) },
+    FSignature("round"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, ::round) },
+    FSignature("floor"       , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::floor) },
+    FSignature("ceil"        , true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT) { a, p, prg -> oneDoubleArgOutputWord(a, p, prg, Math::ceil) },
+    FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
+    FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
+    FSignature("lsb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
+    FSignature("msb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
+    FSignature("mkword"      , true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
+    FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UBYTE),
+    FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
+    FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
+    FSignature("pokemon"     , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
+    FSignature("pokew"       , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UWORD))), null),
+    FSignature("pop"         , false, listOf(FParam("target", ByteDatatypes)), null),
+    FSignature("popw"        , false, listOf(FParam("target", WordDatatypes)), null),
+    FSignature("push"        , false, listOf(FParam("value", ByteDatatypes)), null),
+    FSignature("pushw"       , false, listOf(FParam("value", WordDatatypes)), null),
+    FSignature("rsave"       , false, emptyList(), null),
+    FSignature("rsavex"      , false, emptyList(), null),
+    FSignature("rrestore"    , false, emptyList(), null),
+    FSignature("rrestorex"   , false, emptyList(), null),
+    FSignature("rnd"         , false, emptyList(), DataType.UBYTE),
+    FSignature("rndw"        , false, emptyList(), DataType.UWORD),
+    FSignature("rndf"        , false, emptyList(), DataType.FLOAT),
+    FSignature("memory"      , true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), DataType.UWORD),
+    FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
+    FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
+    FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
+    FSignature("syscall"     , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE))), DataType.UWORD, null),
+    FSignature("syscall1"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD))), DataType.UWORD, null),
+    FSignature("syscall2"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD))), DataType.UWORD, null),
+    FSignature("syscall3"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD)), FParam("arg3", arrayOf(DataType.UWORD))), DataType.UWORD, null),
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }
 
 
-private fun builtinMax(array: List<Double>): Double = array.maxByOrNull { it }!!
-
-private fun builtinMin(array: List<Double>): Double = array.minByOrNull { it }!!
-
-private fun builtinSum(array: List<Double>): Double = array.sumOf { it }
-
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
 
 private fun builtinAll(array: List<Double>): Double = if(array.all { it!=0.0 }) 1.0 else 0.0
 
-fun builtinFunctionReturnType(function: String, args: List<Expression>, program: Program): InferredTypes.InferredType {
-
+fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
     if(function in arrayOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
         return InferredTypes.InferredType.void()
 
-    fun datatypeFromIterableArg(arglist: Expression): DataType {
-        if(arglist is ArrayLiteral) {
-            val dt = arglist.value.map {it.inferType(program).getOr(DataType.UNDEFINED)}.toSet()
-            if(dt.any { it !in NumericDatatypes }) {
-                throw FatalAstException("fuction $function only accepts array of numeric values")
-            }
-            if(DataType.FLOAT in dt) return DataType.FLOAT
-            if(DataType.UWORD in dt) return DataType.UWORD
-            if(DataType.WORD in dt) return DataType.WORD
-            if(DataType.BYTE in dt) return DataType.BYTE
-            return DataType.UBYTE
-        }
-        if(arglist is IdentifierReference) {
-            val idt = arglist.inferType(program)
-            return when(val dt = idt.getOrElse { throw FatalAstException("unknown dt") }) {
-                DataType.STR, in NumericDatatypes -> dt
-                in ArrayDatatypes -> ArrayToElementTypes.getValue(dt)
-                else -> throw FatalAstException("function '$function' requires one argument which is an iterable")
-            }
-        }
-        throw FatalAstException("function '$function' requires one argument which is an iterable")
-    }
-
     val func = BuiltinFunctions.getValue(function)
-    if(func.returnType!=null)
-        return InferredTypes.knownFor(func.returnType)
-    if(!func.hasReturn)
+    if(func.returnType==null)
         return InferredTypes.InferredType.void()
-
-    // function has return values, but the return type depends on the arguments
-    if(args.isEmpty())
-        return InferredTypes.InferredType.unknown()
-    return when (function) {
-        "abs" -> {
-            val dt = args.single().inferType(program)
-            return if(dt.isNumeric)
-                dt
-            else
-                InferredTypes.InferredType.unknown()
-        }
-        "max", "min" -> {
-            when(val dt = datatypeFromIterableArg(args.single())) {
-                DataType.STR -> InferredTypes.knownFor(DataType.UBYTE)
-                in NumericDatatypes -> InferredTypes.knownFor(dt)
-                in ArrayDatatypes -> InferredTypes.knownFor(ArrayToElementTypes.getValue(dt))
-                else -> InferredTypes.unknown()
-            }
-        }
-        "sum" -> {
-            when(datatypeFromIterableArg(args.single())) {
-                DataType.UBYTE, DataType.UWORD -> InferredTypes.knownFor(DataType.UWORD)
-                DataType.BYTE, DataType.WORD -> InferredTypes.knownFor(DataType.WORD)
-                DataType.FLOAT -> InferredTypes.knownFor(DataType.FLOAT)
-                DataType.ARRAY_UB, DataType.ARRAY_UW -> InferredTypes.knownFor(DataType.UWORD)
-                DataType.ARRAY_B, DataType.ARRAY_W -> InferredTypes.knownFor(DataType.WORD)
-                DataType.ARRAY_F -> InferredTypes.knownFor(DataType.FLOAT)
-                DataType.STR -> InferredTypes.knownFor(DataType.UWORD)
-                else -> InferredTypes.unknown()
-            }
-        }
-        "len" -> {
-            when(args.single().inferType(program).getOr(DataType.UNDEFINED)) {
-                in ArrayDatatypes -> {
-                    val value = args.single() as? ArrayLiteral
-                    if(value!=null) {
-                        return if(value.value.size<256) InferredTypes.knownFor(DataType.UBYTE) else InferredTypes.knownFor(DataType.UWORD)
-                    } else {
-                        val targetVar = (args.single() as? IdentifierReference)?.targetVarDecl(program)
-                        if (targetVar?.isArray == true) {
-                            val length = targetVar.arraysize?.constIndex()
-                            if(length!=null)
-                                return if(length<256) InferredTypes.knownFor(DataType.UBYTE) else InferredTypes.knownFor(DataType.UWORD)
-                        }
-                    }
-                    return InferredTypes.knownFor(DataType.UWORD)
-                }
-                DataType.STR -> return InferredTypes.knownFor(DataType.UBYTE)
-                else -> InferredTypes.unknown()
-            }
-        }
-        else -> return InferredTypes.unknown()
-    }
+    return InferredTypes.knownFor(func.returnType)
 }
 
 

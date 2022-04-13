@@ -63,7 +63,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         return if(isStatement) {
             DataType.UNDEFINED
         } else {
-            builtinFunctionReturnType(func.name, argExpressions, program).getOrElse { throw AssemblyError("unknown dt") }
+            builtinFunctionReturnType(func.name).getOrElse { throw AssemblyError("unknown dt") }
         }
     }
 
@@ -82,8 +82,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "mkword" -> funcMkword(fcall, resultToStack, resultRegister)
             "abs" -> funcAbs(fcall, func, resultToStack, resultRegister, sscope)
             "swap" -> funcSwap(fcall)
-            "min", "max" -> funcMinMax(fcall, func, resultToStack, resultRegister, sscope)
-            "sum" -> funcSum(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
             "sin", "cos", "tan", "atan",
@@ -712,92 +710,15 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             }
         } else {
             when (dt.getOr(DataType.UNDEFINED)) {
-                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
-                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_A")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_A")
+                DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A |  ldy  #0")
+                DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_A |  ldy  #0")
+                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_into_A |  ldy  #0")
                 else -> throw AssemblyError("weird type $dt")
             }
             assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, program, asmgen), CpuRegister.A)
         }
     }
 
-    private fun funcMinMax(fcall: IFunctionCall, function: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
-        outputAddressAndLenghtOfArray(fcall.args[0])
-        val dt = fcall.args.single().inferType(program)
-        if(resultToStack) {
-            when (dt.getOr(DataType.UNDEFINED)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_stack")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_${function.name}_b_stack")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_stack")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${function.name}_w_stack")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${function.name}_f_stack")
-                else -> throw AssemblyError("weird type $dt")
-            }
-        } else {
-            when (dt.getOr(DataType.UNDEFINED)) {
-                DataType.ARRAY_UB, DataType.STR -> {
-                    asmgen.out("  jsr  prog8_lib.func_${function.name}_ub_into_A")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, program, asmgen), CpuRegister.A)
-                }
-                DataType.ARRAY_B -> {
-                    asmgen.out("  jsr  prog8_lib.func_${function.name}_b_into_A")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, program, asmgen), CpuRegister.A)
-                }
-                DataType.ARRAY_UW -> {
-                    asmgen.out("  jsr  prog8_lib.func_${function.name}_uw_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_W -> {
-                    asmgen.out("  jsr  prog8_lib.func_${function.name}_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_F -> {
-                    asmgen.out("  jsr  floats.func_${function.name}_f_fac1")
-                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, scope, program, asmgen))
-                }
-                else -> throw AssemblyError("weird type $dt")
-            }
-        }
-    }
-
-    private fun funcSum(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
-        outputAddressAndLenghtOfArray(fcall.args[0])
-        val dt = fcall.args.single().inferType(program)
-        if(resultToStack) {
-            when (dt.getOr(DataType.UNDEFINED)) {
-                DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_sum_ub_stack")
-                DataType.ARRAY_B -> asmgen.out("  jsr  prog8_lib.func_sum_b_stack")
-                DataType.ARRAY_UW -> asmgen.out("  jsr  prog8_lib.func_sum_uw_stack")
-                DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_sum_w_stack")
-                DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_sum_f_stack")
-                else -> throw AssemblyError("weird type $dt")
-            }
-        } else {
-            when (dt.getOr(DataType.UNDEFINED)) {
-                DataType.ARRAY_UB, DataType.STR -> {
-                    asmgen.out("  jsr  prog8_lib.func_sum_ub_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_B -> {
-                    asmgen.out("  jsr  prog8_lib.func_sum_b_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_UW -> {
-                    asmgen.out("  jsr  prog8_lib.func_sum_uw_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_W -> {
-                    asmgen.out("  jsr  prog8_lib.func_sum_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.ARRAY_F -> {
-                    asmgen.out("  jsr  floats.func_sum_f_fac1")
-                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, scope, program, asmgen))
-                }
-                else -> throw AssemblyError("weird type $dt")
-            }
-        }
-    }
 
     private fun funcSwap(fcall: IFunctionCall) {
         val first = fcall.args[0]

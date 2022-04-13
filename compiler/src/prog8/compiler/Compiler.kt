@@ -195,8 +195,8 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
-    override fun constValue(name: String, args: List<Expression>, position: Position): NumericLiteral? {
-        val func = BuiltinFunctions[name]
+    override fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? {
+        val func = BuiltinFunctions[funcName]
         if(func!=null) {
             val exprfunc = func.constExpressionFunc
             if(exprfunc!=null) {
@@ -213,8 +213,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         }
         return null
     }
-    override fun returnType(name: String, args: MutableList<Expression>) =
-        builtinFunctionReturnType(name, args, program)
+    override fun returnType(funcName: String) = builtinFunctionReturnType(funcName)
 }
 
 fun parseImports(filepath: Path,

@@ -16,7 +16,6 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[0].name shouldBe "value"
         func.parameters[0].possibleDatatypes shouldBe NumericDatatypes
         func.pure shouldBe true
-        func.hasReturn shouldBe true
         func.returnType shouldBe DataType.BYTE
 
         val conv = func.callConvention(listOf(DataType.UBYTE))
@@ -34,7 +33,6 @@ class TestBuiltinFunctions: FunSpec({
         func.name shouldBe "rnd"
         func.parameters.size shouldBe 0
         func.pure shouldBe false
-        func.hasReturn shouldBe true
         func.returnType shouldBe DataType.UBYTE
 
         val conv = func.callConvention(emptyList())
@@ -53,7 +51,6 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[1].name shouldBe "value"
         func.parameters[1].possibleDatatypes shouldBe arrayOf(DataType.UBYTE)
         func.pure shouldBe false
-        func.hasReturn shouldBe false
         func.returnType shouldBe null
 
         val conv = func.callConvention(listOf(DataType.UWORD, DataType.UBYTE))
@@ -67,26 +64,6 @@ class TestBuiltinFunctions: FunSpec({
         conv.returns.dt shouldBe null
         conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe null
-    }
-
-    test("func with variable return type") {
-        val func = BuiltinFunctions.getValue("abs")
-        func.name shouldBe "abs"
-        func.parameters.size shouldBe 1
-        func.parameters[0].name shouldBe "value"
-        func.parameters[0].possibleDatatypes.toSet() shouldBe NumericDatatypes.toSet()
-        func.pure shouldBe true
-        func.hasReturn shouldBe true
-        func.returnType shouldBe null
-
-        val conv = func.callConvention(listOf(DataType.UWORD))
-        conv.params.size shouldBe 1
-        conv.params[0].dt shouldBe DataType.UWORD
-        conv.params[0].reg shouldBe RegisterOrPair.AY
-        conv.params[0].variable shouldBe false
-        conv.returns.dt shouldBe DataType.UWORD
-        conv.returns.floatFac1 shouldBe false
-        conv.returns.reg shouldBe RegisterOrPair.AY
     }
 })
 

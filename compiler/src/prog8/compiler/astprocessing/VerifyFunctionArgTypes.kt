@@ -114,12 +114,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
     }
 
     override fun visit(pipe: PipeExpression) {
-        processPipe(pipe.source, pipe.segments, pipe)
+        processPipe(pipe.source, pipe.segments)
         if(errors.noErrors()) {
             val last = (pipe.segments.last() as IFunctionCall).target
             when (val target = last.targetStatement(program)!!) {
                 is BuiltinFunctionPlaceholder -> {
-                    if (!BuiltinFunctions.getValue(target.name).hasReturn)
+                    if (BuiltinFunctions.getValue(target.name).returnType==null)
                         errors.err("invalid pipe expression; last term doesn't return a value", last.position)
                 }
                 is Subroutine -> {
@@ -135,13 +135,13 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
     }
 
     override fun visit(pipe: Pipe) {
-        processPipe(pipe.source, pipe.segments, pipe)
+        processPipe(pipe.source, pipe.segments)
         if(errors.noErrors()) {
             super.visit(pipe)
         }
     }
 
-    private fun processPipe(source: Expression, segments: List<Expression>, scope: Node) {
+    private fun processPipe(source: Expression, segments: List<Expression>) {
 
         val sourceArg = (source as? IFunctionCall)?.args?.firstOrNull()
         if(sourceArg!=null && segments.any { (it as IFunctionCall).args.firstOrNull() === sourceArg})
@@ -160,7 +160,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                         val func = BuiltinFunctions.getValue(target.name)
                         if(func.parameters.size!=1)
                             errors.err("can only use unary function", funccall.position)
-                        else if(!func.hasReturn && funccall !== segments.last())
+                        else if(func.returnType==null && funccall !== segments.last())
                             errors.err("function must return a single value", funccall.position)
 
                         val paramDts = func.parameters.firstOrNull()?.possibleDatatypes
@@ -170,8 +170,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                         if(errors.noErrors()) {
                             // type can depend on the argument(s) of the function. For now, we only deal with unary functions,
                             // so we know there must be a single argument. Take its type from the previous expression in the pipe chain.
-                            val zero = defaultZero(valueDt, funccall.position)
-                            valueDt = builtinFunctionReturnType(func.name, listOf(zero), program).getOrElse { DataType.UNDEFINED }
+                            valueDt = builtinFunctionReturnType(func.name).getOrElse { DataType.UNDEFINED }
                         }
                     }
                     is Subroutine -> {

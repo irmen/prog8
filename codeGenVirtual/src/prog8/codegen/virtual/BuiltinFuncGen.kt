@@ -13,9 +13,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         return when(call.name) {
-            "max" -> funcMax(call, resultRegister)
-            "min" -> funcMin(call, resultRegister)
-            "sum" -> funcSum(call, resultRegister)
             "any" -> funcAny(call, resultRegister)
             "all" -> funcAll(call, resultRegister)
             "abs" -> TODO("abs once we can compare plus minus")
@@ -71,28 +68,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         }
     }
 
-    private fun funcSum(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
-        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
-        val syscall =
-            when(array.dt) {
-                DataType.ARRAY_UB,
-                DataType.ARRAY_B -> Syscall.SUM_BYTE
-                DataType.ARRAY_UW,
-                DataType.ARRAY_W -> Syscall.SUM_WORD
-                DataType.ARRAY_F -> TODO("float sum")
-                else -> throw IllegalArgumentException("weird type")
-            }
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
-        return code
-    }
-
     private fun funcAny(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val arrayName = call.args[0] as PtIdentifier
         val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
@@ -126,50 +101,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 DataType.ARRAY_UW,
                 DataType.ARRAY_W -> Syscall.ALL_WORD
                 DataType.ARRAY_F -> TODO("float all")
-                else -> throw IllegalArgumentException("weird type")
-            }
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
-        return code
-    }
-
-    private fun funcMax(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
-        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
-        val syscall =
-            when(array.dt) {
-                DataType.ARRAY_UB -> Syscall.MAX_UBYTE
-                DataType.ARRAY_B -> Syscall.MAX_BYTE
-                DataType.ARRAY_UW -> Syscall.MAX_UWORD
-                DataType.ARRAY_W -> Syscall.MAX_WORD
-                DataType.ARRAY_F -> TODO("float max")
-                else -> throw IllegalArgumentException("weird type")
-            }
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
-        return code
-    }
-
-    private fun funcMin(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
-        val elementDt: VmDataType = codeGen.vmType(ArrayToElementTypes.getValue(array.dt))
-        val syscall =
-            when(array.dt) {
-                DataType.ARRAY_UB -> Syscall.MIN_UBYTE
-                DataType.ARRAY_B -> Syscall.MIN_BYTE
-                DataType.ARRAY_UW -> Syscall.MIN_UWORD
-                DataType.ARRAY_W -> Syscall.MIN_WORD
-                DataType.ARRAY_F -> TODO("float min")
                 else -> throw IllegalArgumentException("weird type")
             }
         val code = VmCodeChunk()

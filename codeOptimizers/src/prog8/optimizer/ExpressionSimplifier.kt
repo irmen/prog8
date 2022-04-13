@@ -267,6 +267,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         if(functionCallExpr.target.nameInSource == listOf("lsb")) {
+            if(functionCallExpr.args.isEmpty())
+                return noModifications
             val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
@@ -283,6 +285,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
         else if(functionCallExpr.target.nameInSource == listOf("msb")) {
+            if(functionCallExpr.args.isEmpty())
+                return noModifications
             val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
