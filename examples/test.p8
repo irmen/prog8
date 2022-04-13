@@ -6,7 +6,6 @@
 
 main {
     sub start() {
-
         uword qq = 999 as ubyte |> abs() |> abs()
         txt.print_uw(qq)
         txt.nl()

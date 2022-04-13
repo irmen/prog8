@@ -1103,9 +1103,15 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    override fun visit(pipe: PipeExpression) = process(pipe)
+    override fun visit(pipe: PipeExpression) {
+        process(pipe)
+        super.visit(pipe)
+    }
 
-    override fun visit(pipe: Pipe) = process(pipe)
+    override fun visit(pipe: Pipe) {
+        process(pipe)
+        super.visit(pipe)
+    }
 
     private fun process(pipe: IPipe) {
         if(pipe.source in pipe.segments)
