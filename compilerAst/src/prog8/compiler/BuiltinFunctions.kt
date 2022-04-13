@@ -93,7 +93,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
     // cmp returns a status in the carry flag, but not a proper return value
     FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
-    FSignature("abs"         , true, listOf(FParam("value", NumericDatatypes)), DataType.UWORD, ::builtinAbs),
+    FSignature("abs"         , true, listOf(FParam("value", IntegerDatatypes)), DataType.UWORD, ::builtinAbs),
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     // normal functions follow:
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
@@ -203,15 +203,14 @@ private fun collectionArg(args: List<Expression>, position: Position, program: P
 }
 
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
-    // 1 arg, type = float or int, result type= isSameAs as argument type
+    // 1 arg, type = int, result type= uword
     if(args.size!=1)
-        throw SyntaxError("abs requires one numeric argument", position)
+        throw SyntaxError("abs requires one integer argument", position)
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return when (constval.type) {
         in IntegerDatatypes -> numericLiteral(abs(constval.number.toInt()), args[0].position)
-        DataType.FLOAT -> numericLiteral(abs(constval.number), args[0].position)
-        else -> throw SyntaxError("abs requires one numeric argument", position)
+        else -> throw SyntaxError("abs requires one integer argument", position)
     }
 }
 

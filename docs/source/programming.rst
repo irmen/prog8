@@ -736,7 +736,7 @@ Math
 ^^^^
 
 abs(x)
-    Absolute value.
+    Absolute value of an integer. For floating point numbers, use ``floats.fabs()`` instead.
 
 atan(x)
     Arctangent.

@@ -7,8 +7,8 @@
 main {
     sub start() {
 
-        ubyte qq = 99 as ubyte |> abs() |> abs()
-        txt.print_ub(qq)
+        uword qq = 999 as ubyte |> abs() |> abs()
+        txt.print_uw(qq)
         txt.nl()
 
 ;        uword other = $fe4a

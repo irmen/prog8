@@ -200,6 +200,18 @@ sub pow(float value, float power) -> float {
     }}
 }
 
+sub fabs(float value) -> float {
+    %asm {{
+        phx
+        lda  #<value
+        ldy  #>value
+        jsr  MOVFM
+        jsr  ABS
+        plx
+        rts
+    }}
+}
+
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"
 

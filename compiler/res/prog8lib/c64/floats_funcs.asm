@@ -1,19 +1,6 @@
 ; --- floating point builtin functions
 
 
-abs_f_stack	.proc
-		; -- push abs(AY) on stack
-		jsr  floats.MOVFM
-		jsr  floats.ABS
-		jmp  push_fac1
-		.pend
-
-abs_f_fac1	.proc
-		; -- FAC1 = abs(AY)
-		jsr  floats.MOVFM
-		jmp  floats.ABS
-		.pend
-
 func_atan_stack	.proc
 		jsr  func_atan_fac1
 		jmp  push_fac1

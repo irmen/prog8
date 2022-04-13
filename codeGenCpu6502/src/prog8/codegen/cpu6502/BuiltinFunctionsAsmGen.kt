@@ -1146,7 +1146,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             when (dt) {
                 in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
                 in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_stack")
-                DataType.FLOAT -> asmgen.out("  jsr  floats.abs_f_stack")
                 else -> throw AssemblyError("weird type")
             }
         } else {
@@ -1158,10 +1157,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 in WordDatatypes -> {
                     asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
                     assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
-                DataType.FLOAT -> {
-                    asmgen.out("  jsr  floats.abs_f_fac1")
-                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, scope, program, asmgen))
                 }
                 else -> throw AssemblyError("weird type")
             }

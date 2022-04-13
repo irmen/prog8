@@ -192,7 +192,8 @@ Provides string manipulation routines.
 floats
 ------
 Provides definitions for the ROM/kernal subroutines and utility routines dealing with floating
-point variables.  This includes ``print_f``, the routine used to print floating point numbers.
+point variables.  This includes ``print_f``, the routine used to print floating point numbers,
+``fabs`` to get the absolute value of a floating point number, and some others.
 
 
 graphics

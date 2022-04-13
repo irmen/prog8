@@ -1265,7 +1265,7 @@ internal class AssignmentAsmGen(private val program: Program,
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> {
                 if (target.register!! != RegisterOrPair.FAC1)
-                    throw AssemblyError("can't assign Fac1 float to another fac register")
+                    throw AssemblyError("can't assign Fac1 float to another register")
             }
             TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_fac1")
         }
