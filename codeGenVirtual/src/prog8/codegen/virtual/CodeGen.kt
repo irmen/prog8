@@ -370,10 +370,10 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
+    internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
     internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
-        require(factor>=0)
+        // TODO support floating-point factors
         val code = VmCodeChunk()
         if(factor==1)
             return code
@@ -386,7 +386,7 @@ class CodeGen(internal val program: PtProgram,
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += VmCodeInstruction(Opcode.LSLM, dt, reg1=reg, reg2=reg, reg3=pow2reg)
+            code += VmCodeInstruction(Opcode.LSLX, dt, reg1=reg, reg2=reg, reg3=pow2reg)
         } else {
             if (factor == 0) {
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
@@ -395,6 +395,34 @@ class CodeGen(internal val program: PtProgram,
                 val factorReg = vmRegisters.nextFree()
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
                 code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=reg, reg3=factorReg)
+            }
+        }
+        return code
+    }
+
+    internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
+        // TODO support floating-point factors
+        val code = VmCodeChunk()
+        if(factor==1)
+            return code
+        val pow2 = powersOfTwo.indexOf(factor)
+        if(pow2==1) {
+            // just shift 1 bit
+            code += VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
+        }
+        else if(pow2>=1) {
+            // just shift multiple bits
+            val pow2reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
+            code += VmCodeInstruction(Opcode.LSRX, dt, reg1=reg, reg2=reg, reg3=pow2reg)
+        } else {
+            if (factor == 0) {
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
+            }
+            else {
+                val factorReg = vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
+                code += VmCodeInstruction(Opcode.DIV, dt, reg1=reg, reg2=reg, reg3=factorReg)
             }
         }
         return code

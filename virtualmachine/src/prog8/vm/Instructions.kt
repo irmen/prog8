@@ -120,9 +120,9 @@ All have type b or w.
 and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsrm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
-asrm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
-lslm        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
+lsrx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
+asrx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
+lslx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
@@ -213,9 +213,9 @@ enum class Opcode {
     AND,
     OR,
     XOR,
-    ASRM,
-    LSRM,
-    LSLM,
+    ASRX,
+    LSRX,
+    LSLX,
     ASR,
     LSR,
     LSL,
@@ -382,9 +382,9 @@ val instructionFormats = mutableMapOf(
         Opcode.AND to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.OR to         InstructionFormat(BW, true,  true,  true,  false),
         Opcode.XOR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ASRM to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSRM to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSLM to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.ASRX to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.LSRX to       InstructionFormat(BW, true,  true,  true,  false),
+        Opcode.LSLX to       InstructionFormat(BW, true,  true,  true,  false),
         Opcode.ASR to        InstructionFormat(BW, true,  false, false, false),
         Opcode.LSR to        InstructionFormat(BW, true,  false, false, false),
         Opcode.LSL to        InstructionFormat(BW, true,  false, false, false),
