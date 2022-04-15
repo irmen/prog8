@@ -18,7 +18,7 @@ import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.cartesianProduct
+import prog8tests.helpers.Combinations
 import prog8tests.helpers.compileText
 
 
@@ -93,7 +93,7 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     context("floatArrayInitializerWithRange") {
-        val combos = cartesianProduct(
+        val combos = Combinations.cartesianProduct(
             listOf("", "42", "41"),                 // sizeInDecl
             listOf("%import floats", ""),           // optEnableFloats
             listOf(Cx16Target(), C64Target()),          // platform

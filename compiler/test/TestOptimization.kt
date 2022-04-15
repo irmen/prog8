@@ -298,7 +298,7 @@ class TestOptimization: FunSpec({
             floats = false,
             noSysInit = true,
             compTarget = C64Target(),
-            loadAddress = 0u, outputDir= outputDir)
+            loadAddress = 0u, outputDir= Helpers.outputDir)
         result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
 
         // assignment is now split into:

@@ -4,6 +4,7 @@ import com.github.michaelbull.result.*
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
+import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.code.core.IErrorReporter
@@ -107,6 +108,18 @@ class ModuleImporter(private val program: Program,
             )
 
         removeDirectivesFromImportedModule(importedModule)
+
+        // modules can contain blocks with "merge" option.
+        // their content has to be merged into already existing block with the same name.
+        val blocks = importedModule.statements.filterIsInstance<Block>()
+        for(block in blocks) {
+            if("merge" in block.options()) {
+                val existingBlock = program.allBlocks.first { it.name==block.name}
+                existingBlock.statements.addAll(block.statements.filter { it !is Directive})
+                importedModule.statements.remove(block)
+            }
+        }
+
         return importedModule
     }
 

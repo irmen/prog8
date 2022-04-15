@@ -22,7 +22,7 @@ class TestSymbolTable: FunSpec({
     test("symboltable flatten") {
         val st = makeSt()
         st.flat[listOf("zzzzz")] shouldBe null
-        st.flat.getValue(listOf("sin")).type shouldBe StNodeType.BUILTINFUNC
+        st.flat.getValue(listOf("msb")).type shouldBe StNodeType.BUILTINFUNC
         st.flat.getValue(listOf("block2")).type shouldBe StNodeType.BLOCK
         st.flat.getValue(listOf("block2", "sub2", "subsub", "label")).type shouldBe StNodeType.LABEL
         st.flat[listOf("block2", "sub2", "subsub", "label", "zzzz")] shouldBe null
@@ -37,8 +37,8 @@ class TestSymbolTable: FunSpec({
         default = st.lookupOrElse(listOf("undefined")) { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
 
-        val sinfunc = st.lookupOrElse("sin") { fail("sin must be found") }
-        sinfunc.type shouldBe StNodeType.BUILTINFUNC
+        val msbFunc = st.lookupOrElse("msb") { fail("msb must be found") }
+        msbFunc.type shouldBe StNodeType.BUILTINFUNC
 
         val variable = st.lookupOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
         variable.type shouldBe StNodeType.STATICVAR
@@ -92,7 +92,7 @@ private fun makeSt(): SymbolTable {
     sub221.add(StNode("label", StNodeType.LABEL, Position.DUMMY))
     sub22.add(sub221)
 
-    val builtinfunc = StNode("sin", StNodeType.BUILTINFUNC, Position.DUMMY)
+    val builtinfunc = StNode("msb", StNodeType.BUILTINFUNC, Position.DUMMY)
     st.add(block1)
     st.add(block2)
     st.add(builtinfunc)

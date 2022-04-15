@@ -12,6 +12,8 @@ For next release
   Inlined subroutines cannot contain further nested subroutines!
   Once this works, look for library subroutines that should be inlined.
 - vm: add support for status bits, status-branch instructions, and cmp() and abs() functions.
+- floats: remove all floating point builtin functions and move them to the floats module instead,
+  note: first try to move only sin and cos and see if the various examples still work!
 
 ...
 

@@ -121,6 +121,7 @@ Directives
       Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)
     - ``align_word`` (in a block) will make the assembler align the start address of this block on a word boundary in memory (so, an even memory address).
     - ``align_page`` (in a block) will make the assembler align the start address of this block on a page boundary in memory (so, the LSB of the address is 0).
+    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios.
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
