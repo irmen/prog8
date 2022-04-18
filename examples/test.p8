@@ -7,24 +7,40 @@
 main {
     sub start() {
 
+        ubyte ub = 234
         byte v1 = -10
         byte v2 = 20
+        uword w3
 
-        cmp(v1,v2)
-        ;sys.clear_carry()
-        if_cc
-            txt.print("cc\n")
-        if_cs
-            txt.print("cs\n")
+        byte v3 = abs(v1) as byte
+        txt.print_b(v3)
+        txt.spc()
+        v3 = abs(v2) as byte
+        txt.print_b(v3)
+        txt.spc()
+        w3 = abs(v1)
+        txt.print_uw(w3)
+        txt.spc()
+        w3 = abs(v2)
+        txt.print_uw(w3)
+        txt.spc()
+        w3 = abs(ub)
+        txt.print_uw(w3)
+        txt.nl()
 
-;        uword ww = 100
-;        uword vv
-;        vv = ww+1
-;        txt.print_uw(vv)
-;        txt.nl()
-;        vv = ww * 8
-;        txt.print_uw(vv)
-;        txt.nl()
+        txt.print_uw(abs(v1))
+        txt.spc()
+        txt.print_uw(abs(v2))
+        txt.spc()
+        txt.print_uw(abs(ub))
+        txt.nl()
+
+        word sw1 = -12345
+        w3 = abs(sw1)
+        txt.print_uw(w3)
+        txt.spc()
+        txt.print_uw(abs(sw1))
+        txt.nl()
 
 ;        ; a "pixelshader":
 ;        void syscall1(8, 0)      ; enable lo res creen

@@ -85,15 +85,17 @@ func_all_w_stack	.proc
 		.pend
 
 abs_b_stack	.proc
-	; -- push abs(A) on stack (as byte)
+	; -- push abs(A) on stack (as unsigned word)
 		jsr  abs_b_into_A
 		sta  P8ESTACK_LO,x
+		stz  p8ESTACK_HI,x
 		dex
 		rts
 		.pend
 
-abs_b_into_A	.proc
-	; -- A = abs(A)
+abs_b_into_AY	.proc
+	; -- AY = abs(A)  (abs always returns unsigned word)
+		ldy  #0
 		cmp  #0
 		bmi  +
 		rts

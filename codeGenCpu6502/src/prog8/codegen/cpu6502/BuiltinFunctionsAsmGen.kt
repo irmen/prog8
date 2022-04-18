@@ -1144,22 +1144,21 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val dt = fcall.args.single().inferType(program).getOr(DataType.UNDEFINED)
         if(resultToStack) {
             when (dt) {
-                in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
-                in WordDatatypes -> asmgen.out("  jsr  prog8_lib.abs_w_stack")
+                DataType.UBYTE -> asmgen.out("  ldy  #0")
+                DataType.BYTE -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
+                DataType.UWORD -> {}
+                DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_stack")
                 else -> throw AssemblyError("weird type")
             }
         } else {
             when (dt) {
-                in ByteDatatypes -> {
-                    asmgen.out("  jsr  prog8_lib.abs_b_into_A")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, program, asmgen), CpuRegister.A)
-                }
-                in WordDatatypes -> {
-                    asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
-                }
+                DataType.UBYTE -> asmgen.out("  ldy  #0")
+                DataType.BYTE -> asmgen.out("  jsr  prog8_lib.abs_b_into_AY")
+                DataType.UWORD -> {}
+                DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
                 else -> throw AssemblyError("weird type")
             }
+            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
         }
     }
 

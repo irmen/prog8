@@ -15,7 +15,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         return when(call.name) {
             "any" -> funcAny(call, resultRegister)
             "all" -> funcAll(call, resultRegister)
-            "abs" -> TODO("abs once we can compare plus minus")
+            "abs" -> funcAbs(call, resultRegister)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call, resultRegister)
             "sin" -> TODO("floats not yet implemented")
@@ -119,6 +119,40 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         if(resultRegister!=0)
             code += VmCodeInstruction(Opcode.LOADR, elementDt, reg1=resultRegister, reg2=0)
+        return code
+    }
+
+    private fun funcAbs(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        val sourceDt = call.args.single().type
+        if(sourceDt!=DataType.UWORD) {
+            code += exprGen.translateExpression(call.args[0], resultRegister)
+            when (sourceDt) {
+                DataType.UBYTE -> {
+                    code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
+                }
+                DataType.BYTE -> {
+                    val andReg = codeGen.vmRegisters.nextFree()
+                    val notNegativeLabel = codeGen.createLabelName()
+                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=andReg, value=0x80)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=andReg, reg2=resultRegister, reg3=andReg)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=andReg, symbol = notNegativeLabel)
+                    code += VmCodeInstruction(Opcode.NEG, VmDataType.BYTE, reg1=resultRegister)
+                    code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
+                    code += VmCodeLabel(notNegativeLabel)
+                }
+                DataType.WORD -> {
+                    val andReg = codeGen.vmRegisters.nextFree()
+                    val notNegativeLabel = codeGen.createLabelName()
+                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=andReg, value=0x8000)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=andReg, reg2=resultRegister, reg3=andReg)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.WORD, reg1=andReg, symbol = notNegativeLabel)
+                    code += VmCodeInstruction(Opcode.NEG, VmDataType.WORD, reg1=resultRegister)
+                    code += VmCodeLabel(notNegativeLabel)
+                }
+                else -> throw AssemblyError("weird type")
+            }
+        }
         return code
     }
 
