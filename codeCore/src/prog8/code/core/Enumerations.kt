@@ -102,16 +102,16 @@ enum class Statusflag {
 enum class BranchCondition {
     CS,
     CC,
-    EQ,
+    EQ,     // EQ == Z
     Z,
-    NE,
+    NE,     // NE == NZ
     NZ,
+    MI,     // MI == NEG
+    NEG,
+    PL,     // PL == POS
+    POS,
     VS,
     VC,
-    MI,
-    NEG,
-    PL,
-    POS
 }
 
 

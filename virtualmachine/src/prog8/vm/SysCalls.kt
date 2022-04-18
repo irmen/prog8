@@ -41,6 +41,8 @@ SYSCALLS:
 32 = all_word array
 33 = reverse_bytes array
 34 = reverse_words array
+35 = set_carry status flag
+36 = clear_carry status flag
 */
 
 enum class Syscall {
@@ -78,7 +80,9 @@ enum class Syscall {
     ALL_BYTE,
     ALL_WORD,
     REVERSE_BYTES,
-    REVERSE_WORDS
+    REVERSE_WORDS,
+    SET_CARRY,
+    CLEAR_CARRY
 }
 
 object SysCalls {
@@ -302,6 +306,8 @@ object SysCalls {
                 else
                     vm.registers.setUB(0, 0u)
             }
+            Syscall.SET_CARRY -> vm.statusCarry = true
+            Syscall.CLEAR_CARRY -> vm.statusCarry = false
             else -> TODO("syscall ${call.name}")
         }
     }

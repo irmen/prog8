@@ -23,6 +23,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     var pc = 0
     var stepCount = 0
     var statusCarry = false
+    var statusZero = false
+    var statusNegative = false
 
     init {
         if(program.size>65536)
@@ -104,6 +106,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.RETURN -> InsRETURN()
             Opcode.BSTCC -> InsBSTCC(ins)
             Opcode.BSTCS -> InsBSTCS(ins)
+            Opcode.BSTEQ -> InsBSTEQ(ins)
+            Opcode.BSTNE -> InsBSTNE(ins)
+            Opcode.BSTNEG -> InsBSTNEG(ins)
+            Opcode.BSTPOS -> InsBSTPOS(ins)
             Opcode.BZ -> InsBZ(ins)
             Opcode.BNZ -> InsBNZ(ins)
             Opcode.BEQ -> InsBEQ(ins)
@@ -139,6 +145,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.MOD -> InsMOD(ins)
             Opcode.SQRT -> InsSQRT(ins)
             Opcode.SGN -> InsSGN(ins)
+            Opcode.CMP -> InsCMP(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
             Opcode.AND -> InsAND(ins)
@@ -348,6 +355,34 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsBSTCS(i: Instruction) {
         if(statusCarry)
+            pc = i.value!!
+        else
+            pc++
+    }
+
+    private fun InsBSTEQ(i: Instruction) {
+        if(statusZero)
+            pc = i.value!!
+        else
+            pc++
+    }
+
+    private fun InsBSTNE(i: Instruction) {
+        if(!statusZero)
+            pc = i.value!!
+        else
+            pc++
+    }
+
+    private fun InsBSTNEG(i: Instruction) {
+        if(statusNegative)
+            pc = i.value!!
+        else
+            pc++
+    }
+
+    private fun InsBSTPOS(i: Instruction) {
+        if(!statusNegative)
             pc = i.value!!
         else
             pc++
@@ -626,6 +661,35 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
+        }
+        pc++
+    }
+
+    private fun InsCMP(i: Instruction) {
+        val comparison: Int
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val reg1 = registers.getUB(i.reg1!!)
+                val reg2 = registers.getUB(i.reg2!!)
+                comparison = reg1.toInt() - reg2.toInt()
+                statusNegative = (comparison and 0x80)==0x80
+            }
+            VmDataType.WORD -> {
+                val reg1 = registers.getUW(i.reg1!!)
+                val reg2 = registers.getUW(i.reg2!!)
+                comparison = reg1.toInt() - reg2.toInt()
+                statusNegative = (comparison and 0x8000)==0x8000
+            }
+        }
+        if(comparison==0){
+            statusZero = true
+            statusCarry = true
+        } else if(comparison>0) {
+            statusZero = false
+            statusCarry = true
+        } else {
+            statusZero = false
+            statusCarry = false
         }
         pc++
     }

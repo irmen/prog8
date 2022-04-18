@@ -64,6 +64,10 @@ All have type b or w except the branches that only check status bits.
 
 bstcc                         location  - branch to location if Status bit Carry is Clear
 bstcs                         location  - branch to location if Status bit Carry is Set
+bsteq                         location  - branch to location if Status bit Zero is set
+bstne                         location  - branch to location if Status bit Zero is not set
+bstneg                        location  - branch to location if Status bit Negative is not set
+bstpos                        location  - branch to location if Status bit Negative is not set
 bz          reg1,             location  - branch to location if reg1 is zero
 bnz         reg1,             location  - branch to location if reg1 is not zero
 beq         reg1, reg2,       location  - jump to location in program given by location, if reg1 == reg2
@@ -109,6 +113,7 @@ div         reg1, reg2, reg3                - unsigned division reg1=reg2/reg3  
 mod         reg1, reg2, reg3                - remainder (modulo) of unsigned division reg1=reg2%reg3  note: division by zero yields max signed int $ff/$ffff
 sqrt        reg1, reg2                      - reg1 is the square root of reg2 (for .w and .b both , the result is a byte)
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
+cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
@@ -172,6 +177,10 @@ enum class Opcode {
 
     BSTCC,
     BSTCS,
+    BSTEQ,
+    BSTNE,
+    BSTNEG,
+    BSTPOS,
     BZ,
     BNZ,
     BEQ,
@@ -207,6 +216,7 @@ enum class Opcode {
     MOD,
     SQRT,
     SGN,
+    CMP,
     EXT,
     EXTS,
 
@@ -341,6 +351,10 @@ val instructionFormats = mutableMapOf(
 
         Opcode.BSTCC to      InstructionFormat(NN, false,  false,false, true ),
         Opcode.BSTCS to      InstructionFormat(NN, false,  false,false, true ),
+        Opcode.BSTEQ to      InstructionFormat(NN, false,  false,false, true ),
+        Opcode.BSTNE to      InstructionFormat(NN, false,  false,false, true ),
+        Opcode.BSTNEG to     InstructionFormat(NN, false,  false,false, true ),
+        Opcode.BSTPOS to     InstructionFormat(NN, false,  false,false, true ),
         Opcode.BZ to         InstructionFormat(BW, true,  false, false, true ),
         Opcode.BNZ to        InstructionFormat(BW, true,  false, false, true ),
         Opcode.BEQ to        InstructionFormat(BW, true,  true,  false, true ),
@@ -376,6 +390,7 @@ val instructionFormats = mutableMapOf(
         Opcode.MOD to        InstructionFormat(BW, true,  true,  true,  false),
         Opcode.SQRT to       InstructionFormat(BW, true,  true,  false, false),
         Opcode.SGN to        InstructionFormat(BW, true,  true,  false, false),
+        Opcode.CMP to        InstructionFormat(BW, true,  true,  false, false),
         Opcode.EXT to        InstructionFormat(BW, true,  false, false, false),
         Opcode.EXTS to       InstructionFormat(BW, true,  false, false, false),
 

@@ -110,16 +110,16 @@ class CodeGen(internal val program: PtProgram,
     private fun translate(branch: PtConditionalBranch): VmCodeChunk {
         val code = VmCodeChunk()
         val elseLabel = createLabelName()
-        when(branch.condition) {
-            BranchCondition.CS -> {
-                code += VmCodeInstruction(Opcode.BSTCC, symbol = elseLabel)
-            }
-            BranchCondition.CC -> {
-                code += VmCodeInstruction(Opcode.BSTCS, symbol = elseLabel)
-            }
-            else -> {
-                throw AssemblyError("conditional branch ${branch.condition} not supported in vm target due to lack of cpu flags ${branch.position}")
-            }
+        // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
+        code += when(branch.condition) {
+            BranchCondition.CS -> VmCodeInstruction(Opcode.BSTCC, symbol = elseLabel)
+            BranchCondition.CC -> VmCodeInstruction(Opcode.BSTCS, symbol = elseLabel)
+            BranchCondition.EQ, BranchCondition.Z -> VmCodeInstruction(Opcode.BSTNE, symbol = elseLabel)
+            BranchCondition.NE, BranchCondition.NZ -> VmCodeInstruction(Opcode.BSTEQ, symbol = elseLabel)
+            BranchCondition.MI, BranchCondition.NEG -> VmCodeInstruction(Opcode.BSTPOS, symbol = elseLabel)
+            BranchCondition.PL, BranchCondition.POS -> VmCodeInstruction(Opcode.BSTNEG, symbol = elseLabel)
+            BranchCondition.VC,
+            BranchCondition.VS -> throw AssemblyError("conditional branch ${branch.condition} not supported in vm target due to lack of cpu V flag ${branch.position}")
         }
         code += translateNode(branch.trueScope)
         if(branch.falseScope.children.isNotEmpty()) {

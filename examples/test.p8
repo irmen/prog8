@@ -7,6 +7,16 @@
 main {
     sub start() {
 
+        byte v1 = -10
+        byte v2 = 20
+
+        cmp(v1,v2)
+        ;sys.clear_carry()
+        if_cc
+            txt.print("cc\n")
+        if_cs
+            txt.print("cs\n")
+
 ;        uword ww = 100
 ;        uword vv
 ;        vv = ww+1
@@ -16,24 +26,24 @@ main {
 ;        txt.print_uw(vv)
 ;        txt.nl()
 
-        ; a "pixelshader":
-        void syscall1(8, 0)      ; enable lo res creen
-        ubyte shifter
-
-        ; pokemon(1,0)
-
-        repeat {
-            uword xx
-            uword yy = 0
-            repeat 240 {
-                xx = 0
-                repeat 320 {
-                    syscall3(10, xx, yy, xx*yy + shifter)   ; plot pixel
-                    xx++
-                }
-                yy++
-            }
-            shifter+=4
-        }
+;        ; a "pixelshader":
+;        void syscall1(8, 0)      ; enable lo res creen
+;        ubyte shifter
+;
+;        ; pokemon(1,0)
+;
+;        repeat {
+;            uword xx
+;            uword yy = 0
+;            repeat 240 {
+;                xx = 0
+;                repeat 320 {
+;                    syscall3(10, xx, yy, xx*yy + shifter)   ; plot pixel
+;                    xx++
+;                }
+;                yy++
+;            }
+;            shifter+=4
+;        }
     }
 }

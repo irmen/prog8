@@ -15,11 +15,37 @@ sys {
     ; 3 = print_s ; print 0-terminated string from memory
     ; 4 = print_u8 ; print unsigned int byte
     ; 5 = print_u16 ; print unsigned int word
-    ; 6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r65535.w
+    ; 6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r0.w
     ; 7 = sleep ; sleep amount of milliseconds
     ; 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
     ; 9 = gfx_clear   ; clear graphics window with shade in r0.b
     ; 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
+    ; 11 = rnd        ; random BYTE
+    ; 12 = rndw       ; random WORD
+    ; 13 = wait       ; wait certain amount of jiffies (1/60 sec)
+    ; 14 = waitvsync  ; wait on vsync
+    ; 15 = sort_ubyte array
+    ; 16 = sort_byte array
+    ; 17 = sort_uword array
+    ; 18 = sort_word array
+    ; 19 = max_ubyte array
+    ; 20 = max_byte array
+    ; 21 = max_uword array
+    ; 22 = max_word array
+    ; 23 = min_ubyte array
+    ; 24 = min_byte array
+    ; 25 = min_uword array
+    ; 26 = min_word array
+    ; 27 = sum_byte array
+    ; 28 = sum_word array
+    ; 29 = any_byte array
+    ; 30 = any_word array
+    ; 31 = all_byte array
+    ; 32 = all_word array
+    ; 33 = reverse_bytes array
+    ; 34 = reverse_words array
+    ; 35 = set_carry status flag
+    ; 36 = clear_carry status flag
 
     const ubyte SC_RESET = 0
     const ubyte SC_EXIT = 1
@@ -33,8 +59,11 @@ sys {
     const ubyte SC_GFX_CLEAR = 9
     const ubyte SC_GFX_PLOT = 10
     const ubyte SC_RND = 11
-    const ubyte SC_WAIT = 12
-    const ubyte SC_WAITVSYNC = 13
+    const ubyte SC_RNDW = 12
+    const ubyte SC_WAIT = 13
+    const ubyte SC_WAITVSYNC = 14
+    const ubyte SC_SET_CARRY = 35
+    const ubyte SC_CLEAR_CARRY = 36
 
 
     sub  reset_system()  {
@@ -77,6 +106,14 @@ sys {
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
         void syscall1(SC_EXIT, returnvalue)
+    }
+
+    sub clear_carry() {
+        void syscall(SC_CLEAR_CARRY)
+    }
+
+    sub set_carry() {
+        void syscall(SC_SET_CARRY)
     }
 }
 

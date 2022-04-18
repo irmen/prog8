@@ -16,7 +16,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "any" -> funcAny(call, resultRegister)
             "all" -> funcAll(call, resultRegister)
             "abs" -> TODO("abs once we can compare plus minus")
-            "cmp" -> TODO("cmp() can't be used on vm because no processor status bits implemented")
+            "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call, resultRegister)
             "sin" -> TODO("floats not yet implemented")
             "cos" -> TODO("floats not yet implemented")
@@ -66,6 +66,16 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "ror2" -> funcRolRor2(Opcode.ROR, call, resultRegister)
             else -> TODO("builtinfunc ${call.name}")
         }
+    }
+
+    private fun funcCmp(call: PtBuiltinFunctionCall): VmCodeChunk {
+        val code = VmCodeChunk()
+        val leftRegister = codeGen.vmRegisters.nextFree()
+        val rightRegister = codeGen.vmRegisters.nextFree()
+        code += exprGen.translateExpression(call.args[0], leftRegister)
+        code += exprGen.translateExpression(call.args[1], rightRegister)
+        code += VmCodeInstruction(Opcode.CMP, codeGen.vmType(call.args[0].type), reg1=leftRegister, reg2=rightRegister)
+        return code
     }
 
     private fun funcAny(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
