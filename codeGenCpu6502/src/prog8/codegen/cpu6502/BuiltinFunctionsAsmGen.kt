@@ -84,10 +84,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "swap" -> funcSwap(fcall)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
-            "sin", "cos", "tan", "atan",
-            "ln", "log2", "sqrt", "rad",
-            "deg", "round", "floor", "ceil",
-            "rndf" -> funcVariousFloatFuncs(fcall, func, resultToStack, resultRegister, sscope)
             "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
             "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
@@ -661,16 +657,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     private fun translateRolRorArrayArgs(arrayvar: IdentifierReference, indexer: ArrayIndex, operation: String, dt: Char) {
         asmgen.assignExpressionToVariable(AddressOf(arrayvar, arrayvar.position), "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
         asmgen.assignExpressionToVariable(indexer.indexExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
-    }
-
-    private fun funcVariousFloatFuncs(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
-        translateArguments(fcall.args, func, scope)
-        if(resultToStack)
-            asmgen.out("  jsr  floats.func_${func.name}_stack")
-        else {
-            asmgen.out("  jsr  floats.func_${func.name}_fac1")
-            assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, scope, program, asmgen))
-        }
     }
 
     private fun funcSgn(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {

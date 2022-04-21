@@ -50,13 +50,13 @@ main {
         gfx2.monochrome_stipple(false)
         float y_f
         for ww in -600 to 600 {
-            y_f = sin(ww as float / 60.0)*150
+            y_f = floats.sin(ww as float / 60.0)*150
             gfx2.plot(ww/2 + 320 as uword, (y_f + 240) as uword, 1)
         }
         gfx2.text(480, 100, 1, sc:"sin(x)")
 
         for ww in -300 to 300 {
-            y_f = cos(ww as float/30.0)*60 - (ww as float)/1.7
+            y_f = floats.cos(ww as float/30.0)*60 - (ww as float)/1.7
             gfx2.plot(ww + 320 as uword, (y_f + 240) as uword, 1)
         }
         gfx2.text(80, 420, 1, sc:"cos(x)+x")

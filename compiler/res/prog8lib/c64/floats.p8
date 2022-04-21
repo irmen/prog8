@@ -5,6 +5,7 @@
 ; indent format: TABS, size=8
 
 %option enable_floats
+%import floats_functions
 
 floats {
 	; ---- this block contains C-64 floating point related functions ----
@@ -91,7 +92,6 @@ romsub $e2b4 = TAN() clobbers(A,X,Y)                        ; fac1 = TAN(fac1)
 romsub $e30e = ATN() clobbers(A,X,Y)                        ; fac1 = ATN(fac1)
 
 
-
 asmsub  FREADS32() clobbers(A,X,Y)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
 	%asm {{
@@ -174,54 +174,6 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	}}
 }
 
-sub  print_f  (float value) {
-	; ---- prints the floating point value (without a newline).
-	%asm {{
-		stx  floats_store_reg
-		lda  #<value
-		ldy  #>value
-		jsr  MOVFM		; load float into fac1
-		jsr  FOUT		; fac1 to string in A/Y
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
-		ldy  #0
--		lda  (P8ZP_SCRATCH_W1),y
-		beq  +
-		jsr  c64.CHROUT
-		iny
-		bne  -
-+		ldx  floats_store_reg
-		rts
-	}}
-}
-
-sub pow(float value, float power) -> float {
-    %asm {{
-        phx
-        phy
-        lda  #<value
-        ldy  #>value
-        jsr  floats.CONUPK
-        lda  #<power
-        ldy  #>power
-        jsr  floats.FPWR
-        ply
-        plx
-        rts
-    }}
-}
-
-sub fabs(float value) -> float {
-    %asm {{
-        phx
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jsr  ABS
-        plx
-        rts
-    }}
-}
 
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

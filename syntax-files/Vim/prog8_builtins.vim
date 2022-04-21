@@ -7,9 +7,7 @@
 " Built-in functions
 
 " Math functions
-syn keyword prog8BuiltInFunc abs atan ceil cos deg floor
-syn keyword prog8BuiltInFunc ln log2 rad round sin sgn
-syn keyword prog8BuiltInFunc sqrt16 sqrt tan
+syn keyword prog8BuiltInFunc sgn sqrt16
 
 " Array functions
 syn keyword prog8BuiltInFunc any all len max min reverse sum sort

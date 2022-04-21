@@ -1,4 +1,4 @@
-<filetype binary="false" description="Prog8 source file" name="Prog8">
+<filetype binary="false" default_extension="p8" description="Prog8 source file" name="Prog8">
   <highlighting>
     <options>
       <option name="LINE_COMMENT" value=";" />
@@ -14,7 +14,7 @@
     <keywords keywords="&amp;;-&gt;;@;\$;and;as;asmsub;break;clobbers;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%import;%launcher;%option;%output;%zeropage;%zpreserved;iso:;petscii:;sc:" />
     <keywords3 keywords="@requirezp;@shared;@zp;byte;const;float;str;ubyte;uword;void;word" />
-    <keywords4 keywords="abs;acos;all;any;asin;atan;avg;callfar;callrom;ceil;cmp;cos;deg;floor;len;ln;log2;lsb;max;memory;min;mkword;msb;peek;peekw;poke;pokew;pop;popw;push;pushw;rad;reverse;rnd;rndf;rndw;rol;rol2;ror;ror2;round;rrestore;rrestorex;rsave;rsavex;sgn;sin;sizeof;sort;sqrt;sqrt16;sum;swap;tan;|&gt;" />
+    <keywords4 keywords="abs;all;any;avg;callfar;callrom;cmp;len;lsb;max;memory;min;mkword;msb;peek;peekw;poke;pokew;pop;popw;push;pushw;reverse;rnd;rndw;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;sgn;sizeof;sort;sqrt16;sum;swap;|&gt;" />
   </highlighting>
   <extensionMap>
     <mapping ext="p8" />

@@ -3,6 +3,7 @@
 ; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %option enable_floats
+%import floats_functions
 
 floats {
 	; ---- this block contains C-128 compatible floating point related functions ----
@@ -110,7 +111,6 @@ asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	}}
 }
 
-
 asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- signed 16 bit word in A/Y (lo/hi) to float in fac1
 	%asm {{
@@ -148,55 +148,6 @@ asmsub  FREADUY (ubyte value @Y) {
     %asm {{
         tya
         jmp  FLOAT
-    }}
-}
-
-sub  print_f  (float value) {
-	; ---- prints the floating point value (without a newline).
-	%asm {{
-		stx  P8ZP_SCRATCH_REG
-		lda  #<value
-		ldy  #>value
-		jsr  MOVFM		; load float into fac1
-		jsr  FOUT		; fac1 to string in A/Y
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
-		ldy  #0
--		lda  (P8ZP_SCRATCH_W1),y
-		beq  +
-		jsr  c64.CHROUT
-		iny
-		bne  -
-+		ldx  P8ZP_SCRATCH_REG
-		rts
-	}}
-}
-
-sub pow(float value, float power) -> float {
-    %asm {{
-        phx
-        phy
-        lda  #<value
-        ldy  #>value
-        jsr  floats.CONUPK
-        lda  #<power
-        ldy  #>power
-        jsr  floats.FPWR
-        ply
-        plx
-        rts
-    }}
-}
-
-sub fabs(float value) -> float {
-    %asm {{
-        phx
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jsr  ABS
-        plx
-        rts
     }}
 }
 

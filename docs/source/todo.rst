@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- %import inside a block/subroutine should give compilation error
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
@@ -11,8 +12,6 @@ For next release
   If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code size bloat.
   Inlined subroutines cannot contain further nested subroutines!
   Once this works, look for library subroutines that should be inlined.
-- floats: remove all floating point builtin functions and move them to the floats module instead,
-  note: first try to move only sin and cos and see if the various examples still work!
 
 ...
 

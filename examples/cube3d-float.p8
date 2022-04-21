@@ -46,12 +46,12 @@ main {
         ; rotate around origin (0,0,0)
 
         ; set up the 3d rotation matrix values
-        float cosa = cos(t)
-        float sina = sin(t)
-        float cosb = cos(t*0.33)
-        float sinb = sin(t*0.33)
-        float cosc = cos(t*0.78)
-        float sinc = sin(t*0.78)
+        float cosa = floats.cos(t)
+        float sina = floats.sin(t)
+        float cosb = floats.cos(t*0.33)
+        float sinb = floats.sin(t*0.33)
+        float cosc = floats.cos(t*0.78)
+        float sinc = floats.sin(t*0.78)
 
         float cosa_sinb = cosa*sinb
         float sina_sinb = sina*sinb

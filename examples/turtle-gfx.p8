@@ -65,8 +65,8 @@ turtle {
         float flen = length as float
         float sx = xpos
         float sy = ypos
-        xpos += flen * sin(angle)
-        ypos -= flen * cos(angle)
+        xpos += flen * floats.sin(angle)
+        ypos -= flen * floats.cos(angle)
         update_turtle_sprite()
         if pendown {
             graphics.line(sx as uword, sy as ubyte, xpos as uword, ypos as ubyte)
@@ -74,11 +74,11 @@ turtle {
     }
 
     sub rt(uword degrees) {
-        angle += rad(degrees as float)
+        angle += floats.rad(degrees as float)
     }
 
     sub lt(uword degrees) {
-        angle -= rad(degrees as float)
+        angle -= floats.rad(degrees as float)
     }
 
     sub pu() {
