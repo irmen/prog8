@@ -185,15 +185,7 @@ internal class AssignmentAsmGen(private val program: Program,
                                 assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                             }
                             DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                                // copy the actual string result into the target string variable
-                                asmgen.out("""
-                                            pha
-                                            lda  #<${assign.target.asmVarname}
-                                            sta  P8ZP_SCRATCH_W1
-                                            lda  #>${assign.target.asmVarname}
-                                            sta  P8ZP_SCRATCH_W1+1
-                                            pla
-                                            jsr  prog8_lib.strcpy""")
+                                throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
                             }
                             else -> throw AssemblyError("weird target dt")
                         }

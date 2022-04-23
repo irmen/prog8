@@ -267,7 +267,7 @@ inline asmsub  str2ubyte(str string @AY) clobbers(Y) -> ubyte @A {
 	}}
 }
 
-inline asmsub  str2byte(str string @AY) clobbers(Y) -> ubyte @A {
+inline asmsub  str2byte(str string @AY) clobbers(Y) -> byte @A {
 	; -- returns in A the signed byte value of the string number argument in AY
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)

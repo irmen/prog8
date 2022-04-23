@@ -81,6 +81,16 @@ sys {
         void syscall(SC_WAITVSYNC)
     }
 
+    sub internal_stringcopy(uword source, uword target) {
+        ; Called when the compiler wants to assign a string value to another string.
+        while @(source) {
+            @(target) = @(source)
+            source++
+            target++
+        }
+        @(target)=0
+    }
+
     sub memcopy(uword source, uword target, uword count)  {
         repeat count {
             @(target) = @(source)

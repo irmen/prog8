@@ -67,6 +67,17 @@ sys {
         }}
     }
 
+    asmsub internal_stringcopy(uword source @R0, uword target @AY) clobbers (A,Y) {
+        ; Called when the compiler wants to assign a string value to another string.
+        %asm {{
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  cx16.r0
+		ldy  cx16.r0+1
+		jmp  prog8_lib.strcpy
+        }}
+    }
+
     asmsub memcopy(uword source @R0, uword target @R1, uword count @AY) clobbers(A,X,Y) {
         ; note: only works for NON-OVERLAPPING memory regions!
         ; note: can't be inlined because is called from asm as well

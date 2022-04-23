@@ -316,6 +316,9 @@ internal class StatementReorderer(val program: Program,
             }
         }
 
+        if(valueType.isString && (targetType istype DataType.STR || targetType istype DataType.ARRAY_B || targetType istype DataType.ARRAY_UB))
+            return copyStringValue(assignment)
+
         return noModifications
     }
 
@@ -409,8 +412,26 @@ internal class StatementReorderer(val program: Program,
         return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
     }
 
+    private fun copyStringValue(assign: Assignment): List<IAstModification> {
+        val identifier = assign.target.identifier!!
+        val sourceIdent = assign.value as? IdentifierReference
+        val strcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "internal_stringcopy"), assign.position),
+            mutableListOf(
+                if(sourceIdent!=null)
+                    AddressOf(sourceIdent, assign.position)
+                else
+                    assign.value,
+                AddressOf(identifier, assign.position)
+            ),
+            true,
+            assign.position
+        )
+        return listOf(IAstModification.ReplaceNode(assign, strcopy, assign.parent))
+    }
+
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        val function = functionCallStatement.target.targetStatement(program)!!
+        val function = functionCallStatement.target.targetStatement(program)
+            ?: throw FatalAstException("no target for $functionCallStatement")
         checkUnusedReturnValues(functionCallStatement, function, program, errors)
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }

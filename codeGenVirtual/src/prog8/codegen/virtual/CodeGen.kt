@@ -568,6 +568,7 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(assignment: PtAssignment): VmCodeChunk {
         // TODO can in-place assignments be optimized more?
+        // note: assigning array and string values is done via an explicit memcopy/stringcopy function call.
         if(assignment.target.children.single() is PtMachineRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
         val code = VmCodeChunk()
@@ -607,7 +608,7 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
             } else {
                 val addressReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(assignment.value, addressReg)
+                code += expressionEval.translateExpression(memory.address, addressReg)
                 code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
             }
         }
