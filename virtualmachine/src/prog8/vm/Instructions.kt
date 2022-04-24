@@ -5,42 +5,37 @@ package prog8.vm
 Virtual machine:
 
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
+65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
-Status registers: Carry.
+Status registers: Carry, Zero, Negative.
 
-
-Instruction serialization format possibility:
-
-OPCODE:             1 byte
-TYPECODE:           1 byte
-REGISTER 1:         2 bytes
-REGISTER 2:         2 bytes
-REG3/MEMORY/VALUE:  2 bytes
-
-Instructions with Type come in variants 'b' and 'w' (omitting it in the instruction means 'b' by default)
-Currently NO support for 24 or 32 bits, and FLOATING POINT is not implemented yet either. FP would be
-a separate set of registers and instructions/routines anyway.
+Most instructions have an associated data type 'b','w','f'. (omitting it means 'b'/byte).
+Currently NO support for 24 or 32 bits integers.
+Floating point operations are just 'f' typed regular instructions, and additionally there are
+a few fp conversion instructions to
 
 *only* LOAD AND STORE instructions have a possible memory operand, all other instructions use only registers or immediate value.
 
 
+ TODO all floating point arithmethic functions as fp-instructions.
+
 LOAD/STORE
 ----------
-All have type b or w.
+All have type b or w or f.
 
 load        reg1,         value       - load immediate value into register
-loadm       reg1,         address     - load reg1 with value in memory address
-loadi       reg1, reg2                - load reg1 with value in memory indirect, memory pointed to by reg2
-loadx       reg1, reg2,   address     - load reg1 with value in memory address, indexed by value in reg2
-loadr       reg1, reg2                - load reg1 with value in register reg2
+loadm       reg1,         address     - load reg1 with value at memory address
+loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
+loadx       reg1, reg2,   address     - load reg1 with value at memory address, indexed by value in reg2
+loadr       reg1, reg2                - load reg1 with value at register reg2
 
-storem      reg1,         address     - store reg1 in memory address
-storei      reg1, reg2                - store reg1 in memory indirect, memory pointed to by reg2
-storex      reg1, reg2,   address     - store reg1 in memory address, indexed by value in reg2
-storez                    address     - store zero in memory address
-storezi     reg1                      - store zero in memory pointed to by reg1
-storezx     reg1,         address     - store zero in memory address, indexed by value in reg
+storem      reg1,         address     - store reg1 at memory address
+storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
+storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
+storez                    address     - store zero at memory address
+storezi     reg1                      - store zero at memory pointed to by reg1
+storezx     reg1,         address     - store zero at memory address, indexed by value in reg
 
 
 CONTROL FLOW
@@ -91,13 +86,10 @@ sgts        reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (signed),  ot
 sge         reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
 sges        reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
 
-TODO: support for the other prog8 special branching instructions if_XX (bpl, bmi etc.)
-      but we don't have any 'processor flags' whatsoever in the vm so it's a bit weird
 
-
-INTEGER ARITHMETIC
-------------------
-All have type b or w. Note: result types are the same as operand types! E.g. byte*byte->byte.
+ARITHMETIC
+----------
+All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
 ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (latter not yet implemented as we don't have longs yet)
 exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: latter ext.w, not yet implemented as we don't have longs yet)
@@ -111,9 +103,10 @@ sub         reg1, reg2, reg3                - reg1 = reg2-reg3 (unsigned + signe
 mul         reg1, reg2, reg3                - unsigned multiply reg1=reg2*reg3  note: byte*byte->byte, no type extension to word!
 div         reg1, reg2, reg3                - unsigned division reg1=reg2/reg3  note: division by zero yields max signed int $ff/$ffff
 mod         reg1, reg2, reg3                - remainder (modulo) of unsigned division reg1=reg2%reg3  note: division by zero yields max signed int $ff/$ffff
-sqrt        reg1, reg2                      - reg1 is the square root of reg2 (for .w and .b both , the result is a byte)
+sqrt        reg1, reg2                      - reg1 is the square root of reg2
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
+rnd         reg1                            - get a random number (byte, word or float)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
@@ -137,20 +130,32 @@ rol         reg1                             - rotate reg1 left by 1bits, not us
 roxl        reg1                             - rotate reg1 left by 1bits, using carry,  + set Carry to shifted bit
 
 
+FLOATING POINT CONVERSIONS
+--------------------------
+ffromub      fpreg1, reg1               - fpreg1 = reg1 from usigned byte
+ffromsb      fpreg1, reg1               - fpreg1 = reg1 from signed byte
+ffromuw      fpreg1, reg1               - fpreg1 = reg1 from unsigned word
+ffromsw      fpreg1, reg1               - fpreg1 = reg1 from signed word
+ftoub        reg1, fpreg1               - reg1 = fpreg1 as unsigned byte
+ftosb        reg1, fpreg1               - reg1 = fpreg1 as signed byte
+ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
+ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
+
+
 MISC
 ----
 
-clc                                     - clear Carry status bit
-sec                                     - set Carry status bit
-nop                                     - do nothing
-breakpoint                              - trigger a breakpoint
-copy        reg1, reg2,   length        - copy memory from ptrs in reg1 to reg3, length bytes
-copyz       reg1, reg2                  - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
-msig [b, w] reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-swapreg     reg1, reg2                  - swap values in reg1 and reg2
-concat [b, w] reg1, reg2, reg3          - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented; requires 32bits regs)
-push [b, w] reg1                        - push value in reg1 on the stack
-pop [b, w]  reg1                        - pop value from stack into reg1
+clc                                       - clear Carry status bit
+sec                                       - set Carry status bit
+nop                                       - do nothing
+breakpoint                                - trigger a breakpoint
+copy          reg1, reg2,   length        - copy memory from ptrs in reg1 to reg3, length bytes
+copyz         reg1, reg2                  - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
+msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
+swapreg       reg1, reg2                  - swap values in reg1 and reg2
+concat [b, w] reg1, reg2, reg3            - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented; requires 32bits regs)
+push [b, w]   reg1                        - push value in reg1 on the stack
+pop [b, w]    reg1                        - pop value from stack into reg1
 
  */
 
@@ -217,6 +222,7 @@ enum class Opcode {
     SQRT,
     SGN,
     CMP,
+    RND,
     EXT,
     EXTS,
 
@@ -233,6 +239,15 @@ enum class Opcode {
     ROXR,
     ROL,
     ROXL,
+
+    FFROMUB,
+    FFROMSB,
+    FFROMUW,
+    FFROMSW,
+    FTOUB,
+    FTOSB,
+    FTOUW,
+    FTOSW,
 
     CLC,
     SEC,
@@ -256,7 +271,8 @@ val OpcodesWithAddress = setOf(
 
 enum class VmDataType {
     BYTE,
-    WORD
+    WORD,
+    FLOAT
     // TODO add INT (32-bit)?   INT24 (24-bit)?
 }
 
@@ -266,14 +282,19 @@ data class Instruction(
     val reg1: Int?=null,        // 0-$ffff
     val reg2: Int?=null,        // 0-$ffff
     val reg3: Int?=null,        // 0-$ffff
+    val fpReg1: Int?=null,      // 0-$ffff
+    val fpReg2: Int?=null,      // 0-$ffff
+    val fpReg3: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
+    val fpValue: Float?=null,
     val symbol: List<String>?=null    // alternative to value
 ) {
     init {
-        val format = instructionFormats.getValue(opcode)
-        if(format.datatypes.isNotEmpty() && type==null)
+        val formats = instructionFormats.getValue(opcode)
+        if(type==null && !formats.containsKey(null))
             throw IllegalArgumentException("missing type")
 
+        val format = formats.getValue(type)
         if(format.reg1 && reg1==null ||
             format.reg2 && reg2==null ||
             format.reg3 && reg3==null)
@@ -284,8 +305,18 @@ data class Instruction(
             !format.reg3 && reg3!=null)
             throw IllegalArgumentException("too many registers")
 
-        if(format.value && (value==null && symbol==null))
-            throw IllegalArgumentException("missing a value or symbol")
+
+        if (type==VmDataType.FLOAT) {
+            if(format.value && (fpValue==null && symbol==null))
+                throw IllegalArgumentException("$opcode: missing a fp-value or symbol")
+            if (reg1 != null || reg2 != null || reg3 != null)
+                throw java.lang.IllegalArgumentException("$opcode: floating point instruction can't use integer registers")
+        } else {
+            if(format.value && (value==null && symbol==null))
+                throw IllegalArgumentException("$opcode: missing a value or symbol")
+            if (fpReg1 != null || fpReg2 != null || fpReg3 != null)
+                throw java.lang.IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
+        }
     }
 
     override fun toString(): String {
@@ -308,7 +339,23 @@ data class Instruction(
             result.add("r$it")
             result.add(",")
         }
+        fpReg1?.let {
+            result.add("fr$it")
+            result.add(",")
+        }
+        fpReg2?.let {
+            result.add("fr$it")
+            result.add(",")
+        }
+        fpReg3?.let {
+            result.add("fr$it")
+            result.add(",")
+        }
         value?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        fpValue?.let {
             result.add(it.toString())
             result.add(",")
         }
@@ -321,98 +368,146 @@ data class Instruction(
     }
 }
 
-data class InstructionFormat(val datatypes: Set<VmDataType>, val reg1: Boolean, val reg2: Boolean, val reg3: Boolean, val value: Boolean)
+data class InstructionFormat(val datatype: VmDataType?,
+                             val reg1: Boolean, val reg2: Boolean, val reg3: Boolean,
+                             val fpReg1: Boolean, val fpReg2: Boolean, val fpReg3: Boolean,
+                             val value: Boolean,
+                             val fpValue: Boolean) {
+    companion object {
+        fun from(spec: String): Map<VmDataType?, InstructionFormat> {
+            val result = mutableMapOf<VmDataType?, InstructionFormat>()
+            var reg1 = false
+            var reg2 = false
+            var reg3 = false
+            var fpreg1 = false
+            var fpreg2 = false
+            var fpreg3 = false
+            var value = false
+            var fpvalue = false
+            for(part in spec.split('|').map{ it.trim() }) {
+                val splits = part.splitToSequence(',').iterator()
+                val typespec = splits.next()
+                while(splits.hasNext()) {
+                    when(splits.next()) {
+                        "r1" -> reg1=true
+                        "r2" -> reg2=true
+                        "r3" -> reg3=true
+                        "fr1" -> fpreg1=true
+                        "fr2" -> fpreg2=true
+                        "fr3" -> fpreg3=true
+                        "v" -> value = true
+                        "fv" -> fpvalue = true
+                        else -> throw IllegalArgumentException(spec)
+                    }
+                }
+                if(typespec=="N")
+                    result[null] = InstructionFormat(null, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                if('B' in typespec)
+                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                if('W' in typespec)
+                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                if('F' in typespec)
+                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+            }
+            return result
+        }
+    }
+}
 
-private val NN = emptySet<VmDataType>()
-private val BW = setOf(VmDataType.BYTE, VmDataType.WORD)
 
 @Suppress("BooleanLiteralArgument")
 val instructionFormats = mutableMapOf(
-        Opcode.NOP to        InstructionFormat(NN, false, false, false, false),
-        Opcode.LOAD to       InstructionFormat(BW, true,  false, false, true ),
-        Opcode.LOADM to      InstructionFormat(BW, true,  false, false, true ),
-        Opcode.LOADI to      InstructionFormat(BW, true,  true,  false, false),
-        Opcode.LOADX to      InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.LOADR to      InstructionFormat(BW, true,  true,  false, false),
-        Opcode.SWAPREG to    InstructionFormat(BW, true,  true,  false, false),
-        Opcode.STOREM to     InstructionFormat(BW, true,  false, false, true ),
-        Opcode.STOREI to     InstructionFormat(BW, true,  true,  false, false),
-        Opcode.STOREX to     InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.STOREZ to     InstructionFormat(BW, false, false, false, true ),
-        Opcode.STOREZI to    InstructionFormat(BW, true,  false, false, false),
-        Opcode.STOREZX to    InstructionFormat(BW, true,  false, false, true ),
+    Opcode.NOP        to InstructionFormat.from("N"),
+    Opcode.LOAD       to InstructionFormat.from("BW,r1,v    | F,fr1,fv"),
+    Opcode.LOADM      to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
+    Opcode.LOADI      to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
+    Opcode.LOADX      to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
+    Opcode.LOADR      to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.SWAPREG    to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.STOREM     to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
+    Opcode.STOREI     to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
+    Opcode.STOREX     to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
+    Opcode.STOREZ     to InstructionFormat.from("BW,v       | F,v"),
+    Opcode.STOREZI    to InstructionFormat.from("BW,r1      | F,r1"),
+    Opcode.STOREZX    to InstructionFormat.from("BW,r1,v    | F,r1,v"),
+    Opcode.JUMP       to InstructionFormat.from("N,v"),
+    Opcode.JUMPI      to InstructionFormat.from("N,r1"),
+    Opcode.CALL       to InstructionFormat.from("N,v"),
+    Opcode.CALLI      to InstructionFormat.from("N,r1"),
+    Opcode.SYSCALL    to InstructionFormat.from("N,v"),
+    Opcode.RETURN     to InstructionFormat.from("N"),
+    Opcode.BSTCC      to InstructionFormat.from("N,v"),
+    Opcode.BSTCS      to InstructionFormat.from("N,v"),
+    Opcode.BSTEQ      to InstructionFormat.from("N,v"),
+    Opcode.BSTNE      to InstructionFormat.from("N,v"),
+    Opcode.BSTNEG     to InstructionFormat.from("N,v"),
+    Opcode.BSTPOS     to InstructionFormat.from("N,v"),
+    Opcode.BZ         to InstructionFormat.from("BW,r1,v"),
+    Opcode.BNZ        to InstructionFormat.from("BW,r1,v"),
+    Opcode.BEQ        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BNE        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BLT        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BLTS       to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BGT        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BGTS       to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BLE        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BLES       to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BGE        to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.BGES       to InstructionFormat.from("BW,r1,r2,v"),
+    Opcode.SEQ        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SNE        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SLT        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SLTS       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SGT        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SGTS       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SLE        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SLES       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SGE        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SGES       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.INC        to InstructionFormat.from("BW,r1"),
+    Opcode.INCM       to InstructionFormat.from("BW,v"),
+    Opcode.DEC        to InstructionFormat.from("BW,r1"),
+    Opcode.DECM       to InstructionFormat.from("BW,v"),
+    Opcode.NEG        to InstructionFormat.from("BW,r1          | F,fr1"),
+    Opcode.ADD        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
+    Opcode.SUB        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
+    Opcode.MUL        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
+    Opcode.DIV        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
+    Opcode.SQRT       to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
+    Opcode.SGN        to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
+    Opcode.RND        to InstructionFormat.from("BW,r1          | F,fr1"),
+    Opcode.MOD        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.CMP        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.EXT        to InstructionFormat.from("BW,r1"),
+    Opcode.EXTS       to InstructionFormat.from("BW,r1"),
+    Opcode.AND        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.OR         to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.XOR        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.ASRX       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.LSRX       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.LSLX       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.ASR        to InstructionFormat.from("BW,r1"),
+    Opcode.LSR        to InstructionFormat.from("BW,r1"),
+    Opcode.LSL        to InstructionFormat.from("BW,r1"),
+    Opcode.ROR        to InstructionFormat.from("BW,r1"),
+    Opcode.ROXR       to InstructionFormat.from("BW,r1"),
+    Opcode.ROL        to InstructionFormat.from("BW,r1"),
+    Opcode.ROXL       to InstructionFormat.from("BW,r1"),
 
-        Opcode.JUMP to       InstructionFormat(NN, false, false, false, true ),
-        Opcode.JUMPI to      InstructionFormat(NN, true,  false, false, false),
-        Opcode.CALL to       InstructionFormat(NN, false, false, false, true ),
-        Opcode.CALLI to      InstructionFormat(NN, true,  false, false, false),
-        Opcode.SYSCALL to    InstructionFormat(NN, false, false, false, true ),
-        Opcode.RETURN to     InstructionFormat(NN, false, false, false, false),
+    Opcode.FFROMUB    to InstructionFormat.from("F,fr1,r1"),
+    Opcode.FFROMSB    to InstructionFormat.from("F,fr1,r1"),
+    Opcode.FFROMUW    to InstructionFormat.from("F,fr1,r1"),
+    Opcode.FFROMSW    to InstructionFormat.from("F,fr1,r1"),
+    Opcode.FTOUB      to InstructionFormat.from("F,r1,fr1"),
+    Opcode.FTOSB      to InstructionFormat.from("F,r1,fr1"),
+    Opcode.FTOUW      to InstructionFormat.from("F,r1,fr1"),
+    Opcode.FTOSW      to InstructionFormat.from("F,r1,fr1"),
 
-        Opcode.BSTCC to      InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BSTCS to      InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BSTEQ to      InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BSTNE to      InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BSTNEG to     InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BSTPOS to     InstructionFormat(NN, false,  false,false, true ),
-        Opcode.BZ to         InstructionFormat(BW, true,  false, false, true ),
-        Opcode.BNZ to        InstructionFormat(BW, true,  false, false, true ),
-        Opcode.BEQ to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BNE to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BLT to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BLTS to       InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BGT to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BGTS to       InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BLE to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BLES to       InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BGE to        InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.BGES to       InstructionFormat(BW, true,  true,  false, true ),
-        Opcode.SEQ to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SNE to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SLT to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SLTS to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SGT to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SGTS to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SLE to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SLES to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SGE to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SGES to       InstructionFormat(BW, true,  true,  true,  false),
-
-        Opcode.INC to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.INCM to       InstructionFormat(BW, false, false, false, true ),
-        Opcode.DEC to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.DECM to       InstructionFormat(BW, false, false, false, true ),
-        Opcode.NEG to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ADD to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SUB to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.MUL to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.DIV to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.MOD to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.SQRT to       InstructionFormat(BW, true,  true,  false, false),
-        Opcode.SGN to        InstructionFormat(BW, true,  true,  false, false),
-        Opcode.CMP to        InstructionFormat(BW, true,  true,  false, false),
-        Opcode.EXT to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.EXTS to       InstructionFormat(BW, true,  false, false, false),
-
-        Opcode.AND to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.OR to         InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.XOR to        InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ASRX to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSRX to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.LSLX to       InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.ASR to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.LSR to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.LSL to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROR to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROXR to       InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROL to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.ROXL to       InstructionFormat(BW, true,  false, false, false),
-
-        Opcode.MSIG to       InstructionFormat(BW, true,  true,  false, false),
-        Opcode.PUSH to       InstructionFormat(BW, true,  false, false, false),
-        Opcode.POP to        InstructionFormat(BW, true,  false, false, false),
-        Opcode.CONCAT to     InstructionFormat(BW, true,  true,  true,  false),
-        Opcode.CLC to        InstructionFormat(NN, false, false, false, false),
-        Opcode.SEC to        InstructionFormat(NN, false, false, false, false),
-        Opcode.BREAKPOINT to InstructionFormat(NN, false, false, false, false)
+    Opcode.MSIG       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.PUSH       to InstructionFormat.from("BW,r1"),
+    Opcode.POP        to InstructionFormat.from("BW,r1"),
+    Opcode.CONCAT     to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.CLC        to InstructionFormat.from("N"),
+    Opcode.SEC        to InstructionFormat.from("N"),
+    Opcode.BREAKPOINT to InstructionFormat.from("N"),
 )

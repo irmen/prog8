@@ -6,6 +6,7 @@ import java.util.*
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 
 class ProgramExitException(val status: Int): Exception()
@@ -143,9 +144,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.MUL -> InsMUL(ins)
             Opcode.DIV -> InsDIV(ins)
             Opcode.MOD -> InsMOD(ins)
-            Opcode.SQRT -> InsSQRT(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
+            Opcode.RND -> InsRND(ins)
+            Opcode.SQRT -> InsSQRT(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
             Opcode.AND -> InsAND(ins)
@@ -191,6 +193,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 valueStack.push((value and 255u).toUByte())
                 valueStack.push((value.toInt() ushr 8).toUByte())
             }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't PUSH a float")
+            }
         }
         pc++
     }
@@ -204,6 +209,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val msb = valueStack.pop()
                 val lsb = valueStack.pop()
                 (msb.toInt() shl 8) + lsb.toInt()
+            }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't POP a float")
             }
         }
         setResultReg(i.reg1!!, value, i.type)
@@ -649,18 +657,28 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsSQRT(i: Instruction) {
-        when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
-            VmDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
-        }
-        pc++
-    }
-
     private fun InsSGN(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
+        }
+        pc++
+    }
+
+    private fun InsSQRT(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
+            VmDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, sqrt(registers.getFloat(i.fpReg2!!)))
+        }
+        pc++
+    }
+
+    private fun InsRND(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, Random.nextInt().toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, Random.nextInt().toUShort())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, Random.nextFloat())
         }
         pc++
     }
@@ -679,6 +697,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val reg2 = registers.getUW(i.reg2!!)
                 comparison = reg1.toInt() - reg2.toInt()
                 statusNegative = (comparison and 0x8000)==0x8000
+            }
+            VmDataType.FLOAT -> {
+                TODO("CMP float")
             }
         }
         if(comparison==0){
@@ -891,6 +912,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                     orig.rotateRight(1)
                 registers.setUW(i.reg1, rotated)
             }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't ROR a float")
+            }
         }
         pc++
         statusCarry = newStatusCarry
@@ -918,6 +942,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 } else
                     orig.rotateLeft(1)
                 registers.setUW(i.reg1, rotated)
+            }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't ROL a float")
             }
         }
         pc++
@@ -952,6 +979,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
             VmDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for branch instruction")
         }
     }
@@ -960,6 +990,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
             VmDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for branch instruction")
         }
     }
@@ -968,6 +1001,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getUB(i.reg2!!).toUInt(), registers.getUB(i.reg3!!).toUInt())
             VmDataType.WORD -> Pair(registers.getUW(i.reg2!!).toUInt(), registers.getUW(i.reg3!!).toUInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for logical instruction")
         }
     }
@@ -976,6 +1012,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg2!!).toInt(), registers.getSB(i.reg3!!).toInt())
             VmDataType.WORD -> Pair(registers.getSW(i.reg2!!).toInt(), registers.getSW(i.reg3!!).toInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for logical instruction")
         }
     }
@@ -985,6 +1024,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(ins.type) {
             VmDataType.BYTE -> Triple(ins.reg1!!, registers.getSB(ins.reg2!!).toInt(), registers.getSB(ins.reg3!!).toInt())
             VmDataType.WORD -> Triple(ins.reg1!!, registers.getSW(ins.reg2!!).toInt(), registers.getSW(ins.reg3!!).toInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for branch instruction")
         }
     }
@@ -993,6 +1035,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         return when(ins.type) {
             VmDataType.BYTE -> Triple(ins.reg1!!, registers.getUB(ins.reg2!!).toUInt(), registers.getUB(ins.reg3!!).toUInt())
             VmDataType.WORD -> Triple(ins.reg1!!, registers.getUW(ins.reg2!!).toUInt(), registers.getUW(ins.reg3!!).toUInt())
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
             null -> throw IllegalArgumentException("need type for branch instruction")
         }
     }

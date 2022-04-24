@@ -61,10 +61,14 @@ internal class VmCodeInstruction(
     reg1: Int?=null,        // 0-$ffff
     reg2: Int?=null,        // 0-$ffff
     reg3: Int?=null,        // 0-$ffff
+    fpReg1: Int?=null,      // 0-$ffff
+    fpReg2: Int?=null,      // 0-$ffff
+    fpReg3: Int?=null,      // 0-$ffff
     value: Int?=null,       // 0-$ffff
+    fpValue: Float?=null,
     symbol: List<String>?=null    // alternative to value
     ): VmCodeLine() {
-        val ins = Instruction(opcode, type, reg1, reg2, reg3, value, symbol)
+        val ins = Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, fpReg3, value, fpValue, symbol)
 
         init {
             if(value!=null && opcode !in OpcodesWithAddress) {
@@ -77,11 +81,12 @@ internal class VmCodeInstruction(
                         if (value < -32768 || value > 65535)
                             throw IllegalArgumentException("value out of range for word: $value")
                     }
-                    null -> {}
+                    VmDataType.FLOAT, null -> {}
                 }
             }
         }
     }
+
 internal class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
 

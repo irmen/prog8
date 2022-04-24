@@ -14,7 +14,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
-    override val FLOAT_MEM_SIZE = 4
+    override val FLOAT_MEM_SIZE = 4             // 32-bits floating point
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
 
     override val ESTACK_LO = 0u                 // not actually used

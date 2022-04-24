@@ -1,7 +1,6 @@
 package prog8.vm
 
 import kotlin.math.*
-import kotlin.random.Random
 
 /*
 SYSCALLS:
@@ -17,8 +16,8 @@ SYSCALLS:
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-11 = rnd        ; random BYTE
-12 = rndw       ; random WORD
+11 = set_carry status flag
+12 = clear_carry status flag
 13 = wait       ; wait certain amount of jiffies (1/60 sec)
 14 = waitvsync  ; wait on vsync
 15 = sort_ubyte array
@@ -41,8 +40,6 @@ SYSCALLS:
 32 = all_word array
 33 = reverse_bytes array
 34 = reverse_words array
-35 = set_carry status flag
-36 = clear_carry status flag
 */
 
 enum class Syscall {
@@ -57,8 +54,8 @@ enum class Syscall {
     GFX_ENABLE,
     GFX_CLEAR,
     GFX_PLOT,
-    RND,
-    RNDW,
+    SET_CARRY,
+    CLEAR_CARRY,
     WAIT,
     WAITVSYNC,
     SORT_UBYTE,
@@ -80,9 +77,7 @@ enum class Syscall {
     ALL_BYTE,
     ALL_WORD,
     REVERSE_BYTES,
-    REVERSE_WORDS,
-    SET_CARRY,
-    CLEAR_CARRY
+    REVERSE_WORDS
 }
 
 object SysCalls {
@@ -129,12 +124,6 @@ object SysCalls {
             Syscall.GFX_ENABLE -> vm.gfx_enable()
             Syscall.GFX_CLEAR -> vm.gfx_clear()
             Syscall.GFX_PLOT -> vm.gfx_plot()
-            Syscall.RND -> {
-                vm.registers.setUB(0, Random.nextInt().toUByte())
-            }
-            Syscall.RNDW -> {
-                vm.registers.setUW(0, Random.nextInt().toUShort())
-            }
             Syscall.WAIT -> {
                 val millis = vm.registers.getUW(0).toLong() * 1000/60
                 Thread.sleep(millis)

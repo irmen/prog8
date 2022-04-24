@@ -45,6 +45,13 @@ class Assembler {
                             address += 2
                         }
                     }
+                    "float" -> {
+                        val array = values.split(',').map { it.toFloat() }
+                        for (value in array) {
+                            memory.setFloat(address, value)
+                            address += 4    // 32-bits floats
+                        }
+                    }
                     else -> throw IllegalArgumentException("mem instr $what")
                 }
             }
@@ -113,10 +120,18 @@ class Assembler {
                         }
                     }
                 }
-                val format = instructionFormats.getValue(opcode)
-                if(type==null && format.datatypes.isNotEmpty())
-                    type= VmDataType.BYTE
-                if(type!=null && type !in format.datatypes)
+                val formats = instructionFormats.getValue(opcode)
+                val format: InstructionFormat
+                if(type !in formats) {
+                    type = VmDataType.BYTE
+                    format = if(type !in formats)
+                        formats.getValue(null)
+                    else
+                        formats.getValue(type)
+                } else {
+                    format = formats.getValue(type)
+                }
+                if(type!=null && type !in formats)
                     throw IllegalArgumentException("invalid type code for $line")
                 if(format.reg1 && reg1==null)
                     throw IllegalArgumentException("needs reg1 for $line")
@@ -144,10 +159,13 @@ class Assembler {
                             if (value < -32768 || value > 65535)
                                 throw IllegalArgumentException("value out of range for word: $value")
                         }
+                        VmDataType.FLOAT -> {
+                            throw IllegalArgumentException("can't use float here")
+                        }
                         null -> {}
                     }
                 }
-                program.add(Instruction(opcode, type, reg1, reg2, reg3, value))
+                program.add(Instruction(opcode, type, reg1, reg2, reg3, value=value))
             }
         }
 

@@ -10,15 +10,25 @@ import kotlin.math.pow
 
 
 internal class VmRegisterPool {
-    private var firstFree: Int=3    // registers 0,1,2 are reserved
-    
+    private var firstFree: Int=3        // integer registers 0,1,2 are reserved
+    private var firstFreeFloat: Int=0
+
     fun peekNext() = firstFree
+    fun peekNextFloat() = firstFreeFloat
 
     fun nextFree(): Int {
         val result = firstFree
         firstFree++
         if(firstFree>65535)
-            throw AssemblyError("out of virtual registers")
+            throw AssemblyError("out of virtual registers (int)")
+        return result
+    }
+
+    fun nextFreeFloat(): Int {
+        val result = firstFreeFloat
+        firstFreeFloat++
+        if(firstFreeFloat>65535)
+            throw AssemblyError("out of virtual registers (fp)")
         return result
     }
 }
@@ -141,7 +151,7 @@ class CodeGen(internal val program: PtProgram,
         val valueReg = vmRegisters.nextFree()
         val choiceReg = vmRegisters.nextFree()
         val valueDt = vmType(whenStmt.value.type)
-        code += expressionEval.translateExpression(whenStmt.value, valueReg)
+        code += expressionEval.translateExpression(whenStmt.value, valueReg, 99999)
         val choices = whenStmt.choices.children.map {it as PtWhenChoice }
         val endLabel = createLabelName()
         for (choice in choices) {
@@ -239,8 +249,8 @@ class CodeGen(internal val program: PtProgram,
         val loopLabel = createLabelName()
         val code = VmCodeChunk()
 
-        code += expressionEval.translateExpression(iterable.to, endvalueReg)
-        code += expressionEval.translateExpression(iterable.from, indexReg)
+        code += expressionEval.translateExpression(iterable.to, endvalueReg, 99999)
+        code += expressionEval.translateExpression(iterable.from, indexReg, 99999)
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
@@ -448,7 +458,7 @@ class CodeGen(internal val program: PtProgram,
         val conditionReg = vmRegisters.nextFree()
         val vmDt = vmType(condition.type)
         val code = VmCodeChunk()
-        code += expressionEval.translateExpression(condition, conditionReg)
+        code += expressionEval.translateExpression(condition, conditionReg, 99999)
         if(ifElse.elseScope.children.isNotEmpty()) {
             // if and else parts
             val elseLabel = createLabelName()
@@ -494,7 +504,7 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, value=address)
             } else {
                 val addressReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(memory.address, addressReg)
+                code += expressionEval.translateExpression(memory.address, addressReg, 99999)
                 code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = addressReg)
                 code += VmCodeInstruction(operation, vmDt, reg1 = resultReg)
                 code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1 = resultReg, reg2 = addressReg)
@@ -514,7 +524,7 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(memOp, vmDt, value=variableAddr)
             } else {
                 val indexReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(array.index, indexReg)
+                code += expressionEval.translateExpression(array.index, indexReg, 99999)
                 code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
                 code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
                 code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
@@ -538,7 +548,7 @@ class CodeGen(internal val program: PtProgram,
         val code = VmCodeChunk()
         val counterReg = vmRegisters.nextFree()
         val vmDt = vmType(repeat.count.type)
-        code += expressionEval.translateExpression(repeat.count, counterReg)
+        code += expressionEval.translateExpression(repeat.count, counterReg, 99999)
         val repeatLabel = createLabelName()
         code += VmCodeLabel(repeatLabel)
         code += translateNode(repeat.statements)
@@ -576,7 +586,7 @@ class CodeGen(internal val program: PtProgram,
             (assignment.value as PtMachineRegister).register
         } else {
             val reg = vmRegisters.nextFree()
-            code += expressionEval.translateExpression(assignment.value, reg)
+            code += expressionEval.translateExpression(assignment.value, reg, 99999)
             reg
         }
         val ident = assignment.target.identifier
@@ -598,7 +608,7 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr)
             } else {
                 val indexReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(array.index, indexReg)
+                code += expressionEval.translateExpression(array.index, indexReg, 99999)
                 code += VmCodeInstruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
             }
         }
@@ -608,7 +618,7 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
             } else {
                 val addressReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(memory.address, addressReg)
+                code += expressionEval.translateExpression(memory.address, addressReg, 99999)
                 code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
             }
         }
@@ -622,7 +632,7 @@ class CodeGen(internal val program: PtProgram,
         val value = ret.value
         if(value!=null) {
             // Call Convention: return value is always returned in r0
-            code += expressionEval.translateExpression(value, 0)
+            code += expressionEval.translateExpression(value, 0, 99999)
         }
         code += VmCodeInstruction(Opcode.RETURN)
         return code
@@ -658,6 +668,7 @@ class CodeGen(internal val program: PtProgram,
             DataType.BYTE -> VmDataType.BYTE
             DataType.UWORD,
             DataType.WORD -> VmDataType.WORD
+            DataType.FLOAT -> VmDataType.FLOAT
             in PassByReferenceDatatypes -> VmDataType.WORD
             else -> throw AssemblyError("no vm datatype for $type")
         }

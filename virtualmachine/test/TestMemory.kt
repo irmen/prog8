@@ -44,6 +44,13 @@ class TestMemory: FunSpec({
         mem.getUB(1001) shouldBe 0xeau
     }
 
+    test("32 bits float access") {
+        val mem = Memory()
+        mem.getFloat(1000) shouldBe 0.0
+        mem.setFloat(1000, -9.876543f)
+        mem.getFloat(1000) shouldBe -9.876543f
+    }
+
     test("setstring and getstring") {
         val mem = Memory()
         mem.setString(1000, "******************", false)

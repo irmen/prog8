@@ -1,5 +1,5 @@
 %import textio
-; %import floats
+;%import floats
 %import conv
 %zeropage dontuse
 
@@ -7,38 +7,33 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
-    sub newstring() -> str {
-        return "new"
-    }
-
     sub start() {
-        str name = "irmen\n"
-        txt.print(name)
-        name = "pipo\n"
-        txt.print(name)
-
-        ubyte cc
-        ubyte[] array = [11,22,33,44]
-        for cc in array {
-            txt.print_ub(cc)
-            txt.spc()
-        }
-        txt.nl()
-        array = [99,88,77,66]
-        for cc in array {
-            txt.print_ub(cc)
-            txt.spc()
-        }
+        uword uw = 15555
+        uword squw = sqrt16(uw)
+        txt.print_uw(squw)
         txt.nl()
 
-        txt.print_ub0(99)
+        squw = rndw()
+        txt.print_uw(squw)
         txt.spc()
-        txt.print_ub(99)
+        squw = rndw()
+        txt.print_uw(squw)
         txt.nl()
-        txt.print_uw0(9988)
+
+        squw = rnd()
+        txt.print_uw(squw)
         txt.spc()
-        txt.print_uw(9988)
+        squw = rnd()
+        txt.print_uw(squw)
         txt.nl()
+
+;        float f1 = 1.2345
+;        float f2 = -9.99
+;        float f3 = f1 % f2
+;        floats.print_f(f3)
+;        f3 = floats.sin(f3)
+;        floats.print_f(f3)
+;        txt.nl()
 
 ;    float f1 = 1.555
 ;    floats.print_f(floats.sin(f1))
@@ -71,24 +66,24 @@ main {
 ;            "ln", "log2", "sqrt", "rad",
 ;            "deg", "round", "floor", "ceil", "rndf"
 
-;        ; a "pixelshader":
-;        void syscall1(8, 0)      ; enable lo res creen
-;        ubyte shifter
-;
-;        ; pokemon(1,0)
-;
-;        repeat {
-;            uword xx
-;            uword yy = 0
-;            repeat 240 {
-;                xx = 0
-;                repeat 320 {
-;                    syscall3(10, xx, yy, xx*yy + shifter)   ; plot pixel
-;                    xx++
-;                }
-;                yy++
-;            }
-;            shifter+=4
-;        }
+        ; a "pixelshader":
+        void syscall1(8, 0)      ; enable lo res creen
+        ubyte shifter
+
+        ; pokemon(1,0)
+
+        repeat {
+            uword xx
+            uword yy = 0
+            repeat 240 {
+                xx = 0
+                repeat 320 {
+                    syscall3(10, xx, yy, xx*yy + shifter)   ; plot pixel
+                    xx++
+                }
+                yy++
+            }
+            shifter+=4
+        }
     }
 }

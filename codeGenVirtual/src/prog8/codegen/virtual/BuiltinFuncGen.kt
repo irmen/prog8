@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.ArrayToElementTypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
+import prog8.code.core.WordDatatypes
 import prog8.vm.Opcode
 import prog8.vm.Syscall
 import prog8.vm.VmDataType
@@ -59,8 +60,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         val leftRegister = codeGen.vmRegisters.nextFree()
         val rightRegister = codeGen.vmRegisters.nextFree()
-        code += exprGen.translateExpression(call.args[0], leftRegister)
-        code += exprGen.translateExpression(call.args[1], rightRegister)
+        code += exprGen.translateExpression(call.args[0], leftRegister, 99999)
+        code += exprGen.translateExpression(call.args[1], rightRegister, 99999)
         code += VmCodeInstruction(Opcode.CMP, codeGen.vmType(call.args[0].type), reg1=leftRegister, reg2=rightRegister)
         return code
     }
@@ -79,7 +80,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 else -> throw IllegalArgumentException("weird type")
             }
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
+        code += exprGen.translateExpression(call.args[0], 0, 99999)
         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
         code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         if(resultRegister!=0)
@@ -101,7 +102,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 else -> throw IllegalArgumentException("weird type")
             }
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
+        code += exprGen.translateExpression(call.args[0], 0, 99999)
         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
         code += VmCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         if(resultRegister!=0)
@@ -113,7 +114,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val code = VmCodeChunk()
         val sourceDt = call.args.single().type
         if(sourceDt!=DataType.UWORD) {
-            code += exprGen.translateExpression(call.args[0], resultRegister)
+            code += exprGen.translateExpression(call.args[0], resultRegister, 99999)
             when (sourceDt) {
                 DataType.UBYTE -> {
                     code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
@@ -145,14 +146,14 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcSgn(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0)
+        code += exprGen.translateExpression(call.args.single(), 0, 99999)
         code += VmCodeInstruction(Opcode.SGN, codeGen.vmType(call.type), reg1=resultRegister, reg2=0)
         return code
     }
 
     private fun funcSqrt16(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0)
+        code += exprGen.translateExpression(call.args.single(), 0, 99999)
         code += VmCodeInstruction(Opcode.SQRT, VmDataType.WORD, reg1=resultRegister, reg2=0)
         return code
     }
@@ -173,14 +174,14 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcPush(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0)
+        code += exprGen.translateExpression(call.args.single(), 0, 99999)
         code += VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=0)
         return code
     }
 
     private fun funcPushw(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0)
+        code += exprGen.translateExpression(call.args.single(), 0, 99999)
         code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=0)
         return code
     }
@@ -191,8 +192,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val leftReg = codeGen.vmRegisters.nextFree()
         val rightReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(left, leftReg)
-        code += exprGen.translateExpression(right, rightReg)
+        code += exprGen.translateExpression(left, leftReg, 99999)
+        code += exprGen.translateExpression(right, rightReg, 99999)
         code += assignRegisterTo(left, rightReg)
         code += assignRegisterTo(right, leftReg)
         return code
@@ -209,7 +210,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
+        code += exprGen.translateExpression(call.args[0], 0, 99999)
         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
         code += VmCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
         return code
@@ -229,7 +230,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], 0)
+        code += exprGen.translateExpression(call.args[0], 0, 99999)
         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
         code += VmCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
         return code
@@ -239,8 +240,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val msbReg = codeGen.vmRegisters.nextFree()
         val lsbReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], msbReg)
-        code += exprGen.translateExpression(call.args[1], lsbReg)
+        code += exprGen.translateExpression(call.args[0], msbReg, 99999)
+        code += exprGen.translateExpression(call.args[1], lsbReg, 99999)
         code += VmCodeInstruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg, reg3=lsbReg)
         return code
     }
@@ -250,12 +251,12 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val valueReg = codeGen.vmRegisters.nextFree()
         if(call.args[0] is PtNumber) {
             val address = (call.args[0] as PtNumber).number.toInt()
-            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += exprGen.translateExpression(call.args[1], valueReg, 99999)
             code += VmCodeInstruction(Opcode.STOREM, VmDataType.WORD, reg1 = valueReg, value=address)
         } else {
             val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args[0], addressReg)
-            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += exprGen.translateExpression(call.args[0], addressReg, 99999)
+            code += exprGen.translateExpression(call.args[1], valueReg, 99999)
             code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2 = addressReg)
         }
         return code
@@ -266,12 +267,12 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val valueReg = codeGen.vmRegisters.nextFree()
         if(call.args[0] is PtNumber) {
             val address = (call.args[0] as PtNumber).number.toInt()
-            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += exprGen.translateExpression(call.args[1], valueReg, 99999)
             code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1 = valueReg, value=address)
         } else {
             val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args[0], addressReg)
-            code += exprGen.translateExpression(call.args[1], valueReg)
+            code += exprGen.translateExpression(call.args[0], addressReg, 99999)
+            code += exprGen.translateExpression(call.args[1], valueReg, 99999)
             code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2 = addressReg)
         }
         return code
@@ -284,7 +285,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             code += VmCodeInstruction(Opcode.LOADM, VmDataType.WORD, reg1 = resultRegister, value = address)
         } else {
             val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args.single(), addressReg)
+            code += exprGen.translateExpression(call.args.single(), addressReg, 99999)
             code += VmCodeInstruction(Opcode.LOADI, VmDataType.WORD, reg1 = resultRegister, reg2 = addressReg)
         }
         return code
@@ -297,7 +298,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             code += VmCodeInstruction(Opcode.LOADM, VmDataType.BYTE, reg1 = resultRegister, value = address)
         } else {
             val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args.single(), addressReg)
+            code += exprGen.translateExpression(call.args.single(), addressReg, 99999)
             code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1 = resultRegister, reg2 = addressReg)
         }
         return code
@@ -305,17 +306,13 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcRnd(resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.SYSCALL, value= Syscall.RND.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=resultRegister, reg2=0)
+        code += VmCodeInstruction(Opcode.RND, VmDataType.BYTE, reg1=resultRegister)
         return code
     }
 
     private fun funcRndw(resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.SYSCALL, value= Syscall.RNDW.ordinal)
-        if(resultRegister!=0)
-            code += VmCodeInstruction(Opcode.LOADR, VmDataType.WORD, reg1=resultRegister, reg2=0)
+        code += VmCodeInstruction(Opcode.RND, VmDataType.WORD, reg1=resultRegister)
         return code
     }
 
@@ -339,14 +336,14 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcLsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), resultRegister)
+        code += exprGen.translateExpression(call.args.single(), resultRegister, 99999)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
         return code
     }
 
     private fun funcMsb(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), resultRegister)
+        code += exprGen.translateExpression(call.args.single(), resultRegister, 99999)
         code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
         return code
@@ -362,7 +359,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     private fun funcSyscall1(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
         val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0)
+        code += exprGen.translateExpression(call.args[1], 0, 99999)
         code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
         return code
     }
@@ -374,8 +371,8 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             codeGen.vmRegisters.nextFree()
         }
         val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0)
-        code += exprGen.translateExpression(call.args[2], 1)
+        code += exprGen.translateExpression(call.args[1], 0, 99999)
+        code += exprGen.translateExpression(call.args[2], 1, 99999)
         code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
         code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
         return code
@@ -389,9 +386,9 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             codeGen.vmRegisters.nextFree()
         }
         val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0)
-        code += exprGen.translateExpression(call.args[2], 1)
-        code += exprGen.translateExpression(call.args[3], 2)
+        code += exprGen.translateExpression(call.args[1], 0, 99999)
+        code += exprGen.translateExpression(call.args[2], 1, 99999)
+        code += exprGen.translateExpression(call.args[3], 2, 99999)
         code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
         code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 2)
         code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
@@ -401,7 +398,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
     private fun funcRolRor2(opcode: Opcode, call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val vmDt = codeGen.vmType(call.args[0].type)
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args[0], resultRegister)
+        code += exprGen.translateExpression(call.args[0], resultRegister, 99999)
         code += VmCodeInstruction(opcode, vmDt, reg1=resultRegister)
         code += assignRegisterTo(call.args[0], resultRegister)
         return code
