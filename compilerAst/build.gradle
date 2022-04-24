@@ -24,7 +24,7 @@ compileTestKotlin {
 dependencies {
     implementation project(':codeCore')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'org.antlr:antlr4-runtime:4.9.3'
+    implementation 'org.antlr:antlr4-runtime:4.10.1'
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.14"
     implementation project(':parser')
 }

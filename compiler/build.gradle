@@ -34,7 +34,7 @@ dependencies {
     implementation project(':codeGenCpu6502')
     implementation project(':codeGenVirtual')
     implementation project(':codeGenExperimental')
-    implementation 'org.antlr:antlr4-runtime:4.9.3'
+    implementation 'org.antlr:antlr4-runtime:4.10.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.4'
