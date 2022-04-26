@@ -1,5 +1,5 @@
 %import textio
-;%import floats
+%import floats
 %import conv
 %zeropage dontuse
 
@@ -8,32 +8,12 @@
 
 main {
     sub start() {
-        uword uw = 15555
-        uword squw = sqrt16(uw)
-        txt.print_uw(squw)
+        float f1 = 1.2345
+        float f2 = -9.99
+        float f3
+        f3 = floats.sin(f3)
+        floats.print_f(f3)
         txt.nl()
-
-        squw = rndw()
-        txt.print_uw(squw)
-        txt.spc()
-        squw = rndw()
-        txt.print_uw(squw)
-        txt.nl()
-
-        squw = rnd()
-        txt.print_uw(squw)
-        txt.spc()
-        squw = rnd()
-        txt.print_uw(squw)
-        txt.nl()
-
-;        float f1 = 1.2345
-;        float f2 = -9.99
-;        float f3 = f1 % f2
-;        floats.print_f(f3)
-;        f3 = floats.sin(f3)
-;        floats.print_f(f3)
-;        txt.nl()
 
 ;    float f1 = 1.555
 ;    floats.print_f(floats.sin(f1))
