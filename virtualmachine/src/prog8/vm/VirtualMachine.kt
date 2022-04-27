@@ -650,39 +650,43 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsADD(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!, i.reg3!!, null)
-            VmDataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!, i.reg3!!, null)
+            VmDataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.FLOAT -> arithFloat("+", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
         }
         pc++
     }
 
     private fun InsSUB(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, i.reg3!!, null)
-            VmDataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, i.reg3!!, null)
+            VmDataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.FLOAT -> arithFloat("-", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
         }
         pc++
     }
     private fun InsMUL(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("*", i.reg1!!, i.reg2!!, i.reg3!!, null)
-            VmDataType.WORD -> arithWord("*", i.reg1!!, i.reg2!!, i.reg3!!, null)
+            VmDataType.BYTE -> arithByte("*", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.WORD -> arithWord("*", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.FLOAT -> arithFloat("*", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
         }
         pc++
     }
 
     private fun InsDIV(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("/", i.reg1!!, i.reg2!!, i.reg3!!, null)
-            VmDataType.WORD -> arithWord("/", i.reg1!!, i.reg2!!, i.reg3!!, null)
+            VmDataType.BYTE -> arithByte("/", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.WORD -> arithWord("/", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.FLOAT -> arithFloat("/", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
         }
         pc++
     }
 
     private fun InsMOD(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("%", i.reg1!!, i.reg2!!, i.reg3!!, null)
-            VmDataType.WORD -> arithWord("%", i.reg1!!, i.reg2!!, i.reg3!!, null)
+            VmDataType.BYTE -> arithByte("%", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.WORD -> arithWord("%", i.reg1!!, i.reg2!!, i.reg3!!)
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -692,6 +696,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg2!!).sign)
         }
         pc++
     }
@@ -729,9 +734,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 comparison = reg1.toInt() - reg2.toInt()
                 statusNegative = (comparison and 0x8000)==0x8000
             }
-            VmDataType.FLOAT -> {
-                TODO("CMP float")
-            }
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         if(comparison==0){
             statusZero = true
@@ -746,9 +749,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun arithByte(operator: String, reg1: Int, reg2: Int, reg3: Int?, value: UByte?) {
+    private fun arithByte(operator: String, reg1: Int, reg2: Int, reg3: Int) {
         val left = registers.getUB(reg2)
-        val right = value ?: registers.getUB(reg3!!)
+        val right = registers.getUB(reg3)
         val result = when(operator) {
             "+" -> left + right
             "-" -> left - right
@@ -766,9 +769,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUB(reg1, result.toUByte())
     }
 
-    private fun arithWord(operator: String, reg1: Int, reg2: Int, reg3: Int?, value: UShort?) {
+    private fun arithWord(operator: String, reg1: Int, reg2: Int, reg3: Int) {
         val left = registers.getUW(reg2)
-        val right = value ?: registers.getUW(reg3!!)
+        val right = registers.getUW(reg3)
         val result = when(operator) {
             "+" -> left + right
             "-" -> left - right
@@ -786,6 +789,25 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUW(reg1, result.toUShort())
     }
 
+    private fun arithFloat(operator: String, fpReg1: Int, fpReg2: Int, fpReg3: Int) {
+        val left = registers.getFloat(fpReg2)
+        val right = registers.getFloat(fpReg3)
+        val result = when(operator) {
+            "+" -> left + right
+            "-" -> left - right
+            "*" -> left * right
+            "/" -> {
+                if(right==0f) Float.MAX_VALUE
+                else left / right
+            }
+            "%" -> {
+                if(right==0f) Float.MAX_VALUE
+                else left % right
+            }
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        registers.setFloat(fpReg1, result)
+    }
 
     private fun InsEXT(i: Instruction) {
         when(i.type!!){
