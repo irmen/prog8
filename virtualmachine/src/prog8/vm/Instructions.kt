@@ -298,16 +298,25 @@ data class Instruction(
         if(format.reg1 && reg1==null ||
             format.reg2 && reg2==null ||
             format.reg3 && reg3==null)
-            throw IllegalArgumentException("missing a register")
+            throw IllegalArgumentException("missing a register (int)")
+
+        if(format.fpReg1 && fpReg1==null ||
+            format.fpReg2 && fpReg2==null ||
+            format.fpReg3 && fpReg3==null)
+            throw IllegalArgumentException("missing a register (float)")
 
         if(!format.reg1 && reg1!=null ||
             !format.reg2 && reg2!=null ||
             !format.reg3 && reg3!=null)
-            throw IllegalArgumentException("too many registers")
+            throw IllegalArgumentException("too many registers (int)")
 
+        if(!format.fpReg1 && fpReg1!=null ||
+            !format.fpReg2 && fpReg2!=null ||
+            !format.fpReg3 && fpReg3!=null)
+            throw IllegalArgumentException("too many registers (float)")
 
         if (type==VmDataType.FLOAT) {
-            if(format.value && (fpValue==null && symbol==null))
+            if(format.fpValue && (fpValue==null && symbol==null))
                 throw IllegalArgumentException("$opcode: missing a fp-value or symbol")
             if (reg1 != null || reg2 != null || reg3 != null)
                 throw java.lang.IllegalArgumentException("$opcode: floating point instruction can't use integer registers")
@@ -325,6 +334,7 @@ data class Instruction(
         when(type) {
             VmDataType.BYTE -> result.add(".b ")
             VmDataType.WORD -> result.add(".w ")
+            VmDataType.FLOAT -> result.add(".f ")
             else -> result.add(" ")
         }
         reg1?.let {
@@ -376,15 +386,15 @@ data class InstructionFormat(val datatype: VmDataType?,
     companion object {
         fun from(spec: String): Map<VmDataType?, InstructionFormat> {
             val result = mutableMapOf<VmDataType?, InstructionFormat>()
-            var reg1 = false
-            var reg2 = false
-            var reg3 = false
-            var fpreg1 = false
-            var fpreg2 = false
-            var fpreg3 = false
-            var value = false
-            var fpvalue = false
             for(part in spec.split('|').map{ it.trim() }) {
+                var reg1 = false
+                var reg2 = false
+                var reg3 = false
+                var fpreg1 = false
+                var fpreg2 = false
+                var fpreg3 = false
+                var value = false
+                var fpvalue = false
                 val splits = part.splitToSequence(',').iterator()
                 val typespec = splits.next()
                 while(splits.hasNext()) {

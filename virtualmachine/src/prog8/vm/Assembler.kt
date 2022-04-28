@@ -21,7 +21,7 @@ class Assembler {
                 throw IllegalArgumentException("invalid line $line")
             else {
                 val (_, addr, what, values) = match.groupValues
-                var address = parseValue(addr, 0)
+                var address = parseValue(addr, 0).toInt()
                 when(what) {
                     "str" -> {
                         val string = values.trim('"').unescape()
@@ -32,14 +32,14 @@ class Assembler {
                         memory.setString(address, string, true)
                     }
                     "ubyte", "byte" -> {
-                        val array = values.split(',').map { parseValue(it.trim(), 0) }
+                        val array = values.split(',').map { parseValue(it.trim(), 0).toInt() }
                         for (value in array) {
                             memory.setUB(address, value.toUByte())
                             address++
                         }
                     }
                     "uword", "word" -> {
-                        val array = values.split(',').map { parseValue(it.trim(), 0) }
+                        val array = values.split(',').map { parseValue(it.trim(), 0).toInt() }
                         for (value in array) {
                             memory.setUW(address, value.toUShort())
                             address += 2
@@ -62,7 +62,7 @@ class Assembler {
         labels.clear()
         placeholders.clear()
         val program = mutableListOf<Instruction>()
-        val instructionPattern = Regex("""([a-z]+)(\.b|\.w)?(.*)""", RegexOption.IGNORE_CASE)
+        val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
         val labelPattern = Regex("""_([a-z0-9\._]+):""")
         for (line in source.lines()) {
             if(line.isBlank() || line.startsWith(';'))
@@ -86,12 +86,17 @@ class Assembler {
                 var reg1: Int? = null
                 var reg2: Int? = null
                 var reg3: Int? = null
-                var value: Int? = null
+                var fpReg1: Int? = null
+                var fpReg2: Int? = null
+                var fpReg3: Int? = null
+                var value: Float? = null
                 var operand: String?
                 if(operands.isNotEmpty() && operands[0].isNotEmpty()) {
                     operand = operands.removeFirst().trim()
                     if(operand[0]=='r')
                         reg1 = operand.substring(1).toInt()
+                    else if(operand[0]=='f' && operand[1]=='r')
+                        fpReg1 = operand.substring(2).toInt()
                     else {
                         value = parseValue(operand, program.size)
                         operands.clear()
@@ -100,6 +105,8 @@ class Assembler {
                         operand = operands.removeFirst().trim()
                         if(operand[0]=='r')
                             reg2 = operand.substring(1).toInt()
+                        else if(operand[0]=='f' && operand[1]=='r')
+                            fpReg2 = operand.substring(2).toInt()
                         else {
                             value = parseValue(operand, program.size)
                             operands.clear()
@@ -108,6 +115,8 @@ class Assembler {
                             operand = operands.removeFirst().trim()
                             if(operand[0]=='r')
                                 reg3 = operand.substring(1).toInt()
+                            else if(operand[0]=='f' && operand[1]=='r')
+                                fpReg3 = operand.substring(2).toInt()
                             else {
                                 value = parseValue(operand, program.size)
                                 operands.clear()
@@ -147,8 +156,6 @@ class Assembler {
                     throw IllegalArgumentException("invalid reg2 for $line")
                 if(!format.reg3 && reg3!=null)
                     throw IllegalArgumentException("invalid reg3 for $line")
-                if(!format.value && value!=null)
-                    throw IllegalArgumentException("invalid value for $line")
                 if(value!=null && opcode !in OpcodesWithAddress) {
                     when (type) {
                         VmDataType.BYTE -> {
@@ -165,7 +172,18 @@ class Assembler {
                         null -> {}
                     }
                 }
-                program.add(Instruction(opcode, type, reg1, reg2, reg3, value=value))
+                var floatValue: Float? = null
+                var intValue: Int? = null
+                if(type==VmDataType.FLOAT)
+                    floatValue = value      // TODO NOT ALWAYS CORRECT, SOMETIMES IT IS THE INT VALUE
+                else
+                    intValue = value?.toInt()
+
+                if(!format.value && intValue!=null)
+                    throw IllegalArgumentException("invalid int value for $line")
+                if(!format.fpValue && floatValue!=null)
+                    throw IllegalArgumentException("invalid float value for $line")
+                program.add(Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, fpReg3, value = intValue, fpValue = floatValue))
             }
         }
 
@@ -180,21 +198,21 @@ class Assembler {
         }
     }
 
-    private fun parseValue(value: String, pc: Int): Int {
+    private fun parseValue(value: String, pc: Int): Float {
         if(value.startsWith("-")) {
             return -parseValue(value.substring(1), pc)
         }
         if(value.startsWith('$'))
-            return value.substring(1).toInt(16)
+            return value.substring(1).toInt(16).toFloat()
         if(value.startsWith('%'))
-            return value.substring(1).toInt(2)
+            return value.substring(1).toInt(2).toFloat()
         if(value.startsWith("0x"))
-            return value.substring(2).toInt(16)
+            return value.substring(2).toInt(16).toFloat()
         if(value.startsWith('_')) {
             placeholders[pc] = value.substring(1)
-            return 0
+            return 0f
         }
-        return value.toInt()
+        return value.toFloat()
     }
 
     private fun convertType(typestr: String): VmDataType? {
@@ -202,6 +220,7 @@ class Assembler {
             "" -> null
             ".b" -> VmDataType.BYTE
             ".w" -> VmDataType.WORD
+            ".f" -> VmDataType.FLOAT
             else -> throw IllegalArgumentException("invalid type $typestr")
         }
     }
