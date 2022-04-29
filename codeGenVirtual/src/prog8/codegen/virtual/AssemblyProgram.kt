@@ -1,5 +1,6 @@
 package prog8.codegen.virtual
 
+import prog8.code.core.AssemblyError
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram
 import prog8.vm.Instruction
@@ -46,6 +47,13 @@ internal class AssemblyProgram(override val name: String,
                 write(line.ins.toString() + "\n")
             }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
+            is VmCodeInlineAsm -> {
+                val asm = line.assembly.replace("""\{[a-zA-Z\d_\.]+\}""".toRegex()) { matchResult ->
+                    val name = matchResult.value.substring(1, matchResult.value.length-1).split('.')
+                    allocations.get(name).toString() }
+                write(asm+"\n")
+            }
+            else -> throw AssemblyError("invalid vm code line")
         }
     }
 
@@ -118,4 +126,8 @@ internal class VmCodeChunk(initial: VmCodeLine? = null) {
     operator fun plusAssign(chunk: VmCodeChunk) {
         lines.addAll(chunk.lines)
     }
+}
+
+internal class VmCodeInlineAsm(asm: String): VmCodeLine() {
+    val assembly: String = asm.trimIndent()
 }

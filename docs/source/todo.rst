@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: allow inline "asm" where the assembly is vm-code instead of 6502 -- then get rid of the syscall() functions in prog8
+- vm: get rid of the syscall() functions in prog8 via inline assembly
 - vm: implement missing floating point functions
+- vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)

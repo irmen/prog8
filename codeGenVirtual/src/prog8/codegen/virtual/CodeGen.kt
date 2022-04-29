@@ -91,6 +91,7 @@ class CodeGen(internal val program: PtProgram,
             is PtLabel -> VmCodeChunk(VmCodeLabel(node.scopedName))
             is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Opcode.BREAKPOINT))
             is PtConditionalBranch -> translate(node)
+            is PtInlineAssembly -> VmCodeChunk(VmCodeInlineAsm(node.assembly))
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -108,7 +109,6 @@ class CodeGen(internal val program: PtProgram,
             is PtArray,
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target ${node.position}")
-            is PtInlineAssembly -> throw AssemblyError("inline assembly not supported on virtual machine target ${node.position}")
             is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target ${node.position}")
             else -> TODO("missing codegen for $node")
         }

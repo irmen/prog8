@@ -11,7 +11,11 @@ floats {
 
 sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).
-    void syscall1fp(sys.SC_PRINTF, value)
+    %asm {{
+        loadm.f fr0,{floats.print_f.value}
+        syscall 35
+        return
+    }}
 }
 
 sub pow(float value, float power) -> float {
@@ -25,8 +29,12 @@ sub fabs(float value) -> float {
 }
 
 sub sin(float angle) -> float {
-    ; TODO
-    return -42.42
+    ; TODO sin.f instruction
+    %asm {{
+        loadm.f fr0,{floats.sin.angle}
+        sin.f fr0,fr0
+        return
+    }}
 }
 
 sub cos(float angle) -> float {
