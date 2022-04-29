@@ -67,7 +67,7 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            mm.add(Pair(variable.scopedName, "${location.toHex()} $typeStr $value"))
+            mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
         }
         return mm
     }

@@ -8,7 +8,7 @@ sys {
 
     const ubyte target = 255         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL, 255 = virtual
 
-    ; SYSCALLS
+    ; Syscalls table, taken from Syscall enumeration
     ; 0 = reset ; resets system
     ; 1 = exit ; stops program and returns statuscode from r0.w
     ; 2 = print_c ; print single character
@@ -20,8 +20,8 @@ sys {
     ; 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
     ; 9 = gfx_clear   ; clear graphics window with shade in r0.b
     ; 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-    ; 11 = rnd        ; random BYTE
-    ; 12 = rndw       ; random WORD
+    ; 11 = set_carry status flag
+    ; 12 = clear_carry status flag
     ; 13 = wait       ; wait certain amount of jiffies (1/60 sec)
     ; 14 = waitvsync  ; wait on vsync
     ; 15 = sort_ubyte array
@@ -44,26 +44,23 @@ sys {
     ; 32 = all_word array
     ; 33 = reverse_bytes array
     ; 34 = reverse_words array
-    ; 35 = set_carry status flag
-    ; 36 = clear_carry status flag
-
+    ; 35 = printf  (float arg in fpReg0)
     const ubyte SC_RESET = 0
     const ubyte SC_EXIT = 1
     const ubyte SC_PRINT_C = 2
     const ubyte SC_PRINT_S = 3
     const ubyte SC_PRINT_U8 = 4
-    const ubyte SC_PRINT_u16 = 5
+    const ubyte SC_PRINT_U16 = 5
     const ubyte SC_INPUT = 6
     const ubyte SC_SLEEP = 7
     const ubyte SC_GFX_ENABLE = 8
     const ubyte SC_GFX_CLEAR = 9
     const ubyte SC_GFX_PLOT = 10
-    const ubyte SC_RND = 11
-    const ubyte SC_RNDW = 12
+    const ubyte SC_SET_CARRY = 11
+    const ubyte SC_CLEAR_CARRY = 12
     const ubyte SC_WAIT = 13
     const ubyte SC_WAITVSYNC = 14
-    const ubyte SC_SET_CARRY = 35
-    const ubyte SC_CLEAR_CARRY = 36
+    const ubyte SC_PRINTF = 35
 
 
     sub  reset_system()  {

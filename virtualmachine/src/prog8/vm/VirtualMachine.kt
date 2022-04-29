@@ -231,7 +231,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsLOAD(i: Instruction) {
-        setResultReg(i.reg1!!, i.value!!, i.type!!)
+        if(i.type==VmDataType.FLOAT)
+            registers.setFloat(i.fpReg1!!, i.fpValue!!)
+        else
+            setResultReg(i.reg1!!, i.value!!, i.type!!)
         pc++
     }
 

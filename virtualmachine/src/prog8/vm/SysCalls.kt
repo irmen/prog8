@@ -40,6 +40,7 @@ SYSCALLS:
 32 = all_word array
 33 = reverse_bytes array
 34 = reverse_words array
+35 = print_f  (floating point value in fpReg0)
 */
 
 enum class Syscall {
@@ -77,7 +78,8 @@ enum class Syscall {
     ALL_BYTE,
     ALL_WORD,
     REVERSE_BYTES,
-    REVERSE_WORDS
+    REVERSE_WORDS,
+    PRINT_F
 }
 
 object SysCalls {
@@ -297,6 +299,10 @@ object SysCalls {
             }
             Syscall.SET_CARRY -> vm.statusCarry = true
             Syscall.CLEAR_CARRY -> vm.statusCarry = false
+            Syscall.PRINT_F -> {
+                val value = vm.registers.getFloat(0)
+                print(value)
+            }
             else -> TODO("syscall ${call.name}")
         }
     }

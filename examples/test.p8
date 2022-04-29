@@ -8,6 +8,7 @@
 
 main {
     sub start() {
+        txt.print("float tests: ")
         float f1 = 1.2345
         float f2 = -9.99
         float f3

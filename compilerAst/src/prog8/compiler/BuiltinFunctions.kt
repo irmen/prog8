@@ -125,6 +125,7 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
     FSignature("syscall"     , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE))), DataType.UWORD, null),
     FSignature("syscall1"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD))), DataType.UWORD, null),
+    FSignature("syscall1fp"  , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.FLOAT))), DataType.FLOAT, null),
     FSignature("syscall2"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD))), DataType.UWORD, null),
     FSignature("syscall3"    , false, listOf(FParam("callnr", arrayOf(DataType.UBYTE)), FParam("arg1", arrayOf(DataType.UWORD)), FParam("arg2", arrayOf(DataType.UWORD)), FParam("arg3", arrayOf(DataType.UWORD))), DataType.UWORD, null),
 )

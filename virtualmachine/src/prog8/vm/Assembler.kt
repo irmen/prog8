@@ -166,23 +166,18 @@ class Assembler {
                             if (value < -32768 || value > 65535)
                                 throw IllegalArgumentException("value out of range for word: $value")
                         }
-                        VmDataType.FLOAT -> {
-                            throw IllegalArgumentException("can't use float here")
-                        }
+                        VmDataType.FLOAT -> {}
                         null -> {}
                     }
                 }
                 var floatValue: Float? = null
                 var intValue: Int? = null
-                if(type==VmDataType.FLOAT)
-                    floatValue = value      // TODO NOT ALWAYS CORRECT, SOMETIMES IT IS THE INT VALUE
-                else
-                    intValue = value?.toInt()
 
-                if(!format.value && intValue!=null)
-                    throw IllegalArgumentException("invalid int value for $line")
-                if(!format.fpValue && floatValue!=null)
-                    throw IllegalArgumentException("invalid float value for $line")
+                if(format.value)
+                    intValue = value!!.toInt()
+                if(format.fpValue)
+                    floatValue = value!!
+
                 program.add(Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, fpReg3, value = intValue, fpValue = floatValue))
             }
         }
