@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: get rid of the syscall() functions in prog8 via inline assembly
+- vm: fix fp reg out of bounds
 - vm: implement missing floating point functions
 - vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.

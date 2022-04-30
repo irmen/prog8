@@ -5,7 +5,6 @@ import prog8.code.ast.*
 import prog8.code.core.ArrayToElementTypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
-import prog8.code.core.WordDatatypes
 import prog8.vm.Opcode
 import prog8.vm.Syscall
 import prog8.vm.VmDataType
@@ -32,11 +31,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "rndw" -> funcRndw(resultRegister)
             "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
             "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
-            "syscall" -> funcSyscall(call)
-            "syscall1" -> funcSyscall1(call)
-            "syscall2" -> funcSyscall2(call)
-            "syscall3" -> funcSyscall3(call)
-            "syscall1fp" -> funcSyscall1fp(call)
             "msb" -> funcMsb(call, resultRegister)
             "lsb" -> funcLsb(call, resultRegister)
             "memory" -> funcMemory(call, resultRegister)
@@ -347,60 +341,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
         code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
-        return code
-    }
-
-    private fun funcSyscall(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val code = VmCodeChunk()
-        val vExpr = call.args.single() as PtNumber
-        code += VmCodeInstruction(Opcode.SYSCALL, value=vExpr.number.toInt())
-        return code
-    }
-
-    private fun funcSyscall1(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val code = VmCodeChunk()
-        val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0, -1)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
-        return code
-    }
-
-    private fun funcSyscall1fp(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val code = VmCodeChunk()
-        val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], -1, 0)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
-        return code
-    }
-
-    private fun funcSyscall2(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1)
-        while(codeGen.vmRegisters.peekNext()<2) {
-            codeGen.vmRegisters.nextFree()
-        }
-        val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0, -1)
-        code += exprGen.translateExpression(call.args[2], 1, -1)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
-        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
-        return code
-    }
-
-    private fun funcSyscall3(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 1)
-        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1 = 2)
-        while(codeGen.vmRegisters.peekNext()<3) {
-            codeGen.vmRegisters.nextFree()
-        }
-        val callNr = (call.args[0] as PtNumber).number.toInt()
-        code += exprGen.translateExpression(call.args[1], 0, -1)
-        code += exprGen.translateExpression(call.args[2], 1, -1)
-        code += exprGen.translateExpression(call.args[3], 2, -1)
-        code += VmCodeInstruction(Opcode.SYSCALL, value=callNr)
-        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 2)
-        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1 = 1)
         return code
     }
 

@@ -19,84 +19,130 @@ sub print_f(float value) {
 }
 
 sub pow(float value, float power) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fpow.f instruction
+    %asm {{
+        loadm.f fr0,{floats.pow.value}
+        loadm.f fr1,{floats.pow.power}
+        fpow.f fr0,fr0
+        return
+    }}
 }
 
 sub fabs(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fabs.f instruction
+    %asm {{
+        loadm.f fr0,{floats.fabs.value}
+        fabs.f fr0,fr0
+        return
+    }}
 }
 
 sub sin(float angle) -> float {
-    ; TODO sin.f instruction
+    ; TODO fsin.f instruction
     %asm {{
         loadm.f fr0,{floats.sin.angle}
-        sin.f fr0,fr0
+        fsin.f fr0,fr0
         return
     }}
 }
 
 sub cos(float angle) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fcos.f instruction
+    %asm {{
+        loadm.f fr0,{floats.cos.angle}
+        fcos.f fr0,fr0
+        return
+    }}
 }
 
 sub tan(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO ftan.f instruction
+    %asm {{
+        loadm.f fr0,{floats.tan.value}
+        ftan.f fr0,fr0
+        return
+    }}
 }
 
 sub atan(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fatan.f instruction
+    %asm {{
+        loadm.f fr0,{floats.atan.value}
+        fatan.f fr0,fr0
+        return
+    }}
 }
 
 sub ln(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fln.f instruction
+    %asm {{
+        loadm.f fr0,{floats.ln.value}
+        fln.f fr0,fr0
+        return
+    }}
 }
 
 sub log2(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO flog2.f instruction
+    %asm {{
+        loadm.f fr0,{floats.log2.value}
+        flog2.f fr0,fr0
+        return
+    }}
 }
 
 sub sqrt(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fsqrt.f instruction
+    %asm {{
+        loadm.f fr0,{floats.sqrt.value}
+        fsqrt.f fr0,fr0
+        return
+    }}
 }
 
 sub rad(float angle) -> float {
     ; -- convert degrees to radians (d * pi / 180)
-    ; TODO
-    return -42.42
+    return angle * PI / 180.0
 }
 
 sub deg(float angle) -> float {
     ; -- convert radians to degrees (d * (1/ pi * 180))
-    ; TODO
-    return -42.42
+    return angle * 180.0 / PI
 }
 
 sub round(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO fround.f instruction
+    %asm {{
+        loadm.f fr0,{floats.round.value}
+        fround.f fr0,fr0
+        return
+    }}
 }
 
 sub floor(float value) -> float {
-    ; TODO
-    return -42.42
+    ; TODO ffloor.f instruction
+    %asm {{
+        loadm.f fr0,{floats.floor.value}
+        ffloor.f fr0,fr0
+        return
+    }}
 }
 
 sub ceil(float value) -> float {
     ; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
-    ; TODO
-    return -42.42
+    ; TODO fceil.f instruction
+    %asm {{
+        loadm.f fr0,{floats.ceil.value}
+        fceil.f fr0,fr0
+        return
+    }}
 }
 
 sub rndf() -> float {
-    ; TODO
-    return -42.42
+    ; TODO frnd.f instruction
+    %asm {{
+        frnd.f fr0
+        return
+    }}
 }
 }

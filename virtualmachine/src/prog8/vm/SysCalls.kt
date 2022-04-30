@@ -16,8 +16,8 @@ SYSCALLS:
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-11 = set_carry status flag
-12 = clear_carry status flag
+11 = <unused 1>
+12 = <unused 2>
 13 = wait       ; wait certain amount of jiffies (1/60 sec)
 14 = waitvsync  ; wait on vsync
 15 = sort_ubyte array
@@ -55,8 +55,8 @@ enum class Syscall {
     GFX_ENABLE,
     GFX_CLEAR,
     GFX_PLOT,
-    SET_CARRY,
-    CLEAR_CARRY,
+    UNUSED_1,
+    UNUSED_2,
     WAIT,
     WAITVSYNC,
     SORT_UBYTE,
@@ -297,8 +297,6 @@ object SysCalls {
                 else
                     vm.registers.setUB(0, 0u)
             }
-            Syscall.SET_CARRY -> vm.statusCarry = true
-            Syscall.CLEAR_CARRY -> vm.statusCarry = false
             Syscall.PRINT_F -> {
                 val value = vm.registers.getFloat(0)
                 print(value)

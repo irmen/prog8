@@ -7,7 +7,11 @@
 txt {
 
 sub  clear_screen() {
-    void syscall1(3, "\x1b[2J\x1B[H")
+    str @shared sequence = "\x1b[2J\x1B[H"
+    %asm {{
+        load.w r0, {txt.clear_screen.sequence}
+        syscall 3
+    }}
 }
 
 sub nl() {
@@ -27,11 +31,17 @@ sub uppercase() {
 }
 
 sub chrout(ubyte char) {
-    void syscall1(2, char)
+    %asm {{
+        loadm.b r0, {txt.chrout.char}
+        syscall 2
+    }}
 }
 
 sub  print (str text) {
-    void syscall1(3, text)
+    %asm {{
+        loadm.w r0, {txt.print.text}
+        syscall 3
+    }}
 }
 
 sub  print_ub0  (ubyte value) {
@@ -105,7 +115,11 @@ sub  print_w  (word value) {
 sub  input_chars  (uword buffer) -> ubyte  {
     ; ---- Input a string (max. 80 chars) from the keyboard. Returns length of input. (string is terminated with a 0 byte as well)
     ;      It assumes the keyboard is selected as I/O channel!
-    return syscall1(6, buffer)
+    %asm {{
+        loadm.w r0,{txt.input_chars.buffer}
+        syscall 6
+        return
+    }}
 }
 
 }

@@ -8,74 +8,26 @@ sys {
 
     const ubyte target = 255         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL, 255 = virtual
 
-    ; Syscalls table, taken from Syscall enumeration
-    ; 0 = reset ; resets system
-    ; 1 = exit ; stops program and returns statuscode from r0.w
-    ; 2 = print_c ; print single character
-    ; 3 = print_s ; print 0-terminated string from memory
-    ; 4 = print_u8 ; print unsigned int byte
-    ; 5 = print_u16 ; print unsigned int word
-    ; 6 = input ; reads a line of text entered by the user, r0.w = memory buffer, r1.b = maxlength (0-255, 0=unlimited).  Zero-terminates the string. Returns length in r0.w
-    ; 7 = sleep ; sleep amount of milliseconds
-    ; 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
-    ; 9 = gfx_clear   ; clear graphics window with shade in r0.b
-    ; 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-    ; 11 = set_carry status flag
-    ; 12 = clear_carry status flag
-    ; 13 = wait       ; wait certain amount of jiffies (1/60 sec)
-    ; 14 = waitvsync  ; wait on vsync
-    ; 15 = sort_ubyte array
-    ; 16 = sort_byte array
-    ; 17 = sort_uword array
-    ; 18 = sort_word array
-    ; 19 = max_ubyte array
-    ; 20 = max_byte array
-    ; 21 = max_uword array
-    ; 22 = max_word array
-    ; 23 = min_ubyte array
-    ; 24 = min_byte array
-    ; 25 = min_uword array
-    ; 26 = min_word array
-    ; 27 = sum_byte array
-    ; 28 = sum_word array
-    ; 29 = any_byte array
-    ; 30 = any_word array
-    ; 31 = all_byte array
-    ; 32 = all_word array
-    ; 33 = reverse_bytes array
-    ; 34 = reverse_words array
-    ; 35 = printf  (float arg in fpReg0)
-    const ubyte SC_RESET = 0
-    const ubyte SC_EXIT = 1
-    const ubyte SC_PRINT_C = 2
-    const ubyte SC_PRINT_S = 3
-    const ubyte SC_PRINT_U8 = 4
-    const ubyte SC_PRINT_U16 = 5
-    const ubyte SC_INPUT = 6
-    const ubyte SC_SLEEP = 7
-    const ubyte SC_GFX_ENABLE = 8
-    const ubyte SC_GFX_CLEAR = 9
-    const ubyte SC_GFX_PLOT = 10
-    const ubyte SC_SET_CARRY = 11
-    const ubyte SC_CLEAR_CARRY = 12
-    const ubyte SC_WAIT = 13
-    const ubyte SC_WAITVSYNC = 14
-    const ubyte SC_PRINTF = 35
-
-
     sub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
-        void syscall(SC_RESET)
+        %asm {{
+            syscall 0
+        }}
     }
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        void syscall1(SC_WAIT, jiffies)
+        %asm {{
+            loadm.w r0, {sys.wait.jiffies}
+            syscall 13
+        }}
     }
 
     sub waitvsync() {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        void syscall(SC_WAITVSYNC)
+        %asm {{
+            syscall 14
+        }}
     }
 
     sub internal_stringcopy(uword source, uword target) {
@@ -112,15 +64,39 @@ sys {
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
-        void syscall1(SC_EXIT, returnvalue)
-    }
-
-    sub clear_carry() {
-        void syscall(SC_CLEAR_CARRY)
+        %asm {{
+            loadm.b r0,{sys.exit.returnvalue}
+            syscall 1
+        }}
     }
 
     sub set_carry() {
-        void syscall(SC_SET_CARRY)
+        %asm {{
+            sec
+        }}
+    }
+
+    sub clear_carry() {
+        %asm {{
+            clc
+        }}
+    }
+
+
+    sub gfx_enable(ubyte mode) {
+        %asm {{
+            loadm.b r0, {sys.gfx_enable.mode}
+            syscall 8
+        }}
+    }
+
+    sub gfx_plot(uword xx, uword yy, ubyte color) {
+        %asm {{
+            loadm.w r0, {sys.gfx_plot.xx}
+            loadm.w r1, {sys.gfx_plot.yy}
+            loadm.b r2, {sys.gfx_plot.color}
+            syscall 10
+        }}
     }
 }
 

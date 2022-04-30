@@ -8,14 +8,23 @@
 
 main {
     sub start() {
-        txt.print("float tests: ")
-        floats.print_f(-42.42)
-        float f1 = 1.2345
-        float f2 = -9.99
-        float f3
-        f3 = floats.sin(f3)
-        floats.print_f(f3)
-        txt.nl()
+        float fl = 500.0
+        txt.print("rad 180 = ")
+        floats.print_f(floats.rad(180.0))
+        txt.print("rad 360 = ")
+        floats.print_f(floats.rad(360.0))
+        txt.print("deg 2 = ")
+        floats.print_f(floats.deg(2.0))
+        txt.print("deg pi = ")
+        floats.print_f(floats.deg(floats.PI))
+        sys.exit(42)
+;        floats.print_f(-42.42)
+;        float f1 = 1.2345
+;        float f2 = -9.99
+;        float f3
+;        f3 = floats.sin(f3)
+;        floats.print_f(f3)
+;        txt.nl()
 
 ;    float f1 = 1.555
 ;    floats.print_f(floats.sin(f1))
@@ -49,23 +58,21 @@ main {
 ;            "deg", "round", "floor", "ceil", "rndf"
 
         ; a "pixelshader":
-;        void syscall1(8, 0)      ; enable lo res creen
-;        ubyte shifter
-;
-;        ; pokemon(1,0)
-;
-;        repeat {
-;            uword xx
-;            uword yy = 0
-;            repeat 240 {
-;                xx = 0
-;                repeat 320 {
-;                    syscall3(10, xx, yy, xx*yy + shifter)   ; plot pixel
-;                    xx++
-;                }
-;                yy++
-;            }
-;            shifter+=4
-;        }
+        sys.gfx_enable(0)       ; enable lo res screen
+        ubyte shifter
+
+        repeat {
+            uword xx
+            uword yy = 0
+            repeat 240 {
+                xx = 0
+                repeat 320 {
+                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
+                    xx++
+                }
+                yy++
+            }
+            shifter+=4
+        }
     }
 }

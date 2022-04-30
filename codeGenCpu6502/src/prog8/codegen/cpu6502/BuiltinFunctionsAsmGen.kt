@@ -119,7 +119,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "callrom" -> funcCallRom(fcall)
-            "syscall", "syscall1", "syscall2", "syscall3", "syscall1fp" -> throw AssemblyError("6502 assembly target doesn't use syscall function interface")
             else -> throw AssemblyError("missing asmgen for builtin func ${func.name}")
         }
     }

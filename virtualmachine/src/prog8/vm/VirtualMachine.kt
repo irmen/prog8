@@ -61,11 +61,13 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     fun reset() {
         registers.reset()
-        memory.reset()
+        // memory.reset()
         pc = 0
         stepCount = 0
         callStack.clear()
         statusCarry = false
+        statusNegative = false
+        statusZero = false
     }
 
     fun exit() {
@@ -168,6 +170,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
             Opcode.BREAKPOINT -> InsBREAKPOINT()
+            Opcode.CLC -> { statusCarry = false; pc++ }
+            Opcode.SEC -> { statusCarry = true; pc++ }
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
