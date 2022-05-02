@@ -172,6 +172,27 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; pc++ }
             Opcode.SEC -> { statusCarry = true; pc++ }
+
+            Opcode.FFROMUB -> TODO()
+            Opcode.FFROMSB -> TODO()
+            Opcode.FFROMUW -> TODO()
+            Opcode.FFROMSW -> TODO()
+            Opcode.FTOUB -> InsFTOUB(ins)
+            Opcode.FTOSB -> InsFTOSB(ins)
+            Opcode.FTOUW -> InsFTOUW(ins)
+            Opcode.FTOSW -> InsFTOSW(ins)
+            Opcode.FPOW -> TODO()
+            Opcode.FABS -> TODO()
+            Opcode.FSIN -> TODO()
+            Opcode.FCOS -> TODO()
+            Opcode.FTAN -> TODO()
+            Opcode.FATAN -> TODO()
+            Opcode.FLN -> TODO()
+            Opcode.FLOG -> TODO()
+            Opcode.FSQRT -> TODO()
+            Opcode.FROUND -> TODO()
+            Opcode.FFLOOR -> TODO()
+            Opcode.FCEIL -> TODO()
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
@@ -1041,6 +1062,26 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun InsFTOUB(i: Instruction) {
+        registers.setUB(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toUByte())
+        pc++
+    }
+
+    private fun InsFTOUW(i: Instruction) {
+        registers.setUW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toUShort())
+        pc++
+    }
+
+    private fun InsFTOSB(i: Instruction) {
+        registers.setSB(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toByte())
+        pc++
+    }
+
+    private fun InsFTOSW(i: Instruction) {
+        registers.setSW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toShort())
+        pc++
+    }
+
     private fun getBranchOperands(i: Instruction): Pair<Int, Int> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
@@ -1084,7 +1125,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             null -> throw IllegalArgumentException("need type for logical instruction")
         }
     }
-
 
     private fun getSetOnConditionOperands(ins: Instruction): Triple<Int, Int, Int> {
         return when(ins.type) {

@@ -330,8 +330,6 @@ data class Instruction(
         if (type==VmDataType.FLOAT) {
             if(format.fpValue && (fpValue==null && symbol==null))
                 throw IllegalArgumentException("$opcode: missing a fp-value or symbol")
-            if (reg1 != null || reg2 != null || reg3 != null)
-                throw java.lang.IllegalArgumentException("$opcode: floating point instruction can't use integer registers")
         } else {
             if(format.value && (value==null && symbol==null))
                 throw IllegalArgumentException("$opcode: missing a value or symbol")

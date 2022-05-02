@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: implement float type casts to integer types
+- compiler: fix crash when print_ub(float as ubyte)
 - vm: implement float any, all, reverse, sort
 - vm: fix test fp calc result being 0
 - vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?

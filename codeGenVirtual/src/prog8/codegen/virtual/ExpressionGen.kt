@@ -9,6 +9,7 @@ import prog8.code.core.PassByValueDatatypes
 import prog8.code.core.SignedDatatypes
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
+import java.nio.channels.FileLock
 
 
 internal class ExpressionGen(private val codeGen: CodeGen) {
@@ -59,7 +60,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     code += VmCodeInstruction(Opcode.LOADI, VmDataType.BYTE, reg1=resultRegister, reg2=addressRegister)
                 }
             }
-            is PtTypeCast -> code += translate(expr, resultRegister)
+            is PtTypeCast -> code += translate(expr, resultRegister, resultFpRegister)
             is PtPrefix -> code += translate(expr, resultRegister)
             is PtArrayIndexer -> code += translate(expr, resultRegister)
             is PtBinaryExpression -> code += translate(expr, resultRegister, resultFpRegister)
@@ -192,27 +193,29 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    private fun translate(cast: PtTypeCast, resultRegister: Int): VmCodeChunk {
+    private fun translate(cast: PtTypeCast, resultRegister: Int, predefinedResultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(cast.type==cast.value.type)
             return code
-        code += translateExpression(cast.value, resultRegister, -1)
+        val actualResultFpReg = if(predefinedResultFpRegister>=0) predefinedResultFpRegister else codeGen.vmRegisters.nextFreeFloat()
+        if(cast.value.type==DataType.FLOAT) {
+            // a cast from float to integer, so evaluate the value into a float register first
+            code += translateExpression(cast.value, -1, actualResultFpReg)
+        }
+        else
+            code += translateExpression(cast.value, resultRegister, -1)
         when(cast.type) {
             DataType.UBYTE -> {
                 when(cast.value.type) {
                     DataType.BYTE, DataType.UWORD, DataType.WORD -> { /* just keep the LSB as it is */ }
-                    DataType.FLOAT -> {
-                        TODO("float -> ubyte") // float not yet supported
-                    }
+                    DataType.FLOAT -> code += VmCodeInstruction(Opcode.FTOUB, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = actualResultFpReg)
                     else -> throw AssemblyError("weird cast value type")
                 }
             }
             DataType.BYTE -> {
                 when(cast.value.type) {
                     DataType.UBYTE, DataType.UWORD, DataType.WORD -> { /* just keep the LSB as it is */ }
-                    DataType.FLOAT -> {
-                        TODO("float -> byte") // float not yet supported
-                    }
+                    DataType.FLOAT -> code += VmCodeInstruction(Opcode.FTOSB, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = actualResultFpReg)
                     else -> throw AssemblyError("weird cast value type")
                 }
             }
@@ -228,7 +231,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     }
                     DataType.WORD -> { }
                     DataType.FLOAT -> {
-                        TODO("float -> uword") // float not yet supported
+                        code += VmCodeInstruction(Opcode.FTOUW, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = actualResultFpReg)
                     }
                     else -> throw AssemblyError("weird cast value type")
                 }
@@ -245,13 +248,13 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     }
                     DataType.UWORD -> { }
                     DataType.FLOAT -> {
-                        TODO("float -> word") // float not yet supported
+                        code += VmCodeInstruction(Opcode.FTOSW, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = actualResultFpReg)
                     }
                     else -> throw AssemblyError("weird cast value type")
                 }
             }
             DataType.FLOAT -> {
-                TODO("floating point not yet supported")
+                TODO("floating point to integer cast not yet supported")
 //                when(cast.value.type) {
 //                    DataType.BYTE -> {
 //                    }

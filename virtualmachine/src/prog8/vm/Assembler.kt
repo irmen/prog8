@@ -82,6 +82,18 @@ class Assembler {
                 val (_, instr, typestr, rest) = match.groupValues
                 val opcode = Opcode.valueOf(instr.uppercase())
                 var type: VmDataType? = convertType(typestr)
+                val formats = instructionFormats.getValue(opcode)
+                val format: InstructionFormat
+                if(type !in formats) {
+                    type = VmDataType.BYTE
+                    format = if(type !in formats)
+                        formats.getValue(null)
+                    else
+                        formats.getValue(type)
+                } else {
+                    format = formats.getValue(type)
+                }
+                // parse the operands
                 val operands = rest.lowercase().split(",").toMutableList()
                 var reg1: Int? = null
                 var reg2: Int? = null
@@ -129,17 +141,19 @@ class Assembler {
                         }
                     }
                 }
-                val formats = instructionFormats.getValue(opcode)
-                val format: InstructionFormat
-                if(type !in formats) {
-                    type = VmDataType.BYTE
-                    format = if(type !in formats)
-                        formats.getValue(null)
-                    else
-                        formats.getValue(type)
-                } else {
-                    format = formats.getValue(type)
+
+                // shift the operands back into place
+                while(reg1==null && reg2!=null) {
+                    reg1 = reg2
+                    reg2 = reg3
+                    reg3 = null
                 }
+                while(fpReg1==null && fpReg2!=null) {
+                    fpReg1 = fpReg2
+                    fpReg2 = fpReg3
+                    fpReg3 = null
+                }
+
                 if(type!=null && type !in formats)
                     throw IllegalArgumentException("invalid type code for $line")
                 if(format.reg1 && reg1==null)
