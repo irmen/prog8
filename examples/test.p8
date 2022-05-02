@@ -8,7 +8,6 @@
 
 main {
     sub start() {
-
         ubyte ub = conv.str2ubyte("234")
         txt.print_ub(ub)
         txt.nl()

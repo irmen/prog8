@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: fix  if @(string)=='$'   string++  not working  on ea31
-- vm: fix conv hex2uword and bin2uword
 - vm: implement float div, minus, plus
 - vm: implement float type casts to integer types
 - vm: implement float any, all, reverse, sort

@@ -219,7 +219,6 @@ sub  str2word(str string) -> word {
 sub  hex2uword(str string) -> uword {
     ; -- hexadecimal string (with or without '$') to uword.
     ;    stops parsing at the first character that's not a hex digit (except leading $)
-    ; TODO fix this result
     uword result
     ubyte char
     if @(string)=='$'
@@ -240,7 +239,6 @@ sub  hex2uword(str string) -> uword {
 sub  bin2uword(str string) -> uword {
     ; -- binary string (with or without '%') to uword.
     ;    stops parsing at the first character that's not a 0 or 1. (except leading %)
-    ; TODO fix this result
     uword result
     ubyte char
     if @(string)=='%'
