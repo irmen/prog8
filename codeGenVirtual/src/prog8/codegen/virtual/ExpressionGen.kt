@@ -273,10 +273,10 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val vmDt = codeGen.vmType(binExpr.left.type)
         val signed = binExpr.left.type in SignedDatatypes
         return when(binExpr.operator) {
-            "+" -> operatorPlus(binExpr, vmDt, resultRegister)
-            "-" -> operatorMinus(binExpr, vmDt, resultRegister)
-            "*" -> operatorMultiply(binExpr, vmDt, resultRegister, resultFpRegister )
-            "/" -> operatorDivide(binExpr, vmDt, resultRegister)
+            "+" -> operatorPlus(binExpr, vmDt, resultRegister, resultFpRegister)
+            "-" -> operatorMinus(binExpr, vmDt, resultRegister, resultFpRegister)
+            "*" -> operatorMultiply(binExpr, vmDt, resultRegister, resultFpRegister)
+            "/" -> operatorDivide(binExpr, vmDt, resultRegister, resultFpRegister)
             "%" -> operatorModulo(binExpr, vmDt, resultRegister)
             "|", "or" -> operatorOr(binExpr, vmDt, resultRegister)
             "&", "and" -> operatorAnd(binExpr, vmDt, resultRegister)
@@ -409,11 +409,21 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    private fun operatorDivide(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
+    private fun operatorDivide(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         val constFactorRight = binExpr.right as? PtNumber
         if(vmDt==VmDataType.FLOAT) {
-            TODO("div float")
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                code += translateExpression(binExpr.left, -1, resultFpRegister)
+                val factor = constFactorRight.number.toFloat()
+                code += codeGen.divideByConstFloat(resultFpRegister, factor)
+            } else {
+                val leftResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(binExpr.left, -1, leftResultFpReg)
+                code += translateExpression(binExpr.right, -1, rightResultFpReg)
+                code += VmCodeInstruction(Opcode.DIV, vmDt, fpReg1 = resultFpRegister, fpReg2=leftResultFpReg, fpReg3=rightResultFpReg)
+            }
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 code += translateExpression(binExpr.left, resultRegister, -1)
@@ -448,7 +458,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(binExpr.left, -1, leftResultFpReg)
                 code += translateExpression(binExpr.right, -1, rightResultFpReg)
-                code += VmCodeInstruction(Opcode.MUL, vmDt, fpReg1 = resultFpRegister, reg2=leftResultFpReg, reg3=rightResultFpReg)
+                code += VmCodeInstruction(Opcode.MUL, vmDt, fpReg1 = resultFpRegister, fpReg2 = leftResultFpReg, fpReg3 = rightResultFpReg)
             }
         } else {
             if(constFactorLeft!=null && constFactorLeft.type!=DataType.FLOAT) {
@@ -470,10 +480,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    private fun operatorMinus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
+    private fun operatorMinus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
-            TODO("minus float")
+            if((binExpr.right as? PtNumber)?.number==1.0) {
+                code += translateExpression(binExpr.left, -1, resultFpRegister)
+                code += VmCodeInstruction(Opcode.DEC, vmDt, fpReg1 = resultFpRegister)
+            }
+            else {
+                val leftResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(binExpr.left, -1, leftResultFpReg)
+                code += translateExpression(binExpr.right, -1, rightResultFpReg)
+                code += VmCodeInstruction(Opcode.SUB, vmDt, fpReg1=resultFpRegister, fpReg2=leftResultFpReg, fpReg3=rightResultFpReg)
+            }
         } else {
             if((binExpr.right as? PtNumber)?.number==1.0) {
                 code += translateExpression(binExpr.left, resultRegister, -1)
@@ -490,10 +510,24 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    private fun operatorPlus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
+    private fun operatorPlus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
-            TODO("plus float")
+            if((binExpr.left as? PtNumber)?.number==1.0) {
+                code += translateExpression(binExpr.right, -1, resultFpRegister)
+                code += VmCodeInstruction(Opcode.INC, vmDt, fpReg1=resultFpRegister)
+            }
+            else if((binExpr.right as? PtNumber)?.number==1.0) {
+                code += translateExpression(binExpr.left, -1, resultFpRegister)
+                code += VmCodeInstruction(Opcode.INC, vmDt, fpReg1=resultFpRegister)
+            }
+            else {
+                val leftResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(binExpr.left, -1, leftResultFpReg)
+                code += translateExpression(binExpr.right, -1, rightResultFpReg)
+                code += VmCodeInstruction(Opcode.ADD, vmDt, fpReg1=resultFpRegister, fpReg2=leftResultFpReg, fpReg3=rightResultFpReg)
+            }
         } else {
             if((binExpr.left as? PtNumber)?.number==1.0) {
                 code += translateExpression(binExpr.right, resultRegister, -1)

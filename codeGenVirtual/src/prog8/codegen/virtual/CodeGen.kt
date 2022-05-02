@@ -422,8 +422,20 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
+    internal fun divideByConstFloat(fpReg: Int, factor: Float): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1f)
+            return code
+        if(factor==0f) {
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = Float.MAX_VALUE)
+        } else {
+            val factorReg = vmRegisters.nextFreeFloat()
+            code += VmCodeInstruction(Opcode.DIV, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = fpReg, fpReg3 = factorReg)
+        }
+        return code
+    }
+
     internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
-        // TODO support floating-point factors
         val code = VmCodeChunk()
         if(factor==1)
             return code
@@ -439,7 +451,7 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(Opcode.LSRX, dt, reg1=reg, reg2=reg, reg3=pow2reg)
         } else {
             if (factor == 0) {
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
             }
             else {
                 val factorReg = vmRegisters.nextFree()

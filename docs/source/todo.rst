@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: implement float div, minus, plus
 - vm: implement float type casts to integer types
 - vm: implement float any, all, reverse, sort
 - vm: fix test fp calc result being 0
@@ -31,6 +30,7 @@ Future Things and Ideas
 Compiler:
 
 - vm: codeGen: various TODOs to tweak code
+- vm: codeGen: optimize codegen for comparison expressions in if statements, such as if x==0 ... else ...
 - vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
   so we have a set of byte registers, a set of word registers, and other sets if we introduce other types.
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.

@@ -8,49 +8,19 @@
 
 main {
     sub start() {
-        ubyte ub = conv.str2ubyte("234")
-        txt.print_ub(ub)
-        txt.nl()
-        byte sb = conv.str2byte("-123")
-        txt.print_b(sb)
-        txt.nl()
-        uword uw = conv.str2uword("54321")
-        txt.print_uw(uw)
-        txt.nl()
-        word sw = conv.str2word("-12345")
-        txt.print_w(sw)
-        txt.nl()
+        float fl1 = 500.0
+        float fzero = 0.0
+        floats.print_f(fl1 / fzero)
         txt.nl()
 
-        ; TODO fix hex2uword and bin2uword
-        uw = conv.hex2uword("0")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.hex2uword("1")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.hex2uword("a")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.bin2uword("0")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.bin2uword("1")
-        txt.print_uw(uw)
-        txt.nl()
+        ubyte ub1 = 50
+        ubyte ubzero = 0
+        txt.print_ub(ub1/ubzero)
         txt.nl()
 
-        uw = conv.hex2uword("$ea31")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.hex2uword("ea31")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.bin2uword("%100000111011101")
-        txt.print_uw(uw)
-        txt.nl()
-        uw = conv.bin2uword("100000111011101")
-        txt.print_uw(uw)
+        uword uw1 = 5000
+        uword uwzero = 0
+        txt.print_uw(uw1/uwzero)
         txt.nl()
 
 ;        float fl = 500.0
