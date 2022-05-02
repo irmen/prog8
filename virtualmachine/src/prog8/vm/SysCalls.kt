@@ -16,8 +16,8 @@ SYSCALLS:
 8 = gfx_enable  ; enable graphics window  r0.b = 0 -> lores 320x240,  r0.b = 1 -> hires 640x480
 9 = gfx_clear   ; clear graphics window with shade in r0.b
 10 = gfx_plot   ; plot pixel in graphics window, r0.w/r1.w contain X and Y coordinates, r2.b contains brightness
-11 = <unused 1>
-12 = <unused 2>
+11 = decimal string to word (unsigned)
+12 = decimal string to word (signed)
 13 = wait       ; wait certain amount of jiffies (1/60 sec)
 14 = waitvsync  ; wait on vsync
 15 = sort_ubyte array
@@ -55,8 +55,8 @@ enum class Syscall {
     GFX_ENABLE,
     GFX_CLEAR,
     GFX_PLOT,
-    UNUSED_1,
-    UNUSED_2,
+    STR_TO_UWORD,
+    STR_TO_WORD,
     WAIT,
     WAITVSYNC,
     SORT_UBYTE,
@@ -300,6 +300,16 @@ object SysCalls {
             Syscall.PRINT_F -> {
                 val value = vm.registers.getFloat(0)
                 print(value)
+            }
+            Syscall.STR_TO_UWORD -> {
+                val stringAddr = vm.registers.getUW(0)
+                val string = vm.memory.getString(stringAddr.toInt())
+                vm.registers.setUW(0, string.toUShort())
+            }
+            Syscall.STR_TO_WORD -> {
+                val stringAddr = vm.registers.getUW(0)
+                val string = vm.memory.getString(stringAddr.toInt())
+                vm.registers.setSW(0, string.toShort())
             }
             else -> TODO("syscall ${call.name}")
         }

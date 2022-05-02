@@ -18,8 +18,6 @@ a few fp conversion instructions to
 *only* LOAD AND STORE instructions have a possible memory operand, all other instructions use only registers or immediate value.
 
 
- TODO all floating point arithmethic functions as fp-instructions.
-
 LOAD/STORE
 ----------
 All have type b or w or f.
@@ -130,8 +128,8 @@ rol         reg1                             - rotate reg1 left by 1bits, not us
 roxl        reg1                             - rotate reg1 left by 1bits, using carry,  + set Carry to shifted bit
 
 
-FLOATING POINT CONVERSIONS
---------------------------
+FLOATING POINT CONVERSIONS AND FUNCTIONS
+----------------------------------------
 ffromub      fpreg1, reg1               - fpreg1 = reg1 from usigned byte
 ffromsb      fpreg1, reg1               - fpreg1 = reg1 from signed byte
 ffromuw      fpreg1, reg1               - fpreg1 = reg1 from unsigned word
@@ -140,6 +138,8 @@ ftoub        reg1, fpreg1               - reg1 = fpreg1 as unsigned byte
 ftosb        reg1, fpreg1               - reg1 = fpreg1 as signed byte
 ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
 ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
+fpow         fpreg1, fpreg2, fpreg3     - fpreg1 = fpreg2 to the power of fpreg3
+fabs         fpreg1, fpreg2             - fpreg1 = abs(fpreg2)
 
 
 MISC
@@ -248,6 +248,18 @@ enum class Opcode {
     FTOSB,
     FTOUW,
     FTOSW,
+    FPOW,
+    FABS,
+    FSIN,
+    FCOS,
+    FTAN,
+    FATAN,
+    FLN,
+    FLOG,
+    FSQRT,
+    FROUND,
+    FFLOOR,
+    FCEIL,
 
     CLC,
     SEC,
@@ -512,6 +524,18 @@ val instructionFormats = mutableMapOf(
     Opcode.FTOSB      to InstructionFormat.from("F,r1,fr1"),
     Opcode.FTOUW      to InstructionFormat.from("F,r1,fr1"),
     Opcode.FTOSW      to InstructionFormat.from("F,r1,fr1"),
+    Opcode.FPOW       to InstructionFormat.from("F,fr1,fr2,fr3"),
+    Opcode.FABS       to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FSIN       to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FCOS       to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FTAN       to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FATAN      to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FLN        to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FLOG       to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FSQRT      to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FROUND     to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FFLOOR     to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FCEIL      to InstructionFormat.from("F,fr1,fr2"),
 
     Opcode.MSIG       to InstructionFormat.from("BW,r1,r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,r1"),

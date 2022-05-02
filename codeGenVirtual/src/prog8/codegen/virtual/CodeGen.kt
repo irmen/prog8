@@ -380,10 +380,22 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
+    internal fun multiplyByConstFloat(fpReg: Int, factor: Float): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1f)
+            return code
+        if(factor==0f) {
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = 0f)
+        } else {
+            val factorReg = vmRegisters.nextFreeFloat()
+            code += VmCodeInstruction(Opcode.MUL, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = fpReg, fpReg3 = factorReg)
+        }
+        return code
+    }
+
     internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
     internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
-        // TODO support floating-point factors
         val code = VmCodeChunk()
         if(factor==1)
             return code

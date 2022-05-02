@@ -3,8 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: fix fp reg out of bounds
-- vm: implement missing floating point functions
+- vm: fix  if @(string)=='$'   string++  not working  on ea31
+- vm: fix conv hex2uword and bin2uword
+- vm: implement float div, minus, plus
+- vm: implement float type casts to integer types
+- vm: implement float any, all, reverse, sort
+- vm: fix test fp calc result being 0
 - vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type

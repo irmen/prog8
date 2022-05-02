@@ -184,47 +184,76 @@ sub  str2ubyte(str string) -> ubyte {
     ; -- returns in A the unsigned byte value of the string number argument in AY
     ;    the number may NOT be preceded by a + sign and may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    ; TODO
-    return 0
+    return str2uword(string) as ubyte
 }
 
 sub  str2byte(str string) -> byte {
     ; -- returns in A the signed byte value of the string number argument in AY
     ;    the number may be preceded by a + or - sign but may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    ; TODO
-    return 0
+    return str2word(string) as byte
 }
 
 sub  str2uword(str string) -> uword {
     ; -- returns the unsigned word value of the string number argument in AY
     ;    the number may NOT be preceded by a + sign and may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    ; TODO
-    return 0
+    %asm {{
+        loadm.w r0, {conv.str2uword.string}
+        syscall 11
+        return
+    }}
 }
 
 sub  str2word(str string) -> word {
     ; -- returns the signed word value of the string number argument in AY
     ;    the number may be preceded by a + or - sign but may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    ; TODO
-    return 0
+    %asm {{
+        loadm.w r0, {conv.str2word.string}
+        syscall 12
+        return
+    }}
 }
 
 sub  hex2uword(str string) -> uword {
     ; -- hexadecimal string (with or without '$') to uword.
-    ;    string may be in petscii or c64-screencode encoding.
     ;    stops parsing at the first character that's not a hex digit (except leading $)
-    ; TODO
-    return 0
+    ; TODO fix this result
+    uword result
+    ubyte char
+    if @(string)=='$'
+        string++
+    repeat {
+        char = @(string)
+        if char==0
+            return result
+        result <<= 4
+        if char>='0' and char<='9'
+            result |= char-'0'
+        else
+            result |= char-'a'+10
+        string++
+    }
 }
 
 sub  bin2uword(str string) -> uword {
     ; -- binary string (with or without '%') to uword.
     ;    stops parsing at the first character that's not a 0 or 1. (except leading %)
-    ; TODO
-    return 0
+    ; TODO fix this result
+    uword result
+    ubyte char
+    if @(string)=='%'
+        string++
+    repeat {
+        char = @(string)
+        if char==0
+            return result
+        result <<= 1
+        if char=='1'
+            result |= 1
+        string++
+    }
 }
 
 }

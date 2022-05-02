@@ -8,15 +8,61 @@
 
 main {
     sub start() {
-        float fl = 500.0
-        txt.print("rad 180 = ")
-        floats.print_f(floats.rad(180.0))
-        txt.print("rad 360 = ")
-        floats.print_f(floats.rad(360.0))
-        txt.print("deg 2 = ")
-        floats.print_f(floats.deg(2.0))
-        txt.print("deg pi = ")
-        floats.print_f(floats.deg(floats.PI))
+
+        ubyte ub = conv.str2ubyte("234")
+        txt.print_ub(ub)
+        txt.nl()
+        byte sb = conv.str2byte("-123")
+        txt.print_b(sb)
+        txt.nl()
+        uword uw = conv.str2uword("54321")
+        txt.print_uw(uw)
+        txt.nl()
+        word sw = conv.str2word("-12345")
+        txt.print_w(sw)
+        txt.nl()
+        txt.nl()
+
+        ; TODO fix hex2uword and bin2uword
+        uw = conv.hex2uword("0")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.hex2uword("1")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.hex2uword("a")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.bin2uword("0")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.bin2uword("1")
+        txt.print_uw(uw)
+        txt.nl()
+        txt.nl()
+
+        uw = conv.hex2uword("$ea31")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.hex2uword("ea31")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.bin2uword("%100000111011101")
+        txt.print_uw(uw)
+        txt.nl()
+        uw = conv.bin2uword("100000111011101")
+        txt.print_uw(uw)
+        txt.nl()
+
+;        float fl = 500.0
+;        txt.print("rad 180 = ")
+;        floats.print_f(floats.rad(180.0))
+;        txt.print("rad 360 = ")
+;        floats.print_f(floats.rad(360.0))
+;        txt.print("deg 2 = ")
+;        floats.print_f(floats.deg(2.0))
+;        txt.print("deg pi = ")
+;        floats.print_f(floats.deg(floats.PI))
         sys.exit(42)
 ;        floats.print_f(-42.42)
 ;        float f1 = 1.2345
@@ -58,21 +104,21 @@ main {
 ;            "deg", "round", "floor", "ceil", "rndf"
 
         ; a "pixelshader":
-        sys.gfx_enable(0)       ; enable lo res screen
-        ubyte shifter
-
-        repeat {
-            uword xx
-            uword yy = 0
-            repeat 240 {
-                xx = 0
-                repeat 320 {
-                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
-                    xx++
-                }
-                yy++
-            }
-            shifter+=4
-        }
+;        sys.gfx_enable(0)       ; enable lo res screen
+;        ubyte shifter
+;
+;        repeat {
+;            uword xx
+;            uword yy = 0
+;            repeat 240 {
+;                xx = 0
+;                repeat 320 {
+;                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
+;                    xx++
+;                }
+;                yy++
+;            }
+;            shifter+=4
+;        }
     }
 }

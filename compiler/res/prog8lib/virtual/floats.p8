@@ -19,17 +19,15 @@ sub print_f(float value) {
 }
 
 sub pow(float value, float power) -> float {
-    ; TODO fpow.f instruction
     %asm {{
         loadm.f fr0,{floats.pow.value}
         loadm.f fr1,{floats.pow.power}
-        fpow.f fr0,fr0
+        fpow.f fr0,fr0,fr1
         return
     }}
 }
 
 sub fabs(float value) -> float {
-    ; TODO fabs.f instruction
     %asm {{
         loadm.f fr0,{floats.fabs.value}
         fabs.f fr0,fr0
@@ -38,7 +36,6 @@ sub fabs(float value) -> float {
 }
 
 sub sin(float angle) -> float {
-    ; TODO fsin.f instruction
     %asm {{
         loadm.f fr0,{floats.sin.angle}
         fsin.f fr0,fr0
@@ -47,7 +44,6 @@ sub sin(float angle) -> float {
 }
 
 sub cos(float angle) -> float {
-    ; TODO fcos.f instruction
     %asm {{
         loadm.f fr0,{floats.cos.angle}
         fcos.f fr0,fr0
@@ -56,7 +52,6 @@ sub cos(float angle) -> float {
 }
 
 sub tan(float value) -> float {
-    ; TODO ftan.f instruction
     %asm {{
         loadm.f fr0,{floats.tan.value}
         ftan.f fr0,fr0
@@ -65,7 +60,6 @@ sub tan(float value) -> float {
 }
 
 sub atan(float value) -> float {
-    ; TODO fatan.f instruction
     %asm {{
         loadm.f fr0,{floats.atan.value}
         fatan.f fr0,fr0
@@ -74,7 +68,6 @@ sub atan(float value) -> float {
 }
 
 sub ln(float value) -> float {
-    ; TODO fln.f instruction
     %asm {{
         loadm.f fr0,{floats.ln.value}
         fln.f fr0,fr0
@@ -83,16 +76,14 @@ sub ln(float value) -> float {
 }
 
 sub log2(float value) -> float {
-    ; TODO flog2.f instruction
     %asm {{
         loadm.f fr0,{floats.log2.value}
-        flog2.f fr0,fr0
+        flog.f fr0,fr0
         return
     }}
 }
 
 sub sqrt(float value) -> float {
-    ; TODO fsqrt.f instruction
     %asm {{
         loadm.f fr0,{floats.sqrt.value}
         fsqrt.f fr0,fr0
@@ -111,7 +102,6 @@ sub deg(float angle) -> float {
 }
 
 sub round(float value) -> float {
-    ; TODO fround.f instruction
     %asm {{
         loadm.f fr0,{floats.round.value}
         fround.f fr0,fr0
@@ -120,7 +110,6 @@ sub round(float value) -> float {
 }
 
 sub floor(float value) -> float {
-    ; TODO ffloor.f instruction
     %asm {{
         loadm.f fr0,{floats.floor.value}
         ffloor.f fr0,fr0
@@ -130,7 +119,6 @@ sub floor(float value) -> float {
 
 sub ceil(float value) -> float {
     ; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
-    ; TODO fceil.f instruction
     %asm {{
         loadm.f fr0,{floats.ceil.value}
         fceil.f fr0,fr0
@@ -139,9 +127,8 @@ sub ceil(float value) -> float {
 }
 
 sub rndf() -> float {
-    ; TODO frnd.f instruction
     %asm {{
-        frnd.f fr0
+        rnd.f fr0
         return
     }}
 }
