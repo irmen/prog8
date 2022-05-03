@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- compiler: fix crash when print_ub(float as ubyte)
 - vm: implement float any, all, reverse, sort
 - vm: fix test fp calc result being 0
 - vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?

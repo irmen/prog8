@@ -151,6 +151,7 @@ asmsub  FREADUY (ubyte value @Y) {
     }}
 }
 
+&uword AYINT_facmo = $66      ; $66/$67 contain result of AYINT
 
 %asminclude "library:c128/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

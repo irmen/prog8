@@ -174,6 +174,7 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	}}
 }
 
+&uword AYINT_facmo = $64      ; $64/$65 contain result of AYINT
 
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

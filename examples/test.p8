@@ -8,17 +8,21 @@
 
 main {
     sub start() {
-        float fl = -4.567
+        float fl = 42.123
         float fl2 = fl / 1.0
-        floats.print_f(fl2)
+        txt.print_ub(fl2 as ubyte)
         txt.nl()
-        txt.print_ub(fl2 as ubyte)    ; TODO fix crash source dt size must be less or equal to target dt size
+        txt.print_uw(fl2 as uword)
         txt.nl()
-        txt.print_b(fl2 as byte)      ; TODO fix crash
+        byte bb = fl2 as byte
+        txt.print_b(bb)
         txt.nl()
-        txt.print_uw(fl2 as uword)    ; TODO fix crash
+        txt.print_b(fl2 as byte)
         txt.nl()
-        txt.print_w(fl2 as word)      ; TODO fix crash
+        txt.print_w(fl2 as word)
+        txt.nl()
+        word ww = fl2 as word
+        txt.print_w(ww)
         txt.nl()
 
 ;        txt.print("rad 180 = ")

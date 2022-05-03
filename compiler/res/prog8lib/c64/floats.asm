@@ -113,8 +113,8 @@ cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
 		; -- cast fac1 to word into A/Y
 		stx  P8ZP_SCRATCH_REG
 		jsr  AYINT
-		ldy  $64
-		lda  $65
+		ldy  floats.AYINT_facmo
+		lda  floats.AYINT_facmo+1
 		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
@@ -165,9 +165,9 @@ stack_float2w	.proc               ; also used for float2b
 		stx  P8ZP_SCRATCH_REG
 		jsr  AYINT
 		ldx  P8ZP_SCRATCH_REG
-		lda  $64
+		lda  floats.AYINT_facmo
 		sta  P8ESTACK_HI,x
-		lda  $65
+		lda  floats.AYINT_facmo+1
 		sta  P8ESTACK_LO,x
 		dex
 		rts

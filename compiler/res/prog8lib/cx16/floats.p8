@@ -161,6 +161,7 @@ asmsub  RND() clobbers(A,X,Y) {
     }}
 }
 
+&uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT
 
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

@@ -560,7 +560,14 @@ internal class AssignmentAsmGen(private val program: Program,
         }
 
         if(target.kind==TargetStorageKind.REGISTER) {
-            assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+            if(valueDt==DataType.FLOAT && target.datatype!=DataType.FLOAT) {
+                // have to typecast the float number on the fly down to an integer
+                assignExpressionToRegister(value, RegisterOrPair.FAC1, target.datatype in SignedDatatypes)
+                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", target.datatype)
+                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes)
+            } else {
+                assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+            }
             return
         }
 
@@ -2294,10 +2301,14 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
-        val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
-        translateNormalAssignment(assign)
+        if(expr.inferType(program) istype DataType.FLOAT && dt!=DataType.FLOAT) {
+            throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
+        } else {
+            val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
+            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, dt, scope, variableAsmName = asmVarName)
+            val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
+            translateNormalAssignment(assign)
+        }
     }
 
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean) {
