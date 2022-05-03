@@ -10,29 +10,14 @@ main {
     sub start() {
         float fl = 42.123
         float fl2 = fl / 1.0
-        txt.print_ub(fl2 as ubyte)
-        txt.nl()
-        txt.print_uw(fl2 as uword)
-        txt.nl()
-        byte bb = fl2 as byte
-        txt.print_b(bb)
-        txt.nl()
-        txt.print_b(fl2 as byte)
-        txt.nl()
-        txt.print_w(fl2 as word)
-        txt.nl()
-        word ww = fl2 as word
-        txt.print_w(ww)
-        txt.nl()
-
-;        txt.print("rad 180 = ")
-;        floats.print_f(floats.rad(180.0))
-;        txt.print("rad 360 = ")
-;        floats.print_f(floats.rad(360.0))
-;        txt.print("deg 2 = ")
-;        floats.print_f(floats.deg(2.0))
-;        txt.print("deg pi = ")
-;        floats.print_f(floats.deg(floats.PI))
+        txt.print("rad 180 = ")
+        floats.print_f(floats.rad(180.0))
+        txt.print("\nrad 360 = ")
+        floats.print_f(floats.rad(360.0))
+        txt.print("\ndeg 2 = ")
+        floats.print_f(floats.deg(2.0))
+        txt.print("\ndeg pi = ")
+        floats.print_f(floats.deg(floats.PI))
         sys.exit(42)
 ;        floats.print_f(-42.42)
 ;        float f1 = 1.2345
