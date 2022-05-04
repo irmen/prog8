@@ -173,10 +173,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.CLC -> { statusCarry = false; pc++ }
             Opcode.SEC -> { statusCarry = true; pc++ }
 
-            Opcode.FFROMUB -> TODO()
-            Opcode.FFROMSB -> TODO()
-            Opcode.FFROMUW -> TODO()
-            Opcode.FFROMSW -> TODO()
+            Opcode.FFROMUB -> InsFFROMUB(ins)
+            Opcode.FFROMSB -> InsFFROMSB(ins)
+            Opcode.FFROMUW -> InsFFROMUW(ins)
+            Opcode.FFROMSW -> InsFFROMSW(ins)
             Opcode.FTOUB -> InsFTOUB(ins)
             Opcode.FTOSB -> InsFTOSB(ins)
             Opcode.FTOUW -> InsFTOUW(ins)
@@ -276,7 +276,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(registers.getUW(i.reg2!!).toInt()))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(registers.getUW(i.reg2!!).toInt()))
-            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(registers.getUW(i.reg2!!).toInt()))
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(registers.getUW(i.reg1!!).toInt()))
         }
         pc++
     }
@@ -285,7 +285,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when (i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!! + registers.getUW(i.reg2!!).toInt()))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!! + registers.getUW(i.reg2!!).toInt()))
-            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.value!! + registers.getUW(i.reg2!!).toInt()))
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.value!! + registers.getUW(i.reg1!!).toInt()))
         }
         pc++
     }
@@ -1059,6 +1059,26 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.WORD -> TODO("concat.w not yet supported, requires 32-bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        pc++
+    }
+
+    private fun InsFFROMUB(i: Instruction) {
+        registers.setFloat(i.fpReg1!!, registers.getUB(i.reg1!!).toFloat())
+        pc++
+    }
+
+    private fun InsFFROMSB(i: Instruction) {
+        registers.setFloat(i.fpReg1!!, registers.getSB(i.reg1!!).toFloat())
+        pc++
+    }
+
+    private fun InsFFROMUW(i: Instruction) {
+        registers.setFloat(i.fpReg1!!, registers.getUW(i.reg1!!).toFloat())
+        pc++
+    }
+
+    private fun InsFFROMSW(i: Instruction) {
+        registers.setFloat(i.fpReg1!!, registers.getSW(i.reg1!!).toFloat())
         pc++
     }
 

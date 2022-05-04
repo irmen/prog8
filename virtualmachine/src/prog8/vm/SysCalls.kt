@@ -24,23 +24,16 @@ SYSCALLS:
 16 = sort_byte array
 17 = sort_uword array
 18 = sort_word array
-19 = max_ubyte array
-20 = max_byte array
-21 = max_uword array
-22 = max_word array
-23 = min_ubyte array
-24 = min_byte array
-25 = min_uword array
-26 = min_word array
-27 = sum_byte array
-28 = sum_word array
-29 = any_byte array
-30 = any_word array
-31 = all_byte array
-32 = all_word array
-33 = reverse_bytes array
-34 = reverse_words array
-35 = print_f  (floating point value in fpReg0)
+19 = any_byte array
+20 = any_word array
+21 = any_float array
+22 = all_byte array
+23 = all_word array
+24 = all_float array
+25 = print_f  (floating point value in fp reg 0)
+26 = reverse_bytes array
+27 = reverse_words array
+28 = reverse_floats array
 */
 
 enum class Syscall {
@@ -63,23 +56,16 @@ enum class Syscall {
     SORT_BYTE,
     SORT_UWORD,
     SORT_WORD,
-    MAX_UBYTE,
-    MAX_BYTE,
-    MAX_UWORD,
-    MAX_WORD,
-    MIN_UBYTE,
-    MIN_BYTE,
-    MIN_UWORD,
-    MIN_WORD,
-    SUM_BYTE,
-    SUM_WORD,
     ANY_BYTE,
     ANY_WORD,
+    ANY_FLOAT,
     ALL_BYTE,
     ALL_WORD,
+    ALL_FLOAT,
+    PRINT_F,
     REVERSE_BYTES,
     REVERSE_WORDS,
-    PRINT_F
+    REVERSE_FLOATS,
 }
 
 object SysCalls {
@@ -191,75 +177,15 @@ object SysCalls {
                     vm.memory.setUW(address+index*2, value)
                 }
             }
-            Syscall.MAX_UBYTE -> {
+            Syscall.REVERSE_FLOATS -> {
                 val address = vm.registers.getUW(0).toInt()
                 val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUB(it) }.maxOf { it }
-                vm.registers.setUB(0, value)
-            }
-            Syscall.MAX_BYTE -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getSB(it) }.maxOf { it }
-                vm.registers.setSB(0, value)
-            }
-            Syscall.MAX_UWORD -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUW(it) }.maxOf { it }
-                vm.registers.setUW(0, value)
-            }
-            Syscall.MAX_WORD -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getSW(it) }.maxOf { it }
-                vm.registers.setSW(0, value)
-            }
-            Syscall.MIN_UBYTE -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUB(it) }.minOf { it }
-                vm.registers.setUB(0, value)
-            }
-            Syscall.MIN_BYTE -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getSB(it) }.minOf { it }
-                vm.registers.setSB(0, value)
-            }
-            Syscall.MIN_UWORD -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUW(it) }.minOf { it }
-                vm.registers.setUW(0, value)
-            }
-            Syscall.MIN_WORD -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getSW(it) }.minOf { it }
-                vm.registers.setSW(0, value)
-            }
-            Syscall.SUM_BYTE -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUB(it) }.sum()
-                vm.registers.setUB(0, value.toUByte())
-            }
-            Syscall.SUM_WORD -> {
-                val address = vm.registers.getUW(0).toInt()
-                val length = vm.registers.getUB(1).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
-                val value = addresses.map { vm.memory.getUW(it) }.sum()
-                vm.registers.setUW(0, value.toUShort())
+                val array = IntProgression.fromClosedRange(address, address+length*4-2, 4).map {
+                    vm.memory.getFloat(it)
+                }.reversed()
+                array.withIndex().forEach { (index, value)->
+                    vm.memory.setFloat(address+index*4, value)
+                }
             }
             Syscall.ANY_BYTE -> {
                 val address = vm.registers.getUW(0).toInt()
@@ -279,6 +205,15 @@ object SysCalls {
                 else
                     vm.registers.setUB(0, 0u)
             }
+            Syscall.ANY_FLOAT -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
+                if(addresses.any { vm.memory.getFloat(it).toInt()!=0 })
+                    vm.registers.setUB(0, 1u)
+                else
+                    vm.registers.setUB(0, 0u)
+            }
             Syscall.ALL_BYTE -> {
                 val address = vm.registers.getUW(0).toInt()
                 val length = vm.registers.getUB(1).toInt()
@@ -293,6 +228,15 @@ object SysCalls {
                 val length = vm.registers.getUB(1).toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
                 if(addresses.all { vm.memory.getUW(it).toInt()!=0 })
+                    vm.registers.setUB(0, 1u)
+                else
+                    vm.registers.setUB(0, 0u)
+            }
+            Syscall.ALL_FLOAT -> {
+                val address = vm.registers.getUW(0).toInt()
+                val length = vm.registers.getUB(1).toInt()
+                val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
+                if(addresses.all { vm.memory.getFloat(it).toInt()!=0 })
                     vm.registers.setUB(0, 1u)
                 else
                     vm.registers.setUB(0, 0u)

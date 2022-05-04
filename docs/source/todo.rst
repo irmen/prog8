@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: implement float any, all, reverse, sort
+- vm: implement rest of float instructions
 - vm: get rid of intermediate floats.xxx() functions somehow, instead generate the float instructions directly?
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
@@ -63,7 +63,8 @@ Libraries:
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?
 - add a diskio.f_seek() routine for the Cx16 that uses its seek dos api? (only if that's stable)
-- use cx16 MACPTR() to load stuff faster?
+- diskio: use cx16 MACPTR() to load stuff faster? (see it's use in X16edit to fast load blocks)
+  note that it might fail on non sdcard files so have to make graceful degradation
 
 Expressions:
 

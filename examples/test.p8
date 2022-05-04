@@ -9,15 +9,19 @@
 main {
     sub start() {
         float fl = 42.123
-        float fl2 = fl / 1.0
-        txt.print("rad 180 = ")
-        floats.print_f(floats.rad(180.0))
-        txt.print("\nrad 360 = ")
-        floats.print_f(floats.rad(360.0))
-        txt.print("\ndeg 2 = ")
-        floats.print_f(floats.deg(2.0))
-        txt.print("\ndeg pi = ")
-        floats.print_f(floats.deg(floats.PI))
+        float[] farray = [0.0, 0.0, 1.11, 2.22, 42.123, 0.0, -99.99]
+        ubyte ix
+        for ix in 0 to len(farray)-1 {
+            floats.print_f(farray[ix])
+            txt.spc()
+        }
+        txt.nl()
+        reverse(farray)
+        for ix in 0 to len(farray)-1 {
+            floats.print_f(farray[ix])
+            txt.spc()
+        }
+        txt.nl()
         sys.exit(42)
 ;        floats.print_f(-42.42)
 ;        float f1 = 1.2345

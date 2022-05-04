@@ -13,7 +13,7 @@ sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).
     %asm {{
         loadm.f fr0,{floats.print_f.value}
-        syscall 35
+        syscall 25
         return
     }}
 }

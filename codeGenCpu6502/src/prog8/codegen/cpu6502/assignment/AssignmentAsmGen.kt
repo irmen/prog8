@@ -328,8 +328,6 @@ internal class AssignmentAsmGen(private val program: Program,
         val variable = (containment.iterable as? IdentifierReference)?.targetVarDecl(program)
             ?: throw AssemblyError("invalid containment iterable type")
 
-        if(elementDt istype DataType.FLOAT)
-            throw AssemblyError("containment check of floats not supported")
         if(variable.origin!=VarDeclOrigin.USERCODE) {
             when(variable.datatype) {
                 DataType.STR -> {
@@ -388,7 +386,9 @@ internal class AssignmentAsmGen(private val program: Program,
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
             }
-            DataType.ARRAY_F -> throw AssemblyError("containment check of floats not supported")
+            DataType.ARRAY_F -> {
+                throw AssemblyError("containment check of floats not supported")
+            }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 val arrayVal = variable.value as ArrayLiteral
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)

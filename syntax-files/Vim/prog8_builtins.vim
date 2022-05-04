@@ -10,7 +10,7 @@
 syn keyword prog8BuiltInFunc sgn sqrt16
 
 " Array functions
-syn keyword prog8BuiltInFunc any all len max min reverse sum sort
+syn keyword prog8BuiltInFunc any all len reverse sort
 
 " Miscellaneous functions
 syn keyword prog8BuiltInFunc cmp lsb msb mkword peek peekw poke pokew rnd rndw push pushw pop popw rsave rsavex rrestore rrestorex
