@@ -8,19 +8,31 @@
 
 main {
     sub start() {
-        float fl = 42.123
-        float[] farray = [0.0, 0.0, 1.11, 2.22, 42.123, 0.0, -99.99]
-        ubyte ix
-        for ix in 0 to len(farray)-1 {
-            floats.print_f(farray[ix])
-            txt.spc()
-        }
+        float fl = -4.55
+        floats.print_f(floats.fabs(fl))
         txt.nl()
-        reverse(farray)
-        for ix in 0 to len(farray)-1 {
-            floats.print_f(farray[ix])
-            txt.spc()
-        }
+        floats.print_f(floats.sin(fl))
+        txt.nl()
+        floats.print_f(floats.cos(fl))
+        txt.nl()
+        floats.print_f(floats.tan(fl))
+        txt.nl()
+        floats.print_f(floats.atan(fl))
+        txt.nl()
+        floats.print_f(floats.round(fl))
+        txt.nl()
+        floats.print_f(floats.floor(fl))
+        txt.nl()
+        floats.print_f(floats.ceil(fl))
+        txt.nl()
+        fl = 4.55
+        floats.print_f(floats.ln(fl))
+        txt.nl()
+        floats.print_f(floats.log2(fl))
+        txt.nl()
+        floats.print_f(floats.sqrt(fl))
+        txt.nl()
+        floats.print_f(floats.pow(fl, 2.2))     ; TODO fix illegal quantity error
         txt.nl()
         sys.exit(42)
 ;        floats.print_f(-42.42)

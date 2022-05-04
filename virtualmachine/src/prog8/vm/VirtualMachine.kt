@@ -3,9 +3,7 @@ package prog8.vm
 import prog8.code.target.virtual.IVirtualMachineRunner
 import java.awt.Toolkit
 import java.util.*
-import kotlin.math.roundToInt
-import kotlin.math.sign
-import kotlin.math.sqrt
+import kotlin.math.*
 import kotlin.random.Random
 
 
@@ -181,18 +179,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.FTOSB -> InsFTOSB(ins)
             Opcode.FTOUW -> InsFTOUW(ins)
             Opcode.FTOSW -> InsFTOSW(ins)
-            Opcode.FPOW -> TODO()
-            Opcode.FABS -> TODO()
-            Opcode.FSIN -> TODO()
-            Opcode.FCOS -> TODO()
-            Opcode.FTAN -> TODO()
-            Opcode.FATAN -> TODO()
-            Opcode.FLN -> TODO()
-            Opcode.FLOG -> TODO()
-            Opcode.FSQRT -> TODO()
-            Opcode.FROUND -> TODO()
-            Opcode.FFLOOR -> TODO()
-            Opcode.FCEIL -> TODO()
+            Opcode.FPOW -> InsFPOW(ins)
+            Opcode.FABS -> InsFABS(ins)
+            Opcode.FSIN -> InsFSIN(ins)
+            Opcode.FCOS -> InsFCOS(ins)
+            Opcode.FTAN -> InsFTAN(ins)
+            Opcode.FATAN -> InsFATAN(ins)
+            Opcode.FLN -> InsFLN(ins)
+            Opcode.FLOG -> InsFLOG(ins)
+            Opcode.FSQRT -> InsFSQRT(ins)
+            Opcode.FROUND -> InsFROUND(ins)
+            Opcode.FFLOOR -> InsFFLOOR(ins)
+            Opcode.FCEIL -> InsFCEIL(ins)
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
@@ -1099,6 +1097,79 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsFTOSW(i: Instruction) {
         registers.setSW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toShort())
+        pc++
+    }
+
+    private fun InsFPOW(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        val exponent = registers.getFloat(i.fpReg3!!)
+        registers.setFloat(i.fpReg1!!, value.pow(exponent))
+        pc++
+    }
+
+    private fun InsFSIN(i: Instruction) {
+        val angle = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, sin(angle))
+        pc++
+    }
+
+    private fun InsFCOS(i: Instruction) {
+        val angle = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, cos(angle))
+        pc++
+    }
+
+    private fun InsFTAN(i: Instruction) {
+        val angle = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, tan(angle))
+        pc++
+    }
+
+    private fun InsFATAN(i: Instruction) {
+        val angle = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, atan(angle))
+        pc++
+    }
+
+    private fun InsFABS(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, abs(value))
+        pc++
+    }
+
+    private fun InsFLN(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, ln(value))
+        pc++
+    }
+
+    private fun InsFLOG(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, log2(value))
+        pc++
+    }
+
+    private fun InsFROUND(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, round(value))
+        pc++
+    }
+
+    private fun InsFFLOOR(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, floor(value))
+        pc++
+    }
+
+    private fun InsFCEIL(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, ceil(value))
+        pc++
+    }
+
+    private fun InsFSQRT(i: Instruction) {
+        val value = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1!!, sqrt(value))
         pc++
     }
 

@@ -25,28 +25,28 @@ sub print_f(float value) {
 
 sub pow(float value, float power) -> float {
     %asm {{
-        phx
-        phy
+        stx  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
         lda  #<value
         ldy  #>value
         jsr  floats.CONUPK
         lda  #<power
         ldy  #>power
         jsr  floats.FPWR
-        ply
-        plx
+        ldx  P8ZP_SCRATCH_W1
+        ldy  P8ZP_SCRATCH_W1+1
         rts
     }}
 }
 
 sub fabs(float value) -> float {
     %asm {{
-        phx
+        stx  P8ZP_SCRATCH_REG
         lda  #<value
         ldy  #>value
         jsr  MOVFM
         jsr  ABS
-        plx
+        ldx  P8ZP_SCRATCH_REG
         rts
     }}
 }
