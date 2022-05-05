@@ -6,6 +6,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
+import java.nio.file.Path
 import kotlin.math.pow
 
 
@@ -92,6 +93,8 @@ class CodeGen(internal val program: PtProgram,
             is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Opcode.BREAKPOINT))
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> VmCodeChunk(VmCodeInlineAsm(node.assembly))
+            is PtIncludeBinary -> VmCodeChunk(VmCodeInlineBinary(node.file, node.offset, node.length))
+            is PtAsmSub -> TODO("asmsub not yet supported on virtual machine target ${node.position}")
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -108,8 +111,6 @@ class CodeGen(internal val program: PtProgram,
             is PtNumber,
             is PtArray,
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
-            is PtAsmSub -> throw AssemblyError("asmsub not supported on virtual machine target ${node.position}")
-            is PtIncludeBinary -> throw AssemblyError("inline binary data not supported on virtual machine target ${node.position}")
             else -> TODO("missing codegen for $node")
         }
         if(code.lines.isNotEmpty() && node.position.line!=0)

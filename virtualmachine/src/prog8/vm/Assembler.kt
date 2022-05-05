@@ -80,6 +80,10 @@ class Assembler {
                 }
             } else {
                 val (_, instr, typestr, rest) = match.groupValues
+                if(instr=="incbin") {
+                    println("warning: ignoring incbin command: $rest")
+                    continue
+                }
                 val opcode = Opcode.valueOf(instr.uppercase())
                 var type: VmDataType? = convertType(typestr)
                 val formats = instructionFormats.getValue(opcode)

@@ -8,6 +8,7 @@ import prog8.vm.Opcode
 import prog8.vm.OpcodesWithAddress
 import prog8.vm.VmDataType
 import java.io.BufferedWriter
+import java.nio.file.Path
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
@@ -52,6 +53,14 @@ internal class AssemblyProgram(override val name: String,
                     val name = matchResult.value.substring(1, matchResult.value.length-1).split('.')
                     allocations.get(name).toString() }
                 write(asm+"\n")
+            }
+            is VmCodeInlineBinary -> {
+                write("incbin \"${line.file}\"")
+                if(line.offset!=null)
+                    write(",${line.offset}")
+                if(line.length!=null)
+                    write(",${line.length}")
+                write("\n")
             }
             else -> throw AssemblyError("invalid vm code line")
         }
@@ -131,3 +140,5 @@ internal class VmCodeChunk(initial: VmCodeLine? = null) {
 internal class VmCodeInlineAsm(asm: String): VmCodeLine() {
     val assembly: String = asm.trimIndent()
 }
+
+internal class VmCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): VmCodeLine()

@@ -1,39 +1,15 @@
 %import textio
-%import floats
-%import conv
 %zeropage dontuse
 
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
+
     sub start() {
-        float fl = -4.55
-        floats.print_f(floats.fabs(fl))
-        txt.nl()
-        floats.print_f(floats.sin(fl))
-        txt.nl()
-        floats.print_f(floats.cos(fl))
-        txt.nl()
-        floats.print_f(floats.tan(fl))
-        txt.nl()
-        floats.print_f(floats.atan(fl))
-        txt.nl()
-        floats.print_f(floats.round(fl))
-        txt.nl()
-        floats.print_f(floats.floor(fl))
-        txt.nl()
-        floats.print_f(floats.ceil(fl))
-        txt.nl()
-        fl = 4.55
-        floats.print_f(floats.ln(fl))
-        txt.nl()
-        floats.print_f(floats.log2(fl))
-        txt.nl()
-        floats.print_f(floats.sqrt(fl))
-        txt.nl()
-        floats.print_f(floats.pow(fl, 2.2))     ; TODO fix illegal quantity error
-        txt.nl()
+        ubyte xx=10
+        xx = xx>9
+        txt.print_ub(xx)
         sys.exit(42)
 ;        floats.print_f(-42.42)
 ;        float f1 = 1.2345
