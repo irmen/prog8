@@ -5,7 +5,6 @@ import prog8.ast.Program
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.Subroutine
@@ -39,64 +38,8 @@ internal class AstVariousTransforms(private val program: Program) : AstWalker() 
         return noModifications
     }
 
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        val leftStr = expr.left as? StringLiteral
-        val rightStr = expr.right as? StringLiteral
-        if(expr.operator == "+") {
-            val concatenatedString = concatString(expr)
-            if(concatenatedString!=null)
-                return listOf(IAstModification.ReplaceNode(expr, concatenatedString, parent))
-        }
-        else if(expr.operator == "*") {
-            if (leftStr!=null) {
-                val amount = expr.right.constValue(program)
-                if(amount!=null) {
-                    val string = leftStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteral(string, leftStr.encoding, expr.position)
-                    return listOf(IAstModification.ReplaceNode(expr, strval, parent))
-                }
-            }
-            else if (rightStr!=null) {
-                val amount = expr.right.constValue(program)
-                if(amount!=null) {
-                    val string = rightStr.value.repeat(amount.number.toInt())
-                    val strval = StringLiteral(string, rightStr.encoding, expr.position)
-                    return listOf(IAstModification.ReplaceNode(expr, strval, parent))
-                }
-            }
-        }
-
-        return noModifications
-    }
-
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         return replacePointerVarIndexWithMemreadOrMemwrite(program, arrayIndexedExpression, parent)
-    }
-
-    private fun concatString(expr: BinaryExpression): StringLiteral? {
-        val rightStrval = expr.right as? StringLiteral
-        val leftStrval = expr.left as? StringLiteral
-        return when {
-            expr.operator!="+" -> null
-            expr.left is BinaryExpression && rightStrval!=null -> {
-                val subStrVal = concatString(expr.left as BinaryExpression)
-                if(subStrVal==null)
-                    null
-                else
-                    StringLiteral("${subStrVal.value}${rightStrval.value}", subStrVal.encoding, rightStrval.position)
-            }
-            expr.right is BinaryExpression && leftStrval!=null -> {
-                val subStrVal = concatString(expr.right as BinaryExpression)
-                if(subStrVal==null)
-                    null
-                else
-                    StringLiteral("${leftStrval.value}${subStrVal.value}", subStrVal.encoding, leftStrval.position)
-            }
-            leftStrval!=null && rightStrval!=null -> {
-                StringLiteral("${leftStrval.value}${rightStrval.value}", leftStrval.encoding, leftStrval.position)
-            }
-            else -> null
-        }
     }
 }
 

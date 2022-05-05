@@ -108,9 +108,32 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
      *        (X + c1) - c2  ->  X + (c1-c2)
      */
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        val modifications = mutableListOf<IAstModification>()
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)
-        val modifications = mutableListOf<IAstModification>()
+
+        if(expr.left.inferType(program) istype DataType.STR) {
+            if(expr.operator=="+" && expr.left is StringLiteral && expr.right is StringLiteral) {
+                // concatenate two strings.
+                val leftString = expr.left as StringLiteral
+                val rightString = expr.right as StringLiteral
+                val concatenated = if(leftString.encoding==rightString.encoding) {
+                    leftString.value + rightString.value
+                } else {
+                    program.encoding.decodeString(
+                        program.encoding.encodeString(leftString.value, leftString.encoding) + program.encoding.encodeString(rightString.value, rightString.encoding),
+                        leftString.encoding)
+                }
+                val concatStr = StringLiteral(concatenated, leftString.encoding, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, concatStr, parent))
+            }
+            else if(expr.operator=="*" && rightconst!=null && expr.left is StringLiteral) {
+                // mutiply a string.
+                val part = expr.left as StringLiteral
+                val newStr = StringLiteral(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
+            }
+        }
 
         if(expr.operator=="==" && rightconst!=null) {
             val leftExpr = expr.left as? BinaryExpression

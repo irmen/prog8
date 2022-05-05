@@ -4,6 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.ArrayLiteral
+import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.VarDecl
@@ -26,7 +27,7 @@ internal class LiteralsToAutoVars(private val program: Program,
             errors.err("compilation target doesn't support this text encoding", string.position)
             return noModifications
         }
-        if(string.parent !is VarDecl && string.parent !is WhenChoice) {
+        if(string.parent !is VarDecl && string.parent !is WhenChoice && string.parent !is BinaryExpression) {
             // replace the literal string by an identifier reference to the interned string
             val parentFunc = (string.parent as? IFunctionCall)?.target
             if(parentFunc!=null) {

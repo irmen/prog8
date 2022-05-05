@@ -7,9 +7,23 @@
 main {
 
     sub start() {
-        ubyte xx=10
-        xx = xx>9
-        txt.print_ub(xx)
+        const ubyte times=3
+        ; expected output: aaabbb aaa bbb
+        txt.print("aaa"+"bbb"+"ccc")
+        txt.nl()
+;        txt.print("aaa")
+;        txt.nl()
+;        txt.print("bbb")
+;        txt.nl()
+        ; expected output: xxx   xxxxxx   xxxxxxxxx   xxx
+;        txt.print("xxx"*(times-2))
+;        txt.nl()
+;        txt.print("xxx"*(times-1))
+;        txt.nl()
+        txt.print("xxx"*times)
+        txt.nl()
+;        txt.print("xxx")
+;        txt.nl()
         sys.exit(42)
 ;        floats.print_f(-42.42)
 ;        float f1 = 1.2345

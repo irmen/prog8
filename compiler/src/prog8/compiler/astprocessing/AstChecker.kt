@@ -649,6 +649,9 @@ internal class AstChecker(private val program: Program,
                 if(parameter==null)
                     err("string var must be initialized with a string literal")
             }
+
+            if(decl.value !is StringLiteral)
+                err("string var must be initialized with a string literal")
         }
 
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
@@ -886,7 +889,7 @@ internal class AstChecker(private val program: Program,
         if(leftDt!=rightDt) {
             if(leftDt==DataType.STR && rightDt in IntegerDatatypes) {
                 // only exception allowed: str * constvalue
-                if(expr.right.constValue(program)!=null)
+                if(expr.right.constValue(program)==null)
                     errors.err("can only use string repeat with a constant number value", expr.left.position)
             } else {
                 errors.err("left and right operands aren't the same type", expr.left.position)

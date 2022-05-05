@@ -4,7 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
-- allow "xxx" * constexpr  (where constexpr is not a number literal), now gives expression error not same type
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   but this requires all identifiers in the inlined expression to be changed to fully scoped names.
   If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code size bloat.
