@@ -158,8 +158,8 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                 when (target) {
                     is BuiltinFunctionPlaceholder -> {
                         val func = BuiltinFunctions.getValue(target.name)
-                        if(func.parameters.size!=1)
-                            errors.err("can only use unary function", funccall.position)
+                        if(func.parameters.isEmpty())
+                            errors.err("function must have at least one parameter", funccall.position)
                         else if(func.returnType==null && funccall !== segments.last())
                             errors.err("function must return a single value", funccall.position)
 
@@ -168,14 +168,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                             errors.err("pipe value datatype $valueDt incompatible with function argument ${paramDts.toList()}", funccall.position)
 
                         if(errors.noErrors()) {
-                            // type can depend on the argument(s) of the function. For now, we only deal with unary functions,
-                            // so we know there must be a single argument. Take its type from the previous expression in the pipe chain.
                             valueDt = builtinFunctionReturnType(func.name).getOrElse { DataType.UNDEFINED }
                         }
                     }
                     is Subroutine -> {
-                        if(target.parameters.size!=1)
-                            errors.err("can only use unary function", funccall.position)
+                        if(target.parameters.isEmpty())
+                            errors.err("function must have at least one parameter", funccall.position)
                         else if(target.returntypes.size!=1 && funccall !== segments.last())
                             errors.err("function must return a single value", funccall.position)
 

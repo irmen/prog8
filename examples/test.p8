@@ -7,9 +7,17 @@
 
 main {
 
+    sub add(ubyte first, ubyte second) -> ubyte {
+        return first+second
+    }
+
+    sub mul(ubyte first, ubyte second) -> ubyte {
+        return first*second
+    }
+
     sub start() {
         ubyte source=99
-        ubyte value= source |> math.sin8u() |> math.cos8u()
+        ubyte value = add(3,4) |> add(10) |> mul(2) |> math.sin8u()     ; TODO should not work yet on vm codegen, but it compiles.... :/
         txt.print_ub(value)
 
         ; expected output: aaabbb aaa bbb

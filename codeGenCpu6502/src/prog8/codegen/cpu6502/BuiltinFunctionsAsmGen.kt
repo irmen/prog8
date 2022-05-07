@@ -30,7 +30,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
     }
 
-    internal fun translateUnaryFunctioncall(name: String, singleArg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
+    internal fun translateFunctionCallWithFirstArg(bfc: IFunctionCall, singleArg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
+        val name = bfc.target.nameInSource.single()
         val func = BuiltinFunctions.getValue(name)
         val argExpression =
             when(singleArg.kind) {
