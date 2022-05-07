@@ -472,6 +472,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     private fun printPipe(source: Expression, segments: Iterable<Expression>) {
         source.accept(this)
+        output(" |> ")
         segments.first().accept(this)
         outputln("")
         scopelevel++

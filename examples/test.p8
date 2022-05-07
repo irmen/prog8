@@ -1,4 +1,5 @@
 %import textio
+%import math
 %zeropage dontuse
 
 
@@ -7,31 +8,11 @@
 main {
 
     sub start() {
-        const ubyte times=3
+        ubyte source=99
+        ubyte value= source |> math.sin8u() |> math.cos8u()
+        txt.print_ub(value)
+
         ; expected output: aaabbb aaa bbb
-        txt.print("aaa"+"bbb"+"ccc")
-        txt.nl()
-;        txt.print("aaa")
-;        txt.nl()
-;        txt.print("bbb")
-;        txt.nl()
-        ; expected output: xxx   xxxxxx   xxxxxxxxx   xxx
-;        txt.print("xxx"*(times-2))
-;        txt.nl()
-;        txt.print("xxx"*(times-1))
-;        txt.nl()
-        txt.print("xxx"*times)
-        txt.nl()
-;        txt.print("xxx")
-;        txt.nl()
-        sys.exit(42)
-;        floats.print_f(-42.42)
-;        float f1 = 1.2345
-;        float f2 = -9.99
-;        float f3
-;        f3 = floats.sin(f3)
-;        floats.print_f(f3)
-;        txt.nl()
 
 ;    float f1 = 1.555
 ;    floats.print_f(floats.sin(f1))
