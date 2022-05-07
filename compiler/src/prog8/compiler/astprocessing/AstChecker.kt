@@ -1132,6 +1132,14 @@ internal class AstChecker(private val program: Program,
             throw FatalAstException("pipe is missing one or more expressions")
         if(pipe.segments.any { it !is IFunctionCall })
             throw FatalAstException("pipe segments can only be function calls")
+
+        if(compilerOptions.compTarget !is VMTarget) {
+            pipe.segments.forEach {
+                it as IFunctionCall
+                if (it.args.size > 0)
+                    errors.err("only unary functions supported in pipe expressions for now", it.position)
+            }
+        }
     }
 
     override fun visit(postIncrDecr: PostIncrDecr) {

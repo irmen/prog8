@@ -85,12 +85,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             return when (segment) {
                 is PtFunctionCall -> {
                     val segWithArg = PtFunctionCall(segment.functionName, segment.void, segment.type, segment.position)
-                    segWithArg.children.add(0, PtMachineRegister(sourceReg, sourceDt, segment.position))
+                    segWithArg.children.add(PtMachineRegister(sourceReg, sourceDt, segment.position))
+                    segWithArg.children.addAll(segment.args)
                     segWithArg
                 }
                 is PtBuiltinFunctionCall -> {
                     val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.hasNoSideEffects, segment.type, segment.position)
-                    segWithArg.children.add(0, PtMachineRegister(sourceReg, sourceDt, segment.position))
+                    segWithArg.children.add(PtMachineRegister(sourceReg, sourceDt, segment.position))
+                    segWithArg.children.addAll(segment.args)
                     segWithArg
                 }
                 else -> throw AssemblyError("weird segment type")

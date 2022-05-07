@@ -17,6 +17,7 @@ import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.AstPreprocessor
 import prog8.parser.Prog8Parser.parseModule
 import prog8.code.core.SourceCode
+import prog8.code.target.VMTarget
 import prog8tests.helpers.*
 
 
@@ -472,5 +473,40 @@ class TestPipes: FunSpec({
         errors.errors[0] shouldContain ":4:32: invalid number of arguments"
         errors.errors[1] shouldContain ":7:42: invalid number of arguments"
         errors.errors[2] shouldContain ":7:56: invalid number of arguments"
+    }
+
+    test("non-unary funcions in pipe ok for target virtual") {
+        val text = """
+            main {
+                sub start() {
+                    uword @shared wvalue = add(3,4) |> add(48) |> mkword(234)
+                }
+                sub add(ubyte first, ubyte second) -> ubyte {
+                    return first+second
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), optimize = false, text, writeAssembly = true, errors=errors)!!
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
+        result.program.entrypoint.statements.size shouldBe 3
+    }
+
+    test("non-unary funcions in pipe not yet ok for other targets") {
+        // NOTE: once other targets also support this, merge this into the test above
+        val text = """
+            main {
+                sub start() {
+                    uword @shared wvalue = add(3,4) |> add(48) |> mkword(234)
+                }
+                sub add(ubyte first, ubyte second) -> ubyte {
+                    return first+second
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize = false, text, writeAssembly = true, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "only unary"
+        errors.errors[1] shouldContain "only unary"
     }
 })
