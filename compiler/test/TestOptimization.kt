@@ -3,10 +3,12 @@ package prog8tests
 import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldStartWith
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotBeBlank
+import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.ParentSentinel
@@ -169,7 +171,6 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), true, source, writeAssembly = false)!!
-        printProgram(result.program)
         // expected:
 //        word llw
 //        llw = 300
@@ -424,7 +425,6 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         result.program.entrypoint.statements.size shouldBe 3
         val ifstmt = result.program.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1
@@ -609,7 +609,6 @@ class TestOptimization: FunSpec({
         }
         """
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         /* expected result:
         uword yy
         yy = 20
@@ -649,8 +648,6 @@ class TestOptimization: FunSpec({
         yy = 0
         xx += 10
          */
-        printProgram(result.program)
-
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 2
@@ -664,5 +661,102 @@ class TestOptimization: FunSpec({
         xxValue.operator shouldBe "+"
         (xxValue.left as? IdentifierReference)?.nameInSource shouldBe listOf("xx")
         xxValue.right shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
+    }
+
+    test("multi-comparison replaced by containment check") {
+        val src="""
+        main {
+            sub start() {
+                ubyte source=99
+                ubyte thingy=42
+        
+                if source==3 or source==4 or source==99 or source==1
+                    thingy++
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        /*
+        expected result:
+        ubyte[] auto_heap_var = [1,4,99,3]
+        ubyte source
+        source = 99
+        ubyte thingy
+        thingy = 42
+        if source in auto_heap_var
+            thingy++
+         */
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 6
+        val ifStmt = stmts[5] as IfElse
+        val containment = ifStmt.condition as ContainmentCheck
+        (containment.element as IdentifierReference).nameInSource shouldBe listOf("source")
+        (containment.iterable as IdentifierReference).nameInSource.single() shouldStartWith "auto_heap_value"
+        val arrayDecl = stmts[0] as VarDecl
+        arrayDecl.isArray shouldBe true
+        arrayDecl.arraysize?.constIndex() shouldBe 4
+        val arrayValue = arrayDecl.value as ArrayLiteral
+        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.ARRAY_UB)
+        arrayValue.value shouldBe listOf(
+            NumericLiteral.optimalInteger(1, Position.DUMMY),
+            NumericLiteral.optimalInteger(3, Position.DUMMY),
+            NumericLiteral.optimalInteger(4, Position.DUMMY),
+            NumericLiteral.optimalInteger(99, Position.DUMMY))
+    }
+
+    test("invalid multi-comparison (not all equals) not replaced") {
+        val src="""
+        main {
+            sub start() {
+                ubyte source=99
+                ubyte thingy=42
+        
+                if source==3 or source==4 or source!=99 or source==1
+                    thingy++
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        printProgram(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 5
+        val ifStmt = stmts[4] as IfElse
+        ifStmt.condition shouldBe instanceOf<BinaryExpression>()
+    }
+
+    test("invalid multi-comparison (not all same needle) not replaced") {
+        val src="""
+        main {
+            sub start() {
+                ubyte source=99
+                ubyte thingy=42
+        
+                if source==3 or source==4 or thingy==99 or source==1
+                    thingy++
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        printProgram(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 5
+        val ifStmt = stmts[4] as IfElse
+        ifStmt.condition shouldBe instanceOf<BinaryExpression>()
+    }
+
+    test("invalid multi-comparison (not all or) not replaced") {
+        val src="""
+        main {
+            sub start() {
+                ubyte source=99
+                ubyte thingy=42
+        
+                if source==3 or source==4 and source==99 or source==1
+                    thingy++
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        printProgram(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 5
+        val ifStmt = stmts[4] as IfElse
+        ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
 })

@@ -91,13 +91,47 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        // try to replace a multi-comparison expression (if x==1 or x==2 or x==3 ... ) by a simple containment check.
+        // but only if the containment check is the top-level expression.
+        if(parent is BinaryExpression)
+            return noModifications
         if(expr.operator == "or") {
-            val leftBinExpr = expr.left as? BinaryExpression
-            val rightBinExpr = expr.right as? BinaryExpression
-            if(leftBinExpr!=null && leftBinExpr.operator=="==" && rightBinExpr!=null && rightBinExpr.operator=="==") {
-                if(leftBinExpr.right is NumericLiteral && rightBinExpr.right is NumericLiteral) {
-                    if(leftBinExpr.left isSameAs rightBinExpr.left)
-                        errors.warn("consider using 'in' or 'when' to test for multiple values", expr.position)
+            val leftBinExpr1 = expr.left as? BinaryExpression
+            val rightBinExpr1 = expr.right as? BinaryExpression
+
+            if(rightBinExpr1?.operator=="==" && rightBinExpr1.right is NumericLiteral && leftBinExpr1!=null) {
+                val needle = rightBinExpr1.left
+                val values = mutableListOf(rightBinExpr1.right as NumericLiteral)
+
+                fun isMultiComparisonRecurse(expr: BinaryExpression): Boolean {
+                    if(expr.operator=="==") {
+                        if(expr.right is NumericLiteral && expr.left isSameAs needle) {
+                            values.add(expr.right as NumericLiteral)
+                            return true
+                        }
+                        return false
+                    }
+                    if(expr.operator!="or")
+                        return false
+                    val leftBinExpr = expr.left as? BinaryExpression
+                    val rightBinExpr = expr.right as? BinaryExpression
+                    if(leftBinExpr==null || rightBinExpr==null || rightBinExpr.right !is NumericLiteral || !rightBinExpr.left.isSameAs(needle))
+                        return false
+                    if(rightBinExpr.operator=="==")
+                        values.add(rightBinExpr.right as NumericLiteral)
+                    else
+                        return false
+                    return isMultiComparisonRecurse(leftBinExpr)
+                }
+
+                if(isMultiComparisonRecurse(leftBinExpr1)) {
+                    // replace it!
+                    val valueCopies = values.sortedBy { it.number }.map { it.copy() }
+                    val elementType = needle.inferType(program).getOrElse { throw FatalAstException("invalid needle dt") }
+                    val arrayType = ElementToArrayTypes.getValue(elementType)
+                    val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
+                    val containment = ContainmentCheck(needle, valuesArray, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, containment, parent))
                 }
             }
         }

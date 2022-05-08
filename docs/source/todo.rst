@@ -3,12 +3,15 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- pipe operator: allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
+- fix compiler crash when comparing strings
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
-  but this requires all identifiers in the inlined expression to be changed to fully scoped names.
-  If we can do that why not perhaps also able to inline multi-line subroutines? Why would it be limited to just 1 line? Maybe to protect against code size bloat.
-  Inlined subroutines cannot contain further nested subroutines!
+  Only if the arguments are simple expressions, and the inlined subroutine cannot contain further nested subroutines!
+  This requires all identifiers in the inlined expression to be changed to fully scoped names (because their scope changes).
+  If we can do that why not perhaps also able to inline multi-line subroutines?
+  Why would it be limited to just 1 line? Maybe to protect against code size bloat.
   Once this works, look for library subroutines that should be inlined.
+- vm: add way more instructions operating directly on memory instead of only registers
+- add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
 ...
 
@@ -24,7 +27,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- vm: add way more instructions operating directly on memory instead of only registers
 - vm: codeGen: various TODOs to tweak code
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
@@ -40,7 +42,6 @@ Compiler:
 - make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (what scenarios?)
-- add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
@@ -58,12 +59,12 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?
-- diskio: use cx16 MACPTR() to load stuff faster? (see it's use in X16edit to fast load blocks)
+- diskio: use cx16 MACPTR() to load stuff faster? (see its use in X16edit to fast load blocks)
   note that it might fail on non sdcard files so have to make graceful degradation
-- add a diskio.f_seek() routine for the Cx16 that uses its seek dos api? (only if that's stable)
 
 Expressions:
 
+- pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.
 - rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
   note: new ast PtAssignment already has no knowledge about this anymore.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
@@ -84,5 +85,4 @@ Optimizations:
 - AssignmentAsmGen.assignExpression() -> better code gen for assigning boolean comparison expressions
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
-- automatically convert if statements that test for multiple values (if X==1 or X==2..) to if X in [1,2,..] statements, instead of just a warning.
 - introduce byte-index operator to avoid index multiplications in loops over arrays? see github issue #4
