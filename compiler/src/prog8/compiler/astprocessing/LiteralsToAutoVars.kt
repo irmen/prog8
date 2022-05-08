@@ -27,7 +27,11 @@ internal class LiteralsToAutoVars(private val program: Program,
             errors.err("compilation target doesn't support this text encoding", string.position)
             return noModifications
         }
-        if(string.parent !is VarDecl && string.parent !is WhenChoice && string.parent !is BinaryExpression) {
+        if(string.parent !is VarDecl && string.parent !is WhenChoice) {
+            val binExpr = string.parent as? BinaryExpression
+            if(binExpr!=null &&(binExpr.operator=="+" || binExpr.operator=="*"))
+                return noModifications // allow string concatenation or repeats later, based on just string literals
+
             // replace the literal string by an identifier reference to the interned string
             val parentFunc = (string.parent as? IFunctionCall)?.target
             if(parentFunc!=null) {

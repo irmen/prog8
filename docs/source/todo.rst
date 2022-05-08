@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash when comparing strings
 - make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
   Only if the arguments are simple expressions, and the inlined subroutine cannot contain further nested subroutines!
   This requires all identifiers in the inlined expression to be changed to fully scoped names (because their scope changes).

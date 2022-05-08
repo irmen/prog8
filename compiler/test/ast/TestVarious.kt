@@ -3,9 +3,15 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.IFunctionCall
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.StringLiteral
+import prog8.ast.statements.Assignment
 import prog8.ast.statements.InlineAssembly
+import prog8.ast.statements.VarDecl
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.compiler.printProgram
 import prog8tests.helpers.compileText
 
 class TestVarious: FunSpec({
@@ -60,6 +66,54 @@ main {
     }
 }"""
         compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
+    }
+
+    test("simple string comparison still works") {
+        val src="""
+        main {
+            sub start() {
+                ubyte @shared value
+                str thing = "????"
+        
+                if thing=="name" {
+                    value++
+                }
+        
+                if thing!="name" {
+                    value++
+                }
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 6
+    }
+
+    test("string concatenation and repeats") {
+        val src="""
+        main {
+            sub start() {
+                str @shared name = "part1" + "part2"
+                str @shared rept = "rep"*4
+                const ubyte times = 3
+                name = "xx1" + "xx2"
+                rept = "xyz" * (times+1)
+            }
+        }"""
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+        printProgram(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 6
+        val name1 = stmts[0] as VarDecl
+        val rept1 = stmts[1] as VarDecl
+        (name1.value as StringLiteral).value shouldBe "part1part2"
+        (rept1.value as StringLiteral).value shouldBe "reprepreprep"
+        val name2strcopy = stmts[3] as IFunctionCall
+        val rept2strcopy = stmts[4] as IFunctionCall
+        val name2 = name2strcopy.args.first() as IdentifierReference
+        val rept2 = rept2strcopy.args.first() as IdentifierReference
+        (name2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xx1xx2"
+        (rept2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
     }
 })
 

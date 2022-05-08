@@ -3,7 +3,6 @@ package prog8tests
 import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.collections.shouldStartWith
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -753,7 +752,6 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
