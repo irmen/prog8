@@ -691,8 +691,7 @@ in-place to the locations where the subroutine is called, rather than inserting 
 subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
 Note that the routine's code is copied verbatim into the place of the subroutine call in this case,
 so pay attention to any jumps and rts instructions in the inlined code!
-
-At this time it is not yet possible to inline regular Prog8 subroutines, this may be added in the future.
+Inlining regular Prog8 subroutines is at the discretion of the compiler.
 
 
 Calling a subroutine

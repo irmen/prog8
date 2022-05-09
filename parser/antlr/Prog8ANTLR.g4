@@ -242,7 +242,7 @@ inlineasm :  '%asm' INLINEASMBLOCK;
 inline: 'inline';
 
 subroutine :
-	inline? 'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
+	'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
 	;
 
 sub_return_part : '->' datatype  ;

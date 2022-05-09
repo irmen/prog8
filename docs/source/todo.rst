@@ -3,13 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- make it possible to inline non-asmsub routines that just contain a single statement (return, functioncall, assignment)
-  Only if the arguments are simple expressions, and the inlined subroutine cannot contain further nested subroutines!
-  This requires all identifiers in the inlined expression to be changed to fully scoped names (because their scope changes).
-  If we can do that why not perhaps also able to inline multi-line subroutines?
-  Why would it be limited to just 1 line? Maybe to protect against code size bloat.
-  Once this works, look for library subroutines that should be inlined.
 - vm: add way more instructions operating directly on memory instead of only registers
+- complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
 ...

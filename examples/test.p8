@@ -6,13 +6,18 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
+    ubyte value = 42
+
+    sub derp() -> ubyte {
+        return math.sin8u(value)
+    }
 
     sub start() {
-        str thing = "????"
-
-        if thing=="bmap" {
-            txt.print("gottem")
-        }
+        ubyte value = derp()
+        txt.print_ub(value)
+        txt.nl()
+        txt.print_ub(derp())
+        txt.nl()
 
         ; TODO: test with builtin function using multiple args (such as mkword)
 ;        ubyte value = add(3,4) |> add(10) |> mul(2) |> math.sin8u()     ; TODO should not work yet on vm codegen, but it compiles.... :/

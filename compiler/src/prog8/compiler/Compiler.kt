@@ -350,9 +350,10 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.splitBinaryExpressions(compilerOptions)
         val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
+        val optsDone4 = program.inlineSubroutines()
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
-        if (optsDone1 + optsDone2 + optsDone3 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 + optsDone4 == 0)
             break
     }
     errors.report()

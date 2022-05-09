@@ -690,7 +690,7 @@ class Subroutine(override val name: String,
                  val asmClobbers: Set<CpuRegister>,
                  val asmAddress: UInt?,
                  val isAsmSubroutine: Boolean,
-                 val inline: Boolean,
+                 var inline: Boolean,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 

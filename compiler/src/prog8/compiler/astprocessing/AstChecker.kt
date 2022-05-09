@@ -298,8 +298,10 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.compTarget.name!=VMTarget.NAME && subroutine.inline && !subroutine.isAsmSubroutine)
-            err("subroutine inlining is currently only supported on asmsub routines")
+        // Most code generation targets only support subroutine inlining on asmsub subroutines
+        // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
+        if(!subroutine.isAsmSubroutine && compilerOptions.compTarget.name!=VMTarget.NAME)
+            subroutine.inline = false
 
         if(subroutine.parent !is Block && subroutine.parent !is Subroutine)
             err("subroutines can only be defined in the scope of a block or within another subroutine")
