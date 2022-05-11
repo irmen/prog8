@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: get rid of the 3-register instructions just make them 2 registers?  Result register is always same as second?
 - vm: use more instructions in codegen: branching
 - vm: add more instructions operating directly on memory instead of only registers?
 - in-place modifiying functions (rol, ror, ..) don't accept a memory address but require a memory-read expression. that is weird.

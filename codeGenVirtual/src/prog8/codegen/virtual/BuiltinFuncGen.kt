@@ -115,7 +115,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                     val andReg = codeGen.vmRegisters.nextFree()
                     val notNegativeLabel = codeGen.createLabelName()
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=andReg, value=0x80)
-                    code += VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=andReg, reg2=resultRegister, reg3=andReg)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=andReg, reg2=resultRegister)
                     code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=andReg, symbol = notNegativeLabel)
                     code += VmCodeInstruction(Opcode.NEG, VmDataType.BYTE, reg1=resultRegister)
                     code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
@@ -125,7 +125,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                     val andReg = codeGen.vmRegisters.nextFree()
                     val notNegativeLabel = codeGen.createLabelName()
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=andReg, value=0x8000)
-                    code += VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=andReg, reg2=resultRegister, reg3=andReg)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=andReg, reg2=resultRegister)
                     code += VmCodeInstruction(Opcode.BZ, VmDataType.WORD, reg1=andReg, symbol = notNegativeLabel)
                     code += VmCodeInstruction(Opcode.NEG, VmDataType.WORD, reg1=resultRegister)
                     code += VmCodeLabel(notNegativeLabel)
@@ -230,11 +230,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcMkword(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val msbReg = codeGen.vmRegisters.nextFree()
-        val lsbReg = codeGen.vmRegisters.nextFree()
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], msbReg, -1)
-        code += exprGen.translateExpression(call.args[1], lsbReg, -1)
-        code += VmCodeInstruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg, reg3=lsbReg)
+        code += exprGen.translateExpression(call.args[1], resultRegister, -1)
+        code += VmCodeInstruction(Opcode.CONCAT, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg)
         return code
     }
 

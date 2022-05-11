@@ -157,10 +157,10 @@ class Assembler {
                     fpReg2 = fpReg3
                     fpReg3 = null
                 }
+                if(reg3!=null)
+                    throw IllegalArgumentException("too many reg arguments $line")
                 if(fpReg3!=null)
                     throw IllegalArgumentException("too many fpreg arguments $line")
-                // TODO also check reg3
-
 
                 if(type!=null && type !in formats)
                     throw IllegalArgumentException("invalid type code for $line")
@@ -168,16 +168,12 @@ class Assembler {
                     throw IllegalArgumentException("needs reg1 for $line")
                 if(format.reg2 && reg2==null)
                     throw IllegalArgumentException("needs reg2 for $line")
-                if(format.reg3 && reg3==null)
-                    throw IllegalArgumentException("needs reg3 for $line")
                 if(format.value && value==null)
                     throw IllegalArgumentException("needs value for $line")
                 if(!format.reg1 && reg1!=null)
                     throw IllegalArgumentException("invalid reg1 for $line")
                 if(!format.reg2 && reg2!=null)
                     throw IllegalArgumentException("invalid reg2 for $line")
-                if(!format.reg3 && reg3!=null)
-                    throw IllegalArgumentException("invalid reg3 for $line")
                 if(value!=null && opcode !in OpcodesWithAddress) {
                     when (type) {
                         VmDataType.BYTE -> {
@@ -200,7 +196,7 @@ class Assembler {
                 if(format.fpValue)
                     floatValue = value!!
 
-                program.add(Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, value = intValue, fpValue = floatValue))
+                program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value = intValue, fpValue = floatValue))
             }
         }
 

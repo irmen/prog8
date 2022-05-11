@@ -25,29 +25,10 @@ main {
 
         ubyte @shared value = inline_candidate()
 
-        float fl1 = 1.1
-        float fl2 = 2.2
-        floats.print_f(floats.pow(fl1,fl2))
-
-        if fl1==fl2
-            txt.print("equals!?\n")
-        if fl1!=fl2
-            txt.print("not equals.\n")
-        fl1 = fl2
-        if fl1==fl2
-            txt.print("equals.\n")
-        if fl1!=fl2
-            txt.print("not equals!?\n")
-
-        if fl1 <= fl2
-            txt.print("yup\n")
-        if fl1 > fl2
-            txt.print("nope\n")
-        fl1 = 3.3
-        if fl1 <= fl2
-            txt.print("yup\n")
-        if fl1 > fl2
-            txt.print("nope\n")
+        ubyte lowb = $31
+        ubyte highb = $ea
+        uword result = mkword(highb, lowb)
+        txt.print_uwhex(result, true)
 
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()

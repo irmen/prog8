@@ -73,16 +73,16 @@ bgt         reg1, reg2,       location  - jump to location in program given by l
 bgts        reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (signed)
 bge         reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (unsigned)
 bges        reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (signed)
-seq         reg1, reg2, reg3            - set reg=1 if reg2 == reg3,  otherwise set reg1=0
-sne         reg1, reg2, reg3            - set reg=1 if reg2 != reg3,  otherwise set reg1=0
-slt         reg1, reg2, reg3            - set reg=1 if reg2 < reg3 (unsigned),  otherwise set reg1=0
-slts        reg1, reg2, reg3            - set reg=1 if reg2 < reg3 (signed),  otherwise set reg1=0
-sle         reg1, reg2, reg3            - set reg=1 if reg2 <= reg3 (unsigned),  otherwise set reg1=0
-sles        reg1, reg2, reg3            - set reg=1 if reg2 <= reg3 (signed),  otherwise set reg1=0
-sgt         reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (unsigned),  otherwise set reg1=0
-sgts        reg1, reg2, reg3            - set reg=1 if reg2 > reg3 (signed),  otherwise set reg1=0
-sge         reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (unsigned),  otherwise set reg1=0
-sges        reg1, reg2, reg3            - set reg=1 if reg2 >= reg3 (signed),  otherwise set reg1=0
+seq         reg1, reg2                  - set reg=1 if reg1 == reg2,  otherwise set reg1=0
+sne         reg1, reg2                  - set reg=1 if reg1 != reg2,  otherwise set reg1=0
+slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
+slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0
+sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
+sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
+sgt         reg1, reg2                  - set reg=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
+sgts        reg1, reg2                  - set reg=1 if reg1 > reg2 (signed),  otherwise set reg1=0
+sge         reg1, reg2                  - set reg=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
+sges        reg1, reg2                  - set reg=1 if reg1 >= reg2 (signed),  otherwise set reg1=0
 
 
 ARITHMETIC
@@ -96,11 +96,11 @@ incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
 decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
-add         reg1, reg2, reg3                - reg1 = reg2+reg3 (unsigned + signed)
-sub         reg1, reg2, reg3                - reg1 = reg2-reg3 (unsigned + signed)
-mul         reg1, reg2, reg3                - unsigned multiply reg1=reg2*reg3  note: byte*byte->byte, no type extension to word!
-div         reg1, reg2, reg3                - unsigned division reg1=reg2/reg3  note: division by zero yields max signed int $ff/$ffff
-mod         reg1, reg2, reg3                - remainder (modulo) of unsigned division reg1=reg2%reg3  note: division by zero yields max signed int $ff/$ffff
+add         reg1, reg2                      - reg1 += reg2 (unsigned + signed)
+sub         reg1, reg2                      - reg1 -= reg2 (unsigned + signed)
+mul         reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
+div         reg1, reg2                      - unsigned division reg1 /= reg2  note: division by zero yields max signed int $ff/$ffff
+mod         reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 sqrt        reg1, reg2                      - reg1 is the square root of reg2
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
@@ -113,12 +113,12 @@ LOGICAL/BITWISE
 ---------------
 All have type b or w.
 
-and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
-or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
-xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsrn        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
-asrn        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
-lsln        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
+and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
+or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
+xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
+lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
+asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
+lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
@@ -151,7 +151,7 @@ sec                                       - set Carry status bit
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-concat [b, w] reg1, reg2, reg3            - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented; requires 32bits regs)
+concat [b, w] reg1, reg2                  - reg1 = concatenated lsb/lsw of reg1 (as lsb) and lsb/lsw of reg2 (as msb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w]   reg1                        - push value in reg1 on the stack
 pop [b, w]    reg1                        - pop value from stack into reg1
 
@@ -289,7 +289,6 @@ data class Instruction(
     val type: VmDataType?=null,
     val reg1: Int?=null,        // 0-$ffff
     val reg2: Int?=null,        // 0-$ffff
-    val reg3: Int?=null,        // 0-$ffff
     val fpReg1: Int?=null,      // 0-$ffff
     val fpReg2: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
@@ -302,17 +301,13 @@ data class Instruction(
             throw IllegalArgumentException("missing type")
 
         val format = formats.getValue(type)
-        if(format.reg1 && reg1==null ||
-            format.reg2 && reg2==null ||
-            format.reg3 && reg3==null)
+        if(format.reg1 && reg1==null || format.reg2 && reg2==null)
             throw IllegalArgumentException("missing a register (int)")
 
         if(format.fpReg1 && fpReg1==null || format.fpReg2 && fpReg2==null)
             throw IllegalArgumentException("missing a register (float)")
 
-        if(!format.reg1 && reg1!=null ||
-            !format.reg2 && reg2!=null ||
-            !format.reg3 && reg3!=null)
+        if(!format.reg1 && reg1!=null || !format.reg2 && reg2!=null)
             throw IllegalArgumentException("too many registers (int)")
 
         if(!format.fpReg1 && fpReg1!=null || !format.fpReg2 && fpReg2!=null)
@@ -346,10 +341,6 @@ data class Instruction(
             result.add("r$it")
             result.add(",")
         }
-        reg3?.let {
-            result.add("r$it")
-            result.add(",")
-        }
         fpReg1?.let {
             result.add("fr$it")
             result.add(",")
@@ -376,7 +367,7 @@ data class Instruction(
 }
 
 data class InstructionFormat(val datatype: VmDataType?,
-                             val reg1: Boolean, val reg2: Boolean, val reg3: Boolean,
+                             val reg1: Boolean, val reg2: Boolean,
                              val fpReg1: Boolean, val fpReg2: Boolean,
                              val value: Boolean,
                              val fpValue: Boolean) {
@@ -386,7 +377,6 @@ data class InstructionFormat(val datatype: VmDataType?,
             for(part in spec.split('|').map{ it.trim() }) {
                 var reg1 = false
                 var reg2 = false
-                var reg3 = false
                 var fpreg1 = false
                 var fpreg2 = false
                 var value = false
@@ -397,7 +387,6 @@ data class InstructionFormat(val datatype: VmDataType?,
                     when(splits.next()) {
                         "r1" -> reg1=true
                         "r2" -> reg2=true
-                        "r3" -> reg3=true
                         "fr1" -> fpreg1=true
                         "fr2" -> fpreg2=true
                         "v" -> value = true
@@ -406,13 +395,13 @@ data class InstructionFormat(val datatype: VmDataType?,
                     }
                 }
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
+                    result[null] = InstructionFormat(null, reg1=reg1, reg2=reg2, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('B' in typespec)
-                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
+                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1=reg1, reg2=reg2, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('W' in typespec)
-                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
+                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1=reg1, reg2=reg2, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('F' in typespec)
-                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
+                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1=reg1, reg2=reg2, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
             }
             return result
         }
@@ -456,38 +445,38 @@ val instructionFormats = mutableMapOf(
     Opcode.BLES       to InstructionFormat.from("BW,r1,r2,v"),
     Opcode.BGE        to InstructionFormat.from("BW,r1,r2,v"),
     Opcode.BGES       to InstructionFormat.from("BW,r1,r2,v"),
-    Opcode.SEQ        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SNE        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SLT        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SLTS       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SGT        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SGTS       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SLE        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SLES       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SGE        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.SGES       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.SEQ        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SNE        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SLT        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SLTS       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SGT        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SGTS       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SLE        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SLES       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SGE        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.SGES       to InstructionFormat.from("BW,r1,r2"),
     Opcode.INC        to InstructionFormat.from("BW,r1"),
     Opcode.INCM       to InstructionFormat.from("BW,v"),
     Opcode.DEC        to InstructionFormat.from("BW,r1"),
     Opcode.DECM       to InstructionFormat.from("BW,v"),
-    Opcode.NEG        to InstructionFormat.from("BW,r1          | F,fr1"),
-    Opcode.ADD        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
-    Opcode.SUB        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
-    Opcode.MUL        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
-    Opcode.DIV        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
-    Opcode.SQRT       to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
-    Opcode.SGN        to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
-    Opcode.RND        to InstructionFormat.from("BW,r1          | F,fr1"),
-    Opcode.MOD        to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.NEG        to InstructionFormat.from("BW,r1      | F,fr1"),
+    Opcode.ADD        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.SUB        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.MUL        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.DIV        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.SQRT       to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.SGN        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.RND        to InstructionFormat.from("BW,r1      | F,fr1"),
+    Opcode.MOD        to InstructionFormat.from("BW,r1,r2"),
     Opcode.CMP        to InstructionFormat.from("BW,r1,r2"),
     Opcode.EXT        to InstructionFormat.from("BW,r1"),
     Opcode.EXTS       to InstructionFormat.from("BW,r1"),
-    Opcode.AND        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.OR         to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.XOR        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.ASRN       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.LSRN       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.LSLN       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.AND        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.OR         to InstructionFormat.from("BW,r1,r2"),
+    Opcode.XOR        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ASRN       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.LSRN       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.LSLN       to InstructionFormat.from("BW,r1,r2"),
     Opcode.ASR        to InstructionFormat.from("BW,r1"),
     Opcode.LSR        to InstructionFormat.from("BW,r1"),
     Opcode.LSL        to InstructionFormat.from("BW,r1"),
@@ -521,7 +510,7 @@ val instructionFormats = mutableMapOf(
     Opcode.MSIG       to InstructionFormat.from("BW,r1,r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,r1"),
     Opcode.POP        to InstructionFormat.from("BW,r1"),
-    Opcode.CONCAT     to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.CONCAT     to InstructionFormat.from("BW,r1,r2"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),

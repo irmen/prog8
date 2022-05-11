@@ -16,7 +16,6 @@ class TestInstructions: FunSpec({
         ins.type shouldBe null
         ins.reg1 shouldBe null
         ins.reg2 shouldBe null
-        ins.reg3 shouldBe null
         ins.value shouldBe null
         ins.symbol shouldBe null
         ins.toString() shouldBe "nop"
@@ -28,7 +27,6 @@ class TestInstructions: FunSpec({
         ins.type shouldBe VmDataType.BYTE
         ins.reg1 shouldBe 42
         ins.reg2 shouldBe null
-        ins.reg3 shouldBe null
         ins.value shouldBe 9999
         ins.symbol shouldBe null
         ins.toString() shouldBe "bz.b r42,9999"
@@ -40,7 +38,6 @@ class TestInstructions: FunSpec({
         ins.type shouldBe VmDataType.WORD
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe null
-        ins.reg3 shouldBe null
         ins.value shouldBe null
         ins.symbol shouldBe listOf("a","b","c")
         ins.toString() shouldBe "bz.w r11,_a.b.c"

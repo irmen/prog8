@@ -527,73 +527,73 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsSEQ(i: Instruction) {
-        val (resultReg: Int, left: Int, right: Int) = getSetOnConditionOperands(i)
+        val (left: Int, right: Int) = getSetOnConditionOperands(i)
         val value = if(left==right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSNE(i: Instruction) {
-        val (resultReg: Int, left: Int, right: Int) = getSetOnConditionOperands(i)
+        val (left: Int, right: Int) = getSetOnConditionOperands(i)
         val value = if(left!=right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSLT(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left<right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSLTS(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val (left, right) = getSetOnConditionOperands(i)
         val value = if(left<right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSGT(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left>right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSGTS(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val (left, right) = getSetOnConditionOperands(i)
         val value = if(left>right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSLE(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left<=right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSLES(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val (left, right) = getSetOnConditionOperands(i)
         val value = if(left<=right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
     private fun InsSGE(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperandsU(i)
+        val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left>=right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
 
     }
 
     private fun InsSGES(i: Instruction) {
-        val (resultReg, left, right) = getSetOnConditionOperands(i)
+        val (left, right) = getSetOnConditionOperands(i)
         val value = if(left>=right) 1 else 0
-        setResultReg(resultReg, value, i.type!!)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
 
     }
@@ -645,8 +645,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsADD(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!)
+            VmDataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!)
             VmDataType.FLOAT -> arithFloat("+", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
@@ -654,16 +654,16 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsSUB(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!)
+            VmDataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!)
             VmDataType.FLOAT -> arithFloat("-", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
     }
     private fun InsMUL(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("*", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.WORD -> arithWord("*", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.BYTE -> arithByte("*", i.reg1!!, i.reg2!!)
+            VmDataType.WORD -> arithWord("*", i.reg1!!, i.reg2!!)
             VmDataType.FLOAT -> arithFloat("*", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
@@ -671,8 +671,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsDIV(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("/", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.WORD -> arithWord("/", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.BYTE -> arithByte("/", i.reg1!!, i.reg2!!)
+            VmDataType.WORD -> arithWord("/", i.reg1!!, i.reg2!!)
             VmDataType.FLOAT -> arithFloat("/", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
@@ -680,8 +680,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsMOD(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> arithByte("%", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.WORD -> arithWord("%", i.reg1!!, i.reg2!!, i.reg3!!)
+            VmDataType.BYTE -> arithByte("%", i.reg1!!, i.reg2!!)
+            VmDataType.WORD -> arithWord("%", i.reg1!!, i.reg2!!)
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -744,9 +744,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun arithByte(operator: String, reg1: Int, reg2: Int, reg3: Int) {
-        val left = registers.getUB(reg2)
-        val right = registers.getUB(reg3)
+    private fun arithByte(operator: String, reg1: Int, reg2: Int) {
+        val left = registers.getUB(reg1)
+        val right = registers.getUB(reg2)
         val result = when(operator) {
             "+" -> left + right
             "-" -> left - right
@@ -764,9 +764,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUB(reg1, result.toUByte())
     }
 
-    private fun arithWord(operator: String, reg1: Int, reg2: Int, reg3: Int) {
-        val left = registers.getUW(reg2)
-        val right = registers.getUW(reg3)
+    private fun arithWord(operator: String, reg1: Int, reg2: Int) {
+        val left = registers.getUW(reg1)
+        val right = registers.getUW(reg2)
         val result = when(operator) {
             "+" -> left + right
             "-" -> left - right
@@ -1019,9 +1019,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsCONCAT(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
+                val lsb = registers.getUB(i.reg1!!)
                 val msb = registers.getUB(i.reg2!!)
-                val lsb = registers.getUB(i.reg3!!)
-                registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
+                registers.setUW(i.reg1, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
             VmDataType.WORD -> TODO("concat.w not yet supported, requires 32-bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
@@ -1180,8 +1180,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun getLogicalOperandsU(i: Instruction): Pair<UInt, UInt> {
         return when(i.type) {
-            VmDataType.BYTE -> Pair(registers.getUB(i.reg2!!).toUInt(), registers.getUB(i.reg3!!).toUInt())
-            VmDataType.WORD -> Pair(registers.getUW(i.reg2!!).toUInt(), registers.getUW(i.reg3!!).toUInt())
+            VmDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
+            VmDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }
@@ -1191,8 +1191,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun getLogicalOperandsS(i: Instruction): Pair<Int, Int> {
         return when(i.type) {
-            VmDataType.BYTE -> Pair(registers.getSB(i.reg2!!).toInt(), registers.getSB(i.reg3!!).toInt())
-            VmDataType.WORD -> Pair(registers.getSW(i.reg2!!).toInt(), registers.getSW(i.reg3!!).toInt())
+            VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
+            VmDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }
@@ -1200,10 +1200,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         }
     }
 
-    private fun getSetOnConditionOperands(ins: Instruction): Triple<Int, Int, Int> {
+    private fun getSetOnConditionOperands(ins: Instruction): Pair<Int, Int> {
         return when(ins.type) {
-            VmDataType.BYTE -> Triple(ins.reg1!!, registers.getSB(ins.reg2!!).toInt(), registers.getSB(ins.reg3!!).toInt())
-            VmDataType.WORD -> Triple(ins.reg1!!, registers.getSW(ins.reg2!!).toInt(), registers.getSW(ins.reg3!!).toInt())
+            VmDataType.BYTE -> Pair(registers.getSB(ins.reg1!!).toInt(), registers.getSB(ins.reg2!!).toInt())
+            VmDataType.WORD -> Pair(registers.getSW(ins.reg1!!).toInt(), registers.getSW(ins.reg2!!).toInt())
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }
@@ -1211,10 +1211,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         }
     }
 
-    private fun getSetOnConditionOperandsU(ins: Instruction): Triple<Int, UInt, UInt> {
+    private fun getSetOnConditionOperandsU(ins: Instruction): Pair<UInt, UInt> {
         return when(ins.type) {
-            VmDataType.BYTE -> Triple(ins.reg1!!, registers.getUB(ins.reg2!!).toUInt(), registers.getUB(ins.reg3!!).toUInt())
-            VmDataType.WORD -> Triple(ins.reg1!!, registers.getUW(ins.reg2!!).toUInt(), registers.getUW(ins.reg3!!).toUInt())
+            VmDataType.BYTE -> Pair(registers.getUB(ins.reg1!!).toUInt(), registers.getUB(ins.reg2!!).toUInt())
+            VmDataType.WORD -> Pair(registers.getUW(ins.reg1!!).toUInt(), registers.getUW(ins.reg2!!).toUInt())
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }
