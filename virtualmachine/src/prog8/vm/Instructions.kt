@@ -124,8 +124,8 @@ asr         reg1                             - shift reg1 right by 1 bits (signe
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
 ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
 roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
-rol         reg1                             - rotate reg1 left by 1bits, not using carry  + set Carry to shifted bit
-roxl        reg1                             - rotate reg1 left by 1bits, using carry,  + set Carry to shifted bit
+rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
+roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -227,9 +227,9 @@ enum class Opcode {
     ASRN,
     LSRN,
     LSLN,
-    ASR,    // TODO not used in codegen of shift 1
-    LSR,    // TODO not used in codegen of shift 1
-    LSL,    // TODO not used in codegen of shift 1
+    ASR,
+    LSR,
+    LSL,
     ROR,
     ROXR,
     ROL,

@@ -7,63 +7,61 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
-;    ubyte value = 42
-;
-;    sub inline_candidate() -> ubyte {
-;        return math.sin8u(value)
-;    }
-;
-;    sub add(ubyte first, ubyte second) -> ubyte {
-;        return first + second
-;    }
-;
-;    sub mul(ubyte first, ubyte second) -> ubyte {
-;        return first * second
-;    }
+    ubyte value = 42
+
+    sub inline_candidate() -> ubyte {
+        return math.sin8u(value)
+    }
+
+    sub add(ubyte first, ubyte second) -> ubyte {
+        return first + second
+    }
+
+    sub mul(ubyte first, ubyte second) -> ubyte {
+        return first * second
+    }
 
     sub start() {
-        uword[] arrayuw = [1111,2222,3333,4444]
-        txt.print_uw(arrayuw[1])
-        txt.nl()
-        arrayuw[1] = 9999
-        txt.print_uw(arrayuw[1])
-        txt.nl()
-        arrayuw[1] = 0
-        txt.print_uw(arrayuw[1])
-        txt.nl()
 
-        float[] array = [1.1, 2.2, 3.3, 4.4]
-        floats.print_f(array[1])
+        ubyte @shared value = inline_candidate()
+        value = %01011100
+        byte @shared svalue = 99
+        svalue = -svalue
+        @($5000) = not @($5000)
+        sys.set_carry()
+        rol(value)
+        rol(@($5000))
+        txt.print_ub(value)
         txt.nl()
-        array[1] = 99.99
-        floats.print_f(array[1])
+        sys.set_carry()
+        ror(value)
+        ror(@($5000))
+        txt.print_ub(value)
         txt.nl()
-        array[1] = 0
-        floats.print_f(array[1])
         txt.nl()
-
-;        ubyte value = inline_candidate()
-;        byte svalue = 99
-;        svalue = -svalue
-;        @($5000) = not @($5000)
-;        rol(value)
-;        rol(@($5000))
-;        ror(value)
-;        ror(@($5000))
-;        rol2(value)
-;        rol2(@($5000))
-;        ror2(value)
-;        ror2(@($5000))
-;        @($5000) <<= 1
-;        @($5000) >>= 1
-;        value <<= 1
-;        value >>= 1
-;        @($5000) <<= 3
-;        @($5000) >>= 3
-;        value <<= 3
-;        value >>= 3
-;        txt.print_ub(value)
-;        txt.nl()
+        value = %01011100
+        sys.set_carry()
+        rol2(value)
+        rol2(@($5000))
+        txt.print_ub(value)
+        txt.nl()
+        sys.clear_carry()
+        ror2(value)
+        ror2(@($5000))
+        txt.print_ub(value)
+        txt.nl()
+        @($5000) <<= 1
+        @($5000) >>= 1
+        value <<= 1
+        value >>= 1
+        txt.print_ub(value)
+        txt.nl()
+        @($5000) <<= 3
+        @($5000) >>= 3
+        value <<= 3
+        value >>= 3
+        txt.print_ub(value)
+        txt.nl()
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()
 

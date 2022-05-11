@@ -762,4 +762,6 @@ class CodeGen(internal val program: PtProgram,
         builtinFuncGen.translate(call, resultRegister)
 
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
+
+    internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
 }

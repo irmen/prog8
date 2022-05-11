@@ -363,24 +363,33 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
 
     private fun operatorShiftRight(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, signed: Boolean): VmCodeChunk {
         val code = VmCodeChunk()
-        // TODO if shift is 1, use ASR/LSR instruction instead of multishift
-        val leftResultReg = codeGen.vmRegisters.nextFree()
-        val rightResultReg = codeGen.vmRegisters.nextFree()
-        code += translateExpression(binExpr.left, leftResultReg, -1)
-        code += translateExpression(binExpr.right, rightResultReg, -1)
-        val opc = if(signed) Opcode.ASRN else Opcode.LSRN
-        code += VmCodeInstruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
+        if(codeGen.isOne(binExpr.right)) {
+            code += translateExpression(binExpr.left, resultRegister, -1)
+            val opc = if (signed) Opcode.ASR else Opcode.LSR
+            code += VmCodeInstruction(opc, vmDt, reg1 = resultRegister)
+        } else {
+            val leftResultReg = codeGen.vmRegisters.nextFree()
+            val rightResultReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, leftResultReg, -1)
+            code += translateExpression(binExpr.right, rightResultReg, -1)
+            val opc = if (signed) Opcode.ASRN else Opcode.LSRN
+            code += VmCodeInstruction(opc, vmDt, reg1 = resultRegister, reg2 = leftResultReg, reg3 = rightResultReg)
+        }
         return code
     }
 
     private fun operatorShiftLeft(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        // TODO if shift is 1, use LSL instruction instead of multishift
-        val leftResultReg = codeGen.vmRegisters.nextFree()
-        val rightResultReg = codeGen.vmRegisters.nextFree()
-        code += translateExpression(binExpr.left, leftResultReg, -1)
-        code += translateExpression(binExpr.right, rightResultReg, -1)
-        code += VmCodeInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
+        if(codeGen.isOne(binExpr.right)){
+            code += translateExpression(binExpr.left, resultRegister, -1)
+            code += VmCodeInstruction(Opcode.LSL, vmDt, reg1=resultRegister)
+        } else {
+            val leftResultReg = codeGen.vmRegisters.nextFree()
+            val rightResultReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, leftResultReg, -1)
+            code += translateExpression(binExpr.right, rightResultReg, -1)
+            code += VmCodeInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
+        }
         return code
     }
 

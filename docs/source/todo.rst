@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: use more instructions in codegen: shift one
+- vm: expressiongen: use resultRegister arg instead of allocating new leftResultReg
 - vm: use more instructions in codegen: branching
 - vm: add more instructions operating directly on memory instead of only registers?
 - in-place modifiying functions (rol, ror, ..) don't accept a memory address but require a memory-read expression. that is weird.
