@@ -22,7 +22,7 @@ sub pow(float value, float power) -> float {
     %asm {{
         loadm.f fr0,{floats.pow.value}
         loadm.f fr1,{floats.pow.power}
-        fpow.f fr0,fr0,fr1
+        fpow.f fr0,fr1
         return
     }}
 }

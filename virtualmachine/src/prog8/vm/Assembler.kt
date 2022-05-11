@@ -157,6 +157,10 @@ class Assembler {
                     fpReg2 = fpReg3
                     fpReg3 = null
                 }
+                if(fpReg3!=null)
+                    throw IllegalArgumentException("too many fpreg arguments $line")
+                // TODO also check reg3
+
 
                 if(type!=null && type !in formats)
                     throw IllegalArgumentException("invalid type code for $line")
@@ -196,7 +200,7 @@ class Assembler {
                 if(format.fpValue)
                     floatValue = value!!
 
-                program.add(Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, fpReg3, value = intValue, fpValue = floatValue))
+                program.add(Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, value = intValue, fpValue = floatValue))
             }
         }
 

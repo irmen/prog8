@@ -389,7 +389,7 @@ class CodeGen(internal val program: PtProgram,
         } else {
             val factorReg = vmRegisters.nextFreeFloat()
             code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += VmCodeInstruction(Opcode.MUL, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = fpReg, fpReg3 = factorReg)
+            code += VmCodeInstruction(Opcode.MUL, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
         }
         return code
     }
@@ -432,7 +432,7 @@ class CodeGen(internal val program: PtProgram,
         } else {
             val factorReg = vmRegisters.nextFreeFloat()
             code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += VmCodeInstruction(Opcode.DIV, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = fpReg, fpReg3 = factorReg)
+            code += VmCodeInstruction(Opcode.DIV, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
         }
         return code
     }

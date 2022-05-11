@@ -138,7 +138,7 @@ ftoub        reg1, fpreg1               - reg1 = fpreg1 as unsigned byte
 ftosb        reg1, fpreg1               - reg1 = fpreg1 as signed byte
 ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
 ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
-fpow         fpreg1, fpreg2, fpreg3     - fpreg1 = fpreg2 to the power of fpreg3
+fpow         fpreg1, fpreg2             - fpreg1 = fpreg1 to the power of fpreg2
 fabs         fpreg1, fpreg2             - fpreg1 = abs(fpreg2)
 fcomp        reg1, fpreg1, fpreg2       - reg1 = result of comparison of fpreg1 and fpreg2: 0=equal, 1=fpreg1 is greater, -1=fpreg1 is smaller
 
@@ -292,7 +292,6 @@ data class Instruction(
     val reg3: Int?=null,        // 0-$ffff
     val fpReg1: Int?=null,      // 0-$ffff
     val fpReg2: Int?=null,      // 0-$ffff
-    val fpReg3: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
     val fpValue: Float?=null,
     val symbol: List<String>?=null    // alternative to value
@@ -308,9 +307,7 @@ data class Instruction(
             format.reg3 && reg3==null)
             throw IllegalArgumentException("missing a register (int)")
 
-        if(format.fpReg1 && fpReg1==null ||
-            format.fpReg2 && fpReg2==null ||
-            format.fpReg3 && fpReg3==null)
+        if(format.fpReg1 && fpReg1==null || format.fpReg2 && fpReg2==null)
             throw IllegalArgumentException("missing a register (float)")
 
         if(!format.reg1 && reg1!=null ||
@@ -318,9 +315,7 @@ data class Instruction(
             !format.reg3 && reg3!=null)
             throw IllegalArgumentException("too many registers (int)")
 
-        if(!format.fpReg1 && fpReg1!=null ||
-            !format.fpReg2 && fpReg2!=null ||
-            !format.fpReg3 && fpReg3!=null)
+        if(!format.fpReg1 && fpReg1!=null || !format.fpReg2 && fpReg2!=null)
             throw IllegalArgumentException("too many registers (float)")
 
         if (type==VmDataType.FLOAT) {
@@ -329,7 +324,7 @@ data class Instruction(
         } else {
             if(format.value && (value==null && symbol==null))
                 throw IllegalArgumentException("$opcode: missing a value or symbol")
-            if (fpReg1 != null || fpReg2 != null || fpReg3 != null)
+            if (fpReg1 != null || fpReg2 != null)
                 throw java.lang.IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
         }
     }
@@ -363,10 +358,6 @@ data class Instruction(
             result.add("fr$it")
             result.add(",")
         }
-        fpReg3?.let {
-            result.add("fr$it")
-            result.add(",")
-        }
         value?.let {
             result.add(it.toString())
             result.add(",")
@@ -386,7 +377,7 @@ data class Instruction(
 
 data class InstructionFormat(val datatype: VmDataType?,
                              val reg1: Boolean, val reg2: Boolean, val reg3: Boolean,
-                             val fpReg1: Boolean, val fpReg2: Boolean, val fpReg3: Boolean,
+                             val fpReg1: Boolean, val fpReg2: Boolean,
                              val value: Boolean,
                              val fpValue: Boolean) {
     companion object {
@@ -398,7 +389,6 @@ data class InstructionFormat(val datatype: VmDataType?,
                 var reg3 = false
                 var fpreg1 = false
                 var fpreg2 = false
-                var fpreg3 = false
                 var value = false
                 var fpvalue = false
                 val splits = part.splitToSequence(',').iterator()
@@ -410,20 +400,19 @@ data class InstructionFormat(val datatype: VmDataType?,
                         "r3" -> reg3=true
                         "fr1" -> fpreg1=true
                         "fr2" -> fpreg2=true
-                        "fr3" -> fpreg3=true
                         "v" -> value = true
                         "fv" -> fpvalue = true
                         else -> throw IllegalArgumentException(spec)
                     }
                 }
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                    result[null] = InstructionFormat(null, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('B' in typespec)
-                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('W' in typespec)
-                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
                 if('F' in typespec)
-                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, fpReg3=fpreg3, value=value, fpValue=fpvalue)
+                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1=reg1, reg2=reg2, reg3=reg3, fpReg1=fpreg1, fpReg2=fpreg2, value=value, fpValue=fpvalue)
             }
             return result
         }
@@ -482,10 +471,10 @@ val instructionFormats = mutableMapOf(
     Opcode.DEC        to InstructionFormat.from("BW,r1"),
     Opcode.DECM       to InstructionFormat.from("BW,v"),
     Opcode.NEG        to InstructionFormat.from("BW,r1          | F,fr1"),
-    Opcode.ADD        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
-    Opcode.SUB        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
-    Opcode.MUL        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
-    Opcode.DIV        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2,fr3"),
+    Opcode.ADD        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
+    Opcode.SUB        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
+    Opcode.MUL        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
+    Opcode.DIV        to InstructionFormat.from("BW,r1,r2,r3    | F,fr1,fr2"),
     Opcode.SQRT       to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
     Opcode.SGN        to InstructionFormat.from("BW,r1,r2       | F,fr1,fr2"),
     Opcode.RND        to InstructionFormat.from("BW,r1          | F,fr1"),
@@ -515,7 +504,7 @@ val instructionFormats = mutableMapOf(
     Opcode.FTOSB      to InstructionFormat.from("F,r1,fr1"),
     Opcode.FTOUW      to InstructionFormat.from("F,r1,fr1"),
     Opcode.FTOSW      to InstructionFormat.from("F,r1,fr1"),
-    Opcode.FPOW       to InstructionFormat.from("F,fr1,fr2,fr3"),
+    Opcode.FPOW       to InstructionFormat.from("F,fr1,fr2"),
     Opcode.FABS       to InstructionFormat.from("F,fr1,fr2"),
     Opcode.FSIN       to InstructionFormat.from("F,fr1,fr2"),
     Opcode.FCOS       to InstructionFormat.from("F,fr1,fr2"),

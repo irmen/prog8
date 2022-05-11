@@ -27,6 +27,7 @@ main {
 
         float fl1 = 1.1
         float fl2 = 2.2
+        floats.print_f(floats.pow(fl1,fl2))
 
         if fl1==fl2
             txt.print("equals!?\n")

@@ -487,7 +487,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(binExpr.left, -1, resultFpRegister)
                 code += translateExpression(binExpr.right, -1, rightResultFpReg)
-                code += VmCodeInstruction(Opcode.DIV, vmDt, fpReg1 = resultFpRegister, fpReg2=resultFpRegister, fpReg3=rightResultFpReg)
+                code += VmCodeInstruction(Opcode.DIV, vmDt, fpReg1 = resultFpRegister, fpReg2=rightResultFpReg)
             }
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
@@ -521,7 +521,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(binExpr.left, -1, resultFpRegister)
                 code += translateExpression(binExpr.right, -1, rightResultFpReg)
-                code += VmCodeInstruction(Opcode.MUL, vmDt, fpReg1 = resultFpRegister, fpReg2 = resultFpRegister, fpReg3 = rightResultFpReg)
+                code += VmCodeInstruction(Opcode.MUL, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightResultFpReg)
             }
         } else {
             if(constFactorLeft!=null && constFactorLeft.type!=DataType.FLOAT) {
@@ -553,7 +553,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(binExpr.left, -1, resultFpRegister)
                 code += translateExpression(binExpr.right, -1, rightResultFpReg)
-                code += VmCodeInstruction(Opcode.SUB, vmDt, fpReg1=resultFpRegister, fpReg2=resultFpRegister, fpReg3=rightResultFpReg)
+                code += VmCodeInstruction(Opcode.SUB, vmDt, fpReg1=resultFpRegister, fpReg2=rightResultFpReg)
             }
         } else {
             if((binExpr.right as? PtNumber)?.number==1.0) {
@@ -585,7 +585,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val rightResultFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(binExpr.left, -1, resultFpRegister)
                 code += translateExpression(binExpr.right, -1, rightResultFpReg)
-                code += VmCodeInstruction(Opcode.ADD, vmDt, fpReg1=resultFpRegister, fpReg2=resultFpRegister, fpReg3=rightResultFpReg)
+                code += VmCodeInstruction(Opcode.ADD, vmDt, fpReg1=resultFpRegister, fpReg2=rightResultFpReg)
             }
         } else {
             if((binExpr.left as? PtNumber)?.number==1.0) {

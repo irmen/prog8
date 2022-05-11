@@ -647,7 +647,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> arithByte("+", i.reg1!!, i.reg2!!, i.reg3!!)
             VmDataType.WORD -> arithWord("+", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.FLOAT -> arithFloat("+", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
+            VmDataType.FLOAT -> arithFloat("+", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
     }
@@ -656,7 +656,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> arithByte("-", i.reg1!!, i.reg2!!, i.reg3!!)
             VmDataType.WORD -> arithWord("-", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.FLOAT -> arithFloat("-", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
+            VmDataType.FLOAT -> arithFloat("-", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
     }
@@ -664,7 +664,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> arithByte("*", i.reg1!!, i.reg2!!, i.reg3!!)
             VmDataType.WORD -> arithWord("*", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.FLOAT -> arithFloat("*", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
+            VmDataType.FLOAT -> arithFloat("*", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
     }
@@ -673,7 +673,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> arithByte("/", i.reg1!!, i.reg2!!, i.reg3!!)
             VmDataType.WORD -> arithWord("/", i.reg1!!, i.reg2!!, i.reg3!!)
-            VmDataType.FLOAT -> arithFloat("/", i.fpReg1!!, i.fpReg2!!, i.fpReg3!!)
+            VmDataType.FLOAT -> arithFloat("/", i.fpReg1!!, i.fpReg2!!)
         }
         pc++
     }
@@ -784,9 +784,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUW(reg1, result.toUShort())
     }
 
-    private fun arithFloat(operator: String, fpReg1: Int, fpReg2: Int, fpReg3: Int) {
-        val left = registers.getFloat(fpReg2)
-        val right = registers.getFloat(fpReg3)
+    private fun arithFloat(operator: String, fpReg1: Int, fpReg2: Int) {
+        val left = registers.getFloat(fpReg1)
+        val right = registers.getFloat(fpReg2)
         val result = when(operator) {
             "+" -> left + right
             "-" -> left - right
@@ -1070,9 +1070,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsFPOW(i: Instruction) {
-        val value = registers.getFloat(i.fpReg2!!)
-        val exponent = registers.getFloat(i.fpReg3!!)
-        registers.setFloat(i.fpReg1!!, value.pow(exponent))
+        val value = registers.getFloat(i.fpReg1!!)
+        val exponent = registers.getFloat(i.fpReg2!!)
+        registers.setFloat(i.fpReg1, value.pow(exponent))
         pc++
     }
 

@@ -80,12 +80,11 @@ internal class VmCodeInstruction(
     reg3: Int?=null,        // 0-$ffff
     fpReg1: Int?=null,      // 0-$ffff
     fpReg2: Int?=null,      // 0-$ffff
-    fpReg3: Int?=null,      // 0-$ffff
     value: Int?=null,       // 0-$ffff
     fpValue: Float?=null,
     symbol: List<String>?=null    // alternative to value
     ): VmCodeLine() {
-        val ins = Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, fpReg3, value, fpValue, symbol)
+        val ins = Instruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, value, fpValue, symbol)
 
         init {
             if(reg1!=null && (reg1<0 || reg1>65536))
@@ -98,9 +97,7 @@ internal class VmCodeInstruction(
                 throw IllegalArgumentException("fpReg1 out of bounds")
             if(fpReg2!=null && (fpReg2<0 || fpReg2>65536))
                 throw IllegalArgumentException("fpReg2 out of bounds")
-            if(fpReg3!=null && (fpReg3<0 || fpReg3>65536))
-                throw IllegalArgumentException("fpReg3 out of bounds")
-            
+
             if(value!=null && opcode !in OpcodesWithAddress) {
                 when (type) {
                     VmDataType.BYTE -> {
