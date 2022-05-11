@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: assignment to float array is not correct? also zero?
 - vm: use more instructions in codegen: shift one
 - vm: use more instructions in codegen: branching
 - vm: add more instructions operating directly on memory instead of only registers?

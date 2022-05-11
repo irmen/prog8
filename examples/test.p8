@@ -1,5 +1,6 @@
 %import textio
 %import math
+%import floats
 %zeropage dontuse
 
 
@@ -20,15 +21,25 @@ main {
 ;        return first * second
 ;    }
 
-    sub ding(uword arg) {
-        arg++
-        txt.print_uw(arg)
-    }
-
     sub start() {
-        ding(0)
+        uword[] arrayuw = [1111,2222,3333,4444]
+        txt.print_uw(arrayuw[1])
         txt.nl()
-        ding(2)
+        arrayuw[1] = 9999
+        txt.print_uw(arrayuw[1])
+        txt.nl()
+        arrayuw[1] = 0
+        txt.print_uw(arrayuw[1])
+        txt.nl()
+
+        float[] array = [1.1, 2.2, 3.3, 4.4]
+        floats.print_f(array[1])
+        txt.nl()
+        array[1] = 99.99
+        floats.print_f(array[1])
+        txt.nl()
+        array[1] = 0
+        floats.print_f(array[1])
         txt.nl()
 
 ;        ubyte value = inline_candidate()

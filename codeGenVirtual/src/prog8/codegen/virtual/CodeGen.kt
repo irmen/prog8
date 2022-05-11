@@ -646,25 +646,34 @@ class CodeGen(internal val program: PtProgram,
             var variableAddr = allocations.get(variable)
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
-            val vmDtArrayIdx = vmType(array.type)
-            // TODO floating point array incorrect?
             if(zero) {
                 if(fixedIndex!=null) {
                     variableAddr += fixedIndex*itemsize
-                    code += VmCodeInstruction(Opcode.STOREZM, vmDtArrayIdx, value=variableAddr)
+                    code += VmCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value=variableAddr)
                 } else {
                     val indexReg = vmRegisters.nextFree()
                     code += expressionEval.translateExpression(array.index, indexReg, -1)
-                    code += VmCodeInstruction(Opcode.STOREZX, vmDtArrayIdx, reg1=indexReg, value=variableAddr)
+                    code += VmCodeInstruction(Opcode.STOREZX, VmDataType.FLOAT, reg1=indexReg, value=variableAddr)
                 }
             } else {
-                if(fixedIndex!=null) {
-                    variableAddr += fixedIndex*itemsize
-                    code += VmCodeInstruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr)
+                if(vmDt==VmDataType.FLOAT) {
+                    if(fixedIndex!=null) {
+                        variableAddr += fixedIndex*itemsize
+                        code += VmCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, value=variableAddr)
+                    } else {
+                        val indexReg = vmRegisters.nextFree()
+                        code += expressionEval.translateExpression(array.index, indexReg, -1)
+                        code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
+                    }
                 } else {
-                    val indexReg = vmRegisters.nextFree()
-                    code += expressionEval.translateExpression(array.index, indexReg, -1)
-                    code += VmCodeInstruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
+                    if(fixedIndex!=null) {
+                        variableAddr += fixedIndex*itemsize
+                        code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, value=variableAddr)
+                    } else {
+                        val indexReg = vmRegisters.nextFree()
+                        code += expressionEval.translateExpression(array.index, indexReg, -1)
+                        code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
+                    }
                 }
             }
         }
