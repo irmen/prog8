@@ -507,53 +507,53 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(postIncrDecr: PtPostIncrDecr): VmCodeChunk {
         val code = VmCodeChunk()
-        val operation = when(postIncrDecr.operator) {
-            "++" -> Opcode.INC
-            "--" -> Opcode.DEC
+        val operationMem: Opcode
+        val operationRegister: Opcode
+        when(postIncrDecr.operator) {
+            "++" -> {
+                operationMem = Opcode.INCM
+                operationRegister = Opcode.INC
+            }
+            "--" -> {
+                operationMem = Opcode.DECM
+                operationRegister = Opcode.DEC
+            }
             else -> throw AssemblyError("weird operator")
         }
         val ident = postIncrDecr.target.identifier
         val memory = postIncrDecr.target.memory
         val array = postIncrDecr.target.array
         val vmDt = vmType(postIncrDecr.target.type)
-        val resultReg = vmRegisters.nextFree()
         if(ident!=null) {
             val address = allocations.get(ident.targetName)
-            code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1=resultReg, value = address)
-            code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
-            code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultReg, value = address)
+            code += VmCodeInstruction(operationMem, vmDt, value = address)
         } else if(memory!=null) {
             if(memory.address is PtNumber) {
                 val address = (memory.address as PtNumber).number.toInt()
-                code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, value = address)
-                code += VmCodeInstruction(operation, vmDt, reg1 = resultReg)
-                code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, value=address)
+                code += VmCodeInstruction(operationMem, vmDt, value = address)
             } else {
+                val incReg = vmRegisters.nextFree()
                 val addressReg = vmRegisters.nextFree()
                 code += expressionEval.translateExpression(memory.address, addressReg, -1)
-                code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = addressReg)
-                code += VmCodeInstruction(operation, vmDt, reg1 = resultReg)
-                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1 = resultReg, reg2 = addressReg)
+                code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1 = incReg, reg2 = addressReg)
+                code += VmCodeInstruction(operationRegister, vmDt, reg1 = incReg)
+                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1 = incReg, reg2 = addressReg)
             }
         } else if (array!=null) {
             val variable = array.variable.targetName
             var variableAddr = allocations.get(variable)
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
-            val memOp = when(postIncrDecr.operator) {
-                "++" -> Opcode.INCM
-                "--" -> Opcode.DECM
-                else -> throw AssemblyError("weird operator")
-            }
             if(fixedIndex!=null) {
                 variableAddr += fixedIndex*itemsize
-                code += VmCodeInstruction(memOp, vmDt, value=variableAddr)
+                code += VmCodeInstruction(operationMem, vmDt, value=variableAddr)
             } else {
+                val incReg = vmRegisters.nextFree()
                 val indexReg = vmRegisters.nextFree()
                 code += expressionEval.translateExpression(array.index, indexReg, -1)
-                code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
-                code += VmCodeInstruction(operation, vmDt, reg1=resultReg)
-                code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1=resultReg, reg2=indexReg, value=variableAddr)
+                code += VmCodeInstruction(Opcode.LOADX, vmDt, reg1=incReg, reg2=indexReg, value=variableAddr)
+                code += VmCodeInstruction(operationRegister, vmDt, reg1=incReg)
+                code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1=incReg, reg2=indexReg, value=variableAddr)
             }
         } else
             throw AssemblyError("weird assigntarget")

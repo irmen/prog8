@@ -25,10 +25,24 @@ main {
 
         ubyte @shared value = inline_candidate()
 
-        ubyte lowb = $31
+        ubyte lowb = 4
         ubyte highb = $ea
-        uword result = mkword(highb, lowb)
-        txt.print_uwhex(result, true)
+
+        if lowb==3
+            lowb++
+
+        if lowb!=3
+            lowb++
+
+        if lowb==3
+            lowb++
+        else
+            lowb--
+
+        if lowb!=3
+            lowb++
+        else
+            lowb--
 
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()

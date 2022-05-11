@@ -173,7 +173,6 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
 
     private fun translate(expr: PtPrefix, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        // TODO if the value is a variable or memory read, use memory-versions of the opcodes instead of using intermediary register
         code += translateExpression(expr.value, resultRegister, -1)
         val vmDt = codeGen.vmType(expr.type)
         when(expr.operator) {

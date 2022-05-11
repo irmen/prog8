@@ -184,8 +184,8 @@ enum class Opcode {
     BSTPOS,
     BZ,
     BNZ,
-    BEQ,
-    BNE,
+    BEQ,        // TODO not used in codegen??? == nonzero
+    BNE,        // TODO not used in codegen??? != nonzero
     BLT,        // TODO not used in codegen??? <
     BLTS,       // TODO not used in codegen??? <
     BGT,        // TODO not used in codegen??? >

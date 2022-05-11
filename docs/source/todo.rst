@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: use more instructions in codegen: branching
+- vm: use more instructions in codegen: branching, don't use the conditional set instructions here
+- vm: get rid of all the conditional set instructions
 - vm: add more instructions operating directly on memory instead of only registers?
 - in-place modifiying functions (rol, ror, ..) don't accept a memory address but require a memory-read expression. that is weird.
 - complete the Inliner
