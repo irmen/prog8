@@ -6,21 +6,57 @@
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
 main {
-    ubyte value = 42
+;    ubyte value = 42
+;
+;    sub inline_candidate() -> ubyte {
+;        return math.sin8u(value)
+;    }
+;
+;    sub add(ubyte first, ubyte second) -> ubyte {
+;        return first + second
+;    }
+;
+;    sub mul(ubyte first, ubyte second) -> ubyte {
+;        return first * second
+;    }
 
-    sub derp() -> ubyte {
-        return math.sin8u(value)
+    sub ding(uword arg) {
+        arg++
+        txt.print_uw(arg)
     }
 
     sub start() {
-        ubyte value = derp()
-        txt.print_ub(value)
+        ding(0)
         txt.nl()
-        txt.print_ub(derp())
+        ding(2)
         txt.nl()
 
-        ; TODO: test with builtin function using multiple args (such as mkword)
-;        ubyte value = add(3,4) |> add(10) |> mul(2) |> math.sin8u()     ; TODO should not work yet on vm codegen, but it compiles.... :/
+;        ubyte value = inline_candidate()
+;        byte svalue = 99
+;        svalue = -svalue
+;        @($5000) = not @($5000)
+;        rol(value)
+;        rol(@($5000))
+;        ror(value)
+;        ror(@($5000))
+;        rol2(value)
+;        rol2(@($5000))
+;        ror2(value)
+;        ror2(@($5000))
+;        @($5000) <<= 1
+;        @($5000) >>= 1
+;        value <<= 1
+;        value >>= 1
+;        @($5000) <<= 3
+;        @($5000) >>= 3
+;        value <<= 3
+;        value >>= 3
+;        txt.print_ub(value)
+;        txt.nl()
+;        txt.print_ub(inline_candidate())
+;        txt.nl()
+
+;        ubyte value = add(3,4) |> add(10) |> mul(2) |> math.sin8u()
 ;        txt.print_ub(value)
 ;        txt.nl()
 ;        uword wvalue = add(3,4) |> add($30) |> mkword($ea)

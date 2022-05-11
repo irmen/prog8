@@ -3,7 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: add way more instructions operating directly on memory instead of only registers
+- vm: assignment to float array is not correct? also zero?
+- vm: use more instructions in codegen: shift one
+- vm: use more instructions in codegen: branching
+- vm: add more instructions operating directly on memory instead of only registers?
+- in-place modifiying functions (rol, ror, ..) don't accept a memory address but require a memory-read expression. that is weird.
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 

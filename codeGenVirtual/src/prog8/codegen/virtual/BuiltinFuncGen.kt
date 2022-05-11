@@ -2,7 +2,6 @@ package prog8.codegen.virtual
 
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
-import prog8.code.core.ArrayToElementTypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.vm.Opcode
@@ -241,32 +240,54 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcPokeW(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        val valueReg = codeGen.vmRegisters.nextFree()
-        if(call.args[0] is PtNumber) {
-            val address = (call.args[0] as PtNumber).number.toInt()
-            code += exprGen.translateExpression(call.args[1], valueReg, -1)
-            code += VmCodeInstruction(Opcode.STOREM, VmDataType.WORD, reg1 = valueReg, value=address)
+        if(codeGen.isZero(call.args[1])) {
+            if (call.args[0] is PtNumber) {
+                val address = (call.args[0] as PtNumber).number.toInt()
+                code += VmCodeInstruction(Opcode.STOREZM, VmDataType.WORD, value = address)
+            } else {
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg, -1)
+                code += VmCodeInstruction(Opcode.STOREZI, VmDataType.WORD, reg2 = addressReg)
+            }
         } else {
-            val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args[0], addressReg, -1)
-            code += exprGen.translateExpression(call.args[1], valueReg, -1)
-            code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2 = addressReg)
+            val valueReg = codeGen.vmRegisters.nextFree()
+            if (call.args[0] is PtNumber) {
+                val address = (call.args[0] as PtNumber).number.toInt()
+                code += exprGen.translateExpression(call.args[1], valueReg, -1)
+                code += VmCodeInstruction(Opcode.STOREM, VmDataType.WORD, reg1 = valueReg, value = address)
+            } else {
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg, -1)
+                code += exprGen.translateExpression(call.args[1], valueReg, -1)
+                code += VmCodeInstruction(Opcode.STOREI, VmDataType.WORD, reg1 = valueReg, reg2 = addressReg)
+            }
         }
         return code
     }
 
     private fun funcPoke(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        val valueReg = codeGen.vmRegisters.nextFree()
-        if(call.args[0] is PtNumber) {
-            val address = (call.args[0] as PtNumber).number.toInt()
-            code += exprGen.translateExpression(call.args[1], valueReg, -1)
-            code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1 = valueReg, value=address)
+        if(codeGen.isZero(call.args[1])) {
+            if (call.args[0] is PtNumber) {
+                val address = (call.args[0] as PtNumber).number.toInt()
+                code += VmCodeInstruction(Opcode.STOREZM, VmDataType.BYTE, value = address)
+            } else {
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg, -1)
+                code += VmCodeInstruction(Opcode.STOREZI, VmDataType.BYTE, reg2 = addressReg)
+            }
         } else {
-            val addressReg = codeGen.vmRegisters.nextFree()
-            code += exprGen.translateExpression(call.args[0], addressReg, -1)
-            code += exprGen.translateExpression(call.args[1], valueReg, -1)
-            code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2 = addressReg)
+            val valueReg = codeGen.vmRegisters.nextFree()
+            if (call.args[0] is PtNumber) {
+                val address = (call.args[0] as PtNumber).number.toInt()
+                code += exprGen.translateExpression(call.args[1], valueReg, -1)
+                code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1 = valueReg, value = address)
+            } else {
+                val addressReg = codeGen.vmRegisters.nextFree()
+                code += exprGen.translateExpression(call.args[0], addressReg, -1)
+                code += exprGen.translateExpression(call.args[1], valueReg, -1)
+                code += VmCodeInstruction(Opcode.STOREI, VmDataType.BYTE, reg1 = valueReg, reg2 = addressReg)
+            }
         }
         return code
     }
@@ -361,5 +382,4 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += codeGen.translateNode(assignment)
         return code
     }
-
 }

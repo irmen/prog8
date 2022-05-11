@@ -92,17 +92,14 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.LOADX -> InsLOADX(ins)
             Opcode.LOADI -> InsLOADI(ins)
             Opcode.LOADR -> InsLOADR(ins)
-            Opcode.SWAPREG -> InsSWAPREG(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREI -> InsSTOREI(ins)
-            Opcode.STOREZ -> InsSTOREZ(ins)
+            Opcode.STOREZM -> InsSTOREZ(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP -> InsJUMP(ins)
-            Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.CALL -> InsCALL(ins)
-            Opcode.CALLI -> InsCALLI(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
             Opcode.BSTCC -> InsBSTCC(ins)
@@ -153,9 +150,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.AND -> InsAND(ins)
             Opcode.OR -> InsOR(ins)
             Opcode.XOR -> InsXOR(ins)
-            Opcode.ASRX -> InsASRM(ins)
-            Opcode.LSRX -> InsLSRM(ins)
-            Opcode.LSLX -> InsLSLM(ins)
+            Opcode.ASRN -> InsASRM(ins)
+            Opcode.LSRN -> InsLSRM(ins)
+            Opcode.LSLN -> InsLSLM(ins)
             Opcode.ASR -> InsASR(ins)
             Opcode.LSR -> InsLSR(ins)
             Opcode.LSL -> InsLSL(ins)
@@ -297,27 +294,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsSWAPREG(i: Instruction) {
-        when(i.type!!) {
-            VmDataType.BYTE -> {
-                val oldR2 = registers.getUB(i.reg2!!)
-                registers.setUB(i.reg2, registers.getUB(i.reg1!!))
-                registers.setUB(i.reg1, oldR2)
-            }
-            VmDataType.WORD -> {
-                val oldR2 = registers.getUW(i.reg2!!)
-                registers.setUW(i.reg2, registers.getUW(i.reg1!!))
-                registers.setUW(i.reg1, oldR2)
-            }
-            VmDataType.FLOAT -> {
-                val oldR2 = registers.getFloat(i.fpReg2!!)
-                registers.setFloat(i.fpReg2, registers.getFloat(i.fpReg1!!))
-                registers.setFloat(i.fpReg1, oldR2)
-            }
-        }
-        pc++
-    }
-
     private fun InsSTOREM(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(i.value!!, registers.getUB(i.reg1!!))
@@ -351,6 +327,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.WORD -> memory.setUW(i.value!!, 0u)
             VmDataType.FLOAT -> memory.setFloat(i.value!!, 0f)
         }
+        pc++
     }
 
     private fun InsSTOREZI(i: Instruction) {
@@ -375,18 +352,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc = i.value!!
     }
 
-    private fun InsJUMPI(i: Instruction) {
-        pc = registers.getUW(i.reg1!!).toInt()
-    }
-
     private fun InsCALL(i: Instruction) {
         callStack.push(pc+1)
         pc = i.value!!
-    }
-
-    private fun InsCALLI(i: Instruction) {
-        callStack.push(pc+1)
-        pc = registers.getUW(i.reg1!!).toInt()
     }
 
     private fun InsRETURN() {

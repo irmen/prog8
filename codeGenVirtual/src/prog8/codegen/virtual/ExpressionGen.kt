@@ -9,7 +9,6 @@ import prog8.code.core.PassByValueDatatypes
 import prog8.code.core.SignedDatatypes
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
-import java.nio.channels.FileLock
 
 
 internal class ExpressionGen(private val codeGen: CodeGen) {
@@ -174,6 +173,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
 
     private fun translate(expr: PtPrefix, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
+        // TODO if the value is a variable or memory read, use memory-versions of the opcodes instead of using intermediary register
         code += translateExpression(expr.value, resultRegister, -1)
         val vmDt = codeGen.vmType(expr.type)
         when(expr.operator) {
@@ -363,22 +363,24 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
 
     private fun operatorShiftRight(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, signed: Boolean): VmCodeChunk {
         val code = VmCodeChunk()
+        // TODO if shift is 1, use ASR/LSR instruction instead of multishift
         val leftResultReg = codeGen.vmRegisters.nextFree()
         val rightResultReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(binExpr.left, leftResultReg, -1)
         code += translateExpression(binExpr.right, rightResultReg, -1)
-        val opc = if(signed) Opcode.ASRX else Opcode.LSRX
+        val opc = if(signed) Opcode.ASRN else Opcode.LSRN
         code += VmCodeInstruction(opc, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
         return code
     }
 
     private fun operatorShiftLeft(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
+        // TODO if shift is 1, use LSL instruction instead of multishift
         val leftResultReg = codeGen.vmRegisters.nextFree()
         val rightResultReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(binExpr.left, leftResultReg, -1)
         code += translateExpression(binExpr.right, rightResultReg, -1)
-        code += VmCodeInstruction(Opcode.LSLX, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
+        code += VmCodeInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, reg2=leftResultReg, reg3=rightResultReg)
         return code
     }
 
@@ -568,16 +570,26 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val code = VmCodeChunk()
         for ((arg, parameter) in fcall.args.zip(subroutine.parameters)) {
             val paramDt = codeGen.vmType(parameter.type)
-            if(paramDt==VmDataType.FLOAT) {
-                val argFpReg = codeGen.vmRegisters.nextFreeFloat()
-                code += translateExpression(arg, -1, argFpReg)
-                val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                code += VmCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
+            if(codeGen.isZero(arg)) {
+                if (paramDt == VmDataType.FLOAT) {
+                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                    code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                } else {
+                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                    code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                }
             } else {
-                val argReg = codeGen.vmRegisters.nextFree()
-                code += translateExpression(arg, argReg, -1)
-                val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                code += VmCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
+                if (paramDt == VmDataType.FLOAT) {
+                    val argFpReg = codeGen.vmRegisters.nextFreeFloat()
+                    code += translateExpression(arg, -1, argFpReg)
+                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                    code += VmCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
+                } else {
+                    val argReg = codeGen.vmRegisters.nextFree()
+                    code += translateExpression(arg, argReg, -1)
+                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                    code += VmCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
+                }
             }
         }
         code += VmCodeInstruction(Opcode.CALL, symbol=fcall.functionName)

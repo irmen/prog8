@@ -6,7 +6,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
-import java.nio.file.Path
 import kotlin.math.pow
 
 
@@ -410,7 +409,7 @@ class CodeGen(internal val program: PtProgram,
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += VmCodeInstruction(Opcode.LSLX, dt, reg1=reg, reg2=reg, reg3=pow2reg)
+            code += VmCodeInstruction(Opcode.LSLN, dt, reg1=reg, reg2=reg, reg3=pow2reg)
         } else {
             if (factor == 0) {
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
@@ -451,7 +450,7 @@ class CodeGen(internal val program: PtProgram,
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += VmCodeInstruction(Opcode.LSRX, dt, reg1=reg, reg2=reg, reg3=pow2reg)
+            code += VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=reg, reg3=pow2reg)
         } else {
             if (factor == 0) {
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
@@ -615,24 +614,32 @@ class CodeGen(internal val program: PtProgram,
         val vmDt = vmType(assignment.value.type)
         var resultRegister = -1
         var resultFpRegister = -1
-        if(vmDt==VmDataType.FLOAT) {
-            resultFpRegister = vmRegisters.nextFreeFloat()
-            code += expressionEval.translateExpression(assignment.value, -1, resultFpRegister)
-        } else {
-            resultRegister = if (assignment.value is PtMachineRegister) {
-                (assignment.value as PtMachineRegister).register
+        val zero = isZero(assignment.value)
+        if(!zero) {
+            // calculate the assignment value
+            if (vmDt == VmDataType.FLOAT) {
+                resultFpRegister = vmRegisters.nextFreeFloat()
+                code += expressionEval.translateExpression(assignment.value, -1, resultFpRegister)
             } else {
-                val reg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(assignment.value, reg, -1)
-                reg
+                resultRegister = if (assignment.value is PtMachineRegister) {
+                    (assignment.value as PtMachineRegister).register
+                } else {
+                    val reg = vmRegisters.nextFree()
+                    code += expressionEval.translateExpression(assignment.value, reg, -1)
+                    reg
+                }
             }
         }
         if(ident!=null) {
             val address = allocations.get(ident.targetName)
-            code += if(vmDt==VmDataType.FLOAT)
-                VmCodeInstruction(Opcode.STOREM, vmDt, fpReg1=resultFpRegister, value=address)
-            else
-                VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=address)
+            code += if(zero) {
+                VmCodeInstruction(Opcode.STOREZM, vmDt, value = address)
+            } else {
+                if (vmDt == VmDataType.FLOAT)
+                    VmCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, value = address)
+                else
+                    VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, value = address)
+            }
         }
         else if(array!=null) {
             val variable = array.variable.targetName
@@ -640,23 +647,45 @@ class CodeGen(internal val program: PtProgram,
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
             val vmDtArrayIdx = vmType(array.type)
-            if(fixedIndex!=null) {
-                variableAddr += fixedIndex*itemsize
-                code += VmCodeInstruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr)
+            // TODO floating point array incorrect?
+            if(zero) {
+                if(fixedIndex!=null) {
+                    variableAddr += fixedIndex*itemsize
+                    code += VmCodeInstruction(Opcode.STOREZM, vmDtArrayIdx, value=variableAddr)
+                } else {
+                    val indexReg = vmRegisters.nextFree()
+                    code += expressionEval.translateExpression(array.index, indexReg, -1)
+                    code += VmCodeInstruction(Opcode.STOREZX, vmDtArrayIdx, reg1=indexReg, value=variableAddr)
+                }
             } else {
-                val indexReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(array.index, indexReg, -1)
-                code += VmCodeInstruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
+                if(fixedIndex!=null) {
+                    variableAddr += fixedIndex*itemsize
+                    code += VmCodeInstruction(Opcode.STOREM, vmDtArrayIdx, reg1 = resultRegister, value=variableAddr)
+                } else {
+                    val indexReg = vmRegisters.nextFree()
+                    code += expressionEval.translateExpression(array.index, indexReg, -1)
+                    code += VmCodeInstruction(Opcode.STOREX, vmDtArrayIdx, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
+                }
             }
         }
         else if(memory!=null) {
             require(vmDt==VmDataType.BYTE)
-            if(memory.address is PtNumber) {
-                code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
+            if(zero) {
+                if(memory.address is PtNumber) {
+                    code += VmCodeInstruction(Opcode.STOREZM, vmDt, value=(memory.address as PtNumber).number.toInt())
+                } else {
+                    val addressReg = vmRegisters.nextFree()
+                    code += expressionEval.translateExpression(memory.address, addressReg, -1)
+                    code += VmCodeInstruction(Opcode.STOREZI, vmDt, reg1=addressReg)
+                }
             } else {
-                val addressReg = vmRegisters.nextFree()
-                code += expressionEval.translateExpression(memory.address, addressReg, -1)
-                code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
+                if(memory.address is PtNumber) {
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
+                } else {
+                    val addressReg = vmRegisters.nextFree()
+                    code += expressionEval.translateExpression(memory.address, addressReg, -1)
+                    code += VmCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
+                }
             }
         }
         else
@@ -722,4 +751,6 @@ class CodeGen(internal val program: PtProgram,
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk =
         builtinFuncGen.translate(call, resultRegister)
+
+    internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
 }

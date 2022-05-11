@@ -31,7 +31,7 @@ loadr       reg1, reg2                - load reg1 with value at register reg2
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
-storez                    address     - store zero at memory address
+storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg
 
@@ -89,8 +89,8 @@ ARITHMETIC
 ----------
 All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
-ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (latter not yet implemented as we don't have longs yet)
-exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: latter ext.w, not yet implemented as we don't have longs yet)
+ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
+exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: ext.w is not yet implemented as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -116,9 +116,9 @@ All have type b or w.
 and         reg1, reg2, reg3                 - reg1 = reg2 bitwise and reg3
 or          reg1, reg2, reg3                 - reg1 = reg2 bitwise or reg3
 xor         reg1, reg2, reg3                 - reg1 = reg2 bitwise xor reg3
-lsrx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
-asrx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
-lslx        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
+lsrn        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits + set Carry to shifted bit
+asrn        reg1, reg2, reg3                 - reg1 = multi-shift reg2 right by reg3 bits (signed)  + set Carry to shifted bit
+lsln        reg1, reg2, reg3                 - reg1 = multi-shift reg2 left by reg3 bits  + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
@@ -149,10 +149,7 @@ clc                                       - clear Carry status bit
 sec                                       - set Carry status bit
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
-copy          reg1, reg2,   length        - copy memory from ptrs in reg1 to reg3, length bytes
-copyz         reg1, reg2                  - copy memory from ptrs in reg1 to reg3, stop after first 0-byte
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-swapreg       reg1, reg2                  - swap values in reg1 and reg2
 concat [b, w] reg1, reg2, reg3            - reg1 = concatenated lsb/lsw of reg2 and lsb/lsw of reg3 into new word or int (int not yet implemented; requires 32bits regs)
 push [b, w]   reg1                        - push value in reg1 on the stack
 pop [b, w]    reg1                        - pop value from stack into reg1
@@ -169,14 +166,12 @@ enum class Opcode {
     STOREM,
     STOREI,
     STOREX,
-    STOREZ,
+    STOREZM,
     STOREZI,
     STOREZX,
 
     JUMP,
-    JUMPI,
     CALL,
-    CALLI,
     SYSCALL,
     RETURN,
 
@@ -190,14 +185,14 @@ enum class Opcode {
     BNZ,
     BEQ,
     BNE,
-    BLT,
-    BLTS,
-    BGT,
-    BGTS,
-    BLE,
-    BLES,
-    BGE,
-    BGES,
+    BLT,        // TODO not used in codegen??? <
+    BLTS,       // TODO not used in codegen??? <
+    BGT,        // TODO not used in codegen??? >
+    BGTS,       // TODO not used in codegen??? >
+    BLE,        // TODO should be used in codegen conditional branch too
+    BLES,       // TODO should be used in codegen conditional branch too
+    BGE,        // TODO not used in codegen??? >=
+    BGES,       // TODO not used in codegen??? >=
     SEQ,
     SNE,
     SLT,
@@ -229,12 +224,12 @@ enum class Opcode {
     AND,
     OR,
     XOR,
-    ASRX,
-    LSRX,
-    LSLX,
-    ASR,
-    LSR,
-    LSL,
+    ASRN,
+    LSRN,
+    LSLN,
+    ASR,    // TODO not used in codegen of shift 1
+    LSR,    // TODO not used in codegen of shift 1
+    LSL,    // TODO not used in codegen of shift 1
     ROR,
     ROXR,
     ROL,
@@ -266,7 +261,6 @@ enum class Opcode {
     PUSH,
     POP,
     MSIG,
-    SWAPREG,
     CONCAT,
     BREAKPOINT
 }
@@ -276,7 +270,7 @@ val OpcodesWithAddress = setOf(
     Opcode.LOADX,
     Opcode.STOREM,
     Opcode.STOREX,
-    Opcode.STOREZ,
+    Opcode.STOREZM,
     Opcode.STOREZX
 )
 
@@ -443,17 +437,14 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADI      to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
     Opcode.LOADX      to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
     Opcode.LOADR      to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
-    Opcode.SWAPREG    to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.STOREM     to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.STOREI     to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
-    Opcode.STOREZ     to InstructionFormat.from("BW,v       | F,v"),
+    Opcode.STOREZM     to InstructionFormat.from("BW,v       | F,v"),
     Opcode.STOREZI    to InstructionFormat.from("BW,r1      | F,r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,r1,v    | F,r1,v"),
     Opcode.JUMP       to InstructionFormat.from("N,v"),
-    Opcode.JUMPI      to InstructionFormat.from("N,r1"),
     Opcode.CALL       to InstructionFormat.from("N,v"),
-    Opcode.CALLI      to InstructionFormat.from("N,r1"),
     Opcode.SYSCALL    to InstructionFormat.from("N,v"),
     Opcode.RETURN     to InstructionFormat.from("N"),
     Opcode.BSTCC      to InstructionFormat.from("N,v"),
@@ -503,9 +494,9 @@ val instructionFormats = mutableMapOf(
     Opcode.AND        to InstructionFormat.from("BW,r1,r2,r3"),
     Opcode.OR         to InstructionFormat.from("BW,r1,r2,r3"),
     Opcode.XOR        to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.ASRX       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.LSRX       to InstructionFormat.from("BW,r1,r2,r3"),
-    Opcode.LSLX       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.ASRN       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.LSRN       to InstructionFormat.from("BW,r1,r2,r3"),
+    Opcode.LSLN       to InstructionFormat.from("BW,r1,r2,r3"),
     Opcode.ASR        to InstructionFormat.from("BW,r1"),
     Opcode.LSR        to InstructionFormat.from("BW,r1"),
     Opcode.LSL        to InstructionFormat.from("BW,r1"),
