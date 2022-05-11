@@ -188,6 +188,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.FROUND -> InsFROUND(ins)
             Opcode.FFLOOR -> InsFFLOOR(ins)
             Opcode.FCEIL -> InsFCEIL(ins)
+            Opcode.FCOMP -> InsFCOMP(ins)
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
@@ -1138,6 +1139,20 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsFSQRT(i: Instruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, sqrt(value))
+        pc++
+    }
+
+    private fun InsFCOMP(i: Instruction) {
+        val left = registers.getFloat(i.fpReg1!!)
+        val right = registers.getFloat(i.fpReg2!!)
+        val result =
+            if(left<right)
+                255u        // -1
+            else if(left>right)
+                1u
+            else
+                0u
+        registers.setUB(i.reg1!!, result.toUByte())
         pc++
     }
 

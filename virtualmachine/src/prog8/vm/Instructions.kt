@@ -140,6 +140,7 @@ ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
 ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
 fpow         fpreg1, fpreg2, fpreg3     - fpreg1 = fpreg2 to the power of fpreg3
 fabs         fpreg1, fpreg2             - fpreg1 = abs(fpreg2)
+fcomp        reg1, fpreg1, fpreg2       - reg1 = result of comparison of fpreg1 and fpreg2: 0=equal, 1=fpreg1 is greater, -1=fpreg1 is smaller
 
 
 MISC
@@ -255,6 +256,7 @@ enum class Opcode {
     FROUND,
     FFLOOR,
     FCEIL,
+    FCOMP,
 
     CLC,
     SEC,
@@ -525,6 +527,7 @@ val instructionFormats = mutableMapOf(
     Opcode.FROUND     to InstructionFormat.from("F,fr1,fr2"),
     Opcode.FFLOOR     to InstructionFormat.from("F,fr1,fr2"),
     Opcode.FCEIL      to InstructionFormat.from("F,fr1,fr2"),
+    Opcode.FCOMP      to InstructionFormat.from("F,r1,fr1,fr2"),
 
     Opcode.MSIG       to InstructionFormat.from("BW,r1,r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,r1"),

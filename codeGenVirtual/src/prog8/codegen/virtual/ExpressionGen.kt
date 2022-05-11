@@ -316,15 +316,31 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         greaterEquals: Boolean
     ): VmCodeChunk {
         val code = VmCodeChunk()
-        val rightResultReg = codeGen.vmRegisters.nextFree()
-        code += translateExpression(binExpr.left, resultRegister, -1)
-        code += translateExpression(binExpr.right, rightResultReg, -1)
-        val ins = if(signed) {
-            if(greaterEquals) Opcode.SGES else Opcode.SGTS
+        if(vmDt==VmDataType.FLOAT) {
+            val leftFpReg = codeGen.vmRegisters.nextFreeFloat()
+            val rightFpReg = codeGen.vmRegisters.nextFreeFloat()
+            val zeroRegister = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, -1, leftFpReg)
+            code += translateExpression(binExpr.right, -1, rightFpReg)
+            code += VmCodeInstruction(Opcode.FCOMP, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=zeroRegister, value=0)
+            val ins = if (signed) {
+                if (greaterEquals) Opcode.SGES else Opcode.SGTS
+            } else {
+                if (greaterEquals) Opcode.SGE else Opcode.SGT
+            }
+            code += VmCodeInstruction(ins, VmDataType.BYTE, reg1 = resultRegister, reg2 = resultRegister, reg3 = zeroRegister)
         } else {
-            if(greaterEquals) Opcode.SGE else Opcode.SGT
+            val rightResultReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, resultRegister, -1)
+            code += translateExpression(binExpr.right, rightResultReg, -1)
+            val ins = if (signed) {
+                if (greaterEquals) Opcode.SGES else Opcode.SGTS
+            } else {
+                if (greaterEquals) Opcode.SGE else Opcode.SGT
+            }
+            code += VmCodeInstruction(ins, vmDt, reg1 = resultRegister, reg2 = resultRegister, reg3 = rightResultReg)
         }
-        code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=rightResultReg)
         return code
     }
 
@@ -336,25 +352,58 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         lessEquals: Boolean
     ): VmCodeChunk {
         val code = VmCodeChunk()
-        val rightResultReg = codeGen.vmRegisters.nextFree()
-        code += translateExpression(binExpr.left, resultRegister, -1)
-        code += translateExpression(binExpr.right, rightResultReg, -1)
-        val ins = if(signed) {
-            if(lessEquals) Opcode.SLES else Opcode.SLTS
+        if(vmDt==VmDataType.FLOAT) {
+            val leftFpReg = codeGen.vmRegisters.nextFreeFloat()
+            val rightFpReg = codeGen.vmRegisters.nextFreeFloat()
+            val zeroRegister = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, -1, leftFpReg)
+            code += translateExpression(binExpr.right, -1, rightFpReg)
+            code += VmCodeInstruction(Opcode.FCOMP, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=zeroRegister, value=0)
+            val ins = if (signed) {
+                if (lessEquals) Opcode.SLES else Opcode.SLTS
+            } else {
+                if (lessEquals) Opcode.SLE else Opcode.SLT
+            }
+            code += VmCodeInstruction(ins, VmDataType.BYTE, reg1 = resultRegister, reg2 = resultRegister, reg3 = zeroRegister)
         } else {
-            if(lessEquals) Opcode.SLE else Opcode.SLT
+            val rightResultReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, resultRegister, -1)
+            code += translateExpression(binExpr.right, rightResultReg, -1)
+            val ins = if (signed) {
+                if (lessEquals) Opcode.SLES else Opcode.SLTS
+            } else {
+                if (lessEquals) Opcode.SLE else Opcode.SLT
+            }
+            code += VmCodeInstruction(ins, vmDt, reg1 = resultRegister, reg2 = resultRegister, reg3 = rightResultReg)
         }
-        code += VmCodeInstruction(ins, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=rightResultReg)
         return code
     }
 
     private fun operatorEquals(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, notEquals: Boolean): VmCodeChunk {
         val code = VmCodeChunk()
-        val rightResultReg = codeGen.vmRegisters.nextFree()
-        code += translateExpression(binExpr.left, resultRegister, -1)
-        code += translateExpression(binExpr.right, rightResultReg, -1)
-        val opcode = if(notEquals) Opcode.SNE else Opcode.SEQ
-        code += VmCodeInstruction(opcode, vmDt, reg1=resultRegister, reg2=resultRegister, reg3=rightResultReg)
+        if(vmDt==VmDataType.FLOAT) {
+            val leftFpReg = codeGen.vmRegisters.nextFreeFloat()
+            val rightFpReg = codeGen.vmRegisters.nextFreeFloat()
+            code += translateExpression(binExpr.left, -1, leftFpReg)
+            code += translateExpression(binExpr.right, -1, rightFpReg)
+            code += VmCodeInstruction(Opcode.FCOMP, VmDataType.FLOAT, reg1=resultRegister, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
+            if(!notEquals) {
+                val label = codeGen.createLabelName()
+                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=resultRegister, symbol = label)
+                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value=1)
+                code += VmCodeLabel(label)
+                val regMask = codeGen.vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=regMask, value=1)
+                code += VmCodeInstruction(Opcode.XOR, VmDataType.BYTE, reg1=resultRegister, reg2=resultRegister, reg3=regMask)
+            }
+        } else {
+            val rightResultReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(binExpr.left, resultRegister, -1)
+            code += translateExpression(binExpr.right, rightResultReg, -1)
+            val opcode = if (notEquals) Opcode.SNE else Opcode.SEQ
+            code += VmCodeInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = resultRegister, reg3 = rightResultReg)
+        }
         return code
     }
 

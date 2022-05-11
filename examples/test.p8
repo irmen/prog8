@@ -24,44 +24,30 @@ main {
     sub start() {
 
         ubyte @shared value = inline_candidate()
-        value = %01011100
-        byte @shared svalue = 99
-        svalue = -svalue
-        @($5000) = not @($5000)
-        sys.set_carry()
-        rol(value)
-        rol(@($5000))
-        txt.print_ub(value)
-        txt.nl()
-        sys.set_carry()
-        ror(value)
-        ror(@($5000))
-        txt.print_ub(value)
-        txt.nl()
-        txt.nl()
-        value = %01011100
-        sys.set_carry()
-        rol2(value)
-        rol2(@($5000))
-        txt.print_ub(value)
-        txt.nl()
-        sys.clear_carry()
-        ror2(value)
-        ror2(@($5000))
-        txt.print_ub(value)
-        txt.nl()
-        @($5000) <<= 1
-        @($5000) >>= 1
-        value <<= 1
-        value >>= 1
-        txt.print_ub(value)
-        txt.nl()
-        @($5000) <<= 3
-        @($5000) >>= 3
-        value <<= 3
-        value >>= 3
-        txt.print_ub(value)
-        txt.nl()
+
+        float fl1 = 1.1
+        float fl2 = 2.2
+
+        if fl1==fl2
+            txt.print("equals!?\n")
+        if fl1!=fl2
+            txt.print("not equals.\n")
+        fl1 = fl2
+        if fl1==fl2
+            txt.print("equals.\n")
+        if fl1!=fl2
+            txt.print("not equals!?\n")
+
+        if fl1 <= fl2
+            txt.print("yup\n")
+        if fl1 > fl2
+            txt.print("nope\n")
+        fl1 = 3.3
+        if fl1 <= fl2
+            txt.print("yup\n")
+        if fl1 > fl2
+            txt.print("nope\n")
+
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()
 
