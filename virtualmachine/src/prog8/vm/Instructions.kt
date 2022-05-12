@@ -184,16 +184,16 @@ enum class Opcode {
     BSTPOS,
     BZ,
     BNZ,
-    BEQ,        // TODO not used in codegen??? == nonzero
-    BNE,        // TODO not used in codegen??? != nonzero
-    BLT,        // TODO not used in codegen??? <
-    BLTS,       // TODO not used in codegen??? <
-    BGT,        // TODO not used in codegen??? >
-    BGTS,       // TODO not used in codegen??? >
-    BLE,        // TODO should be used in codegen conditional branch too
-    BLES,       // TODO should be used in codegen conditional branch too
-    BGE,        // TODO not used in codegen??? >=
-    BGES,       // TODO not used in codegen??? >=
+    BEQ,
+    BNE,
+    BLT,
+    BLTS,
+    BGT,
+    BGTS,
+    BLE,
+    BLES,
+    BGE,
+    BGES,
     SEQ,
     SNE,
     SLT,

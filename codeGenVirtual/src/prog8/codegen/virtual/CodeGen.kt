@@ -465,45 +465,94 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(ifElse: PtIfElse): VmCodeChunk {
-        var branch = Opcode.BZ
-        var condition = ifElse.condition
+        if(ifElse.condition.operator !in ComparisonOperators)
+            throw AssemblyError("if condition should only be a binary comparison expression")
 
-        val cond = ifElse.condition as? PtBinaryExpression
-        if(cond!=null && constValue(cond.right)==0.0) {
-            if(cond.operator == "==") {
-                // if X==0 ...   so we branch on Not-zero instead.
-                branch = Opcode.BNZ
-                condition = cond.left
-            }
-            else if(cond.operator == "!=") {
-                // if X!=0 ...   so we keep branching on Zero.
-                condition = cond.left
-            }
-        }
-
-        val conditionReg = vmRegisters.nextFree()
-        val vmDt = vmType(condition.type)
+        val signed = ifElse.condition.left.type in arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
+        val vmDt = vmType(ifElse.condition.type)
         val code = VmCodeChunk()
-        code += expressionEval.translateExpression(condition, conditionReg, -1)
-        if(ifElse.elseScope.children.isNotEmpty()) {
-            // if and else parts
-            val elseLabel = createLabelName()
-            val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(branch, vmDt, reg1=conditionReg, symbol = elseLabel)
-            code += translateNode(ifElse.ifScope)
-            code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
-            code += VmCodeLabel(elseLabel)
-            code += translateNode(ifElse.elseScope)
-            code += VmCodeLabel(afterIfLabel)
-        } else {
-            // only if part
-            val afterIfLabel = createLabelName()
-            code += VmCodeInstruction(branch, vmDt, reg1=conditionReg, symbol = afterIfLabel)
-            code += translateNode(ifElse.ifScope)
-            code += VmCodeLabel(afterIfLabel)
+
+        fun translateNonZeroComparison(): VmCodeChunk {
+            val elseBranch = when(ifElse.condition.operator) {
+                "==" -> Opcode.BNE
+                "!=" -> Opcode.BEQ
+                "<" -> if(signed) Opcode.BGES else Opcode.BGE
+                ">" -> if(signed) Opcode.BLES else Opcode.BLE
+                "<=" -> if(signed) Opcode.BGTS else Opcode.BGT
+                ">=" -> if(signed) Opcode.BLTS else Opcode.BLT
+                else -> throw AssemblyError("invalid comparison operator")
+            }
+
+            val leftReg = vmRegisters.nextFree()
+            val rightReg = vmRegisters.nextFree()
+            code += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
+            code += expressionEval.translateExpression(ifElse.condition.right, rightReg, -1)
+            if(ifElse.elseScope.children.isNotEmpty()) {
+                // if and else parts
+                val elseLabel = createLabelName()
+                val afterIfLabel = createLabelName()
+                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, symbol = elseLabel)
+                code += translateNode(ifElse.ifScope)
+                code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
+                code += VmCodeLabel(elseLabel)
+                code += translateNode(ifElse.elseScope)
+                code += VmCodeLabel(afterIfLabel)
+            } else {
+                // only if part
+                val afterIfLabel = createLabelName()
+                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, symbol = afterIfLabel)
+                code += translateNode(ifElse.ifScope)
+                code += VmCodeLabel(afterIfLabel)
+            }
+            return code
         }
-        return code
+
+        fun translateZeroComparison(): VmCodeChunk {
+            fun equalOrNotEqualZero(elseBranch: Opcode): VmCodeChunk {
+                val leftReg = vmRegisters.nextFree()
+                code += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
+                if(ifElse.elseScope.children.isNotEmpty()) {
+                    // if and else parts
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
+                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, symbol = elseLabel)
+                    code += translateNode(ifElse.ifScope)
+                    code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
+                    code += VmCodeLabel(elseLabel)
+                    code += translateNode(ifElse.elseScope)
+                    code += VmCodeLabel(afterIfLabel)
+                } else {
+                    // only if part
+                    val afterIfLabel = createLabelName()
+                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, symbol = afterIfLabel)
+                    code += translateNode(ifElse.ifScope)
+                    code += VmCodeLabel(afterIfLabel)
+                }
+                return code
+            }
+
+            return when (ifElse.condition.operator) {
+                "==" -> {
+                    // if X==0 ...   so we just branch on left expr is Not-zero.
+                    equalOrNotEqualZero(Opcode.BNZ)
+                }
+                "!=" -> {
+                    // if X!=0 ...   so we just branch on left expr is Zero.
+                    equalOrNotEqualZero(Opcode.BZ)
+                }
+                else -> {
+                    // another comparison against 0, just use regular codegen for this.
+                    translateNonZeroComparison()
+                }
+            }
+        }
+
+        return if(constValue(ifElse.condition.right)==0.0)
+            translateZeroComparison()
+        else
+            translateNonZeroComparison()
     }
+
 
     private fun translate(postIncrDecr: PtPostIncrDecr): VmCodeChunk {
         val code = VmCodeChunk()
@@ -603,7 +652,7 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(assignment: PtAssignment): VmCodeChunk {
-        // TODO can in-place assignments be optimized more?
+        // TODO can in-place assignments be optimized more? use special memory versions of instructions instead of register ones?
         // note: assigning array and string values is done via an explicit memcopy/stringcopy function call.
         if(assignment.target.children.single() is PtMachineRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")

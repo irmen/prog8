@@ -28,6 +28,19 @@ main {
         ubyte lowb = 4
         ubyte highb = $ea
 
+        if lowb+4
+            lowb++
+        if math.sin8u(lowb)
+            lowb++
+        if lowb
+            lowb++
+
+        if lowb==0
+            lowb++
+
+        if lowb!=0
+            lowb++
+
         if lowb==3
             lowb++
 
