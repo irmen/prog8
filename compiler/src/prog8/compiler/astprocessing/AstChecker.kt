@@ -889,7 +889,7 @@ internal class AstChecker(private val program: Program,
         if(rightDt!in NumericDatatypes && rightDt != DataType.STR)
             errors.err("right operand is not numeric or str", expr.right.position)
         if(leftDt!=rightDt) {
-            if(leftDt==DataType.STR && rightDt in IntegerDatatypes) {
+            if(leftDt==DataType.STR && rightDt in IntegerDatatypes && expr.operator=="*") {
                 // only exception allowed: str * constvalue
                 if(expr.right.constValue(program)==null)
                     errors.err("can only use string repeat with a constant number value", expr.left.position)

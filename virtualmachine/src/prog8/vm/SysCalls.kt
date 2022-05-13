@@ -34,6 +34,7 @@ SYSCALLS:
 26 = reverse_bytes array
 27 = reverse_words array
 28 = reverse_floats array
+29 = compare strings
 */
 
 enum class Syscall {
@@ -66,6 +67,7 @@ enum class Syscall {
     REVERSE_BYTES,
     REVERSE_WORDS,
     REVERSE_FLOATS,
+    COMPARE_STRINGS
 }
 
 object SysCalls {
@@ -254,6 +256,14 @@ object SysCalls {
                 val stringAddr = vm.registers.getUW(0)
                 val string = vm.memory.getString(stringAddr.toInt())
                 vm.registers.setSW(0, string.toShort())
+            }
+            Syscall.COMPARE_STRINGS -> {
+                val firstAddr = vm.registers.getUW(0)
+                val secondAddr = vm.registers.getUW(1)
+                val first = vm.memory.getString(firstAddr.toInt())
+                val second = vm.memory.getString(secondAddr.toInt())
+                val comparison = first.compareTo(second)
+                vm.registers.setSB(0, comparison.toByte())
             }
             else -> TODO("syscall ${call.name}")
         }

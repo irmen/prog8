@@ -150,6 +150,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.AND -> InsAND(ins)
             Opcode.OR -> InsOR(ins)
             Opcode.XOR -> InsXOR(ins)
+            Opcode.NOT -> InsNOT(ins)
             Opcode.ASRN -> InsASRM(ins)
             Opcode.LSRN -> InsLSRM(ins)
             Opcode.LSLN -> InsLSLM(ins)
@@ -847,6 +848,15 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left xor right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left xor right).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsNOT(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, if(registers.getUB(i.reg1)==0.toUByte()) 1u else 0u)
+            VmDataType.WORD -> registers.setUW(i.reg1!!, if(registers.getUW(i.reg1)==0.toUShort()) 1u else 0u)
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++

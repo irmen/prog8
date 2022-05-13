@@ -1,5 +1,6 @@
 %import textio
 %import math
+%import string
 %import floats
 %zeropage dontuse
 
@@ -25,37 +26,44 @@ main {
 
         ubyte @shared value = inline_candidate()
 
-        ubyte lowb = 4
-        ubyte highb = $ea
+        str name = "irmen123ABC"
+        str other = "zrmen123ABC"
 
-        if lowb+4
-            lowb++
-        if math.sin8u(lowb)
-            lowb++
-        if lowb
-            lowb++
+        txt.print_ub(string.upper(name))
+        txt.print(name)
+        txt.nl()
+        txt.print_ub(string.lower(name))
+        txt.print(name)
+        txt.nl()
 
-        if lowb==0
-            lowb++
+        uword otheraddr = &other
+        txt.print_ub(name!=other)
+        txt.spc()
+        txt.print_ub(name==other)
+        txt.nl()
+        txt.print_ub(name>other)
+        txt.spc()
+        txt.print_ub(name>=other)
+        txt.nl()
+        txt.print_ub(name<other)
+        txt.spc()
+        txt.print_ub(name<=other)
+        txt.nl()
+        txt.nl()
+        other[0]='i'
+        txt.print_ub(name!=other)
+        txt.spc()
+        txt.print_ub(name==other)
+        txt.nl()
+        txt.print_ub(name>other)
+        txt.spc()
+        txt.print_ub(name>=other)
+        txt.nl()
+        txt.print_ub(name<other)
+        txt.spc()
+        txt.print_ub(name<=other)
+        txt.nl()
 
-        if lowb!=0
-            lowb++
-
-        if lowb==3
-            lowb++
-
-        if lowb!=3
-            lowb++
-
-        if lowb==3
-            lowb++
-        else
-            lowb--
-
-        if lowb!=3
-            lowb++
-        else
-            lowb--
 
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()

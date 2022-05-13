@@ -3,9 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: get rid of all the conditional set instructions
-- vm: add more instructions operating directly on memory instead of only registers?
+- c64 target: after exit, switching charset case is still disabled. Don't disable this by default in startup?
 - vm: check array type in PtAssignTarget
+- vm: animals example game breaks after adding first new animal...
+- vm: add more instructions operating directly on memory instead of only registers? (translate assignment self-assigns)
 - in-place modifiying functions (rol, ror, ..) don't accept a memory address but require a memory-read expression. that is weird.
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?

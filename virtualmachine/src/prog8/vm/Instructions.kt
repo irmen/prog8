@@ -116,6 +116,7 @@ All have type b or w.
 and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
 or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
 xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
+not         reg1                             - reg1 = boolean not of reg1 (0->1 , ~0 -> 0)
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
 asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
 lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
@@ -225,6 +226,7 @@ enum class Opcode {
     AND,
     OR,
     XOR,
+    NOT,
     ASRN,
     LSRN,
     LSLN,
@@ -273,7 +275,9 @@ val OpcodesWithAddress = setOf(
     Opcode.STOREM,
     Opcode.STOREX,
     Opcode.STOREZM,
-    Opcode.STOREZX
+    Opcode.STOREZX,
+    Opcode.INCM,
+    Opcode.DECM
 )
 
 
@@ -474,6 +478,7 @@ val instructionFormats = mutableMapOf(
     Opcode.AND        to InstructionFormat.from("BW,r1,r2"),
     Opcode.OR         to InstructionFormat.from("BW,r1,r2"),
     Opcode.XOR        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.NOT        to InstructionFormat.from("BW,r1"),
     Opcode.ASRN       to InstructionFormat.from("BW,r1,r2"),
     Opcode.LSRN       to InstructionFormat.from("BW,r1,r2"),
     Opcode.LSLN       to InstructionFormat.from("BW,r1,r2"),
