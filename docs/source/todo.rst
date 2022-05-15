@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- c64 target: after exit, switching charset case is still disabled. Don't disable this by default in startup?
 - vm: check array type in PtAssignTarget
 - vm: animals example game breaks after adding first new animal...
 - vm: add more instructions operating directly on memory instead of only registers? (translate assignment self-assigns)

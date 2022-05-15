@@ -31,7 +31,9 @@ main {
 
         txt.print(name)
         txt.nl()
-        name=other
+        uword otherptr = &other + 2
+        name = otherptr
+
         txt.print(name)
         txt.nl()
         txt.nl()

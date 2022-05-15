@@ -300,12 +300,29 @@ asmsub  init_system_phase2()  {
     }}
 }
 
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+        jmp  c64.enable_runstop_and_charsetswitch
+    }}
+}
+
 asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     %asm {{
         lda  #$80
         sta  657    ; disable charset switching
         lda  #239
         sta  808    ; disable run/stop key
+        rts
+    }}
+}
+
+asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #0
+        sta  657    ; enable charset switching
+        lda  #237
+        sta  808    ; enable run/stop key
         rts
     }}
 }
@@ -646,7 +663,10 @@ _longcopy
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
+            lda  #31
+            sta  $01        ; bank the kernal in
             jsr  c64.CLRCHN		; reset i/o channels
+            jsr  c64.enable_runstop_and_charsetswitch
             ldx  prog8_lib.orig_stackpointer
             txs
             rts		; return to original caller

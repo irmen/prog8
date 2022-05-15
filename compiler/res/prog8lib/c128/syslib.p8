@@ -274,6 +274,16 @@ asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
     }}
 }
 
+asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #0
+        sta  247    ; enable charset switching
+        lda  #110
+        sta  808    ; enable run/stop key
+        rts
+    }}
+}
+
 asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
 	%asm {{
 	        sta  _modified+1
@@ -481,6 +491,13 @@ asmsub  init_system_phase2()  {
     }}
 }
 
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+        jmp  c64.enable_runstop_and_charsetswitch
+    }}
+}
+
 asmsub  disable_basic() clobbers(A) {
     %asm {{
         lda $0a04   ; disable BASIC shadow registers
@@ -681,7 +698,10 @@ _longcopy
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
+            ;lda  #14
+            ;sta  $01        ; bank the kernal in       TODO c128 how to do this?
             jsr  c64.CLRCHN		; reset i/o channels
+            jsr  c64.enable_runstop_and_charsetswitch
             ldx  prog8_lib.orig_stackpointer
             txs
             rts		; return to original caller

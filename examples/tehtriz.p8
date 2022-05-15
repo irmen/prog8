@@ -32,7 +32,6 @@ main {
 
 
     sub start() {
-        c64.disable_runstop_and_charsetswitch()
         ;@(650) = 128        ; set all keys to repeat
         sound.init()
         newGame()

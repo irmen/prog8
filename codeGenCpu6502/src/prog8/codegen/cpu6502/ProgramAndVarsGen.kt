@@ -127,9 +127,27 @@ internal class ProgramAndVarsGen(
             "cx16" -> {
                 if(options.floats)
                     asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
-                asmgen.out("  jsr  main.start |  lda  #4 |  sta  $01 |  rts")
+                asmgen.out("  jsr  main.start |  lda  #4 |  sta  $01")
+                if(!options.noSysInit)
+                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                else
+                    asmgen.out("  rts")
             }
-            "c64" -> asmgen.out("  jsr  main.start |  lda  #31 |  sta  $01 |  rts")
+            "c64" -> {
+                asmgen.out("  jsr  main.start |  lda  #31 |  sta  $01")
+                if(!options.noSysInit)
+                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                else
+                    asmgen.out("  rts")
+            }
+            "c128" -> {
+                asmgen.out("  jsr  main.start")
+                // TODO c128: how to bank basic+kernal back in?
+                if(!options.noSysInit)
+                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                else
+                    asmgen.out("  rts")
+            }
             else -> asmgen.jmp("main.start")
         }
     }
