@@ -414,14 +414,10 @@ internal class StatementReorderer(val program: Program,
 
     private fun copyStringValue(assign: Assignment): List<IAstModification> {
         val identifier = assign.target.identifier!!
-        val sourceIdent = assign.value as? IdentifierReference
         val strcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "internal_stringcopy"), assign.position),
             mutableListOf(
-                if(sourceIdent!=null)
-                    AddressOf(sourceIdent, assign.position)
-                else
-                    assign.value,
-                AddressOf(identifier, assign.position)
+                assign.value as? IdentifierReference ?: assign.value,
+                identifier
             ),
             true,
             assign.position

@@ -27,7 +27,14 @@ main {
         ubyte @shared value = inline_candidate()
 
         str name = "irmen123ABC"
-        str other = "zrmen123ABC"
+        str other = "zrmen123zzz"
+
+        txt.print(name)
+        txt.nl()
+        name=other
+        txt.print(name)
+        txt.nl()
+        txt.nl()
 
         txt.print_ub(string.upper(name))
         txt.print(name)
