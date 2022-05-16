@@ -841,11 +841,13 @@ rol(x)
     while the highest bit will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
+    You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
 
 rol2(x)
     Like ``rol`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
+    You can rol a memory location directly by using the direct memory access syntax, so like ``rol2(@($5000))``
 
 ror(x)
     Rotate the bits in x (byte or word) one position to the right.
@@ -853,11 +855,13 @@ ror(x)
     while bit 0 will become the new Carry flag value.
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
+    You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
 
 ror2(x)
     Like ``ror`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
+    You can ror a memory location directly by using the direct memory access syntax, so like ``ror2(@($5000))``
 
 sizeof(name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
@@ -867,6 +871,7 @@ sizeof(name)
 
 swap(x, y)
     Swap the values of numerical variables (or memory locations) x and y in a fast way.
+    You can swap two memory locations directly by using the direct memory access syntax, so like ``swap(@($5000), @($5001))``
 
 memory(name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,

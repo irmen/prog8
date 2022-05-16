@@ -60,7 +60,7 @@ class PtAssignTarget(position: Position) : PtNode(position) {
         get() {
             return when(val tgt = children.single()) {
                 is PtIdentifier -> tgt.type
-                is PtArrayIndexer -> tgt.type       // TODO array to elt type?
+                is PtArrayIndexer -> tgt.type
                 is PtMemoryByte -> tgt.type
                 else -> throw AssemblyError("weird target $tgt")
             }
