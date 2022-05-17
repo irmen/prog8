@@ -10,9 +10,9 @@ main {
 
         ubyte angle
 
-        for angle in 0 to 255 {
-            ubyte xx = math.sin8u(angle)
-            ubyte yy = math.cos8u(angle)
+        for angle in 0 to 180 {
+            ubyte xx = math.sinr8u(angle)
+            ubyte yy = math.cosr8u(angle) / 2
             sys.gfx_plot(xx, yy, 255)
         }
 
