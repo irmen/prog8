@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: animals example game breaks after adding first new animal...
 - vm: add more instructions operating directly on memory instead of only registers? (translate assignment self-assigns)
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?

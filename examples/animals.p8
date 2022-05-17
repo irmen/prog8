@@ -4,19 +4,19 @@
 ; Animal guessing game where the computer gets smarter every time.
 ; Note: this program is compatible with C64 and CX16.
 
-
 main {
     const ubyte database_size = 100
 
-    uword animal_names_buf = memory("animalnames", 500, 0)
-    uword questions_buf = memory("questions", 2000, 0)
+    uword animal_names_buf = memory("animalnames", 500, 0)      ; area to store all animal names in, in sequence
+    uword questions_buf = memory("questions", 2000, 0)          ; area to store all question texts in, in sequence
     uword animal_names_ptr
     uword questions_ptr
 
-    uword[database_size] animals
-    uword[database_size] questions
-    uword[database_size] answers_questions
-    uword[database_size] answers_animals
+    uword[database_size] animals               ; pointers to the animal names
+    uword[database_size] questions             ; pointers to the question texts
+    uword[database_size] answers_questions     ; tree entries for question choices, indexed by question id, pair of (msb=yes, lsb=no) follow up question id (or 0 if it's an animal leaf node)
+    uword[database_size] answers_animals       ; tree entries for animal leafs, indexed by question id, pair of (msb=yes, lsb=no) animal id
+
     ubyte new_animal_number
     ubyte new_question_number
     str userinput = "x"*80
@@ -137,6 +137,5 @@ main {
         new_question_number++
 
         txt.print("\n\nthanks, i know more animals now! let's try again.\n")
-
     }
 }

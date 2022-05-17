@@ -701,7 +701,7 @@ class CodeGen(internal val program: PtProgram,
                     code += VmCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value=variableAddr)
                 } else {
                     val indexReg = vmRegisters.nextFree()
-                    code += expressionEval.translateExpression(array.index, indexReg, -1)
+                    code += loadIndexReg(array, itemsize, indexReg)
                     code += VmCodeInstruction(Opcode.STOREZX, VmDataType.FLOAT, reg1=indexReg, value=variableAddr)
                 }
             } else {
@@ -711,7 +711,7 @@ class CodeGen(internal val program: PtProgram,
                         code += VmCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, value=variableAddr)
                     } else {
                         val indexReg = vmRegisters.nextFree()
-                        code += expressionEval.translateExpression(array.index, indexReg, -1)
+                        code += loadIndexReg(array, itemsize, indexReg)
                         code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
                     }
                 } else {
@@ -720,7 +720,7 @@ class CodeGen(internal val program: PtProgram,
                         code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, value=variableAddr)
                     } else {
                         val indexReg = vmRegisters.nextFree()
-                        code += expressionEval.translateExpression(array.index, indexReg, -1)
+                        code += loadIndexReg(array, itemsize, indexReg)
                         code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
                     }
                 }
@@ -748,6 +748,20 @@ class CodeGen(internal val program: PtProgram,
         }
         else
             throw AssemblyError("weird assigntarget")
+        return code
+    }
+
+    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, indexReg: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(itemsize==1) {
+            code += expressionEval.translateExpression(array.index, indexReg, -1)
+        }
+        else {
+            val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
+            mult.children += array.index
+            mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
+            code += expressionEval.translateExpression(mult, indexReg, -1)
+        }
         return code
     }
 

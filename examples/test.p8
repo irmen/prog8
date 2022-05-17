@@ -22,57 +22,33 @@ main {
         return first * second
     }
 
+    ubyte ix
+
     sub start() {
 
-        ubyte @shared value = inline_candidate()
+        uword[] array = [1111,2222,3333,4444]
 
-        str name = "irmen123ABC"
-        str other = "zrmen123zzz"
+        sub pa() {
+            uword ww
+            for ww in array {
+                txt.print_uw(ww)
+                txt.spc()
+            }
+            txt.nl()
+        }
 
-        txt.print(name)
-        txt.nl()
-        uword otherptr = &other + 2
-        name = otherptr
-
-        txt.print(name)
-        txt.nl()
-        txt.nl()
-
-        txt.print_ub(string.upper(name))
-        txt.print(name)
-        txt.nl()
-        txt.print_ub(string.lower(name))
-        txt.print(name)
-        txt.nl()
-
-        uword otheraddr = &other
-        txt.print_ub(name!=other)
+;        pa()
+;        array[2] = 9999
+;        pa()
+        ix=2
+        array[ix]= 8888     ; TODO fix indexing offset in vm
+        pa()
+        txt.print_uw(array[ix])
         txt.spc()
-        txt.print_ub(name==other)
-        txt.nl()
-        txt.print_ub(name>other)
-        txt.spc()
-        txt.print_ub(name>=other)
-        txt.nl()
-        txt.print_ub(name<other)
-        txt.spc()
-        txt.print_ub(name<=other)
-        txt.nl()
-        txt.nl()
-        other[0]='i'
-        txt.print_ub(name!=other)
-        txt.spc()
-        txt.print_ub(name==other)
-        txt.nl()
-        txt.print_ub(name>other)
-        txt.spc()
-        txt.print_ub(name>=other)
-        txt.nl()
-        txt.print_ub(name<other)
-        txt.spc()
-        txt.print_ub(name<=other)
+        txt.print_uw(array[ix+1])
         txt.nl()
 
+;        ubyte @shared value = inline_candidate()
 
 ;        txt.print_ub(inline_candidate())
 ;        txt.nl()
