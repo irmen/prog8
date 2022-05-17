@@ -45,6 +45,14 @@ class PtAssignment(position: Position) : PtNode(position) {
         get() = children[1] as PtExpression
 
     override fun printProperties() { }
+
+    val isInplaceAssign: Boolean by lazy {
+        val target = target.children.single() as PtExpression
+        if(value is PtBinaryExpression) {
+            target isSameTargetAs (value as PtBinaryExpression).left
+        } else
+            target isSameTargetAs value
+    }
 }
 
 

@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: add more instructions operating directly on memory instead of only registers? (translate assignment self-assigns)
+- vm: implement the sin/cos functions in math.p8 and make an example 'shader' that uses them
+- vm: add more instructions operating directly on memory instead of only registers? (translate assignment self-assigns in AssignmentGen)
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
@@ -23,8 +24,6 @@ Compiler:
 
 - vm: codeGen: various TODOs to tweak code
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
-- vm: make registers typed? so that it's immediately obvious what type they represent. Much like regular variables in memory.
-  so we have a set of byte registers, a set of word registers, and other sets if we introduce other types.
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
@@ -53,7 +52,7 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
 - add a flood fill routine to gfx2?
-- diskio: use cx16 MACPTR() to load stuff faster? (see its use in X16edit to fast load blocks)
+- diskio: use cx16 MACPTR() in f_read() to load stuff faster? (see its use in X16edit to fast load blocks)
   note that it might fail on non sdcard files so have to make graceful degradation
 
 Expressions:

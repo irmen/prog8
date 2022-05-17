@@ -11,6 +11,25 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     override fun printProperties() {
         print(type)
     }
+
+    infix fun isSameTargetAs(other: PtExpression): Boolean = when(this) {
+        is PtArrayIndexer -> {
+            if(other is PtArrayIndexer && other.type==type) {
+                if(other.variable isSameTargetAs variable) {
+                    other.index isSameTargetAs index
+                }
+            }
+            false
+        }
+        is PtIdentifier -> other is PtIdentifier && other.type==type && other.targetName==targetName
+        is PtMachineRegister -> other is PtMachineRegister && other.register==register
+        is PtMemoryByte -> other is PtMemoryByte && address isSameTargetAs other.address
+        is PtNumber -> other is PtNumber && other.type == type && other.number==number
+        is PtAddressOf -> other is PtAddressOf && other.identifier isSameTargetAs identifier
+        is PtPrefix -> other is PtPrefix && other.operator==operator && other.value isSameTargetAs value
+        is PtTypeCast -> other is PtTypeCast && other.type==type && other.value isSameTargetAs value
+        else -> false
+    }
 }
 
 
