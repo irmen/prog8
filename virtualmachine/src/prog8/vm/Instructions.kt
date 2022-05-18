@@ -15,8 +15,6 @@ Currently NO support for 24 or 32 bits integers.
 Floating point operations are just 'f' typed regular instructions, and additionally there are
 a few fp conversion instructions to
 
-*only* LOAD AND STORE instructions have a possible memory operand, all other instructions use only registers or immediate value.
-
 
 LOAD/STORE
 ----------
@@ -96,6 +94,7 @@ incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
 decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
+negm                           address      - sign negate memory at address
 add         reg1, reg2                      - reg1 += reg2 (unsigned + signed)
 sub         reg1, reg2                      - reg1 -= reg2 (unsigned + signed)
 mul         reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
@@ -116,7 +115,9 @@ All have type b or w.
 and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
 or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
 xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
+xorm        reg1,        address             - memory = memory bitwise xor reg1
 not         reg1                             - reg1 = boolean not of reg1 (0->1 , ~0 -> 0)
+notm                     address             - memory = boolean not of that memory (0->1 , ~0 -> 0)
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
 asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
 lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
@@ -211,6 +212,7 @@ enum class Opcode {
     DEC,
     DECM,
     NEG,
+    NEGM,
     ADD,
     SUB,
     MUL,
@@ -226,7 +228,9 @@ enum class Opcode {
     AND,
     OR,
     XOR,
+    XORM,
     NOT,
+    NOTM,
     ASRN,
     LSRN,
     LSLN,
@@ -277,7 +281,10 @@ val OpcodesWithAddress = setOf(
     Opcode.STOREZM,
     Opcode.STOREZX,
     Opcode.INCM,
-    Opcode.DECM
+    Opcode.DECM,
+    Opcode.NEGM,
+    Opcode.NOTM,
+    Opcode.XORM
 )
 
 
@@ -297,7 +304,7 @@ data class Instruction(
     val fpReg2: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
     val fpValue: Float?=null,
-    val symbol: List<String>?=null    // alternative to value
+    val labelSymbol: List<String>?=null    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
 ) {
     init {
         val formats = instructionFormats.getValue(opcode)
@@ -318,11 +325,11 @@ data class Instruction(
             throw IllegalArgumentException("too many registers (float)")
 
         if (type==VmDataType.FLOAT) {
-            if(format.fpValue && (fpValue==null && symbol==null))
-                throw IllegalArgumentException("$opcode: missing a fp-value or symbol")
+            if(format.fpValue && (fpValue==null && labelSymbol==null))
+                throw IllegalArgumentException("$opcode: missing a fp-value or labelsymbol")
         } else {
-            if(format.value && (value==null && symbol==null))
-                throw IllegalArgumentException("$opcode: missing a value or symbol")
+            if(format.value && (value==null && labelSymbol==null))
+                throw IllegalArgumentException("$opcode: missing a value or labelsymbol")
             if (fpReg1 != null || fpReg2 != null)
                 throw java.lang.IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
         }
@@ -361,7 +368,7 @@ data class Instruction(
             result.add(it.toString())
             result.add(",")
         }
-        symbol?.let {
+        labelSymbol?.let {
             result.add("_" + it.joinToString("."))
         }
         if(result.last() == ",")
@@ -464,6 +471,7 @@ val instructionFormats = mutableMapOf(
     Opcode.DEC        to InstructionFormat.from("BW,r1"),
     Opcode.DECM       to InstructionFormat.from("BW,v"),
     Opcode.NEG        to InstructionFormat.from("BW,r1      | F,fr1"),
+    Opcode.NEGM       to InstructionFormat.from("BW,v       | F,v"),
     Opcode.ADD        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.SUB        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.MUL        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
@@ -478,7 +486,9 @@ val instructionFormats = mutableMapOf(
     Opcode.AND        to InstructionFormat.from("BW,r1,r2"),
     Opcode.OR         to InstructionFormat.from("BW,r1,r2"),
     Opcode.XOR        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.XORM       to InstructionFormat.from("BW,r1,v"),
     Opcode.NOT        to InstructionFormat.from("BW,r1"),
+    Opcode.NOTM       to InstructionFormat.from("BW,v"),
     Opcode.ASRN       to InstructionFormat.from("BW,r1,r2"),
     Opcode.LSRN       to InstructionFormat.from("BW,r1,r2"),
     Opcode.LSLN       to InstructionFormat.from("BW,r1,r2"),

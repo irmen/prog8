@@ -3,12 +3,16 @@ package prog8.codegen.virtual
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
 internal class AssignmentGen(private val codeGen: CodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): VmCodeChunk {
+        if(assignment.target.children.single() is PtMachineRegister)
+            throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
+
         return if (assignment.isInplaceAssign)
             translateInplaceAssign(assignment)
         else
@@ -16,14 +20,104 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
     }
 
     private fun translateInplaceAssign(assignment: PtAssignment): VmCodeChunk {
-        // TODO can in-place assignments be optimized more? use special memory versions of instructions instead of register ones?
-        return translateRegularAssign(assignment)
+        val ident = assignment.target.identifier
+        val memory = assignment.target.memory
+        val array = assignment.target.array
+
+        return if(ident!=null) {
+            val address = codeGen.allocations.get(ident.targetName)
+            assignSelfInMemory(address, assignment.value, assignment.position, assignment)
+        } else if(memory != null) {
+            if(memory.address is PtNumber) {
+                assignSelfInMemory((memory.address as PtNumber).number.toInt(), assignment.value, assignment.position, assignment)
+            } else {
+                fallbackAssign(assignment)
+            }
+        } else if(array!=null) {
+            // TODO in-place array element assignment?
+            fallbackAssign(assignment)
+        } else {
+            fallbackAssign(assignment)
+        }
+    }
+
+    private fun assignSelfInMemory(
+        targetAddress: Int,
+        value: PtExpression,
+        position: Position,
+        origAssign: PtAssignment
+    ): VmCodeChunk {
+        val vmDt = codeGen.vmType(value.type)
+        val code = VmCodeChunk()
+        when(value) {
+            is PtIdentifier -> return code // do nothing, x=x null assignment.
+            is PtMachineRegister -> return code // do nothing, reg=reg null assignment
+            is PtPrefix -> return inplacePrefix(value.operator, vmDt, targetAddress)
+            is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, targetAddress, origAssign)
+            is PtMemoryByte -> {
+                return if (!codeGen.options.compTarget.machine.isIOAddress(targetAddress.toUInt()))
+                    code // do nothing, mem=mem null assignment.
+                else {
+                    // read and write a (i/o) memory location to itself.
+                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = targetAddress.toInt())
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = targetAddress.toInt())
+                    code
+                }
+            }
+            else -> return fallbackAssign(origAssign)
+        }
+
+    }
+
+    private fun fallbackAssign(origAssign: PtAssignment): VmCodeChunk {
+        if (codeGen.options.slowCodegenWarnings)
+            codeGen.errors.warn("indirect code for in-place assignment", origAssign.position)
+        return translateRegularAssign(origAssign)
+    }
+
+    private fun inplaceBinexpr(
+        operator: String,
+        right: PtExpression,
+        vmDt: VmDataType,
+        targetAddress: Int,
+        origAssign: PtAssignment
+    ): VmCodeChunk {
+        when(operator) {
+            "+" -> { /* TODO */ }
+            "-" -> { /* TODO */ }
+            "*" -> { /* TODO */ }
+            "/" -> { /* TODO */ }
+            "|" -> { /* TODO */ }
+            "&" -> { /* TODO */ }
+            "^" -> { /* TODO */ }
+            else -> {}
+        }
+        return fallbackAssign(origAssign)
+    }
+
+    private fun inplacePrefix(operator: String, vmDt: VmDataType, address: Int): VmCodeChunk {
+        val code= VmCodeChunk()
+        when(operator) {
+            "+" -> { }
+            "-" -> {
+                code += VmCodeInstruction(Opcode.NEGM, vmDt, value = address)
+            }
+            "~" -> {
+                val regMask = codeGen.vmRegisters.nextFree()
+                val mask = if(vmDt==VmDataType.BYTE) 0x00ff else 0xffff
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value = mask)
+                code += VmCodeInstruction(Opcode.XORM, vmDt, reg1=regMask, value = address)
+            }
+            "not" -> {
+                code += VmCodeInstruction(Opcode.NOTM, vmDt, value = address)
+            }
+            else -> throw AssemblyError("weird prefix operator")
+        }
+        return code
     }
 
     private fun translateRegularAssign(assignment: PtAssignment): VmCodeChunk {
         // note: assigning array and string values is done via an explicit memcopy/stringcopy function call.
-        if(assignment.target.children.single() is PtMachineRegister)
-            throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
         val ident = assignment.target.identifier
         val memory = assignment.target.memory
         val array = assignment.target.array

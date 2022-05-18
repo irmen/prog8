@@ -12,26 +12,23 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         print(type)
     }
 
-    infix fun isSameTargetAs(other: PtExpression): Boolean = when(this) {
-        is PtArrayIndexer -> {
-            if(other is PtArrayIndexer && other.type==type) {
-                if(other.variable isSameTargetAs variable) {
-                    other.index isSameTargetAs index
-                }
-            }
-            false
+    infix fun isSameAs(other: PtExpression): Boolean {
+        return when(this) {
+            is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
+            is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
+            is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
+            is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
+            is PtIdentifier -> other is PtIdentifier && other.type==type && other.targetName==targetName
+            is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
+            is PtMemoryByte -> other is PtMemoryByte && other.address isSameAs address
+            is PtNumber -> other is PtNumber && other.type==type && other.number==number
+            is PtPrefix -> other is PtPrefix && other.type==type && other.operator==operator && other.value isSameAs value
+            is PtRange -> other is PtRange && other.type==type && other.from==from && other.to==to && other.step==step
+            is PtTypeCast -> other is PtTypeCast && other.type==type && other.value isSameAs value
+            else -> false
         }
-        is PtIdentifier -> other is PtIdentifier && other.type==type && other.targetName==targetName
-        is PtMachineRegister -> other is PtMachineRegister && other.register==register
-        is PtMemoryByte -> other is PtMemoryByte && address isSameTargetAs other.address
-        is PtNumber -> other is PtNumber && other.type == type && other.number==number
-        is PtAddressOf -> other is PtAddressOf && other.identifier isSameTargetAs identifier
-        is PtPrefix -> other is PtPrefix && other.operator==operator && other.value isSameTargetAs value
-        is PtTypeCast -> other is PtTypeCast && other.type==type && other.value isSameTargetAs value
-        else -> false
     }
 }
-
 
 class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
     val identifier: PtIdentifier

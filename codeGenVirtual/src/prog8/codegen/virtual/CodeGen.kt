@@ -123,19 +123,19 @@ class CodeGen(internal val program: PtProgram,
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
         code += when(branch.condition) {
-            BranchCondition.CS -> VmCodeInstruction(Opcode.BSTCC, symbol = elseLabel)
-            BranchCondition.CC -> VmCodeInstruction(Opcode.BSTCS, symbol = elseLabel)
-            BranchCondition.EQ, BranchCondition.Z -> VmCodeInstruction(Opcode.BSTNE, symbol = elseLabel)
-            BranchCondition.NE, BranchCondition.NZ -> VmCodeInstruction(Opcode.BSTEQ, symbol = elseLabel)
-            BranchCondition.MI, BranchCondition.NEG -> VmCodeInstruction(Opcode.BSTPOS, symbol = elseLabel)
-            BranchCondition.PL, BranchCondition.POS -> VmCodeInstruction(Opcode.BSTNEG, symbol = elseLabel)
+            BranchCondition.CS -> VmCodeInstruction(Opcode.BSTCC, labelSymbol = elseLabel)
+            BranchCondition.CC -> VmCodeInstruction(Opcode.BSTCS, labelSymbol = elseLabel)
+            BranchCondition.EQ, BranchCondition.Z -> VmCodeInstruction(Opcode.BSTNE, labelSymbol = elseLabel)
+            BranchCondition.NE, BranchCondition.NZ -> VmCodeInstruction(Opcode.BSTEQ, labelSymbol = elseLabel)
+            BranchCondition.MI, BranchCondition.NEG -> VmCodeInstruction(Opcode.BSTPOS, labelSymbol = elseLabel)
+            BranchCondition.PL, BranchCondition.POS -> VmCodeInstruction(Opcode.BSTNEG, labelSymbol = elseLabel)
             BranchCondition.VC,
             BranchCondition.VS -> throw AssemblyError("conditional branch ${branch.condition} not supported in vm target due to lack of cpu V flag ${branch.position}")
         }
         code += translateNode(branch.trueScope)
         if(branch.falseScope.children.isNotEmpty()) {
             val endLabel = createLabelName()
-            code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+            code += VmCodeInstruction(Opcode.JUMP, labelSymbol = endLabel)
             code += VmCodeLabel(elseLabel)
             code += translateNode(branch.falseScope)
             code += VmCodeLabel(endLabel)
@@ -163,21 +163,21 @@ class CodeGen(internal val program: PtProgram,
                 val values = choice.values.children.map {it as PtNumber}
                 if(values.size==1) {
                     code += VmCodeInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=values[0].number.toInt())
-                    code += VmCodeInstruction(Opcode.BNE, valueDt, reg1=valueReg, reg2=choiceReg, symbol = skipLabel)
+                    code += VmCodeInstruction(Opcode.BNE, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = skipLabel)
                     code += translateNode(choice.statements)
                     if(choice.statements.children.last() !is PtReturn)
-                        code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+                        code += VmCodeInstruction(Opcode.JUMP, labelSymbol = endLabel)
                 } else {
                     val matchLabel = createLabelName()
                     for (value in values) {
                         code += VmCodeInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=value.number.toInt())
-                        code += VmCodeInstruction(Opcode.BEQ, valueDt, reg1=valueReg, reg2=choiceReg, symbol = matchLabel)
+                        code += VmCodeInstruction(Opcode.BEQ, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = matchLabel)
                     }
-                    code += VmCodeInstruction(Opcode.JUMP, symbol = skipLabel)
+                    code += VmCodeInstruction(Opcode.JUMP, labelSymbol = skipLabel)
                     code += VmCodeLabel(matchLabel)
                     code += translateNode(choice.statements)
                     if(choice.statements.children.last() !is PtReturn)
-                        code += VmCodeInstruction(Opcode.JUMP, symbol = endLabel)
+                        code += VmCodeInstruction(Opcode.JUMP, labelSymbol = endLabel)
                 }
                 code += VmCodeLabel(skipLabel)
             }
@@ -209,11 +209,11 @@ class CodeGen(internal val program: PtProgram,
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeLabel(loopLabel)
                     code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=0, reg2=indexReg, value = arrayAddress)
-                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=0, symbol = endLabel)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=0, labelSymbol = endLabel)
                     code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += VmCodeInstruction(Opcode.INC, VmDataType.BYTE, reg1=indexReg)
-                    code += VmCodeInstruction(Opcode.JUMP, symbol = loopLabel)
+                    code += VmCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
                     code += VmCodeLabel(endLabel)
                 } else {
                     // iterate over array
@@ -224,12 +224,12 @@ class CodeGen(internal val program: PtProgram,
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                     code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, symbol = endLabel)
+                    code += VmCodeInstruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = endLabel)
                     code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=0, reg2=indexReg, value=arrayAddress)
                     code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
-                    code += VmCodeInstruction(Opcode.JUMP, symbol = loopLabel)
+                    code += VmCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
                     code += VmCodeLabel(endLabel)
                 }
             }
@@ -264,7 +264,7 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         }
         val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
-        code += VmCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, symbol=loopLabel)
+        code += VmCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel)
         return code
     }
 
@@ -303,9 +303,9 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         }
         code += if(rangeEndWrapped==0) {
-            VmCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, symbol = loopLabel)
+            VmCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
         } else {
-            VmCodeInstruction(Opcode.BNE, loopvarDt, reg1 = indexReg, reg2 = endvalueReg, symbol = loopLabel)
+            VmCodeInstruction(Opcode.BNE, loopvarDt, reg1 = indexReg, reg2 = endvalueReg, labelSymbol = loopLabel)
         }
         return code
     }
@@ -492,16 +492,16 @@ class CodeGen(internal val program: PtProgram,
                 // if and else parts
                 val elseLabel = createLabelName()
                 val afterIfLabel = createLabelName()
-                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, symbol = elseLabel)
+                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, labelSymbol = elseLabel)
                 code += translateNode(ifElse.ifScope)
-                code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
+                code += VmCodeInstruction(Opcode.JUMP, labelSymbol = afterIfLabel)
                 code += VmCodeLabel(elseLabel)
                 code += translateNode(ifElse.elseScope)
                 code += VmCodeLabel(afterIfLabel)
             } else {
                 // only if part
                 val afterIfLabel = createLabelName()
-                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, symbol = afterIfLabel)
+                code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, reg2=rightReg, labelSymbol = afterIfLabel)
                 code += translateNode(ifElse.ifScope)
                 code += VmCodeLabel(afterIfLabel)
             }
@@ -516,16 +516,16 @@ class CodeGen(internal val program: PtProgram,
                     // if and else parts
                     val elseLabel = createLabelName()
                     val afterIfLabel = createLabelName()
-                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, symbol = elseLabel)
+                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, labelSymbol = elseLabel)
                     code += translateNode(ifElse.ifScope)
-                    code += VmCodeInstruction(Opcode.JUMP, symbol = afterIfLabel)
+                    code += VmCodeInstruction(Opcode.JUMP, labelSymbol = afterIfLabel)
                     code += VmCodeLabel(elseLabel)
                     code += translateNode(ifElse.elseScope)
                     code += VmCodeLabel(afterIfLabel)
                 } else {
                     // only if part
                     val afterIfLabel = createLabelName()
-                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, symbol = afterIfLabel)
+                    code += VmCodeInstruction(elseBranch, vmDt, reg1=leftReg, labelSymbol = afterIfLabel)
                     code += translateNode(ifElse.ifScope)
                     code += VmCodeLabel(afterIfLabel)
                 }
@@ -629,7 +629,7 @@ class CodeGen(internal val program: PtProgram,
         code += VmCodeLabel(repeatLabel)
         code += translateNode(repeat.statements)
         code += VmCodeInstruction(Opcode.DEC, vmDt, reg1=counterReg)
-        code += VmCodeInstruction(Opcode.BNZ, vmDt, reg1=counterReg, symbol = repeatLabel)
+        code += VmCodeInstruction(Opcode.BNZ, vmDt, reg1=counterReg, labelSymbol = repeatLabel)
         return code
     }
 
@@ -638,9 +638,9 @@ class CodeGen(internal val program: PtProgram,
         if(jump.address!=null)
             throw AssemblyError("cannot jump to memory location in the vm target")
         code += if(jump.generatedLabel!=null)
-            VmCodeInstruction(Opcode.JUMP, symbol = listOf(jump.generatedLabel!!))
+            VmCodeInstruction(Opcode.JUMP, labelSymbol = listOf(jump.generatedLabel!!))
         else if(jump.identifier!=null)
-            VmCodeInstruction(Opcode.JUMP, symbol = jump.identifier!!.targetName)
+            VmCodeInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.targetName)
         else
             throw AssemblyError("weird jump")
         return code

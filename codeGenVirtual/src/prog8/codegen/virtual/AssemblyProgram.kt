@@ -81,9 +81,9 @@ internal class VmCodeInstruction(
     fpReg2: Int?=null,      // 0-$ffff
     value: Int?=null,       // 0-$ffff
     fpValue: Float?=null,
-    symbol: List<String>?=null    // alternative to value
+    labelSymbol: List<String>?=null    // alternative to value for branch/call/jump labels
     ): VmCodeLine() {
-        val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue, symbol)
+        val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue, labelSymbol)
 
         init {
             if(reg1!=null && (reg1<0 || reg1>65536))

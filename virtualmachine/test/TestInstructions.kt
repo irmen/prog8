@@ -17,7 +17,7 @@ class TestInstructions: FunSpec({
         ins.reg1 shouldBe null
         ins.reg2 shouldBe null
         ins.value shouldBe null
-        ins.symbol shouldBe null
+        ins.labelSymbol shouldBe null
         ins.toString() shouldBe "nop"
     }
 
@@ -28,18 +28,18 @@ class TestInstructions: FunSpec({
         ins.reg1 shouldBe 42
         ins.reg2 shouldBe null
         ins.value shouldBe 9999
-        ins.symbol shouldBe null
+        ins.labelSymbol shouldBe null
         ins.toString() shouldBe "bz.b r42,9999"
     }
 
     test("with label") {
-        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, symbol = listOf("a","b","c"))
+        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, labelSymbol = listOf("a","b","c"))
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe VmDataType.WORD
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe null
         ins.value shouldBe null
-        ins.symbol shouldBe listOf("a","b","c")
+        ins.labelSymbol shouldBe listOf("a","b","c")
         ins.toString() shouldBe "bz.w r11,_a.b.c"
     }
 

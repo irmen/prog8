@@ -410,7 +410,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 val valueReg = codeGen.vmRegisters.nextFree()
                 code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value=1)
                 code += VmCodeInstruction(Opcode.FCOMP, VmDataType.FLOAT, reg1=valueReg, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
-                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=valueReg, symbol = label)
+                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=valueReg, labelSymbol = label)
                 code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value=0)
                 code += VmCodeLabel(label)
             }
@@ -664,7 +664,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 }
             }
         }
-        code += VmCodeInstruction(Opcode.CALL, symbol=fcall.functionName)
+        code += VmCodeInstruction(Opcode.CALL, labelSymbol=fcall.functionName)
         if(fcall.type==DataType.FLOAT) {
             if (!fcall.void && resultFpRegister != 0) {
                 // Call convention: result value is in fr0, so put it in the required register instead.

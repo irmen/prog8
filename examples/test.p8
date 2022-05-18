@@ -4,19 +4,26 @@
 
 main {
     sub start() {
+        byte xx
+        byte yy
+        ubyte ubx
 
-        ; a "pixelshader":
-        sys.gfx_enable(0)       ; enable lo res screen
+        xx = xx
+        xx = xx*9
+        xx = yy*9
+        xx = xx+3*yy
+        xx = xx/yy
+        xx = -xx
+        @($4000) = @($4000)
+        @($4000) = @($4000) + 2
+        xx = xx | yy
+        xx = xx & yy
+        xx = xx ^ yy
+        xx = (not xx) as byte
+        xx = (~xx) as byte
+        xx++
 
-        ubyte angle
-
-        for angle in 0 to 180 {
-            ubyte xx = math.sinr8u(angle)
-            ubyte yy = math.cosr8u(angle) / 2
-            sys.gfx_plot(xx, yy, 255)
-        }
-
-        repeat {
-        }
+        ubx = not ubx
+        ubx = ~ubx
     }
 }
