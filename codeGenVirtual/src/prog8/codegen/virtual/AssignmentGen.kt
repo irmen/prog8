@@ -4,6 +4,7 @@ import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.core.SignedDatatypes
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
@@ -26,10 +27,10 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
 
         return if(ident!=null) {
             val address = codeGen.allocations.get(ident.targetName)
-            assignSelfInMemory(address, assignment.value, assignment.position, assignment)
+            assignSelfInMemory(address, assignment.value, assignment)
         } else if(memory != null) {
             if(memory.address is PtNumber) {
-                assignSelfInMemory((memory.address as PtNumber).number.toInt(), assignment.value, assignment.position, assignment)
+                assignSelfInMemory((memory.address as PtNumber).number.toInt(), assignment.value, assignment)
             } else {
                 fallbackAssign(assignment)
             }
@@ -44,7 +45,6 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
     private fun assignSelfInMemory(
         targetAddress: Int,
         value: PtExpression,
-        position: Position,
         origAssign: PtAssignment
     ): VmCodeChunk {
         val vmDt = codeGen.vmType(value.type)
@@ -53,14 +53,14 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             is PtIdentifier -> return code // do nothing, x=x null assignment.
             is PtMachineRegister -> return code // do nothing, reg=reg null assignment
             is PtPrefix -> return inplacePrefix(value.operator, vmDt, targetAddress)
-            is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, targetAddress, origAssign)
+            is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, value.type in SignedDatatypes, targetAddress, origAssign)
             is PtMemoryByte -> {
                 return if (!codeGen.options.compTarget.machine.isIOAddress(targetAddress.toUInt()))
                     code // do nothing, mem=mem null assignment.
                 else {
                     // read and write a (i/o) memory location to itself.
-                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = targetAddress.toInt())
-                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = targetAddress.toInt())
+                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = targetAddress)
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = targetAddress)
                     code
                 }
             }
@@ -79,6 +79,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         operator: String,
         right: PtExpression,
         vmDt: VmDataType,
+        signed: Boolean,
         targetAddress: Int,
         origAssign: PtAssignment
     ): VmCodeChunk {

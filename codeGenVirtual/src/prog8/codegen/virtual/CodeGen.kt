@@ -433,25 +433,31 @@ class CodeGen(internal val program: PtProgram,
         } else {
             val factorReg = vmRegisters.nextFreeFloat()
             code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += VmCodeInstruction(Opcode.DIV, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
+            code += VmCodeInstruction(Opcode.DIVS, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
         }
         return code
     }
 
-    internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
+    internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int, signed: Boolean): VmCodeChunk {
         val code = VmCodeChunk()
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            code += VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
+            code += if(signed)
+                VmCodeInstruction(Opcode.ASR, dt, reg1=reg)
+            else
+                VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
         }
         else if(pow2>=1) {
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
+            code += if(signed)
+                VmCodeInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
+            else
+                VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
         } else {
             if (factor == 0) {
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
@@ -459,7 +465,10 @@ class CodeGen(internal val program: PtProgram,
             else {
                 val factorReg = vmRegisters.nextFree()
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
-                code += VmCodeInstruction(Opcode.DIV, dt, reg1=reg, reg2=factorReg)
+                code += if(signed)
+                    VmCodeInstruction(Opcode.DIVS, dt, reg1=reg, reg2=factorReg)
+                else
+                    VmCodeInstruction(Opcode.DIV, dt, reg1=reg, reg2=factorReg)
             }
         }
         return code
