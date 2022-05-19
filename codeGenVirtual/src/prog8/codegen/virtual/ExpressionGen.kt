@@ -583,6 +583,31 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal fun operatorMultiplyInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        val constFactorRight = operand as? PtNumber
+        if(vmDt==VmDataType.FLOAT) {
+            if(constFactorRight!=null) {
+                val factor = constFactorRight.number.toFloat()
+                code += codeGen.multiplyByConstFloatInplace(address, factor)
+            } else {
+                val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(operand, -1, operandFpReg)
+                code += VmCodeInstruction(Opcode.MULM, vmDt, fpReg1 = operandFpReg, value = address)
+            }
+        } else {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toInt()
+                code += codeGen.multiplyByConstInplace(vmDt, address, factor)
+            } else {
+                val operandReg = codeGen.vmRegisters.nextFree()
+                code += translateExpression(operand, operandReg, -1)
+                code += VmCodeInstruction(Opcode.MULM, vmDt, reg1=operandReg, value = address)
+            }
+        }
+        return code
+    }
+
     private fun operatorMinus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
@@ -611,25 +636,25 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorMinusInplace(targetAddress: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+    internal fun operatorMinusInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                code += VmCodeInstruction(Opcode.DECM, vmDt, value=targetAddress)
+                code += VmCodeInstruction(Opcode.DECM, vmDt, value=address)
             }
             else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += VmCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, value=targetAddress)
+                code += VmCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, value=address)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                code += VmCodeInstruction(Opcode.DECM, vmDt, value=targetAddress)
+                code += VmCodeInstruction(Opcode.DECM, vmDt, value=address)
             }
             else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += VmCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, value = targetAddress)
+                code += VmCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, value = address)
             }
         }
         return code
@@ -671,25 +696,25 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorPlusInplace(targetAddress: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+    internal fun operatorPlusInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                code += VmCodeInstruction(Opcode.INCM, vmDt, value = targetAddress)
+                code += VmCodeInstruction(Opcode.INCM, vmDt, value = address)
             }
             else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += VmCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, value=targetAddress)
+                code += VmCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, value=address)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                code += VmCodeInstruction(Opcode.INCM, vmDt, value = targetAddress)
+                code += VmCodeInstruction(Opcode.INCM, vmDt, value = address)
             }
             else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += VmCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, value=targetAddress)
+                code += VmCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, value=address)
             }
         }
         return code

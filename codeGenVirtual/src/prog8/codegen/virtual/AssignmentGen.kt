@@ -3,7 +3,6 @@ package prog8.codegen.virtual
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
-import prog8.code.core.Position
 import prog8.code.core.SignedDatatypes
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
@@ -43,7 +42,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
     }
 
     private fun assignSelfInMemory(
-        targetAddress: Int,
+        address: Int,
         value: PtExpression,
         origAssign: PtAssignment
     ): VmCodeChunk {
@@ -52,15 +51,15 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         when(value) {
             is PtIdentifier -> return code // do nothing, x=x null assignment.
             is PtMachineRegister -> return code // do nothing, reg=reg null assignment
-            is PtPrefix -> return inplacePrefix(value.operator, vmDt, targetAddress)
-            is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, value.type in SignedDatatypes, targetAddress, origAssign)
+            is PtPrefix -> return inplacePrefix(value.operator, vmDt, address)
+            is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, value.type in SignedDatatypes, address, origAssign)
             is PtMemoryByte -> {
-                return if (!codeGen.options.compTarget.machine.isIOAddress(targetAddress.toUInt()))
+                return if (!codeGen.options.compTarget.machine.isIOAddress(address.toUInt()))
                     code // do nothing, mem=mem null assignment.
                 else {
                     // read and write a (i/o) memory location to itself.
-                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = targetAddress)
-                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = targetAddress)
+                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = address)
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = address)
                     code
                 }
             }
@@ -77,16 +76,16 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
 
     private fun inplaceBinexpr(
         operator: String,
-        right: PtExpression,
+        operand: PtExpression,
         vmDt: VmDataType,
         signed: Boolean,
-        targetAddress: Int,
+        address: Int,
         origAssign: PtAssignment
     ): VmCodeChunk {
         when(operator) {
-            "+" -> return expressionEval.operatorPlusInplace(targetAddress, vmDt, right)
-            "-" -> return expressionEval.operatorMinusInplace(targetAddress, vmDt, right)
-            "*" -> { /* TODO */ }
+            "+" -> return expressionEval.operatorPlusInplace(address, vmDt, operand)
+            "-" -> return expressionEval.operatorMinusInplace(address, vmDt, operand)
+            "*" -> return expressionEval.operatorMultiplyInplace(address, vmDt, operand)
             "/" -> { /* TODO */ }
             "|" -> { /* TODO */ }
             "&" -> { /* TODO */ }

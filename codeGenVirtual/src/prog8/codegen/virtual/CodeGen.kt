@@ -395,6 +395,20 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
+    internal fun multiplyByConstFloatInplace(address: Int, factor: Float): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1f)
+            return code
+        if(factor==0f) {
+            code += VmCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value = address)
+        } else {
+            val factorReg = vmRegisters.nextFreeFloat()
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
+            code += VmCodeInstruction(Opcode.MULM, VmDataType.FLOAT, fpReg1 = factorReg, value = address)
+        }
+        return code
+    }
+
     internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
     internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
@@ -419,6 +433,41 @@ class CodeGen(internal val program: PtProgram,
                 val factorReg = vmRegisters.nextFree()
                 code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
                 code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=factorReg)
+            }
+        }
+        return code
+    }
+
+    internal fun multiplyByConstInplace(dt: VmDataType, address: Int, factor: Int): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1)
+            return code
+        val pow2 = powersOfTwo.indexOf(factor)
+        if(pow2==1) {
+            // just shift 1 bit
+            // TODO use a memory shift instruction?
+            val reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
+            code += VmCodeInstruction(Opcode.LSL, dt, reg1=reg)
+            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+        }
+        else if(pow2>=1) {
+            // just shift multiple bits
+            // TODO use a memory shift instruction?
+            val reg = vmRegisters.nextFree()
+            val pow2reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
+            code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
+            code += VmCodeInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
+            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+        } else {
+            if (factor == 0) {
+                code += VmCodeInstruction(Opcode.STOREZM, dt, value=address)
+            }
+            else {
+                val factorReg = vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value = factor)
+                code += VmCodeInstruction(Opcode.MULM, dt, reg1=factorReg, value = address)
             }
         }
         return code

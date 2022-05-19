@@ -98,9 +98,13 @@ negm                           address      - sign negate memory at address
 add         reg1, reg2                      - reg1 += reg2 (unsigned + signed)
 addm        reg1,              address      - memory at address += reg1 (unsigned + signed)
 sub         reg1, reg2                      - reg1 -= reg2 (unsigned + signed)
+subm        reg1,              address      - memory at address -= reg2 (unsigned + signed)
 mul         reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
+mulm        reg1,              address      - memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
 div         reg1, reg2                      - unsigned division reg1 /= reg2  note: division by zero yields max int $ff/$ffff
+divm        reg1,              address      - memory at address /= reg2  note: division by zero yields max int $ff/$ffff
 divs        reg1, reg2                      - signed division reg1 /= reg2  note: division by zero yields max signed int 127 / 32767
+divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767
 mod         reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 sqrt        reg1, reg2                      - reg1 is the square root of reg2
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
@@ -130,6 +134,8 @@ ror         reg1                             - rotate reg1 right by 1 bits, not 
 roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
 rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
 roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit
+
+TODO: add memory-shift instructions?
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -291,6 +297,11 @@ val OpcodesWithAddress = setOf(
     Opcode.INCM,
     Opcode.DECM,
     Opcode.NEGM,
+    Opcode.ADDM,
+    Opcode.SUBM,
+    Opcode.MULM,
+    Opcode.DIVM,
+    Opcode.DIVSM,
     Opcode.NOTM,
     Opcode.XORM
 )

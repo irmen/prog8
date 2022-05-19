@@ -142,7 +142,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.SUB -> InsSUB(ins)
             Opcode.SUBM -> InsSUBM(ins)
             Opcode.MUL -> InsMUL(ins)
-            Opcode.MULM -> TODO()
+            Opcode.MULM -> InsMULM(ins)
             Opcode.DIV -> InsDIV(ins)
             Opcode.DIVM -> TODO()
             Opcode.DIVS -> InsDIVS(ins)
@@ -730,6 +730,21 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val right = registers.getFloat(i.fpReg2!!)
                 val result = arithFloat(left, "*", right)
                 registers.setFloat(i.fpReg1, result)
+            }
+        }
+        pc++
+    }
+
+    private fun InsMULM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> plusMinusMultAnyByteInplace("*", i.reg1!!, address)
+            VmDataType.WORD -> plusMinusMultAnyWordInplace("*", i.reg1!!, address)
+            VmDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val right = registers.getFloat(i.fpReg1!!)
+                val result = arithFloat(left, "*", right)
+                memory.setFloat(address, result)
             }
         }
         pc++
