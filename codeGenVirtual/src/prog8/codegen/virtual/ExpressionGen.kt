@@ -611,6 +611,30 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal fun operatorMinusInplace(targetAddress: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(vmDt==VmDataType.FLOAT) {
+            if((operand as? PtNumber)?.number==1.0) {
+                code += VmCodeInstruction(Opcode.DECM, vmDt, value=targetAddress)
+            }
+            else {
+                val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(operand, -1, operandFpReg)
+                code += VmCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, value=targetAddress)
+            }
+        } else {
+            if((operand as? PtNumber)?.number==1.0) {
+                code += VmCodeInstruction(Opcode.DECM, vmDt, value=targetAddress)
+            }
+            else {
+                val operandReg = codeGen.vmRegisters.nextFree()
+                code += translateExpression(operand, operandReg, -1)
+                code += VmCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, value = targetAddress)
+            }
+        }
+        return code
+    }
+
     private fun operatorPlus(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(vmDt==VmDataType.FLOAT) {
@@ -642,6 +666,30 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 code += translateExpression(binExpr.left, resultRegister, -1)
                 code += translateExpression(binExpr.right, rightResultReg, -1)
                 code += VmCodeInstruction(Opcode.ADD, vmDt, reg1=resultRegister, reg2=rightResultReg)
+            }
+        }
+        return code
+    }
+
+    internal fun operatorPlusInplace(targetAddress: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(vmDt==VmDataType.FLOAT) {
+            if((operand as? PtNumber)?.number==1.0) {
+                code += VmCodeInstruction(Opcode.INCM, vmDt, value = targetAddress)
+            }
+            else {
+                val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(operand, -1, operandFpReg)
+                code += VmCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, value=targetAddress)
+            }
+        } else {
+            if((operand as? PtNumber)?.number==1.0) {
+                code += VmCodeInstruction(Opcode.INCM, vmDt, value = targetAddress)
+            }
+            else {
+                val operandReg = codeGen.vmRegisters.nextFree()
+                code += translateExpression(operand, operandReg, -1)
+                code += VmCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, value=targetAddress)
             }
         }
         return code

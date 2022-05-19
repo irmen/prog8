@@ -84,8 +84,8 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         origAssign: PtAssignment
     ): VmCodeChunk {
         when(operator) {
-            "+" -> { /* TODO */ }
-            "-" -> { /* TODO */ }
+            "+" -> return expressionEval.operatorPlusInplace(targetAddress, vmDt, right)
+            "-" -> return expressionEval.operatorMinusInplace(targetAddress, vmDt, right)
             "*" -> { /* TODO */ }
             "/" -> { /* TODO */ }
             "|" -> { /* TODO */ }

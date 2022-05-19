@@ -138,10 +138,15 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.NEG -> InsNEG(ins)
             Opcode.NEGM -> InsNEGM(ins)
             Opcode.ADD -> InsADD(ins)
+            Opcode.ADDM -> InsADDM(ins)
             Opcode.SUB -> InsSUB(ins)
+            Opcode.SUBM -> InsSUBM(ins)
             Opcode.MUL -> InsMUL(ins)
+            Opcode.MULM -> TODO()
             Opcode.DIV -> InsDIV(ins)
+            Opcode.DIVM -> TODO()
             Opcode.DIVS -> InsDIVS(ins)
+            Opcode.DIVSM -> TODO()
             Opcode.MOD -> InsMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
@@ -194,7 +199,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.FFLOOR -> InsFFLOOR(ins)
             Opcode.FCEIL -> InsFCEIL(ins)
             Opcode.FCOMP -> InsFCOMP(ins)
-            //else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
+            else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
 
@@ -662,7 +667,27 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("+", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
-            VmDataType.FLOAT -> arithFloat("+", i.fpReg1!!, i.fpReg2!!)
+            VmDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val right = registers.getFloat(i.fpReg2!!)
+                val result = arithFloat(left, "+", right)
+                registers.setFloat(i.fpReg1, result)
+            }
+        }
+        pc++
+    }
+
+    private fun InsADDM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> plusMinusMultAnyByteInplace("+", i.reg1!!, address)
+            VmDataType.WORD -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
+            VmDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val right = registers.getFloat(i.fpReg1!!)
+                val result = arithFloat(left, "+", right)
+                memory.setFloat(address, result)
+            }
         }
         pc++
     }
@@ -671,15 +696,41 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("-", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
-            VmDataType.FLOAT -> arithFloat("-", i.fpReg1!!, i.fpReg2!!)
+            VmDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val right = registers.getFloat(i.fpReg2!!)
+                val result = arithFloat(left, "-", right)
+                registers.setFloat(i.fpReg1, result)
+            }
         }
         pc++
     }
+
+    private fun InsSUBM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> plusMinusMultAnyByteInplace("-", i.reg1!!, address)
+            VmDataType.WORD -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
+            VmDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val right = registers.getFloat(i.fpReg1!!)
+                val result = arithFloat(left, "-", right)
+                memory.setFloat(address, result)
+            }
+        }
+        pc++
+    }
+
     private fun InsMUL(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("*", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("*", i.reg1!!, i.reg2!!)
-            VmDataType.FLOAT -> arithFloat("*", i.fpReg1!!, i.fpReg2!!)
+            VmDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val right = registers.getFloat(i.fpReg2!!)
+                val result = arithFloat(left, "*", right)
+                registers.setFloat(i.fpReg1, result)
+            }
         }
         pc++
     }
@@ -697,7 +748,12 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(i.type!!) {
             VmDataType.BYTE -> divModByteSigned("/", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> divModWordSigned("/", i.reg1!!, i.reg2!!)
-            VmDataType.FLOAT -> arithFloat("/", i.fpReg1!!, i.fpReg2!!)
+            VmDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val right = registers.getFloat(i.fpReg2!!)
+                val result = arithFloat(left, "/", right)
+                registers.setFloat(i.fpReg1, result)
+            }
         }
         pc++
     }
@@ -780,6 +836,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUB(reg1, result.toUByte())
     }
 
+    private fun plusMinusMultAnyByteInplace(operator: String, reg1: Int, address: Int) {
+        val memvalue = memory.getUB(address)
+        val operand = registers.getUB(reg1)
+        val result = when(operator) {
+            "+" -> memvalue + operand
+            "-" -> memvalue - operand
+            "*" -> memvalue * operand
+            else -> throw IllegalArgumentException("operator byte $operator")
+        }
+        memory.setUB(address, result.toUByte())
+    }
+
     private fun divModByteSigned(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getSB(reg1)
         val right = registers.getSB(reg2)
@@ -826,6 +894,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setUW(reg1, result.toUShort())
     }
 
+    private fun plusMinusMultAnyWordInplace(operator: String, reg1: Int, address: Int) {
+        val memvalue = memory.getUW(address)
+        val operand = registers.getUW(reg1)
+        val result = when(operator) {
+            "+" -> memvalue + operand
+            "-" -> memvalue - operand
+            "*" -> memvalue * operand
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        registers.setUW(reg1, result.toUShort())
+    }
+
     private fun divModWordUnsigned(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getUW(reg1)
         val right = registers.getUW(reg2)
@@ -860,24 +940,19 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         registers.setSW(reg1, result.toShort())
     }
 
-    private fun arithFloat(operator: String, fpReg1: Int, fpReg2: Int) {
-        val left = registers.getFloat(fpReg1)
-        val right = registers.getFloat(fpReg2)
-        val result = when(operator) {
-            "+" -> left + right
-            "-" -> left - right
-            "*" -> left * right
-            "/" -> {
-                if(right==0f) Float.MAX_VALUE
-                else left / right
-            }
-            "%" -> {
-                if(right==0f) Float.MAX_VALUE
-                else left % right
-            }
-            else -> throw IllegalArgumentException("operator word $operator")
+    private fun arithFloat(left: Float, operator: String, right: Float): Float = when(operator) {
+        "+" -> left + right
+        "-" -> left - right
+        "*" -> left * right
+        "/" -> {
+            if(right==0f) Float.MAX_VALUE
+            else left / right
         }
-        registers.setFloat(fpReg1, result)
+        "%" -> {
+            if(right==0f) Float.MAX_VALUE
+            else left % right
+        }
+        else -> throw IllegalArgumentException("operator word $operator")
     }
 
     private fun InsEXT(i: Instruction) {

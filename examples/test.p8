@@ -24,6 +24,9 @@ main {
         xx = xx / 6
         txt.print_b(xx)     ; -17
         txt.nl()
+        xx = xx * 5
+        txt.print_b(xx)     ; -85
+        txt.nl()
         txt.nl()
 
 ;        xx = xx+3*yy

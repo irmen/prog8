@@ -96,6 +96,7 @@ decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
 add         reg1, reg2                      - reg1 += reg2 (unsigned + signed)
+addm        reg1,              address      - memory at address += reg1 (unsigned + signed)
 sub         reg1, reg2                      - reg1 -= reg2 (unsigned + signed)
 mul         reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
 div         reg1, reg2                      - unsigned division reg1 /= reg2  note: division by zero yields max int $ff/$ffff
@@ -215,10 +216,15 @@ enum class Opcode {
     NEG,
     NEGM,
     ADD,
+    ADDM,
     SUB,
+    SUBM,
     MUL,
+    MULM,
     DIV,
+    DIVM,
     DIVS,
+    DIVSM,
     MOD,
     SQRT,
     SGN,
@@ -475,10 +481,15 @@ val instructionFormats = mutableMapOf(
     Opcode.NEG        to InstructionFormat.from("BW,r1      | F,fr1"),
     Opcode.NEGM       to InstructionFormat.from("BW,v       | F,v"),
     Opcode.ADD        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.ADDM       to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.SUB        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.SUBM       to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.MUL        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
-    Opcode.DIV       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.MULM       to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
+    Opcode.DIV        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.DIVM       to InstructionFormat.from("BW,r1,v"),
     Opcode.DIVS       to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
+    Opcode.DIVSM      to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.SQRT       to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.SGN        to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.RND        to InstructionFormat.from("BW,r1      | F,fr1"),
