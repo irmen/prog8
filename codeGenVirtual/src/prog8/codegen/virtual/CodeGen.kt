@@ -487,6 +487,22 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
+    internal fun divideByConstFloatInplace(address: Int, factor: Float): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1f)
+            return code
+        if(factor==0f) {
+            val maxvalueReg = vmRegisters.nextFreeFloat()
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = maxvalueReg, fpValue = Float.MAX_VALUE)
+            code += VmCodeInstruction(Opcode.STOREM, VmDataType.FLOAT, fpReg1 = maxvalueReg, value=address)
+        } else {
+            val factorReg = vmRegisters.nextFreeFloat()
+            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
+            code += VmCodeInstruction(Opcode.DIVSM, VmDataType.FLOAT, fpReg1 = factorReg, value=address)
+        }
+        return code
+    }
+
     internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int, signed: Boolean): VmCodeChunk {
         val code = VmCodeChunk()
         if(factor==1)
@@ -518,6 +534,52 @@ class CodeGen(internal val program: PtProgram,
                     VmCodeInstruction(Opcode.DIVS, dt, reg1=reg, reg2=factorReg)
                 else
                     VmCodeInstruction(Opcode.DIV, dt, reg1=reg, reg2=factorReg)
+            }
+        }
+        return code
+    }
+
+    internal fun divideByConstInplace(dt: VmDataType, address: Int, factor: Int, signed: Boolean): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(factor==1)
+            return code
+        val pow2 = powersOfTwo.indexOf(factor)
+        if(pow2==1) {
+            // just shift 1 bit
+            // TODO use memory-shift instruction?
+            val reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
+            code += if(signed)
+                VmCodeInstruction(Opcode.ASR, dt, reg1=reg)
+            else
+                VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
+            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+        }
+        else if(pow2>=1) {
+            // just shift multiple bits
+            // TODO use memory-shift instruction?
+            val reg = vmRegisters.nextFree()
+            val pow2reg = vmRegisters.nextFree()
+            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
+            code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
+            code += if(signed)
+                VmCodeInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
+            else
+                VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
+            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+        } else {
+            if (factor == 0) {
+                val reg = vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
+                code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+            }
+            else {
+                val factorReg = vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
+                code += if(signed)
+                    VmCodeInstruction(Opcode.DIVSM, dt, reg1=factorReg, value=address)
+                else
+                    VmCodeInstruction(Opcode.DIVM, dt, reg1=factorReg, value=address)
             }
         }
         return code

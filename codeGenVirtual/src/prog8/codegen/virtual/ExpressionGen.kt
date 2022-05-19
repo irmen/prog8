@@ -545,6 +545,37 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal fun operatorDivideInplace(address: Int, vmDt: VmDataType, signed: Boolean, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        val constFactorRight = operand as? PtNumber
+        if(vmDt==VmDataType.FLOAT) {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toFloat()
+                code += codeGen.divideByConstFloatInplace(address, factor)
+            } else {
+                val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
+                code += translateExpression(operand, -1, operandFpReg)
+                code += if(signed)
+                    VmCodeInstruction(Opcode.DIVSM, vmDt, fpReg1 = operandFpReg, value=address)
+                else
+                    VmCodeInstruction(Opcode.DIVM, vmDt, fpReg1 = operandFpReg, value=address)
+            }
+        } else {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toInt()
+                code += codeGen.divideByConstInplace(vmDt, address, factor, signed)
+            } else {
+                val operandReg = codeGen.vmRegisters.nextFree()
+                code += translateExpression(operand, operandReg, -1)
+                code += if(signed)
+                    VmCodeInstruction(Opcode.DIVSM, vmDt, reg1=operandReg, value = address)
+                else
+                    VmCodeInstruction(Opcode.DIVM, vmDt, reg1=operandReg, value = address)
+            }
+        }
+        return code
+    }
+
     private fun operatorMultiply(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         val constFactorLeft = binExpr.left as? PtNumber

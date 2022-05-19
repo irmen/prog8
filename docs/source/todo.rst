@@ -4,7 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: implement the missing in-place operators in inplaceBinexpr()
-- vm: implement the new in-memory instructions in the VirtualMachine eval loop itself.
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
