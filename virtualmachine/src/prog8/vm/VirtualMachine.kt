@@ -155,7 +155,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
             Opcode.AND -> InsAND(ins)
+            Opcode.ANDM -> InsANDM(ins)
             Opcode.OR -> InsOR(ins)
+            Opcode.ORM -> InsORM(ins)
             Opcode.XOR -> InsXOR(ins)
             Opcode.XORM ->InsXORM(ins)
             Opcode.NOT -> InsNOT(ins)
@@ -977,7 +979,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             "*" -> memvalue * operand
             else -> throw IllegalArgumentException("operator word $operator")
         }
-        registers.setUW(reg1, result.toUShort())
+        memory.setUW(address, result.toUShort())
     }
 
     private fun divModWordUnsigned(operator: String, reg1: Int, reg2: Int) {
@@ -1091,11 +1093,31 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun InsANDM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address) and registers.getUB(i.reg1!!)))
+            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address) and registers.getUW(i.reg1!!)))
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
     private fun InsOR(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left or right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left or right).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsORM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address) or registers.getUB(i.reg1!!)))
+            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address) or registers.getUW(i.reg1!!)))
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++

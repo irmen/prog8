@@ -87,9 +87,9 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             "-" -> return expressionEval.operatorMinusInplace(address, vmDt, operand)
             "*" -> return expressionEval.operatorMultiplyInplace(address, vmDt, operand)
             "/" -> return expressionEval.operatorDivideInplace(address, vmDt, signed, operand)
-            "|" -> { /* TODO */ }
-            "&" -> { /* TODO */ }
-            "^" -> { /* TODO */ }
+            "|" -> return expressionEval.operatorOrInplace(address, vmDt, operand)
+            "&" -> return expressionEval.operatorAndInplace(address, vmDt, operand)
+            "^" -> return expressionEval.operatorXorInplace(address, vmDt, operand)
             else -> {}
         }
         return fallbackAssign(origAssign)

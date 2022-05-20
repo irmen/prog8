@@ -477,6 +477,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal fun operatorXorInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        val operandReg = codeGen.vmRegisters.nextFree()
+        code += translateExpression(operand, operandReg, -1)
+        code += VmCodeInstruction(Opcode.XORM, vmDt, reg1=operandReg, value = address)
+        return code
+    }
+
     private fun operatorAnd(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         val rightResultReg = codeGen.vmRegisters.nextFree()
@@ -486,12 +494,28 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal  fun operatorAndInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        val operandReg = codeGen.vmRegisters.nextFree()
+        code += translateExpression(operand, operandReg, -1)
+        code += VmCodeInstruction(Opcode.ANDM, vmDt, reg1=operandReg, value=address)
+        return code
+    }
+
     private fun operatorOr(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         val rightResultReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(binExpr.left, resultRegister, -1)
         code += translateExpression(binExpr.right, rightResultReg, -1)
         code += VmCodeInstruction(Opcode.OR, vmDt, reg1=resultRegister, reg2=rightResultReg)
+        return code
+    }
+
+    internal fun operatorOrInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        val operandReg = codeGen.vmRegisters.nextFree()
+        code += translateExpression(operand, operandReg, -1)
+        code += VmCodeInstruction(Opcode.ORM, vmDt, reg1=operandReg, value = address)
         return code
     }
 

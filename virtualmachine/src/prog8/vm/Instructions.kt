@@ -9,6 +9,7 @@ Virtual machine:
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status registers: Carry, Zero, Negative.
+Program to execute is not stored in this memory, it's just a separate list of instructions.
 
 Most instructions have an associated data type 'b','w','f'. (omitting it means 'b'/byte).
 Currently NO support for 24 or 32 bits integers.
@@ -119,7 +120,9 @@ LOGICAL/BITWISE
 All have type b or w.
 
 and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
+andm        reg1         address             - memory = memory bitwise and reg1
 or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
+orm         reg1,        address             - memory = memory bitwise or reg1
 xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
 xorm        reg1,        address             - memory = memory bitwise xor reg1
 not         reg1                             - reg1 = boolean not of reg1 (0->1 , ~0 -> 0)
@@ -240,7 +243,9 @@ enum class Opcode {
     EXTS,
 
     AND,
+    ANDM,
     OR,
+    ORM,
     XOR,
     XORM,
     NOT,
@@ -303,7 +308,9 @@ val OpcodesWithAddress = setOf(
     Opcode.DIVM,
     Opcode.DIVSM,
     Opcode.NOTM,
-    Opcode.XORM
+    Opcode.ORM,
+    Opcode.XORM,
+    Opcode.ANDM
 )
 
 
@@ -509,7 +516,9 @@ val instructionFormats = mutableMapOf(
     Opcode.EXT        to InstructionFormat.from("BW,r1"),
     Opcode.EXTS       to InstructionFormat.from("BW,r1"),
     Opcode.AND        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ANDM       to InstructionFormat.from("BW,r1,v"),
     Opcode.OR         to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ORM        to InstructionFormat.from("BW,r1,v"),
     Opcode.XOR        to InstructionFormat.from("BW,r1,r2"),
     Opcode.XORM       to InstructionFormat.from("BW,r1,v"),
     Opcode.NOT        to InstructionFormat.from("BW,r1"),

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: implement the missing in-place operators in inplaceBinexpr()
 - complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
@@ -27,6 +26,7 @@ Compiler:
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
+- vm: add more assignments to translateInplaceAssign()
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
