@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: don't use register 0/1 "as convenience" where it's not required, just allocate a new register anyway.
-      search for reg.\s?=\s?0
-
 ...
 
 

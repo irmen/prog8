@@ -57,8 +57,9 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                     code // do nothing, mem=mem null assignment.
                 else {
                     // read and write a (i/o) memory location to itself.
-                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 =0, value = address)
-                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=0, value = address)
+                    val tempReg = codeGen.vmRegisters.nextFree()
+                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = tempReg, value = address)
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = tempReg, value = address)
                     code
                 }
             }

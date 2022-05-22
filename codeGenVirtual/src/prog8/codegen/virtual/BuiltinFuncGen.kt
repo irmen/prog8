@@ -138,43 +138,49 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcSgn(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0, -1)
-        code += VmCodeInstruction(Opcode.SGN, codeGen.vmType(call.type), reg1=resultRegister, reg2=0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += exprGen.translateExpression(call.args.single(), reg, -1)
+        code += VmCodeInstruction(Opcode.SGN, codeGen.vmType(call.type), reg1=resultRegister, reg2=reg)
         return code
     }
 
     private fun funcSqrt16(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0, -1)
-        code += VmCodeInstruction(Opcode.SQRT, VmDataType.WORD, reg1=resultRegister, reg2=0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += exprGen.translateExpression(call.args.single(), reg, -1)
+        code += VmCodeInstruction(Opcode.SQRT, VmDataType.WORD, reg1=resultRegister, reg2=reg)
         return code
     }
 
     private fun funcPop(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=0)
-        code += assignRegisterTo(call.args.single(), 0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=reg)
+        code += assignRegisterTo(call.args.single(), reg)
         return code
     }
 
     private fun funcPopw(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1=0)
-        code += assignRegisterTo(call.args.single(), 0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += VmCodeInstruction(Opcode.POP, VmDataType.WORD, reg1=reg)
+        code += assignRegisterTo(call.args.single(), reg)
         return code
     }
 
     private fun funcPush(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0, -1)
-        code += VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += exprGen.translateExpression(call.args.single(), reg, -1)
+        code += VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=reg)
         return code
     }
 
     private fun funcPushw(call: PtBuiltinFunctionCall): VmCodeChunk {
         val code = VmCodeChunk()
-        code += exprGen.translateExpression(call.args.single(), 0, -1)
-        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=0)
+        val reg = codeGen.vmRegisters.nextFree()
+        code += exprGen.translateExpression(call.args.single(), reg, -1)
+        code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=reg)
         return code
     }
 

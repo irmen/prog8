@@ -202,15 +202,16 @@ class CodeGen(internal val program: PtProgram,
                 val iterableVar = symbolTable.lookup(iterable.targetName) as StStaticVariable
                 val loopvarAddress = allocations.get(loopvar.scopedName)
                 val indexReg = vmRegisters.nextFree()
+                val tmpReg = vmRegisters.nextFree()
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
                 if(iterableVar.dt==DataType.STR) {
                     // iterate over a zero-terminated string
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1 = 0, reg2=indexReg, value = arrayAddress)
-                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=0, labelSymbol = endLabel)
-                    code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=0, value = loopvarAddress)
+                    code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=tmpReg, reg2=indexReg, value = arrayAddress)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=tmpReg, labelSymbol = endLabel)
+                    code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=tmpReg, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += VmCodeInstruction(Opcode.INC, VmDataType.BYTE, reg1=indexReg)
                     code += VmCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
@@ -225,8 +226,8 @@ class CodeGen(internal val program: PtProgram,
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                     code += VmCodeLabel(loopLabel)
                     code += VmCodeInstruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = endLabel)
-                    code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=0, reg2=indexReg, value=arrayAddress)
-                    code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=0, value = loopvarAddress)
+                    code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
+                    code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
                     code += VmCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
@@ -288,7 +289,7 @@ class CodeGen(internal val program: PtProgram,
             endvalueReg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1 = endvalueReg, value = rangeEndWrapped)
         } else {
-            endvalueReg = 0
+            endvalueReg = -1 // not used
         }
         code += VmCodeInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
