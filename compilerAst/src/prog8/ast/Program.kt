@@ -6,7 +6,6 @@ import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.code.core.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
 

@@ -8,8 +8,8 @@ import prog8.code.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8tests.helpers.Helpers
 import prog8tests.helpers.Combinations
+import prog8tests.helpers.Helpers
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists

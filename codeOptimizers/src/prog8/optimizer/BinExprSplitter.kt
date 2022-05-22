@@ -3,7 +3,9 @@ package prog8.optimizer
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.*
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.getTempVar
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.Assignment

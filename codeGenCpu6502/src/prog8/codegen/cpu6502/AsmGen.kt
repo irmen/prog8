@@ -1,7 +1,10 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.ParentSentinel
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -10,7 +13,6 @@ import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
-import prog8.code.core.SourceCode
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines

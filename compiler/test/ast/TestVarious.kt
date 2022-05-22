@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldNotBe
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
-import prog8.ast.statements.Assignment
 import prog8.ast.statements.InlineAssembly
 import prog8.ast.statements.VarDecl
 import prog8.code.core.Position

@@ -4,7 +4,6 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
 import prog8.code.core.*
-import prog8.code.core.SourceCode
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path

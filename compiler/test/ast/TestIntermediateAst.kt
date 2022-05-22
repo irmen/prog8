@@ -6,7 +6,6 @@ import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.ast.*
 import prog8.code.core.DataType
-import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.compiler.IntermediateAstMaker
 import prog8tests.helpers.compileText

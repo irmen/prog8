@@ -9,8 +9,8 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
-import prog8.parser.Prog8Parser
 import prog8.code.core.SourceCode
+import prog8.parser.Prog8Parser
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.*

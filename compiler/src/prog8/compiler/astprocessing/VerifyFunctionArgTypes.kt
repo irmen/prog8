@@ -1,6 +1,9 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.IPipe
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCallExpression

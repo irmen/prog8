@@ -1,6 +1,6 @@
 package prog8.vm
 
-import kotlin.math.*
+import kotlin.math.min
 
 /*
 SYSCALLS:

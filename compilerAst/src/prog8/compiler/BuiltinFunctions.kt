@@ -7,7 +7,10 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
 import prog8.code.core.*
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.sign
+import kotlin.math.sqrt
 
 
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral

@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
+- vm: don't use register 0/1 "as convenience" where it's not required, just allocate a new register anyway.
+      search for reg.\s?=\s?0
 
 ...
 
@@ -19,11 +20,12 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - vm: codeGen: various TODOs to tweak code
 - vm: implement remaining sin/cos functions in math.p8
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
-- vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
+- vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add more assignments to translateInplaceAssign()
 - Inliner: also inline function call expressions, and remove it from the StatementOptimizer

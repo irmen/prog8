@@ -208,7 +208,7 @@ class CodeGen(internal val program: PtProgram,
                     // iterate over a zero-terminated string
                     code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=0, reg2=indexReg, value = arrayAddress)
+                    code += VmCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1 = 0, reg2=indexReg, value = arrayAddress)
                     code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=0, labelSymbol = endLabel)
                     code += VmCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=0, value = loopvarAddress)
                     code += translateNode(forLoop.statements)

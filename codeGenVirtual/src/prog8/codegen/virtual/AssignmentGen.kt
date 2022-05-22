@@ -28,11 +28,10 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             val address = codeGen.allocations.get(ident.targetName)
             assignSelfInMemory(address, assignment.value, assignment)
         } else if(memory != null) {
-            if(memory.address is PtNumber) {
+            if(memory.address is PtNumber)
                 assignSelfInMemory((memory.address as PtNumber).number.toInt(), assignment.value, assignment)
-            } else {
+            else
                 fallbackAssign(assignment)
-            }
         } else if(array!=null) {
             // TODO in-place array element assignment?
             fallbackAssign(assignment)
@@ -58,8 +57,8 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                     code // do nothing, mem=mem null assignment.
                 else {
                     // read and write a (i/o) memory location to itself.
-                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 = 0, value = address)
-                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = 0, value = address)
+                    code += VmCodeInstruction(Opcode.LOADM, vmDt, reg1 =0, value = address)
+                    code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1=0, value = address)
                     code
                 }
             }

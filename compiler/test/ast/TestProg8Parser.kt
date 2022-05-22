@@ -17,15 +17,11 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.Position
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.cbm.PetsciiEncoding
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
-import prog8.code.core.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
