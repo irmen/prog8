@@ -30,21 +30,21 @@ sys {
         }}
     }
 
-    sub internal_stringcopy(uword source, uword target) {
+    sub internal_stringcopy(uword source, uword tgt) {
         ; Called when the compiler wants to assign a string value to another string.
         while @(source) {
-            @(target) = @(source)
+            @(tgt) = @(source)
             source++
-            target++
+            tgt++
         }
-        @(target)=0
+        @(tgt)=0
     }
 
-    sub memcopy(uword source, uword target, uword count)  {
+    sub memcopy(uword source, uword tgt, uword count)  {
         repeat count {
-            @(target) = @(source)
+            @(tgt) = @(source)
             source++
-            target++
+            tgt++
         }
     }
 

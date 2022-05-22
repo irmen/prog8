@@ -131,24 +131,24 @@ gfx2 {
         monochrome_dont_stipple_flag = not enable
     }
 
-    sub rect(uword x, uword y, uword width, uword height, ubyte color) {
-        if width==0 or height==0
+    sub rect(uword x, uword y, uword rwidth, uword rheight, ubyte color) {
+        if rwidth==0 or rheight==0
             return
-        horizontal_line(x, y, width, color)
-        if height==1
+        horizontal_line(x, y, rwidth, color)
+        if rheight==1
             return
-        horizontal_line(x, y+height-1, width, color)
-        vertical_line(x, y+1, height-2, color)
-        if width==1
+        horizontal_line(x, y+rheight-1, rwidth, color)
+        vertical_line(x, y+1, rheight-2, color)
+        if rwidth==1
             return
-        vertical_line(x+width-1, y+1, height-2, color)
+        vertical_line(x+rwidth-1, y+1, rheight-2, color)
     }
 
-    sub fillrect(uword x, uword y, uword width, uword height, ubyte color) {
-        if width==0
+    sub fillrect(uword x, uword y, uword rwidth, uword rheight, ubyte color) {
+        if rwidth==0
             return
-        repeat height {
-            horizontal_line(x, y, width, color)
+        repeat rheight {
+            horizontal_line(x, y, rwidth, color)
             y++
         }
     }
@@ -288,7 +288,7 @@ _done
         }
     }
 
-    sub vertical_line(uword x, uword y, uword height, ubyte color) {
+    sub vertical_line(uword x, uword y, uword lheight, ubyte color) {
         when active_mode {
             1, 5 -> {
                 ; monochrome, lo-res
@@ -301,7 +301,7 @@ _done
                             set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
                         else
                             set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
-                        repeat height {
+                        repeat lheight {
                             %asm {{
                                 lda  cx16.VERA_DATA0
                                 ora  cx16.r15L
@@ -312,14 +312,14 @@ _done
                         ; draw stippled line.
                         if x&1 {
                             y++
-                            height--
+                            lheight--
                         }
                         position2(x,y,true)
                         if active_mode==1
                             set_both_strides(12)    ; 80 increment = 2 line in 320 px monochrome
                         else
                             set_both_strides(13)    ; 160 increment = 2 line in 640 px monochrome
-                        repeat height/2 {
+                        repeat lheight/2 {
                             %asm {{
                                 lda  cx16.VERA_DATA0
                                 ora  cx16.r15L
@@ -334,7 +334,7 @@ _done
                         set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
                     else
                         set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
-                    repeat height {
+                    repeat lheight {
                         %asm {{
                             lda  cx16.VERA_DATA0
                             and  cx16.r15L
@@ -349,7 +349,7 @@ _done
                 position(x,y)
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
                 %asm {{
-                    ldy  height
+                    ldy  lheight
                     beq  +
                     lda  color
 -                   sta  cx16.VERA_DATA0
@@ -361,14 +361,14 @@ _done
             6 -> {
                 ; highres 4c
                 ; use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment is possible
-                if height==0
+                if lheight==0
                     return
                 position2(x,y,true)
                 set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
                 color &= 3
                 color <<= gfx2.plot.shift4c[lsb(x) & 3]
                 ubyte @shared mask = gfx2.plot.mask4c[lsb(x) & 3]
-                repeat height {
+                repeat lheight {
                     %asm {{
                         lda  cx16.VERA_DATA0
                         and  mask

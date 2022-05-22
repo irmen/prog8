@@ -771,36 +771,36 @@ planet {
 
     sub random_name() -> str {
         ubyte ii
-        str name = "        "       ; 8 chars max
+        str randname = "        "       ; 8 chars max
         ubyte nx = 0
         for ii in 0 to goatsoup_rnd_number() & 3 {
-            ubyte x = goatsoup_rnd_number() & $3e
-            if pairs0[x] != '.' {
-                name[nx] = pairs0[x]
+            ubyte xx = goatsoup_rnd_number() & $3e
+            if pairs0[xx] != '.' {
+                randname[nx] = pairs0[xx]
                 nx++
             }
-            x++
-            if pairs0[x] != '.' {
-                name[nx] = pairs0[x]
+            xx++
+            if pairs0[xx] != '.' {
+                randname[nx] = pairs0[xx]
                 nx++
             }
         }
-        name[nx] = 0
-        name[0] |= 32       ; uppercase first letter
-        return name
+        randname[nx] = 0
+        randname[0] |= 32       ; uppercase first letter
+        return randname
     }
 
     sub goatsoup_rnd_number() -> ubyte {
-        ubyte x = goatsoup_rnd[0] * 2
-        uword a = x as uword + goatsoup_rnd[2]
+        ubyte xx = goatsoup_rnd[0] * 2
+        uword a = xx as uword + goatsoup_rnd[2]
         if goatsoup_rnd[0] > 127
             a ++
         goatsoup_rnd[0] = lsb(a)
-        goatsoup_rnd[2] = x
-        x = goatsoup_rnd[1]
-        ubyte ac = x + goatsoup_rnd[3] + msb(a)
+        goatsoup_rnd[2] = xx
+        xx = goatsoup_rnd[1]
+        ubyte ac = xx + goatsoup_rnd[3] + msb(a)
         goatsoup_rnd[1] = ac
-        goatsoup_rnd[3] = x
+        goatsoup_rnd[3] = xx
         return ac
     }
 
@@ -1022,7 +1022,6 @@ util {
             prefixptr++
             stringptr++
         }
-        return false
     }
 
     sub print_right(ubyte width, uword s) {

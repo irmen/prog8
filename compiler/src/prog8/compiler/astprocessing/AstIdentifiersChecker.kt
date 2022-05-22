@@ -24,6 +24,10 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         errors.err("name conflict '$name', also defined in ${existing.position.file} line ${existing.position.line}", position)
     }
 
+    private fun nameShadowWarning(name: String, position: Position, existing: Statement) {
+        errors.warn("name '$name' shadows occurrence at ${existing.position.file} line ${existing.position.line}", position)
+    }
+
     override fun visit(block: Block) {
         if(block.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${block.name}'", block.position)
@@ -50,9 +54,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
-        val existing = decl.definingScope.lookup(listOf(decl.name))
-        if (existing != null && existing !== decl)
-            nameError(decl.name, decl.position, existing)
+        val existing = decl.parent.definingScope.lookup(listOf(decl.name))
+        if (existing != null && existing !== decl && existing is VarDecl) {
+            if(existing.parent!==decl.parent)
+                nameShadowWarning(decl.name, decl.position, existing)
+            else
+                nameError(decl.name, decl.position, existing)
+        }
 
         if(decl.definingBlock.name==decl.name)
             nameError(decl.name, decl.position, decl.definingBlock)
@@ -74,8 +82,12 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             //    checkResult.add(NameError("builtin function name cannot be used as parameter", subroutine.position))
 
             val existing = subroutine.lookup(listOf(subroutine.name))
-            if (existing != null && existing !== subroutine)
-                nameError(subroutine.name, subroutine.position, existing)
+            if (existing != null && existing !== subroutine) {
+                if(existing.parent!==existing.parent)
+                    nameShadowWarning(subroutine.name, subroutine.position, existing)
+                else
+                    nameError(subroutine.name, subroutine.position, existing)
+            }
 
             // check that there are no local symbols (variables, labels, subs) that redefine the subroutine's parameters.
             val symbolsInSub = subroutine.allDefinedSymbols
