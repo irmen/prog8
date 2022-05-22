@@ -4,10 +4,9 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
+import prog8.ast.determineGosubArguments
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
@@ -242,32 +241,10 @@ class IntermediateAstMaker(val program: Program) {
         // Gather the Goto and any preceding parameter assignments back into a single Function call node.
         // (the reason it was split up in the first place, is because the Compiler Ast optimizers
         // can then work on any complex expressions that are used as arguments.)
-        val parent = gosub.parent as IStatementContainer
-        val gosubIdx = parent.statements.indexOf(gosub)
-        val previousNodes = parent.statements.subList(0, gosubIdx).reversed()
-        val paramValues = mutableMapOf<String, Expression>()
-        for (node in previousNodes) {
-            if(node !is Assignment || node.origin!=AssignmentOrigin.PARAMETERASSIGN)
-                break
-            paramValues[node.target.identifier!!.nameInSource.last()] = node.value
-        }
-        // instead of just assigning to the parameters, another way is to use push()/pop()
-        if(previousNodes.isNotEmpty()) {
-            val first = previousNodes[0] as? IFunctionCall
-            if(first!=null && (first.target.nameInSource.singleOrNull() in arrayOf("pop", "popw"))) {
-                val numPops = previousNodes.indexOfFirst { (it as? IFunctionCall)?.target?.nameInSource?.singleOrNull() !in arrayOf("pop", "popw") }
-                val pops = previousNodes.subList(0, numPops)
-                val pushes = previousNodes.subList(numPops, numPops+numPops).reversed()
-                for ((push, pop) in pushes.zip(pops)) {
-                    val name = ((pop as IFunctionCall).args.single() as IdentifierReference).nameInSource.last()
-                    val arg = (push as IFunctionCall).args.single()
-                    paramValues[name] = arg
-                }
-            }
-        }
+        val arguments = determineGosubArguments(gosub)
 
         val parameters = gosub.identifier.targetSubroutine(program)!!.parameters
-        if(paramValues.size != parameters.size)
+        if(arguments.size != parameters.size)
             throw FatalAstException("mismatched number of parameter assignments for function call")
 
         val target = transform(gosub.identifier)
@@ -275,7 +252,7 @@ class IntermediateAstMaker(val program: Program) {
 
         // put arguments in correct order for the parameters
         parameters.forEach {
-            val argument = paramValues.getValue(it.name)
+            val argument = arguments.getValue(it.name)
             call.add(transformExpression(argument))
         }
 

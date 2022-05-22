@@ -55,11 +55,9 @@ fun Program.optimizeStatements(errors: IErrorReporter,
 }
 
 fun Program.inlineSubroutines(): Int {
-    // TODO implement the inliner
-//    val inliner = Inliner(this)
-//    inliner.visit(this)
-//    return inliner.applyModifications()
-    return 0
+    val inliner = Inliner(this)
+    inliner.visit(this)
+    return inliner.applyModifications()
 }
 
 fun Program.simplifyExpressions(errors: IErrorReporter) : Int {

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- complete the Inliner
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 
 ...
@@ -27,6 +26,7 @@ Compiler:
 - vm: how to remove all unused subroutines? (in the assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add more assignments to translateInplaceAssign()
+- Inliner: also inline function call expressions, and remove it from the StatementOptimizer
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.

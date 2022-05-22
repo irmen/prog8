@@ -613,7 +613,10 @@ class FunctionCallStatement(override var target: IdentifierReference,
         args.forEach { it.linkParents(this) }
     }
 
-    override fun copy() = throw NotImplementedError("no support for duplicating a FunctionCallStatement")
+    override fun copy(): FunctionCallStatement {
+        val argsCopies = args.map { it.copy() }
+        return FunctionCallStatement(target.copy(), argsCopies.toMutableList(), void, position)
+    }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
@@ -637,7 +640,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
         this.parent = parent
     }
 
-    override fun copy() = throw NotImplementedError("no support for duplicating a InlineAssembly")
+    override fun copy() = InlineAssembly(assembly, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)

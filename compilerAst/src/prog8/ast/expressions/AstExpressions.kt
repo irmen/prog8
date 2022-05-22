@@ -932,7 +932,10 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 
     override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple = target.nameInSource.size==1 && (target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw"))
+    override val isSimple =
+        target.nameInSource.size==1
+                && target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw", "mkword")
+                && args.all { it.isSimple }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)

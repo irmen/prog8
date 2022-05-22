@@ -7,46 +7,29 @@
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
 
-main {
+other {
     ubyte value = 42
 
-    sub inline_candidate() -> ubyte {
-        return math.sin8u(value)
+    sub getter() -> ubyte {
+        return value
     }
+}
 
-    sub inline_candidate2() {
-        value++
-        return
-    }
+main {
 
-    sub add(ubyte first, ubyte second) -> ubyte {
-        return first + second
-    }
-
-    sub mul(ubyte first, ubyte second) -> ubyte {
-        return first * second
-    }
-
-    ubyte ix
 
     sub start() {
-
-        ubyte @shared value1 = inline_candidate()
-        txt.print_ub(value) ; 42
-        txt.spc()
-        inline_candidate2()
-        inline_candidate2()
-        inline_candidate2()
-        txt.print_ub(value) ; 45
-        txt.nl()
-        txt.print_ub(inline_candidate())
-        txt.nl()
-
-        ubyte @shared value=99      ; TODO compiler warning about shadowing
-        txt.print_ub(value)
-        txt.nl()
-
-        ubyte @shared add=99      ; TODO compiler warning about shadowing
+        ubyte @shared ix = other.getter()
+        ix = other.getter()
+        ix++
+        ix = other.getter()
+        ix++
+        ix = other.getter()
+        ix++
+        ix = other.getter()
+        ix++
+        ix = other.getter()
+        ix++
 
 ;        ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen
