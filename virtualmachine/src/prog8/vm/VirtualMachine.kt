@@ -630,10 +630,11 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsINCM(i: Instruction) {
+        val address = i.value!!
         when(i.type!!) {
-            VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value)+1u).toUByte())
-            VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value)+1u).toUShort())
-            VmDataType.FLOAT -> memory.setFloat(i.value!!, memory.getFloat(i.value)+1f)
+            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address)+1u).toUByte())
+            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address)+1u).toUShort())
+            VmDataType.FLOAT -> memory.setFloat(address, memory.getFloat(address)+1f)
         }
         pc++
     }

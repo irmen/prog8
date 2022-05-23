@@ -1,8 +1,5 @@
 %import textio
-%import math
-%import string
-%import floats
-%zeropage dontuse
+%zeropage basicsafe
 
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
@@ -34,22 +31,17 @@ main {
     sub start() {
         ; mcCarthy()
 
-
-        ubyte @shared bb = %10110001
-        byte @shared sb = -99
-        bb *= 2
-        bb /= 2
-        bb *= 8
-        bb /= 8
-        txt.print_ub(bb)    ; 17
+        ubyte[256] sieve
+        ubyte xx
+        for xx in 0 to 255 {
+            sieve[xx] = false
+        }
+        for xx in 0 to 255 {
+            txt.print_ub(sieve[xx])
+            txt.spc()
+        }
         txt.nl()
 
-        sb *= 2
-        sb /= 2
-        sb *= 8
-        sb /= 8
-        txt.print_b(sb)     ; -3
-        txt.nl()
 
 ;        ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen

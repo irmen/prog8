@@ -163,11 +163,11 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             if(zero) {
                 if(fixedIndex!=null) {
                     variableAddr += fixedIndex*itemsize
-                    code += VmCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value=variableAddr)
+                    code += VmCodeInstruction(Opcode.STOREZM, vmDt, value=variableAddr)
                 } else {
                     val indexReg = codeGen.vmRegisters.nextFree()
                     code += loadIndexReg(array, itemsize, indexReg)
-                    code += VmCodeInstruction(Opcode.STOREZX, VmDataType.FLOAT, reg1=indexReg, value=variableAddr)
+                    code += VmCodeInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, value=variableAddr)
                 }
             } else {
                 if(vmDt== VmDataType.FLOAT) {
