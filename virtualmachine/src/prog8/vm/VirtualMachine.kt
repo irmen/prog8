@@ -175,9 +175,13 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.LSRM -> InsLSRM(ins)
             Opcode.LSLM -> InsLSLM(ins)
             Opcode.ROR -> InsROR(ins, false)
+            Opcode.RORM -> InsRORM(ins, false)
             Opcode.ROXR -> InsROR(ins, true)
+            Opcode.ROXRM -> InsRORM(ins, true)
             Opcode.ROL -> InsROL(ins, false)
+            Opcode.ROLM -> InsROLM(ins, false)
             Opcode.ROXL -> InsROL(ins, true)
+            Opcode.ROXLM -> InsROLM(ins, true)
             Opcode.MSIG -> InsMSIG(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
@@ -1399,6 +1403,38 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         statusCarry = newStatusCarry
     }
 
+    private fun InsRORM(i: Instruction, useCarry: Boolean) {
+        val newStatusCarry: Boolean
+        val address = i.value!!
+        when (i.type!!) {
+            VmDataType.BYTE -> {
+                val orig = memory.getUB(address)
+                newStatusCarry = (orig.toInt() and 1) != 0
+                val rotated: UByte = if (useCarry) {
+                    val carry = if (statusCarry) 0x80u else 0x00u
+                    (orig.toUInt().rotateRight(1) or carry).toUByte()
+                } else
+                    orig.rotateRight(1)
+                memory.setUB(address, rotated)
+            }
+            VmDataType.WORD -> {
+                val orig = memory.getUW(address)
+                newStatusCarry = (orig.toInt() and 1) != 0
+                val rotated: UShort = if (useCarry) {
+                    val carry = if (statusCarry) 0x8000u else 0x0000u
+                    (orig.toUInt().rotateRight(1) or carry).toUShort()
+                } else
+                    orig.rotateRight(1)
+                memory.setUW(address, rotated)
+            }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't ROR a float")
+            }
+        }
+        pc++
+        statusCarry = newStatusCarry
+    }
+
     private fun InsROL(i: Instruction, useCarry: Boolean) {
         val newStatusCarry: Boolean
         when (i.type!!) {
@@ -1421,6 +1457,38 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 } else
                     orig.rotateLeft(1)
                 registers.setUW(i.reg1, rotated)
+            }
+            VmDataType.FLOAT -> {
+                throw IllegalArgumentException("can't ROL a float")
+            }
+        }
+        pc++
+        statusCarry = newStatusCarry
+    }
+
+    private fun InsROLM(i: Instruction, useCarry: Boolean) {
+        val address = i.value!!
+        val newStatusCarry: Boolean
+        when (i.type!!) {
+            VmDataType.BYTE -> {
+                val orig = memory.getUB(address)
+                newStatusCarry = (orig.toInt() and 0x80) != 0
+                val rotated: UByte = if (useCarry) {
+                    val carry = if (statusCarry) 1u else 0u
+                    (orig.toUInt().rotateLeft(1) or carry).toUByte()
+                } else
+                    orig.rotateLeft(1)
+                memory.setUB(address, rotated)
+            }
+            VmDataType.WORD -> {
+                val orig = memory.getUW(address)
+                newStatusCarry = (orig.toInt() and 0x8000) != 0
+                val rotated: UShort = if (useCarry) {
+                    val carry = if (statusCarry) 1u else 0u
+                    (orig.toUInt().rotateLeft(1) or carry).toUShort()
+                } else
+                    orig.rotateLeft(1)
+                memory.setUW(address, rotated)
             }
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't ROL a float")

@@ -772,7 +772,6 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(sub: PtSub): VmCodeChunk {
-        // TODO actually inline subroutines marked as inline (but at this time only asmsub can be inline)
         val code = VmCodeChunk()
         code += VmCodeComment("SUB: ${sub.scopedName} -> ${sub.returntype}")
         code += VmCodeLabel(sub.scopedName)

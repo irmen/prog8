@@ -120,31 +120,33 @@ LOGICAL/BITWISE
 All have type b or w.
 
 and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
-andm        reg1         address             - memory = memory bitwise and reg1
 or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
-orm         reg1,        address             - memory = memory bitwise or reg1
 xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
-xorm        reg1,        address             - memory = memory bitwise xor reg1
 not         reg1                             - reg1 = boolean not of reg1 (0->1 , ~0 -> 0)
-notm                     address             - memory = boolean not of that memory (0->1 , ~0 -> 0)
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
-lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + set Carry to shifted bit
 asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
-asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed)  + set Carry to shifted bit
 lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
-lslnm       reg1,        address             - multi-shift memory left by reg1 bits  + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
-lsrm                     address             - shift memory right by 1 bits + set Carry to shifted bit
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
-asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
-lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
 ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
 roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
 rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
 roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit
-
-TODO: add memory-rotate instructions?
+andm        reg1         address             - memory = memory bitwise and reg1
+orm         reg1,        address             - memory = memory bitwise or reg1
+xorm        reg1,        address             - memory = memory bitwise xor reg1
+notm                     address             - memory = boolean not of that memory (0->1 , ~0 -> 0)
+lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + set Carry to shifted bit
+asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed)  + set Carry to shifted bit
+lslnm       reg1,        address             - multi-shift memory left by reg1 bits  + set Carry to shifted bit
+lsrm                     address             - shift memory right by 1 bits + set Carry to shifted bit
+asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
+lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
+rorm                     address             - rotate memory right by 1 bits, not using carry  + set Carry to shifted bit
+roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit
+rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
+roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -269,9 +271,13 @@ enum class Opcode {
     LSL,
     LSLM,
     ROR,
+    RORM,
     ROXR,
+    ROXRM,
     ROL,
+    ROLM,
     ROXL,
+    ROXLM,
 
     FFROMUB,
     FFROMSB,
@@ -328,7 +334,11 @@ val OpcodesWithAddress = setOf(
     Opcode.LSLM,
     Opcode.LSLNM,
     Opcode.LSRNM,
-    Opcode.ASRNM
+    Opcode.ASRNM,
+    Opcode.ROLM,
+    Opcode.RORM,
+    Opcode.ROXLM,
+    Opcode.ROXRM
 )
 
 
@@ -554,9 +564,13 @@ val instructionFormats = mutableMapOf(
     Opcode.LSL        to InstructionFormat.from("BW,r1"),
     Opcode.LSLM       to InstructionFormat.from("BW,v"),
     Opcode.ROR        to InstructionFormat.from("BW,r1"),
+    Opcode.RORM       to InstructionFormat.from("BW,v"),
     Opcode.ROXR       to InstructionFormat.from("BW,r1"),
+    Opcode.ROXRM      to InstructionFormat.from("BW,v"),
     Opcode.ROL        to InstructionFormat.from("BW,r1"),
+    Opcode.ROLM       to InstructionFormat.from("BW,v"),
     Opcode.ROXL       to InstructionFormat.from("BW,r1"),
+    Opcode.ROXLM      to InstructionFormat.from("BW,v"),
 
     Opcode.FFROMUB    to InstructionFormat.from("F,fr1,r1"),
     Opcode.FFROMSB    to InstructionFormat.from("F,fr1,r1"),
