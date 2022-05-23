@@ -227,11 +227,9 @@ internal class BeforeAsmAstChanger(val program: Program,
 
         // TODO: somehow figure out if the expr will result in stack-evaluation STILL after being split off,
         //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
-        // TODO: this should be replaced by a general expression-evaluation optimization step.
-        //       the actual conditional expression in the statement should be no more than VARIABLE <COMPARISON-OPERATOR> SIMPLE-EXPRESSION
         // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
 
-        if(options.compTarget.name==VMTarget.NAME)
+        if(options.compTarget.name==VMTarget.NAME)  // don't apply this optimizer for Vm target
             return CondExprSimplificationResult(null, null, null, null)
 
         var leftAssignment: Assignment? = null

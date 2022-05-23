@@ -454,6 +454,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
+    internal fun operatorShiftRightInplace(address: Int, vmDt: VmDataType,  signed: Boolean, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(codeGen.isOne(operand)) {
+            val opc = if (signed) Opcode.ASRM else Opcode.LSRM
+            code += VmCodeInstruction(opc, vmDt, value=address)
+        } else {
+            val operandReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(operand, operandReg, -1)
+            val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
+            code += VmCodeInstruction(opc, vmDt, reg1 = operandReg, value=address)
+        }
+        return code
+    }
+
     private fun operatorShiftLeft(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): VmCodeChunk {
         val code = VmCodeChunk()
         if(codeGen.isOne(binExpr.right)){
@@ -464,6 +478,18 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             code += translateExpression(binExpr.left, resultRegister, -1)
             code += translateExpression(binExpr.right, rightResultReg, -1)
             code += VmCodeInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, rightResultReg)
+        }
+        return code
+    }
+
+    internal fun operatorShiftLeftInplace(address: Int, vmDt: VmDataType, operand: PtExpression): VmCodeChunk {
+        val code = VmCodeChunk()
+        if(codeGen.isOne(operand)){
+            code += VmCodeInstruction(Opcode.LSLM, vmDt, value=address)
+        } else {
+            val operandReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(operand, operandReg, -1)
+            code += VmCodeInstruction(Opcode.LSLNM, vmDt, reg1=operandReg, value=address)
         }
         return code
     }

@@ -446,21 +446,13 @@ class CodeGen(internal val program: PtProgram,
         val pow2 = powersOfTwo.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            // TODO use a memory shift instruction?
-            val reg = vmRegisters.nextFree()
-            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
-            code += VmCodeInstruction(Opcode.LSL, dt, reg1=reg)
-            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+            code += VmCodeInstruction(Opcode.LSLM, dt, value = address)
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            // TODO use a memory shift instruction?
-            val reg = vmRegisters.nextFree()
             val pow2reg = vmRegisters.nextFree()
-            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += VmCodeInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
-            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+            code += VmCodeInstruction(Opcode.LSLNM, dt, reg1=pow2reg, value=address)
         } else {
             if (factor == 0) {
                 code += VmCodeInstruction(Opcode.STOREZM, dt, value=address)
@@ -547,27 +539,19 @@ class CodeGen(internal val program: PtProgram,
         val pow2 = powersOfTwo.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            // TODO use memory-shift instruction?
-            val reg = vmRegisters.nextFree()
-            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
             code += if(signed)
-                VmCodeInstruction(Opcode.ASR, dt, reg1=reg)
+                VmCodeInstruction(Opcode.ASRM, dt, value=address)
             else
-                VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
-            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+                VmCodeInstruction(Opcode.LSRM, dt, value=address)
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            // TODO use memory-shift instruction?
-            val reg = vmRegisters.nextFree()
             val pow2reg = vmRegisters.nextFree()
-            code += VmCodeInstruction(Opcode.LOADM, dt, reg1=reg, value=address)
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
             code += if(signed)
-                VmCodeInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
+                VmCodeInstruction(Opcode.ASRNM, dt, reg1=pow2reg, value=address)
             else
-                VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
-            code += VmCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+                VmCodeInstruction(Opcode.LSRNM, dt, reg1=pow2reg, value=address)
         } else {
             if (factor == 0) {
                 val reg = vmRegisters.nextFree()

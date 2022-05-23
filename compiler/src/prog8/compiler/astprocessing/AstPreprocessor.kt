@@ -119,9 +119,9 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             val newSegments = psrc.segments
             newSegments += pipe.segments.single()
             return listOf(IAstModification.ReplaceNode(pipe as Node, Pipe(newSource, newSegments, pipe.position), parent))
-        }
-
-        return process(pipe, parent)
+        } else if(pipe.source is IPipe)
+            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
+        return noModifications
     }
 
     override fun before(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
@@ -132,46 +132,8 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             val newSegments = psrc.segments
             newSegments += pipeExpr.segments.single()
             return listOf(IAstModification.ReplaceNode(pipeExpr as Node, PipeExpression(newSource, newSegments, pipeExpr.position), parent))
-        }
-
-        return process(pipeExpr, parent)
-    }
-
-    private fun process(pipe: IPipe, parent: Node): Iterable<IAstModification> {
-        if(pipe.source is IPipe)
+        } else if(pipeExpr.source is IPipe)
             throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
-
         return noModifications
-
-// TODO don't use artifical inserted args, fix the places that check for arg numbers instead.
-        // add the "missing" first argument to each function call in the pipe segments
-        // so that all function call related checks just pass
-        // might have to remove it again when entering code generation pass, or just replace it there
-        // with the proper output value of the previous pipe segment.
-
-//        val mutations = mutableListOf<IAstModification>()
-//        var valueDt = pipe.source.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-//        pipe.segments.forEach { call->
-//            val dummyFirstArg = when (valueDt) {
-//                DataType.UBYTE -> FunctionCallExpression(IdentifierReference(listOf("rnd"), pipe.position), mutableListOf(), pipe.position)
-//                DataType.UWORD -> FunctionCallExpression(IdentifierReference(listOf("rndw"), pipe.position), mutableListOf(), pipe.position)
-//                DataType.BYTE, DataType.WORD -> IdentifierReference(
-//                    getTempRegisterName(InferredTypes.InferredType.known(valueDt)),
-//                    pipe.position
-//                ) // there's no builtin function we can abuse that returns a signed byte or word type   // TODO maybe use a typecasted expression around rnd?
-//                DataType.FLOAT -> FunctionCallExpression(IdentifierReference(listOf("rndf"), pipe.position), mutableListOf(), pipe.position)
-//                else -> throw FatalAstException("invalid dt")
-//            }
-//
-//            mutations += IAstModification.SetExpression(
-//                { newexpr -> call.args.add(0, newexpr) },
-//                dummyFirstArg, parent
-//            )
-//
-//            if(call!==pipe.segments.last())
-//                valueDt = call.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-//        }
-//        return mutations
-
     }
 }

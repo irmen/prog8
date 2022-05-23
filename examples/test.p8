@@ -34,29 +34,39 @@ main {
     sub start() {
         ; mcCarthy()
 
-        ubyte bb
-        for bb in 250 to 255 {
-            txt.print_ub(bb)
-            txt.spc()
-        }
+
+        ubyte @shared bb = %10110001
+        byte @shared sb = -99
+        bb *= 2
+        bb /= 2
+        bb *= 8
+        bb /= 8
+        txt.print_ub(bb)    ; 17
+        txt.nl()
+
+        sb *= 2
+        sb /= 2
+        sb *= 8
+        sb /= 8
+        txt.print_b(sb)     ; -3
         txt.nl()
 
 ;        ; a "pixelshader":
-        sys.gfx_enable(0)       ; enable lo res screen
-        ubyte shifter
-
-        repeat {
-            uword xx
-            uword yy = 0
-            repeat 240 {
-                xx = 0
-                repeat 320 {
-                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
-                    xx++
-                }
-                yy++
-            }
-            shifter+=4
-        }
+;        sys.gfx_enable(0)       ; enable lo res screen
+;        ubyte shifter
+;
+;        repeat {
+;            uword xx
+;            uword yy = 0
+;            repeat 240 {
+;                xx = 0
+;                repeat 320 {
+;                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
+;                    xx++
+;                }
+;                yy++
+;            }
+;            shifter+=4
+;        }
     }
 }

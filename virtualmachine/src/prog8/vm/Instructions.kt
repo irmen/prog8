@@ -128,17 +128,23 @@ xorm        reg1,        address             - memory = memory bitwise xor reg1
 not         reg1                             - reg1 = boolean not of reg1 (0->1 , ~0 -> 0)
 notm                     address             - memory = boolean not of that memory (0->1 , ~0 -> 0)
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
+lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + set Carry to shifted bit
 asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
+asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed)  + set Carry to shifted bit
 lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
+lslnm       reg1,        address             - multi-shift memory left by reg1 bits  + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
+lsrm                     address             - shift memory right by 1 bits + set Carry to shifted bit
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
+asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
+lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
 ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
 roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
 rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
 roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit
 
-TODO: add memory-shift instructions?
+TODO: add memory-rotate instructions?
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -251,11 +257,17 @@ enum class Opcode {
     NOT,
     NOTM,
     ASRN,
+    ASRNM,
     LSRN,
+    LSRNM,
     LSLN,
+    LSLNM,
     ASR,
+    ASRM,
     LSR,
+    LSRM,
     LSL,
+    LSLM,
     ROR,
     ROXR,
     ROL,
@@ -310,7 +322,13 @@ val OpcodesWithAddress = setOf(
     Opcode.NOTM,
     Opcode.ORM,
     Opcode.XORM,
-    Opcode.ANDM
+    Opcode.ANDM,
+    Opcode.ASRM,
+    Opcode.LSRM,
+    Opcode.LSLM,
+    Opcode.LSLNM,
+    Opcode.LSRNM,
+    Opcode.ASRNM
 )
 
 
@@ -524,11 +542,17 @@ val instructionFormats = mutableMapOf(
     Opcode.NOT        to InstructionFormat.from("BW,r1"),
     Opcode.NOTM       to InstructionFormat.from("BW,v"),
     Opcode.ASRN       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ASRNM      to InstructionFormat.from("BW,r1,v"),
     Opcode.LSRN       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.LSRNM      to InstructionFormat.from("BW,r1,v"),
     Opcode.LSLN       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.LSLNM      to InstructionFormat.from("BW,r1,v"),
     Opcode.ASR        to InstructionFormat.from("BW,r1"),
+    Opcode.ASRM       to InstructionFormat.from("BW,v"),
     Opcode.LSR        to InstructionFormat.from("BW,r1"),
+    Opcode.LSRM       to InstructionFormat.from("BW,v"),
     Opcode.LSL        to InstructionFormat.from("BW,r1"),
+    Opcode.LSLM       to InstructionFormat.from("BW,v"),
     Opcode.ROR        to InstructionFormat.from("BW,r1"),
     Opcode.ROXR       to InstructionFormat.from("BW,r1"),
     Opcode.ROL        to InstructionFormat.from("BW,r1"),

@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- vm: implement the 4 rol/ror memory in-place instructions
 ...
 
 

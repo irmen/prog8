@@ -8,7 +8,9 @@ class Assembler {
     private val placeholders = mutableMapOf<Int, String>()
 
     init {
-        require(instructionFormats.size== Opcode.values().size)
+        require(instructionFormats.size== Opcode.values().size) {
+            "missing " + (Opcode.values().toSet() - instructionFormats.keys)
+        }
     }
 
     fun initializeMemory(memsrc: String, memory: Memory) {

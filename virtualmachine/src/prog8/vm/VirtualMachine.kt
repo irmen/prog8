@@ -95,7 +95,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREI -> InsSTOREI(ins)
-            Opcode.STOREZM -> InsSTOREZ(ins)
+            Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP -> InsJUMP(ins)
@@ -162,12 +162,18 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.XORM ->InsXORM(ins)
             Opcode.NOT -> InsNOT(ins)
             Opcode.NOTM -> InsNOTM(ins)
-            Opcode.ASRN -> InsASRM(ins)
-            Opcode.LSRN -> InsLSRM(ins)
-            Opcode.LSLN -> InsLSLM(ins)
+            Opcode.ASRN -> InsASRN(ins)
+            Opcode.LSRN -> InsLSRN(ins)
+            Opcode.LSLN -> InsLSLN(ins)
             Opcode.ASR -> InsASR(ins)
             Opcode.LSR -> InsLSR(ins)
             Opcode.LSL -> InsLSL(ins)
+            Opcode.ASRNM -> InsASRNM(ins)
+            Opcode.LSRNM -> InsLSRNM(ins)
+            Opcode.LSLNM -> InsLSLNM(ins)
+            Opcode.ASRM -> InsASRM(ins)
+            Opcode.LSRM -> InsLSRM(ins)
+            Opcode.LSLM -> InsLSLM(ins)
             Opcode.ROR -> InsROR(ins, false)
             Opcode.ROXR -> InsROR(ins, true)
             Opcode.ROL -> InsROL(ins, false)
@@ -334,7 +340,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsSTOREZ(i: Instruction) {
+    private fun InsSTOREZM(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(i.value!!, 0u)
             VmDataType.WORD -> memory.setUW(i.value!!, 0u)
@@ -1162,12 +1168,31 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsASRM(i: Instruction) {
+    private fun InsASRN(i: Instruction) {
         val (left: Int, right: Int) = getLogicalOperandsS(i)
         statusCarry = (left and 1)!=0
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, (left shr right).toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, (left shr right).toShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsASRNM(i: Instruction) {
+        val address = i.value!!
+        val operand = registers.getUB(i.reg1!!).toInt()
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val memvalue = memory.getSB(address).toInt()
+                statusCarry = (memvalue and 1)!=0
+                memory.setSB(address, (memvalue shr operand).toByte())
+            }
+            VmDataType.WORD -> {
+                val memvalue = memory.getSW(address).toInt()
+                statusCarry = (memvalue and 1)!=0
+                memory.setSW(address, (memvalue shr operand).toShort())
+            }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1190,12 +1215,49 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsLSRM(i: Instruction) {
+    private fun InsASRM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = memory.getSB(address).toInt()
+                statusCarry = (value and 1)!=0
+                memory.setSB(address, (value shr 1).toByte())
+            }
+            VmDataType.WORD -> {
+                val value = memory.getSW(address).toInt()
+                statusCarry = (value and 1)!=0
+                memory.setSW(address, (value shr 1).toShort())
+            }
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsLSRN(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         statusCarry = (left and 1u)!=0u
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left shr right.toInt()).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left shr right.toInt()).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsLSRNM(i: Instruction) {
+        val address = i.value!!
+        val operand = registers.getUB(i.reg1!!).toInt()
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val memvalue = memory.getUB(address).toInt()
+                statusCarry = (memvalue and 1)!=0
+                memory.setUB(address, (memvalue shr operand).toUByte())
+            }
+            VmDataType.WORD -> {
+                val memvalue = memory.getUW(address).toInt()
+                statusCarry = (memvalue and 1)!=0
+                memory.setUW(address, (memvalue shr operand).toUShort())
+            }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1218,7 +1280,25 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsLSLM(i: Instruction) {
+    private fun InsLSRM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = memory.getUB(address).toInt()
+                statusCarry = (value and 1)!=0
+                memory.setUB(address, (value shr 1).toUByte())
+            }
+            VmDataType.WORD -> {
+                val value = memory.getUW(address).toInt()
+                statusCarry = (value and 1)!=0
+                memory.setUW(address, (value shr 1).toUShort())
+            }
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsLSLN(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1228,6 +1308,25 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.WORD -> {
                 statusCarry = (left and 0x8000u)!=0u
                 registers.setUW(i.reg1!!, (left shl right.toInt()).toUShort())
+            }
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsLSLNM(i: Instruction) {
+        val address = i.value!!
+        val operand = registers.getUB(i.reg1!!).toInt()
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val memvalue = memory.getUB(address).toInt()
+                statusCarry = (memvalue and 0x80)!=0
+                memory.setUB(address, (memvalue shl operand).toUByte())
+            }
+            VmDataType.WORD -> {
+                val memvalue = memory.getUW(address).toInt()
+                statusCarry = (memvalue and 0x8000)!=0
+                memory.setUW(address, (memvalue shl operand).toUShort())
             }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1245,6 +1344,24 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val value = registers.getUW(i.reg1!!).toInt()
                 statusCarry = (value and 0x8000)!=0
                 registers.setUW(i.reg1, (value shl 1).toUShort())
+            }
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsLSLM(i: Instruction) {
+        val address = i.value!!
+        when(i.type!!) {
+            VmDataType.BYTE -> {
+                val value = memory.getUB(address).toInt()
+                statusCarry = (value and 0x80)!=0
+                memory.setUB(address, (value shl 1).toUByte())
+            }
+            VmDataType.WORD -> {
+                val value = memory.getUW(address).toInt()
+                statusCarry = (value and 0x8000)!=0
+                memory.setUW(address, (value shl 1).toUShort())
             }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
