@@ -31,15 +31,16 @@ main {
     sub start() {
         ; mcCarthy()
 
-        ubyte[256] sieve
+        ubyte[20] sieve
+        uword count=0
         ubyte xx
-        for xx in 0 to 255 {
-            sieve[xx] = false
-        }
-        for xx in 0 to 255 {
-            txt.print_ub(sieve[xx])
+        for xx in sieve {
+            txt.print_ub(xx)
             txt.spc()
+            count++
         }
+        txt.nl()
+        txt.print_uw(count)
         txt.nl()
 
 

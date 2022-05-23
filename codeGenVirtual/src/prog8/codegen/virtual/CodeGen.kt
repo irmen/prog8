@@ -221,17 +221,27 @@ class CodeGen(internal val program: PtProgram,
                     val elementDt = ArrayToElementTypes.getValue(iterable.type)
                     val elementSize = program.memsizer.memorySize(elementDt)
                     val lengthBytes = iterableVar.length!! * elementSize
-                    val lengthReg = vmRegisters.nextFree()
-                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
-                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
-                    code += VmCodeLabel(loopLabel)
-                    code += VmCodeInstruction(Opcode.BEQ, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = endLabel)
-                    code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
-                    code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
-                    code += translateNode(forLoop.statements)
-                    code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
-                    code += VmCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
-                    code += VmCodeLabel(endLabel)
+                    if(lengthBytes<256) {
+                        val lengthReg = vmRegisters.nextFree()
+                        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
+                        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
+                        code += VmCodeLabel(loopLabel)
+                        code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
+                        code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
+                        code += translateNode(forLoop.statements)
+                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
+                        code += VmCodeInstruction(Opcode.BNE, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = loopLabel)
+                    } else if(lengthBytes==256) {
+                        code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
+                        code += VmCodeLabel(loopLabel)
+                        code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
+                        code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
+                        code += translateNode(forLoop.statements)
+                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
+                        code += VmCodeInstruction(Opcode.BNZ, VmDataType.BYTE, reg1=indexReg, labelSymbol = loopLabel)
+                    } else {
+                        throw AssemblyError("iterator length should never exceed 256")
+                    }
                 }
             }
             else -> throw AssemblyError("weird for iterable")
