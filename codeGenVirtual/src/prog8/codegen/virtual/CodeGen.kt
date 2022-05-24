@@ -585,7 +585,7 @@ class CodeGen(internal val program: PtProgram,
             throw AssemblyError("if condition should only be a binary comparison expression")
 
         val signed = ifElse.condition.left.type in arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
-        val vmDt = vmType(ifElse.condition.type)
+        val vmDt = vmType(ifElse.condition.left.type)
         val code = VmCodeChunk()
 
         fun translateNonZeroComparison(): VmCodeChunk {

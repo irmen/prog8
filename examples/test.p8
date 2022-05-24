@@ -33,16 +33,24 @@ main {
 
         ubyte[20] sieve
         uword count=0
-        ubyte xx
-        for xx in sieve {
-            txt.print_ub(xx)
+        if count < 256
+            txt.print("<256 ok! 1\n")
+        if count > 256
+            txt.print(">256 nok! 2\n")
+        count=257
+        if count < 256
+            txt.print("<256 nok! 3\n")
+        if count > 256
+            txt.print(">256 ok! 4\n")
+        count=256
+
+        count=0
+        while count < 256 {         ; TODO fix this while loop
+            txt.print_uw(count)
             txt.spc()
-            count++
+            count += 10
         }
         txt.nl()
-        txt.print_uw(count)
-        txt.nl()
-
 
 ;        ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen

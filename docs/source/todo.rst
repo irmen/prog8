@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: fix primes.p8 calculating wrong primes
 ...
 
 

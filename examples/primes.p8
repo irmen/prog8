@@ -40,26 +40,14 @@ main {
                 return 0        ; we wrapped; no more primes available in the sieve
         }
 
-        txt.print("candidate: ")
-        txt.print_ub(candidate_prime)
-        txt.nl()
-
         ; found next one, mark the multiples and return it.
         sieve[candidate_prime] = true
         uword multiple = candidate_prime
-
 
         while multiple < len(sieve) {
             sieve[lsb(multiple)] = true
             multiple += candidate_prime
         }
-
-        ubyte xx
-        for xx in sieve {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
 
         return candidate_prime
     }
