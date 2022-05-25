@@ -18,20 +18,17 @@ Future Things and Ideas
 Compiler:
 
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
-- vm: codeGen: various TODOs to tweak code
+- Inliner: also inline function call expressions, and remove it from the StatementOptimizer
 - vm: implement remaining sin/cos functions in math.p8
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
-- vm: add more assignments to translateInplaceAssign()
-- Inliner: also inline function call expressions, and remove it from the StatementOptimizer
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
-- make everything an expression? (get rid of Statements. Statements are expressions with void return types?).
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
 - simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (what scenarios?)
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
