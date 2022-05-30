@@ -1,8 +1,4 @@
 ; Prog8 definitions for floating point handling on the CommanderX16
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-;
-; indent format: TABS, size=8
 
 %option enable_floats
 %import floats_functions

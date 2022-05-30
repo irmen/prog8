@@ -16,10 +16,11 @@ https://prog8.readthedocs.io/
 
 Software license
 ----------------
-GNU GPL 3.0, see file LICENSE
+GNU GPL 3.0 (see file LICENSE), with exception for generated code:
 
-- prog8 (the compiler + libraries) is licensed under GNU GPL 3.0
-- *exception:* the resulting files created by running the compiler are free to use in whatever way desired.
+- The compiler and its libraries are free to use according to the terms of the GNU GPL 3.0
+- *exception:* the resulting files (intermediate source codes and resulting binary program) created by the compiler
+  are excluded from the GPL and are free to use in whatever way desired, commercially or not.
 
 
 What does Prog8 provide?

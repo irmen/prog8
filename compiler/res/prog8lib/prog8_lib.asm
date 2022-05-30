@@ -1,7 +1,5 @@
 ; Internal library routines - always included by the compiler
 ; Generic machine independent 6502 code.
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 
 orig_stackpointer	.byte  0	; stores the Stack pointer register at program start

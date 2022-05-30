@@ -1,6 +1,4 @@
 ; C64 and Cx16 disk drive I/O routines.
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %import textio
 %import string

@@ -1,6 +1,4 @@
 ; Prog8 definitions for the Text I/O console routines for the Virtual Machine
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %import conv
 

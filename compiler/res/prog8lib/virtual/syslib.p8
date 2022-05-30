@@ -1,7 +1,4 @@
 ; Prog8 definitions for the Virtual Machine
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-;
 
 sys {
     ; ------- lowlevel system routines --------

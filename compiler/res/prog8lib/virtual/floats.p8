@@ -1,6 +1,4 @@
 ; Prog8 definitions for floating point handling on the VirtualMachine
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %option enable_floats
 

@@ -1,8 +1,5 @@
 ; Prog8 definitions for the Commodore-128
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-;
 
 c64 {
 

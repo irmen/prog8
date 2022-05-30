@@ -1,9 +1,5 @@
 ; Prog8 definitions for the Commodore-64
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-;
-; indent format: TABS, size=8
 
 c64 {
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte

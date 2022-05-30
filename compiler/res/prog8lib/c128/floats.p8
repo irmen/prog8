@@ -1,6 +1,4 @@
 ; Prog8 definitions for floating point handling on the Commodore 128
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
 
 %option enable_floats
 %import floats_functions

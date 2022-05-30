@@ -1,7 +1,4 @@
 ; 0-terminated string manipulation routines. For the Virtual Machine target.
-;
-; Written by Irmen de Jong (irmen@razorvine.net) - license: GNU GPL 3.0
-
 
 string {
     sub length(str st) -> ubyte {
