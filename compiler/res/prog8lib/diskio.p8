@@ -261,13 +261,15 @@ m_in_buffer     sta  $ffff
 
             if cx16.r5==$0d {   ; chance on I/o error status?
                 first_byte = c64.READST()
-                if first_byte & $40
+                if first_byte & $40 {
                     f_close()       ; end of file, close it
+                    list_blocks--   ; don't count that last CHRIN read
+                }
                 if first_byte
-                    return list_blocks
+                    return list_blocks  ; number of bytes read
             }
         }
-        return list_blocks
+        return list_blocks  ; number of bytes read
     }
 
     sub f_read_all(uword bufferpointer) -> uword {
@@ -275,19 +277,20 @@ m_in_buffer     sta  $ffff
         if not iteration_in_progress
             return 0
 
-        list_blocks = 0     ; we reuse this variable for the total number of bytes read
+        uword total_read = 0
         if have_first_byte {
             have_first_byte=false
             @(bufferpointer) = first_byte
             bufferpointer++
-            list_blocks++
+            total_read = 1
         }
 
         while not c64.READST() {
-            list_blocks += f_read(bufferpointer, 256)
-            bufferpointer += 256
+            uword size = f_read(bufferpointer, 256)
+            total_read += size
+            bufferpointer += size
         }
-        return list_blocks
+        return total_read
     }
 
     asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y {

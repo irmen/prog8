@@ -13,20 +13,20 @@ palette {
         cx16.vpoke(1, vera_palette_ptr, msb(color))
     }
 
-    sub set_rgb4(uword palette_bytes_ptr, uword num_colors) {
-        ; 2 bytes per color entry, the Vera uses this, but the R/GB bytes order is swapped
+    sub set_rgb_be(uword palette_ptr, uword num_colors) {
+        ; 1 word per color entry, $0rgb in big endian format
         vera_palette_ptr = $fa00
         repeat num_colors {
-            cx16.vpoke(1, vera_palette_ptr+1, @(palette_bytes_ptr))
-            palette_bytes_ptr++
-            cx16.vpoke(1, vera_palette_ptr, @(palette_bytes_ptr))
-            palette_bytes_ptr++
+            cx16.vpoke(1, vera_palette_ptr+1, @(palette_ptr))
+            palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, @(palette_ptr))
+            palette_ptr++
             vera_palette_ptr+=2
         }
     }
 
     sub set_rgb(uword palette_words_ptr, uword num_colors) {
-        ; 1 word per color entry (in little endian format so $gb0r)
+        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb0r)
         vera_palette_ptr = $fa00
         repeat num_colors*2 {
             cx16.vpoke(1, vera_palette_ptr, @(palette_words_ptr))
