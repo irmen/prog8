@@ -139,6 +139,8 @@ Provides several routines that deal with disk drive I/O, such as:
 - load and save data from and to the disk
 - delete and rename files on the disk
 
+On the Commander X16 it tries to use that machine's fast kernal loading routines if possible.
+
 
 string
 ------

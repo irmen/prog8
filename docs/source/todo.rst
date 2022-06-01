@@ -3,8 +3,19 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- cx16 diskio: use cx16 MACPTR() in f_read() to load stuff faster? (see its use in X16edit to fast load blocks)
-  note that it might fail on non sdcard files so have to make graceful degradation
+- why is this code so much larger:
+                uword xx
+                for xx in 0 to size-1 {
+                    gfx2.next_pixel(bitmapbuf[xx])
+                }
+  than this loop:
+                uword srcptr = bitmapbuf
+                repeat size {
+                    gfx2.next_pixel(@(srcptr))
+                    srcptr++
+                }
+  any difference between 6502 codegen and vm codegen?
+
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - Inliner: also inline function call expressions, and remove it from the StatementOptimizer

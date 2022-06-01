@@ -239,6 +239,29 @@ close_end:
         }
 
         void c64.CHKIN(11)        ; use #11 as input channel again
+
+        if sys.target==16 {
+            ; commander X16 supports fast block-read via macptr() kernal call
+            uword size
+            while num_bytes {
+                size = 255
+                if num_bytes<size
+                    size = num_bytes
+                size = cx16.macptr(lsb(size), bufferpointer)
+                if_cs
+                    goto byte_read_loop     ; macptr block read not supported, do fallback loop
+                list_blocks += size
+                bufferpointer += size
+                num_bytes -= size
+                if c64.READST() & $40 {
+                    f_close()       ; end of file, close it
+                    break
+                }
+            }
+            return list_blocks  ; number of bytes read
+        }
+
+byte_read_loop:
         %asm {{
             lda  bufferpointer
             sta  m_in_buffer+1
