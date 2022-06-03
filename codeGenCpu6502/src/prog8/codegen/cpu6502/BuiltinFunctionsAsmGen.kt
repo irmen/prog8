@@ -710,6 +710,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val first = fcall.args[0]
         val second = fcall.args[1]
 
+        val arrayVarDecl1 = (first as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
+        val arrayVarDecl2 = (second as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
+        if((arrayVarDecl1!=null && !arrayVarDecl1.isArray) || (arrayVarDecl2!=null && !arrayVarDecl2.isArray))
+            throw AssemblyError("no asm gen for swapping bytes to and/or from indexed pointer var ${fcall.position}")
+
         // optimized simple case: swap two variables
         if(first is IdentifierReference && second is IdentifierReference) {
             val firstName = asmgen.asmVariableName(first)
@@ -787,11 +792,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         ) {
                             if(firstOffset is NumericLiteral && secondOffset is NumericLiteral) {
                                 if(firstOffset!=secondOffset) {
-                                    swapArrayValues(
-                                        DataType.UBYTE,
-                                        asmgen.asmVariableName(pointerVariable), firstOffset,
-                                        asmgen.asmVariableName(pointerVariable), secondOffset
-                                    )
+                                    swapArrayBytesViaPointers(pointerVariable, firstOffset, pointerVariable, secondOffset)
                                     return
                                 }
                             } else if(firstOffset is TypecastExpression && secondOffset is TypecastExpression) {
@@ -800,11 +801,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                                     val secondOffsetVar = secondOffset.expression as? IdentifierReference
                                     if(firstOffsetVar!=null && secondOffsetVar!=null) {
                                         if(firstOffsetVar!=secondOffsetVar) {
-                                            swapArrayValues(
-                                                DataType.UBYTE,
-                                                asmgen.asmVariableName(pointerVariable), firstOffsetVar,
-                                                asmgen.asmVariableName(pointerVariable), secondOffsetVar
-                                            )
+                                            swapArrayBytesViaPointers(pointerVariable, firstOffsetVar, pointerVariable, secondOffsetVar)
                                             return
                                         }
                                     }
@@ -829,16 +826,16 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             val secondNum = second.indexer.indexExpr as? NumericLiteral
             val secondVar = second.indexer.indexExpr as? IdentifierReference
 
-            if(firstNum!=null && secondNum!=null) {
+            if (firstNum != null && secondNum != null) {
                 swapArrayValues(elementDt, arrayVarName1, firstNum, arrayVarName2, secondNum)
                 return
-            } else if(firstVar!=null && secondVar!=null) {
+            } else if (firstVar != null && secondVar != null) {
                 swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondVar)
                 return
-            } else if(firstNum!=null && secondVar!=null) {
+            } else if (firstNum != null && secondVar != null) {
                 swapArrayValues(elementDt, arrayVarName1, firstNum, arrayVarName2, secondVar)
                 return
-            } else if(firstVar!=null && secondNum!=null) {
+            } else if (firstVar != null && secondNum != null) {
                 swapArrayValues(elementDt, arrayVarName1, firstVar, arrayVarName2, secondNum)
                 return
             }
@@ -893,6 +890,72 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             }
             else -> throw AssemblyError("weird swap dt")
         }
+    }
+
+    private fun swapArrayBytesViaPointers(
+        firstZpPtr: IdentifierReference,
+        firstOffset: NumericLiteral,
+        secondZpPtr: IdentifierReference,
+        secondOffset: NumericLiteral
+    ) {
+        var firstZpPtrName = asmgen.asmSymbolName(firstZpPtr)
+        if(!asmgen.isZpVar(firstZpPtr)) {
+            asmgen.out("  lda  $firstZpPtrName |  sta  P8ZP_SCRATCH_W1")
+            asmgen.out("  lda  $firstZpPtrName+1 |  sta  P8ZP_SCRATCH_W1+1")
+            firstZpPtrName = "P8ZP_SCRATCH_W1"
+        }
+        var secondZpPtrName = asmgen.asmSymbolName(secondZpPtr)
+        if(!asmgen.isZpVar(secondZpPtr)) {
+            asmgen.out("  lda  $secondZpPtrName |  sta  P8ZP_SCRATCH_W2")
+            asmgen.out("  lda  $secondZpPtrName+1 |  sta  P8ZP_SCRATCH_W2+1")
+            secondZpPtrName = "P8ZP_SCRATCH_W2"
+        }
+        asmgen.out("""
+            ldy  #${firstOffset.number.toInt()}
+            lda  ($firstZpPtrName),y
+            pha
+            ldy  #${secondOffset.number.toInt()}
+            lda  ($secondZpPtrName),y
+            ldy  #${firstOffset.number.toInt()}
+            sta  ($firstZpPtrName),y
+            pla
+            ldy  #${secondOffset.number.toInt()}
+            sta  ($secondZpPtrName),y
+        """)
+    }
+
+    private fun swapArrayBytesViaPointers(
+        firstZpPtr: IdentifierReference,
+        index1Var: IdentifierReference,
+        secondZpPtr: IdentifierReference,
+        index2Var: IdentifierReference
+    ) {
+        var firstZpPtrName = asmgen.asmSymbolName(firstZpPtr)
+        if(!asmgen.isZpVar(firstZpPtr)) {
+            asmgen.out("  lda  $firstZpPtrName |  sta  P8ZP_SCRATCH_W1")
+            asmgen.out("  lda  $firstZpPtrName+1 |  sta  P8ZP_SCRATCH_W1+1")
+            firstZpPtrName = "P8ZP_SCRATCH_W1"
+        }
+        var secondZpPtrName = asmgen.asmSymbolName(secondZpPtr)
+        if(!asmgen.isZpVar(secondZpPtr)) {
+            asmgen.out("  lda  $secondZpPtrName |  sta  P8ZP_SCRATCH_W2")
+            asmgen.out("  lda  $secondZpPtrName+1 |  sta  P8ZP_SCRATCH_W2+1")
+            secondZpPtrName = "P8ZP_SCRATCH_W2"
+        }
+        val index1Name = asmgen.asmVariableName(index1Var)
+        val index2Name = asmgen.asmVariableName(index2Var)
+        asmgen.out("""
+            ldy  $index1Name
+            lda  ($firstZpPtrName),y
+            pha
+            ldy  $index2Name
+            lda  ($secondZpPtrName),y
+            ldy  $index1Name
+            sta  ($firstZpPtrName),y
+            pla
+            ldy  $index2Name
+            sta  ($secondZpPtrName),y
+        """)
     }
 
     private fun swapArrayValues(elementDt: DataType, arrayVarName1: String, indexValue1: NumericLiteral, arrayVarName2: String, indexValue2: NumericLiteral) {
