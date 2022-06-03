@@ -71,4 +71,100 @@ cx16diskio {
         }}
     }
 
+
+    ; replacement function that makes use of fast block read capability of the X16
+    ; use this in place of regular diskio.f_read()
+    sub f_read(uword bufferpointer, uword num_bytes) -> uword {
+        ; -- read from the currently open file, up to the given number of bytes.
+        ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
+        if not diskio.iteration_in_progress or not num_bytes
+            return 0
+
+        diskio.list_blocks = 0     ; we reuse this variable for the total number of bytes read
+        if diskio.have_first_byte {
+            diskio.have_first_byte=false
+            @(bufferpointer) = diskio.first_byte
+            bufferpointer++
+            diskio.list_blocks++
+            num_bytes--
+        }
+
+        void c64.CHKIN(11)        ; use #11 as input channel again
+
+        ; commander X16 supports fast block-read via macptr() kernal call
+        uword size
+        while num_bytes {
+            size = 255
+            if num_bytes<size
+                size = num_bytes
+            size = cx16.macptr(lsb(size), bufferpointer)
+            if_cs
+                goto byte_read_loop     ; macptr block read not supported, do fallback loop
+            diskio.list_blocks += size
+            bufferpointer += size
+            num_bytes -= size
+            if c64.READST() & $40 {
+                diskio.f_close()       ; end of file, close it
+                break
+            }
+        }
+        return diskio.list_blocks  ; number of bytes read
+
+byte_read_loop:         ; fallback if macptr() isn't supported on the device
+        %asm {{
+            lda  bufferpointer
+            sta  m_in_buffer+1
+            lda  bufferpointer+1
+            sta  m_in_buffer+2
+        }}
+        repeat num_bytes {
+            %asm {{
+                jsr  c64.CHRIN
+                sta  cx16.r5
+m_in_buffer     sta  $ffff
+                inc  m_in_buffer+1
+                bne  +
+                inc  m_in_buffer+2
++               inc  diskio.list_blocks
+                bne  +
+                inc  diskio.list_blocks+1
++
+            }}
+
+            if cx16.r5==$0d {   ; chance on I/o error status?
+                diskio.first_byte = c64.READST()
+                if diskio.first_byte & $40 {
+                    diskio.f_close()       ; end of file, close it
+                    diskio.list_blocks--   ; don't count that last CHRIN read
+                }
+                if diskio.first_byte
+                    return diskio.list_blocks  ; number of bytes read
+            }
+        }
+        return diskio.list_blocks  ; number of bytes read
+    }
+
+    ; replacement function that makes use of fast block read capability of the X16
+    ; use this in place of regular diskio.f_read_all()
+    sub f_read_all(uword bufferpointer) -> uword {
+        ; -- read the full contents of the file, returns number of bytes read.
+        if not diskio.iteration_in_progress
+            return 0
+
+        uword total_read = 0
+        if diskio.have_first_byte {
+            diskio.have_first_byte=false
+            @(bufferpointer) = diskio.first_byte
+            bufferpointer++
+            total_read = 1
+        }
+
+        while not c64.READST() {
+            uword size = cx16diskio.f_read(bufferpointer, 256)
+            total_read += size
+            bufferpointer += size
+        }
+        return total_read
+    }
+
 }

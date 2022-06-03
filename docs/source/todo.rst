@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix macptr issue in non-cx16 diskio
-
 - why is this code so much larger:
                 uword xx
                 for xx in 0 to size-1 {
