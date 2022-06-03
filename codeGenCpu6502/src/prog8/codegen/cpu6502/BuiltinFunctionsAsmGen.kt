@@ -710,11 +710,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         val first = fcall.args[0]
         val second = fcall.args[1]
 
-        val arrayVarDecl1 = (first as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
-        val arrayVarDecl2 = (second as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
-        if((arrayVarDecl1!=null && !arrayVarDecl1.isArray) || (arrayVarDecl2!=null && !arrayVarDecl2.isArray))
-            throw AssemblyError("no asm gen for swapping bytes to and/or from indexed pointer var ${fcall.position}")
-
         // optimized simple case: swap two variables
         if(first is IdentifierReference && second is IdentifierReference) {
             val firstName = asmgen.asmVariableName(first)
@@ -816,6 +811,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         }
 
         if(first is ArrayIndexedExpression && second is ArrayIndexedExpression) {
+            val arrayVarDecl1 = first.arrayvar.targetVarDecl(program)!!
+            val arrayVarDecl2 = second.arrayvar.targetVarDecl(program)!!
+            if(!arrayVarDecl1.isArray || !arrayVarDecl2.isArray)
+                throw AssemblyError("no asm gen for swapping bytes to and/or from indexed pointer var ${fcall.position}")
+
             val arrayVarName1 = asmgen.asmVariableName(first.arrayvar)
             val arrayVarName2 = asmgen.asmVariableName(second.arrayvar)
             val elementIDt = first.inferType(program)
@@ -840,6 +840,11 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 return
             }
         }
+
+        val arrayVarDecl1 = (first as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
+        val arrayVarDecl2 = (second as? ArrayIndexedExpression)?.arrayvar?.targetVarDecl(program)
+        if((arrayVarDecl1!=null && !arrayVarDecl1.isArray) || (arrayVarDecl2!=null && !arrayVarDecl2.isArray))
+            throw AssemblyError("no asm gen for swapping bytes to and/or from indexed pointer var ${fcall.position}")
 
         // all other types of swap() calls are done via a temporary variable
 

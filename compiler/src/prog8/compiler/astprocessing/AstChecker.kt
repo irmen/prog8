@@ -1176,8 +1176,8 @@ internal class AstChecker(private val program: Program,
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
         val target = arrayIndexedExpression.arrayvar.targetStatement(program)
         if(target is VarDecl) {
-            if(target.datatype !in IterableDatatypes)
-                errors.err("indexing requires an iterable variable", arrayIndexedExpression.position)
+            if(target.datatype !in IterableDatatypes && target.datatype!=DataType.UWORD)
+                errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
             val arraysize = target.arraysize?.constIndex()
             if(arraysize!=null) {
                 // check out of bounds
