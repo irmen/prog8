@@ -54,12 +54,16 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         if(decl.name in compTarget.machine.opcodeNames)
             errors.err("can't use a cpu opcode name as a symbol: '${decl.name}'", decl.position)
 
-        val existing = decl.parent.definingScope.lookup(listOf(decl.name))
-        if (existing != null && existing !== decl && existing is VarDecl) {
-            if(existing.parent!==decl.parent)
-                nameShadowWarning(decl.name, decl.position, existing)
+        val existingInSameScope = decl.definingScope.lookup(listOf(decl.name))
+        if(existingInSameScope!=null && existingInSameScope!==decl)
+            nameError(decl.name, decl.position, existingInSameScope)
+
+        val existingOuter = decl.parent.definingScope.lookup(listOf(decl.name))
+        if (existingOuter != null && existingOuter !== decl && existingOuter is VarDecl) {
+            if(existingOuter.parent!==decl.parent)
+                nameShadowWarning(decl.name, decl.position, existingOuter)
             else
-                nameError(decl.name, decl.position, existing)
+                nameError(decl.name, decl.position, existingOuter)
         }
 
         if(decl.definingBlock.name==decl.name)

@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.Expression
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.VarDecl
@@ -36,7 +37,11 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
         if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
             // rewrite   pointervar[index]  into  @(pointervar+index)
             val indexer = arrayIndexedExpression.indexer
-            val add = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
+            val add: Expression =
+            if(indexer.indexExpr.constValue(program)?.number==0.0)
+                arrayIndexedExpression.arrayvar.copy()
+            else
+                BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
             if(parent is AssignTarget) {
                 // we're part of the target of an assignment, we have to actually change the assign target itself
                 val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)

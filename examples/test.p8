@@ -1,4 +1,5 @@
 %import textio
+%import test_stack
 %zeropage basicsafe
 
 
@@ -30,65 +31,76 @@ main {
 
     sub start() {
         ; mcCarthy()
+        test_stack.test()
+
 
         ubyte value = 0
-        ubyte size = 9
+        ubyte one = 1
         ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
         uword bitmapbuf = &data
-        value = bitmapbuf[2]
-        txt.print_ub(value)    ;; 33
-        txt.nl()
 
-        ; 11 22 33
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
+        rol(bitmapbuf[1])
+        ror(bitmapbuf[1])
+        value = one+one+one
+        txt.print_ub(value)     ; 3
         txt.nl()
-        rol(bitmapbuf[0])
-        rol(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 44
-        txt.spc()
-        ror(bitmapbuf[0])
-        ror(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 11
-        txt.nl()
+        test_stack.test()
 
-        ; 22 44 66
-        txt.print_ub(bitmapbuf[0]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[1]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[2]*2)
-        txt.nl()
 
-        ubyte one = 1
-        value = one+one+one+one+one
-        txt.print_ub(value)     ; 5
-        txt.nl()
 
-        bitmapbuf[0] = one
-        bitmapbuf[1] = one+one
-        bitmapbuf[2] = one+one+one
-        bitmapbuf[2] += 4
-        bitmapbuf[2] -= 2
-        bitmapbuf[2] -= 2
-        swap(bitmapbuf[0], bitmapbuf[1])
+;        value = bitmapbuf[2]
+;        txt.print_ub(value)    ;; 33
+;        txt.nl()
+;
+;        ; 11 22 33
+;        txt.print_ub(bitmapbuf[0])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2])
+;        txt.nl()
+;        rol(bitmapbuf[0])
+;        rol(bitmapbuf[0])
+;        txt.print_ub(bitmapbuf[0])  ; 44
+;        txt.spc()
+;        ror(bitmapbuf[0])
+;        ror(bitmapbuf[0])
+;        txt.print_ub(bitmapbuf[0])  ; 11
+;        txt.nl()
+;
+;        ; 22 44 66
+;        txt.print_ub(bitmapbuf[0]*2)
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1]*2)
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2]*2)
+;        txt.nl()
 
-        ; 2 1 3
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
-        txt.nl()
+;        value = one+one+one+one+one
+;        txt.print_ub(value)     ; 5
+;        txt.nl()
 
-        for value in data {
-            txt.print_ub(value)
-            txt.spc()
-        }
-        txt.nl()
+;        bitmapbuf[0] = one
+;        bitmapbuf[1] = one+one
+;        bitmapbuf[2] = one+one+one
+;        bitmapbuf[2] += 4
+;        bitmapbuf[2] -= 2
+;        bitmapbuf[2] -= 2
+;        swap(bitmapbuf[0], bitmapbuf[1])
+;
+;        ; 2 1 3
+;        txt.print_ub(bitmapbuf[0])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2])
+;        txt.nl()
+;
+;        for value in data {
+;            txt.print_ub(value)
+;            txt.spc()
+;        }
+;        txt.nl()
 
 
 ;        ; a "pixelshader":
