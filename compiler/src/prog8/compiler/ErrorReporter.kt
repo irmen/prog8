@@ -33,7 +33,7 @@ internal class ErrorReporter: IErrorReporter {
             if(msg !in alreadyReportedMessages) {
                 when(it.severity) {
                     MessageSeverity.ERROR -> printer.print("\u001b[91mERROR\u001B[0m ")  // bright red
-                    MessageSeverity.WARNING -> printer.print("\u001b[93mWARN\u001B[0m ")  // bright yellow
+                    MessageSeverity.WARNING -> printer.print("\u001b[93mWARN\u001B[0m  ")  // bright yellow
                 }
                 printer.println(msg)
                 alreadyReportedMessages.add(msg)

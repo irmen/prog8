@@ -88,9 +88,9 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             val existing = subroutine.lookup(listOf(subroutine.name))
             if (existing != null && existing !== subroutine) {
                 if(existing.parent!==existing.parent)
-                    nameShadowWarning(subroutine.name, subroutine.position, existing)
+                    nameShadowWarning(subroutine.name, existing.position, subroutine)
                 else
-                    nameError(subroutine.name, subroutine.position, existing)
+                    nameError(subroutine.name, existing.position, subroutine)
             }
 
             // check that there are no local symbols (variables, labels, subs) that redefine the subroutine's parameters.

@@ -384,4 +384,56 @@ class TestScoping: FunSpec({
         errors.errors[0] shouldContain "wrong address"
         errors.errors[1] shouldContain "takes parameters"
     }
+
+    test("name shadowing and redefinition errors") {
+        val text = """
+            main {
+                ubyte var1Warn
+                
+                sub start() {
+                    ubyte var1Warn
+                    ubyte var1Warn
+                    ubyte main 
+                    ubyte start
+                    ubyte outer         ; is ok
+                    ubyte internalOk
+                    ubyte internalOk    ; double defined
+                }
+                
+                sub outer() {
+                    ubyte var1Warn
+                    ubyte internalOk
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        println(errors.errors)
+        errors.warnings.size shouldBe 3
+        errors.warnings[0] shouldContain "var1Warn"
+        errors.warnings[0] shouldContain "shadows"
+        errors.warnings[0] shouldContain "line 3"
+        errors.warnings[1] shouldContain "var1Warn"
+        errors.warnings[1] shouldContain "shadows"
+        errors.warnings[1] shouldContain "line 3"
+        errors.warnings[2] shouldContain "var1Warn"
+        errors.warnings[2] shouldContain "shadows"
+        errors.warnings[2] shouldContain "line 3"
+        errors.errors.size shouldBe 5
+        errors.errors[0] shouldContain "name conflict"
+        errors.errors[0] shouldContain "start"
+        errors.errors[0] shouldContain "line 5"
+        errors.errors[1] shouldContain "name conflict"
+        errors.errors[1] shouldContain "var1Warn"
+        errors.errors[1] shouldContain "line 6"
+        errors.errors[2] shouldContain "name conflict"
+        errors.errors[2] shouldContain "main"
+        errors.errors[2] shouldContain "line 2"
+        errors.errors[3] shouldContain "name conflict"
+        errors.errors[3] shouldContain "start"
+        errors.errors[3] shouldContain "line 5"
+        errors.errors[4] shouldContain "name conflict"
+        errors.errors[4] shouldContain "internalOk"
+        errors.errors[4] shouldContain "line 11"
+    }
 })
