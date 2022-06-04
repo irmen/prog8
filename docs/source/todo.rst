@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- BUG in 6502 codegen:   ubyte one = 1  |  value = one+one+one+one+one    is not 5   if rol(ptr[1]) is inbetween
-      caused by X register corruption in the ROL and ROR code
-
 - add unit test for name error and name shadowing warning.
 - optimize pointervar indexing codegen: writing (all sorts of things)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.

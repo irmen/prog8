@@ -512,7 +512,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
-                                // TODO FIX X REGISTER CORRUPTION
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
                                 asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
@@ -521,6 +521,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                                     sta  (+) + 1
                                     sty  (+) + 2
 +                                   ror  ${'$'}ffff,x           ; modified""")
+                                asmgen.restoreRegisterLocal(CpuRegister.X)
                             } else {
                                 asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
                                 asmgen.out("""
@@ -614,7 +615,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.addressExpression)
                             if(ptrAndIndex!=null) {
-                                // TODO FIX X CORRUPTION
+                                asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
                                 asmgen.saveRegisterLocal(CpuRegister.X, (fcall as Node).definingSubroutine!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
@@ -623,6 +624,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                                     sta  (+) + 1
                                     sty  (+) + 2
 +                                   rol  ${'$'}ffff,x           ; modified""")
+                                asmgen.restoreRegisterLocal(CpuRegister.X)
                             } else {
                                 asmgen.assignExpressionToRegister(what.addressExpression, RegisterOrPair.AY)
                                 asmgen.out("""
