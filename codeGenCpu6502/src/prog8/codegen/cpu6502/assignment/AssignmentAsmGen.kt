@@ -78,6 +78,8 @@ internal class AssignmentAsmGen(private val program: Program,
                     // indexing a pointer var instead of a real array or string
                     if(elementDt !in ByteDatatypes)
                         throw AssemblyError("non-array var indexing requires bytes dt")
+                    if(value.inferType(program) isnot DataType.UBYTE)
+                        throw AssemblyError("non-array var indexing requires bytes index")
                     asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
                     if(asmgen.isZpVar(value.arrayvar)) {
                         asmgen.out("  lda  ($arrayVarName),y")

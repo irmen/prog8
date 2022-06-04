@@ -91,6 +91,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.LOADM -> InsLOADM(ins)
             Opcode.LOADX -> InsLOADX(ins)
             Opcode.LOADI -> InsLOADI(ins)
+            Opcode.LOADIX -> InsLOADIX(ins)
             Opcode.LOADR -> InsLOADR(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
@@ -304,6 +305,24 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!! + registers.getUW(i.reg2!!).toInt()))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!! + registers.getUW(i.reg2!!).toInt()))
             VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.value!! + registers.getUW(i.reg1!!).toInt()))
+        }
+        pc++
+    }
+
+    private fun InsLOADIX(i: Instruction) {
+        when (i.type!!) {
+            VmDataType.BYTE -> {
+                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                registers.setUB(i.reg1!!, memory.getUB(pointer.toInt()))
+            }
+            VmDataType.WORD -> {
+                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                registers.setUW(i.reg1!!, memory.getUW(pointer.toInt()))
+            }
+            VmDataType.FLOAT -> {
+                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg1!!)
+                registers.setFloat(i.fpReg1!!, memory.getFloat(pointer.toInt()))
+            }
         }
         pc++
     }

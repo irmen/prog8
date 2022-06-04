@@ -3,9 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- optimize pointervar indexing codegen: reading (expressions) via optimized codegen instead of @(pointer+idx)
-- optimize pointervar indexing codegen: writing (all sorts of things)
-- why is this code so much larger:
+- fix pointervar indexing 6502 codegen (AssignmentAsmGen translateNormalAssignment) -> gridcommander worm doesn't move
+- is this code still so much larger:
                 uword xx
                 for xx in 0 to size-1 {
                     gfx2.next_pixel(bitmapbuf[xx])
@@ -16,8 +15,8 @@ For next release
                     gfx2.next_pixel(@(srcptr))
                     srcptr++
                 }
-  any difference between 6502 codegen and vm codegen?
 
+- optimize pointervar indexing codegen: writing (all sorts of things)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - Inliner: also inline function call expressions, and remove it from the StatementOptimizer

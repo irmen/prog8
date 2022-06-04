@@ -24,8 +24,9 @@ All have type b or w or f.
 load        reg1,         value       - load immediate value into register
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
-loadx       reg1, reg2,   address     - load reg1 with value at memory address, indexed by value in reg2
-loadr       reg1, reg2                - load reg1 with value at register reg2
+loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
+loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2
+loadr       reg1, reg2                - load reg1 with value in register reg2
 
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
@@ -184,6 +185,7 @@ enum class Opcode {
     LOADM,
     LOADI,
     LOADX,
+    LOADIX,
     LOADR,
     STOREM,
     STOREI,
@@ -313,6 +315,7 @@ enum class Opcode {
 val OpcodesWithAddress = setOf(
     Opcode.LOADM,
     Opcode.LOADX,
+    Opcode.LOADIX,
     Opcode.STOREM,
     Opcode.STOREX,
     Opcode.STOREZM,
@@ -481,6 +484,7 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.LOADI      to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
     Opcode.LOADX      to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
+    Opcode.LOADIX     to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
     Opcode.LOADR      to InstructionFormat.from("BW,r1,r2   | F,fr1,fr2"),
     Opcode.STOREM     to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.STOREI     to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
