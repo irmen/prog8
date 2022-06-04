@@ -28,23 +28,23 @@ class UnusedCodeRemover(private val program: Program,
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         reportUnreachable(breakStmt)
-        return emptyList()
+        return noModifications
     }
 
     override fun before(jump: Jump, parent: Node): Iterable<IAstModification> {
         reportUnreachable(jump)
-        return emptyList()
+        return noModifications
     }
 
     override fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> {
         reportUnreachable(returnStmt)
-        return emptyList()
+        return noModifications
     }
 
     override fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource.last() == "exit")
             reportUnreachable(functionCallStatement)
-        return emptyList()
+        return noModifications
     }
 
     private fun reportUnreachable(stmt: Statement) {

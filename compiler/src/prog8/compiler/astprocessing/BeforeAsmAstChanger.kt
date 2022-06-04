@@ -229,7 +229,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
         // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
 
-        if(options.compTarget.name==VMTarget.NAME)  // don't apply this optimizer for Vm target
+        if(options.compTarget.name==VMTarget.NAME)  // don't apply this optimization for Vm target
             return CondExprSimplificationResult(null, null, null, null)
 
         var leftAssignment: Assignment? = null
@@ -279,7 +279,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             return noModifications
         }
 
-        if(options.compTarget.name!=VMTarget.NAME) {
+        if(options.compTarget.name!=VMTarget.NAME) {    // don't apply this optimization for Vm target
             val index = arrayIndexedExpression.indexer.indexExpr
             if (index !is NumericLiteral && index !is IdentifierReference) {
                 // replace complex indexing expression with a temp variable to hold the computed index first
@@ -343,5 +343,4 @@ internal class BeforeAsmAstChanger(val program: Program,
         )
         return modifications
     }
-
 }

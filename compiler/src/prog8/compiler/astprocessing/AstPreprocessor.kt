@@ -25,6 +25,32 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return super.before(string, parent)
     }
 
+    override fun before(pipe: Pipe, parent: Node): Iterable<IAstModification> {
+        if(pipe.source is PipeExpression) {
+            // correct Antlr parse tree quirk: turn nested pipe into single flat pipe
+            val psrc = pipe.source as PipeExpression
+            val newSource = psrc.source
+            val newSegments = psrc.segments
+            newSegments += pipe.segments.single()
+            return listOf(IAstModification.ReplaceNode(pipe as Node, Pipe(newSource, newSegments, pipe.position), parent))
+        } else if(pipe.source is IPipe)
+            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
+        return noModifications
+    }
+
+    override fun before(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
+        if(pipeExpr.source is PipeExpression) {
+            // correct Antlr parse tree quirk; turn nested pipe into single flat pipe
+            val psrc = pipeExpr.source as PipeExpression
+            val newSource = psrc.source
+            val newSegments = psrc.segments
+            newSegments += pipeExpr.segments.single()
+            return listOf(IAstModification.ReplaceNode(pipeExpr as Node, PipeExpression(newSource, newSegments, pipeExpr.position), parent))
+        } else if(pipeExpr.source is IPipe)
+            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
+        return noModifications
+    }
+
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
         val modifications = mutableListOf<IAstModification>()
@@ -111,29 +137,25 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return noModifications
     }
 
-    override fun before(pipe: Pipe, parent: Node): Iterable<IAstModification> {
-        if(pipe.source is PipeExpression) {
-            // correct Antlr parse tree quirk: turn nested pipe into single flat pipe
-            val psrc = pipe.source as PipeExpression
-            val newSource = psrc.source
-            val newSegments = psrc.segments
-            newSegments += pipe.segments.single()
-            return listOf(IAstModification.ReplaceNode(pipe as Node, Pipe(newSource, newSegments, pipe.position), parent))
-        } else if(pipe.source is IPipe)
-            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
-        return noModifications
-    }
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        // For non-kernal subroutines and non-asm parameters:
+        // inject subroutine params as local variables (if they're not there yet).
+        val symbolsInSub = subroutine.allDefinedSymbols
+        val namesInSub = symbolsInSub.map{ it.first }.toSet()
+        if(subroutine.asmAddress==null) {
+            if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
+                val vars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
+                if(!vars.containsAll(subroutine.parameters.map{it.name})) {
+                    return subroutine.parameters
+                        .filter { it.name !in namesInSub }
+                        .map {
+                            val vardecl = VarDecl.fromParameter(it)
+                            IAstModification.InsertFirst(vardecl, subroutine)
+                        }
+                }
+            }
+        }
 
-    override fun before(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
-        if(pipeExpr.source is PipeExpression) {
-            // correct Antlr parse tree quirk; turn nested pipe into single flat pipe
-            val psrc = pipeExpr.source as PipeExpression
-            val newSource = psrc.source
-            val newSegments = psrc.segments
-            newSegments += pipeExpr.segments.single()
-            return listOf(IAstModification.ReplaceNode(pipeExpr as Node, PipeExpression(newSource, newSegments, pipeExpr.position), parent))
-        } else if(pipeExpr.source is IPipe)
-            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
         return noModifications
     }
 }

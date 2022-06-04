@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- try to integrated AstVariousTransforms into another walker
+- optimize pointervar indexing codegen: reading (expressions) via optimized codegen instead of @(pointer+idx)
+- optimize pointervar indexing codegen: writing (all sorts of things)
 - why is this code so much larger:
                 uword xx
                 for xx in 0 to size-1 {

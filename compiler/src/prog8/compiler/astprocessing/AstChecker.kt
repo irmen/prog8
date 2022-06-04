@@ -9,6 +9,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.compiler.BuiltinFunctions
+import prog8.compiler.InplaceModifyingBuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
 import java.io.File
@@ -1041,7 +1042,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
-            if(funcName[0] in arrayOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")) {
+            if(funcName[0] in InplaceModifyingBuiltinFunctions) {
                 // in-place modification, can't be done on literals
                 if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead }) {
                     errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)

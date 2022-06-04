@@ -129,7 +129,7 @@ private val functionSignatures: List<FSignature> = listOf(
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }
-
+val InplaceModifyingBuiltinFunctions = setOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")
 
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
 

@@ -28,13 +28,6 @@ main {
 ;        txt.spc()
 ;    }
 
-    sub crash () {
-        uword eRef
-        if eRef[3] and 10  {
-          return
-        }
-    }
-
     sub start() {
         ; mcCarthy()
 
@@ -42,6 +35,9 @@ main {
         ubyte size = 9
         ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
         uword bitmapbuf = &data
+        value = bitmapbuf[2]
+        txt.print_ub(value)    ;; 33
+        txt.nl()
 
 ;        ; 11 22 33
 ;        txt.print_ub(bitmapbuf[0])

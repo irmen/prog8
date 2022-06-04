@@ -189,15 +189,6 @@ internal class StatementReorderer(val program: Program,
         return modifications + parameterChanges + varsChanges
     }
 
-    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        if(parent !is VarDecl) {
-            // don't replace the initializer value in a vardecl - this will be moved to a separate
-            // assignment statement soon in after(VarDecl)
-            return replacePointerVarIndexWithMemreadOrMemwrite(program, arrayIndexedExpression, parent)
-        }
-        return noModifications
-    }
-
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
@@ -575,26 +566,4 @@ private fun makeGosubWithArgsViaCpuStack(
         scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), position), mutableListOf(), true, position)
     }
     return listOf(IAstModification.ReplaceNode(call as Node, scope, parent))
-}
-
-
-
-internal fun replacePointerVarIndexWithMemreadOrMemwrite(program: Program, arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-    val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
-    if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
-        // rewrite   pointervar[index]  into  @(pointervar+index)
-        val indexer = arrayIndexedExpression.indexer
-        val add = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
-        return if(parent is AssignTarget) {
-            // we're part of the target of an assignment, we have to actually change the assign target itself
-            val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
-            val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
-            listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
-        } else {
-            val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-            listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-        }
-    }
-
-    return emptyList()
 }
