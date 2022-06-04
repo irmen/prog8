@@ -11,11 +11,13 @@ import prog8.ast.statements.DirectMemoryWrite
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
+import prog8.code.target.VMTarget
 import prog8.compiler.InplaceModifyingBuiltinFunctions
 
 
-internal class AstOnetimeTransforms(private val program: Program) : AstWalker() {
+internal class AstOnetimeTransforms(private val program: Program, private val options: CompilationOptions) : AstWalker() {
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(parent !is VarDecl) {
@@ -42,18 +44,19 @@ internal class AstOnetimeTransforms(private val program: Program) : AstWalker() 
                 return listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
             } else {
                 val fcall = parent as? IFunctionCall
-                return if(fcall!=null) {
-                    val fname = fcall.target.nameInSource
-                    if(fname.size==1 && fname[0] in InplaceModifyingBuiltinFunctions) {
+                if(fcall!=null) {
+                    if(fcall.target.nameInSource.size==1 && fcall.target.nameInSource[0] in InplaceModifyingBuiltinFunctions) {
                         // TODO for now, swap() etc don't work on pointer var indexed args, so still replace this
                         val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                        listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+                        return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
                     } else {
-                        noModifications
+                        println("PTR INDEX 1: $arrayIndexedExpression PARENT=${parent.javaClass}")       // TODO
+                        return noModifications
                     }
-                } else {
-                    val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                    listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+                }
+                else {
+                    println("PTR INDEX 2: $arrayIndexedExpression PARENT=${parent.javaClass}")       // TODO
+                    return noModifications
                 }
             }
         }

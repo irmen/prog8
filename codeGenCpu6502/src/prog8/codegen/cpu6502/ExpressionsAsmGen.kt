@@ -692,6 +692,25 @@ internal class ExpressionsAsmGen(private val program: Program,
             throw AssemblyError("unknown dt")
         val elementDt = elementIDt.getOr(DataType.UNDEFINED)
         val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
+
+        val arrayVarDecl = arrayExpr.arrayvar.targetVarDecl(program)!!
+        if(arrayVarDecl.datatype==DataType.UWORD) {
+            // indexing a pointer var instead of a real array or string
+            if(elementDt !in ByteDatatypes)
+                throw AssemblyError("non-array var indexing requires bytes dt")
+            if(arrayExpr.inferType(program) isnot DataType.UBYTE)
+                throw AssemblyError("non-array var indexing requires bytes index")
+            asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
+            if(asmgen.isZpVar(arrayExpr.arrayvar)) {
+                asmgen.out("  lda  ($arrayVarName),y")
+            } else {
+                asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
+                asmgen.out("  lda  (P8ZP_SCRATCH_W1),y")
+            }
+            asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            return
+        }
+
         val constIndexNum = arrayExpr.indexer.constIndex()
         if(constIndexNum!=null) {
             val indexValue = constIndexNum * program.memsizer.memorySize(elementDt)
