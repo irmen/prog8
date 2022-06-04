@@ -3,13 +3,9 @@ package prog8tests
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
@@ -190,81 +186,6 @@ class TestSubroutines: FunSpec({
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "pass-by-reference type can't be used"
         errors.errors[1] shouldContain "pass-by-reference type can't be used"
-    }
-
-    test("uword param and normal varindexed as array work as DirectMemoryRead") {
-        val text="""
-            main {
-              sub thing(uword rr) {
-                ubyte @shared xx = rr[1]    ; should still work as var initializer that will be rewritten
-                ubyte @shared yy
-                yy = rr[2]
-                uword @shared other
-                ubyte zz = other[3]
-              }
-            
-              sub start() {
-                ubyte[] array=[1,2,3]
-                thing(array)
-              }
-            }
-        """
-
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val module = result.program.toplevelModule
-        val block = module.statements.single() as Block
-        val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
-        block.name shouldBe "main"
-        thing.statements.size shouldBe 10          // rr paramdecl, xx, xx assign, yy decl, yy assign, other, other assign 0, zz, zz assign, return
-        val xx = thing.statements[1] as VarDecl
-        withClue("vardecl init values must have been moved to separate assignments") {
-            xx.value shouldBe null
-        }
-        val assignXX = thing.statements[2] as Assignment
-        val assignYY = thing.statements[4] as Assignment
-        val assignZZ = thing.statements[8] as Assignment
-        assignXX.target.identifier!!.nameInSource shouldBe listOf("xx")
-        assignYY.target.identifier!!.nameInSource shouldBe listOf("yy")
-        assignZZ.target.identifier!!.nameInSource shouldBe listOf("zz")
-        val valueXXexpr = (assignXX.value as DirectMemoryRead).addressExpression as BinaryExpression
-        val valueYYexpr = (assignYY.value as DirectMemoryRead).addressExpression as BinaryExpression
-        val valueZZexpr = (assignZZ.value as DirectMemoryRead).addressExpression as BinaryExpression
-        (valueXXexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
-        (valueYYexpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
-        (valueZZexpr.left as IdentifierReference).nameInSource shouldBe listOf("other")
-        (valueXXexpr.right as NumericLiteral).number.toInt() shouldBe 1
-        (valueYYexpr.right as NumericLiteral).number.toInt() shouldBe 2
-        (valueZZexpr.right as NumericLiteral).number.toInt() shouldBe 3
-    }
-
-    test("uword param and normal varindexed as array work as MemoryWrite") {
-        val text="""
-            main {
-              sub thing(uword rr) {
-                rr[10] = 42
-              }
-            
-              sub start() {
-                ubyte[] array=[1,2,3]
-                thing(array)
-              }
-            }
-        """
-
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val module = result.program.toplevelModule
-        val block = module.statements.single() as Block
-        val thing = block.statements.filterIsInstance<Subroutine>().single {it.name=="thing"}
-        block.name shouldBe "main"
-        thing.statements.size shouldBe 3   // "rr, rr assign, return void"
-        val assignRR = thing.statements[1] as Assignment
-        (assignRR.value as NumericLiteral).number.toInt() shouldBe 42
-        val memwrite = assignRR.target.memoryAddress
-        memwrite shouldNotBe null
-        val addressExpr = memwrite!!.addressExpression as BinaryExpression
-        (addressExpr.left as IdentifierReference).nameInSource shouldBe listOf("rr")
-        addressExpr.operator shouldBe "+"
-        (addressExpr.right as NumericLiteral).number.toInt() shouldBe 10
     }
 
     test("invalid number of args check on normal subroutine") {

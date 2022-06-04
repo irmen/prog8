@@ -39,31 +39,34 @@ main {
         txt.print_ub(value)    ;; 33
         txt.nl()
 
-;        ; 11 22 33
-;        txt.print_ub(bitmapbuf[0])
-;        txt.spc()
-;        txt.print_ub(bitmapbuf[1])
-;        txt.spc()
-;        txt.print_ub(bitmapbuf[2])
-;        txt.nl()
-;        rol(bitmapbuf[0])
-;        rol(bitmapbuf[0])
-;        txt.print_ub(bitmapbuf[0])  ; 44
-;        txt.spc()
-;        ror(bitmapbuf[0])
-;        ror(bitmapbuf[0])
-;        txt.print_ub(bitmapbuf[0])  ; 11
-;        txt.nl()
-;
-;        ; 22 44 66
-;        txt.print_ub(bitmapbuf[0]*2)
-;        txt.spc()
-;        txt.print_ub(bitmapbuf[1]*2)
-;        txt.spc()
-;        txt.print_ub(bitmapbuf[2]*2)
-;        txt.nl()
+        ; 11 22 33
+        txt.print_ub(bitmapbuf[0])
+        txt.spc()
+        txt.print_ub(bitmapbuf[1])
+        txt.spc()
+        txt.print_ub(bitmapbuf[2])
+        txt.nl()
+        rol(bitmapbuf[0])
+        rol(bitmapbuf[0])
+        txt.print_ub(bitmapbuf[0])  ; 44
+        txt.spc()
+        ror(bitmapbuf[0])
+        ror(bitmapbuf[0])
+        txt.print_ub(bitmapbuf[0])  ; 11
+        txt.nl()
+
+        ; 22 44 66
+        txt.print_ub(bitmapbuf[0]*2)
+        txt.spc()
+        txt.print_ub(bitmapbuf[1]*2)
+        txt.spc()
+        txt.print_ub(bitmapbuf[2]*2)
+        txt.nl()
 
         ubyte one = 1
+        value = one+one+one+one+one
+        txt.print_ub(value)     ; 5
+        txt.nl()
 
         bitmapbuf[0] = one
         bitmapbuf[1] = one+one
@@ -73,7 +76,7 @@ main {
         bitmapbuf[2] -= 2
         swap(bitmapbuf[0], bitmapbuf[1])
 
-        ; 1 2 3
+        ; 2 1 3
         txt.print_ub(bitmapbuf[0])
         txt.spc()
         txt.print_ub(bitmapbuf[1])
@@ -87,24 +90,6 @@ main {
         }
         txt.nl()
 
-        ; TODO why is this loop much larger in code than the one below.
-        value = 0
-        ubyte xx
-        for xx in 0 to size-1 {
-            value += bitmapbuf[xx]
-        }
-        txt.print_ub(value)     ; 45
-        txt.nl()
-
-        ; TODO this one is much more compact
-        value = 0
-        uword srcptr = bitmapbuf
-        repeat size {
-            value += @(srcptr)
-            srcptr++
-        }
-        txt.print_ub(value)     ; 45
-        txt.nl()
 
 ;        ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen

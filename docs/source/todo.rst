@@ -3,18 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix pointervar indexing 6502 codegen (AssignmentAsmGen translateNormalAssignment) -> gridcommander worm doesn't move
-- is this code still so much larger:
-                uword xx
-                for xx in 0 to size-1 {
-                    gfx2.next_pixel(bitmapbuf[xx])
-                }
-  than this loop:
-                uword srcptr = bitmapbuf
-                repeat size {
-                    gfx2.next_pixel(@(srcptr))
-                    srcptr++
-                }
+- BUG in 6502 codegen:   ubyte one = 1  |  value = one+one+one+one+one    is not 5
 
 - optimize pointervar indexing codegen: writing (all sorts of things)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.

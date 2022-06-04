@@ -154,6 +154,8 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             // indexing a pointer var instead of a real array or string
             if(eltSize!=1)
                 throw AssemblyError("non-array var indexing requires bytes dt")
+            if(arrayIx.index.type!=DataType.UBYTE)
+                throw AssemblyError("non-array var indexing requires bytes index")
             code += translateExpression(arrayIx.index, idxReg, -1)
             code += VmCodeInstruction(Opcode.LOADIX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
             return code

@@ -159,6 +159,19 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             val variable = array.variable.targetName
             var variableAddr = codeGen.allocations.get(variable)
             val itemsize = codeGen.program.memsizer.memorySize(array.type)
+
+            if(array.variable.type==DataType.UWORD) {
+                // indexing a pointer var instead of a real array or string
+                if(itemsize!=1)
+                    throw AssemblyError("non-array var indexing requires bytes dt")
+                if(array.index.type!=DataType.UBYTE)
+                    throw AssemblyError("non-array var indexing requires bytes index")
+                val idxReg = codeGen.vmRegisters.nextFree()
+                code += expressionEval.translateExpression(array.index, idxReg, -1)
+                code += VmCodeInstruction(Opcode.LOADIX, vmDt, reg1=resultRegister, reg2=idxReg, value = variableAddr)
+                return code
+            }
+
             val fixedIndex = constIntValue(array.index)
             if(zero) {
                 if(fixedIndex!=null) {
