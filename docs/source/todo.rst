@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- try to integrated AstVariousTransforms into another walker
 - why is this code so much larger:
                 uword xx
                 for xx in 0 to size-1 {

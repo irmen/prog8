@@ -28,6 +28,13 @@ main {
 ;        txt.spc()
 ;    }
 
+    sub crash () {
+        uword eRef
+        if eRef[3] and 10  {
+          return
+        }
+    }
+
     sub start() {
         ; mcCarthy()
 

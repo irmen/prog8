@@ -757,4 +757,19 @@ class TestOptimization: FunSpec({
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
+
+    test("pointer indexing inside other expression ok") {
+        val src="""
+            main{
+                sub start () {
+                    uword eRef
+                    if eRef[3] and 10  {
+                      return
+                    }
+                }
+            }"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 3
+    }
 })
