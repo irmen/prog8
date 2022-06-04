@@ -85,7 +85,7 @@ class AsmGen(internal val program: Program,
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {
-        val fragment = (if(" | " in str) str.replace("|", "\n") else str).trim('\n')
+        val fragment = (if(splitlines && " | " in str) str.replace("|", "\n") else str).trim('\n')
         if (splitlines) {
             for (line in fragment.splitToSequence('\n')) {
                 val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line

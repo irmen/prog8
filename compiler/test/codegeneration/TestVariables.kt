@@ -50,4 +50,18 @@ class TestVariables: FunSpec({
         """
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
+
+
+    test("pipe character in string literal") {
+        val text = """
+            main {
+                sub start() {
+                    str name = "first|second"
+                    str name2 = "first | second"
+                }
+            }
+        """
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
 })

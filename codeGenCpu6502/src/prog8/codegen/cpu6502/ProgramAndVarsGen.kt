@@ -589,7 +589,7 @@ internal class ProgramAndVarsGen(
     }
 
     private fun outputStringvar(varname: String, encoding: Encoding, value: String) {
-        asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"")
+        asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"", false)
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }
         for (chunk in outputBytes.chunked(16))
