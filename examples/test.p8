@@ -1,5 +1,5 @@
 %import textio
-%zeropage dontuse
+%zeropage basicsafe
 
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)

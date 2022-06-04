@@ -45,13 +45,11 @@ internal class AstOnetimeTransforms(private val program: Program) : AstWalker() 
                 return if(fcall!=null) {
                     val fname = fcall.target.nameInSource
                     if(fname.size==1 && fname[0] in InplaceModifyingBuiltinFunctions) {
-                        // TODO for now, swap() etc don't work on pointer var indexed args
+                        // TODO for now, swap() etc don't work on pointer var indexed args, so still replace this
                         val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
                         listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
                     } else {
-                        // TODO first candidate for optimization is to remove this:
-                        val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                        listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+                        noModifications
                     }
                 } else {
                     val memread = DirectMemoryRead(add, arrayIndexedExpression.position)

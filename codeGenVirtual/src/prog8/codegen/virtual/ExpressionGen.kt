@@ -149,6 +149,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val code = VmCodeChunk()
         val idxReg = codeGen.vmRegisters.nextFree()
         val arrayLocation = codeGen.allocations.get(arrayIx.variable.targetName)
+
+        if(arrayIx.variable.type==DataType.UWORD) {
+            // indexing a pointer var instead of a real array or string
+            if(eltSize!=1)
+                throw AssemblyError("non-array var indexing requires bytes dt")
+            val pointerReg = codeGen.vmRegisters.nextFree()
+            code += translateExpression(arrayIx.index, idxReg, -1)
+            // TODO introduce LOADIX instruction to skip the ADD (requires 3 registers)
+            code += VmCodeInstruction(Opcode.LOADM, VmDataType.WORD, reg1=pointerReg, value=arrayLocation)
+            code += VmCodeInstruction(Opcode.ADD, VmDataType.WORD, reg1=pointerReg, reg2=idxReg)
+            code += VmCodeInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg)
+            return code
+        }
+
         if(arrayIx.index is PtNumber) {
             // optimized code when index is known - just calculate the memory address here
             val memOffset = (arrayIx.index as PtNumber).number.toInt() * eltSize

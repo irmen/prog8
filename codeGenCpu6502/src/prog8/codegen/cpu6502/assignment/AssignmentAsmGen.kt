@@ -72,6 +72,23 @@ internal class AssignmentAsmGen(private val program: Program,
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
                 val arrayVarName = asmgen.asmVariableName(value.arrayvar)
+
+                val arrayVarDecl = value.arrayvar.targetVarDecl(program)!!
+                if(arrayVarDecl.datatype==DataType.UWORD) {
+                    // indexing a pointer var instead of a real array or string
+                    if(elementDt !in ByteDatatypes)
+                        throw AssemblyError("non-array var indexing requires bytes dt")
+                    asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                    if(asmgen.isZpVar(value.arrayvar)) {
+                        asmgen.out("  lda  ($arrayVarName),y")
+                    } else {
+                        asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
+                        asmgen.out("  lda  (P8ZP_SCRATCH_W1),y")
+                    }
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                    return
+                }
+
                 val constIndex = value.indexer.constIndex()
                 if (constIndex!=null) {
                     // constant array index value
