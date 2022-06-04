@@ -299,7 +299,7 @@ Prog8 supports the following data types:
 type identifier  type                     storage size       example var declaration and literal value
 ===============  =======================  =================  =========================================
 ``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
-``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``,  ``ubyte c2 = @'a'``
+``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
 --               boolean                  1 byte = 8 bits    ``byte myvar = true`` or ``byte myvar == false``
                                                              The true and false are actually just aliases
                                                              for the byte values 1 and 0.
