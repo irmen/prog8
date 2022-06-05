@@ -19,7 +19,7 @@ class TestSourceCode: AnnotationSpec() {
         """
         val src = SourceCode.Text(text)
 
-        src.origin shouldContain Regex("^<String@[0-9a-f\\-]+>$")
+        src.origin shouldContain Regex("^string:[0-9a-f\\-]+$")
         src.text shouldBe text
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe false

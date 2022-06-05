@@ -204,7 +204,7 @@ class TestProg8Parser: FunSpec( {
             val module = parseModule(SourceCode.Text(srcText))
 
             // Note: assertContains has *actual* as first param
-            module.name shouldContain Regex("^<String@[0-9a-f\\-]+>$")
+            module.name shouldContain Regex("^string:[0-9a-f\\-]+$")
         }
 
         test("parsed from a file") {
@@ -267,7 +267,7 @@ class TestProg8Parser: FunSpec( {
             val srcText = "bad * { }\n"
 
             val e = shouldThrow<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            assertPosition(e.position, Regex("^<String@[0-9a-f\\-]+>$"), 1, 4, 4)
+            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 4, 4)
         }
 
         test("in ParseError from bad file source code") {
@@ -283,7 +283,7 @@ class TestProg8Parser: FunSpec( {
                 }
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^<String@[0-9a-f\\-]+>$"), 1, 0)
+            assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 0)
         }
 
         test("of Module parsed from a file") {

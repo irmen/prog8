@@ -11,6 +11,6 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
     }
 
     companion object {
-        val DUMMY = Position("<dummy>", 0, 0, 0)
+        val DUMMY = Position("~dummy~", 0, 0, 0)
     }
 }

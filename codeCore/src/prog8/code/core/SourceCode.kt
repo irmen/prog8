@@ -34,7 +34,7 @@ sealed class SourceCode {
      * Where this [SourceCode] instance came from.
      * This can be one of the following:
      * * a normal string representation of a [java.nio.file.Path], if it originates from a file (see [File])
-     * * `$stringSourcePrefix44c56085>` if was created via [String]
+     * * `string:44c56085` if was created via [String]
      * * `library:/x/y/z.ext` if it is a library file that was loaded from resources (see [Resource])
      */
     abstract val origin: String
@@ -55,7 +55,7 @@ sealed class SourceCode {
          * filename prefix to designate library files that will be retreived from internal resources rather than disk
          */
         const val libraryFilePrefix = "library:"
-        const val stringSourcePrefix = "<String@"
+        const val stringSourcePrefix = "string:"
         val curdir: Path = Path(".").toAbsolutePath()
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
         fun isRegularFilesystemPath(pathString: String) =
@@ -64,12 +64,12 @@ sealed class SourceCode {
 
     /**
      * Turn a plain String into a [SourceCode] object.
-     * [origin] will be something like `$stringSourcePrefix44c56085>`.
+     * [origin] will be something like `string:44c56085`.
      */
     class Text(override val text: String): SourceCode() {
         override val isFromResources = false
         override val isFromFilesystem = false
-        override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}>"
+        override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}"
         override val name = "<unnamed-text>"
     }
 
