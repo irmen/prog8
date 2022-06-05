@@ -1,5 +1,5 @@
 %import textio
-%import test_stack
+;%import test_stack
 %zeropage basicsafe
 
 
@@ -31,8 +31,16 @@ main {
 
     sub start() {
         ; mcCarthy()
-        test_stack.test()
+        uword uw = -2
+        ubyte ub = -2
+        uw = -2 as uword
+        ub = -2 as ubyte
+        txt.print_uw(uw)
+        txt.spc()
+        txt.print_ub(ub)
+        txt.nl()
 
+        ;test_stack.test()
 
         ubyte value = 0
         ubyte one = 1
@@ -93,7 +101,7 @@ main {
         }
         txt.nl()
 
-        test_stack.test()
+        ;test_stack.test()
 
 
 ;        ; a "pixelshader":

@@ -541,10 +541,18 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return CastValue(true, NumericLiteral(targettype, number, position))
             }
             DataType.BYTE -> {
-                if(targettype== DataType.UBYTE && number >= 0)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
-                if(targettype== DataType.UWORD && number >= 0)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype== DataType.UBYTE) {
+                    if(number in -128.0..0.0)
+                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
+                    else if(number in 0.0..255.0)
+                        return CastValue(true, NumericLiteral(targettype, number, position))
+                }
+                if(targettype== DataType.UWORD) {
+                    if(number in -32768.0..0.0)
+                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
+                    else if(number in 0.0..65535.0)
+                        return CastValue(true, NumericLiteral(targettype, number, position))
+                }
                 if(targettype== DataType.WORD)
                     return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
@@ -563,10 +571,18 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             DataType.WORD -> {
                 if(targettype== DataType.BYTE && number >= -128 && number <=127)
                     return CastValue(true, NumericLiteral(targettype, number, position))
-                if(targettype== DataType.UBYTE && number >= 0 && number <= 255)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
-                if(targettype== DataType.UWORD && number >=0)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype== DataType.UBYTE) {
+                    if(number in -128.0..0.0)
+                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
+                    else if(number in 0.0..255.0)
+                        return CastValue(true, NumericLiteral(targettype, number, position))
+                }
+                if(targettype== DataType.UWORD) {
+                    if(number in -32768.0 .. 0.0)
+                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
+                    else if(number in 0.0..65535.0)
+                        return CastValue(true, NumericLiteral(targettype, number, position))
+                }
                 if(targettype== DataType.FLOAT)
                     return CastValue(true, NumericLiteral(targettype, number, position))
             }

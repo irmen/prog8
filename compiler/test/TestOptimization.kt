@@ -565,15 +565,29 @@ class TestOptimization: FunSpec({
         val src="""
             main {
                 sub start()  {
-                    ubyte @shared z1 = - 1
+                    ubyte @shared z1 = - 200
                 }
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain  "type of value BYTE doesn't match target UBYTE"
+        errors.errors[0] shouldContain  "type of value WORD doesn't match target UBYTE"
         errors.errors[1] shouldContain  "out of range"
+    }
+
+    test("out of range cast should give error") {
+        val src="""
+            main {
+                sub start()  {
+                    ubyte @shared z1 = - 200 as ubyte
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain  "can't cast"
     }
 
     test("test augmented expression asmgen") {

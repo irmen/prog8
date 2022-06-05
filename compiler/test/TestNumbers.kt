@@ -6,10 +6,15 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.statements.Assignment
+import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
+import prog8.code.core.Position
 import prog8.code.core.toHex
 import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
+import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -179,5 +184,28 @@ class TestNumbers: FunSpec({
             }
         """
         compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+    }
+
+    test("signed negative numbers cast to unsigned allowed") {
+        val src="""
+            main {
+                sub start() {
+                    uword uw1 = -32768
+                    uword uw = -1
+                    ubyte ub = -1
+                    uw = -2 as uword
+                    ub = -2 as ubyte 
+                }
+            }
+        """
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val statements = result.program.entrypoint.statements
+        statements.size shouldBe 8
+        printProgram(result.program)
+        (statements[1] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 32768.0, Position.DUMMY)
+        (statements[3] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65535.0, Position.DUMMY)
+        (statements[5] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
+        (statements[6] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65534.0, Position.DUMMY)
+        (statements[7] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 254.0, Position.DUMMY)
     }
 })
