@@ -31,75 +31,78 @@ main {
 
     sub start() {
         ; mcCarthy()
-        uword uw = -2
-        ubyte ub = -2
-        uw = -2 as uword
-        ub = -2 as ubyte
-        txt.print_uw(uw)
+        uword uw1 = 9999
+        uword uw2 = uw1 - 2000 + 10000
+        ubyte ub1 = 99
+        ubyte ub2 = ub1 - 2 + 10
+        ubyte ubb = ub2 - -10
+        txt.print_uw(uw2)
         txt.spc()
-        txt.print_ub(ub)
+        txt.print_ub(ub2)
+        txt.spc()
+        txt.print_ub(ubb)
         txt.nl()
 
         ;test_stack.test()
 
-        ubyte value = 0
-        ubyte one = 1
-        ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
-        uword bitmapbuf = &data
-
-        value = bitmapbuf[2]
-        txt.print_ub(value)    ;; 33
-        txt.nl()
-
-        ; 11 22 33
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
-        txt.nl()
-        rol(bitmapbuf[0])
-        rol(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 44
-        txt.spc()
-        ror(bitmapbuf[0])
-        ror(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 11
-        txt.nl()
-
-        ; 22 44 66
-        txt.print_ub(bitmapbuf[0]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[1]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[2]*2)
-        txt.nl()
-
-        value = one+one+one+one+one
-        txt.print_ub(value)     ; 5
-        txt.nl()
-
-        bitmapbuf[0] = one
-        bitmapbuf[1] = one+one
-        bitmapbuf[2] = one+one+one
-        bitmapbuf[2] += 4
-        bitmapbuf[2] -= 2
-        bitmapbuf[2] -= 2
-        swap(bitmapbuf[0], bitmapbuf[1])
-
-        ; 2 1 3
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
-        txt.nl()
-
-        for value in data {
-            txt.print_ub(value)
-            txt.spc()
-        }
-        txt.nl()
+;        ubyte value = 0
+;        ubyte one = 1
+;        ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
+;        uword bitmapbuf = &data
+;
+;        value = bitmapbuf[2]
+;        txt.print_ub(value)    ;; 33
+;        txt.nl()
+;
+;        ; 11 22 33
+;        txt.print_ub(bitmapbuf[0])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2])
+;        txt.nl()
+;        rol(bitmapbuf[0])
+;        rol(bitmapbuf[0])
+;        txt.print_ub(bitmapbuf[0])  ; 44
+;        txt.spc()
+;        ror(bitmapbuf[0])
+;        ror(bitmapbuf[0])
+;        txt.print_ub(bitmapbuf[0])  ; 11
+;        txt.nl()
+;
+;        ; 22 44 66
+;        txt.print_ub(bitmapbuf[0]*2)
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1]*2)
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2]*2)
+;        txt.nl()
+;
+;        value = one+one+one+one+one
+;        txt.print_ub(value)     ; 5
+;        txt.nl()
+;
+;        bitmapbuf[0] = one
+;        bitmapbuf[1] = one+one
+;        bitmapbuf[2] = one+one+one
+;        bitmapbuf[2] += 4
+;        bitmapbuf[2] -= 2
+;        bitmapbuf[2] -= 2
+;        swap(bitmapbuf[0], bitmapbuf[1])
+;
+;        ; 2 1 3
+;        txt.print_ub(bitmapbuf[0])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[1])
+;        txt.spc()
+;        txt.print_ub(bitmapbuf[2])
+;        txt.nl()
+;
+;        for value in data {
+;            txt.print_ub(value)
+;            txt.spc()
+;        }
+;        txt.nl()
 
         ;test_stack.test()
 

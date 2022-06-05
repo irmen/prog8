@@ -192,6 +192,21 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             modifications += IAstModification.ReplaceNode(expr, result, parent)
         }
 
+        if(leftconst==null && rightconst!=null && rightconst.number<0.0) {
+            if (expr.operator == "-") {
+                // X - -1 ---> X + 1
+                val posNumber = NumericLiteral.optimalNumeric(-rightconst.number, rightconst.position)
+                val plusExpr = BinaryExpression(expr.left, "+", posNumber, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, plusExpr, parent))
+            }
+            else if (expr.operator == "+") {
+                // X + -1 ---> X - 1
+                val posNumber = NumericLiteral.optimalNumeric(-rightconst.number, rightconst.position)
+                val plusExpr = BinaryExpression(expr.left, "-", posNumber, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, plusExpr, parent))
+            }
+        }
+
 
         val leftBinExpr = expr.left as? BinaryExpression
         val rightBinExpr = expr.right as? BinaryExpression

@@ -13,6 +13,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.round
 
 
@@ -446,7 +447,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 NumericLiteral(DataType.UBYTE, if (bool) 1.0 else 0.0, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
-            return if(value is Double) {
+            val digits = floor(value.toDouble()) - value.toDouble()
+            return if(value is Double && digits!=0.0) {
                 NumericLiteral(DataType.FLOAT, value, position)
             } else {
                 val dvalue = value.toDouble()

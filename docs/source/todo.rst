@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix natt's bug: ubyte - 2 + 10 somehow gets promoted to byte?
 - optimize pointervar indexing codegen: make them work as subroutine paramers
 - optimize pointervar indexing codegen: writing (all sorts of things)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.

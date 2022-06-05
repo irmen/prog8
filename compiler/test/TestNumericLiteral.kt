@@ -152,4 +152,35 @@ class TestNumericLiteral: FunSpec({
         (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) <= NumericLiteral(DataType.FLOAT, 99.9, dummyPos)) shouldBe false
     }
 
+    test("optimalInteger") {
+        NumericLiteral.optimalInteger(10, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalInteger(10, Position.DUMMY).number shouldBe 10.0
+        NumericLiteral.optimalInteger(-10, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalInteger(-10, Position.DUMMY).number shouldBe -10.0
+        NumericLiteral.optimalInteger(1000, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(-1000, Position.DUMMY).number shouldBe -1000.0
+        NumericLiteral.optimalInteger(1000u, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(1000u, Position.DUMMY).number shouldBe 1000.0
+    }
+
+    test("optimalNumeric") {
+        NumericLiteral.optimalNumeric(10, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalNumeric(10, Position.DUMMY).number shouldBe 10.0
+        NumericLiteral.optimalNumeric(-10, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(-10, Position.DUMMY).number shouldBe -10.0
+        NumericLiteral.optimalNumeric(1000, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(1000, Position.DUMMY).number shouldBe 1000.0
+        NumericLiteral.optimalNumeric(-1000, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalNumeric(-1000, Position.DUMMY).number shouldBe -1000.0
+        NumericLiteral.optimalNumeric(1.123, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(1.123, Position.DUMMY).number shouldBe 1.123
+        NumericLiteral.optimalNumeric(1.0, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalNumeric(1.0, Position.DUMMY).number shouldBe 1.0
+        NumericLiteral.optimalNumeric(-1.0, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(-1.0, Position.DUMMY).number shouldBe -1.0
+        NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).number shouldBe 1234.0
+        NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).number shouldBe -1234.0
+    }
 })
