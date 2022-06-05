@@ -339,79 +339,23 @@ main {
         txt.nl()
 
         bb = -100
-        bb = abs(bb)
+        bb = abs(bb) as byte
         txt.print_b(bb)
         txt.nl()
         bb = -100
-        bb = zero+abs(bb)*1+zero
+        bb = zero+(abs(bb) as byte)*1+zero
         txt.print_b(bb)
         txt.nl()
 
         ww = -1000
-        ww = abs(ww)
+        ww = abs(ww) as word
         txt.print_w(ww)
         txt.nl()
         ww = -1000
-        ww = zero+abs(ww)*1+zero
+        ww = zero+(abs(ww) as word)*1+zero
         txt.print_w(ww)
         txt.nl()
-
-        ub = min(ubarr)
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+min(ubarr)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        bb = min(barr)
-        txt.print_b(bb)
-        txt.nl()
-        bb = zero+min(barr)*1+zero
-        txt.print_b(bb)
-        txt.nl()
-
-        uw = min(uwarr)
-        txt.print_uw(uw)
-        txt.nl()
-        uw = zero+min(uwarr)*1+zero
-        txt.print_uw(uw)
-        txt.nl()
-
-        ww = min(warr)
-        txt.print_w(ww)
-        txt.nl()
-        ww = zero+min(warr)*1+zero
-        txt.print_w(ww)
-        txt.nl()
-
-        ub = max(ubarr)
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+max(ubarr)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        bb = max(barr)
-        txt.print_b(bb)
-        txt.nl()
-        bb = zero+max(barr)*1+zero
-        txt.print_b(bb)
-        txt.nl()
-
-        uw = max(uwarr)
-        txt.print_uw(uw)
-        txt.nl()
-        uw = zero+max(uwarr)*1+zero
-        txt.print_uw(uw)
-        txt.nl()
-
-        ww = max(warr)
-        txt.print_w(ww)
-        txt.nl()
-        ww = zero+max(warr)*1+zero
-        txt.print_w(ww)
-        txt.nl()
-
+        
         ub = any(ubarr)
         txt.print_ub(ub)
         txt.nl()
@@ -468,35 +412,6 @@ main {
         txt.print_ub(ub)
         txt.nl()
 
-
-        uw = sum(ubarr)
-        txt.print_uw(uw)
-        txt.nl()
-        uw = zero+sum(ubarr)*1+zero
-        txt.print_uw(uw)
-        txt.nl()
-
-        ww = sum(barr)
-        txt.print_w(ww)
-        txt.nl()
-        ww = zero+sum(barr)*1+zero
-        txt.print_w(ww)
-        txt.nl()
-
-        uw = sum(uwarr)
-        txt.print_uw(uw)
-        txt.nl()
-        uw = zero+sum(uwarr)*1+zero
-        txt.print_uw(uw)
-        txt.nl()
-
-        ww = sum(warr)
-        txt.print_w(ww)
-        txt.nl()
-        ww = zero+sum(warr)*1+zero
-        txt.print_w(ww)
-        txt.nl()
-
         sort(ubarr)
         sort(barr)
         sort(uwarr)
@@ -521,136 +436,12 @@ main {
         float fzero=0.0
 
         fl = -9.9
-        fl = abs(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+abs(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 9.9
-        fl = atan(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 9.9
-        fl = fzero+atan(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
-        fl = ceil(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+ceil(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
-        fl = cos(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+cos(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
-        fl = sin(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+sin(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 9.9
-        fl = tan(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 9.9
-        fl = fzero+tan(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 3.1415927
-        fl = deg(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 3.1415927
-        fl = fzero+deg(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 90
-        fl = rad(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 90
-        fl = fzero+rad(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
-        fl = floor(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+floor(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 3.1415927
-        fl = ln(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 3.1415927
-        fl = fzero+ln(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = 3.1415927
-        fl = log2(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 3.1415927
-        fl = fzero+log2(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
-        fl = round(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = -9.9
-        fl = fzero+round(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = -9.9
         bb = sgn(fl)
         txt.print_b(bb)
         txt.nl()
         fl = -9.9
         bb = zero+sgn(fl)*1+zero
         txt.print_b(bb)
-        txt.nl()
-
-        fl = 3.1415927
-        fl = sqrt(fl)
-        floats.print_f(fl)
-        txt.nl()
-        fl = 3.1415927
-        fl = fzero+sqrt(fl)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-
-        fl = rndf()
-        floats.print_f(fl)
-        txt.nl()
-        fl = fzero+rndf()*1.0+fzero
-        floats.print_f(fl)
         txt.nl()
 
         swap(fl, fzero)
@@ -674,24 +465,6 @@ main {
             floats.print_f(flarr[ub])
             txt.chrout(',')
         }
-        txt.nl()
-        fl = max(flarr)
-        floats.print_f(fl)
-        txt.nl()
-        fl = fzero+max(flarr)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-        fl = min(flarr)
-        floats.print_f(fl)
-        txt.nl()
-        fl = fzero+min(flarr)*1.0+fzero
-        floats.print_f(fl)
-        txt.nl()
-        fl = sum(flarr)
-        floats.print_f(fl)
-        txt.nl()
-        fl = fzero+sum(flarr)*1.0+fzero
-        floats.print_f(fl)
         txt.nl()
 
         test_stack.test()

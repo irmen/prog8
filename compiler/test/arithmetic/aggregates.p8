@@ -29,42 +29,6 @@ main {
         length=string.length(name)
         if length!=3 txt.print("error strlen2\n")
 
-        ; MAX
-        ub = max(ubarr)
-        if ub!=199 txt.print("error max1\n")
-        bb = max(barr)
-        if bb!=99 txt.print("error max2\n")
-        uw = max(uwarr)
-        if uw!=4444 txt.print("error max3\n")
-        ww = max(warr)
-        if ww!=999 txt.print("error max4\n")
-        ff = max(farr)
-        if ff!=999.9 txt.print("error max5\n")
-
-        ; MIN
-        ub = min(ubarr)
-        if ub!=0 txt.print("error min1\n")
-        bb = min(barr)
-        if bb!=-122 txt.print("error min2\n")
-        uw = min(uwarr)
-        if uw!=0 txt.print("error min3\n")
-        ww = min(warr)
-        if ww!=-4444 txt.print("error min4\n")
-        ff = min(farr)
-        if ff!=-4444.4 txt.print("error min5\n")
-
-        ; SUM
-        uw = sum(ubarr)
-        if uw!=420 txt.print("error sum1\n")
-        ww = sum(barr)
-        if ww!=-101 txt.print("error sum2\n")
-        uw = sum(uwarr)
-        if uw!=6665 txt.print("error sum3\n")
-        ww = sum(warr)
-        if ww!=-4223 txt.print("error sum4\n")
-        ff = sum(farr)
-        if ff!=-4222.4 txt.print("error sum5\n")
-
         ; ANY
         ub = any(ubarr)
         if ub==0 txt.print("error any1\n")
