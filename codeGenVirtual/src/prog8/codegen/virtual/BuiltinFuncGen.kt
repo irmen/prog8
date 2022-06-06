@@ -42,10 +42,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "sort" -> funcSort(call)
             "reverse" -> funcReverse(call)
             "swap" -> funcSwap(call)
-            "rol" -> funcRolRor2(Opcode.ROXL, call, resultRegister)
-            "ror" -> funcRolRor2(Opcode.ROXR, call, resultRegister)
-            "rol2" -> funcRolRor2(Opcode.ROL, call, resultRegister)
-            "ror2" -> funcRolRor2(Opcode.ROR, call, resultRegister)
+            "rol" -> funcRolRor(Opcode.ROXL, call, resultRegister)
+            "ror" -> funcRolRor(Opcode.ROXR, call, resultRegister)
+            "rol2" -> funcRolRor(Opcode.ROL, call, resultRegister)
+            "ror2" -> funcRolRor(Opcode.ROR, call, resultRegister)
             else -> TODO("builtinfunc ${call.name}")
         }
     }
@@ -368,7 +368,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         return code
     }
 
-    private fun funcRolRor2(opcode: Opcode, call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
+    private fun funcRolRor(opcode: Opcode, call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val vmDt = codeGen.vmType(call.args[0].type)
         val code = VmCodeChunk()
         code += exprGen.translateExpression(call.args[0], resultRegister, -1)

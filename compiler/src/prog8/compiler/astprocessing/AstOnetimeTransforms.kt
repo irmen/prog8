@@ -50,16 +50,13 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
             } else {
                 val fcall = parent as? IFunctionCall
                 if(fcall!=null) {
-                    // TODO for now, codegen seems wrong when using pointer indexed args to an in-place modifying function.
-                    if(fcall.target.nameInSource.size==1 && fcall.target.nameInSource[0] in InplaceModifyingBuiltinFunctions) {
+                    // TODO currently, 6502 codegen is wrong when using pointer indexed args to an in-place modifying function.
+                    if(options.compTarget.name!=VMTarget.NAME
+                        && fcall.target.nameInSource.size==1
+                        && fcall.target.nameInSource[0] in InplaceModifyingBuiltinFunctions) {
                         val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
                         return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-                    } else {
-                        return noModifications
                     }
-                }
-                else {
-                    return noModifications
                 }
             }
         }

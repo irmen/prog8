@@ -31,6 +31,7 @@ loadr       reg1, reg2                - load reg1 with value in register reg2
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
+storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg
@@ -190,6 +191,7 @@ enum class Opcode {
     STOREM,
     STOREI,
     STOREX,
+    STOREIX,
     STOREZM,
     STOREZI,
     STOREZX,
@@ -489,7 +491,8 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREM     to InstructionFormat.from("BW,r1,v    | F,fr1,v"),
     Opcode.STOREI     to InstructionFormat.from("BW,r1,r2   | F,fr1,r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
-    Opcode.STOREZM     to InstructionFormat.from("BW,v       | F,v"),
+    Opcode.STOREIX    to InstructionFormat.from("BW,r1,r2,v | F,fr1,r1,v"),
+    Opcode.STOREZM    to InstructionFormat.from("BW,v       | F,v"),
     Opcode.STOREZI    to InstructionFormat.from("BW,r1      | F,r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,r1,v    | F,r1,v"),
     Opcode.JUMP       to InstructionFormat.from("N,v"),
