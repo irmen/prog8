@@ -1384,6 +1384,22 @@ internal class AssignmentAsmGen(private val program: Program,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
+                if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                    // assigning an indexed pointer var
+                    if (target.constArrayIndexValue==0u) {
+                        asmgen.out("  lda  $sourceName")
+                        asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                    } else {
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                        if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                            asmgen.out("  lda  $sourceName |  sta  (${target.asmVarname}),y")
+                        } else {
+                            asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
+                            asmgen.out("  lda  $sourceName |  sta  (P8ZP_SCRATCH_W2),y")
+                        }
+                    }
+                    return
+                }
                 if (target.constArrayIndexValue!=null) {
                     val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
@@ -1916,6 +1932,22 @@ internal class AssignmentAsmGen(private val program: Program,
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
+                    if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                        // assigning an indexed pointer var
+                        if (target.constArrayIndexValue==0u) {
+                            asmgen.out("  lda  #0")
+                            asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                        } else {
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                            if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                                asmgen.out("  lda  #0 |  sta  (${target.asmVarname}),y")
+                            } else {
+                                asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
+                                asmgen.out("  lda  #0 |  sta  (P8ZP_SCRATCH_W2),y")
+                            }
+                        }
+                        return
+                    }
                     if (target.constArrayIndexValue!=null) {
                         val indexValue = target.constArrayIndexValue!!
                         asmgen.out("  stz  ${target.asmVarname}+$indexValue")
@@ -1959,13 +1991,29 @@ internal class AssignmentAsmGen(private val program: Program,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
+                if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                    // assigning an indexed pointer var
+                    if (target.constArrayIndexValue==0u) {
+                        asmgen.out("  lda  #${byte.toHex()}")
+                        asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                    } else {
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                        if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                            asmgen.out("  lda  #${byte.toHex()} |  sta  (${target.asmVarname}),y")
+                        } else {
+                            asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
+                            asmgen.out("  lda  #${byte.toHex()} |  sta  (P8ZP_SCRATCH_W2),y")
+                        }
+                    }
+                    return
+                }
                 if (target.constArrayIndexValue!=null) {
                     val indexValue = target.constArrayIndexValue!!
                     asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")
                 }
                 else {
                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                    asmgen.out("  lda  #<${byte.toHex()} |  sta  ${target.asmVarname},y")
+                    asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> when(target.register!!) {
