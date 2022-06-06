@@ -657,7 +657,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     }
 
     private fun translateRolRorArrayArgs(arrayvar: IdentifierReference, indexer: ArrayIndex, operation: String, dt: Char) {
-        asmgen.assignExpressionToVariable(AddressOf(arrayvar, arrayvar.position), "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
+        if(arrayvar.targetVarDecl(program)!!.datatype==DataType.UWORD) {
+            if(dt!='b')
+                throw AssemblyError("non-array var indexing requires bytes dt")
+            asmgen.assignExpressionToVariable(arrayvar, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
+        } else {
+            asmgen.assignExpressionToVariable(AddressOf(arrayvar, arrayvar.position), "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
+        }
         asmgen.assignExpressionToVariable(indexer.indexExpr, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
     }
 

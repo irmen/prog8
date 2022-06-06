@@ -35,29 +35,17 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
     private fun replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
-            // rewrite   pointervar[index]  into  @(pointervar+index)
-            val indexer = arrayIndexedExpression.indexer
-            val add: Expression =
-            if(indexer.indexExpr.constValue(program)?.number==0.0)
-                arrayIndexedExpression.arrayvar.copy()
-            else
-                BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
             if(parent is AssignTarget) {
-                // we're part of the target of an assignment, we have to actually change the assign target itself
+                // rewrite assignment target   pointervar[index]  into  @(pointervar+index)
+                val indexer = arrayIndexedExpression.indexer
+                val add: Expression =
+                if(indexer.indexExpr.constValue(program)?.number==0.0)
+                    arrayIndexedExpression.arrayvar.copy()
+                else
+                    BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexer.indexExpr, arrayIndexedExpression.position)
                 val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
                 val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
                 return listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
-            } else {
-                val fcall = parent as? IFunctionCall
-                if(fcall!=null) {
-                    // TODO currently, 6502 codegen is wrong when using pointer indexed args to an in-place modifying function.
-                    if(options.compTarget.name!=VMTarget.NAME
-                        && fcall.target.nameInSource.size==1
-                        && fcall.target.nameInSource[0] in InplaceModifyingBuiltinFunctions) {
-                        val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                        return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-                    }
-                }
             }
         }
 
