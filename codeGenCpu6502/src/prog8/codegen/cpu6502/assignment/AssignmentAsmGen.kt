@@ -318,7 +318,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         // no orig ast assign target so can't use the workaround, so fallback to stack eval
                         fallbackToStackEval(assign)
                     }
-                } else {
+                } else if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                     // because the code here is the implementation of exactly that...)
@@ -327,6 +327,143 @@ internal class AssignmentAsmGen(private val program: Program,
             }
             else -> throw AssemblyError("weird assignment value type $value")
         }
+    }
+
+    private fun attemptAssignOptimizedBinexpr(expr: BinaryExpression, assign: AsmAssignment): Boolean {
+        if(!expr.inferType(program).isInteger)
+            return false
+        if(expr.operator!="+" && expr.operator!="-")
+            return false
+
+        val dt = expr.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+        val left = expr.left
+        val right = expr.right
+        if(dt in ByteDatatypes) {
+            when (right) {
+                is IdentifierReference -> {
+                    assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
+                    val symname = asmgen.asmVariableName(right)
+                    if(expr.operator=="+")
+                        asmgen.out("  clc |  adc  $symname")
+                    else
+                        asmgen.out("  sec |  sbc  $symname")
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                    return true
+                }
+                is NumericLiteral -> {
+                    assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
+                    if(expr.operator=="+")
+                        asmgen.out("  clc |  adc  #${right.number.toHex()}")
+                    else
+                        asmgen.out("  sec |  sbc  #${right.number.toHex()}")
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                    return true
+                }
+                else -> return false
+            }
+        } else if(dt in WordDatatypes) {
+            when (right) {
+                is AddressOf -> {
+                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                    val symbol = asmgen.asmVariableName(right.identifier)
+                    if(expr.operator=="+")
+                        asmgen.out("""
+                            clc
+                            adc  #<$symbol
+                            pha
+                            tya
+                            adc  #>$symbol
+                            tay
+                            pla""")
+                    else
+                        asmgen.out("""
+                            sec
+                            sbc  #<$symbol
+                            pha
+                            tya
+                            sbc  #>$symbol
+                            tay
+                            pla""")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                is IdentifierReference -> {
+                    val symname = asmgen.asmVariableName(right)
+                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                    if(expr.operator=="+")
+                        asmgen.out("""
+                            clc
+                            adc  $symname
+                            pha
+                            tya
+                            adc  $symname+1
+                            tay
+                            pla""")
+                    else
+                        asmgen.out("""
+                            sec
+                            sbc  $symname
+                            pha
+                            tya
+                            sbc  $symname+1
+                            tay
+                            pla""")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                is NumericLiteral -> {
+                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                    if(expr.operator=="+") {
+                        asmgen.out("""
+                            clc
+                            adc  #<${right.number.toHex()}
+                            pha
+                            tya
+                            adc  #>${right.number.toHex()}
+                            tay
+                            pla""")
+                    } else if(expr.operator=="-") {
+                        asmgen.out("""
+                            sec
+                            sbc  #<${right.number.toHex()}
+                            pha
+                            tya
+                            sbc  #>${right.number.toHex()}
+                            tay
+                            pla""")
+                    }
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                is TypecastExpression -> {
+                    val castedValue = right.expression
+                    if(right.type in WordDatatypes && castedValue.inferType(program).isBytes) {
+                        if(castedValue is IdentifierReference) {
+                            val castedSymname = asmgen.asmVariableName(castedValue)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                            if(expr.operator=="+")
+                                asmgen.out("""
+                                    clc
+                                    adc  $castedSymname
+                                    bcc  +
+                                    iny
++""")
+                            else
+                                asmgen.out("""
+                                    sec
+                                    sbc  $castedSymname
+                                    bcs  +
+                                    dey
++""")
+                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            return true
+                        }
+                    }
+                }
+                else -> return false
+            }
+        }
+        return false
     }
 
     private fun fallbackToStackEval(assign: AsmAssignment) {

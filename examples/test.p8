@@ -33,64 +33,22 @@ main {
         ; mcCarthy()
         ;test_stack.test()
 
-        ubyte value = 0
         ubyte one = 1
         ubyte two = 2
-        ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
+        uword onew = 1
+        uword twow = 2
+        ubyte[10] data = [1,2,3,4,5,6,7,8,9,10]
         uword bitmapbuf = &data
 
-        ; 11 22 33
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
-        txt.nl()
-        rol(bitmapbuf[0])
-        rol(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 44
-        txt.spc()
-        ror(bitmapbuf[0])
-        ror(bitmapbuf[0])
-        txt.print_ub(bitmapbuf[0])  ; 11
-        txt.nl()
+;        @(bitmapbuf+onew) = 90+one
+;        @(bitmapbuf+twow) = 90+two
+        bitmapbuf += 5
+;        @(bitmapbuf-1) = 90+one
+;        @(bitmapbuf-2) = 90+two
+        @(bitmapbuf-onew) = 90+one
+        @(bitmapbuf-twow) = 90+two
 
-        ; 22 44 66
-        txt.print_ub(bitmapbuf[0]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[1]*2)
-        txt.spc()
-        txt.print_ub(bitmapbuf[2]*2)
-        txt.nl()
-
-        value = one+one+one+one+one
-        txt.print_ub(value)     ; 5
-        txt.nl()
-
-        bitmapbuf[0] = one+one+one
-        bitmapbuf[0] = one+one+one
-        bitmapbuf[0] = one+one+one
-        bitmapbuf[1] = one+one
-        bitmapbuf[1] = one+one
-        bitmapbuf[1] = one+one
-        bitmapbuf[2] = one
-        bitmapbuf[2] = one
-        bitmapbuf[2] = one
-        bitmapbuf[3] = 42
-        bitmapbuf[2] += 100
-        bitmapbuf[2] -= 1
-        bitmapbuf[2] -= 1
-        bitmapbuf[2] -= 1
-        bitmapbuf[2] -= 1
-
-        ; 3 2 97
-        txt.print_ub(bitmapbuf[0])
-        txt.spc()
-        txt.print_ub(bitmapbuf[1])
-        txt.spc()
-        txt.print_ub(bitmapbuf[2])
-        txt.nl()
-
+        ubyte value
         for value in data {
             txt.print_ub(value)     ; 3 2 97 42 5 6 7 8 9 10
             txt.spc()
