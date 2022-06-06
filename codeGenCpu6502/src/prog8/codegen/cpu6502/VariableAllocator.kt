@@ -116,9 +116,9 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
         }
 
-        println("  number of allocated vars: $numberOfAllocatableVariables")
-        println("  put into zeropage: $numVariablesAllocatedInZP,  non-zp allocatable: ${numberOfNonIntegerVariables+numberOfExplicitNonZpVariables}")
-        println("  zeropage free space: ${zeropage.free.size} bytes")
+//        println("  number of allocated vars: $numberOfAllocatableVariables")
+//        println("  put into zeropage: $numVariablesAllocatedInZP,  non-zp allocatable: ${numberOfNonIntegerVariables+numberOfExplicitNonZpVariables}")
+//        println("  zeropage free space: ${zeropage.free.size} bytes")
     }
 
     private fun collectAllVariables(st: SymbolTable): Collection<StStaticVariable> {

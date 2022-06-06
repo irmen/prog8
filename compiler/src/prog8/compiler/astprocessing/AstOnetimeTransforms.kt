@@ -1,11 +1,9 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.Expression
 import prog8.ast.statements.AssignTarget
 import prog8.ast.statements.DirectMemoryWrite
@@ -15,7 +13,6 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.target.VMTarget
-import prog8.compiler.InplaceModifyingBuiltinFunctions
 
 
 internal class AstOnetimeTransforms(private val program: Program, private val options: CompilationOptions) : AstWalker() {
@@ -33,10 +30,14 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
     }
 
     private fun replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        if(options.compTarget.name== VMTarget.NAME)
+            return noModifications
+
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
             if(parent is AssignTarget) {
                 // rewrite assignment target   pointervar[index]  into  @(pointervar+index)
+                //println("REWRITE POINTER INDEXED: ${arrayVar.name}[${arrayIndexedExpression.indexer.indexExpr}] as assignment target at ${parent.position}") // TODO
                 val indexer = arrayIndexedExpression.indexer
                 val add: Expression =
                 if(indexer.indexExpr.constValue(program)?.number==0.0)

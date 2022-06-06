@@ -326,7 +326,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     }
 
     override fun toString(): String {
-        return "ArrayIndexed(ident=$arrayvar, arraysize=$indexer; pos=$position)"
+        return "ArrayIndexed(ident=$arrayvar, idx=$indexer; pos=$position)"
     }
 
     override fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: fix optimized pointervar indexing codegen when it is an assignment target (i.e. writing to ptr[ix])
 - 6502: fix optimized pointervar indexing codegen when it is an assignment target (i.e. writing to ptr[ix])
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
