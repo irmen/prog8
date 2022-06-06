@@ -29,27 +29,39 @@ main {
 ;        txt.spc()
 ;    }
 
+;    sub derp(ubyte u1, ubyte u2, ubyte u3) {
+;        txt.print_ub(u1)
+;        txt.spc()
+;        txt.print_ub(u2)
+;        txt.spc()
+;        txt.print_ub(u3)
+;        txt.nl()
+;    }
+
+    sub derp2(ubyte u1, ubyte u2) {
+        txt.print_ub(u1)
+        txt.spc()
+        txt.print_ub(u2)
+        txt.nl()
+    }
+
     sub start() {
         ; mcCarthy()
-        uword uw1 = 9999
-        uword uw2 = uw1 - 2000 + 10000
-        ubyte ub1 = 99
-        ubyte ub2 = ub1 - 2 + 10
-        ubyte ubb = ub2 - -10
-        txt.print_uw(uw2)
-        txt.spc()
-        txt.print_ub(ub2)
-        txt.spc()
-        txt.print_ub(ubb)
-        txt.nl()
-
         ;test_stack.test()
 
-;        ubyte value = 0
-;        ubyte one = 1
-;        ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
-;        uword bitmapbuf = &data
-;
+        ubyte value = 0
+        ubyte one = 1
+        ubyte two = 2
+        ubyte[10] data = [11,22,33,4,5,6,7,8,9,10]
+        uword bitmapbuf = &data
+
+        ;derp(data[0],data[1],data[2])
+        ;derp(bitmapbuf[0], bitmapbuf[1], bitmapbuf[2])
+        derp2(1,2)
+        derp2(one, two)
+        derp2(data[1], data[2])
+        derp2(bitmapbuf[1], bitmapbuf[2])
+
 ;        value = bitmapbuf[2]
 ;        txt.print_ub(value)    ;; 33
 ;        txt.nl()

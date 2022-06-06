@@ -1384,12 +1384,12 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
             val reg = resultRegister ?: RegisterOrPair.AY
-            var needAsave = !(fcall.args[0] is DirectMemoryRead || fcall.args[0] is NumericLiteral || fcall.args[0] is IdentifierReference)
+            var needAsave = needAsaveForOtherArg(fcall.args[0])
             if(!needAsave) {
                 val mr0 = fcall.args[0] as? DirectMemoryRead
                 val mr1 = fcall.args[1] as? DirectMemoryRead
                 if (mr0 != null)
-                    needAsave = mr0.addressExpression !is NumericLiteral && mr0.addressExpression !is IdentifierReference
+                    needAsave =  mr0.addressExpression !is NumericLiteral && mr0.addressExpression !is IdentifierReference
                 if (mr1 != null)
                     needAsave = needAsave or (mr1.addressExpression !is NumericLiteral && mr1.addressExpression !is IdentifierReference)
             }
@@ -1632,5 +1632,8 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             }
         }
     }
+
+    private fun needAsaveForOtherArg(arg: Expression): Boolean =
+        arg !is NumericLiteral && arg !is IdentifierReference && arg !is DirectMemoryRead
 
 }
