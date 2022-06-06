@@ -73,9 +73,8 @@ main {
         bitmapbuf[2] += 4
         bitmapbuf[2] -= 2
         bitmapbuf[2] -= 2
-        swap(bitmapbuf[0], bitmapbuf[1])
 
-        ; 2 1 3
+        ; 1 2 3
         txt.print_ub(bitmapbuf[0])
         txt.spc()
         txt.print_ub(bitmapbuf[1])

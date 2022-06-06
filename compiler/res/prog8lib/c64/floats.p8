@@ -9,7 +9,6 @@ floats {
         const float  PI     = 3.141592653589793
         const float  TWOPI  = 6.283185307179586
 
-        float  tempvar_swap_float     ; used for some swap() operations
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
 

@@ -148,9 +148,15 @@ main {
             for i1 in 0 to i {
                 ubyte i2 = i1+1
                 if(rotatedz[i1] > rotatedz[i2]) {
-                    swap(rotatedx[i1], rotatedx[i2])
-                    swap(rotatedy[i1], rotatedy[i2])
-                    swap(rotatedz[i1], rotatedz[i2])
+                    word @zp temp = rotatedx[i1]
+                    rotatedx[i1] = rotatedx[i2]
+                    rotatedx[i2] = temp
+                    temp = rotatedy[i1]
+                    rotatedy[i1] = rotatedy[i2]
+                    rotatedy[i2] = temp
+                    temp = rotatedz[i1]
+                    rotatedz[i1] = rotatedz[i2]
+                    rotatedz[i2] = temp
                 }
             }
         }

@@ -869,10 +869,6 @@ sizeof(name)
     For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
-swap(x, y)
-    Swap the values of numerical variables (or memory locations) x and y in a fast way.
-    You can swap two memory locations directly by using the direct memory access syntax, so like ``swap(@($5000), @($5001))``
-
 memory(name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
     with the given name.  If you specify an alignment value >1, it means the block of memory will

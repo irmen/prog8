@@ -444,9 +444,6 @@ main {
         txt.print_b(bb)
         txt.nl()
 
-        swap(fl, fzero)
-        swap(fzero, fl)
-
         ub = any(flarr)
         txt.print_ub(ub)
         txt.nl()

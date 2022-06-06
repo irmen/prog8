@@ -41,7 +41,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "mkword" -> funcMkword(call, resultRegister)
             "sort" -> funcSort(call)
             "reverse" -> funcReverse(call)
-            "swap" -> funcSwap(call)
             "rol" -> funcRolRor(Opcode.ROXL, call, resultRegister)
             "ror" -> funcRolRor(Opcode.ROXR, call, resultRegister)
             "rol2" -> funcRolRor(Opcode.ROL, call, resultRegister)
@@ -181,19 +180,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val reg = codeGen.vmRegisters.nextFree()
         code += exprGen.translateExpression(call.args.single(), reg, -1)
         code += VmCodeInstruction(Opcode.PUSH, VmDataType.WORD, reg1=reg)
-        return code
-    }
-
-    private fun funcSwap(call: PtBuiltinFunctionCall): VmCodeChunk {
-        val left = call.args[0]
-        val right = call.args[1]
-        val leftReg = codeGen.vmRegisters.nextFree()
-        val rightReg = codeGen.vmRegisters.nextFree()
-        val code = VmCodeChunk()
-        code += exprGen.translateExpression(left, leftReg, -1)
-        code += exprGen.translateExpression(right, rightReg, -1)
-        code += assignRegisterTo(left, rightReg)
-        code += assignRegisterTo(right, leftReg)
         return code
     }
 

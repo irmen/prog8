@@ -1063,20 +1063,7 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot use arguments when calling a label", position)
 
         if(target is BuiltinFunctionPlaceholder) {
-            if(target.name=="swap") {
-                // swap() is a bit weird because this one is translated into an operations directly, instead of being a function call
-                val dt1 = args[0].inferType(program)
-                val dt2 = args[1].inferType(program)
-                if (dt1 != dt2)
-                    errors.err("swap requires 2 args of identical type", position)
-                else if (args[0].constValue(program) != null || args[1].constValue(program) != null)
-                    errors.err("swap requires 2 variables, not constant value(s)", position)
-                else if(args[0] isSameAs args[1])
-                    errors.err("swap should have 2 different args", position)
-                else if(!dt1.isNumeric)
-                    errors.err("swap requires args of numerical type", position)
-            }
-            else if(target.name=="all" || target.name=="any") {
+            if(target.name=="all" || target.name=="any") {
                 if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
                     || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
                     errors.err("any/all on a string is useless (is always true unless the string is empty)", position)

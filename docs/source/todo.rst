@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- optimize pointervar indexing codegen: fix 6502 codegen for params to in-place modifying functions (rol, swap, ...)
+- optimize pointervar indexing codegen: fix 6502 codegen for params to in-place modifying functions (rol, ror, ...)
 - optimize pointervar indexing codegen: writing (all sorts of things)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?

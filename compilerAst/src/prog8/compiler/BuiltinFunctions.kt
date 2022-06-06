@@ -123,13 +123,12 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("rnd"         , false, emptyList(), DataType.UBYTE),
     FSignature("rndw"        , false, emptyList(), DataType.UWORD),
     FSignature("memory"      , true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), DataType.UWORD),
-    FSignature("swap"        , false, listOf(FParam("first", NumericDatatypes), FParam("second", NumericDatatypes)), null),
     FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
     FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
 )
 
 val BuiltinFunctions = functionSignatures.associateBy { it.name }
-val InplaceModifyingBuiltinFunctions = setOf("rol", "ror", "rol2", "ror2", "swap", "sort", "reverse")
+val InplaceModifyingBuiltinFunctions = setOf("rol", "ror", "rol2", "ror2", "sort", "reverse")
 
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
 

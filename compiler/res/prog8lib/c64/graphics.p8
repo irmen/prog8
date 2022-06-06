@@ -38,8 +38,12 @@ graphics {
 
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
-            swap(x1, x2)
-            swap(y1, y2)
+            cx16.r0 = x1
+            x1 = x2
+            x2 = cx16.r0
+            cx16.r0L = y1
+            y1 = y2
+            y2 = cx16.r0L
         }
         word @zp dx = (x2 as word)-x1
         word @zp dy = (y2 as word)-y1
