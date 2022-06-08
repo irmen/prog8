@@ -14,6 +14,8 @@ import prog8.code.core.InternalCompilerException
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.value==null
 
 
+// inliner potentially enables *ONE LINED* subroutines, wihtout to be inlined.
+
 class Inliner(val program: Program): AstWalker() {
 
     class DetermineInlineSubs(val program: Program): IAstVisitor {
@@ -142,8 +144,10 @@ class Inliner(val program: Program): AstWalker() {
         }
 
         private fun makeFullyScoped(call: FunctionCallExpression) {
+            val sub = call.target.targetSubroutine(program)!!
+            val scopedName = IdentifierReference(sub.scopedName, call.target.position)
             val scopedArgs = makeScopedArgs(call.args)
-            val scopedCall = FunctionCallExpression(call.target.copy(), scopedArgs.toMutableList(), call.position)
+            val scopedCall = FunctionCallExpression(scopedName, scopedArgs.toMutableList(), call.position)
             modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
         }
 
@@ -168,41 +172,70 @@ class Inliner(val program: Program): AstWalker() {
 
     override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
         val sub = gosub.identifier.targetStatement(program) as? Subroutine
-        if(sub!=null && sub.inline && sub.parameters.isEmpty()) {
+        return if(sub==null)
+            noModifications
+        else
+            possibleInlineFcallStmt(sub, gosub, parent)
+
+    }
+
+    private fun possibleInlineFcallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
+        if(sub.inline && sub.parameters.isEmpty()) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1])))
             return if(sub.isAsmSubroutine) {
                 // simply insert the asm for the argument-less routine
-                listOf(IAstModification.ReplaceNode(gosub, sub.statements.single().copy(), parent))
+                listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
             } else {
                 // note that we don't have to process any args, because we online inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
-                    is Return -> noModifications
-                    else -> listOf(IAstModification.ReplaceNode(gosub, toInline.copy(), parent))
+                    is Return -> {
+                        val fcall = toInline.value as? FunctionCallExpression
+                        if(fcall!=null) {
+                            // insert the function call expression as a void function call directly
+                            val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
+                            listOf(IAstModification.ReplaceNode(origNode, call, parent))
+                        } else
+                            noModifications
+                    }
+                    else -> listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
                 }
             }
-
         }
         return noModifications
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
         val sub = functionCallStatement.target.targetStatement(program) as? Subroutine
+        return if(sub==null)
+            noModifications
+        else
+            possibleInlineFcallStmt(sub, functionCallStatement, parent)
+    }
+
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        val sub = functionCallExpr.target.targetStatement(program) as? Subroutine
         if(sub!=null && sub.inline && sub.parameters.isEmpty()) {
             require(sub.statements.size==1 || (sub.statements.size==2 && isEmptyReturn(sub.statements[1])))
             return if(sub.isAsmSubroutine) {
-                // simply insert the asm for the argument-less routine
-                listOf(IAstModification.ReplaceNode(functionCallStatement, sub.statements.single().copy(), parent))
+                // cannot inline assembly directly in the Ast here as an Asm node is not an expression....
+                noModifications
             } else {
-                // note that we don't have to process any args, because we online inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
-                    is Return -> noModifications
-                    else -> listOf(IAstModification.ReplaceNode(functionCallStatement, toInline.copy(), parent))
+                    is Return -> {
+                        // is an expression, so we have to have a Return here in the inlined sub
+                        // note that we don't have to process any args, because we online inline parameterless subroutines.
+                        if(toInline.value!=null)
+                            listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.value!!.copy(), parent))
+                        else
+                            noModifications
+                    }
+                    else -> noModifications
                 }
             }
         }
+
         return noModifications
     }
 
-    // TODO also inline function call expressions, and remove it from the StatementOptimizer
 }
 

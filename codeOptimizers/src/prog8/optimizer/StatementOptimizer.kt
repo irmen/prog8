@@ -16,46 +16,6 @@ class StatementOptimizer(private val program: Program,
                          private val compTarget: ICompilationTarget
 ) : AstWalker() {
 
-    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        // if the first instruction in the called subroutine is a return statement with a simple value (NOT being a parameter),
-        // remove the jump altogeter and inline the returnvalue directly. (only if not part of a pipe expression)
-
-        fun scopePrefix(variable: IdentifierReference): IdentifierReference {
-            val target = variable.targetStatement(program) as INamedStatement
-            return IdentifierReference(target.scopedName, variable.position)
-        }
-
-        val subroutine = functionCallExpr.target.targetSubroutine(program)
-        if(subroutine!=null) {
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Return && first.value?.isSimple==true && parent !is IPipe) {
-                val copy = when(val orig = first.value!!) {
-                    is AddressOf -> {
-                        val scoped = scopePrefix(orig.identifier)
-                        AddressOf(scoped, orig.position)
-                    }
-                    is DirectMemoryRead -> {
-                        when(val expr = orig.addressExpression) {
-                            is NumericLiteral -> DirectMemoryRead(expr.copy(), orig.position)
-                            else -> return noModifications
-                        }
-                    }
-                    is IdentifierReference -> {
-                        if(orig.targetVarDecl(program)?.origin == VarDeclOrigin.SUBROUTINEPARAM)
-                            return noModifications
-                        else
-                            scopePrefix(orig)
-                    }
-                    is NumericLiteral -> orig.copy()
-                    is StringLiteral -> orig.copy()
-                    else -> return noModifications
-                }
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, copy, parent))
-            }
-        }
-        return noModifications
-    }
-
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(functionCallStatement.target.nameInSource.size==1) {
             val functionName = functionCallStatement.target.nameInSource[0]

@@ -120,6 +120,12 @@ internal class BeforeAsmAstChanger(val program: Program,
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+
+        // Most code generation targets only support subroutine inlining on asmsub subroutines
+        // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
+        if(!subroutine.isAsmSubroutine && options.compTarget.name!=VMTarget.NAME)
+            subroutine.inline = false
+
         val mods = mutableListOf<IAstModification>()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
