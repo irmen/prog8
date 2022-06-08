@@ -25,10 +25,8 @@ other {
 
 }
 
-main $2000 {
+main  {
 
-    ubyte x=10
-    ubyte y=20
 ;    sub ands(ubyte arg, ubyte b1, ubyte b2, ubyte b3, ubyte b4) -> ubyte {
 ;        return arg>b1 and arg>b2 and arg>b3 and arg>b4
 ;    }
