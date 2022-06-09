@@ -1,22 +1,22 @@
 <component name="libraryTable">
   <library name="io.kotest.property.jvm" type="repository">
-    <properties maven-id="io.kotest:kotest-property-jvm:5.1.0" />
+    <properties maven-id="io.kotest:kotest-property-jvm:5.2.3" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-property-jvm/5.1.0/kotest-property-jvm-5.1.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-common-jvm/5.1.0/kotest-common-jvm-5.1.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-shared-jvm/5.1.0/kotest-assertions-shared-jvm-5.1.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-api-jvm/5.1.0/kotest-assertions-api-jvm-5.1.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-jdk8/1.6.0/kotlinx-coroutines-jdk8-1.6.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-property-jvm/5.2.3/kotest-property-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/github/curious-odd-man/rgxgen/1.3/rgxgen-1.3.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.6.10/kotlin-stdlib-jdk8-1.6.10.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.6.10/kotlin-stdlib-1.6.10.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.6.10/kotlin-stdlib-jdk7-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.0/kotlinx-coroutines-core-jvm-1.6.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.0/kotlin-stdlib-common-1.6.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-common-jvm/5.2.3/kotest-common-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-shared-jvm/5.2.3/kotest-assertions-shared-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-api-jvm/5.2.3/kotest-assertions-api-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-jdk8/1.6.1/kotlinx-coroutines-jdk8-1.6.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/io/github/java-diff-utils/java-diff-utils/4.11/java-diff-utils-4.11.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/github/curious-odd-man/rgxgen/1.3/rgxgen-1.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.1/kotlinx-coroutines-core-jvm-1.6.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.0/kotlin-stdlib-common-1.6.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

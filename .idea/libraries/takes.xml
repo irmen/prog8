@@ -1,11 +1,15 @@
 <component name="libraryTable">
   <library name="takes" type="repository">
-    <properties maven-id="org.takes:takes:1.19" />
+    <properties maven-id="org.takes:takes:1.20" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/takes/takes/1.19/takes-1.19.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/cactoos/cactoos/0.42/cactoos-0.42.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/takes/takes/1.20/takes-1.20.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/cactoos/cactoos/0.50/cactoos-0.50.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-text/1.4/commons-text-1.4.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-lang3/3.7/commons-lang3-3.7.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-core/2.3.0/jaxb-core-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-impl/2.3.0/jaxb-impl-2.3.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

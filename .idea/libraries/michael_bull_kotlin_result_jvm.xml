@@ -1,13 +1,13 @@
 <component name="libraryTable">
   <library name="michael.bull.kotlin.result.jvm" type="repository">
-    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.14" />
+    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.16" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.14/kotlin-result-jvm-1.1.14.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.6.10/kotlin-stdlib-jdk8-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.6.10/kotlin-stdlib-1.6.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.16/kotlin-result-jvm-1.1.16.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.20/kotlin-stdlib-common-1.6.20.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.6.20/kotlin-stdlib-jdk8-1.6.20.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.6.20/kotlin-stdlib-1.6.20.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.6.10/kotlin-stdlib-jdk7-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.10/kotlin-stdlib-common-1.6.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.6.20/kotlin-stdlib-jdk7-1.6.20.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
