@@ -6,9 +6,17 @@
 
 ;; Proof Of Concept ZSM player using a binary blob version of zsound library by ZeroByte relocated to something usable here.
 
+; "issues":
+; - prog8 (or rather, 64tass) cannot "link" other assembly object files so we have to incbin a binary blob.
+; - zsound player ZP usage is only known after compilation of zsound lib. And then this has to be blocked off in the prog8 program.
+; - zsound lib BSS section has to be expanded into real zeros as part of the included binary.
+; - zsound binary starts with 2 byte prg header that shifts the jump table 2 bytes (not a big issue but a bit untidy)
+; - prog8 always sticks main module at the beginning so can't create a container module to stick zsound in (if you want to load it at the beginning)
+; - prog8 always has some bootstrap code after the basic launcher so we can only start loading stuff after that
+; - prog8 main has to be set to a fixed address (in this case $0830) to which the special zsound binary has been compiled as well.
+
 
 main $0830 {
-; TODO: don't like to have *main* at a set start address, but otherwise the compiler puts it at the front, overwriting another module that we wanted there
 
 zsound_lib:
     ; this has to be the first statement to make sure it loads at the specified module address $0830
@@ -56,8 +64,6 @@ zsound_lib:
         } else {
             txt.print("?song start error\n")
         }
-
-        ; TODO set Vera back to sane state?
     }
 
     sub end_of_song_cb() {
