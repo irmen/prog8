@@ -411,28 +411,28 @@ asmsub mouse_pos() -> ubyte @A {
 inline asmsub rombank(ubyte bank @A) {
     ; -- set the rom banks
     %asm {{
-        sta  $01            ; rom bank register (v39+, used to be cx16.d1prb $9f60 in v38)
+        sta  $01
     }}
 }
 
 inline asmsub rambank(ubyte bank @A) {
     ; -- set the ram bank
     %asm {{
-        sta  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
+        sta  $00
     }}
 }
 
 inline asmsub getrombank() -> ubyte @A {
     ; -- get the current rom bank
     %asm {{
-        lda  $01            ; rom bank register (v39+, used to be cx16.d1prb $9f60 in v38)
+        lda  $01
     }}
 }
 
 inline asmsub getrambank() -> ubyte @A {
     ; -- get the current ram bank
     %asm {{
-        lda  $00            ; ram bank register (v39+, used to be cx16.d1pra $9f61 in v38)
+        lda  $00
     }}
 }
 

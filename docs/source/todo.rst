@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- don't put main and main.start() at the top, allow other modules to sit in front (zsound)
 - pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 ...
