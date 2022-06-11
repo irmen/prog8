@@ -24,6 +24,7 @@ zsound_lib:
 
     const ubyte digi_bank = 1
     const uword digi_address = $a000
+    const ubyte zcm_DIGITAB_size = 8        ; header size
 
     sub start() {
         txt.print("zsound pcm digi demo program!\n")
@@ -32,6 +33,11 @@ zsound_lib:
             txt.print("?can't load digi\n")
             return
         }
+
+        cx16.rambank(digi_bank)
+        ; initialize header pointer of the zcm to point to actual sample data
+        poke(digi_address+2, digi_bank)
+        pokew(digi_address, digi_address+zcm_DIGITAB_size)
 
         pcm_init()
         txt.print("playing digi! hit enter to stop.\n")

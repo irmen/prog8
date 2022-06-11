@@ -36,7 +36,7 @@ zsound_lib:
     romsub $0850 = zsm_clearcallback() clobbers(A)
     romsub $0853 = zsm_get_music_speed() clobbers(A) -> uword @XY
 
-    const ubyte song_bank = 1
+    const ubyte song_bank = 4
     const uword song_address = $a000
 
     sub start() {
@@ -46,7 +46,7 @@ zsound_lib:
             txt.print("?can't load song\n")
             return
         }
-        cx16.rambank(1)  ; ram bank to default
+        cx16.rambank(song_bank)
 
         zsm_init()
         zsm_setcallback(&end_of_song_cb)
