@@ -290,16 +290,6 @@ internal class AssignmentAsmGen(private val program: Program,
                 containmentCheckIntoA(value)
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
-            is PipeExpression -> {
-                asmgen.translatePipeExpression(value.source, value.segments, value, isStatement = false, pushResultOnEstack = false)
-                val resultDt = value.inferType(program)
-                val register =
-                    if(resultDt.isBytes) RegisterOrPair.A
-                    else if(resultDt.isWords) RegisterOrPair.AY
-                    else if(resultDt istype DataType.FLOAT) RegisterOrPair.FAC1
-                    else throw AssemblyError("invalid dt")
-                asmgen.assignRegister(register, assign.target)
-            }
             is BinaryExpression -> {
                 if(value.operator in ComparisonOperators) {
                     // TODO real optimized code for comparison expressions that yield a boolean result value

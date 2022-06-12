@@ -1,7 +1,10 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.expressions.*
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.PrefixExpression
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -236,7 +239,6 @@ class UnusedCodeRemover(private val program: Program,
                                 is PrefixExpression,
                                 is BinaryExpression,
                                 is TypecastExpression,
-                                is PipeExpression,
                                 is IFunctionCall -> { /* don't remove */ }
                                 else -> {
                                     if(assign1.value !is IFunctionCall)

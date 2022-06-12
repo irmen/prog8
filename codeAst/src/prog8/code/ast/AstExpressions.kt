@@ -149,19 +149,6 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
 }
 
 
-class PtPipe(type: DataType, val void: Boolean, position: Position) : PtExpression(type, position) {
-    init {
-        if(!void)
-            require(type!=DataType.UNDEFINED)
-    }
-
-    val segments: List<PtExpression>
-        get() = children.map { it as PtExpression }
-
-    override fun printProperties() {}
-}
-
-
 class PtPrefix(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
     val value: PtExpression
         get() = children.single() as PtExpression

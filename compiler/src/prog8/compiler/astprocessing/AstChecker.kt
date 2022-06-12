@@ -503,7 +503,7 @@ internal class AstChecker(private val program: Program,
                 if(constVal==null) {
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCallExpression && assignment.value !is PipeExpression)
+                        if (assignment.value !is FunctionCallExpression)
                             errors.err("assignment value is invalid or has no proper datatype, maybe forgot '&' (address-of)", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
@@ -1009,7 +1009,7 @@ internal class AstChecker(private val program: Program,
         val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
         if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
-            checkUnusedReturnValues(functionCallStatement, targetStatement, program, errors)
+            checkUnusedReturnValues(functionCallStatement, targetStatement, errors)
         }
 
         val funcName = functionCallStatement.target.nameInSource
@@ -1096,33 +1096,6 @@ internal class AstChecker(private val program: Program,
                         }
                     }
                 }
-            }
-        }
-    }
-
-    override fun visit(pipe: PipeExpression) {
-        process(pipe)
-        super.visit(pipe)
-    }
-
-    override fun visit(pipe: Pipe) {
-        process(pipe)
-        super.visit(pipe)
-    }
-
-    private fun process(pipe: IPipe) {
-        if(pipe.source in pipe.segments)
-            throw InternalCompilerException("pipe source and segments should all be different nodes")
-        if (pipe.segments.isEmpty())
-            throw FatalAstException("pipe is missing one or more expressions")
-        if(pipe.segments.any { it !is IFunctionCall })
-            throw FatalAstException("pipe segments can only be function calls")
-
-        if(compilerOptions.compTarget !is VMTarget) {
-            pipe.segments.forEach {
-                it as IFunctionCall
-                if (it.args.size > 0)
-                    errors.err("only unary functions supported in pipe expressions for now", it.position)
             }
         }
     }
@@ -1498,7 +1471,7 @@ internal class AstChecker(private val program: Program,
     }
 }
 
-internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, program: Program, errors: IErrorReporter) {
+internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, errors: IErrorReporter) {
     if (!call.void) {
         // check for unused return values
         if (target is Subroutine && target.returntypes.isNotEmpty()) {

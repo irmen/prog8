@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- pipe operator: (targets other than 'Virtual'): allow non-unary function calls in the pipe that specify the other argument(s) in the calls.  Already working for VM target.
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 ...
 
@@ -73,9 +72,6 @@ Optimizations:
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
   the old CompilerAst, those checks should probably be removed, or be made permanent
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
-- translateUnaryFunctioncall() in BuiltinFunctionsAsmGen: should be able to assign parameters to a builtin function directly from register(s), this will make the use of a builtin function in a pipe expression more efficient without using a temporary variable
-   compare ``aa = startvalue(1) |> sin8u() |> cos8u() |> sin8u() |> cos8u()``
-   versus: ``aa = cos8u(sin8u(cos8u(sin8u(startvalue(1)))))``  the second one contains no sta cx16.r9L in between.
 - AssignmentAsmGen.assignExpression() -> improve code gen for assigning boolean comparison expressions
   Check what the vm target does here, maybe just do this as part of the vm -> 6502 codegen.
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop

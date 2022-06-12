@@ -334,7 +334,6 @@ class AsmGen(internal val program: Program,
             is RepeatLoop -> translate(stmt)
             is When -> translate(stmt)
             is AnonymousScope -> translate(stmt)
-            is Pipe -> translatePipeExpression(stmt.source, stmt.segments, stmt, isStatement = true, pushResultOnEstack = false)
             is VarDecl -> { /* do nothing; variables are handled elsewhere */ }
             is BuiltinFunctionPlaceholder -> throw AssemblyError("builtin function should not have placeholder anymore")
             is UntilLoop -> throw AssemblyError("do..until should have been converted to jumps")
@@ -443,12 +442,6 @@ class AsmGen(internal val program: Program,
 
     internal fun translateBuiltinFunctionCallExpression(bfc: BuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
-
-    private fun translateBuiltinFunctionCallExpression(bfc: IFunctionCall, firstArg: AsmAssignSource, scope: Subroutine): DataType =
-            builtinFunctionsAsmGen.translateFunctionCallWithFirstArg(bfc, firstArg, false, scope)
-
-    private fun translateBuiltinFunctionCallStatement(bfc: IFunctionCall, firstArg: AsmAssignSource, scope: Subroutine) =
-            builtinFunctionsAsmGen.translateFunctionCallWithFirstArg(bfc, firstArg, true, scope)
 
     internal fun translateFunctionCall(functionCallExpr: FunctionCallExpression, isExpression: Boolean) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
@@ -2809,123 +2802,6 @@ $repeatLabel    lda  $counterVar
                 return true
             }
             else -> return false
-        }
-    }
-
-    internal fun translatePipeExpression(source: Expression, segments: List<Expression>, scope: Node, isStatement: Boolean, pushResultOnEstack: Boolean) {
-
-        // TODO more efficient code generation to avoid needless assignments to the temp var
-
-        // the source: an expression (could be anything) producing a value.
-        // one or more segment expressions, all are a IFunctionCall node, and LACKING the implicit first argument.
-        // when 'isStatement'=true, the last segment expression should be treated as a funcion call statement (discarding any result value if there is one)
-
-        val subroutine = scope.definingSubroutine!!
-        var valueDt = source.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-        var valueSource: AsmAssignSource =
-            if(source is IFunctionCall) {
-                val resultReg = returnRegisterOfFunction(source.target)
-                assignExpressionToRegister(source, resultReg, valueDt in listOf(DataType.BYTE, DataType.WORD, DataType.FLOAT))
-                AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
-            } else {
-                AsmAssignSource.fromAstSource(source, program, this)
-            }
-
-        // the segments (except the last one): function calls taking one or more parameters and producing a value.
-        //   directly assign their first argument from the previous call's returnvalue (and take the rest, if any, from the call itself)
-        segments.dropLast(1).forEach {
-            it as IFunctionCall
-            valueDt = translateFunctionCallWithFirstArg(it, valueSource, false, subroutine)
-            val resultReg = returnRegisterOfFunction(it.target)
-            valueSource = AsmAssignSource(SourceStorageKind.REGISTER, program, this, valueDt, register = resultReg)
-        }
-        // the last segment: function call taking one or more parameters and optionally producing a result value.
-        val lastCall = segments.last() as IFunctionCall
-        if(isStatement) {
-            translateFunctionCallWithFirstArg(lastCall, valueSource, true, subroutine)
-        } else {
-            valueDt = translateFunctionCallWithFirstArg(lastCall, valueSource, false, subroutine)
-            if(pushResultOnEstack) {
-                when (valueDt) {
-                    in ByteDatatypes -> {
-                        out("  sta  P8ESTACK_LO,x |  dex")
-                    }
-                    in WordDatatypes -> {
-                        out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
-                    }
-                    DataType.FLOAT -> {
-                        out("  jsr  floats.push_fac1")
-                    }
-                    else -> throw AssemblyError("invalid dt")
-                }
-            }
-        }
-    }
-
-    private fun translateFunctionCallWithFirstArg(
-        fcall: IFunctionCall,
-        firstArg: AsmAssignSource,
-        isStatement: Boolean,
-        scope: Subroutine
-    ): DataType {
-
-        if(fcall.args.isNotEmpty())
-            TODO("deal with additional args (non-unary function): ${fcall.target.nameInSource} (... , ${fcall.args.joinToString(", ")})")
-
-        when(val targetStmt = fcall.target.targetStatement(program)!!) {
-            is BuiltinFunctionPlaceholder -> {
-                return if(isStatement) {
-                    translateBuiltinFunctionCallStatement(fcall, firstArg, scope)
-                    DataType.UNDEFINED
-                } else {
-                    translateBuiltinFunctionCallExpression(fcall, firstArg, scope)
-                }
-            }
-            is Subroutine -> {
-                val argDt = targetStmt.parameters.single().type
-                if(targetStmt.isAsmSubroutine) {
-                    // argument via registers
-                    val argRegister = targetStmt.asmParameterRegisters.single().registerOrPair!!
-                    val assignArgument = AsmAssignment(
-                        firstArg,
-                        AsmAssignTarget.fromRegisters(argRegister, argDt in SignedDatatypes, scope, program, this),
-                        false, program.memsizer, fcall.position
-                    )
-                    translateNormalAssignment(assignArgument)
-                } else {
-                    val assignArgument: AsmAssignment =
-                        if(functioncallAsmGen.optimizeIntArgsViaRegisters(targetStmt)) {
-                            // argument goes via registers as optimization
-                            val paramReg: RegisterOrPair = when(argDt) {
-                                in ByteDatatypes -> RegisterOrPair.A
-                                in WordDatatypes -> RegisterOrPair.AY
-                                DataType.FLOAT -> RegisterOrPair.FAC1
-                                else -> throw AssemblyError("invalid dt")
-                            }
-                            AsmAssignment(
-                                firstArg,
-                                AsmAssignTarget(TargetStorageKind.REGISTER, program, this, argDt, scope, register = paramReg),
-                                false, program.memsizer, fcall.position
-                            )
-                        } else {
-                            // arg goes via parameter variable
-                            val argVarName = asmVariableName(targetStmt.scopedName + targetStmt.parameters.single().name)
-                            AsmAssignment(
-                                firstArg,
-                                AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, argDt, scope, argVarName),
-                                false, program.memsizer, fcall.position
-                            )
-                        }
-                    translateNormalAssignment(assignArgument)
-                }
-                if(targetStmt.shouldSaveX())
-                    saveRegisterLocal(CpuRegister.X, scope)
-                out("  jsr  ${asmSymbolName(fcall.target)}")
-                if(targetStmt.shouldSaveX())
-                    restoreRegisterLocal(CpuRegister.X)
-                return if(isStatement) DataType.UNDEFINED else targetStmt.returntypes.single()
-            }
-            else -> throw AssemblyError("invalid call target")
         }
     }
 

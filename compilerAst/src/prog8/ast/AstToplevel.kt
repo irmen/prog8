@@ -31,13 +31,6 @@ interface IFunctionCall {
     var parent: Node             // will be linked correctly later (late init)
 }
 
-interface IPipe {
-    var source: Expression
-    val segments: MutableList<Expression>       // are all function calls
-    val position: Position
-    var parent: Node             // will be linked correctly later (late init)
-}
-
 interface IStatementContainer {
     val statements: MutableList<Statement>
 

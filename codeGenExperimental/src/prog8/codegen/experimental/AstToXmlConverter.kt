@@ -172,7 +172,6 @@ class AstToXmlConverter(internal val program: PtProgram,
             is PtMemoryByte -> write(it)
             is PtMemMapped -> write(it)
             is PtNumber -> write(it)
-            is PtPipe -> write(it)
             is PtPostIncrDecr -> write(it)
             is PtPrefix -> write(it)
             is PtRange -> write(it)
@@ -201,14 +200,6 @@ class AstToXmlConverter(internal val program: PtProgram,
     private fun write(breakPt: PtBreakpoint) {
         xml.elt("breakpoint")
         xml.pos(breakPt.position)
-        xml.endElt()
-    }
-
-    private fun write(pipe: PtPipe) {
-        xml.elt("pipe")
-        xml.attr("type", pipe.type.name)
-        xml.startChildren()
-        pipe.children.forEach { writeNode(it) }
         xml.endElt()
     }
 

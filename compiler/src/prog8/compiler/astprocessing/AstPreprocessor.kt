@@ -1,6 +1,5 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IPipe
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
@@ -8,7 +7,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.Encoding
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.NumericDatatypes
 
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
@@ -23,32 +25,6 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         if(string.encoding==Encoding.DEFAULT)
             string.encoding = compTarget.defaultEncoding
         return super.before(string, parent)
-    }
-
-    override fun before(pipe: Pipe, parent: Node): Iterable<IAstModification> {
-        if(pipe.source is PipeExpression) {
-            // correct Antlr parse tree quirk: turn nested pipe into single flat pipe
-            val psrc = pipe.source as PipeExpression
-            val newSource = psrc.source
-            val newSegments = psrc.segments
-            newSegments += pipe.segments.single()
-            return listOf(IAstModification.ReplaceNode(pipe as Node, Pipe(newSource, newSegments, pipe.position), parent))
-        } else if(pipe.source is IPipe)
-            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
-        return noModifications
-    }
-
-    override fun before(pipeExpr: PipeExpression, parent: Node): Iterable<IAstModification> {
-        if(pipeExpr.source is PipeExpression) {
-            // correct Antlr parse tree quirk; turn nested pipe into single flat pipe
-            val psrc = pipeExpr.source as PipeExpression
-            val newSource = psrc.source
-            val newSegments = psrc.segments
-            newSegments += pipeExpr.segments.single()
-            return listOf(IAstModification.ReplaceNode(pipeExpr as Node, PipeExpression(newSource, newSegments, pipeExpr.position), parent))
-        } else if(pipeExpr.source is IPipe)
-            throw InternalCompilerException("pipe source should have been adjusted to be a normal expression")
-        return noModifications
     }
 
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {

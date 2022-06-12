@@ -1,12 +1,20 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IStatementContainer
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.ast.statements.AnonymousScope
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.IfElse
+import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.AssociativeOperators
+import prog8.code.core.DataType
+import prog8.code.core.IntegerDatatypes
+import prog8.code.core.NumericDatatypes
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -326,31 +334,6 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     val comparison = BinaryExpression(left, "and", right, containment.position)
                     return listOf(IAstModification.ReplaceNode(containment, comparison, parent))
                 }
-            }
-        }
-        return noModifications
-    }
-
-    override fun after(pipeExpr: PipeExpression, parent: Node) = processPipe(pipeExpr, parent)
-    override fun after(pipe: Pipe, parent: Node) = processPipe(pipe, parent)
-
-    private fun processPipe(pipe: IPipe, parent: Node): Iterable<IAstModification> {
-        if(pipe.source.isSimple) {
-            val segments = pipe.segments
-            if(segments.size==1) {
-                // replace the whole pipe with a normal function call
-                val funcname = (segments[0] as IFunctionCall).target
-                val call = if(pipe is Pipe)
-                    FunctionCallStatement(funcname, mutableListOf(pipe.source), true, pipe.position)
-                else
-                    FunctionCallExpression(funcname, mutableListOf(pipe.source), pipe.position)
-                return listOf(IAstModification.ReplaceNode(pipe as Node, call, parent))
-            } else if(segments.size>1) {
-                // replace source+firstsegment by firstsegment(source) call as the new source
-                val firstSegment = segments.removeAt(0) as IFunctionCall
-                val newArgs = listOf(pipe.source) + firstSegment.args
-                val call = FunctionCallExpression(firstSegment.target, newArgs.toMutableList(), pipe.position)
-                return listOf(IAstModification.ReplaceNode(pipe.source, call, pipe as Node))
             }
         }
         return noModifications

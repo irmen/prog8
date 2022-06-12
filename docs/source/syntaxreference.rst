@@ -526,29 +526,6 @@ containment check:  ``in``
             txt.print("email address seems ok")
         }
 
-pipe: ``|>``
-    Used as an alternative to nesting function calls. The pipe operator is used to 'pipe' the value
-    into the next function. You write a pipe as a sequence of function calls. You don't write
-    the arguments to the functions though: the value of one segment in the pipe, will be used as the argument
-    for the next function call in the sequence.
-
-    *note:* It only works on unary functions (taking a single argument) for now.
-
-    For example, this: ``txt.print_uw(add_bonus(determine_score(get_player(1))))``
-    can be rewritten as::
-
-        get_player(1)
-            |> determine_score()
-            |> add_bonus()
-            |> txt.print_uw()
-
-    A pipe can also be written as an expression that returns a value, for example ``uword score = add_bonus(determine_score(get_player(1)))`` ::
-
-        uword score = get_player(1)
-                        |> determine_score()
-                        |> add_bonus()
-
-
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``

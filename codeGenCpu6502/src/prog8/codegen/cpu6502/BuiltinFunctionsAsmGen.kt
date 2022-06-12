@@ -11,7 +11,6 @@ import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 import prog8.compiler.BuiltinFunctions
 import prog8.compiler.FSignature
-import prog8.compiler.builtinFunctionReturnType
 
 
 internal class BuiltinFunctionsAsmGen(private val program: Program,
@@ -27,44 +26,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
     internal fun translateFunctioncallStatement(fcall: BuiltinFunctionCallStatement) {
         val func = BuiltinFunctions.getValue(fcall.name)
         translateFunctioncall(fcall, func, discardResult = true, resultToStack = false, resultRegister = null)
-    }
-
-    internal fun translateFunctionCallWithFirstArg(bfc: IFunctionCall, singleArg: AsmAssignSource, isStatement: Boolean, scope: Subroutine): DataType {
-        val name = bfc.target.nameInSource.single()
-        val func = BuiltinFunctions.getValue(name)
-        val argExpression =
-            when(singleArg.kind) {
-                SourceStorageKind.LITERALNUMBER -> singleArg.number!!
-                SourceStorageKind.EXPRESSION -> singleArg.expression!!
-                SourceStorageKind.ARRAY -> singleArg.array!!
-                else -> {
-                    // TODO make it so that we can assign efficiently from something else as an expression....namely: register(s)
-                    //      this is useful in pipe expressions for instance, to skip the use of a temporary variable
-                    //      but for now, just assign it to a temporary variable and use that as a source
-                    //      Idea: to do this without having to rewrite every single function in translateFunctioncall(),
-                    //            hack a special IdentifierReference like "!6502.A/X/Y/AX/AY/XY" to reference a cpu register
-                    val tempvar = asmgen.getTempVarName(singleArg.datatype)
-                    val assignTempvar = AsmAssignment(
-                        singleArg,
-                        AsmAssignTarget(TargetStorageKind.VARIABLE, program, asmgen, singleArg.datatype, scope, variableAsmName = asmgen.asmVariableName(tempvar)),
-                        false, program.memsizer, Position.DUMMY
-                    )
-                    assignAsmGen.translateNormalAssignment(assignTempvar)
-                    // now use an expression to assign this tempvar
-                    val ident = IdentifierReference(tempvar, Position.DUMMY)
-                    ident.linkParents(scope)
-                    ident
-                }
-            }
-        val argExpressions = mutableListOf(argExpression)
-        val fcall = BuiltinFunctionCall(IdentifierReference(listOf(name), Position.DUMMY), argExpressions, Position.DUMMY)
-        fcall.linkParents(scope)
-        translateFunctioncall(fcall, func, discardResult = false, resultToStack = false, null)
-        return if(isStatement) {
-            DataType.UNDEFINED
-        } else {
-            builtinFunctionReturnType(func.name).getOrElse { throw AssemblyError("unknown dt") }
-        }
     }
 
     private fun translateFunctioncall(fcall: IFunctionCall, func: FSignature, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {

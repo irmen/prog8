@@ -1064,34 +1064,6 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 }
 
 
-class Pipe(override var source: Expression,
-           override val segments: MutableList<Expression>,      // are all function calls
-           override val position: Position): Statement(), IPipe {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        source.linkParents(this)
-        segments.forEach { it.linkParents(this) }
-    }
-
-    override fun copy() = Pipe(source.copy(), segments.map { it.copy() }.toMutableList(), position)
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node)  = visitor.visit(this, parent)
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        require(node is Expression)
-        require(replacement is Expression)
-        if(node===source) {
-            source = replacement
-        } else {
-            require(replacement is IFunctionCall)
-            val idx = segments.indexOf(node)
-            segments[idx] = replacement
-        }
-    }
-}
-
 // Calls to builtin functions will be replaced with this node just before handing the Ast to the codegen.
 // this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
 // in the codegen, because they have been converted into GoSub (for instance) or this node.

@@ -187,14 +187,4 @@ interface IAstVisitor {
         whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
-
-    fun visit(pipe: Pipe) {
-        pipe.source.accept(this)
-        pipe.segments.forEach { it.accept(this) }
-    }
-
-    fun visit(pipe: PipeExpression) {
-        pipe.source.accept(this)
-        pipe.segments.forEach { it.accept(this) }
-    }
 }

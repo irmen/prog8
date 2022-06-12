@@ -419,7 +419,7 @@ internal class StatementReorderer(val program: Program,
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         val function = functionCallStatement.target.targetStatement(program)
             ?: throw FatalAstException("no target for $functionCallStatement")
-        checkUnusedReturnValues(functionCallStatement, function, program, errors)
+        checkUnusedReturnValues(functionCallStatement, function, errors)
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
 }

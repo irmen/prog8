@@ -34,8 +34,6 @@ internal class ExpressionsAsmGen(private val program: Program,
             is IdentifierReference -> translateExpression(expression)
             is FunctionCallExpression -> translateFunctionCallResultOntoStack(expression)
             is BuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
-            is PipeExpression -> asmgen.translatePipeExpression(expression.source, expression.segments,
-                                                                expression, isStatement = false, pushResultOnEstack = true )
             is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
             is ArrayLiteral, is StringLiteral -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is RangeExpression -> throw AssemblyError("range expression should have been changed into array values")

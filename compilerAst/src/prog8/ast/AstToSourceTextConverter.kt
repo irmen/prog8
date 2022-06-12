@@ -461,26 +461,4 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             whenChoice.statements.accept(this)
         outputln("")
     }
-
-    override fun visit(pipe: Pipe) {
-        printPipe(pipe.source, pipe.segments)
-    }
-
-    override fun visit(pipe: PipeExpression) {
-        printPipe(pipe.source, pipe.segments)
-    }
-
-    private fun printPipe(source: Expression, segments: Iterable<Expression>) {
-        source.accept(this)
-        output(" |> ")
-        segments.first().accept(this)
-        outputln("")
-        scopelevel++
-        segments.drop(1).forEach {
-            outputi("|> ")
-            it.accept(this)
-            outputln("")
-        }
-        scopelevel--
-    }
 }

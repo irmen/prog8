@@ -84,7 +84,6 @@ class CodeGen(internal val program: PtProgram,
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
             is PtWhen -> translate(node)
-            is PtPipe -> expressionEval.translate(node, 0)
             is PtForLoop -> translate(node)
             is PtIfElse -> translate(node)
             is PtPostIncrDecr -> translate(node)

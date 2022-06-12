@@ -21,7 +21,7 @@ class TestIntermediateAst: FunSpec({
                     ubyte cc
                     ubyte[] array = [1,2,3]
                     cc = 11 in array
-                    cc = cc |> lsb() |> sqrt16()
+                    cc = sqrt16(lsb(cc))
                 }
             }
         """
@@ -53,9 +53,9 @@ class TestIntermediateAst: FunSpec({
 
         val containment = (entry.children[2] as PtAssignment).value as PtContainmentCheck
         (containment.element as PtNumber).number shouldBe 11.0
-        val pipe = (entry.children[3] as PtAssignment).value as PtPipe
-        pipe.void shouldBe false
-        pipe.type shouldBe DataType.UBYTE
+        val fcall = (entry.children[3] as PtAssignment).value as PtFunctionCall
+        fcall.void shouldBe false
+        fcall.type shouldBe DataType.UBYTE
         ast.print()
     }
 

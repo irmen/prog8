@@ -42,8 +42,10 @@ main  {
 
         ; 9+10+42 = 61
         ; 200-61-2 = 137
-        ubyte result = 9 |> func1(10) |> func2(2)
-        txt.print_ub(result)
+        ; ubyte result = 9 |> func1(10) |> func2(2)
+        ; $090a $0a02
+        uword resultw = 9 |> mkword(10) |> lsb() |> mkword(2)
+        txt.print_uw(resultw)
         txt.nl()
 
         ; a "pixelshader":

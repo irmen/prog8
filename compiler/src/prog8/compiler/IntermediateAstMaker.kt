@@ -50,7 +50,6 @@ class IntermediateAstMaker(val program: Program) {
             is InlineAssembly -> transform(statement)
             is Jump -> transform(statement)
             is Label -> transform(statement)
-            is Pipe -> transform(statement)
             is PostIncrDecr -> transform(statement)
             is RepeatLoop -> transform(statement)
             is Return -> transform(statement)
@@ -80,7 +79,6 @@ class IntermediateAstMaker(val program: Program) {
             is FunctionCallExpression -> transform(expr)
             is IdentifierReference -> transform(expr)
             is NumericLiteral -> transform(expr)
-            is PipeExpression -> transform(expr)
             is PrefixExpression -> transform(expr)
             is RangeExpression -> transform(expr)
             is StringLiteral -> transform(expr)
@@ -225,11 +223,7 @@ class IntermediateAstMaker(val program: Program) {
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
         val (target, _) = targetOf(srcCall.target)
         val type = srcCall.inferType(program).getOrElse {
-            if((srcCall.parent as? Pipe)?.segments?.last() === srcCall)
-                // for a pipe, the last segment is allowed to be a call to a function not returning anything.
-                DataType.UNDEFINED
-            else
-                throw FatalAstException("unknown dt $srcCall")
+            throw FatalAstException("unknown dt $srcCall")
         }
         val call = PtFunctionCall(target, type==DataType.UNDEFINED, type, srcCall.position)
         for (arg in srcCall.args)
@@ -286,14 +280,6 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(label: Label): PtLabel =
         PtLabel(label.name, label.position)
-
-    private fun transform(srcPipe: Pipe): PtPipe {
-        val pipe = PtPipe(DataType.UNDEFINED, true, srcPipe.position)
-        pipe.add(transformExpression(srcPipe.source))
-        for (segment in srcPipe.segments)
-            pipe.add(transformExpression(segment))
-        return pipe
-    }
 
     private fun transform(src: PostIncrDecr): PtPostIncrDecr {
         val post = PtPostIncrDecr(src.operator, src.position)
@@ -458,15 +444,6 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(number: NumericLiteral): PtNumber =
         PtNumber(number.type, number.number, number.position)
-
-    private fun transform(srcPipe: PipeExpression): PtPipe {
-        val type = srcPipe.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val pipe = PtPipe(type, false, srcPipe.position)
-        pipe.add(transformExpression(srcPipe.source))
-        for (segment in srcPipe.segments)
-            pipe.add(transformExpression(segment))
-        return pipe
-    }
 
     private fun transform(srcPrefix: PrefixExpression): PtPrefix {
         val type = srcPrefix.inferType(program).getOrElse { throw FatalAstException("unknown dt") }

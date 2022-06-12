@@ -63,52 +63,11 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             is PtBuiltinFunctionCall -> code += codeGen.translateBuiltinFunc(expr, resultRegister)
             is PtFunctionCall -> code += translate(expr, resultRegister, resultFpRegister)
             is PtContainmentCheck -> code += translate(expr, resultRegister, resultFpRegister)
-            is PtPipe -> code += translate(expr, resultRegister)
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
         }
-        return code
-    }
-
-    internal fun translate(pipe: PtPipe, resultRegister: Int): VmCodeChunk {
-        val segments = pipe.segments
-        var valueDt = segments[0].type
-        var valueReg = if(pipe.void) codeGen.vmRegisters.nextFree() else resultRegister
-
-        fun addImplicitArgToSegment(segment: PtExpression, sourceReg: Int, sourceDt: DataType): PtExpression {
-            return when (segment) {
-                is PtFunctionCall -> {
-                    val segWithArg = PtFunctionCall(segment.functionName, segment.void, segment.type, segment.position)
-                    segWithArg.children.add(PtMachineRegister(sourceReg, sourceDt, segment.position))
-                    segWithArg.children.addAll(segment.args)
-                    segWithArg
-                }
-                is PtBuiltinFunctionCall -> {
-                    val segWithArg = PtBuiltinFunctionCall(segment.name, segment.void, segment.hasNoSideEffects, segment.type, segment.position)
-                    segWithArg.children.add(PtMachineRegister(sourceReg, sourceDt, segment.position))
-                    segWithArg.children.addAll(segment.args)
-                    segWithArg
-                }
-                else -> throw AssemblyError("weird segment type")
-            }
-        }
-
-        val code = VmCodeChunk()
-        code += translateExpression(segments[0], valueReg, -1)
-        for (segment in segments.subList(1, segments.size-1)) {
-            val sourceReg = valueReg
-            val sourceDt = valueDt
-            if(segment.type!=valueDt) {
-                valueDt = segment.type
-                valueReg = codeGen.vmRegisters.nextFree()
-            }
-            val segmentWithImplicitArgument = addImplicitArgToSegment(segment, sourceReg, sourceDt)
-            code += translateExpression(segmentWithImplicitArgument, valueReg, -1)
-        }
-        val segWithArg = addImplicitArgToSegment(segments.last(), valueReg, valueDt)
-        code += translateExpression(segWithArg, resultRegister, -1)
         return code
     }
 

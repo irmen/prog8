@@ -1,7 +1,6 @@
 package prog8.ast.expressions
 
 import prog8.ast.IFunctionCall
-import prog8.ast.IPipe
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ExpressionError
@@ -975,13 +974,6 @@ class FunctionCallExpression(override var target: IdentifierReference,
         if(target.nameInSource.size>1)
             return null
 
-        // If the function call is part of a Pipe segments, the number of args will be 1 less than the number of parameters required
-        // because of the implicit first argument. We don't know this first argument here. Assume it is not a constant,
-        // which means that this function call cannot be a constant either.
-        val pipeParentSegments = (parent as? IPipe)?.segments ?: emptyList()
-        if(this in pipeParentSegments)
-            return null
-
         val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
@@ -1109,38 +1101,6 @@ class ContainmentCheck(var element: Expression,
             iterable=replacement
         else
             throw FatalAstException("invalid replace")
-    }
-}
-
-class PipeExpression(override var source: Expression,
-                     override val segments: MutableList<Expression>,        // are all function calls
-                     override val position: Position): Expression(), IPipe {
-    override lateinit var parent: Node
-
-    override val isSimple = false
-    override fun linkParents(parent: Node) {
-        this.parent=parent
-        source.linkParents(this)
-        segments.forEach { it.linkParents(this) }
-    }
-    override fun copy(): PipeExpression = PipeExpression(source.copy(), segments.map {it.copy()}.toMutableList(), position)
-    override fun constValue(program: Program): NumericLiteral? = null
-    override fun referencesIdentifier(nameInSource: List<String>) =
-        source.referencesIdentifier(nameInSource) || segments.any { it.referencesIdentifier(nameInSource) }
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun inferType(program: Program) = segments.last().inferType(program)
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        require(node is Expression)
-        require(replacement is Expression)
-        if(node===source) {
-            source = replacement
-        } else {
-            require(replacement is IFunctionCall)
-            val idx = segments.indexOf(node)
-            segments[idx] = replacement
-        }
     }
 }
 

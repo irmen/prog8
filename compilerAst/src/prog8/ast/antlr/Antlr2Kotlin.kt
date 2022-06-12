@@ -146,9 +146,6 @@ private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
     val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
-    val pipestmt = pipestmt()?.toAst()
-    if(pipestmt!=null) return pipestmt
-
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -437,13 +434,6 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if(addressof()!=null)
         return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
 
-    if(pipesegment()!=null)
-        return PipeExpression(
-            expression(0).toAst(),
-            pipesegment().map { it.functioncall().toAst() }.toMutableList(),
-            toPosition()
-        )
-
     throw FatalAstException(text)
 }
 
@@ -603,13 +593,5 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expr
             shared,
             null,
             toPosition()
-    )
-}
-
-private fun Prog8ANTLRParser.PipestmtContext.toAst(): Pipe {
-    return Pipe(
-        expression().toAst(),
-        pipesegment().map { it.functioncall().toAst() }.toMutableList(),
-        toPosition()
     )
 }
