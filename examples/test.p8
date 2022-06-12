@@ -29,26 +29,39 @@ main  {
 ;    }
 
 
+    sub func1(ubyte a1, ubyte a2) -> ubyte {
+        return a1+a2+42
+    }
+
+    sub func2(ubyte a1, ubyte a2) -> ubyte {
+        return 200-a1-a2
+    }
+
     sub start() {
         ; mcCarthy()
 
+        ; 9+10+42 = 61
+        ; 200-61-2 = 137
+        ubyte result = 9 |> func1(10) |> func2(2)
+        txt.print_ub(result)
+        txt.nl()
 
         ; a "pixelshader":
-        sys.gfx_enable(0)       ; enable lo res screen
-        ubyte shifter
-
-        repeat {
-            uword xx
-            uword yy = 0
-            repeat 240 {
-                xx = 0
-                repeat 320 {
-                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
-                    xx++
-                }
-                yy++
-            }
-            shifter+=4
-        }
+;        sys.gfx_enable(0)       ; enable lo res screen
+;        ubyte shifter
+;
+;        repeat {
+;            uword xx
+;            uword yy = 0
+;            repeat 240 {
+;                xx = 0
+;                repeat 320 {
+;                    sys.gfx_plot(xx, yy, xx*yy + shifter as ubyte)
+;                    xx++
+;                }
+;                yy++
+;            }
+;            shifter+=4
+;        }
     }
 }

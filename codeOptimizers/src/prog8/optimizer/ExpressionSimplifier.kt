@@ -348,7 +348,8 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             } else if(segments.size>1) {
                 // replace source+firstsegment by firstsegment(source) call as the new source
                 val firstSegment = segments.removeAt(0) as IFunctionCall
-                val call = FunctionCallExpression(firstSegment.target, mutableListOf(pipe.source), pipe.position)
+                val newArgs = listOf(pipe.source) + firstSegment.args
+                val call = FunctionCallExpression(firstSegment.target, newArgs.toMutableList(), pipe.position)
                 return listOf(IAstModification.ReplaceNode(pipe.source, call, pipe as Node))
             }
         }
