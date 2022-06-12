@@ -265,18 +265,18 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 }
             }
             DataType.FLOAT -> {
-                when(cast.value.type) {
+                code += when(cast.value.type) {
                     DataType.UBYTE -> {
-                        code += VmCodeInstruction(Opcode.FFROMUB, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
+                        VmCodeInstruction(Opcode.FFROMUB, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
                     }
                     DataType.BYTE -> {
-                        code += VmCodeInstruction(Opcode.FFROMSB, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
+                        VmCodeInstruction(Opcode.FFROMSB, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
                     }
                     DataType.UWORD -> {
-                        code += VmCodeInstruction(Opcode.FFROMUW, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
+                        VmCodeInstruction(Opcode.FFROMUW, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
                     }
                     DataType.WORD -> {
-                        code += VmCodeInstruction(Opcode.FFROMSW, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
+                        VmCodeInstruction(Opcode.FFROMSW, VmDataType.FLOAT, reg1=actualResultReg, fpReg1 = actualResultFpReg)
                     }
                     else -> throw AssemblyError("weird cast value type")
                 }

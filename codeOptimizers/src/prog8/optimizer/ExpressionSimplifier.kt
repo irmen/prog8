@@ -13,7 +13,7 @@ import kotlin.math.pow
 
 // TODO add more peephole expression optimizations? Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
-class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 

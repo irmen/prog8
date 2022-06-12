@@ -65,7 +65,7 @@ class Assembler {
         placeholders.clear()
         val program = mutableListOf<Instruction>()
         val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
-        val labelPattern = Regex("""_([a-z0-9\._]+):""")
+        val labelPattern = Regex("""_([a-z\d\._]+):""")
         for (line in source.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue

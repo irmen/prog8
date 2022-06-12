@@ -291,7 +291,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
             is PipeExpression -> {
-                asmgen.translatePipeExpression(value.source, value.segments, value, false, false)
+                asmgen.translatePipeExpression(value.source, value.segments, value, isStatement = false, pushResultOnEstack = false)
                 val resultDt = value.inferType(program)
                 val register =
                     if(resultDt.isBytes) RegisterOrPair.A
@@ -790,7 +790,7 @@ internal class AssignmentAsmGen(private val program: Program,
         when(sourceDt) {
             DataType.UBYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE, DataType.BYTE -> {
+                    DataType.BYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     DataType.UWORD, DataType.WORD -> {
@@ -813,7 +813,7 @@ internal class AssignmentAsmGen(private val program: Program,
             }
             DataType.BYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE, DataType.BYTE -> {
+                    DataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     DataType.UWORD -> {
@@ -843,7 +843,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.WORD, DataType.UWORD -> {
+                    DataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
                     DataType.FLOAT -> {
@@ -864,7 +864,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.WORD, DataType.UWORD -> {
+                    DataType.UWORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
                     DataType.FLOAT -> {
@@ -905,7 +905,7 @@ internal class AssignmentAsmGen(private val program: Program,
         when(sourceDt) {
             DataType.UBYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE, DataType.BYTE -> {
+                    DataType.BYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
                     DataType.UWORD, DataType.WORD -> {
@@ -939,7 +939,7 @@ internal class AssignmentAsmGen(private val program: Program,
             }
             DataType.BYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE, DataType.BYTE -> {
+                    DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
                     DataType.UWORD -> {
@@ -986,7 +986,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    DataType.WORD, DataType.UWORD -> {
+                    DataType.WORD -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
@@ -1014,7 +1014,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    DataType.WORD, DataType.UWORD -> {
+                    DataType.UWORD -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")

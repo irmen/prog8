@@ -8,7 +8,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
 import prog8.code.core.*
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.sign
 import kotlin.math.sqrt
 
@@ -149,21 +148,6 @@ class NotConstArgumentException: AstException("not a const argument to a built-i
 class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
 
 
-private fun oneDoubleArg(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Number): NumericLiteral {
-    if(args.size!=1)
-        throw SyntaxError("built-in function requires one floating point argument", position)
-    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    val float = constval.number
-    return numericLiteral(function(float), args[0].position)
-}
-
-private fun oneDoubleArgOutputWord(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Double): NumericLiteral {
-    if(args.size!=1)
-        throw SyntaxError("built-in function requires one floating point argument", position)
-    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return NumericLiteral(DataType.WORD, function(constval.number), args[0].position)
-}
-
 private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, function: (arg: Int)->Double): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
@@ -172,7 +156,7 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
         throw SyntaxError("built-in function requires one integer argument", position)
 
     val integer = constval.number.toInt()
-    return numericLiteral(function(integer).toInt(), args[0].position)
+    return NumericLiteral.optimalInteger(function(integer).toInt(), args[0].position)
 }
 
 private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Double): NumericLiteral {
@@ -194,7 +178,7 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return when (constval.type) {
-        in IntegerDatatypes -> numericLiteral(abs(constval.number.toInt()), args[0].position)
+        in IntegerDatatypes -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
         else -> throw SyntaxError("abs requires one integer argument", position)
     }
 }
@@ -215,7 +199,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             dt.isArray -> {
                 val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
-                numericLiteral(program.memsizer.memorySize(elementDt) * length, position)
+                NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt) * length, position)
             }
             dt istype DataType.STR -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
             else -> NumericLiteral(DataType.UBYTE, program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)).toDouble(), position)
@@ -271,22 +255,4 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return NumericLiteral(DataType.BYTE, constval.number.sign, position)
-}
-
-private fun numericLiteral(value: Number, position: Position): NumericLiteral {
-    val floatNum=value.toDouble()
-    val tweakedValue: Number =
-        if(floatNum== floor(floatNum) && (floatNum>=-32768 && floatNum<=65535))
-            floatNum.toInt()  // we have an integer disguised as a float.
-        else
-            floatNum
-
-    return when(tweakedValue) {
-        is Int -> NumericLiteral.optimalInteger(value.toInt(), position)
-        is Short -> NumericLiteral.optimalInteger(value.toInt(), position)
-        is Byte -> NumericLiteral(DataType.UBYTE, value.toDouble(), position)
-        is Double -> NumericLiteral(DataType.FLOAT, value.toDouble(), position)
-        is Float -> NumericLiteral(DataType.FLOAT, value.toDouble(), position)
-        else -> throw FatalAstException("invalid number type ${value::class}")
-    }
 }

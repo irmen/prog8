@@ -188,12 +188,11 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         fun dynamicBooleanType(): InferredTypes.InferredType {
             // as a special case, an expression yielding a boolean result, adapts the result
             // type to what is required (byte or word), to avoid useless type casting
-            return if(parent is TypecastExpression)
-                InferredTypes.InferredType.known((parent as TypecastExpression).type)
-            else if(parent is Assignment)
-                (parent as Assignment).target.inferType(program)
-            else
-                InferredTypes.InferredType.known(DataType.UBYTE)
+            return when (parent) {
+                is TypecastExpression -> InferredTypes.InferredType.known((parent as TypecastExpression).type)
+                is Assignment -> (parent as Assignment).target.inferType(program)
+                else -> InferredTypes.InferredType.known(DataType.UBYTE)
+            }
         }
 
         return when (operator) {

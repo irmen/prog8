@@ -650,7 +650,7 @@ class InlineAssembly(val assembly: String, override val position: Position) : St
     val names: Set<String> by lazy {
         // A cache of all the words (identifiers) present in this block of assembly code
         // this is used when checking if prog8 names are referenced from assembly code
-        val wordPattern = Regex("""\b([_a-zA-Z][_a-zA-Z0-9]+?)\b""")
+        val wordPattern = Regex("""\b([_a-zA-Z]\w+?)\b""")
         assembly.splitToSequence('\n')
             .map {
                 val everythintBeforeComment = it.substringBefore(';')
@@ -1095,7 +1095,7 @@ class Pipe(override var source: Expression,
 // Calls to builtin functions will be replaced with this node just before handing the Ast to the codegen.
 // this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
 // in the codegen, because they have been converted into GoSub (for instance) or this node.
-// However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc etc) this is all moot.
+// However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc. etc.) this is all moot.
 class BuiltinFunctionCallStatement(override var target: IdentifierReference,
                                    override var args: MutableList<Expression>,
                                    override val position: Position) : Statement(), IFunctionCall {

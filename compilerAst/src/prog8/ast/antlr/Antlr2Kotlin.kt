@@ -489,9 +489,6 @@ private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression
 
 private fun Prog8ANTLRParser.Expression_listContext.toAst() = expression().map{ it.toAst() }
 
-private fun Prog8ANTLRParser.IdentifierContext.toAst() : IdentifierReference =
-        IdentifierReference(listOf(text), toPosition())
-
 private fun Prog8ANTLRParser.Scoped_identifierContext.toAst() : IdentifierReference =
         IdentifierReference(NAME().map { it.text }, toPosition())
 

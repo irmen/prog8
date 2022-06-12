@@ -120,8 +120,6 @@ class Program(val name: String,
         s.removeStrings(modules)
     }
 
-    fun sortModules() = _modules.sortBy { it.isLibrary }
-
     private class StringSearch(val program: Program): IAstVisitor {
         val removals = mutableListOf<List<String>>()
         override fun visit(identifier: IdentifierReference) {

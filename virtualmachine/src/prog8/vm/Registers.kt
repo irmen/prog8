@@ -6,7 +6,7 @@ package prog8.vm
  */
 class Registers {
     private val registers = Array<UShort>(65536) { 0u }
-    private val floatRegisters = Array<Float>(65535) { 0f }
+    private val floatRegisters = Array(65535) { 0f }
 
     fun reset() {
         registers.fill(0u)

@@ -18,7 +18,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove redundant typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword  or even redundant casts (sourcetype = target type).
-        // Also the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
+        // the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
         //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
         val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
         if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes

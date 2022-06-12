@@ -1785,7 +1785,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 }
 
 // probably called via reflection
-class VmRunner(): IVirtualMachineRunner {
+class VmRunner: IVirtualMachineRunner {
     override fun runProgram(source: String, throttle: Boolean) {
         val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)
         val memory = Memory()
