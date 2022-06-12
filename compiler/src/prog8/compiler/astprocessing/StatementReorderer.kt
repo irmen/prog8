@@ -194,7 +194,10 @@ internal class StatementReorderer(val program: Program,
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
-        if (expr.left.constValue(program) != null && expr.operator in AssociativeOperators && expr.right.constValue(program) == null)
+        if (expr.left.constValue(program) != null
+            && expr.operator in AssociativeOperators
+            && expr.right.constValue(program) == null
+            && maySwapOperandOrder(expr))
             return listOf(IAstModification.SwapOperands(expr))
 
         // when using a simple bit shift and assigning it to a variable of a different type,
@@ -322,7 +325,7 @@ internal class StatementReorderer(val program: Program,
                 return noModifications
             }
 
-            if(binExpr.operator in AssociativeOperators) {
+            if(binExpr.operator in AssociativeOperators && maySwapOperandOrder(binExpr)) {
                 if (binExpr.right isSameAs assignment.target) {
                     // A = v <associative-operator> A  ==>  A = A <associative-operator> v
                     return listOf(IAstModification.SwapOperands(binExpr))

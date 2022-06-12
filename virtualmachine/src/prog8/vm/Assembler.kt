@@ -65,7 +65,7 @@ class Assembler {
         placeholders.clear()
         val program = mutableListOf<Instruction>()
         val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
-        val labelPattern = Regex("""_([a-z\d\._]+):""")
+        val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
         for (line in source.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue
@@ -116,7 +116,13 @@ class Assembler {
                     else if(operand[0]=='f' && operand[1]=='r')
                         fpReg1 = operand.substring(2).toInt()
                     else {
-                        value = parseValue(operand, program.size)
+                        value = if(operand.startsWith('_')) {
+                            // it's a label, keep the original case!
+                            val labelname = rest.split(",").first().trim()
+                            parseValue(labelname, program.size)
+                        } else {
+                            parseValue(operand, program.size)
+                        }
                         operands.clear()
                     }
                     if(operands.isNotEmpty()) {

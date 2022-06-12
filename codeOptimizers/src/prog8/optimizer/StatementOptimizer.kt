@@ -273,7 +273,7 @@ class StatementOptimizer(private val program: Program,
                     val op1 = binExpr.operator
                     val op2 = rExpr.operator
 
-                    if(rExpr.left is NumericLiteral && op2 in AssociativeOperators) {
+                    if(rExpr.left is NumericLiteral && op2 in AssociativeOperators && maySwapOperandOrder(binExpr)) {
                         // associative operator, make sure the constant numeric value is second (right)
                         return listOf(IAstModification.SwapOperands(rExpr))
                     }
@@ -312,7 +312,7 @@ class StatementOptimizer(private val program: Program,
             if(binExpr.operator in AssociativeOperators && binExpr.right isSameAs assignment.target) {
                 // associative operator, swap the operands so that the assignment target is first (left)
                 // unless the other operand is the same in which case we don't swap (endless loop!)
-                if (!(binExpr.left isSameAs binExpr.right))
+                if (!(binExpr.left isSameAs binExpr.right) && maySwapOperandOrder(binExpr))
                     return listOf(IAstModification.SwapOperands(binExpr))
             }
 

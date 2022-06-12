@@ -6,6 +6,7 @@ import prog8.ast.base.ExpressionError
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
+import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
@@ -438,7 +439,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             // both operators are the same.
 
             // If associative,  we can simply shuffle the const operands around to optimize.
-            if(expr.operator in AssociativeOperators) {
+            if(expr.operator in AssociativeOperators && maySwapOperandOrder(expr)) {
                 return if(leftIsConst) {
                     if(subleftIsConst)
                         ShuffleOperands(expr, null, subExpr, subExpr.right, null, null, expr.left)

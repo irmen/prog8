@@ -291,24 +291,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
             is BinaryExpression -> {
-                if(value.operator in ComparisonOperators) {
-                    // TODO real optimized code for comparison expressions that yield a boolean result value
-                    assignConstantByte(assign.target, 0)
-                    val origTarget = assign.target.origAstTarget
-                    if(origTarget!=null) {
-                        val assignTrue = AnonymousScope(mutableListOf(
-                            Assignment(origTarget, NumericLiteral.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
-                        ), assign.position)
-                        val assignFalse = AnonymousScope(mutableListOf(), assign.position)
-                        val ifelse = IfElse(value.copy(), assignTrue, assignFalse, assign.position)
-                        ifelse.linkParents(value)
-                        asmgen.translate(ifelse)
-                    }
-                    else {
-                        // no orig ast assign target so can't use the workaround, so fallback to stack eval
-                        fallbackToStackEval(assign)
-                    }
-                } else if(!attemptAssignOptimizedBinexpr(value, assign)) {
+                if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                     // because the code here is the implementation of exactly that...)
@@ -320,8 +303,78 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: BinaryExpression, assign: AsmAssignment): Boolean {
+        if(expr.operator in ComparisonOperators) {
+            assignConstantByte(assign.target, 0)
+            val origTarget = assign.target.origAstTarget
+            if(origTarget!=null) {
+                val assignTrue = AnonymousScope(mutableListOf(
+                    Assignment(origTarget, NumericLiteral.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
+                ), assign.position)
+                val assignFalse = AnonymousScope(mutableListOf(), assign.position)
+                val ifelse = IfElse(expr.copy(), assignTrue, assignFalse, assign.position)
+                ifelse.linkParents(expr)
+                asmgen.translate(ifelse)
+                return true
+            }
+        }
+
         if(!expr.inferType(program).isInteger)
             return false
+
+/* TODO re-add these optimizations? after we improved the unneeded addition of !=0 expressions
+        if(expr.operator=="and") {
+            val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("weird dt") }
+            if (dt in ByteDatatypes) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
+                asmgen.out("  pha")
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", dt, expr.definingSubroutine)
+                asmgen.out("  pla |  and  P8ZP_SCRATCH_B1")
+                if(assign.target.datatype in ByteDatatypes)
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                else {
+                    asmgen.out("  ldy  #0")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                }
+                return true
+            }
+            else throw AssemblyError("weird dt for and, expected byte $expr @${expr.position}")
+        }
+        else if(expr.operator=="or") {
+            val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("weird dt") }
+            if (dt in ByteDatatypes) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
+                asmgen.out("  pha")
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", dt, expr.definingSubroutine)
+                asmgen.out("  pla |  ora  P8ZP_SCRATCH_B1")
+                if(assign.target.datatype in ByteDatatypes)
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                else {
+                    asmgen.out("  ldy  #0")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                }
+                return true
+            }
+            else throw AssemblyError("weird dt for or, expected byte $expr @${expr.position}")
+        }
+        else if(expr.operator=="xor") {
+            val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("weird dt") }
+            if (dt in ByteDatatypes) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
+                asmgen.out("  pha")
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", dt, expr.definingSubroutine)
+                asmgen.out("  pla |  eor  P8ZP_SCRATCH_B1")
+                if(assign.target.datatype in ByteDatatypes)
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                else {
+                    asmgen.out("  ldy  #0")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                }
+                return true
+            }
+            else throw AssemblyError("weird dt for xor, expected byte $expr @${expr.position}")
+        }
+*/
+
         if(expr.operator!="+" && expr.operator!="-")
             return false
 

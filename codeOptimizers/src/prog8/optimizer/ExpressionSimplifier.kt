@@ -5,6 +5,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
+import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
@@ -88,12 +89,12 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             throw FatalAstException("can't determine datatype of both expression operands $expr")
 
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
-        if (leftVal != null && expr.operator in AssociativeOperators && rightVal == null)
+        if (leftVal != null && expr.operator in AssociativeOperators && rightVal == null && maySwapOperandOrder(expr))
             return listOf(IAstModification.SwapOperands(expr))
 
         // NonBinaryExpression  <associativeoperator>  BinaryExpression  -->  BinaryExpression  <associativeoperator>  NonBinaryExpression
         if (expr.operator in AssociativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
-            if(parent !is Assignment || !(expr.left isSameAs parent.target))
+            if(parent !is Assignment || !(expr.left isSameAs parent.target) && maySwapOperandOrder(expr))
                 return listOf(IAstModification.SwapOperands(expr))
         }
 
@@ -630,7 +631,7 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
     }
 
     private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteral?): BinExprWithConstants {
-        if (expr.operator in AssociativeOperators && leftVal != null) {
+        if (expr.operator in AssociativeOperators && leftVal != null && maySwapOperandOrder(expr)) {
             // swap left and right so that right is always the constant
             val tmp = expr.left
             expr.left = expr.right

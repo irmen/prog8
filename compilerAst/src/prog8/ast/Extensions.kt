@@ -1,9 +1,7 @@
 package prog8.ast
 
 import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.InferredTypes
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -85,4 +83,15 @@ fun determineGosubArguments(gosub: GoSub): Map<String, Expression> {
         }
     }
     return arguments
+}
+
+fun maySwapOperandOrder(binexpr: BinaryExpression): Boolean {
+    fun ok(expr: Expression): Boolean {
+        return when(expr) {
+            is BinaryExpression -> expr.left.isSimple
+            is IFunctionCall -> false
+            else -> expr.isSimple
+        }
+    }
+    return ok(binexpr.left) || ok(binexpr.right)
 }

@@ -141,7 +141,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         }
     }
 
-    override val isSimple = true
+    override val isSimple = expression.isSimple
 
     override fun toString(): String {
         return "Prefix($operator $expression)"

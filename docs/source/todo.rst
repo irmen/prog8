@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- get rid of unneeded !=0 added to logical expressions
+- optimize logical expressions in attemptAssignOptimizedBinexpr()
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 ...
 
