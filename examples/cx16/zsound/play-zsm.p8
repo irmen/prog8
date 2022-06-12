@@ -1,5 +1,6 @@
 %import textio
 %import cx16diskio
+%import palette
 %zeropage basicsafe
 %zpreserved $22,$28     ; zsound lib uses this region
 
@@ -58,7 +59,15 @@ zsound_lib:
             ; for IRQ based playback instead:  cx16.set_irq(&zsm_playIRQ, true)
             while cx16.joystick_get2(0)==$ffff {
                 sys.waitvsync()
+                repeat 800 {
+                    ; artificially delay calling the play routine so we can see its raster time
+                    %asm {{
+                        nop
+                    }}
+                }
+                palette.set_color(0, $0c5)
                 zsm_play()
+                palette.set_color(0, $000)
             }
             zsm_stop()
         } else {

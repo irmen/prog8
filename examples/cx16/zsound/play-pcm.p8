@@ -1,5 +1,6 @@
 %import textio
 %import cx16diskio
+%import palette
 %zeropage basicsafe
 %zpreserved $22,$26     ; zsound lib uses this region
 
@@ -29,10 +30,12 @@ zsound_lib:
     sub start() {
         txt.print("zsound pcm digi demo program!\n")
 
-        if not cx16diskio.load_raw(8, "shoryuken.zcm", digi_bank, digi_address) {
-            txt.print("?can't load digi\n")
+        c64.SETMSG(%10000000)       ; enable kernal status messages for load
+        if not cx16diskio.load_raw(8, "terminator2.zcm", digi_bank, digi_address) {
+            txt.print("?can't load\n")
             return
         }
+        c64.SETMSG(0)
 
         cx16.rambank(digi_bank)
         ; initialize header pointer of the zcm to point to actual sample data
@@ -40,11 +43,19 @@ zsound_lib:
         pokew(digi_address, digi_address+zcm_DIGITAB_size)
 
         pcm_init()
-        txt.print("playing digi! hit enter to stop.\n")
+        txt.print("\nplaying digi! hit enter to stop.\n")
         pcm_trigger_digi(digi_bank, digi_address)
         while cx16.joystick_get2(0)==$ffff {
             sys.waitvsync()
+            repeat 1000 {
+                ; artificially delay calling the play routine so we can see its raster time
+                %asm {{
+                    nop
+                }}
+            }
+            palette.set_color(0, $0c5)
             pcm_play()
+            palette.set_color(0, $000)
         }
         pcm_stop()
     }
