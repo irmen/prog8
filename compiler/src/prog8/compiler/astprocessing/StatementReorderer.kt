@@ -252,6 +252,7 @@ internal class StatementReorderer(val program: Program,
             // is rewritten as "var!=0 and other-logical-expression", to avoid bitwise boolean and
             // generating the wrong results later
 
+            // TODO use bool(expr) instead of expr!=0 rewriting
             fun wrapped(expr: Expression): Expression =
                 BinaryExpression(expr, "!=", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
 

@@ -3,7 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- get rid of unneeded !=0 added to logical expressions
+- add a builtin function 'bool' that takes a numeric value and returns ubyte false if it was zero and true otherwise
+- statementreorderer: after(expr: BinaryExpression): get rid of unneeded !=0 added to logical expressions
+  by using this bool() function instead for the operand if it is not a byte type
 - optimize logical expressions in attemptAssignOptimizedBinexpr()
 - add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 ...

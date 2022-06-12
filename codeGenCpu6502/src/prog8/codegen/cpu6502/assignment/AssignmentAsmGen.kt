@@ -321,7 +321,8 @@ internal class AssignmentAsmGen(private val program: Program,
         if(!expr.inferType(program).isInteger)
             return false
 
-/* TODO re-add these optimizations? after we improved the unneeded addition of !=0 expressions
+/*
+TODO re-add these optimizations? after we improved the unneeded addition of !=0 expressions
         if(expr.operator=="and") {
             val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("weird dt") }
             if (dt in ByteDatatypes) {

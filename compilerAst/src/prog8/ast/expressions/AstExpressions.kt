@@ -215,7 +215,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
-            "and", "or", "xor",
+            "and", "or", "xor" -> InferredTypes.knownFor(DataType.UBYTE)
             "<", ">",
             "<=", ">=",
             "==", "!=" -> dynamicBooleanType()
