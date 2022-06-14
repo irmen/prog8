@@ -233,5 +233,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        if(functionCallExpr.target.nameInSource==listOf("boolean")) {
+            if(functionCallExpr.args[0].inferType(program).isBytes) {
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
+            }
+        }
+        return noModifications
+    }
 }
 

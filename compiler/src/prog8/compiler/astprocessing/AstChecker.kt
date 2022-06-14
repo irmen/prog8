@@ -864,13 +864,9 @@ internal class AstChecker(private val program: Program,
                 }
             }
             "and", "or", "xor" -> {
-                // only integer numeric operands accepted, and if literal constants, only boolean values accepted (0 or 1)
+                // only integer numeric operands accepted
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
                     errors.err("logical operator can only be used on boolean operands", expr.right.position)
-                val constLeft = expr.left.constValue(program)
-                val constRight = expr.right.constValue(program)
-                if(constLeft!=null && constLeft.number.toInt() !in 0..1 || constRight!=null && constRight.number.toInt() !in 0..1)
-                    errors.err("const literal argument of logical operator must be boolean (0 or 1)", expr.position)
             }
             "&", "|", "^" -> {
                 // only integer numeric operands accepted

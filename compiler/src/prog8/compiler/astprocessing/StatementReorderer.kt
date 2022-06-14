@@ -248,13 +248,12 @@ internal class StatementReorderer(val program: Program,
             }
         }
         else if(expr.operator in LogicalOperators) {
-            // make sure that logical expressions like "var and other-logical-expression
-            // is rewritten as "var!=0 and other-logical-expression", to avoid bitwise boolean and
-            // generating the wrong results later
-
-            // TODO use bool(expr) instead of expr!=0 rewriting
-            fun wrapped(expr: Expression): Expression =
-                BinaryExpression(expr, "!=", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
+            fun wrapped(expr: Expression): Expression {
+                return if(expr.inferType(program).isBytes)
+                    expr
+                else
+                    FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
+            }
 
             fun isLogicalExpr(expr: Expression?): Boolean {
                 if(expr is BinaryExpression && expr.operator in (LogicalOperators + ComparisonOperators))

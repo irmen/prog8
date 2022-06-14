@@ -1,5 +1,4 @@
 %import textio
-;%import test_stack
 %zeropage basicsafe
 
 ; NOTE: meant to test to virtual machine output target (use -target vitual)
@@ -116,6 +115,7 @@ main  {
         value = func1(25) xor func2(25) xor funcTrue() xor func3(25) xor func4(25)
         txt.print_ub(value)
         txt.nl()
+
 
         ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen
