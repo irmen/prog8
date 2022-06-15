@@ -44,7 +44,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "abs" -> funcAbs(fcall, func, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
-            "boolean" -> funcBoolean(fcall, func, resultToStack, resultRegister, sscope)
+            "boolean" -> funcBoolean(fcall, resultToStack, resultRegister, sscope)
             "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
             "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
@@ -698,7 +698,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         }
     }
 
-    private fun funcBoolean(fcall: IFunctionCall, func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
+    private fun funcBoolean(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
         when (val dt = fcall.args.single().inferType(program).getOr(DataType.UNDEFINED)) {
             in ByteDatatypes -> {
                 assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.A, dt==DataType.BYTE)
@@ -884,7 +884,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
         } else {
             val reg = resultRegister ?: RegisterOrPair.AY
-            var needAsave = needAsaveForOtherArg(fcall.args[0])
+            var needAsave = asmgen.needAsaveForExpr(fcall.args[0])
             if(!needAsave) {
                 val mr0 = fcall.args[0] as? DirectMemoryRead
                 val mr1 = fcall.args[1] as? DirectMemoryRead
@@ -1132,8 +1132,5 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             }
         }
     }
-
-    private fun needAsaveForOtherArg(arg: Expression): Boolean =
-        arg !is NumericLiteral && arg !is IdentifierReference && arg !is DirectMemoryRead
 
 }

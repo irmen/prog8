@@ -69,10 +69,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes)
                 || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypes && sub.parameters[1].type in ByteDatatypes)
 
-    private fun needAsaveForOtherArg(arg: Expression): Boolean =
-        arg !is NumericLiteral && arg !is IdentifierReference && arg !is DirectMemoryRead
-
-
     internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
@@ -112,10 +108,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 } else {
                     // 2 byte params, second in Y, first in A
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], RegisterOrPair.A)
-                    if(needAsaveForOtherArg(call.args[1]))
+                    if(asmgen.needAsaveForExpr(call.args[1]))
                         asmgen.out("  pha")
                     argumentViaRegister(sub, IndexedValue(1, sub.parameters[1]), call.args[1], RegisterOrPair.Y)
-                    if(needAsaveForOtherArg(call.args[1]))
+                    if(asmgen.needAsaveForExpr(call.args[1]))
                         asmgen.out("  pla")
                 }
             } else {

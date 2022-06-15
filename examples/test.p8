@@ -73,10 +73,10 @@ main  {
         ubyte value
         uword wvalue
 
-        txt.print("short and with false (word): ")
-        wvalue = funcw() and funcFalseWord() and funcw() and funcw()
-        txt.print_uw(wvalue)
-        txt.nl()
+;        txt.print("short and with false (word): ")
+;        wvalue = funcw() and funcFalseWord() and funcw() and funcw()
+;        txt.print_uw(wvalue)
+;        txt.nl()
 
         txt.print("short and with false: ")
         value = func1(25) and funcFalse()

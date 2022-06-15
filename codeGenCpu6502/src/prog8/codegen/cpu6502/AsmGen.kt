@@ -2910,6 +2910,9 @@ $repeatLabel    lda  $counterVar
         }
     }
 
+    internal fun needAsaveForExpr(arg: Expression): Boolean =
+        arg !is NumericLiteral && arg !is IdentifierReference && (arg !is DirectMemoryRead || !arg.isSimple)
+
     private val subroutineExtrasCache = mutableMapOf<Subroutine, SubroutineExtraAsmInfo>()
 
     internal fun subroutineExtra(sub: Subroutine): SubroutineExtraAsmInfo {
