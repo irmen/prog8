@@ -2,10 +2,11 @@
 %import cx16diskio
 %import palette
 %zeropage basicsafe
-%zpreserved $22,$28     ; zsound lib uses this region
+%zpreserved $22,$2d     ; zsound lib uses this region
 
 
-;; Proof Of Concept ZSM player using a binary blob version of zsound library by ZeroByte relocated to something usable here.
+;; Proof Of Concept Zsound player using a binary blob version of zsound library by ZeroByte relocated to something usable here.
+;; Can play ZSM (music) and ZCM (pcm samples).
 
 ; "issues":
 ; - prog8 (or rather, 64tass) cannot "link" other assembly object files so we have to incbin a binary blob.
@@ -21,7 +22,7 @@ main $0830 {
 
 zsound_lib:
     ; this has to be the first statement to make sure it loads at the specified module address $0830
-    %asmbinary "zsmplayer-0830.bin"
+    %asmbinary "zsound_combo-0830.bin"
 
     ; note: jump table is offset by 2 from the load address (because of prg header)
     romsub $0832 = zsm_init() clobbers(A)
@@ -36,40 +37,72 @@ zsound_lib:
     romsub $084d = zsm_setcallback(uword address @XY)
     romsub $0850 = zsm_clearcallback() clobbers(A)
     romsub $0853 = zsm_get_music_speed() clobbers(A) -> uword @XY
+    romsub $0856 = pcm_init() clobbers(A)
+    romsub $0859 = pcm_trigger_digi(ubyte bank @A, uword song_address @XY)
+    romsub $085c = pcm_play() clobbers(A, X, Y)
+    romsub $085f = pcm_stop() clobbers(A)
+    romsub $0862 = pcm_set_volume(ubyte volume @A)
 
-    const ubyte song_bank = 4
+    const ubyte song_bank = 1
     const uword song_address = $a000
+    const ubyte digi_bank = 5
+    const uword digi_address = $a000
+    const ubyte zcm_DIGITAB_size = 8        ; header size
 
     sub start() {
         txt.print("zsound demo program!\n")
 
+        c64.SETMSG(%10000000)       ; enable kernal status messages for load
         if not cx16diskio.load_raw(8, "colony.zsm", song_bank, song_address) {
-            txt.print("?can't load song\n")
+            txt.print("?can't load\n")
             return
         }
+        if not cx16diskio.load_raw(8, "terminator2.zcm", digi_bank, digi_address) {
+            txt.print("?can't load\n")
+            return
+        } else {
+            ; initialize header pointer of the zcm to point to actual sample data
+            ; this will be set correcly by zsound lib itself if left at zero
+            ; poke(digi_address+2, digi_bank)
+            ; pokew(digi_address, digi_address+zcm_DIGITAB_size)
+        }
+        c64.SETMSG(0)
+        txt.nl()
         cx16.rambank(song_bank)
 
+        play_music()
+    }
+
+    sub play_music() {
         zsm_init()
+        pcm_init()
         zsm_setcallback(&end_of_song_cb)
         if zsm_start(song_bank, song_address)==0 {
-            txt.print("music speed: ")
+            txt.print("\nmusic speed: ")
             txt.print_uw(zsm_get_music_speed())
-            txt.print(" hz\nplaying song! hit enter to stop.\n")
+            txt.print(" hz\nplaying song! hit enter to also play a digi sample!\n")
 
             ; for IRQ based playback instead:  cx16.set_irq(&zsm_playIRQ, true)
-            while cx16.joystick_get2(0)==$ffff {
+
+            repeat {
+                if cx16.joystick_get2(0)!=$ffff
+                    pcm_trigger_digi(digi_bank, digi_address)
+
                 sys.waitvsync()
-                repeat 800 {
+                repeat 1400 {
                     ; artificially delay calling the play routine so we can see its raster time
                     %asm {{
                         nop
                     }}
                 }
-                palette.set_color(0, $0c5)
+                palette.set_color(0, $84c)
+                pcm_play()
+                palette.set_color(0, $f25)
                 zsm_play()
                 palette.set_color(0, $000)
             }
             zsm_stop()
+            pcm_stop()
         } else {
             txt.print("?song start error\n")
         }
