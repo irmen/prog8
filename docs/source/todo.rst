@@ -3,7 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- add McCarthy evaluation to shortcircuit and/or expressions.  Both conditional expressions and assignments!
+- add some more optimizations in vmPeepholeOptimizer
+- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
+  this info is needed for more advanced optimizations and later code generation steps.
 
 
 Need help with
@@ -17,7 +20,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- add McCarthy evaluation to shortcircuit and/or expressions. First do ifs by splitting them up? Then do expressions that compute a value?
 - vm: implement remaining sin/cos functions in math.p8
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
@@ -26,6 +28,7 @@ Compiler:
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
+- generate WASM from the new ast (or from vm code?) to run prog8 on a browser canvas?
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
 - simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?

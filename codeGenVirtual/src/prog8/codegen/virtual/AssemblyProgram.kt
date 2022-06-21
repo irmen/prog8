@@ -68,6 +68,7 @@ internal class AssemblyProgram(override val name: String,
 
     fun addGlobalInits(chunk: VmCodeChunk) = globalInits.addAll(chunk.lines)
     fun addBlock(block: VmCodeChunk) = blocks.add(block)
+    fun getBlocks(): List<VmCodeChunk> = blocks
 }
 
 internal sealed class VmCodeLine

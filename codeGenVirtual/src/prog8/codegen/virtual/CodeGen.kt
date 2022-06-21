@@ -62,6 +62,11 @@ class CodeGen(internal val program: PtProgram,
             vmprog.addBlock(translate(block))
         }
 
+        if(options.optimize) {
+            val optimizer = VmPeepholeOptimizer(vmprog, allocations)
+            optimizer.optimize()
+        }
+
         println("Vm codegen: amount of vm registers=${vmRegisters.peekNext()}")
 
         return vmprog
