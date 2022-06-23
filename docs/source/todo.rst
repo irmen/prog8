@@ -4,7 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - bug: 2 repeats in same subroutine -> duplicate label error?  see repeat_bug.p8
-- bug: f_read() can't deal with running out of banked ram?
+- bug: f_read() can't deal with running out of banked ram? maybe only cx16diskio.f_read()?
 - add McCarthy evaluation to shortcircuit and/or expressions.  Both conditional expressions and assignments!
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.

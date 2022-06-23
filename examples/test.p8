@@ -48,6 +48,10 @@ main  {
     sub start() {
         ubyte value
         uword wvalue
+        byte svalue = -99
+
+        wvalue = 3*abs(svalue) +abs(svalue)+abs(svalue)+abs(svalue)
+        txt.print_uw(wvalue)
 
         txt.print("short and with false (word): ")
         wvalue = funcw() and funcFalseWord() and funcw() and funcw()

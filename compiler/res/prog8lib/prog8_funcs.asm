@@ -86,9 +86,9 @@ func_all_w_stack	.proc
 
 abs_b_stack	.proc
 	; -- push abs(A) on stack (as unsigned word)
-		jsr  abs_b_into_A
+		jsr  abs_b_into_AY
 		sta  P8ESTACK_LO,x
-		stz  p8ESTACK_HI,x
+		stz  P8ESTACK_HI,x
 		dex
 		rts
 		.pend
