@@ -5,29 +5,6 @@
 
 main  {
 
-;    sub ands(ubyte arg, ubyte b1, ubyte b2, ubyte b3, ubyte b4) -> ubyte {
-;        return arg>b1 and arg>b2 and arg>b3 and arg>b4
-;    }
-;
-;    sub ors(ubyte arg, ubyte b1, ubyte b2, ubyte b3, ubyte b4) -> ubyte {
-;        return arg==b1 or arg==b2 or arg==b3 or arg==b4
-;    }
-
-;    sub mcCarthy() {
-;        ubyte @shared a
-;        ubyte @shared b
-;
-;        txt.print_ub(ands(10, 2,3,4,5))
-;        txt.spc()
-;        txt.print_ub(ands(10, 20,3,4,5))
-;        txt.spc()
-;        txt.print_ub(ors(10, 2,3,40,5))
-;        txt.spc()
-;        txt.print_ub(ors(10, 1,10,40,5))
-;        txt.spc()
-;    }
-
-
     sub funcFalse() -> ubyte {
         txt.print("false() ")
         return false
@@ -69,14 +46,13 @@ main  {
     }
 
     sub start() {
-        ; mcCarthy()
         ubyte value
         uword wvalue
 
-;        txt.print("short and with false (word): ")
-;        wvalue = funcw() and funcFalseWord() and funcw() and funcw()
-;        txt.print_uw(wvalue)
-;        txt.nl()
+        txt.print("short and with false (word): ")
+        wvalue = funcw() and funcFalseWord() and funcw() and funcw()
+        txt.print_uw(wvalue)
+        txt.nl()
 
         txt.print("short and with false: ")
         value = func1(25) and funcFalse()
