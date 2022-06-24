@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
+import prog8.ast.generatedLabelPrefix
 import prog8.code.core.*
 import java.io.File
 import java.nio.file.Path

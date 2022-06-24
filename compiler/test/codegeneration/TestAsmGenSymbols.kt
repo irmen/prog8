@@ -2,6 +2,7 @@ package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.expressions.AddressOf
@@ -13,10 +14,12 @@ import prog8.code.target.C64Target
 import prog8.code.target.c64.C64Zeropage
 import prog8.codegen.cpu6502.AsmGen
 import prog8.compiler.astprocessing.SymbolTableMaker
+import prog8tests.helpers.*
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 class TestAsmGenSymbols: StringSpec({
     fun createTestProgram(): Program {
@@ -152,5 +155,27 @@ main {
         id2.linkParents(program.toplevelModule)
         asmgen.asmSymbolName(id1) shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName(id2) shouldBe "P8ZP_SCRATCH_W2"
+    }
+
+    "no double labels with various loops" {
+        val text="""
+            main  {
+                sub start() {
+                    if true {
+                    }
+            
+                    repeat 4 {
+                    }
+            
+                    while true {
+                    }
+            
+                    repeat {
+                    }
+                }
+            }            
+        """
+        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        result shouldNotBe null
     }
 })

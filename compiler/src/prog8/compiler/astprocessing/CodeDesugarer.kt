@@ -12,9 +12,8 @@ import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
 
-private var generatedLabelSequenceNumber: Int = 0
-
-internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
+internal class CodeDesugarer(val program: Program,
+                             private val errors: IErrorReporter) : AstWalker() {
 
     // Some more code shuffling to simplify the Ast that the codegenerator has to process.
     // Several changes have already been done by the StatementReorderer !
@@ -28,13 +27,6 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - repeat-forever loops replaced by label+jump.
 
 
-    private val generatedLabelPrefix = "prog8_label_"
-
-    private fun makeLabel(postfix: String, position: Position): Label {
-        generatedLabelSequenceNumber++
-        return Label("${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix", position)
-    }
-
     private fun jumpLabel(label: Label): Jump {
         val ident = IdentifierReference(listOf(label.name), label.position)
         return Jump(null, ident, null, label.position)
@@ -42,7 +34,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
-            val label = makeLabel("after", breakStmt.position)
+            val label = program.makeLabel("after", breakStmt.position)
             return listOf(
                 IAstModification.ReplaceNode(breakStmt, jumpLabel(label), parent),
                 IAstModification.InsertAfter(stmt, label, stmt.parent as IStatementContainer)
@@ -75,7 +67,7 @@ if not CONDITION
    goto _loop
          */
         val pos = untilLoop.position
-        val loopLabel = makeLabel("untilloop", pos)
+        val loopLabel = program.makeLabel("untilloop", pos)
         val notCondition = PrefixExpression("not", untilLoop.condition, pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
@@ -99,8 +91,8 @@ _whileloop:
 _after:
          */
         val pos = whileLoop.position
-        val loopLabel = makeLabel("whileloop", pos)
-        val afterLabel = makeLabel("afterwhile", pos)
+        val loopLabel = program.makeLabel("whileloop", pos)
+        val afterLabel = program.makeLabel("afterwhile", pos)
         val notCondition = PrefixExpression("not", whileLoop.condition, pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
@@ -138,7 +130,7 @@ _after:
 
     override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
         if(repeatLoop.iterations==null) {
-            val label = makeLabel("repeat", repeatLoop.position)
+            val label = program.makeLabel("repeat", repeatLoop.position)
             val jump = jumpLabel(label)
             return listOf(
                 IAstModification.InsertFirst(label, repeatLoop.body),

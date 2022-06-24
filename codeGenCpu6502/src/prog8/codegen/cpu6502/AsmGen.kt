@@ -18,7 +18,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 
 
-internal const val generatedLabelPrefix = "prog8_label_"
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
@@ -72,13 +71,6 @@ class AsmGen(internal val program: Program,
     }
 
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
-
-    private var generatedLabelSequenceNumber: Int = 0
-
-    internal fun makeLabel(postfix: String): String {
-        generatedLabelSequenceNumber++
-        return "${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
-    }
 
     internal fun outputSourceLine(node: Node) {
         out(" ;\tsrc line: ${node.position.file}:${node.position.line}")
@@ -543,7 +535,7 @@ class AsmGen(internal val program: Program,
             if(jump is Jump) {
                 translateCompareAndJumpIfTrue(booleanCondition, jump)
             } else {
-                val endLabel = makeLabel("if_end")
+                val endLabel = program.makeLabel("if_end")
                 translateCompareAndJumpIfFalse(booleanCondition, endLabel)
                 translate(stmt.truepart)
                 out(endLabel)
@@ -551,8 +543,8 @@ class AsmGen(internal val program: Program,
         }
         else {
             // both true and else parts
-            val elseLabel = makeLabel("if_else")
-            val endLabel = makeLabel("if_end")
+            val elseLabel = program.makeLabel("if_else")
+            val endLabel = program.makeLabel("if_end")
             translateCompareAndJumpIfFalse(booleanCondition, elseLabel)
             translate(stmt.truepart)
             jmp(endLabel)
@@ -568,7 +560,7 @@ class AsmGen(internal val program: Program,
     }
 
     private fun translate(stmt: RepeatLoop) {
-        val endLabel = makeLabel("repeatend")
+        val endLabel = program.makeLabel("repeatend")
         loopEndLabels.push(endLabel)
 
         when (stmt.iterations) {
@@ -621,7 +613,7 @@ class AsmGen(internal val program: Program,
 
     private fun repeatWordCount(count: Int, stmt: RepeatLoop) {
         require(count in 257..65535)
-        val repeatLabel = makeLabel("repeat")
+        val repeatLabel = program.makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UWORD, true, stmt)
             out("""
@@ -662,7 +654,7 @@ $repeatLabel""")
     private fun repeatWordCountInAY(endLabel: String, stmt: RepeatLoop) {
         // note: A/Y must have been loaded with the number of iterations!
         // no need to explicitly test for 0 iterations as this is done in the countdown logic below
-        val repeatLabel = makeLabel("repeat")
+        val repeatLabel = program.makeLabel("repeat")
         val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
         out("""
                 sta  $counterVar
@@ -683,7 +675,7 @@ $repeatLabel    lda  $counterVar
 
     private fun repeatByteCount(count: Int, stmt: RepeatLoop) {
         require(count in 2..256)
-        val repeatLabel = makeLabel("repeat")
+        val repeatLabel = program.makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
@@ -701,7 +693,7 @@ $repeatLabel    lda  $counterVar
 
     private fun repeatCountInY(stmt: RepeatLoop, endLabel: String) {
         // note: Y must just have been loaded with the (variable) number of loops to be performed!
-        val repeatLabel = makeLabel("repeat")
+        val repeatLabel = program.makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
@@ -738,7 +730,7 @@ $repeatLabel    lda  $counterVar
             }
         }
 
-        val counterVar = makeLabel("counter")
+        val counterVar = program.makeLabel("counter")
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
                 val result = zeropage.allocate(listOf(counterVar), dt, null, stmt.position, errors)
@@ -753,7 +745,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(stmt: When) {
-        val endLabel = makeLabel("choice_end")
+        val endLabel = program.makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, AnonymousScope>>()
         val conditionDt = stmt.condition.inferType(program)
         if(!conditionDt.isKnown)
@@ -764,7 +756,7 @@ $repeatLabel    lda  $counterVar
             assignExpressionToRegister(stmt.condition, RegisterOrPair.AY)
 
         for(choice in stmt.choices) {
-            val choiceLabel = makeLabel("choice")
+            val choiceLabel = program.makeLabel("choice")
             if(choice.values==null) {
                 // the else choice
                 translate(choice.statements)
@@ -828,14 +820,14 @@ $repeatLabel    lda  $counterVar
         } else {
             if(stmt.elsepart.isEmpty()) {
                 val instruction = branchInstruction(stmt.condition, true)
-                val elseLabel = makeLabel("branch_else")
+                val elseLabel = program.makeLabel("branch_else")
                 out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
                 out(elseLabel)
             } else {
                 val instruction = branchInstruction(stmt.condition, true)
-                val elseLabel = makeLabel("branch_else")
-                val endLabel = makeLabel("branch_end")
+                val elseLabel = program.makeLabel("branch_else")
+                val endLabel = program.makeLabel("branch_end")
                 out("  $instruction  $elseLabel")
                 translate(stmt.truepart)
                 jmp(endLabel)

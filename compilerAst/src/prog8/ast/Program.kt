@@ -143,4 +143,19 @@ class Program(val name: String,
         }
     }
 
+    private var generatedLabelSequenceNumber: Int = 0
+
+    fun makeLabel(postfix: String): String {
+        generatedLabelSequenceNumber++
+        return "${generatedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
+    }
+
+    fun makeLabel(postfix: String, position: Position): Label {
+        val strLabel = makeLabel(postfix)
+        return Label(strLabel, position)
+    }
+
 }
+
+
+const val generatedLabelPrefix = "prog8_label_"
