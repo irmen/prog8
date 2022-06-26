@@ -102,6 +102,8 @@ cx16diskio {
                 goto byte_read_loop     ; macptr block read not supported, do fallback loop
             diskio.list_blocks += size
             bufferpointer += size
+            if msb(bufferpointer) == $c0
+                bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
             num_bytes -= size
             if c64.READST() & $40 {
                 diskio.f_close()       ; end of file, close it

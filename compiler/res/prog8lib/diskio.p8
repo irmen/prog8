@@ -226,6 +226,8 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
+        ;    NOTE: on systems with banked ram (such as Commander X16) this routine DOES NOT
+        ;          automatically load into subsequent banks if it reaches a bank boundary!
         if not iteration_in_progress or not num_bytes
             return 0
 

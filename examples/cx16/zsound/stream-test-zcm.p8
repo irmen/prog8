@@ -36,13 +36,9 @@ zsound_lib:
 
     ubyte load_ok = false
 
-    sub prebuffer() {
+    sub prebuffer()  {
         txt.print("prebuffering...")
-        repeat 4 {
-            void cx16diskio.f_read(digi_address, ram_bank_size)
-            txt.print_ub(cx16.getrambank())
-            txt.spc()
-        }
+        void cx16diskio.f_read(digi_address, ram_bank_size*4)
     }
 
     sub start() {
