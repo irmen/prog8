@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - add McCarthy evaluation to shortcircuit and/or expressions.  Both conditional expressions and assignments!
+    StatementReorder.after(assignment).
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.

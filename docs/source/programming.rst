@@ -777,7 +777,7 @@ Miscellaneous
 
 boolean(x)
     Returns a byte value representing the boolean (truthy) value of x, where x can be any numeric type.
-    This means it returns 0 (false) when x equals 0, and a value other than 0 otherwise.
+    This means it returns 0 (false) when x equals 0, and 1 otherwise.
 
 cmp(x,y)
     Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!

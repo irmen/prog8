@@ -255,17 +255,10 @@ private fun builtinBoolean(args: List<Expression>, position: Position, program: 
     if (args.size != 1)
         throw SyntaxError("boolean requires one argument", position)
     val constvalue = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return if(constvalue.number==0.0)
-        NumericLiteral(DataType.UBYTE, 0.0, args[0].position)
-    else if(constvalue.type==DataType.UBYTE)
-        constvalue
-    else if(constvalue.type==DataType.FLOAT)
+    return if(constvalue.type==DataType.FLOAT)
         NumericLiteral(DataType.UBYTE, constvalue.number.sign, args[0].position)
-    else {
-        val value = constvalue.number.toInt()
-        val byteValue = ((value ushr 8) or value) and 255
-        NumericLiteral(DataType.UBYTE, byteValue.toDouble(), args[0].position)
-    }
+    else
+        NumericLiteral.fromBoolean(constvalue.number!=0.0, args[0].position)
 }
 
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {

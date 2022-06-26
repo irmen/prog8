@@ -249,7 +249,7 @@ internal class StatementReorderer(val program: Program,
         }
         else if(expr.operator in LogicalOperators) {
             fun wrapped(expr: Expression): Expression {
-                return if(expr.inferType(program).isBytes)
+                return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
                     expr
                 else
                     FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
@@ -320,6 +320,17 @@ internal class StatementReorderer(val program: Program,
         // rewrite in-place assignment expressions a bit so that the assignment target usually is the leftmost operand
         val binExpr = assignment.value as? BinaryExpression
         if(binExpr!=null) {
+//            if (binExpr.operator == "and") {
+//                val leftBinExpr = binExpr.left as? BinaryExpression
+//                if (leftBinExpr?.operator == "and")
+//                    return mcCarthyAndAssignment(binExpr, assignment, parent)
+//            }
+//            if (binExpr.operator == "or") {
+//                val leftBinExpr = binExpr.left as? BinaryExpression
+//                if (leftBinExpr?.operator == "or")
+//                    return mcCarthyOrAssignment(binExpr, assignment, parent)
+//            }
+
             if(binExpr.left isSameAs assignment.target) {
                 // A = A <operator> 5, unchanged
                 return noModifications
@@ -424,6 +435,56 @@ internal class StatementReorderer(val program: Program,
             ?: throw FatalAstException("no target for $functionCallStatement")
         checkUnusedReturnValues(functionCallStatement, function, errors)
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
+    }
+
+    private fun mcCarthyAndAssignment(andExpr: BinaryExpression, assignment: Assignment, assignmentParent: Node): Iterable<IAstModification> {
+        val andTerms = findTerms(andExpr, "and")
+        if(andTerms.any { it.constValue(program)?.asBooleanValue == false }) {
+            errors.warn("expression is always false", andExpr.position)
+            return listOf(IAstModification.ReplaceNode(andExpr, NumericLiteral.fromBoolean(false, andExpr.position), assignment))
+        }
+
+        // TODO:
+        // repeat for all terms:
+        //   assign term to target
+        //   add if: if target==0: goto done
+        // done:.
+
+        return noModifications
+    }
+
+    private fun mcCarthyOrAssignment(orExpr: BinaryExpression, assignment: Assignment, assignmentParent: Node): Iterable<IAstModification> {
+        val andTerms = findTerms(orExpr, "or")
+        if(andTerms.any { it.constValue(program)?.asBooleanValue == true }) {
+            errors.warn("expression is always true", orExpr.position)
+            return listOf(IAstModification.ReplaceNode(orExpr, NumericLiteral.fromBoolean(true, orExpr.position), assignment))
+        }
+
+        // TODO:
+        // repeat for all terms:
+        //   assign term to target
+        //   add if: if target!=0: goto done
+        // done:.
+
+        return noModifications
+    }
+
+    private fun findTerms(expr: BinaryExpression, operator: String, terms: List<Expression> = emptyList()): List<Expression> {
+        if(expr.operator!=operator)
+            return listOf(expr) + terms
+        val leftBinExpr = expr.left as? BinaryExpression ?: return listOf(expr.left, expr.right) + terms
+        return findTerms(leftBinExpr, operator, listOf(expr.right)+terms)
+    }
+
+    private fun mcCarthyAndExpression(e1: Expression, e2: Expression, e3: Expression, origAndExpression: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        // TODO
+        println("AND EXPRESSION:")
+        println("   $e1")
+        println("   $e2")
+        println("   $e3")
+        println("   (orig) $origAndExpression")
+        val replacement = NumericLiteral.fromBoolean(false, origAndExpression.position)
+        return listOf(IAstModification.ReplaceNode(origAndExpression, replacement, parent))
     }
 }
 

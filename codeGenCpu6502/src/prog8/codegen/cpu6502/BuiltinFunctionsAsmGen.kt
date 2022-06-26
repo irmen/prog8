@@ -702,10 +702,14 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         when (val dt = fcall.args.single().inferType(program).getOr(DataType.UNDEFINED)) {
             in ByteDatatypes -> {
                 assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.A, dt==DataType.BYTE)
+                asmgen.out("  beq  + |  lda  #1")
+                asmgen.out("+")
             }
             in WordDatatypes -> {
                 assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY, dt==DataType.WORD)
                 asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
+                asmgen.out("  beq  + |  lda  #1")
+                asmgen.out("+")
             }
             DataType.FLOAT -> {
                 assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.FAC1, true)

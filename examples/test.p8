@@ -48,10 +48,24 @@ main  {
     sub start() {
         ubyte value
         uword wvalue
-        byte svalue = -99
 
-        wvalue = 3*abs(svalue) +abs(svalue)+abs(svalue)+abs(svalue)
-        txt.print_uw(wvalue)
+        ubyte ub1 = 11
+        ubyte ub2 = 22
+        ubyte ub3 = 33
+        ubyte ub4 = 44
+        ubyte ub5 = 55
+
+        ub4 = 42
+        txt.print("and with bytes: ")
+        ub5 = ub1 and ub2 and ub3 and ub4 and ub5       ; TODO FIX !! should be True (!=0)
+        txt.print_ub(ub5)
+        txt.nl()
+
+        ub4 = 42
+        txt.print("or with bytes: ")
+        ub5 = ub1 or ub2 or ub3 or ub4 or ub5       ; TODO FIX!! should be False (0)
+        txt.print_ub(ub5)
+        txt.nl()
 
         txt.print("short and with false (word): ")
         wvalue = funcw() and funcFalseWord() and funcw() and funcw()
@@ -72,7 +86,7 @@ main  {
         txt.nl()
 
         txt.print("and with false: ")
-        value = func1(25) and func2(25) and funcFalse() and func3(25) and func4(25)
+        value = func1(25) and func2(25) and funcFalse() and false and func3(25) and func4(25)
         txt.print_ub(value)
         txt.nl()
         txt.print("and with true:  ")
@@ -80,7 +94,7 @@ main  {
         txt.print_ub(value)
         txt.nl()
         txt.print("or with false:  ")
-        value = func1(25) or func2(25) or funcFalse() or func3(25) or func4(25)
+        value = func1(25) or func2(25) or funcFalse() or true or func3(25) or func4(25)
         txt.print_ub(value)
         txt.nl()
         txt.print("or with true:   ")

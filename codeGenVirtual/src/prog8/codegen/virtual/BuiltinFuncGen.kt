@@ -368,12 +368,20 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             }
             VmDataType.WORD -> {
                 val msbReg = codeGen.vmRegisters.nextFree()
+                val skipLabel = codeGen.createLabelName()
                 code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
                 code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = msbReg, reg2=resultRegister)
                 code += VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg)
+                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=resultRegister, labelSymbol = skipLabel)
+                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value = 1)
+                code += VmCodeLabel(skipLabel)
             }
             else -> {
+                val skipLabel = codeGen.createLabelName()
                 code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
+                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=resultRegister, labelSymbol = skipLabel)
+                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value = 1)
+                code += VmCodeLabel(skipLabel)
             }
         }
         return code
