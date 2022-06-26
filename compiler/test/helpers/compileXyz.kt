@@ -19,13 +19,13 @@ internal fun compileFile(
     optimize: Boolean,
     fileDir: Path,
     fileName: String,
-    outputDir: Path = prog8tests.helpers.Helpers.outputDir,
+    outputDir: Path = prog8tests.helpers.outputDir,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true
 ) : CompilationResult? {
     val filepath = fileDir.resolve(fileName)
-    Helpers.assumeReadableFile(filepath)
+    assumeReadableFile(filepath)
     val args = CompilerArguments(
         filepath,
         optimize,
@@ -56,7 +56,7 @@ internal fun compileText(
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true
 ) : CompilationResult? {
-    val filePath = Helpers.outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
+    val filePath = outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name, errors=errors, writeAssembly=writeAssembly, optFloatExpr = optFloatExpr)
@@ -71,7 +71,7 @@ internal fun generateAssembly(
         floats = true,
         noSysInit = true,
         compTarget = C64Target(),
-        loadAddress = 0u, outputDir = Helpers.outputDir)
+        loadAddress = 0u, outputDir = outputDir)
     coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
     val st = SymbolTableMaker().makeFrom(program)
     val errors = ErrorReporterForTests()

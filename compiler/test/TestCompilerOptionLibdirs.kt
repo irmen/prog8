@@ -6,7 +6,10 @@ import prog8.code.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8tests.helpers.Helpers
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.outputDir
+import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.createTempFile
@@ -23,7 +26,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
     lateinit var tempFileInWorkingDir: Path
 
     beforeSpec {
-        tempFileInWorkingDir = createTempFile(directory = Helpers.workingDir, prefix = "tmp_", suffix = ".p8")
+        tempFileInWorkingDir = createTempFile(directory = workingDir, prefix = "tmp_", suffix = ".p8")
             .also { it.writeText("""
                 main {
                     sub start() {
@@ -49,39 +52,39 @@ class TestCompilerOptionSourcedirs: FunSpec({
             experimentalCodegen = false,
             compilationTarget = Cx16Target.NAME,
             sourceDirs,
-            Helpers.outputDir
+            outputDir
         )
         return compileProgram(args)
     }
 
     test("testAbsoluteFilePathInWorkingDir") {
-        val filepath = Helpers.assumeReadableFile(tempFileInWorkingDir.absolute())
+        val filepath = assumeReadableFile(tempFileInWorkingDir.absolute())
         compileFile(filepath, listOf()) shouldNotBe null
     }
 
     test("testFilePathInWorkingDirRelativeToWorkingDir") {
-        val filepath = Helpers.assumeReadableFile(Helpers.workingDir.relativize(tempFileInWorkingDir.absolute()))
+        val filepath = assumeReadableFile(workingDir.relativize(tempFileInWorkingDir.absolute()))
         compileFile(filepath, listOf()) shouldNotBe null
     }
 
     test("testFilePathInWorkingDirRelativeTo1stInSourcedirs") {
-        val filepath = Helpers.assumeReadableFile(tempFileInWorkingDir)
-        compileFile(filepath.fileName, listOf(Helpers.workingDir.toString())) shouldNotBe null
+        val filepath = assumeReadableFile(tempFileInWorkingDir)
+        compileFile(filepath.fileName, listOf(workingDir.toString())) shouldNotBe null
     }
 
     test("testAbsoluteFilePathOutsideWorkingDir") {
-        val filepath = Helpers.assumeReadableFile(Helpers.fixturesDir, "ast_simple_main.p8")
+        val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
         compileFile(filepath.absolute(), listOf()) shouldNotBe null
     }
 
     test("testFilePathOutsideWorkingDirRelativeToWorkingDir") {
-        val filepath = Helpers.workingDir.relativize(Helpers.assumeReadableFile(Helpers.fixturesDir, "ast_simple_main.p8").absolute())
+        val filepath = workingDir.relativize(assumeReadableFile(fixturesDir, "ast_simple_main.p8").absolute())
         compileFile(filepath, listOf()) shouldNotBe null
     }
 
     test("testFilePathOutsideWorkingDirRelativeTo1stInSourcedirs") {
-        val filepath = Helpers.assumeReadableFile(Helpers.fixturesDir, "ast_simple_main.p8")
-        val sourcedirs = listOf("${Helpers.fixturesDir}")
+        val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
+        val sourcedirs = listOf("${fixturesDir}")
         compileFile(filepath.fileName, sourcedirs) shouldNotBe null
     }
 

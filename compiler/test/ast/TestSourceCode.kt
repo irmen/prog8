@@ -6,7 +6,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.core.SourceCode
 import prog8.code.core.SourceCode.Companion.libraryFilePrefix
-import prog8tests.helpers.Helpers
+import prog8tests.helpers.assumeNotExists
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.resourcesDir
 import kotlin.io.path.Path
 
 
@@ -29,26 +32,26 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromPathWithNonExistingPath() {
         val filename = "i_do_not_exist.p8"
-        val path = Helpers.assumeNotExists(Helpers.fixturesDir, filename)
+        val path = assumeNotExists(fixturesDir, filename)
         shouldThrow<NoSuchFileException> { SourceCode.File(path) }
     }
 
     @Test
     fun testFromPathWithMissingExtension_p8() {
-        val pathWithoutExt = Helpers.assumeNotExists(Helpers.fixturesDir,"simple_main")
-        Helpers.assumeReadableFile(Helpers.fixturesDir,"ast_simple_main.p8")
+        val pathWithoutExt = assumeNotExists(fixturesDir,"simple_main")
+        assumeReadableFile(fixturesDir,"ast_simple_main.p8")
         shouldThrow<NoSuchFileException> { SourceCode.File(pathWithoutExt) }
     }
 
     @Test
     fun testFromPathWithDirectory() {
-        shouldThrow<FileSystemException> { SourceCode.File(Helpers.fixturesDir) }
+        shouldThrow<FileSystemException> { SourceCode.File(fixturesDir) }
     }
 
     @Test
     fun testFromPathWithExistingPath() {
         val filename = "ast_simple_main.p8"
-        val path = Helpers.assumeReadableFile(Helpers.fixturesDir, filename)
+        val path = assumeReadableFile(fixturesDir, filename)
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
@@ -61,7 +64,7 @@ class TestSourceCode: AnnotationSpec() {
     fun testFromPathWithExistingNonNormalizedPath() {
         val filename = "ast_simple_main.p8"
         val path = Path(".", "test", "..", "test", "fixtures", filename)
-        val srcFile = Helpers.assumeReadableFile(path).toFile()
+        val srcFile = assumeReadableFile(path).toFile()
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
@@ -71,7 +74,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithExistingP8File_withoutLeadingSlash() {
         val pathString = "prog8lib/math.p8"
-        val srcFile = Helpers.assumeReadableFile(Helpers.resourcesDir, pathString).toFile()
+        val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/$pathString"
@@ -83,7 +86,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithExistingP8File_withLeadingSlash() {
         val pathString = "/prog8lib/math.p8"
-        val srcFile = Helpers.assumeReadableFile(Helpers.resourcesDir, pathString.substring(1)).toFile()
+        val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix$pathString"
@@ -93,7 +96,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithExistingAsmFile_withoutLeadingSlash() {
         val pathString = "prog8lib/math.asm"
-        val srcFile = Helpers.assumeReadableFile(Helpers.resourcesDir, pathString).toFile()
+        val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/$pathString"
@@ -104,7 +107,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithExistingAsmFile_withLeadingSlash() {
         val pathString = "/prog8lib/math.asm"
-        val srcFile = Helpers.assumeReadableFile(Helpers.resourcesDir, pathString.substring(1)).toFile()
+        val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix$pathString"
@@ -114,7 +117,7 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithNonNormalizedPath() {
         val pathString = "/prog8lib/../prog8lib/math.p8"
-        val srcFile = Helpers.assumeReadableFile(Helpers.resourcesDir, pathString.substring(1)).toFile()
+        val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$libraryFilePrefix/prog8lib/math.p8"
@@ -126,14 +129,14 @@ class TestSourceCode: AnnotationSpec() {
     @Test
     fun testFromResourcesWithNonExistingFile_withLeadingSlash() {
         val pathString = "/prog8lib/i_do_not_exist"
-        Helpers.assumeNotExists(Helpers.resourcesDir, pathString.substring(1))
+        assumeNotExists(resourcesDir, pathString.substring(1))
 
         shouldThrow<NoSuchFileException> { SourceCode.Resource(pathString) }
     }
     @Test
     fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
         val pathString = "prog8lib/i_do_not_exist"
-        Helpers.assumeNotExists(Helpers.resourcesDir, pathString)
+        assumeNotExists(resourcesDir, pathString)
 
         shouldThrow<NoSuchFileException> { SourceCode.Resource(pathString) }
     }

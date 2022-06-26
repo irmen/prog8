@@ -10,7 +10,7 @@ import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.code.target.Cx16Target
-import prog8tests.helpers.Helpers
+import prog8tests.helpers.*
 import prog8tests.helpers.compileFile
 import kotlin.io.path.name
 
@@ -25,11 +25,11 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
     context("Import") {
 
         test("testImportFromSameFolder") {
-            val filepath = Helpers.assumeReadableFile(Helpers.fixturesDir, "importFromSameFolder.p8")
-            Helpers.assumeReadableFile(Helpers.fixturesDir, "foo_bar.p8")
+            val filepath = assumeReadableFile(fixturesDir, "importFromSameFolder.p8")
+            assumeReadableFile(fixturesDir, "foo_bar.p8")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, Helpers.fixturesDir, filepath.name)!!
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
             val program = result.program
             val startSub = program.entrypoint
@@ -47,11 +47,11 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
 
     context("AsmInclude") {
         test("testAsmIncludeFromSameFolder") {
-            val filepath = Helpers.assumeReadableFile(Helpers.fixturesDir, "asmIncludeFromSameFolder.p8")
-            Helpers.assumeReadableFile(Helpers.fixturesDir, "foo_bar.asm")
+            val filepath = assumeReadableFile(fixturesDir, "asmIncludeFromSameFolder.p8")
+            assumeReadableFile(fixturesDir, "foo_bar.asm")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, Helpers.fixturesDir, filepath.name)!!
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
             val program = result.program
             val startSub = program.entrypoint
@@ -72,17 +72,17 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
 
     context("Asmbinary") {
         test("testAsmbinaryDirectiveWithNonExistingFile") {
-            val p8Path = Helpers.assumeReadableFile(Helpers.fixturesDir, "asmBinaryNonExisting.p8")
-            Helpers.assumeNotExists(Helpers.fixturesDir, "i_do_not_exist.bin")
+            val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonExisting.p8")
+            assumeNotExists(fixturesDir, "i_do_not_exist.bin")
 
-            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, Helpers.outputDir) shouldBe null
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldBe null
         }
 
         test("testAsmbinaryDirectiveWithNonReadableFile") {
-            val p8Path = Helpers.assumeReadableFile(Helpers.fixturesDir, "asmBinaryNonReadable.p8")
-            Helpers.assumeDirectory(Helpers.fixturesDir, "subFolder")
+            val p8Path = assumeReadableFile(fixturesDir, "asmBinaryNonReadable.p8")
+            assumeDirectory(fixturesDir, "subFolder")
 
-            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, Helpers.outputDir) shouldBe null
+            compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldBe null
         }
 
         val tests = listOf(
@@ -93,18 +93,18 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
         tests.forEach {
             val (where, p8Str, _) = it
             test("%asmbinary from ${where}folder") {
-                val p8Path = Helpers.assumeReadableFile(Helpers.fixturesDir, p8Str)
-                // val binPath = Helpers.assumeReadableFile(Helpers.fixturesDir, binStr)
+                val p8Path = assumeReadableFile(fixturesDir, p8Str)
+                // val binPath = assumeReadableFile(fixturesDir, binStr)
 
                 // the bug we're testing for (#54) was hidden if outputDir == workingDir
                 withClue("sanity check: workingDir and outputDir should not be the same folder") {
-                    Helpers.outputDir.normalize().toAbsolutePath() shouldNotBe Helpers.workingDir.normalize().toAbsolutePath()
+                    outputDir.normalize().toAbsolutePath() shouldNotBe workingDir.normalize().toAbsolutePath()
                 }
 
                 withClue("argument to assembler directive .binary " +
                         "should be relative to the generated .asm file (in output dir), " +
                         "NOT relative to .p8 neither current working dir") {
-                    compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, Helpers.outputDir) shouldNotBe null
+                    compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldNotBe null
                 }
             }
         }

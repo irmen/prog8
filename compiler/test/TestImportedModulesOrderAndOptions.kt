@@ -10,8 +10,8 @@ import prog8.code.target.C64Target
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseImports
 import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.Helpers
 import prog8tests.helpers.compileText
+import prog8tests.helpers.outputDir
 
 
 class TestImportedModulesOrderAndOptions: FunSpec({
@@ -85,7 +85,7 @@ main {
 }
 """
         val filenameBase = "on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16)
-        val filepath = Helpers.outputDir.resolve("$filenameBase.p8")
+        val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
         val (program, options, importedfiles) = parseImports(filepath, errors, C64Target(), emptyList())
 

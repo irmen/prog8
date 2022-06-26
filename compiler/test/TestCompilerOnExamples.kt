@@ -8,8 +8,10 @@ import prog8.code.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8tests.helpers.Combinations
-import prog8tests.helpers.Helpers
+import prog8tests.helpers.assumeDirectory
+import prog8tests.helpers.cartesianProduct
+import prog8tests.helpers.outputDir
+import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists
@@ -21,7 +23,7 @@ import kotlin.io.path.exists
  * from source file loading all the way through to running 64tass.
  */
 
-private val examplesDir = Helpers.assumeDirectory(Helpers.workingDir, "../examples")
+private val examplesDir = assumeDirectory(workingDir, "../examples")
 
 private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget): CompilationResult? {
     val args = CompilerArguments(
@@ -35,7 +37,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         asmListfile = false,
         experimentalCodegen = false,
         compilationTarget = target.name,
-        outputDir = Helpers.outputDir
+        outputDir = outputDir
     )
     return compileProgram(args)
 }
@@ -43,12 +45,12 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
 private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompilationTarget): Pair<String, Path> {
     val searchIn = mutableListOf(examplesDir)
     if (target is Cx16Target) {
-        searchIn.add(0, Helpers.assumeDirectory(examplesDir, "cx16"))
+        searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
     }
     val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }
         .map { it.normalize().absolute() }
-        .map { Helpers.workingDir.relativize(it) }
+        .map { workingDir.relativize(it) }
         .first { it.exists() }
     val displayName = "${examplesDir.relativize(filepath.absolute())}: ${target.name}, optimize=$optimize"
     return Pair(displayName, filepath)
@@ -57,7 +59,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
 
 class TestCompilerOnExamplesC64: FunSpec({
 
-    val onlyC64 = Combinations.cartesianProduct(
+    val onlyC64 = cartesianProduct(
         listOf(
             "balloonflight",
             "bdmusic",
@@ -84,7 +86,7 @@ class TestCompilerOnExamplesC64: FunSpec({
 
 class TestCompilerOnExamplesCx16: FunSpec({
 
-    val onlyCx16 = Combinations.cartesianProduct(
+    val onlyCx16 = cartesianProduct(
         listOf(
             "vtui/testvtui",
             "amiga",
@@ -116,7 +118,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
 
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
-    val bothCx16AndC64 = Combinations.cartesianProduct(
+    val bothCx16AndC64 = cartesianProduct(
         listOf(
             "animals",
             "balls",

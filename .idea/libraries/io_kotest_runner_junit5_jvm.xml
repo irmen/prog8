@@ -1,38 +1,38 @@
 <component name="libraryTable">
   <library name="io.kotest.runner.junit5.jvm" type="repository">
-    <properties maven-id="io.kotest:kotest-runner-junit5-jvm:5.2.3" />
+    <properties maven-id="io.kotest:kotest-runner-junit5-jvm:5.3.2" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-runner-junit5-jvm/5.2.3/kotest-runner-junit5-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-api-jvm/5.2.3/kotest-framework-api-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-shared-jvm/5.2.3/kotest-assertions-shared-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-runner-junit5-jvm/5.3.2/kotest-runner-junit5-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-api-jvm/5.3.2/kotest-framework-api-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-shared-jvm/5.3.2/kotest-assertions-shared-jvm-5.3.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/io/github/java-diff-utils/java-diff-utils/4.11/java-diff-utils-4.11.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-test-jvm/1.6.1/kotlinx-coroutines-test-jvm-1.6.1.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-common-jvm/5.2.3/kotest-common-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-engine-jvm/5.2.3/kotest-framework-engine-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/github/classgraph/classgraph/4.8.138/classgraph-4.8.138.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-common-jvm/5.3.2/kotest-common-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-engine-jvm/5.3.2/kotest-framework-engine-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/github/classgraph/classgraph/4.8.146/classgraph-4.8.146.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/ajalt/mordant/1.2.1/mordant-1.2.1.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/github/ajalt/colormath/1.2.0/colormath-1.2.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-debug/1.6.1/kotlinx-coroutines-debug-1.6.1.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/net/java/dev/jna/jna/5.9.0/jna-5.9.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/net/java/dev/jna/jna-platform/5.9.0/jna-platform-5.9.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-discovery-jvm/5.2.3/kotest-framework-discovery-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-core-jvm/5.2.3/kotest-assertions-core-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-discovery-jvm/5.3.2/kotest-framework-discovery-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-core-jvm/5.3.2/kotest-assertions-core-jvm-5.3.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-jdk8/1.6.1/kotlinx-coroutines-jdk8-1.6.1.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-api-jvm/5.2.3/kotest-assertions-api-jvm-5.2.3.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-extensions-jvm/5.2.3/kotest-extensions-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-assertions-api-jvm/5.3.2/kotest-assertions-api-jvm-5.3.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-extensions-jvm/5.3.2/kotest-extensions-jvm-5.3.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk/1.12.2/mockk-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-dsl-jvm/1.12.2/mockk-dsl-jvm-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-dsl/1.12.2/mockk-dsl-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-common/1.12.2/mockk-common-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-jvm/1.12.2/mockk-agent-jvm-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-api/1.12.2/mockk-agent-api-1.12.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-common/1.12.2/mockk-agent-common-1.12.2.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk/1.12.3/mockk-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-common/1.12.3/mockk-common-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-dsl/1.12.3/mockk-dsl-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-dsl-jvm/1.12.3/mockk-dsl-jvm-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-jvm/1.12.3/mockk-agent-jvm-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-api/1.12.3/mockk-agent-api-1.12.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/mockk/mockk-agent-common/1.12.3/mockk-agent-common-1.12.3.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/objenesis/objenesis/3.1/objenesis-3.1.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/net/bytebuddy/byte-buddy/1.12.5/byte-buddy-1.12.5.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/net/bytebuddy/byte-buddy-agent/1.12.5/byte-buddy-agent-1.12.5.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-concurrency-jvm/5.2.3/kotest-framework-concurrency-jvm-5.2.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/net/bytebuddy/byte-buddy/1.12.6/byte-buddy-1.12.6.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/net/bytebuddy/byte-buddy-agent/1.12.6/byte-buddy-agent-1.12.6.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/io/kotest/kotest-framework-concurrency-jvm/5.3.2/kotest-framework-concurrency-jvm-5.3.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.6.1/kotlinx-coroutines-core-jvm-1.6.1.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.0/kotlin-stdlib-common-1.6.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/junit/platform/junit-platform-engine/1.7.2/junit-platform-engine-1.7.2.jar!/" />
@@ -41,11 +41,11 @@
       <root url="jar://$MAVEN_REPOSITORY$/org/junit/platform/junit-platform-suite-api/1.7.2/junit-platform-suite-api-1.7.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/junit/platform/junit-platform-launcher/1.7.2/junit-platform-launcher-1.7.2.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/junit/jupiter/junit-jupiter-api/5.7.2/junit-jupiter-api-5.7.2.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.6.10/kotlin-stdlib-jdk8-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.6.10/kotlin-stdlib-1.6.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.6.21/kotlin-stdlib-jdk8-1.6.21.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.6.21/kotlin-stdlib-1.6.21.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.6.10/kotlin-stdlib-jdk7-1.6.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.6.10/kotlin-reflect-1.6.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.6.21/kotlin-stdlib-jdk7-1.6.21.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-reflect/1.6.21/kotlin-reflect-1.6.21.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

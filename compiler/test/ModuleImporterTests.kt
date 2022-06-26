@@ -39,9 +39,9 @@ class TestModuleImporter: FunSpec({
 
         context("WithInvalidPath") {
             test("testNonexisting") {
-                val dirRel = Helpers.assumeDirectory(".", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                val dirRel = assumeDirectory(".", workingDir.relativize(fixturesDir))
                 val importer = makeImporter(null, dirRel.invariantSeparatorsPathString)
-                val srcPathRel = Helpers.assumeNotExists(dirRel, "i_do_not_exist")
+                val srcPathRel = assumeNotExists(dirRel, "i_do_not_exist")
                 val srcPathAbs = srcPathRel.absolute()
                 val error1 = importer.importModule(srcPathRel).getErrorOrElse { fail("should have import error") }
                 withClue(".file should be normalized") {
@@ -62,7 +62,7 @@ class TestModuleImporter: FunSpec({
             }
 
             test("testDirectory") {
-                val srcPathRel = Helpers.assumeDirectory(Helpers.workingDir.relativize(Helpers.fixturesDir))
+                val srcPathRel = assumeDirectory(workingDir.relativize(fixturesDir))
                 val srcPathAbs = srcPathRel.absolute()
                 val searchIn = Path(".", "$srcPathRel").invariantSeparatorsPathString
                 val importer = makeImporter(null, searchIn)
@@ -95,11 +95,11 @@ class TestModuleImporter: FunSpec({
 
             test("testAbsolute") {
                 val searchIn = listOf(
-                    Path(".").div(Helpers.workingDir.relativize(Helpers.fixturesDir)), // we do want a dot "." in front
+                    Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
-                val path = Helpers.assumeReadableFile(searchIn[0], fileName)
+                val path = assumeReadableFile(searchIn[0], fileName)
 
                 val module = importer.importModule(path.absolute()).getOrElse { throw it }
                 program.modules.size shouldBe 2
@@ -109,11 +109,11 @@ class TestModuleImporter: FunSpec({
 
             test("testRelativeToWorkingDir") {
                 val searchIn = listOf(
-                    Path(".").div(Helpers.workingDir.relativize(Helpers.fixturesDir)), // we do want a dot "." in front
+                    Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
-                val path = Helpers.assumeReadableFile(searchIn[0], fileName)
+                val path = assumeReadableFile(searchIn[0], fileName)
                 withClue("sanity check: path should NOT be absolute") {
                     path.isAbsolute shouldBe false
                 }
@@ -126,12 +126,12 @@ class TestModuleImporter: FunSpec({
 
             test("testRelativeTo1stDirInSearchList") {
                 val searchIn = Path(".")
-                    .div(Helpers.workingDir.relativize(Helpers.fixturesDir))
+                    .div(workingDir.relativize(fixturesDir))
                     .invariantSeparatorsPathString
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
                 val path = Path(".", fileName)
-                Helpers.assumeReadableFile(searchIn, path)
+                assumeReadableFile(searchIn, path)
 
                 val module = importer.importModule(path).getOrElse { throw it }
                 program.modules.size shouldBe 2
@@ -141,9 +141,9 @@ class TestModuleImporter: FunSpec({
 
             context("WithBadFile") {
                 test("testWithSyntaxError") {
-                    val searchIn = Helpers.assumeDirectory("./", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val srcPath = Helpers.assumeReadableFile(Helpers.fixturesDir, "ast_file_with_syntax_error.p8")
+                    val srcPath = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
                     val act = { importer.importModule(srcPath) }
 
@@ -160,10 +160,10 @@ class TestModuleImporter: FunSpec({
                 }
 
                 fun doTestImportingFileWithSyntaxError(repetitions: Int) {
-                    val searchIn = Helpers.assumeDirectory("./", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val importing = Helpers.assumeReadableFile(Helpers.fixturesDir, "import_file_with_syntax_error.p8")
-                    val imported = Helpers.assumeReadableFile(Helpers.fixturesDir, "file_with_syntax_error.p8")
+                    val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
+                    val imported = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
                     val act = { importer.importModule(importing) }
 
@@ -194,11 +194,11 @@ class TestModuleImporter: FunSpec({
     context("ImportLibraryModule") {
         context("WithInvalidName") {
             test("testWithNonExistingName") {
-                val searchIn = Helpers.assumeDirectory("./", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                 val errors = ErrorReporterForTests(false)
                 val importer = makeImporter(errors, searchIn.invariantSeparatorsPathString)
-                val filenameNoExt = Helpers.assumeNotExists(Helpers.fixturesDir, "i_do_not_exist").name
-                val filenameWithExt = Helpers.assumeNotExists(Helpers.fixturesDir, "i_do_not_exist.p8").name
+                val filenameNoExt = assumeNotExists(fixturesDir, "i_do_not_exist").name
+                val filenameWithExt = assumeNotExists(fixturesDir, "i_do_not_exist.p8").name
 
                 repeat(2) { n ->
                     val result = importer.importLibraryModule(filenameNoExt)
@@ -221,9 +221,9 @@ class TestModuleImporter: FunSpec({
         context("WithValidName") {
             context("WithBadFile") {
                 test("testWithSyntaxError") {
-                    val searchIn = Helpers.assumeDirectory("./", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val srcPath = Helpers.assumeReadableFile(Helpers.fixturesDir, "ast_file_with_syntax_error.p8")
+                    val srcPath = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
                     repeat(2) { n -> withClue(count[n] + " call") {
                             shouldThrow<ParseError>()
@@ -241,10 +241,10 @@ class TestModuleImporter: FunSpec({
 
 
                 fun doTestImportingFileWithSyntaxError(repetitions: Int) {
-                    val searchIn = Helpers.assumeDirectory("./", Helpers.workingDir.relativize(Helpers.fixturesDir))
+                    val searchIn = assumeDirectory("./", workingDir.relativize(fixturesDir))
                     val importer = makeImporter(null, searchIn.invariantSeparatorsPathString)
-                    val importing = Helpers.assumeReadableFile(Helpers.fixturesDir, "import_file_with_syntax_error.p8")
-                    val imported = Helpers.assumeReadableFile(Helpers.fixturesDir, "file_with_syntax_error.p8")
+                    val importing = assumeReadableFile(fixturesDir, "import_file_with_syntax_error.p8")
+                    val imported = assumeReadableFile(fixturesDir, "file_with_syntax_error.p8")
 
                     val act = { importer.importLibraryModule(importing.nameWithoutExtension) }
 
