@@ -54,7 +54,6 @@ zsound_lib:
 
         pcm_init()
         pcm_trigger_digi(digi_bank, digi_address)
-        irq_zsound_rambank_cache = digi_bank
         cx16.set_irq(&zsm_playroutine, true)
 
         txt.print("\nstreaming from file, playback in irq!\n")
@@ -74,12 +73,7 @@ zsound_lib:
         pcm_stop()  ;unreached
     }
 
-    ubyte irq_zsound_rambank_cache
     sub zsm_playroutine() {
-        ubyte old_rambank = cx16.getrambank()
-        cx16.rambank(irq_zsound_rambank_cache)
         pcm_play()
-        irq_zsound_rambank_cache = cx16.getrambank()
-        cx16.rambank(old_rambank)
     }
 }
