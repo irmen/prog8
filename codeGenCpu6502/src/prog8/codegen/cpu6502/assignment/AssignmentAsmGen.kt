@@ -323,6 +323,7 @@ internal class AssignmentAsmGen(private val program: Program,
             return false
 
         // optimized code for logical expressions
+        // note: due to boolean() wrapping of operands, we can use simple bitwise and/or/xor
         // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this...
         if(expr.operator=="and") {
             val iDt = expr.left.inferType(program)
@@ -2150,10 +2151,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            "  stz  cx16.${
-                                target.register.toString().lowercase()
-                            } |  stz  cx16.${target.register.toString().lowercase()}+1")
+                        asmgen.out("  stz  cx16.${target.register.toString().lowercase()} |  stz  cx16.${target.register.toString().lowercase()}+1")
                     }
                     else -> throw AssemblyError("weird register")
                 }

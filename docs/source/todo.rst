@@ -3,7 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- can we optimize redundant calls to boolean() away?  imageviewer.prg got larger because of them
+- vm: fix and/or/xor to be bitwise again (need to remove optimization from VariousCleanups too?)
+- vm: fix not to be bitwise not instead of boolean not
+- 6502: fix not codegen to be bitwise not instead of boolean not (maybe need to change boolean() wrapping / variouscleanups)
+  all these testable with compiler/test/arithmetic/logical.p8
+
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.

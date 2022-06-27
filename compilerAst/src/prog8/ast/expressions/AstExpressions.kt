@@ -124,6 +124,10 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         return when(operator) {
             "+" -> inferred
             "~", "not" -> {
+                // note: "not" should ideally result in UBYTE (boolean) but the way the type system
+                // currently works means the result of an operator is the same type as the operand(s).
+                // So not(byte)->byte, not(word)->word. This is taken care of via a cast to ubyte later.
+                // If we give not a BYTE type here, the asmassignment validation will sometimes crash.
                 when(inferred.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
                     in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)

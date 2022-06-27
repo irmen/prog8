@@ -12,6 +12,7 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {
@@ -232,6 +233,39 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
+    }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        if(functionCallExpr.target.nameInSource==listOf("boolean")) {
+            // boolean(expr) can be removed if expr is a logical expression or comparison expression itself, or boolean()
+            val binexpr = functionCallExpr.args.single() as? BinaryExpression
+            if(binexpr!=null && binexpr.operator in LogicalOperators + ComparisonOperators) {
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, binexpr, parent))
+            }
+            val prefixExpression = functionCallExpr.args.single() as? PrefixExpression
+            if(prefixExpression!=null && prefixExpression.operator in LogicalOperators) {
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, prefixExpression, parent))
+            }
+            val fcall = functionCallExpr.args.single() as? IFunctionCall
+            if(fcall!=null && fcall.target.nameInSource==listOf("boolean")) {
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, fcall as Node, parent))
+            }
+
+            if(options.compTarget.name == VMTarget.NAME) {
+                // if target is Virtual, remove ALL boolean() conversions of operands to logical expressions
+                // we can do this because the logical and/or/xor/not in the virtual machine behave correctly
+                // with operand values other than 0 and 1 (0 = false, everything else=true, result is always 0 or 1)
+                val logicalExpr = functionCallExpr.parent as? BinaryExpression
+                if(logicalExpr!=null && logicalExpr.operator in LogicalOperators + ComparisonOperators) {
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args.single(), parent))
+                }
+                val prefixExpr = functionCallExpr.parent as? PrefixExpression
+                if(prefixExpr!=null && prefixExpr.operator in LogicalOperators) {
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args.single(), parent))
+                }
+            }
+        }
+        return noModifications
     }
 }
 

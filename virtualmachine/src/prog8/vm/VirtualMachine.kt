@@ -39,7 +39,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 numIns++
 
                 if(throttle && stepCount and 32767 == 0) {
-                    Thread.sleep(0, 10)     // avoid 100% cpu core usage
+                    Thread.sleep(1)  // avoid 100% cpu core usage
                 }
 
                 if(stepCount and 0xffffff == 0) {
@@ -1132,8 +1132,14 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
+    private fun booleanValue(number: UInt): UInt = if(number == 0u) 0u else 1u
+    private fun booleanValue(number: UByte): UByte = if(number == 0u.toUByte()) 0u else 1u
+    private fun booleanValue(number: UShort): UShort = if(number == 0u.toUShort()) 0u else 1u
+
     private fun InsAND(i: Instruction) {
-        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val (leftV: UInt, rightV: UInt) = getLogicalOperandsU(i)
+        val left = booleanValue(leftV)
+        val right = booleanValue(rightV)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left and right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left and right).toUShort())
@@ -1145,15 +1151,25 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsANDM(i: Instruction) {
         val address = i.value!!
         when(i.type!!) {
-            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address) and registers.getUB(i.reg1!!)))
-            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address) and registers.getUW(i.reg1!!)))
+            VmDataType.BYTE -> {
+                val left = booleanValue(memory.getUB(address))
+                val right = booleanValue(registers.getUB(i.reg1!!))
+                memory.setUB(address, left and right)
+            }
+            VmDataType.WORD -> {
+                val left = booleanValue(memory.getUW(address))
+                val right = booleanValue(registers.getUW(i.reg1!!))
+                memory.setUW(address, left and right)
+            }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
     }
 
     private fun InsOR(i: Instruction) {
-        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val (leftV: UInt, rightV: UInt) = getLogicalOperandsU(i)
+        val left = booleanValue(leftV)
+        val right = booleanValue(rightV)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left or right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left or right).toUShort())
@@ -1165,15 +1181,25 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsORM(i: Instruction) {
         val address = i.value!!
         when(i.type!!) {
-            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address) or registers.getUB(i.reg1!!)))
-            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address) or registers.getUW(i.reg1!!)))
+            VmDataType.BYTE -> {
+                val left = booleanValue(memory.getUB(address))
+                val right = booleanValue(registers.getUB(i.reg1!!))
+                memory.setUB(address, left or right)
+            }
+            VmDataType.WORD -> {
+                val left = booleanValue(memory.getUW(address))
+                val right = booleanValue(registers.getUW(i.reg1!!))
+                memory.setUW(address, left or right)
+            }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
     }
 
     private fun InsXOR(i: Instruction) {
-        val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val (leftV: UInt, rightV: UInt) = getLogicalOperandsU(i)
+        val left = booleanValue(leftV)
+        val right = booleanValue(rightV)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left xor right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left xor right).toUShort())
@@ -1185,8 +1211,16 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsXORM(i: Instruction) {
         val address = i.value!!
         when(i.type!!) {
-            VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address) xor registers.getUB(i.reg1!!)))
-            VmDataType.WORD -> memory.setUW(address, (memory.getUW(address) xor registers.getUW(i.reg1!!)))
+            VmDataType.BYTE -> {
+                val left = booleanValue(memory.getUB(address))
+                val right = booleanValue(registers.getUB(i.reg1!!))
+                memory.setUB(address, left xor right)
+            }
+            VmDataType.WORD -> {
+                val left = booleanValue(memory.getUW(address))
+                val right = booleanValue(registers.getUW(i.reg1!!))
+                memory.setUW(address, left xor right)
+            }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++

@@ -285,14 +285,14 @@ class TestOptimization: FunSpec({
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
 
-        // bb = (( not bb as uword)  or  not ww)
+        // bb = (not bb or (not ww as ubyte) )
         val bbAssign = result.program.entrypoint.statements.last() as Assignment
         val expr = bbAssign.value as BinaryExpression
         expr.operator shouldBe "or"
-        expr.left shouldBe instanceOf<TypecastExpression>() // casted to word
-        expr.right shouldBe instanceOf<PrefixExpression>()
-        expr.left.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        expr.right.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        expr.left shouldBe instanceOf<PrefixExpression>()
+        expr.right shouldBe instanceOf<TypecastExpression>()    // not of word typecast into ubyte
+        expr.left.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        expr.right.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
         expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(),
@@ -301,10 +301,11 @@ class TestOptimization: FunSpec({
             compTarget = C64Target(),
             loadAddress = 0u, outputDir= outputDir)
         result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
+        printProgram(result.program)
 
         // assignment is now split into:
         //     bb =  not bb
-        //     bb = (bb or  not ww)
+        //     bb = (bb or  (not ww as ubyte)
 
         val assigns = result.program.entrypoint.statements.filterIsInstance<Assignment>()
         val bbAssigns = assigns.filter { it.value !is NumericLiteral }
@@ -320,9 +321,10 @@ class TestOptimization: FunSpec({
         val bbAssigns1expr = bbAssigns[1].value as BinaryExpression
         bbAssigns1expr.operator shouldBe "or"
         (bbAssigns1expr.left as? IdentifierReference)?.nameInSource shouldBe listOf("bb")
-        bbAssigns1expr.right shouldBe instanceOf<PrefixExpression>()
-        (bbAssigns1expr.right as PrefixExpression).operator shouldBe "not"
-        ((bbAssigns1expr.right as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
+        bbAssigns1expr.right shouldBe instanceOf<TypecastExpression>()
+        val castedValue = (bbAssigns1expr.right as TypecastExpression).expression as PrefixExpression
+        castedValue.operator shouldBe "not"
+        (castedValue.expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
         bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
 
         val asm = generateAssembly(result.program, options)

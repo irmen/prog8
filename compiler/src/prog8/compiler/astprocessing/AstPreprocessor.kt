@@ -1,5 +1,6 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
@@ -7,10 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.Encoding
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.NumericDatatypes
+import prog8.code.core.*
 
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
@@ -98,6 +96,30 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
+
+        // To enable simple bitwise and/or/xor/not instructions in the codegen for the logical and/or/xor/not,
+        // we wrap the operands in a call to boolean() if required so that they are 0 or 1 as needed.
+        // Making the codegen more generic to do this by itself all the time will generate much larger
+        // code because it is hard to decide there if the value conversion to 0 or 1 is needed or not,
+        // so a lot of useless checks and conversions are added. Here we can be smarter so the codegen
+        // can just rely on the correct value of the operands (0 or 1) if they're boolean, and just use bitwise instructions.
+        if(expr.operator in LogicalOperators) {
+            fun wrapped(expr: Expression): Expression {
+                return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
+                    expr
+                else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
+                    expr
+                else
+                    FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
+            }
+
+            return listOf(
+                IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr),
+                IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr)
+            )
+        }
+
+
         return noModifications
     }
 

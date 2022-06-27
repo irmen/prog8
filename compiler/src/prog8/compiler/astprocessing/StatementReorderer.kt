@@ -190,7 +190,6 @@ internal class StatementReorderer(val program: Program,
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
@@ -245,38 +244,6 @@ internal class StatementReorderer(val program: Program,
                     }
                 }
                 else -> return noModifications
-            }
-        }
-        else if(expr.operator in LogicalOperators) {
-            fun wrapped(expr: Expression): Expression {
-                return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
-                    expr
-                else
-                    FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
-            }
-
-            fun isLogicalExpr(expr: Expression?): Boolean {
-                if(expr is BinaryExpression && expr.operator in (LogicalOperators + ComparisonOperators))
-                    return true
-                if(expr is PrefixExpression && expr.operator in LogicalOperators)
-                    return true
-                return false
-            }
-
-            return if(isLogicalExpr(expr.left)) {
-                if(isLogicalExpr(expr.right))
-                    noModifications
-                else
-                    listOf(IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr))
-            } else {
-                if(isLogicalExpr(expr.right))
-                    listOf(IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr))
-                else {
-                    listOf(
-                        IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr),
-                        IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr)
-                    )
-                }
             }
         }
 
