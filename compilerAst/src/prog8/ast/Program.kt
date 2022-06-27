@@ -155,6 +155,10 @@ class Program(val name: String,
         return Label(strLabel, position)
     }
 
+    fun jumpLabel(label: Label): Jump {
+        val ident = IdentifierReference(listOf(label.name), label.position)
+        return Jump(null, ident, null, label.position)
+    }
 }
 
 

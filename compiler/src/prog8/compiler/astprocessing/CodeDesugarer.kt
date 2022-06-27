@@ -27,16 +27,11 @@ internal class CodeDesugarer(val program: Program,
     // - repeat-forever loops replaced by label+jump.
 
 
-    private fun jumpLabel(label: Label): Jump {
-        val ident = IdentifierReference(listOf(label.name), label.position)
-        return Jump(null, ident, null, label.position)
-    }
-
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
             val label = program.makeLabel("after", breakStmt.position)
             return listOf(
-                IAstModification.ReplaceNode(breakStmt, jumpLabel(label), parent),
+                IAstModification.ReplaceNode(breakStmt, program.jumpLabel(label), parent),
                 IAstModification.InsertAfter(stmt, label, stmt.parent as IStatementContainer)
             )
         }
@@ -73,7 +68,7 @@ if not CONDITION
             loopLabel,
             untilLoop.body,
             IfElse(notCondition,
-                AnonymousScope(mutableListOf(jumpLabel(loopLabel)), pos),
+                AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
         ), pos)
@@ -97,11 +92,11 @@ _after:
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             IfElse(notCondition,
-                AnonymousScope(mutableListOf(jumpLabel(afterLabel)), pos),
+                AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),
             whileLoop.body,
-            jumpLabel(loopLabel),
+            program.jumpLabel(loopLabel),
             afterLabel
         ), pos)
         return listOf(IAstModification.ReplaceNode(whileLoop, replacement, parent))
@@ -131,7 +126,7 @@ _after:
     override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
         if(repeatLoop.iterations==null) {
             val label = program.makeLabel("repeat", repeatLoop.position)
-            val jump = jumpLabel(label)
+            val jump = program.jumpLabel(label)
             return listOf(
                 IAstModification.InsertFirst(label, repeatLoop.body),
                 IAstModification.InsertLast(jump, repeatLoop.body),

@@ -11,7 +11,7 @@ main  {
     }
 
     sub funcFalseWord() -> uword {
-        txt.print("falseWord() ")
+        txt.print("falseword() ")
         return 0
     }
 
@@ -55,15 +55,15 @@ main  {
         ubyte ub4 = 44
         ubyte ub5 = 55
 
-        ub4 = 42
+        ub4 = 0
         txt.print("and with bytes: ")
-        ub5 = ub1 and ub2 and ub3 and ub4 and ub5       ; TODO FIX !! should be True (!=0)
+        ub5 = ub1 and ub2 and ub3 and ub4 and ub5
         txt.print_ub(ub5)
         txt.nl()
 
-        ub4 = 42
+        ub4 = 0
         txt.print("or with bytes: ")
-        ub5 = ub1 or ub2 or ub3 or ub4 or ub5       ; TODO FIX!! should be False (0)
+        ub5 = ub1 or ub2 or ub3 or ub4 or ub5
         txt.print_ub(ub5)
         txt.nl()
 
@@ -86,7 +86,7 @@ main  {
         txt.nl()
 
         txt.print("and with false: ")
-        value = func1(25) and func2(25) and funcFalse() and false and func3(25) and func4(25)
+        value = func1(25) and func2(25) and funcFalse() and func3(25) and func4(25)
         txt.print_ub(value)
         txt.nl()
         txt.print("and with true:  ")
@@ -94,11 +94,11 @@ main  {
         txt.print_ub(value)
         txt.nl()
         txt.print("or with false:  ")
-        value = func1(25) or func2(25) or funcFalse() or true or func3(25) or func4(25)
+        value = func1(0) or func2(0) or funcFalse() or func3(25) or func4(25)
         txt.print_ub(value)
         txt.nl()
         txt.print("or with true:   ")
-        value = func1(25) or func2(25) or funcTrue() or func3(25) or func4(25)
+        value = func1(0) or func2(0) or funcTrue() or func3(25) or func4(25)
         txt.print_ub(value)
         txt.nl()
         txt.print("xor with false: ")
@@ -110,6 +110,25 @@ main  {
         txt.print_ub(value)
         txt.nl()
 
+        txt.print("\nif and with false: [nothing]: ")
+        if func1(25) and func2(25) and funcFalse() and func3(25) and func4(25)
+            txt.print("failure!")
+        txt.print("\nif and with true: [ok]: ")
+        if func1(25) and func2(25) and funcTrue() and func3(25) and func4(25)
+            txt.print("ok!")
+        txt.print("\nif or with false: [ok]: ")
+        if func1(0) or func2(0) or funcFalse() or func3(25) or func4(25)
+            txt.print("ok!")
+        txt.print("\nif or with true: [ok]: ")
+        if func1(0) or func2(0) or funcTrue() or func3(25) or func4(25)
+            txt.print("ok!")
+        txt.print("\nif xor with false: [nothing]: ")
+        if func1(25) xor func2(25) xor funcFalse() xor func3(25) xor func4(25)
+            txt.print("failure!")
+        txt.print("\nif xor with true: [ok]: ")
+        if func1(25) xor func2(25) xor funcTrue() xor func3(25) xor func4(25)
+            txt.print("ok!")
+        txt.nl()
 
         ; a "pixelshader":
 ;        sys.gfx_enable(0)       ; enable lo res screen
