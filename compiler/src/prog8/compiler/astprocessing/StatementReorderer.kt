@@ -200,17 +200,6 @@ internal class StatementReorderer(val program: Program,
             && maySwapOperandOrder(expr))
             return listOf(IAstModification.SwapOperands(expr))
 
-        if (expr.operator == "and") {
-            val leftBinExpr = expr.left as? BinaryExpression
-            if (leftBinExpr?.operator == "and")
-                return mcCarthyAndExpression(expr, parent)
-        }
-        if (expr.operator == "or") {
-            val leftBinExpr = expr.left as? BinaryExpression
-            if (leftBinExpr?.operator == "or")
-                return mcCarthyOrExpression(expr, parent)
-        }
-
         // when using a simple bit shift and assigning it to a variable of a different type,
         // try to make the bit shifting 'wide enough' to fall into the variable's type.
         // with this, for instance, uword x = 1 << 10  will result in 1024 rather than 0 (the ubyte result).
@@ -332,17 +321,6 @@ internal class StatementReorderer(val program: Program,
         // rewrite in-place assignment expressions a bit so that the assignment target usually is the leftmost operand
         val binExpr = assignment.value as? BinaryExpression
         if(binExpr!=null) {
-            if (binExpr.operator == "and") {
-                val leftBinExpr = binExpr.left as? BinaryExpression
-                if (leftBinExpr?.operator == "and")
-                    return mcCarthyAndAssignment(binExpr, assignment, parent)
-            }
-            if (binExpr.operator == "or") {
-                val leftBinExpr = binExpr.left as? BinaryExpression
-                if (leftBinExpr?.operator == "or")
-                    return mcCarthyOrAssignment(binExpr, assignment, parent)
-            }
-
             if(binExpr.left isSameAs assignment.target) {
                 // A = A <operator> 5, unchanged
                 return noModifications
@@ -447,124 +425,6 @@ internal class StatementReorderer(val program: Program,
             ?: throw FatalAstException("no target for $functionCallStatement")
         checkUnusedReturnValues(functionCallStatement, function, errors)
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
-    }
-
-    private fun mcCarthyAndAssignment(andExpr: BinaryExpression, assignment: Assignment, assignmentParent: Node): Iterable<IAstModification> {
-        val terms = findTerms(andExpr, "and")
-        if(terms.any { it.constValue(program)?.asBooleanValue == false }) {
-            errors.warn("expression is always false", andExpr.position)
-            return listOf(IAstModification.ReplaceNode(andExpr, NumericLiteral.fromBoolean(false, andExpr.position), assignment))
-        }
-
-        val replacement = doShortcutEvaluation(
-            assignment.target,
-            assignment.target.inferType(program).getOr(DataType.UNDEFINED),
-            terms,
-            "==",
-            false,
-            assignment.position
-        )
-        return listOf(IAstModification.ReplaceNode(assignment, replacement, assignmentParent))
-    }
-
-    private fun mcCarthyOrAssignment(orExpr: BinaryExpression, assignment: Assignment, assignmentParent: Node): Iterable<IAstModification> {
-        val terms = findTerms(orExpr, "or")
-        if(terms.any { it.constValue(program)?.asBooleanValue == true }) {
-            errors.warn("expression is always true", orExpr.position)
-            return listOf(IAstModification.ReplaceNode(orExpr, NumericLiteral.fromBoolean(true, orExpr.position), assignment))
-        }
-
-        val replacement = doShortcutEvaluation(
-            assignment.target,
-            assignment.target.inferType(program).getOr(DataType.UNDEFINED),
-            terms,
-            "!=",
-            false,
-            assignment.position
-        )
-        return listOf(IAstModification.ReplaceNode(assignment, replacement, assignmentParent))
-    }
-
-    private fun mcCarthyAndExpression(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        val terms = findTerms(expr, "and")
-        if(terms.any { it.constValue(program)?.asBooleanValue == false }) {
-            errors.warn("expression is always false", expr.position)
-            return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
-        }
-
-        val (tempvarName, _) = program.getTempVar(DataType.UBYTE)
-        val assignTarget = AssignTarget(IdentifierReference(tempvarName, expr.position), null, null, position = expr.position)
-        val replacement = doShortcutEvaluation(assignTarget, DataType.UBYTE, terms, "==", true, expr.position)
-        val exprStmt = expr.containingStatement
-        return listOf(
-            IAstModification.InsertBefore(exprStmt, replacement, exprStmt.definingScope),
-            IAstModification.ReplaceNode(expr, assignTarget.identifier!!.copy(), parent)
-        )
-    }
-
-    private fun mcCarthyOrExpression(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        val terms = findTerms(expr, "or")
-        if(terms.any { it.constValue(program)?.asBooleanValue == true }) {
-            errors.warn("expression is always true", expr.position)
-            return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
-        }
-
-        val (tempvarName, _) = program.getTempVar(DataType.UBYTE)
-        val assignTarget = AssignTarget(IdentifierReference(tempvarName, expr.position), null, null, position = expr.position)
-        val replacement = doShortcutEvaluation(assignTarget, DataType.UBYTE, terms, "!=", true, expr.position)
-        val exprStmt = expr.containingStatement
-        return listOf(
-            IAstModification.InsertBefore(exprStmt, replacement, exprStmt.definingScope),
-            IAstModification.ReplaceNode(expr, assignTarget.identifier!!.copy(), parent)
-        )
-    }
-
-    private fun findTerms(expr: BinaryExpression, operator: String, terms: List<Expression> = emptyList()): List<Expression> {
-        if(expr.operator!=operator)
-            return listOf(expr) + terms
-        val leftBinExpr = expr.left as? BinaryExpression ?: return listOf(expr.left, expr.right) + terms
-        return findTerms(leftBinExpr, operator, listOf(expr.right)+terms)
-    }
-    
-    private fun doShortcutEvaluation(
-        target: AssignTarget,
-        targetDt: DataType,
-        terms: List<Expression>,
-        checkZeroOperator: String,
-        convertToBool: Boolean,
-        position: Position
-    ): AnonymousScope {
-        val replacement = AnonymousScope(mutableListOf(), position)
-        val doneLabel = program.makeLabel("and", position)
-        for ((idx, term) in terms.withIndex()) {
-            val value: Expression = if (term is IFunctionCall
-                && term.target.nameInSource == listOf("boolean")
-                && term.args[0].inferType(program).isAssignableTo(targetDt)
-            )
-                term.args[0].copy()
-            else
-                term.copy()
-            val assignTerm = Assignment(target.copy(), value, AssignmentOrigin.OPTIMIZER, position)
-            replacement.statements.add(assignTerm)
-            if (idx < terms.size - 1) {
-                val targetCheck = BinaryExpression(target.toExpression(), checkZeroOperator,
-                    NumericLiteral(DataType.UBYTE, 0.0, position), position)
-                val jumpDone = program.jumpLabel(doneLabel)
-                val ifStmt = IfElse(targetCheck,
-                    AnonymousScope(mutableListOf(jumpDone), position),
-                    AnonymousScope(mutableListOf(), Position.DUMMY),
-                    position)
-                replacement.statements.add(ifStmt)
-            } else if(idx==terms.size-1) {
-                if(convertToBool) {
-                    assignTerm.value = BuiltinFunctionCall(IdentifierReference(listOf("boolean"), assignTerm.position), mutableListOf(value), assignTerm.position)
-                }
-                if(targetDt !in ByteDatatypes)
-                    assignTerm.value = TypecastExpression(assignTerm.value, targetDt, true, assignTerm.position)
-            }
-        }
-        replacement.statements.add(doneLabel)
-        return replacement
     }
 }
 

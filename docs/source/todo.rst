@@ -3,10 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add McCarthy evaluation to shortcircuit and/or expressions.  Both conditional expressions and assignments!
-    StatementReorder.after(assignment).
-    TODO: boolean expressions.
-- add unit tests for all 4 mcarthy shortcut cases.
 - can we optimize redundant calls to boolean() away?  imageviewer.prg got larger because of them
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.

@@ -1,7 +1,7 @@
 %import textio
 %zeropage basicsafe
 
-; NOTE: meant to test to virtual machine output target (use -target vitual)
+; NOTE: meant to test to virtual machine output target (use -target virtual)
 
 main  {
 

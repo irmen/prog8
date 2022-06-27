@@ -489,9 +489,8 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 
 	.. note::
 		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation
-		for the ``and`` and ``or`` operators at this time. This means that prog8 currently always evaluates
-		all operands from these logical expressions, even when one of them already determines the outcome.
-		This may be changed in a future language version.
+		for the logical ``and`` and ``or`` operators. This means that prog8 currently always evaluates
+		all operands from these logical expressions, even when one of them already determines the outcome!
 
 range creation:  ``to``
 	Creates a range of values from the LHS value to the RHS value, inclusive.
