@@ -745,7 +745,7 @@ class TestProg8Parser: FunSpec( {
             main {
                 ubyte bb
                 uword ww
-                ubyte bb2 = not bb or not ww       ; expression combining ubyte and uword
+                ubyte bb2 = (3+bb) or (3333+ww)       ; expression combining ubyte and uword
             }
         """)
         val module = parseModule(src)

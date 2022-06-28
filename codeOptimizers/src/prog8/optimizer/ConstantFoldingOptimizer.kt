@@ -80,11 +80,6 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                     }
                     else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
                 }
-                "not" -> {
-                    listOf(IAstModification.ReplaceNode(expr,
-                            NumericLiteral.fromBoolean(subexpr.number == 0.0, subexpr.position),
-                            parent))
-                }
                 else -> throw ExpressionError(expr.operator, subexpr.position)
             }
         }

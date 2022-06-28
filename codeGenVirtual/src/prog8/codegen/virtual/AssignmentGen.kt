@@ -110,9 +110,6 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value = mask)
                 code += VmCodeInstruction(Opcode.XORM, vmDt, reg1=regMask, value = address)
             }
-            "not" -> {
-                code += VmCodeInstruction(Opcode.NOTM, vmDt, value = address)
-            }
             else -> throw AssemblyError("weird prefix operator")
         }
         return code

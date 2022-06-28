@@ -102,19 +102,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return noModifications
     }
 
-    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if(expr.operator=="not") {
-            val logical = parent as? BinaryExpression
-            if(logical!=null && logical.operator in LogicalOperators) {
-                // not x  as operand in a logical expression --> cast it to ubyte
-                // TODO is this cast really necessary or does boolean() wrapping take care of it?
-                val cast = TypecastExpression(expr, DataType.UBYTE, true, expr.position)
-                return listOf(IAstModification.ReplaceNode(expr, cast, parent))
-            }
-        }
-        return noModifications
-    }
-
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         // see if a typecast is needed to convert the value's type into the proper target type
         val valueItype = assignment.value.inferType(program)

@@ -1,10 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.PrefixExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -58,16 +55,16 @@ do { STUFF } until CONDITION
     ===>
 _loop:
   STUFF
-if not CONDITION
+if CONDITION==0
    goto _loop
          */
         val pos = untilLoop.position
         val loopLabel = program.makeLabel("untilloop", pos)
-        val notCondition = PrefixExpression("not", untilLoop.condition, pos)
+        val equalsZero = BinaryExpression(untilLoop.condition, "==", NumericLiteral.fromBoolean(false, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
-            IfElse(notCondition,
+            IfElse(equalsZero,
                 AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
@@ -80,7 +77,7 @@ if not CONDITION
 while CONDITION { STUFF }
     ==>
 _whileloop:
-  if NOT CONDITION goto _after
+  if CONDITION==0 goto _after
   STUFF
   goto _whileloop
 _after:
@@ -88,10 +85,10 @@ _after:
         val pos = whileLoop.position
         val loopLabel = program.makeLabel("whileloop", pos)
         val afterLabel = program.makeLabel("afterwhile", pos)
-        val notCondition = PrefixExpression("not", whileLoop.condition, pos)
+        val equalsZero = BinaryExpression(whileLoop.condition, "==", NumericLiteral.fromBoolean(false, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
-            IfElse(notCondition,
+            IfElse(equalsZero,
                 AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),

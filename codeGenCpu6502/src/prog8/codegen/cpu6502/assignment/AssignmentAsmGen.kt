@@ -283,7 +283,6 @@ internal class AssignmentAsmGen(private val program: Program,
                     "+" -> {}
                     "-" -> augmentableAsmGen.inplaceNegate(target, target.datatype)
                     "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
-                    "not" -> augmentableAsmGen.inplaceBooleanNot(target, target.datatype)
                     else -> throw AssemblyError("invalid prefix operator")
                 }
             }

@@ -58,27 +58,6 @@ inv_word	.proc
 		rts
 		.pend
 
-not_byte	.proc
-		lda  P8ESTACK_LO+1,x
-		beq  +
-		lda  #1
-+		eor  #1
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-not_word	.proc
-		lda  P8ESTACK_LO + 1,x
-		ora  P8ESTACK_HI + 1,x
-		beq  +
-		lda  #1
-+		eor  #1
-		sta  P8ESTACK_LO + 1,x
-		lsr  a
-		sta  P8ESTACK_HI + 1,x
-		rts
-		.pend
-
 bitand_b	.proc
 		; -- bitwise and (of 2 bytes)
 		lda  P8ESTACK_LO+2,x

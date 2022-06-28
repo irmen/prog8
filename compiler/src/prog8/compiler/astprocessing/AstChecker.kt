@@ -823,10 +823,6 @@ internal class AstChecker(private val program: Program,
                 errors.err("can only take negative of a signed number type", expr.position)
             }
         }
-        else if(expr.operator == "not") {
-            if(dt !in IntegerDatatypes)
-                errors.err("can only use boolean not on integer types", expr.position)
-        }
         else if(expr.operator == "~") {
             if(dt !in IntegerDatatypes)
                 errors.err("can only use bitwise invert on integer types", expr.position)

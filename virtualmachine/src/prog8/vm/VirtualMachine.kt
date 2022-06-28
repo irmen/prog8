@@ -162,8 +162,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.ORM -> InsORM(ins)
             Opcode.XOR -> InsXOR(ins)
             Opcode.XORM ->InsXORM(ins)
-            Opcode.NOT -> InsNOT(ins)
-            Opcode.NOTM -> InsNOTM(ins)
+            Opcode.INV -> InsINV(ins)
+            Opcode.INVM -> InsINVM(ins)
             Opcode.ASRN -> InsASRN(ins)
             Opcode.LSRN -> InsLSRN(ins)
             Opcode.LSLN -> InsLSLN(ins)
@@ -1216,7 +1216,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsNOT(i: Instruction) {
+    private fun InsINV(i: Instruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1).inv())
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1).inv())
@@ -1225,7 +1225,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsNOTM(i: Instruction) {
+    private fun InsINVM(i: Instruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(address, memory.getUB(address).inv())

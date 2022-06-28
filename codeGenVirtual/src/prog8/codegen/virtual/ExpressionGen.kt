@@ -154,9 +154,6 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value=mask)
                 code += VmCodeInstruction(Opcode.XOR, vmDt, reg1=resultRegister, reg2=regMask)
             }
-            "not" -> {
-                code += VmCodeInstruction(Opcode.NOT, vmDt, reg1=resultRegister)
-            }
             else -> throw AssemblyError("weird prefix operator")
         }
         return code
@@ -391,13 +388,11 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 comparisonCall.children.add(binExpr.left)
                 comparisonCall.children.add(binExpr.right)
                 code += translate(comparisonCall, resultRegister, -1)
-                if(notEquals) {
-                    val maskReg = codeGen.vmRegisters.nextFree()
-                    code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=maskReg, value=1)
-                    code += VmCodeInstruction(Opcode.AND, vmDt, reg1=resultRegister, reg2=maskReg)
-                } else {
-                    code += VmCodeInstruction(Opcode.NOT, vmDt, reg1=resultRegister)
-                }
+                if(!notEquals)
+                    code += VmCodeInstruction(Opcode.INV, vmDt, reg1=resultRegister)
+                val maskReg = codeGen.vmRegisters.nextFree()
+                code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=maskReg, value=1)
+                code += VmCodeInstruction(Opcode.AND, vmDt, reg1=resultRegister, reg2=maskReg)
             } else {
                 val rightResultReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(binExpr.left, resultRegister, -1)

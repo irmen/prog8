@@ -153,6 +153,12 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
     val value: PtExpression
         get() = children.single() as PtExpression
 
+    init {
+        // note: the "not" operator may no longer occur in the ast; not x should have been replaced with x==0
+        if(operator !in setOf("+", "-", "~"))
+            throw IllegalArgumentException("invalid prefix operator: $operator")
+    }
+
     override fun printProperties() {
         print(operator)
     }

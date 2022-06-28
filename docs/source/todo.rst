@@ -3,18 +3,22 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- 6502: fix not codegen to be bitwise not instead of boolean not (maybe need to change boolean() wrapping / variouscleanups)
-  all these testable with compiler/test/arithmetic/logical.p8
-- 6502: also fix logical and/or/xor routines to just be bitwise routines.
+- chess.prg became A LOT larger, why!?  (perhaps due to new while/until condition handling?)
+- imageviewer.prg became A LOT larger, why!?
+- petaxian.prg became A LOT larger, why!?
+- some programs became a bit larger since "not" was removed (assembler)
 
-- get rid of logical and/or/xor/not in the codegen (6502+vm)
+- 6502: fix logical and/or/xor routines to just be bitwise routines.
+
+- get rid of logical and/or/xor in the codegen (6502+vm)
   because bitwise versions + correct use of boolean() operand wrapping are equivalent?
-  can do this for instance by replacing and/or/xor/not with their bitwise versions &, |, ^, ~
+  can do this for instance by replacing and/or/xor with their bitwise versions &, |, ^, ~
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
   this is not the case for the 6502 codegen.
 
-- add optimizations: not a or not b  -> not(a and b)   ,   not a and not b -> not(a or b)
+- add optimizations: not a or not b  -> not(a and b)      ,  not a and not b -> not(a or b)
+  actually this now means: (a==0) or (b==0) -> (a or b)==0,  (a==0) and (b==0) -> (a or b)==0
   add unit tests for that.
 - bin expr splitter: split logical expressions on ands/ors/xors ?
 

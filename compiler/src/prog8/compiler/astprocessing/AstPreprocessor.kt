@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -116,7 +117,8 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
     override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator == "not") {
             // not(x)  -->  x==0
-            val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
+            // this means that "not" will never occur anywhere again in the ast
+            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
             val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
             return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
         }

@@ -169,18 +169,6 @@ internal class BeforeAsmAstChanger(val program: Program,
     }
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
-        val prefixExpr = ifElse.condition as? PrefixExpression
-        if(prefixExpr!=null && prefixExpr.operator=="not") {
-            // if not x -> if x==0
-            val booleanExpr = BinaryExpression(
-                prefixExpr.expression,
-                "==",
-                NumericLiteral.optimalInteger(0, ifElse.condition.position),
-                ifElse.condition.position
-            )
-            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
-        }
-
         val binExpr = ifElse.condition as? BinaryExpression
         if(binExpr==null || binExpr.operator !in ComparisonOperators) {
             // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
