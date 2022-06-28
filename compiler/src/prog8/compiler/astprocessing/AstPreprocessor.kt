@@ -104,22 +104,28 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         // so a lot of useless checks and conversions are added. Here we can be smarter so the codegen
         // can just rely on the correct value of the operands (0 or 1) if they're boolean, and just use bitwise instructions.
         if(expr.operator in LogicalOperators) {
-            fun wrapped(expr: Expression): Expression {
-                return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
-                    expr
-                else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
-                    expr
-                else
-                    FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
-            }
-
             return listOf(
-                IAstModification.ReplaceNode(expr.left, wrapped(expr.left), expr),
-                IAstModification.ReplaceNode(expr.right, wrapped(expr.right), expr)
+                IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanConversion(expr.left), expr),
+                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanConversion(expr.right), expr)
             )
         }
 
+        return noModifications
+    }
 
+    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator == "not") {
+            // To enable simple bitwise and/or/xor/not instructions in the codegen for the logical and/or/xor/not,
+            // we wrap the operands in a call to boolean() if required so that they are 0 or 1 as needed.
+            // Making the codegen more generic to do this by itself all the time will generate much larger
+            // code because it is hard to decide there if the value conversion to 0 or 1 is needed or not,
+            // so a lot of useless checks and conversions are added. Here we can be smarter so the codegen
+            // can just rely on the correct value of the operands (0 or 1) if they're boolean, and just use bitwise instructions.
+
+            // not(x)  -->  boolean(x)==0
+            val replacement = BinaryExpression(wrapWithBooleanConversion(expr.expression), "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
+        }
         return noModifications
     }
 
@@ -155,5 +161,14 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         }
 
         return noModifications
+    }
+
+    private fun wrapWithBooleanConversion(expr: Expression): Expression {
+        return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
+            expr
+        else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
+            expr
+        else
+            FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
     }
 }

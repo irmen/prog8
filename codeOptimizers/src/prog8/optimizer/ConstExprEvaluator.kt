@@ -22,9 +22,9 @@ class ConstExprEvaluator {
                 "&" -> bitwiseand(left, right)
                 "|" -> bitwiseor(left, right)
                 "^" -> bitwisexor(left, right)
-                "and" -> logicaland(left, right)
-                "or" -> logicalor(left, right)
-                "xor" -> logicalxor(left, right)
+                "and" -> logicaland(left, right)        // TODO bitwise and?
+                "or" -> logicalor(left, right)          // TODO bitwise or?
+                "xor" -> logicalxor(left, right)        // TODO bitwise xor?
                 "<" -> NumericLiteral.fromBoolean(left < right, left.position)
                 ">" -> NumericLiteral.fromBoolean(left > right, left.position)
                 "<=" -> NumericLiteral.fromBoolean(left <= right, left.position)
@@ -59,7 +59,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicalxor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left locical-bitxor $right"
+        val error = "cannot compute $left logical-xor $right"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
                 in IntegerDatatypes -> NumericLiteral.fromBoolean((left.number.toInt() != 0) xor (right.number.toInt() != 0), left.position)
@@ -76,7 +76,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicalor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left locical-or $right"
+        val error = "cannot compute $left logical-or $right"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
                 in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number.toInt() != 0 || right.number.toInt() != 0, left.position)
@@ -93,7 +93,7 @@ class ConstExprEvaluator {
     }
 
     private fun logicaland(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left locical-and $right"
+        val error = "cannot compute $left logical-and $right"
         return when (left.type) {
             in IntegerDatatypes -> when (right.type) {
                 in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number.toInt() != 0 && right.number.toInt() != 0, left.position)

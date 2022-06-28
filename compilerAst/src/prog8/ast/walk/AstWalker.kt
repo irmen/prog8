@@ -65,6 +65,18 @@ interface IAstModification {
         }
     }
 
+    class ReplaceNodeSafe(val node: Node, private val replacement: Node, private val parent: Node) :
+        IAstModification {
+        override fun perform() {
+            try {
+                parent.replaceChildNode(node, replacement)
+                replacement.linkParents(parent)
+            } catch (fa: FatalAstException) {
+                // possibly because of another replacement. Ignore here, we try again later.
+            }
+        }
+    }
+
     class SwapOperands(private val expr: BinaryExpression): IAstModification {
         override fun perform() {
             require(expr.operator in AssociativeOperators)

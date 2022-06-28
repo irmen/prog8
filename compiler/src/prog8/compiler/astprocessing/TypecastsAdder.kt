@@ -107,14 +107,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val logical = parent as? BinaryExpression
             if(logical!=null && logical.operator in LogicalOperators) {
                 // not x  as operand in a logical expression --> cast it to ubyte
+                // TODO is this cast really necessary or does boolean() wrapping take care of it?
                 val cast = TypecastExpression(expr, DataType.UBYTE, true, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, cast, parent))
-            }
-            val boolCast = parent as? IFunctionCall
-            if(boolCast!=null && boolCast.target.nameInSource==listOf("boolean")) {
-                // boolean(not x) --> (not x) as ubyte
-                val cast = TypecastExpression(expr, DataType.UBYTE, true, expr.position)
-                return listOf(IAstModification.ReplaceNode(boolCast as Node, cast, boolCast.parent))
             }
         }
         return noModifications

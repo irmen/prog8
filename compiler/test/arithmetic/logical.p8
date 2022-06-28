@@ -62,6 +62,7 @@ main  {
         else
             txt.print(" / fail")
         txt.nl()
+
         bvalue = bvalue and 128
         txt.print("bvl 1: ")
         txt.print_ub(bvalue)
@@ -121,9 +122,9 @@ main  {
             txt.print(" / fail")
         txt.nl()
         txt.print(" or 1: ")
-        bvalue = ub4 or ub4 or 64
+        bvalue = ub4 or ub4 or ub1
         txt.print_ub(bvalue)
-        if ub4 or ub4 or 64
+        if ub4 or ub4 or ub1
             txt.print(" / ok")
         else
             txt.print(" / fail")
@@ -169,6 +170,5 @@ main  {
             txt.print(" / fail")
         else
             txt.print(" / ok")
-        txt.nl()
     }
 }
