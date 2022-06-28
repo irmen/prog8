@@ -3,6 +3,16 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- code gen for if statements has become bad
+        if not diskio.iteration_in_progress or not num_bytes
+            return 0
+- code gen for while loops has become bad  (until loops probably as well)
+  (maybe solved when if statements code has been fixed)
+             while c64.CHRIN()!='\"'  {
+                if c64.READST()
+                    goto close_end
+            }
+
 - chess.prg became A LOT larger, why!?  (perhaps due to new while/until condition handling?)
 - imageviewer.prg became A LOT larger, why!?
 - petaxian.prg became A LOT larger, why!?
