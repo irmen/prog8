@@ -462,8 +462,7 @@ class TestOptimization: FunSpec({
         ubyte z2
         z2 = 255
         ubyte z3
-        z3 = 0
-        z3 = (boolean(z3)==0)
+        z3 = 1
         uword z4
         z4 = 0
         ubyte z5
@@ -474,30 +473,28 @@ class TestOptimization: FunSpec({
         z6 -= 5
         */
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 15
+        statements.size shouldBe 14
         val z1decl = statements[0] as VarDecl
         val z1init = statements[1] as Assignment
         val z2decl = statements[2] as VarDecl
         val z2init = statements[3] as Assignment
         val z3decl = statements[4] as VarDecl
         val z3init = statements[5] as Assignment
-        val z3not = statements[6] as Assignment
-        val z4decl = statements[7] as VarDecl
-        val z4init = statements[8] as Assignment
-        val z5decl = statements[9] as VarDecl
-        val z5init = statements[10] as Assignment
-        val z5plus = statements[11] as Assignment
-        val z6decl = statements[12] as VarDecl
-        val z6init = statements[13] as Assignment
-        val z6plus = statements[14] as Assignment
+        val z4decl = statements[6] as VarDecl
+        val z4init = statements[7] as Assignment
+        val z5decl = statements[8] as VarDecl
+        val z5init = statements[9] as Assignment
+        val z5plus = statements[10] as Assignment
+        val z6decl = statements[11] as VarDecl
+        val z6init = statements[12] as Assignment
+        val z6plus = statements[13] as Assignment
 
         z1decl.name shouldBe "z1"
         z1init.value shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
         z2decl.name shouldBe "z2"
         z2init.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
         z3decl.name shouldBe "z3"
-        z3init.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        z3not.value shouldBe instanceOf<BinaryExpression>()
+        z3init.value shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
         z4decl.name shouldBe "z4"
         z4init.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         z5decl.name shouldBe "z5"

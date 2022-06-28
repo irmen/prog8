@@ -486,6 +486,7 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 	These operators are the usual logical operations that are part of a logical expression to reason
 	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
 	(which in reality is just a byte value of 1 or 0).
+	Notice that the expression ``not x`` is equivalent to ``x==0``, and the compiler will treat it as such.
 
 	.. note::
 		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation

@@ -115,15 +115,9 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
 
     override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator == "not") {
-            // To enable simple bitwise and/or/xor/not instructions in the codegen for the logical and/or/xor/not,
-            // we wrap the operands in a call to boolean() if required so that they are 0 or 1 as needed.
-            // Making the codegen more generic to do this by itself all the time will generate much larger
-            // code because it is hard to decide there if the value conversion to 0 or 1 is needed or not,
-            // so a lot of useless checks and conversions are added. Here we can be smarter so the codegen
-            // can just rely on the correct value of the operands (0 or 1) if they're boolean, and just use bitwise instructions.
-
-            // not(x)  -->  boolean(x)==0
-            val replacement = BinaryExpression(wrapWithBooleanConversion(expr.expression), "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+            // not(x)  -->  x==0
+            val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
+            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
             return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
         }
         return noModifications
