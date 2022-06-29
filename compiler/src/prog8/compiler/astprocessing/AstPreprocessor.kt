@@ -3,7 +3,6 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
@@ -114,17 +113,6 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return noModifications
     }
 
-    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if(expr.operator == "not") {
-            // not(x)  -->  x==0
-            // this means that "not" will never occur anywhere again in the ast
-            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
-            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
-            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
-        }
-        return noModifications
-    }
-
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {
@@ -163,6 +151,8 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
             expr
         else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
+            expr
+        else if(expr is PrefixExpression && expr.operator in LogicalOperators)
             expr
         else
             FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)

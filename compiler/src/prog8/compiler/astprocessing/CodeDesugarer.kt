@@ -1,7 +1,10 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.expressions.*
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.DirectMemoryRead
+import prog8.ast.expressions.FunctionCallExpression
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification

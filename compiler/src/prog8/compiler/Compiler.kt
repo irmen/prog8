@@ -330,6 +330,8 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors, compilerOptions)
     errors.report()
+    program.changeNotExpression(errors)
+    errors.report()
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)

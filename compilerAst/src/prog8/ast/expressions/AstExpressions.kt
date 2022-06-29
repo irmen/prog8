@@ -109,6 +109,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
                 DataType.UWORD -> NumericLiteral(DataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
+            "not" -> NumericLiteral.fromBoolean(constval.number==0.0, constval.position)
             else -> throw FatalAstException("invalid operator")
         }
         converted.linkParents(this.parent)
@@ -214,7 +215,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "&" -> leftDt
             "|" -> leftDt
             "^" -> leftDt
-            "and", "or", "xor" -> InferredTypes.knownFor(DataType.UBYTE)
+            "and", "or", "xor", "not" -> InferredTypes.knownFor(DataType.UBYTE)
             "<", ">",
             "<=", ">=",
             "==", "!=" -> dynamicBooleanType()

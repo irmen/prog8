@@ -1,12 +1,10 @@
 package prog8tests
 
-import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotBeBlank
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import io.kotest.matchers.types.shouldBeSameInstanceAs
@@ -14,9 +12,9 @@ import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.code.target.C64Target
-import prog8.compiler.astprocessing.processAstBeforeAsmGeneration
 import prog8.compiler.printProgram
 import prog8tests.helpers.*
 
@@ -253,83 +251,41 @@ class TestOptimization: FunSpec({
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
-    test("not-typecasted assignment from ubyte logical expression to uword var should be auto upcasted") {
+    test("various 'not' operator rewrites even without optimizations on") {
         val src = """
             main {
                 sub start() {
-                    ubyte bb
-                    uword ww
-                    ww = not bb or not ww       ; expression combining ubyte and uword
+                    ubyte a1
+                    ubyte a2
+                    a1 = not not a1             ; a1 = a1==0
+                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
+                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
                 }
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 7
 
-        val wwAssign = result.program.entrypoint.statements.last() as Assignment
-        val expr = wwAssign.value as TypecastExpression
-        expr.type shouldBe DataType.UWORD
-
-        wwAssign.target.identifier?.nameInSource shouldBe listOf("ww")
-        expr.expression.inferType(result.program) istype DataType.UBYTE shouldBe true
-    }
-
-    test("intermediate assignment steps have correct types for codegen phase (BeforeAsmGenerationAstChanger)") {
-        val src = """
-            main {
-                sub start() {
-                    ubyte bb
-                    uword ww
-                    bb = not bb or not ww       ; expression combining ubyte and uword
-                }
-            }
-        """
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-
-        // bb = ((boolean(bb)==0) or (boolean(ww)==0))
-        val bbAssign = result.program.entrypoint.statements.last() as Assignment
-        val expr = bbAssign.value as BinaryExpression
-        expr.operator shouldBe "or"
-        expr.left shouldBe instanceOf<BinaryExpression>()
-        expr.right shouldBe instanceOf<BinaryExpression>()
-        expr.left.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-        expr.right.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-        expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-
-        val options = CompilationOptions(OutputType.PRG, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(),
-            floats = false,
-            noSysInit = true,
-            compTarget = C64Target(),
-            loadAddress = 0u, outputDir= outputDir)
-        result.program.processAstBeforeAsmGeneration(options, ErrorReporterForTests())
-        printProgram(result.program)
-
-        // TODO this is no longer the case:
-        // assignment is now split into:
-        //     bb =  not bb
-        //     bb = (bb or  (not ww as ubyte)
-//        val assigns = result.program.entrypoint.statements.filterIsInstance<Assignment>()
-//        val bbAssigns = assigns.filter { it.value !is NumericLiteral }
-//        bbAssigns.size shouldBe 2
-//
-//        bbAssigns[0].target.identifier!!.nameInSource shouldBe listOf("bb")
-//        bbAssigns[0].value shouldBe instanceOf<PrefixExpression>()
-//        (bbAssigns[0].value as PrefixExpression).operator shouldBe "not"
-//        ((bbAssigns[0].value as PrefixExpression).expression as? IdentifierReference)?.nameInSource shouldBe listOf("bb")
-//        bbAssigns[0].value.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-//
-//        bbAssigns[1].target.identifier!!.nameInSource shouldBe listOf("bb")
-//        val bbAssigns1expr = bbAssigns[1].value as BinaryExpression
-//        bbAssigns1expr.operator shouldBe "or"
-//        (bbAssigns1expr.left as? IdentifierReference)?.nameInSource shouldBe listOf("bb")
-//        bbAssigns1expr.right shouldBe instanceOf<TypecastExpression>()
-//        val castedValue = (bbAssigns1expr.right as TypecastExpression).expression as PrefixExpression
-//        castedValue.operator shouldBe "not"
-//        (castedValue.expression as? IdentifierReference)?.nameInSource shouldBe listOf("ww")
-//        bbAssigns1expr.inferType(result.program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-//
-//        val asm = generateAssembly(result.program, options)
-//        asm shouldNotBe null
-//        asm!!.name.shouldNotBeBlank()
+        val value1 = (stmts[4] as Assignment).value as BinaryExpression
+        val value2 = (stmts[5] as Assignment).value as BinaryExpression
+        val value3 = (stmts[6] as Assignment).value as BinaryExpression
+        value1.operator shouldBe "=="
+        value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        value2.operator shouldBe "=="
+        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        value3.operator shouldBe "=="
+        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        val left1 = value1.left as IdentifierReference
+        val left2 = value2.left as BinaryExpression
+        val left3 = value3.left as BinaryExpression
+        left1.nameInSource shouldBe listOf("a1")
+        left2.operator shouldBe "and"
+        (left2.left as IdentifierReference).nameInSource shouldBe listOf("a1")
+        (left2.right as IdentifierReference).nameInSource shouldBe listOf("a2")
+        left3.operator shouldBe "or"
+        (left3.left as IdentifierReference).nameInSource shouldBe listOf("a1")
+        (left3.right as IdentifierReference).nameInSource shouldBe listOf("a2")
     }
 
     test("intermediate assignment steps generated for typecasted expression") {

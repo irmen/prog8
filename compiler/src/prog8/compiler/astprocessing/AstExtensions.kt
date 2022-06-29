@@ -44,6 +44,14 @@ internal fun Program.reorderStatements(errors: IErrorReporter, options: Compilat
     }
 }
 
+internal fun Program.changeNotExpression(errors: IErrorReporter) {
+    val changer = NotExpressionChanger(this, errors)
+    changer.visit(this)
+    while(errors.noErrors() && changer.applyModifications()>0) {
+        changer.visit(this)
+    }
+}
+
 internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, errors: IErrorReporter) {
     val walker = object : AstWalker() {
         override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {

@@ -48,7 +48,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(parent is Assignment) {
             val targetDt = (parent).target.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
             if(sourceDt istype targetDt) {
-                // we can get rid of this typecast because the type is already
+                // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
         }
@@ -70,6 +70,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(expr.operator=="+") {
             // +X --> X
             return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+        }
+        else if(expr.operator == "not") {
+            // not(x)  -->  x==0
+            // this means that "not" will never occur anywhere again in the ast after this
+            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
+            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
+            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
         }
         return noModifications
     }

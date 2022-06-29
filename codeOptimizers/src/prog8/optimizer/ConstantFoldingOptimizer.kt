@@ -2,7 +2,6 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.ExpressionError
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
@@ -14,7 +13,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.DataType
-import prog8.code.core.IntegerDatatypes
 
 
 class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
@@ -36,54 +34,8 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     }
 
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        // Try to turn a unary prefix expression into a single constant value.
-        // Compile-time constant sub expressions will be evaluated on the spot.
-        // For instance, the expression for "- 4.5" will be optimized into the float literal -4.5
-        val subexpr = expr.expression
-        if (subexpr is NumericLiteral) {
-            // accept prefixed literal values (such as -3, not true)
-            return when (expr.operator) {
-                "+" -> listOf(IAstModification.ReplaceNode(expr, subexpr, parent))
-                "-" -> when (subexpr.type) {
-                    in IntegerDatatypes -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral.optimalInteger(-subexpr.number.toInt(), subexpr.position),
-                                parent))
-                    }
-                    DataType.FLOAT -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral(DataType.FLOAT, -subexpr.number, subexpr.position),
-                                parent))
-                    }
-                    else -> throw ExpressionError("can only take negative of int or float", subexpr.position)
-                }
-                "~" -> when (subexpr.type) {
-                    DataType.BYTE -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral(DataType.BYTE, subexpr.number.toInt().inv().toDouble(), subexpr.position),
-                                parent))
-                    }
-                    DataType.UBYTE -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral(DataType.UBYTE, (subexpr.number.toInt().inv() and 255).toDouble(), subexpr.position),
-                                parent))
-                    }
-                    DataType.WORD -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral(DataType.WORD, subexpr.number.toInt().inv().toDouble(), subexpr.position),
-                                parent))
-                    }
-                    DataType.UWORD -> {
-                        listOf(IAstModification.ReplaceNode(expr,
-                                NumericLiteral(DataType.UWORD, (subexpr.number.toInt().inv() and 65535).toDouble(), subexpr.position),
-                                parent))
-                    }
-                    else -> throw ExpressionError("can only take bitwise inversion of int", subexpr.position)
-                }
-                else -> throw ExpressionError(expr.operator, subexpr.position)
-            }
-        }
-        return noModifications
+        val constValue = expr.constValue(program) ?: return noModifications
+        return listOf(IAstModification.ReplaceNode(expr, constValue, parent))
     }
 
     /*

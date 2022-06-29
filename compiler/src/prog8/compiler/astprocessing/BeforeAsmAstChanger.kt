@@ -231,8 +231,12 @@ internal class BeforeAsmAstChanger(val program: Program,
         var rightAssignment: Assignment? = null
         var rightOperandReplacement: Expression? = null
 
-        val separateLeftExpr = !expr.left.isSimple && expr.left !is IFunctionCall && expr.left !is ContainmentCheck
-        val separateRightExpr = !expr.right.isSimple && expr.right !is IFunctionCall && expr.right !is ContainmentCheck
+        val separateLeftExpr = !expr.left.isSimple
+                && expr.left !is IFunctionCall
+                && expr.left !is ContainmentCheck
+        val separateRightExpr = !expr.right.isSimple
+                && expr.right !is IFunctionCall
+                && expr.right !is ContainmentCheck
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
 
