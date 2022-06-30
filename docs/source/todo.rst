@@ -3,9 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
+- cx16 programs seem to poke 0, 56 at exit?
+- assembling hello4.asm prints stray characters in the string
 
-- assembler incorrectly assembles hello.asm now (crash when run)
+- petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
 - code gen for if statements has become inefficient? vm/6502?
         if not diskio.iteration_in_progress or not num_bytes
@@ -24,7 +25,8 @@ For next release
   can do this for instance by replacing and/or/xor with their bitwise versions &, |, ^
 - ...or: 6502: fix logical and/or/xor routines to just be bitwise routines.
 
-- check all examples if they still work, maybe we find bug for...:
+- LogicalOperators can't contain "not" because that will make the assemlber create invalid
+  code for hello.asm (crash when ran). Why? Should be fixed?
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
   this is not the case for the 6502 codegen.
