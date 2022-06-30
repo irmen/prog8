@@ -6,38 +6,38 @@
 main  {
 
     sub start() {
+
         ubyte a1 = 0
-        ubyte a2 = 42
-        ubyte a3 = 1
+        ubyte a2 = 128
 
-        if (a1==0)==0
-            a3 = (a1==0)==0
 
-        if (a1!=0)==0
-            a3 = (a1!=0)==0
 
-        if (a1==0)!=0
-            a3 = (a1==0)!=0
+        ; petaxian roller.p8 line 49
+        ; super large in new version, ok in 8.2....
+        ; TODO cx16.r0 = a2 + 25 + (a1/40)
+        ; txt.setcc( a1, a2 + 25 + (a1/40), 11,22)
 
-        if (a1!=0)!=0
-            a3 = (a1!=0)!=0
+        if a1 and a2 {
+            a1++
+        }
 
-        if (a1==0) or (a2==0)
-            a3 = (a1==0) or (a2==0)
+        if a1!=99 and not a2 {
+            a1++
+        }
 
-        if (a1==0) and (a2==0)
-            a3 = (a1==0) and (a2==0)
-
-        if not a1 or not a2 or not(not(a3))
-            a3=not a1 or not a2 or not(not(a3))
-
-        if (a1==0) or (a2==0)
-            a3 = (a1==0) or (a2==0)
-
-        if (a1==0) and (a2==0)
-            a3 = (a1==0) and (a2==0)
-
-        txt.print_ub(a3)
+;        while a1 != a2 {
+;            a1++
+;        }
+;
+;        while a1!='\"'  {
+;            a1++
+;        }
+;        do {
+;            a1++
+;        } until a1==99
+;
+;close_end:
+;        a1++
 
 
 ;        ; a "pixelshader":

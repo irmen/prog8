@@ -3,9 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- assembler incorrectly assembles hello.asm now (crash when run)
+- petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
-- why can't while and until loops use NOT condition instead of Cond==0 ? Fix this!
+- assembler incorrectly assembles hello.asm now (crash when run)
 
 - code gen for if statements has become inefficient? vm/6502?
         if not diskio.iteration_in_progress or not num_bytes

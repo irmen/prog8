@@ -40,6 +40,20 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         vars
     }
 
+    val allMemMappedVariables: Collection<StMemVar> by lazy {
+        val vars = mutableListOf<StMemVar>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type== StNodeType.MEMVAR)
+                    vars.add(child.value as StMemVar)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(this)
+        vars
+    }
+
     override fun lookup(scopedName: List<String>) = flat[scopedName]
 }
 
@@ -186,7 +200,11 @@ class StConstant(name: String, val dt: DataType, val value: Double, position: Po
 }
 
 
-class StMemVar(name: String, val dt: DataType, val address: UInt, position: Position) :
+class StMemVar(name: String,
+               val dt: DataType,
+               val address: UInt,
+               val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+               position: Position) :
     StNode(name, StNodeType.MEMVAR, position) {
     override fun printProperties() {
         print("$name  dt=$dt address=${address.toHex()}")

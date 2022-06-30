@@ -72,7 +72,13 @@ internal class SymbolTableMaker: IAstVisitor {
                     StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, numElements, decl.zeropage, decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)
-                VarDeclType.MEMORY -> StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), decl.position)
+                VarDeclType.MEMORY -> {
+                    val numElements =
+                        if(decl.datatype in ArrayDatatypes)
+                            decl.arraysize!!.constIndex()
+                        else null
+                    StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), numElements, decl.position)
+                }
             }
         scopestack.peek().add(node)
         // st.origAstLinks[decl] = node

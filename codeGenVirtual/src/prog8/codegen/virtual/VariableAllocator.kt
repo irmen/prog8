@@ -26,6 +26,18 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
             allocations[variable.scopedName] = nextLocation
             nextLocation += memsize
         }
+        for (memvar in st.allMemMappedVariables) {
+            // TODO virtual machine doesn't have memory mapped variables, so treat them as regular allocated variables for now
+            val memsize =
+                when (memvar.dt) {
+                    in NumericDatatypes -> program.memsizer.memorySize(memvar.dt)
+                    in ArrayDatatypes -> program.memsizer.memorySize(memvar.dt, memvar.length!!)
+                    else -> throw InternalCompilerException("weird dt")
+                }
+
+            allocations[memvar.scopedName] = nextLocation
+            nextLocation += memsize
+        }
 
         freeMemoryStart = nextLocation
     }
