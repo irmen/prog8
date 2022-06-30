@@ -22,8 +22,9 @@ For next release
   can do this for instance by replacing and/or/xor with their bitwise versions &, |, ^
 - ...or: 6502: fix logical and/or/xor routines to just be bitwise routines.
 
-- LogicalOperators can't contain "not" because that will make the assemlber create invalid
-  code for hello.asm (crash when ran). Why? Should be fixed?
+- not-problem: assembler generates faulty code when in wrapWithBooleanConversion() the "not" exception is removed
+  so that these are not wrapped - apparently 'not' codegen doesn't directly generate correct code?
+- re-enable unittest "various 'not' operator rewrites even without optimizations on" when not-problem is fixed
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
   this is not the case for the 6502 codegen.

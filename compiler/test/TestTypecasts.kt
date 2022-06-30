@@ -1,11 +1,11 @@
 package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -180,7 +180,7 @@ class TestTypecasts: FunSpec({
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 14
+        statements.size shouldBeGreaterThan 10
     }
 
     test("no infinite typecast loop in assignment asmgen") {
