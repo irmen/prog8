@@ -21,6 +21,10 @@ main  {
             a1++
         }
 
+        if not a1 or not a2 {
+            a1++
+        }
+
         if a1!=99 and not a2 {
             a1++
         }

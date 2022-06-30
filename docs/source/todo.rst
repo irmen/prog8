@@ -6,7 +6,7 @@ For next release
 - petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
 - code gen for if statements has become inefficient? vm/6502?
-        if not diskio.iteration_in_progress or not num_bytes
+        if not a or not b
             return 0
 - code gen for while loops has become inefficient:  (until loops probably as well)
   (maybe solved when if statements code has been fixed)
@@ -22,8 +22,8 @@ For next release
   can do this for instance by replacing and/or/xor with their bitwise versions &, |, ^
 - ...or: 6502: fix logical and/or/xor routines to just be bitwise routines.
 
-- not-problem: assembler generates faulty code when in wrapWithBooleanConversion() the "not" exception is removed
-  so that these are not wrapped - apparently 'not' codegen doesn't directly generate correct code?
+- not-problem: assembler generates faulty code when in wrapWithBooleanConversion() the "not" rule is enabled
+  so that these are not wrapped   (even without optimizations)
 - re-enable unittest "various 'not' operator rewrites even without optimizations on" when not-problem is fixed
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.

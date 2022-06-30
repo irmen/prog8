@@ -150,10 +150,10 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
     private fun wrapWithBooleanConversion(expr: Expression): Expression {
         return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
             expr
-        else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators-"not")        // TODO should work for 'not' too but now causes assembler to generate wrong code
+        else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
             expr
-        else if(expr is PrefixExpression && expr.operator in LogicalOperators-"not")          // TODO should work for 'not' too but now causes assembler to generate wrong code
-            expr
+//        else if(expr is PrefixExpression && expr.operator == "not")          // TODO should work for 'not' too but now causes assembler to generate wrong code (even without optimizations)
+//            expr
         else
             FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
     }
