@@ -127,11 +127,8 @@ internal class ProgramAndVarsGen(
             "cx16" -> {
                 if(options.floats)
                     asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
-                asmgen.out("  jsr  main.start |  lda  #4 |  sta  $01")
-                if(!options.noSysInit)
-                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
-                else
-                    asmgen.out("  rts")
+                asmgen.out("  jsr  main.start")
+                asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
             }
             "c64" -> {
                 asmgen.out("  jsr  main.start |  lda  #31 |  sta  $01")

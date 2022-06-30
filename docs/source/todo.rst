@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- cx16 programs seem to poke 0, 56 at exit?
-- assembling hello4.asm prints stray characters in the string
-
 - petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
 - code gen for if statements has become inefficient? vm/6502?

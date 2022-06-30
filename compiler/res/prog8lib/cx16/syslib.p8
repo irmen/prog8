@@ -639,8 +639,12 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
-    ; just an rts here, nothing special to clean up on cx16
     %asm {{
+        lda  #1
+        sta  $00        ; ram bank 1
+        lda  #4
+        sta  $01        ; rom bank 4 (kernal)
+        stz  $2d        ; hack to reset machine code monitor bank to 0
         rts
     }}
 }
