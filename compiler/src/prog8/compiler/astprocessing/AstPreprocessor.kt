@@ -115,17 +115,6 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return noModifications
     }
 
-    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if(expr.operator == "not") {
-            // not(x)  -->  x==0
-            // this means that "not" will never occur anywhere again in the ast after this
-            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
-            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
-            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
-        }
-        return noModifications
-    }
-
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {

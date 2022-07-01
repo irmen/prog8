@@ -8,41 +8,39 @@ main  {
     sub start() {
 
         ubyte a1 = 0
-        ubyte a2 = 128
         uword w1 = 0
+        ubyte vv
 
-;        if not a1 and not w1
-;            txt.print("1")
-;        if (0==a1) and (0==w1)
-;            txt.print("a")
-;        txt.nl()
-        a1 = 0
-        w1 = 4096
-        if not a1 and not w1
-            txt.print("fail ")
-        else
+        if not a1
             txt.print("ok ")
-        if (0==a1) and (0==w1)
-            txt.print("fail ")
         else
-            txt.print("ok ")
+            txt.print("fail ")
+        vv = not a1
+        txt.print_ub(vv)
         txt.nl()
-
         a1=128
-        w1=2
-        if not a1 and not w1
-            txt.print("fail")
-        if (0==a1) and (0==w1)
-            txt.print("fail")
+        if not a1
+            txt.print("fail ")
+        else
+            txt.print("ok ")
+        vv = not a1
+        txt.print_ub(vv)
         txt.nl()
-        w1=2
-        if not a1 and not w1
-            txt.print("fail")
-        if (0==a1) and (0==w1)
-            txt.print("fail")
+        if not w1
+            txt.print("ok ")
+        else
+            txt.print("fail ")
+        vv = not w1
+        txt.print_ub(vv)
         txt.nl()
-
-
+        w1 = 4096
+        if not w1
+            txt.print("fail ")
+        else
+            txt.print("ok ")
+        vv = not w1
+        txt.print_ub(vv)
+        txt.nl()
 
 
         ; petaxian roller.p8 line 49

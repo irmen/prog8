@@ -251,15 +251,15 @@ class TestOptimization: FunSpec({
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
-    xtest("various 'not' operator rewrites even without optimizations on") {
+    test("various 'not' operator rewrites even without optimizations on") {
         val src = """
             main {
                 sub start() {
                     ubyte a1
                     ubyte a2
                     a1 = not not a1             ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
-                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
+                    a1 = not a1 or not a2       ; a1 = a1==0 | a2==0
+                    a1 = not a1 and not a2      ; a1 = a1==0 & a2==0
                 }
             }
         """
@@ -273,20 +273,8 @@ class TestOptimization: FunSpec({
         val value3 = (stmts[6] as Assignment).value as BinaryExpression
         value1.operator shouldBe "=="
         value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value2.operator shouldBe "=="
-        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value3.operator shouldBe "=="
-        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        val left1 = value1.left as IdentifierReference
-        val left2 = value2.left as BinaryExpression
-        val left3 = value3.left as BinaryExpression
-        left1.nameInSource shouldBe listOf("a1")
-        left2.operator shouldBe "and"
-        (left2.left as IdentifierReference).nameInSource shouldBe listOf("a1")
-        (left2.right as IdentifierReference).nameInSource shouldBe listOf("a2")
-        left3.operator shouldBe "or"
-        (left3.left as IdentifierReference).nameInSource shouldBe listOf("a1")
-        (left3.right as IdentifierReference).nameInSource shouldBe listOf("a2")
+        value2.operator shouldBe "|"
+        value3.operator shouldBe "&"
     }
 
     test("intermediate assignment steps generated for typecasted expression") {

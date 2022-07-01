@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- re-enable unittest "various 'not' operator rewrites even without optimizations on" when not-problem is fixed
-
 - petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
 - code gen for if statements has become inefficient? vm/6502?
@@ -21,8 +19,6 @@ For next release
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
   this is not the case for the 6502 codegen.
-
-- bin expr splitter: split logical expressions on ands/ors/xors ?
 
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
