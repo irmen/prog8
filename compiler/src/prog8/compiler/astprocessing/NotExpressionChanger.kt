@@ -2,11 +2,10 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
-import prog8.ast.statements.Assignment
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.IErrorReporter
@@ -88,17 +87,6 @@ internal class NotExpressionChanger(val program: Program, val errors: IErrorRepo
             }
         }
 
-        if(expr.operator=="==") {
-            val rightValue = expr.right.constValue(program)
-            if(rightValue?.number==0.0 && rightValue.type in IntegerDatatypes) {
-                // x==0 -> not x (only if occurs as a subexpression)
-                if(expr.parent is Expression || expr.parent is Assignment) {
-                    val notExpr = PrefixExpression("not", expr.left.copy(), expr.position)
-                    return listOf(IAstModification.ReplaceNodeSafe(expr, notExpr, parent))
-                }
-            }
-        }
-
         return noModifications
     }
 
@@ -107,6 +95,27 @@ internal class NotExpressionChanger(val program: Program, val errors: IErrorRepo
             // not(not(x)) -> x
             if((expr.expression as? PrefixExpression)?.operator=="not")
                 return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+            // not(~x) -> x!=0
+            if((expr.expression as? PrefixExpression)?.operator=="~") {
+                val x = (expr.expression as PrefixExpression).expression
+                val dt = x.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+                val notZero = BinaryExpression(x, "!=", NumericLiteral(dt, 0.0, expr.position), expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
+            }
+            val subBinExpr = expr.expression as? BinaryExpression
+            if(subBinExpr?.operator=="==") {
+                if(subBinExpr.right.constValue(program)?.number==0.0) {
+                    // not(x==0) -> x!=0
+                    subBinExpr.operator = "!="
+                    return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
+                }
+            } else if(subBinExpr?.operator=="!=") {
+                if(subBinExpr.right.constValue(program)?.number==0.0) {
+                    // not(x!=0) -> x==0
+                    subBinExpr.operator = "=="
+                    return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
+                }
+            }
         }
         return noModifications
     }

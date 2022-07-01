@@ -97,19 +97,32 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
 
-        // To enable simple bitwise and/or/xor/not instructions in the codegen for the logical and/or/xor/not,
-        // we wrap the operands in a call to boolean() if required so that they are 0 or 1 as needed.
-        // Making the codegen more generic to do this by itself all the time will generate much larger
-        // code because it is hard to decide there if the value conversion to 0 or 1 is needed or not,
-        // so a lot of useless checks and conversions are added. Here we can be smarter so the codegen
-        // can just rely on the correct value of the operands (0 or 1) if they're boolean, and just use bitwise instructions.
-        if(expr.operator in LogicalOperators) {
+        // convert boolean and/or/xor/not operators to bitwise equivalents.
+        // the rest of the ast and codegen only has to work with bitwise boolean operations from now on.
+        if(expr.operator in setOf("and", "or", "xor")) {
+            expr.operator = when(expr.operator) {
+                "and" -> "&"
+                "or" -> "|"
+                "xor" -> "^"
+                else -> "invalid"
+            }
             return listOf(
                 IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanConversion(expr.left), expr),
-                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanConversion(expr.right), expr)
+                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanConversion(expr.right), expr),
             )
         }
 
+        return noModifications
+    }
+
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator == "not") {
+            // not(x)  -->  x==0
+            // this means that "not" will never occur anywhere again in the ast after this
+            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
+            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
+            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
+        }
         return noModifications
     }
 
@@ -148,13 +161,25 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
     }
 
     private fun wrapWithBooleanConversion(expr: Expression): Expression {
-        return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
+        fun isBoolean(expr: Expression): Boolean {
+            return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
+                true
+            else if(expr is BinaryExpression && expr.operator in ComparisonOperators+listOf("and", "or", "xor"))
+                true
+            else if(expr is PrefixExpression && expr.operator == "not")
+                true
+            else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
+                if(isBoolean(expr.left) && isBoolean(expr.right))
+                    true
+                else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
+            }
+            else
+                false
+        }
+
+        return if(isBoolean(expr))
             expr
-        else if(expr is BinaryExpression && expr.operator in LogicalOperators+ComparisonOperators)
-            expr
-//        else if(expr is PrefixExpression && expr.operator == "not")          // TODO should work for 'not' too but now causes assembler to generate wrong code (even without optimizations)
-//            expr
         else
-            FunctionCallExpression(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
+            BuiltinFunctionCall(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
     }
 }

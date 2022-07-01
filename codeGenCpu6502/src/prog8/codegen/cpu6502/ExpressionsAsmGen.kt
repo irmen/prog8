@@ -768,9 +768,6 @@ internal class ExpressionsAsmGen(private val program: Program,
             "&" -> asmgen.out("  jsr  prog8_lib.bitand_b")
             "^" -> asmgen.out("  jsr  prog8_lib.bitxor_b")
             "|" -> asmgen.out("  jsr  prog8_lib.bitor_b")
-            "and" -> asmgen.out("  jsr  prog8_lib.and_b")
-            "or" -> asmgen.out("  jsr  prog8_lib.or_b")
-            "xor" -> asmgen.out("  jsr  prog8_lib.xor_b")
             else -> throw AssemblyError("invalid operator $operator")
         }
     }
@@ -802,9 +799,6 @@ internal class ExpressionsAsmGen(private val program: Program,
             "&" -> asmgen.out("  jsr  prog8_lib.bitand_w")
             "^" -> asmgen.out("  jsr  prog8_lib.bitxor_w")
             "|" -> asmgen.out("  jsr  prog8_lib.bitor_w")
-            "and" -> asmgen.out("  jsr  prog8_lib.and_w")
-            "or" -> asmgen.out("  jsr  prog8_lib.or_w")
-            "xor" -> asmgen.out("  jsr  prog8_lib.xor_w")
             else -> throw AssemblyError("invalid operator $operator")
         }
     }
@@ -821,7 +815,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             ">=" -> asmgen.out("  jsr  floats.greatereq_f")
             "==" -> asmgen.out("  jsr  floats.equal_f")
             "!=" -> asmgen.out("  jsr  floats.notequal_f")
-            "%", "<<", ">>", "&", "^", "|", "and", "or", "xor" -> throw AssemblyError("requires integer datatype")
+            "%", "<<", ">>", "&", "^", "|" -> throw AssemblyError("requires integer datatype")
             else -> throw AssemblyError("invalid operator $operator")
         }
     }

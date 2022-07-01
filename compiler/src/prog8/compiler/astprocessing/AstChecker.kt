@@ -859,11 +859,6 @@ internal class AstChecker(private val program: Program,
                         errors.err("remainder can only be used on unsigned integer operands", expr.right.position)
                 }
             }
-            "and", "or", "xor" -> {
-                // only integer numeric operands accepted
-                if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
-                    errors.err("logical operator can only be used on boolean operands", expr.right.position)
-            }
             "&", "|", "^" -> {
                 // only integer numeric operands accepted
                 if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)

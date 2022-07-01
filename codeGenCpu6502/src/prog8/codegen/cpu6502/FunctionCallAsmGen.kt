@@ -3,7 +3,10 @@ package prog8.codegen.cpu6502
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.*
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.Expression
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource

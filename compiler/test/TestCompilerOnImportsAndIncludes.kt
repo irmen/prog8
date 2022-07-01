@@ -11,7 +11,6 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.*
-import prog8tests.helpers.compileFile
 import kotlin.io.path.name
 
 

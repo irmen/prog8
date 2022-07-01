@@ -12,7 +12,10 @@ import prog8.ast.statements.IfElse
 import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.AssociativeOperators
+import prog8.code.core.DataType
+import prog8.code.core.IntegerDatatypes
+import prog8.code.core.NumericDatatypes
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -194,34 +197,8 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         }
 
         // simplify when a term is constant and directly determines the outcome
-        val constTrue = NumericLiteral.fromBoolean(true, expr.position)
         val constFalse = NumericLiteral.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {
-            "or" -> {
-                when {
-                    leftVal != null && leftVal.asBooleanValue || rightVal != null && rightVal.asBooleanValue -> constTrue
-                    leftVal != null && !leftVal.asBooleanValue -> expr.right
-                    rightVal != null && !rightVal.asBooleanValue -> expr.left
-                    else -> null
-                }
-            }
-            "and" -> {
-                when {
-                    leftVal != null && !leftVal.asBooleanValue || rightVal != null && !rightVal.asBooleanValue -> constFalse
-                    leftVal != null && leftVal.asBooleanValue -> expr.right
-                    rightVal != null && rightVal.asBooleanValue -> expr.left
-                    else -> null
-                }
-            }
-            "xor" -> {
-                when {
-                    leftVal != null && !leftVal.asBooleanValue -> expr.right
-                    rightVal != null && !rightVal.asBooleanValue -> expr.left
-                    leftVal != null && leftVal.asBooleanValue -> BinaryExpression(expr.right, "==", NumericLiteral.optimalInteger(0, Position.DUMMY), expr.right.position)
-                    rightVal != null && rightVal.asBooleanValue -> BinaryExpression(expr.left, "==", NumericLiteral.optimalInteger(0, Position.DUMMY), expr.left.position)
-                    else -> null
-                }
-            }
             "|" -> {
                 when {
                     leftVal?.number==0.0 -> expr.right
@@ -315,25 +292,6 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
         }
 
-        return noModifications
-    }
-
-    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
-        val range = containment.iterable as? RangeExpression
-        if(range!=null && range.step.constValue(program)?.number==1.0) {
-            val from = range.from.constValue(program)
-            val to = range.to.constValue(program)
-            val value = containment.element
-            if(from!=null && to!=null && value.isSimple) {
-                if(to.number-from.number>6.0) {
-                    // replace containment test with X>=from and X<=to
-                    val left = BinaryExpression(value, ">=", from, containment.position)
-                    val right = BinaryExpression(value.copy(), "<=", to, containment.position)
-                    val comparison = BinaryExpression(left, "and", right, containment.position)
-                    return listOf(IAstModification.ReplaceNode(containment, comparison, parent))
-                }
-            }
-        }
         return noModifications
     }
 

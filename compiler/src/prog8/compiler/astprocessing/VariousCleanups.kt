@@ -71,22 +71,15 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             // +X --> X
             return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
         }
-        else if(expr.operator == "not") {
-            // not(x)  -->  x==0
-            // this means that "not" will never occur anywhere again in the ast after this
-            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
-            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
-            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
-        }
         return noModifications
     }
 
     override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        // try to replace a multi-comparison expression (if x==1 or x==2 or x==3 ... ) by a simple containment check.
+        // try to replace a multi-comparison expression (if x==1 | x==2 | x==3 ... ) by a simple containment check.
         // but only if the containment check is the top-level expression.
         if(parent is BinaryExpression)
             return noModifications
-        if(expr.operator == "or") {
+        if(expr.operator == "|") {
             val leftBinExpr1 = expr.left as? BinaryExpression
             val rightBinExpr1 = expr.right as? BinaryExpression
 
@@ -102,7 +95,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         }
                         return false
                     }
-                    if(expr.operator!="or")
+                    if(expr.operator!="|")
                         return false
                     val leftBinExpr = expr.left as? BinaryExpression
                     val rightBinExpr = expr.right as? BinaryExpression
@@ -227,14 +220,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         if(functionCallExpr.target.nameInSource==listOf("boolean")) {
-            // boolean(expr) can be removed if expr is a logical expression or comparison expression itself, or boolean()
+            // boolean(expr) can be removed if expr is a comparison expression, or nested boolean()
             val binexpr = functionCallExpr.args.single() as? BinaryExpression
-            if(binexpr!=null && binexpr.operator in LogicalOperators + ComparisonOperators) {
+            if(binexpr!=null && binexpr.operator in ComparisonOperators) {
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, binexpr, parent))
-            }
-            val prefixExpression = functionCallExpr.args.single() as? PrefixExpression
-            if(prefixExpression!=null && prefixExpression.operator in LogicalOperators) {
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, prefixExpression, parent))
             }
             val fcall = functionCallExpr.args.single() as? IFunctionCall
             if(fcall!=null && fcall.target.nameInSource==listOf("boolean")) {

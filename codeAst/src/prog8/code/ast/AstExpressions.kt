@@ -73,6 +73,7 @@ class PtBuiltinFunctionCall(val name: String,
 
 
 class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+    // note: "and", "or", "xor" do not occur anymore as operators. They've been replaced int the ast by their bitwise versions &, |, ^.
     val left: PtExpression
         get() = children[0] as PtExpression
     val right: PtExpression

@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- re-enable unittest "various 'not' operator rewrites even without optimizations on" when not-problem is fixed
+
 - petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
 
 - code gen for if statements has become inefficient? vm/6502?
@@ -16,15 +18,6 @@ For next release
             }
 
 - petaxian.prg became quite a bit (200 bytes) larger, why!? because of the above?
-
-- get rid of logical and/or/xor in the codegen (6502+vm)
-  because bitwise versions + correct use of boolean() operand wrapping are equivalent?
-  can do this for instance by replacing and/or/xor with their bitwise versions &, |, ^
-- ...or: 6502: fix logical and/or/xor routines to just be bitwise routines.
-
-- not-problem: assembler generates faulty code when in wrapWithBooleanConversion() the "not" rule is enabled
-  so that these are not wrapped   (even without optimizations)
-- re-enable unittest "various 'not' operator rewrites even without optimizations on" when not-problem is fixed
 
 - compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
   this is not the case for the 6502 codegen.

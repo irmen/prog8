@@ -22,9 +22,6 @@ class ConstExprEvaluator {
                 "&" -> bitwiseand(left, right)
                 "|" -> bitwiseor(left, right)
                 "^" -> bitwisexor(left, right)
-                "and" -> logicaland(left, right)        // TODO bitwise and?
-                "or" -> logicalor(left, right)          // TODO bitwise or?
-                "xor" -> logicalxor(left, right)        // TODO bitwise xor?
                 "<" -> NumericLiteral.fromBoolean(left < right, left.position)
                 ">" -> NumericLiteral.fromBoolean(left > right, left.position)
                 "<=" -> NumericLiteral.fromBoolean(left <= right, left.position)
@@ -56,57 +53,6 @@ class ConstExprEvaluator {
             throw ExpressionError("cannot compute $left << $amount", left.position)
         val result = left.number.toInt().shl(amount.number.toInt())
         return NumericLiteral(left.type, result.toDouble(), left.position)
-    }
-
-    private fun logicalxor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left logical-xor $right"
-        return when (left.type) {
-            in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean((left.number.toInt() != 0) xor (right.number.toInt() != 0), left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean((left.number.toInt() != 0) xor (right.number != 0.0), left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            DataType.FLOAT -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean((left.number != 0.0) xor (right.number.toInt() != 0), left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean((left.number != 0.0) xor (right.number != 0.0), left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
-    }
-
-    private fun logicalor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left logical-or $right"
-        return when (left.type) {
-            in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number.toInt() != 0 || right.number.toInt() != 0, left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean(left.number.toInt() != 0 || right.number != 0.0, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            DataType.FLOAT -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number != 0.0 || right.number.toInt() != 0, left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean(left.number != 0.0 || right.number != 0.0, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
-    }
-
-    private fun logicaland(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        val error = "cannot compute $left logical-and $right"
-        return when (left.type) {
-            in IntegerDatatypes -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number.toInt() != 0 && right.number.toInt() != 0, left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean(left.number.toInt() != 0 && right.number != 0.0, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            DataType.FLOAT -> when (right.type) {
-                in IntegerDatatypes -> NumericLiteral.fromBoolean(left.number != 0.0 && right.number.toInt() != 0, left.position)
-                DataType.FLOAT -> NumericLiteral.fromBoolean(left.number != 0.0 && right.number != 0.0, left.position)
-                else -> throw ExpressionError(error, left.position)
-            }
-            else -> throw ExpressionError(error, left.position)
-        }
     }
 
     private fun bitwisexor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {

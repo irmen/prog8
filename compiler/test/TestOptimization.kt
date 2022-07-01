@@ -649,6 +649,7 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        printProgram(result.program)
         /*
         expected result:
         ubyte[] auto_heap_var = [1,4,99,3]

@@ -390,9 +390,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     bne  -
 +""")
             }
-            "&", "and" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
-            "|", "or" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
-            "^", "xor" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
+            "&" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
+            "|" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
+            "^" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.storeAIntoZpPointerVar(sourceName)
@@ -427,9 +427,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         bne  -
 +""")
             }
-            "&", "and" -> asmgen.out(" and  $otherName")
-            "|", "or" -> asmgen.out(" ora  $otherName")
-            "^", "xor" -> asmgen.out(" eor  $otherName")
+            "&" -> asmgen.out(" and  $otherName")
+            "|" -> asmgen.out(" ora  $otherName")
+            "^" -> asmgen.out(" eor  $otherName")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.storeAIntoZpPointerVar(sourceName)
@@ -484,17 +484,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     asmgen.storeAIntoZpPointerVar(sourceName)
                 }
             }
-            "&", "and" -> {
+            "&" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  and  #$value")
                 asmgen.storeAIntoZpPointerVar(sourceName)
             }
-            "|", "or" -> {
+            "|"-> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  ora  #$value")
                 asmgen.storeAIntoZpPointerVar(sourceName)
             }
-            "^", "xor" -> {
+            "^" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  eor  #$value")
                 asmgen.storeAIntoZpPointerVar(sourceName)
@@ -562,15 +562,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                 }
             }
-            "&", "and" -> {
+            "&" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  and  $name |  sta  $name")
             }
-            "|", "or" -> {
+            "|" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  ora  $name |  sta  $name")
             }
-            "^", "xor" -> {
+            "^" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  eor  $name |  sta  $name")
             }
@@ -648,9 +648,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                 }
             }
-            "&", "and" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
-            "|", "or" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
-            "^", "xor" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
+            "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
             "==" -> {
                 asmgen.out("""
                     lda  $otherName
@@ -739,9 +739,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            "&", "and" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-            "|", "or" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
-            "^", "xor" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+            "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
+            "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
+            "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "==" -> {
                 asmgen.out("""
                     lda  $name
@@ -784,15 +784,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     sbc  P8ZP_SCRATCH_B1
                     sta  $name""")
             }
-            "|", "or" -> {
+            "|" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
-            "&", "and" -> {
+            "&" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  and  $name  |  sta  $name")
             }
-            "^", "xor" -> {
+            "^" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
@@ -827,11 +827,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     dec  $name+1
 +""")
             }
-            "|", "or" -> {
+            "|" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
-            "&", "and" -> {
+            "&" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  and  $name  |  sta  $name")
                 if(dt in WordDatatypes) {
@@ -841,7 +841,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         asmgen.out("  lda  #0 |  sta  $name+1")
                 }
             }
-            "^", "xor" -> {
+            "^" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
@@ -1058,7 +1058,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            "&", "and" -> {
+            "&" -> {
                 when {
                     value == 0 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -1095,7 +1095,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> asmgen.out("  lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
                 }
             }
-            "|", "or" -> {
+            "|" -> {
                 when {
                     value == 0 -> {}
                     value and 255 == 0 -> asmgen.out("  lda  $name+1 |  ora  #>$value |  sta  $name+1")
@@ -1103,7 +1103,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> asmgen.out("  lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
                 }
             }
-            "^", "xor" -> {
+            "^" -> {
                 when {
                     value == 0 -> {}
                     value and 255 == 0 -> asmgen.out("  lda  $name+1 |  eor  #>$value |  sta  $name+1")
@@ -1267,7 +1267,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 +""")
                         }
                     }
-                    "&", "and" -> {
+                    "&" -> {
                         asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
                         if(dt in WordDatatypes) {
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -1276,8 +1276,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 asmgen.out("  lda  #0 |  sta  $name+1")
                         }
                     }
-                    "|", "or" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
-                    "^", "xor" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
+                    "|" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
+                    "^" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1348,9 +1348,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         """)
                     }
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
-                    "&", "and" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
-                    "|", "or" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
-                    "^", "xor" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
+                    "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
+                    "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
+                    "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1520,7 +1520,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             bne  -
 +""")
                     }
-                    "&", "and" -> {
+                    "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
                         if(dt in WordDatatypes) {
@@ -1530,11 +1530,11 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                 asmgen.out("  lda  #0 |  sta  $name+1")
                         }
                     }
-                    "|", "or" -> {
+                    "|" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  ora  $name |  sta  $name")
                     }
-                    "^", "xor" -> {
+                    "^" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  eor  $name |  sta  $name")
                     }
@@ -1566,15 +1566,15 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         remainderVarByWordInAY()
                     }
                     "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
-                    "&", "and" -> {
+                    "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  and  $name |  sta  $name |  tya |  and  $name+1 |  sta  $name+1")
                     }
-                    "|", "or" -> {
+                    "|" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  ora  $name |  sta  $name |  tya |  ora  $name+1 |  sta  $name+1")
                     }
-                    "^", "xor" -> {
+                    "^" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  eor  $name |  sta  $name |  tya |  eor  $name+1 |  sta  $name+1")
                     }

@@ -2,7 +2,6 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.ast.Program
 import prog8.ast.expressions.*
-import prog8.ast.getTempRegisterName
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
@@ -320,64 +319,6 @@ internal class AssignmentAsmGen(private val program: Program,
 
         if(!expr.inferType(program).isInteger)
             return false
-
-        // optimized code for logical expressions
-        // note: due to boolean() wrapping of operands, we can use simple bitwise and/or/xor
-        // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this...
-        if(expr.operator=="and") {
-            val iDt = expr.left.inferType(program)
-            val dt = iDt.getOrElse { throw AssemblyError("weird dt") }
-            if (dt in ByteDatatypes) {
-                val tmpReg = getTempRegisterName(iDt).joinToString(".")
-                assignExpressionToVariable(expr.left, tmpReg, dt, expr.definingSubroutine)
-                assignExpressionToRegister(expr.right, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
-                asmgen.out("  and  $tmpReg")
-                if(assign.target.datatype in ByteDatatypes)
-                    assignRegisterByte(assign.target, CpuRegister.A)
-                else {
-                    asmgen.out("  ldy  #0")
-                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                }
-                return true
-            }
-            else throw AssemblyError("weird dt for and, expected byte $expr @${expr.position}")
-        }
-        else if(expr.operator=="or") {
-            val iDt = expr.left.inferType(program)
-            val dt = iDt.getOrElse { throw AssemblyError("weird dt") }
-            if (dt in ByteDatatypes) {
-                val tmpReg = getTempRegisterName(iDt).joinToString(".")
-                assignExpressionToVariable(expr.left, tmpReg, dt, expr.definingSubroutine)
-                assignExpressionToRegister(expr.right, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
-                asmgen.out("  ora  $tmpReg")
-                if(assign.target.datatype in ByteDatatypes)
-                    assignRegisterByte(assign.target, CpuRegister.A)
-                else {
-                    asmgen.out("  ldy  #0")
-                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                }
-                return true
-            }
-            else throw AssemblyError("weird dt for or, expected byte $expr @${expr.position}")
-        }
-        else if(expr.operator=="xor") {
-            val iDt = expr.left.inferType(program)
-            val dt = iDt.getOrElse { throw AssemblyError("weird dt") }
-            if (dt in ByteDatatypes) {
-                val tmpReg = getTempRegisterName(iDt).joinToString(".")
-                assignExpressionToVariable(expr.left, tmpReg, dt, expr.definingSubroutine)
-                assignExpressionToRegister(expr.right, RegisterOrPair.A, dt==DataType.BYTE || dt==DataType.WORD)
-                asmgen.out("  eor  $tmpReg")
-                if(assign.target.datatype in ByteDatatypes)
-                    assignRegisterByte(assign.target, CpuRegister.A)
-                else {
-                    asmgen.out("  ldy  #0")
-                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                }
-                return true
-            }
-            else throw AssemblyError("weird dt for xor, expected byte $expr @${expr.position}")
-        }
 
         if(expr.operator!="+" && expr.operator!="-")
             return false
