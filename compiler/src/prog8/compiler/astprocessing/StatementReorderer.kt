@@ -307,13 +307,12 @@ internal class StatementReorderer(val program: Program,
                         val newValue = BinaryExpression(leftBinExpr.left, binExpr.operator, newRight, binExpr.position)
                         listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
                     }
-                    else if(leftBinExpr.left.constValue(program)!=null && binExpr.right.constValue(program)!=null) {
+                    else {
                         // A = (x <associative-operator> A) <same-operator> y ==> A = A <associative-operator> (x <same-operator> y)
                         val newRight = BinaryExpression(leftBinExpr.left, binExpr.operator, binExpr.right, binExpr.position)
                         val newValue = BinaryExpression(leftBinExpr.right, binExpr.operator, newRight, binExpr.position)
                         listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
                     }
-                    else noModifications
                 }
                 val rightBinExpr = binExpr.right as? BinaryExpression
                 if(rightBinExpr?.operator == binExpr.operator) {

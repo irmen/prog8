@@ -3,22 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- petaxian roller.p8 line 49  (also see test.p8) generates large code compared to 8.2
+- logical.p8 is huge compared to 8.2
 
-- code gen for if statements has become inefficient? vm/6502?
-        if not a or not b
-            return 0
-- code gen for while loops has become inefficient:  (until loops probably as well)
-  (maybe solved when if statements code has been fixed)
-             while c64.CHRIN()!='\"'  {
-                if c64.READST()
-                    goto close_end
-            }
+- compiling logical.p8 to virtual with optimization generates code that is smaller,
+  but takes many more vm instructions to execute than not-optimized code!?
 
-- petaxian.prg became quite a bit (200 bytes) larger, why!? because of the above?
-
-- compiling logical.p8 to virtual with optimization generates a lot larger code as without optimizations.
-  this is not the case for the 6502 codegen.
+- petaxian.prg became quite a bit (150 bytes) larger since 8.2, what causes that
 
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
