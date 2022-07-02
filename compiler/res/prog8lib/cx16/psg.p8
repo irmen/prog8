@@ -23,10 +23,10 @@ psg {
 ;        ; this would rely on floating point math to convert hertz to vera frequency
 ;        ; TODO should be replaced by integer math maybe with a lookup table?
 ;        uword vera_freq = (hertz / 0.3725290298461914) as uword
-;        freq_vera(voice_num, vera_freq)
+;        freq(voice_num, vera_freq)
 ;    }
 
-    sub freq_vera(ubyte voice_num, uword vera_freq) {
+    sub freq(ubyte voice_num, uword vera_freq) {
         cx16.vpoke(1, $f9c1 + voice_num*4, msb(vera_freq))
         cx16.vpoke(1, $f9c0 + voice_num*4, lsb(vera_freq))
     }
@@ -53,47 +53,49 @@ psg {
     }
 
     sub silent() {
-        ubyte voice
-        for voice in 0 to 15 {
-            volume(voice, 0)
-            envelope_volumes[voice] = 0
-            envelope_states[voice] = 1
+        for cx16.r9L in 0 to 15 {
+            volume(cx16.r9L, 0)
+            envelope_volumes[cx16.r9L] = 0
+            envelope_states[cx16.r9L] = 1
         }
     }
 
     sub envelopes_irq() {
-        ubyte vera_ctrl = cx16.VERA_CTRL
-        ubyte vera_addr_h = cx16.VERA_ADDR_H
-        ubyte vera_addr_m = cx16.VERA_ADDR_M
-        ubyte vera_addr_l = cx16.VERA_ADDR_L
-        uword vol_word
-        ubyte voice
-        for voice in 0 to 15 {
-            if envelope_states[voice] {
+        ; cx16.r0 = the volume word (volume scaled by 256)
+        ; cx16.r15L = the voice number
+        ; the other virtual registers are used to backup vera registers.
+
+        cx16.r13L = cx16.VERA_CTRL
+        cx16.r13H = cx16.VERA_ADDR_L
+        cx16.r14L = cx16.VERA_ADDR_M
+        cx16.r14H = cx16.VERA_ADDR_H
+
+        for cx16.r15L in 0 to 15 {
+            if envelope_states[cx16.r15L] {
                 ; release
-                vol_word = envelope_volumes[voice] - envelope_releases[voice]
-                if msb(vol_word) & %11000000 {
-                    vol_word = 0
-                    envelope_releases[voice] = 0
+                cx16.r0 = envelope_volumes[cx16.r15L] - envelope_releases[cx16.r15L]
+                if msb(cx16.r0) & %11000000 {
+                    cx16.r0 = 0
+                    envelope_releases[cx16.r15L] = 0
                 }
-                envelope_volumes[voice] = vol_word
-                volume(voice, msb(vol_word))
+                envelope_volumes[cx16.r15L] = cx16.r0
+                volume(cx16.r15L, msb(cx16.r0))
             } else {
                 ; attack
-                vol_word = envelope_volumes[voice] + envelope_attacks[voice]
-                if msb(vol_word) & %11000000 or envelope_attacks[voice]==0 {
-                    vol_word = mkword(63, 0)
-                    envelope_attacks[voice] = 0
-                    envelope_states[voice] = 1  ; start release
+                cx16.r0 = envelope_volumes[cx16.r15L] + envelope_attacks[cx16.r15L]
+                if msb(cx16.r0) & %11000000 or envelope_attacks[cx16.r15L]==0 {
+                    cx16.r0 = mkword(63, 0)
+                    envelope_attacks[cx16.r15L] = 0
+                    envelope_states[cx16.r15L] = 1  ; start release
                 }
-                envelope_volumes[voice] = vol_word
-                volume(voice, msb(vol_word))
+                envelope_volumes[cx16.r15L] = cx16.r0
+                volume(cx16.r15L, msb(cx16.r0))
             }
         }
-        cx16.VERA_CTRL = vera_ctrl
-        cx16.VERA_ADDR_L = vera_addr_l
-        cx16.VERA_ADDR_M = vera_addr_m
-        cx16.VERA_ADDR_H = vera_addr_h
+        cx16.VERA_CTRL = cx16.r13L
+        cx16.VERA_ADDR_L = cx16.r13H
+        cx16.VERA_ADDR_M = cx16.r14L
+        cx16.VERA_ADDR_H = cx16.r14H
     }
 
     ubyte[16] envelope_states

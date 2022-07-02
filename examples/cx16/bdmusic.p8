@@ -1,6 +1,5 @@
 %import textio
 %import syslib
-%import floats
 %import psg
 
 main {
@@ -20,18 +19,16 @@ main {
             for note in notes {
                 ubyte note0 = lsb(note)
                 ubyte note1 = msb(note)
-                psg.freq_vera(0, vera_freq(note0))
-                psg.freq_vera(1, vera_freq(note1))
+                psg.freq(0, vera_freqs[note0])
+                psg.freq(1, vera_freqs[note1])
                 psg.envelope(0, 255, 6)
                 psg.envelope(1, 255, 6)
                 print_notes(note0, note1)
                 sys.wait(10)
             }
         }
-    }
 
-    sub vera_freq(ubyte note) -> uword {
-        return (freqs_hz[note-10] / 0.3725290298461914) as uword
+        psg.silent()
     }
 
     sub print_notes(ubyte n1, ubyte n2) {
@@ -67,56 +64,12 @@ main {
         $3532, $322e, $2e29, $2926, $2730, $242c, $2027, $1420
     ]
 
-    float[] freqs_hz = [
-            ; first 10 are unused so should index by i-10
-         44.6,
-         47.4,
-         50.4,
-         53.4,
-         56.6,
-         59.6,
-         63.5,
-         67.1,
-         71.3,
-         75.5,
-         80.0,
-         84.7,
-         89.3,
-         94.9,
-        100.7,
-        106.8,
-        113.2,
-        119.3,
-        127.1,
-        134.1,
-        142.7,
-        151.0,
-        160.0,
-        169.5,
-        178.5,
-        189.7,
-        201.4,
-        213.6,
-        226.3,
-        238.5,
-        254.1,
-        268.3,
-        285.3,
-        301.9,
-        320.0,
-        339.0,
-        357.0,
-        379.5,
-        402.9,
-        427.3,
-        452.6,
-        477.0,
-        508.2,
-        536.5,
-        570.7,
-        603.8,
-        639.9,
-        678.0,
-        714.1
-    ]
+    uword[] vera_freqs = [
+        0,0,0,0,0,0,0,0,0,0,   ; first 10 notes are not used
+        120, 127, 135, 143, 152, 160, 170, 180, 191, 203,
+        215, 227, 240, 255, 270, 287, 304, 320, 341, 360,
+        383, 405, 429, 455, 479, 509, 541, 573, 607, 640,
+        682, 720, 766, 810, 859, 910, 958, 1019, 1082, 1147,
+        1215, 1280, 1364, 1440, 1532, 1621, 1718, 1820, 1917]
+
 }
