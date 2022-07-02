@@ -156,3 +156,10 @@ And for the Commander X16::
     cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables kernal irq handler! sys.wait() won't work anymore
     cx16.restore_irq()     ; set everything back to the systems default irq handler
 
+
+The Commander X16 provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers::
+
+    cx16.push_vera_context()
+    ; ... do your work that uses vera here...
+    cx15.pop_vera_context()
+

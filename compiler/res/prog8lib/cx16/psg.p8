@@ -42,6 +42,7 @@ psg {
     }
 
     sub envelope(ubyte voice_num, ubyte attack, ubyte release) {
+        envelope_states[voice_num] = 255
         envelope_attacks[voice_num] = attack * $0040
         envelope_releases[voice_num] = release * $0040
         if attack
@@ -54,9 +55,9 @@ psg {
 
     sub silent() {
         for cx16.r15L in 0 to 15 {
-            volume(cx16.r15L, 0)
-            envelope_volumes[cx16.r15L] = 0
             envelope_states[cx16.r15L] = 255
+            envelope_volumes[cx16.r15L] = 0
+            volume(cx16.r15L, 0)
         }
     }
 
@@ -65,11 +66,7 @@ psg {
         ; cx16.r15L = the voice number
         ; the other virtual registers are used to backup vera registers.
 
-        cx16.r13L = cx16.VERA_CTRL
-        cx16.r13H = cx16.VERA_ADDR_L
-        cx16.r14L = cx16.VERA_ADDR_M
-        cx16.r14H = cx16.VERA_ADDR_H
-
+        ; calculate new volumes
         for cx16.r15L in 0 to 15 {
             when envelope_states[cx16.r15L] {
                 0 -> {
@@ -81,7 +78,6 @@ psg {
                         envelope_states[cx16.r15L] = 1  ; start release
                     }
                     envelope_volumes[cx16.r15L] = cx16.r0
-                    volume(cx16.r15L, msb(cx16.r0))     ; TODO optimize to not use vpoke and use vera auto increment
                 }
                 1 -> {
                     ; release
@@ -91,14 +87,24 @@ psg {
                         envelope_releases[cx16.r15L] = 0
                     }
                     envelope_volumes[cx16.r15L] = cx16.r0
-                    volume(cx16.r15L, msb(cx16.r0))     ; TODO optimize to not use vpoke and use vera auto increment
                 }
             }
         }
-        cx16.VERA_CTRL = cx16.r13L
-        cx16.VERA_ADDR_L = cx16.r13H
-        cx16.VERA_ADDR_M = cx16.r14L
-        cx16.VERA_ADDR_H = cx16.r14H
+
+        ; set new volumes using vera stride of 4
+        cx16.push_vera_context()
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = $c2
+        cx16.VERA_ADDR_M = $f9
+        cx16.VERA_ADDR_H = 1 | %00110000
+        cx16.VERA_CTRL = 1
+        cx16.VERA_ADDR_L = $c2
+        cx16.VERA_ADDR_M = $f9
+        cx16.VERA_ADDR_H = 1 | %00110000
+        for cx16.r15L in 0 to 15 {
+            cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r15L])
+        }
+        cx16.pop_vera_context()
     }
 
     ubyte[16] envelope_states

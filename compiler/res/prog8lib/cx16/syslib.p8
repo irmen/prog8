@@ -735,6 +735,52 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
+inline asmsub push_vera_context() clobbers(A) {
+    ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
+    %asm {{
+        lda  cx16.VERA_ADDR_L
+        pha
+        lda  cx16.VERA_ADDR_M
+        pha
+        lda  cx16.VERA_ADDR_H
+        pha
+        lda  cx16.VERA_CTRL
+        pha
+        eor  #1
+        sta  cx16.VERA_CTRL
+        lda  cx16.VERA_ADDR_L
+        pha
+        lda  cx16.VERA_ADDR_M
+        pha
+        lda  cx16.VERA_ADDR_H
+        pha
+        lda  cx16.VERA_CTRL
+        pha
+    }}
+}
+
+inline asmsub pop_vera_context() clobbers(A) {
+    ; -- use this at the end of your IRQ handler if it uses Vera registers, to restore the state
+    %asm {{
+        pla
+        sta  cx16.VERA_CTRL
+        pla
+        sta  cx16.VERA_ADDR_H
+        pla
+        sta  cx16.VERA_ADDR_M
+        pla
+        sta  cx16.VERA_ADDR_L
+        pla
+        sta  cx16.VERA_CTRL
+        pla
+        sta  cx16.VERA_ADDR_H
+        pla
+        sta  cx16.VERA_ADDR_M
+        pla
+        sta  cx16.VERA_ADDR_L
+    }}
+}
+
 
 asmsub  restore_irq() clobbers(A) {
 	%asm {{
