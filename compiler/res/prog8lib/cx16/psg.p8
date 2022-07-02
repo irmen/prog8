@@ -41,9 +41,10 @@ psg {
         cx16.vpoke(1, reg, cx16.vpeek(1, reg) & %11000000 | pw)
     }
 
-    sub envelope(ubyte voice_num, ubyte attack, ubyte release) {
+    sub envelope(ubyte voice_num, ubyte attack, ubyte sustain, ubyte release) {
         envelope_states[voice_num] = 255
         envelope_attacks[voice_num] = attack * $0040
+        envelope_sustains[voice_num] = sustain
         envelope_releases[voice_num] = release * $0040
         if attack
             attack = 0
@@ -75,11 +76,19 @@ psg {
                     if msb(cx16.r0) & %11000000 or envelope_attacks[cx16.r15L]==0 {
                         cx16.r0 = mkword(63, 0)
                         envelope_attacks[cx16.r15L] = 0
-                        envelope_states[cx16.r15L] = 1  ; start release
+                        envelope_states[cx16.r15L] = 1  ; start sustain
                     }
                     envelope_volumes[cx16.r15L] = cx16.r0
                 }
                 1 -> {
+                    ; sustain
+                    if envelope_sustains[cx16.r15L] {
+                        envelope_sustains[cx16.r15L]--
+                    } else {
+                        envelope_states[cx16.r15L] = 2  ; start release
+                    }
+                }
+                2 -> {
                     ; release
                     cx16.r0 = envelope_volumes[cx16.r15L] - envelope_releases[cx16.r15L]
                     if msb(cx16.r0) & %11000000 {
@@ -110,5 +119,6 @@ psg {
     ubyte[16] envelope_states
     uword[16] envelope_volumes
     uword[16] envelope_attacks
+    ubyte[16] envelope_sustains
     uword[16] envelope_releases
 }
