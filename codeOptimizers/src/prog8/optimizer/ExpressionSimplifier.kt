@@ -12,10 +12,7 @@ import prog8.ast.statements.IfElse
 import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.AssociativeOperators
-import prog8.code.core.DataType
-import prog8.code.core.IntegerDatatypes
-import prog8.code.core.NumericDatatypes
+import prog8.code.core.*
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
@@ -260,6 +257,12 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, arg.expression, parent))
                 }
             } else {
+                if(arg is IdentifierReference && arg.nameInSource.size==2
+                    && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
+                    // lsb(cx16.r0) -> cx16.r0L
+                    val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'L'), arg.position)
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, highReg, parent))
+                }
                 val argDt = arg.inferType(program)
                 if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless lsb() of byte value
@@ -281,6 +284,12 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                             parent))
                 }
             } else {
+                if(arg is IdentifierReference && arg.nameInSource.size==2
+                    && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {
+                    // msb(cx16.r0) -> cx16.r0H
+                    val highReg = IdentifierReference(listOf("cx16", arg.nameInSource[1]+'H'), arg.position)
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, highReg, parent))
+                }
                 val argDt = arg.inferType(program)
                 if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
                     // useless msb() of byte value, replace with 0

@@ -81,7 +81,7 @@ psg {
                         envelope_states[cx16.r15L] = 1  ; start release
                     }
                     envelope_volumes[cx16.r15L] = cx16.r0
-                    volume(cx16.r15L, msb(cx16.r0))
+                    volume(cx16.r15L, msb(cx16.r0))     ; TODO optimize to not use vpoke and use vera auto increment
                 }
                 1 -> {
                     ; release
@@ -91,7 +91,7 @@ psg {
                         envelope_releases[cx16.r15L] = 0
                     }
                     envelope_volumes[cx16.r15L] = cx16.r0
-                    volume(cx16.r15L, msb(cx16.r0))
+                    volume(cx16.r15L, msb(cx16.r0))     ; TODO optimize to not use vpoke and use vera auto increment
                 }
             }
         }
