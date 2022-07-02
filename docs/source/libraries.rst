@@ -364,3 +364,9 @@ Also contains a helper function to calculate the file size of a loaded file (alt
 to 16 bits, 64Kb)
 
 
+psg  (cx16 only)
+----------------
+Available for the Cx16 target.
+Contains a simple abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
+It includes an interrupt routine to handle simple Attack/Release envelopes as well.
+See the examples/cx16/bdmusic.p8  program for ideas how to use it.

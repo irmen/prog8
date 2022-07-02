@@ -1,53 +1,48 @@
 %import textio
 %import syslib
 %import floats
+%import psg
 
 main {
 
-sub start() {
+    sub start() {
 
-    txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
-    void c64.CHRIN()
-    txt.clear_screen()
+        txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
+        void c64.CHRIN()
+        txt.clear_screen()
 
-    repeat {
-        uword note
-        for note in notes {
-            ubyte note1 = lsb(note)
-            ubyte note2 = msb(note)
-            uword freqR = freq(note1)
-            uword freqL = freq(note2)
-            cx16.vpoke(1, $F9C0, lsb(freqR))
-            cx16.vpoke(1, $F9C1, msb(freqR))
-            cx16.vpoke(1, $F9C2, %10111111)     ; left, max volume
-            cx16.vpoke(1, $F9C3, %10000000)     ; triangle
-            cx16.vpoke(1, $F9C4, lsb(freqL))
-            cx16.vpoke(1, $F9C5, msb(freqL))
-            cx16.vpoke(1, $F9C6, %01111111)     ; right, max volume
-            cx16.vpoke(1, $F9C7, %10000000)     ; triangle
+        psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
+        psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
+        cx16.set_irq(&psg.envelopes_irq, false)
 
-            ; TODO ADSR of some kind?
-
-            print_notes(note1, note2)
-            sys.wait(10)
+        repeat {
+            uword note
+            for note in notes {
+                ubyte note0 = lsb(note)
+                ubyte note1 = msb(note)
+                psg.freq_vera(0, vera_freq(note0))
+                psg.freq_vera(1, vera_freq(note1))
+                psg.envelope(0, 255, 6)
+                psg.envelope(1, 255, 6)
+                print_notes(note0, note1)
+                sys.wait(10)
+            }
         }
     }
-}
 
-sub freq(ubyte note) -> uword {
-    float fword = freqs_hz[note-10] / (48828.125 / 131072.0)       ; formula from the Vera PSG docs
-    return fword as uword
-}
+    sub vera_freq(ubyte note) -> uword {
+        return (freqs_hz[note-10] / 0.3725290298461914) as uword
+    }
 
-sub print_notes(ubyte n1, ubyte n2) {
-    txt.nl()
-    txt.plot(n1, txt.DEFAULT_HEIGHT-1)
-    txt.color(7)
-    txt.chrout('Q')
-    txt.plot(n2, txt.DEFAULT_HEIGHT-1)
-    txt.color(4)
-    txt.chrout('Q')
-}
+    sub print_notes(ubyte n1, ubyte n2) {
+        txt.nl()
+        txt.plot(n1, txt.DEFAULT_HEIGHT-1)
+        txt.color(7)
+        txt.chrout('Q')
+        txt.plot(n2, txt.DEFAULT_HEIGHT-1)
+        txt.color(4)
+        txt.chrout('Q')
+    }
 
 
     ; details about the boulderdash music can be found here:
