@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - optimize msb(cx16.r0) -> cx16.r0H, lsb(cx16.r0) -> cx16.r0L
+- if passing a subroutine or label name as an uword argument, without &, add  the addressof automatically
 - convert the sounds in cx16 tehtriz to use the psg module instead
 - notify petaxian that it could use the psg module too?
 

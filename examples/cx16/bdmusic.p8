@@ -4,12 +4,59 @@
 
 main {
 
-    sub start() {
+    sub explosion() {
+        ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
+        psg.silent()
+        cx16.set_irq(&psg.envelopes_irq, true)
+        psg.voice(0, psg.LEFT, 0, psg.NOISE, 0)
+        psg.voice(1, psg.RIGHT, 0, psg.NOISE, 0)
+        psg.freq(0, 1000)
+        psg.freq(1, 2000)
+        psg.envelope(0, 50, 5)
+        psg.envelope(1, 80, 6)
+        sys.wait(100)
+        psg.silent()
+        cx16.restore_irq()
+    }
 
+    sub sweeping() {
+        ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
+        psg.silent()
+        psg.voice(0, psg.LEFT, 63, psg.PULSE, 0)
+        psg.voice(1, psg.LEFT, 63, psg.PULSE, 1)
+        psg.voice(2, psg.RIGHT, 63, psg.PULSE, 2)
+        psg.voice(3, psg.RIGHT, 63, psg.PULSE, 3)
+        psg.freq(0, 160)
+        psg.freq(1, 161)
+        psg.freq(2, 162)
+        psg.freq(3, 163)
+        repeat {
+            ubyte pw
+            for pw in 0 to 63 {
+                psg.pulse_width(0, pw)
+                psg.pulse_width(1, pw)
+                psg.pulse_width(2, pw)
+                psg.pulse_width(3, pw)
+                sys.wait(2)
+            }
+            for pw in 62 downto 1 {
+                psg.pulse_width(0, pw)
+                psg.pulse_width(1, pw)
+                psg.pulse_width(2, pw)
+                psg.pulse_width(3, pw)
+                sys.wait(2)
+            }
+        }
+        psg.silent()
+    }
+
+
+    sub start() {
         txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
         void c64.CHRIN()
         txt.clear_screen()
 
+        psg.silent()
         psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
         psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
         cx16.set_irq(&psg.envelopes_irq, false)

@@ -53,10 +53,10 @@ psg {
     }
 
     sub silent() {
-        for cx16.r9L in 0 to 15 {
-            volume(cx16.r9L, 0)
-            envelope_volumes[cx16.r9L] = 0
-            envelope_states[cx16.r9L] = 1
+        for cx16.r15L in 0 to 15 {
+            volume(cx16.r15L, 0)
+            envelope_volumes[cx16.r15L] = 0
+            envelope_states[cx16.r15L] = 255
         }
     }
 
@@ -71,25 +71,28 @@ psg {
         cx16.r14H = cx16.VERA_ADDR_H
 
         for cx16.r15L in 0 to 15 {
-            if envelope_states[cx16.r15L] {
-                ; release
-                cx16.r0 = envelope_volumes[cx16.r15L] - envelope_releases[cx16.r15L]
-                if msb(cx16.r0) & %11000000 {
-                    cx16.r0 = 0
-                    envelope_releases[cx16.r15L] = 0
+            when envelope_states[cx16.r15L] {
+                0 -> {
+                    ; attack
+                    cx16.r0 = envelope_volumes[cx16.r15L] + envelope_attacks[cx16.r15L]
+                    if msb(cx16.r0) & %11000000 or envelope_attacks[cx16.r15L]==0 {
+                        cx16.r0 = mkword(63, 0)
+                        envelope_attacks[cx16.r15L] = 0
+                        envelope_states[cx16.r15L] = 1  ; start release
+                    }
+                    envelope_volumes[cx16.r15L] = cx16.r0
+                    volume(cx16.r15L, msb(cx16.r0))
                 }
-                envelope_volumes[cx16.r15L] = cx16.r0
-                volume(cx16.r15L, msb(cx16.r0))
-            } else {
-                ; attack
-                cx16.r0 = envelope_volumes[cx16.r15L] + envelope_attacks[cx16.r15L]
-                if msb(cx16.r0) & %11000000 or envelope_attacks[cx16.r15L]==0 {
-                    cx16.r0 = mkword(63, 0)
-                    envelope_attacks[cx16.r15L] = 0
-                    envelope_states[cx16.r15L] = 1  ; start release
+                1 -> {
+                    ; release
+                    cx16.r0 = envelope_volumes[cx16.r15L] - envelope_releases[cx16.r15L]
+                    if msb(cx16.r0) & %11000000 {
+                        cx16.r0 = 0
+                        envelope_releases[cx16.r15L] = 0
+                    }
+                    envelope_volumes[cx16.r15L] = cx16.r0
+                    volume(cx16.r15L, msb(cx16.r0))
                 }
-                envelope_volumes[cx16.r15L] = cx16.r0
-                volume(cx16.r15L, msb(cx16.r0))
             }
         }
         cx16.VERA_CTRL = cx16.r13L
