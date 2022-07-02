@@ -3,8 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- convert the sounds in cx16 tehtriz to use the psg module instead
-- notify petaxian that it could use the psg module too?
+...
 
 Need help with
 ^^^^^^^^^^^^^^

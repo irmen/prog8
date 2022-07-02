@@ -5,13 +5,12 @@
 ;   wall kick rotations
 ;   shows next piece
 ;   staged speed increase
-;   simplistic sound effects (Vera PSG)
-
+;   simple sound effects (Vera PSG)
 
 %import syslib
 %import textio
 %import test_stack
-
+%import psg
 
 main {
 
@@ -212,11 +211,14 @@ waitkey:
             }
         }
         if num_lines {
-            if num_lines>3
+            if num_lines>3 {
                 sound.lineclear_big()
-            else
+                sys.wait(25) ; slight delay to flash the line
+            }
+            else {
                 sound.lineclear()
-            sys.wait(10) ; slight delay to flash the line
+                sys.wait(15) ; slight delay to flash the line
+            }
             for linepos in complete_lines
                 if linepos and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
@@ -592,71 +594,52 @@ blocklogic {
 sound {
     sub init() {
         cx16.vpoke(1, $f9c2, %00111111)     ; volume max, no channels
+        psg.silent()
+        cx16.set_irq(&psg.envelopes_irq, true)
     }
 
     sub blockrotate() {
         ; soft click/"tschk" sound
-        uword freq = 15600
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
-        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
-        sys.wait(2)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        psg.freq(0, 15600)
+        psg.voice(0, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
+        psg.envelope(0, 200, 1, 100)
     }
 
     sub blockdrop() {
         ; swish
-        uword freq = 4600
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
-        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
-        sys.wait(6)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        psg.freq(1, 4600)
+        psg.voice(1, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
+        psg.envelope(1, 200, 5, 20)
     }
 
     sub swapping() {
         ; beep
-        uword freq = 1500
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11110000)     ; half volume
-        cx16.vpoke(1, $f9c3, %10000000)     ; triangle waveform
-        sys.wait(6)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        psg.freq(2, 1500)
+        psg.voice(2, psg.LEFT | psg.RIGHT, 32, psg.TRIANGLE, 0)
+        psg.envelope(2, 100, 6, 10)
     }
 
     sub lineclear() {
         ; explosion
-        uword freq = 1400
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
-        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
-        sys.wait(8)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        psg.freq(3, 1400)
+        psg.voice(3, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
+        psg.envelope(3, 100, 8, 10)
     }
 
     sub lineclear_big() {
         ; big explosion
-        uword freq = 2500
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
-        cx16.vpoke(1, $f9c3, %11000000)     ; noise waveform
-        sys.wait(30)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        psg.freq(4, 2500)
+        psg.voice(4, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
+        psg.envelope(4, 100, 20, 10)
     }
 
     sub gameover() {
-        ; attempt at buzz/boing (but can't get the sawtooth/triangle combined waveform of the sid)
-        uword freq = 200
-        cx16.vpoke(1, $f9c0, lsb(freq))
-        cx16.vpoke(1, $f9c1, msb(freq))
-        cx16.vpoke(1, $f9c2, %11111111)     ; max volume
-        cx16.vpoke(1, $f9c3, %01000000)     ; sawtooth waveform
-        sys.wait(30)
-        cx16.vpoke(1, $f9c2, 0)     ; shut off
+        ; attempt at buzz/boing
+        psg.freq(5, 300)
+        psg.freq(6, 600)
+        psg.voice(5, psg.LEFT | psg.RIGHT, 0, psg.SAWTOOTH, 0)
+        psg.voice(6, psg.LEFT | psg.RIGHT, 0, psg.TRIANGLE, 0)
+        psg.envelope(5, 100, 30, 10)
+        psg.envelope(6, 100, 30, 10)
     }
 }

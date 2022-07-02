@@ -15,8 +15,10 @@ psg {
     const ubyte RIGHT    = %10000000
 
     sub voice(ubyte voice_num, ubyte channel, ubyte volume, ubyte waveform, ubyte pulsewidth) {
+        envelope_states[voice_num] = 255
         cx16.vpoke(1, $f9c2 + voice_num * 4, channel | volume)
         cx16.vpoke(1, $f9c3 + voice_num * 4, waveform | pulsewidth)
+        envelope_volumes[voice_num] = mkword(volume, 0)
     }
 
 ;    sub freq_hz(ubyte voice_num, float hertz) {
@@ -34,6 +36,7 @@ psg {
     sub volume(ubyte voice_num, ubyte vol) {
         uword reg = $f9c2 + voice_num * 4
         cx16.vpoke(1, reg, cx16.vpeek(1, reg) & %11000000 | vol)
+        envelope_volumes[voice_num] = mkword(vol, 0)
     }
 
     sub pulse_width(ubyte voice_num, ubyte pw) {
@@ -100,7 +103,7 @@ psg {
             }
         }
 
-        ; set new volumes using vera stride of 4
+        ; set new volumes of all 16 voices, using vera stride of 4
         cx16.push_vera_context()
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = $c2
