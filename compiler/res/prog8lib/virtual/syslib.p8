@@ -95,6 +95,15 @@ sys {
             syscall 10
         }}
     }
+
+    sub gfx_getpixel(uword xx, uword yy) -> ubyte {
+        %asm {{
+            loadm.w r0, {sys.gfx_getpixel.xx}
+            loadm.w r1, {sys.gfx_getpixel.yy}
+            syscall 30
+            return
+        }}
+    }
 }
 
 cx16 {

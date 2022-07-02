@@ -1,6 +1,7 @@
 package prog8.vm
 
 import prog8.code.target.virtual.IVirtualMachineRunner
+import java.awt.Color
 import java.awt.Toolkit
 import java.util.*
 import kotlin.math.*
@@ -1797,6 +1798,15 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     fun gfx_plot() {
         window?.plot(registers.getUW(0).toInt(), registers.getUW(1).toInt(), registers.getUB(2).toInt())
+    }
+
+    fun gfx_getpixel() {
+        if(window==null)
+            registers.setUB(0, 0u)
+        else {
+            val color = Color(window!!.getpixel(registers.getUW(0).toInt(), registers.getUW(1).toInt()))
+            registers.setUB(0, color.green.toUByte())
+        }
     }
 
     fun gfx_close() {

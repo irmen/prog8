@@ -35,6 +35,7 @@ SYSCALLS:
 27 = reverse_words array
 28 = reverse_floats array
 29 = compare strings
+30 = gfx_getpixel      ; get byte pixel value at coordinates r0.w/r1.w
 */
 
 enum class Syscall {
@@ -67,7 +68,8 @@ enum class Syscall {
     REVERSE_BYTES,
     REVERSE_WORDS,
     REVERSE_FLOATS,
-    COMPARE_STRINGS
+    COMPARE_STRINGS,
+    GFX_GETPIXEL
 }
 
 object SysCalls {
@@ -114,6 +116,7 @@ object SysCalls {
             Syscall.GFX_ENABLE -> vm.gfx_enable()
             Syscall.GFX_CLEAR -> vm.gfx_clear()
             Syscall.GFX_PLOT -> vm.gfx_plot()
+            Syscall.GFX_GETPIXEL ->vm.gfx_getpixel()
             Syscall.WAIT -> {
                 val millis = vm.registers.getUW(0).toLong() * 1000/60
                 Thread.sleep(millis)
