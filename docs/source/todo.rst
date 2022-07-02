@@ -3,17 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- logical.p8 is huge compared to 8.2
-
-- compiling logical.p8 to virtual with optimization generates code that is smaller,
-  but takes many more vm instructions to execute than not-optimized code!?
-
-- petaxian.prg became quite a bit (150 bytes) larger since 8.2, what causes that
-
-- add some more optimizations in vmPeepholeOptimizer
-- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
-  this info is needed for more advanced optimizations and later code generation steps.
-
+...
 
 Need help with
 ^^^^^^^^^^^^^^
@@ -25,7 +15,10 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-
+- add true 'bool' type that can only be 0 or 1, so that logical expressons don't have to use boolean() all the time on their operands
+- add some more optimizations in vmPeepholeOptimizer
+- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
+  this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.

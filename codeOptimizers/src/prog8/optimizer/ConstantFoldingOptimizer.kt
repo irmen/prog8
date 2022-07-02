@@ -1,18 +1,15 @@
 package prog8.optimizer
 
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
-import prog8.ast.maySwapOperandOrder
-import prog8.ast.statements.ForLoop
-import prog8.ast.statements.VarDecl
-import prog8.ast.statements.VarDeclType
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.DataType
+import prog8.compiler.BuiltinFunctions
 
 
 class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
@@ -265,10 +262,17 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        // the args of a fuction are constfolded via recursion already.
         val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
             listOf(IAstModification.ReplaceNode(functionCallExpr, constvalue, parent))
+        else
+            noModifications
+    }
+
+    override fun after(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> {
+        val constvalue = bfc.constValue(program)
+        return if(constvalue!=null)
+            listOf(IAstModification.ReplaceNode(bfc, constvalue, parent))
         else
             noModifications
     }

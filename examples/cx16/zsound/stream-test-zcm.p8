@@ -3,6 +3,12 @@
 %import cx16diskio
 %zpreserved $22,$2d     ; zsound lib uses this region
 
+; NOTE: this is a proof of concept to stream ZCM digi from disk while playing.
+;       currently there's no real streaming API / circular buffer in zsound,
+;       so it simply loads the whole ZCM file in chunks in memory sequentially.
+;       But it does so while the playback is going on in the background.
+;       It seems fast enough to stream + play 16khz 16bit stereo samples. (around 64 Kb/sec)
+;       Maybe we can go faster but 22 Khz seemed too much to keep up with.
 
 main $0830 {
 
@@ -54,7 +60,7 @@ zsound_lib:
 
         pcm_init()
         pcm_trigger_digi(digi_bank, digi_address)
-        cx16.set_irq(&zsm_playroutine, true)
+        cx16.set_irq(&zsm_playroutine_irq, true)
 
         txt.print("\nstreaming from file, playback in irq!\n")
         uword size = 1
@@ -73,7 +79,7 @@ zsound_lib:
         pcm_stop()  ;unreached
     }
 
-    sub zsm_playroutine() {
+    sub zsm_playroutine_irq() {
         pcm_play()
     }
 }

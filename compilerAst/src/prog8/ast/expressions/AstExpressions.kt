@@ -10,6 +10,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.compiler.BuiltinFunctions
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
@@ -1142,7 +1143,13 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
         replacement.parent = this
     }
 
-    override fun constValue(program: Program): NumericLiteral? = null
+    override fun constValue(program: Program): NumericLiteral? {
+        val function = BuiltinFunctions.getValue(name)
+        if(function.pure) {
+            return program.builtinFunctions.constValue(name, args, position)
+        }
+        return null
+    }
     override fun toString() = "BuiltinFunctionCall(name=$name, pos=$position)"
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)

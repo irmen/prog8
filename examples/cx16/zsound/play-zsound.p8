@@ -45,7 +45,7 @@ zsound_lib:
 
     const ubyte song_bank = 1
     const uword song_address = $a000
-    const ubyte digi_bank = 5
+    const ubyte digi_bank = 6
     const uword digi_address = $a000
     const ubyte zcm_DIGITAB_size = 8        ; header size
 
@@ -81,8 +81,6 @@ zsound_lib:
             txt.print("\nmusic speed: ")
             txt.print_uw(zsm_get_music_speed())
             txt.print(" hz\nplaying song! hit enter to also play a digi sample!\n")
-
-            ; for IRQ based playback instead:  cx16.set_irq(&zsm_playIRQ, true)
 
             repeat {
                 if cx16.joystick_get2(0)!=$ffff
