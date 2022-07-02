@@ -5,12 +5,51 @@ import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.instanceOf
+import prog8.ast.IFunctionCall
+import prog8.ast.expressions.AddressOf
+import prog8.ast.expressions.IdentifierReference
 import prog8.code.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 
 class TestTypecasts: FunSpec({
+
+    test("add missing & to function arguments") {
+        val text="""
+            main  {
+            
+                sub handler(uword fptr) {
+                }
+            
+                sub start() {
+                    uword variable
+            
+                    pushw(variable)
+                    pushw(handler)
+                    pushw(&handler)
+                    handler(variable)
+                    handler(handler)
+                    handler(&handler)
+                }
+            }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 8
+        val arg1 = (stmts[2] as IFunctionCall).args.single()
+        val arg2 = (stmts[3] as IFunctionCall).args.single()
+        val arg3 = (stmts[4] as IFunctionCall).args.single()
+        val arg4 = (stmts[5] as IFunctionCall).args.single()
+        val arg5 = (stmts[6] as IFunctionCall).args.single()
+        val arg6 = (stmts[7] as IFunctionCall).args.single()
+        arg1 shouldBe instanceOf<IdentifierReference>()
+        arg2 shouldBe instanceOf<AddressOf>()
+        arg3 shouldBe instanceOf<AddressOf>()
+        arg4 shouldBe instanceOf<IdentifierReference>()
+        arg5 shouldBe instanceOf<AddressOf>()
+        arg6 shouldBe instanceOf<AddressOf>()
+    }
 
     test("correct typecasts") {
         val text = """

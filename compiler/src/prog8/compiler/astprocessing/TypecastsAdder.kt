@@ -197,6 +197,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             }
                         }
                     }
+                    else {
+                        // if the argument is an identifier reference and the param is UWORD, add the missing &.
+                        if(arg is IdentifierReference && DataType.UWORD == param.type) {
+                            modifications += IAstModification.ReplaceNode(
+                                arg,
+                                AddressOf(arg, arg.position),
+                                call as Node
+                            )
+                        }
+                    }
                 }
             }
             is BuiltinFunctionPlaceholder -> {
@@ -224,6 +234,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                     }
                                 }
                             }
+                        }
+                    }
+                    else {
+                        // if the argument is an identifier reference and the param is UWORD, add the missing &.
+                        if(pair.second is IdentifierReference && DataType.UWORD in pair.first.possibleDatatypes) {
+                            modifications += IAstModification.ReplaceNode(
+                                call.args[index],
+                                AddressOf(pair.second as IdentifierReference, pair.second.position),
+                                call as Node
+                            )
                         }
                     }
                 }
