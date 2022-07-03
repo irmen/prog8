@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- bool data type? see below
+...
 
 
 Need help with
@@ -16,6 +16,8 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
+
+- bool data type? see below
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
@@ -71,7 +73,7 @@ Expressions:
 
 Optimizations:
 
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once (if?) 6502-codegen is no longer done from
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
   the old CompilerAst, those checks should probably be removed, or be made permanent
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
 - AssignmentAsmGen.assignExpression() -> improve code gen for assigning boolean comparison expressions
@@ -87,12 +89,18 @@ because the type of boolean values is UBYTE (so theoretically the value can be a
 
 So the idea is to add a true 'bool' type
 
-- add BOOL datatype
+- add BOOL datatype to enumeration
+- optional (lot of work):
+   - add BooleanLiteral ast node to hold true and false, of type BOOL
+   - make 'true' and 'false' parse into BooleanLiterals
+   - make sure everything works again (all places using NumericLiteral also have to consider BooleanLiteral...)
+   - idea: let BooleanLiteral subclass from NumericLiteral ?
+- add 'bool' type to grammar and parser
+- remove builtin function boolean() replace with typecast to BOOL
 - add ARRAY_OF_BOOL array type
-- assignments to it automatically do boolean() conversion
-- logical expressions don't wrap operand of this type
-- bool & 1 -> bool
-- before codegen, bool type is discarded and it's just UBYTE
+- logical expressions don't cast operands of BOOL type to BOOL anymore...
+- boolvar & 1 -> boolvar
+- before codegen, BOOL type is simply discarded and replaced by UBYTE
 
 
 STRUCTS again?

@@ -41,12 +41,13 @@ internal class VmPeepholeOptimizer(private val vmprog: AssemblyProgram, private 
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
 
-            // TODO: detect multiple loads to the same target, only keep first
-            // TODO: detect multiple stores to the same target, only keep first
-            // TODO: detect multiple ffrom/fto to the same target, only keep first
+            // TODO: detect multiple loads to the same target registers, only keep first (if source is not I/O memory)
+            // TODO: detect multiple stores to the same target, only keep first (if target is not I/O memory)
+            // TODO: detect multiple float ffrom/fto to the same target, only keep first
             // TODO: detect multiple sequential rnd with same reg1, only keep one
-            // TODO: double same xors/nots/negs, remove the pair completely as they cancel out
-            // TODO: multiple same ands, ors, only keep first
+            // TODO: detect subsequent same xors/nots/negs, remove the pairs completely as they cancel out
+            // TODO: detect multiple same ands, ors; only keep first
+            // ...
         }
         return changed
     }
