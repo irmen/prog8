@@ -16,8 +16,14 @@ psg {
 
     sub voice(ubyte voice_num, ubyte channel, ubyte volume, ubyte waveform, ubyte pulsewidth) {
         envelope_states[voice_num] = 255
-        cx16.vpoke(1, $f9c2 + voice_num * 4, channel | volume)
-        cx16.vpoke(1, $f9c3 + voice_num * 4, waveform | pulsewidth)
+        cx16.r0 = $f9c2 + voice_num * 4
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(cx16.r0)
+        cx16.VERA_ADDR_M = msb(cx16.r0)
+        cx16.VERA_ADDR_H = 1
+        cx16.VERA_DATA0 = channel | volume
+        cx16.VERA_ADDR_L++
+        cx16.VERA_DATA0 = waveform | pulsewidth
         envelope_volumes[voice_num] = mkword(volume, 0)
         envelope_maxvolumes[voice_num] = volume
     }
@@ -30,20 +36,26 @@ psg {
 ;    }
 
     sub freq(ubyte voice_num, uword vera_freq) {
-        cx16.vpoke(1, $f9c1 + voice_num*4, msb(vera_freq))
-        cx16.vpoke(1, $f9c0 + voice_num*4, lsb(vera_freq))
+        cx16.r0 = $f9c0 + voice_num * 4
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_L = lsb(cx16.r0)
+        cx16.VERA_ADDR_M = msb(cx16.r0)
+        cx16.VERA_ADDR_H = 1
+        cx16.VERA_DATA0 = lsb(vera_freq)
+        cx16.VERA_ADDR_L++
+        cx16.VERA_DATA0 = msb(vera_freq)
     }
 
     sub volume(ubyte voice_num, ubyte vol) {
-        uword reg = $f9c2 + voice_num * 4
-        cx16.vpoke(1, reg, cx16.vpeek(1, reg) & %11000000 | vol)
+        cx16.r0 = $f9c2 + voice_num * 4
+        cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | vol)
         envelope_volumes[voice_num] = mkword(vol, 0)
         envelope_maxvolumes[voice_num] = vol
     }
 
     sub pulse_width(ubyte voice_num, ubyte pw) {
-        uword reg = $f9c3 + voice_num * 4
-        cx16.vpoke(1, reg, cx16.vpeek(1, reg) & %11000000 | pw)
+        cx16.r0 = $f9c3 + voice_num * 4
+        cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | pw)
     }
 
     sub envelope(ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) {
