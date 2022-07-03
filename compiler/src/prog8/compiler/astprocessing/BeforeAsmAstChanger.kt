@@ -67,6 +67,10 @@ internal class BeforeAsmAstChanger(val program: Program,
         // Try to replace A = B <operator> Something  by A= B, A = A <operator> Something
         // this triggers the more efficent augmented assignment code generation more often.
         // But it can only be done if the target variable IS NOT OCCURRING AS AN OPERAND ITSELF.
+
+        if(options.compTarget.name==VMTarget.NAME)   // don't apply this optimization for Vm target
+            return noModifications
+
         if(!assignment.isAugmentable
             && assignment.target.identifier != null
             && !assignment.target.isIOAddress(options.compTarget.machine)) {
@@ -170,8 +174,35 @@ internal class BeforeAsmAstChanger(val program: Program,
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
         val binExpr = ifElse.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in ComparisonOperators) {
-            // if x  ->  if x!=0,    if x+5  ->  if x+5 != 0
+        if(binExpr==null) {
+            // if x  ->  if x!=0
+            val booleanExpr = BinaryExpression(
+                ifElse.condition,
+                "!=",
+                NumericLiteral.optimalInteger(0, ifElse.condition.position),
+                ifElse.condition.position
+            )
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
+        }
+
+        if(binExpr.operator !in ComparisonOperators) {
+            val constRight = binExpr.right.constValue(program)
+            if(constRight!=null) {
+                if (binExpr.operator == "+") {
+                    // if x+5  ->  if x != -5
+                    val number = NumericLiteral(constRight.type, -constRight.number, constRight.position)
+                    val booleanExpr = BinaryExpression(binExpr.left,"!=", number, ifElse.condition.position)
+                    return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
+                }
+                else if (binExpr.operator == "-") {
+                    // if x-5  ->  if x != 5
+                    val number = NumericLiteral(constRight.type, constRight.number, constRight.position)
+                    val booleanExpr = BinaryExpression(binExpr.left,"!=", number, ifElse.condition.position)
+                    return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
+                }
+            }
+
+            // if x*5  ->  if x*5 != 0
             val booleanExpr = BinaryExpression(
                 ifElse.condition,
                 "!=",

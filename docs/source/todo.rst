@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- bool data type? see below
 
 
 Need help with
@@ -16,7 +16,6 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- add true 'bool' type that can only be 0 or 1, so that logical expressons don't have to use boolean() all the time on their operands
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
@@ -79,6 +78,21 @@ Optimizations:
   Check what the vm target does here, maybe just do this as part of the vm -> 6502 codegen.
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
+
+BOOL data type?
+---------------
+Logical expressions now need to sprinkle boolean() calls on their operands to yield the correct boolean 0 or 1 result.
+This is inefficient because most of the time the operands already are boolean but the compiler doesn't know this
+because the type of boolean values is UBYTE (so theoretically the value can be anything from 0 - 255)
+
+So the idea is to add a true 'bool' type
+
+- add BOOL datatype
+- add ARRAY_OF_BOOL array type
+- assignments to it automatically do boolean() conversion
+- logical expressions don't wrap operand of this type
+- bool & 1 -> bool
+- before codegen, bool type is discarded and it's just UBYTE
 
 
 STRUCTS again?
