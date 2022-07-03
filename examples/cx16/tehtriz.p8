@@ -602,35 +602,35 @@ sound {
         ; soft click/"tschk" sound
         psg.freq(0, 15600)
         psg.voice(0, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
-        psg.envelope(0, 200, 1, 100)
+        psg.envelope(0, 32, 200, 1, 100)
     }
 
     sub blockdrop() {
         ; swish
         psg.freq(1, 4600)
         psg.voice(1, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
-        psg.envelope(1, 200, 5, 20)
+        psg.envelope(1, 32, 200, 5, 20)
     }
 
     sub swapping() {
         ; beep
         psg.freq(2, 1500)
         psg.voice(2, psg.LEFT | psg.RIGHT, 32, psg.TRIANGLE, 0)
-        psg.envelope(2, 100, 6, 10)
+        psg.envelope(2, 40, 100, 6, 10)
     }
 
     sub lineclear() {
         ; explosion
         psg.freq(3, 1400)
         psg.voice(3, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
-        psg.envelope(3, 100, 8, 10)
+        psg.envelope(3, 63, 100, 8, 10)
     }
 
     sub lineclear_big() {
         ; big explosion
         psg.freq(4, 2500)
         psg.voice(4, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
-        psg.envelope(4, 100, 20, 10)
+        psg.envelope(4, 63, 100, 20, 10)
     }
 
     sub gameover() {
@@ -639,7 +639,7 @@ sound {
         psg.freq(6, 600)
         psg.voice(5, psg.LEFT | psg.RIGHT, 0, psg.SAWTOOTH, 0)
         psg.voice(6, psg.LEFT | psg.RIGHT, 0, psg.TRIANGLE, 0)
-        psg.envelope(5, 100, 30, 10)
-        psg.envelope(6, 100, 30, 10)
+        psg.envelope(5, 50, 100, 30, 10)
+        psg.envelope(6, 50, 100, 30, 10)
     }
 }
