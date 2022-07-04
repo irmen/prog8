@@ -6,6 +6,7 @@ enum class DataType {
     UWORD,              // pass by value
     WORD,               // pass by value
     FLOAT,              // pass by value
+    BOOL,               // pass by value
     STR,                // pass by reference
     ARRAY_UB,           // pass by reference
     ARRAY_B,            // pass by reference
@@ -19,11 +20,12 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
         when(this) {
-            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT)
-            BYTE -> targetType.oneOf(BYTE, WORD, FLOAT)
-            UWORD -> targetType.oneOf(UWORD, FLOAT)
-            WORD -> targetType.oneOf(WORD, FLOAT)
-            FLOAT -> targetType == FLOAT
+            BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, FLOAT)
+            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT, BOOL)
+            BYTE -> targetType.oneOf(BYTE, WORD, FLOAT, BOOL)
+            UWORD -> targetType.oneOf(UWORD, FLOAT, BOOL)
+            WORD -> targetType.oneOf(WORD, FLOAT, BOOL)
+            FLOAT -> targetType.oneOf(FLOAT, BOOL)
             STR -> targetType.oneOf(STR, UWORD)
             in ArrayDatatypes -> targetType == this
             else -> false
@@ -109,10 +111,10 @@ enum class BranchCondition {
 }
 
 
-val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE)
+val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.BOOL)
 val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
-val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
-val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
+val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.BOOL)
+val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT, DataType.BOOL)
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)

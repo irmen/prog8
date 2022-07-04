@@ -303,9 +303,19 @@ internal class AssignmentAsmGen(private val program: Program,
 
     private fun attemptAssignOptimizedBinexpr(expr: BinaryExpression, assign: AsmAssignment): Boolean {
         if(expr.operator in ComparisonOperators) {
-            assignConstantByte(assign.target, 0)
+            if(expr.right.constValue(program)?.number == 0.0) {
+                if(expr.operator == "==" || expr.operator=="!=") {
+                    when(assign.target.datatype) {
+                        in ByteDatatypes -> if(attemptAssignToByteCompareZero(expr, assign)) return true
+                        else -> {
+                            // do nothing, this is handled by a type cast.
+                        }
+                    }
+                }
+            }
             val origTarget = assign.target.origAstTarget
             if(origTarget!=null) {
+                assignConstantByte(assign.target, 0)
                 val assignTrue = AnonymousScope(mutableListOf(
                     Assignment(origTarget, NumericLiteral.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
                 ), assign.position)
@@ -452,6 +462,77 @@ internal class AssignmentAsmGen(private val program: Program,
             }
         }
         return false
+    }
+
+    private fun attemptAssignToByteCompareZero(expr: BinaryExpression, assign: AsmAssignment): Boolean {
+        when (expr.operator) {
+            "==" -> {
+                when(val dt = assign.source.datatype) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
+                        asmgen.out("""
+                            beq  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++""")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt==DataType.WORD)
+                        asmgen.out("""
+                            sty  P8ZP_SCRATCH_B1
+                            ora  P8ZP_SCRATCH_B1
+                            beq  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++""")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    DataType.FLOAT -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
+                        asmgen.out("  jsr  floats.SIGN |  and  #1 |  eor  #1")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    else->{
+                        return false
+                    }
+                }
+            }
+            "!=" -> {
+                when(val dt = assign.source.datatype) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
+                        asmgen.out("  beq  + |  lda  #1")
+                        asmgen.out("+")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt==DataType.WORD)
+                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
+                        asmgen.out("  beq  + |  lda  #1")
+                        asmgen.out("+")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    DataType.FLOAT -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
+                        asmgen.out("  jsr  floats.SIGN")
+                        assignRegisterByte(assign.target, CpuRegister.A)
+                        return true
+                    }
+                    else->{
+                        return false
+                    }
+                }
+            }
+            else -> return false
+        }
     }
 
     private fun fallbackToStackEval(assign: AsmAssignment) {

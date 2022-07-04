@@ -813,6 +813,7 @@ class CodeGen(internal val program: PtProgram,
 
     internal fun vmType(type: DataType): VmDataType {
         return when(type) {
+            DataType.BOOL,
             DataType.UBYTE,
             DataType.BYTE -> VmDataType.BYTE
             DataType.UWORD,

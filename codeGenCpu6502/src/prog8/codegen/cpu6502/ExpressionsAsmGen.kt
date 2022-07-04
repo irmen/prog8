@@ -532,8 +532,8 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             in ComparisonOperators -> {
                 if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
-                    val rightVal = expr.right.constValue(program)?.number?.toInt()
-                    if(rightVal==0)
+                    val rightVal = expr.right.constValue(program)?.number
+                    if(rightVal==0.0)
                         return translateComparisonWithZero(expr.left, leftDt, expr.operator)
                 }
             }
@@ -560,6 +560,42 @@ internal class ExpressionsAsmGen(private val program: Program,
     }
 
     private fun translateComparisonWithZero(expr: Expression, dt: DataType, operator: String) {
+        if(expr.isSimple) {
+            if(operator=="!=") {
+                when (dt) {
+                    in ByteDatatypes -> {
+                        asmgen.assignExpressionToRegister(expr, RegisterOrPair.A, dt == DataType.BYTE)
+                        asmgen.out("""
+                            beq  +
+                            lda  #1
++                           sta  P8ESTACK_LO,x
+                            dex""")
+                        return
+                    }
+                    in WordDatatypes -> {
+                        asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, dt == DataType.WORD)
+                        asmgen.out("""
+                            sty  P8ZP_SCRATCH_B1 
+                            ora  P8ZP_SCRATCH_B1
+                            beq  +
+                            lda  #1
++                           sta  P8ESTACK_LO,x
+                            dex""")
+                        return
+                    }
+                    DataType.FLOAT -> {
+                        asmgen.assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
+                        asmgen.out("""
+                            jsr  floats.SIGN
+                            sta  P8ESTACK_LO,x
+                            dex""")
+                        return
+                    }
+                    else -> {}
+                }
+            }
+            /* operator == is not worth it to special case, the code is mostly larger */
+        }
         translateExpressionInternal(expr)
         when(operator) {
             "==" -> {

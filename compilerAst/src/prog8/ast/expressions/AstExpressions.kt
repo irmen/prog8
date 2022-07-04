@@ -213,15 +213,12 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
                     }
                 }
             }
-            "&" -> leftDt
-            "|" -> leftDt
-            "^" -> leftDt
+            "&", "|", "^" -> if(leftDt istype DataType.BOOL) InferredTypes.knownFor(DataType.UBYTE) else leftDt
             "and", "or", "xor", "not" -> InferredTypes.knownFor(DataType.UBYTE)
             "<", ">",
             "<=", ">=",
-            "==", "!=" -> dynamicBooleanType()
+            "==", "!=", "in" -> dynamicBooleanType()
             "<<", ">>" -> leftDt
-            "in" -> dynamicBooleanType()
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
@@ -443,7 +440,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteral(DataType.UBYTE, if (bool) 1.0 else 0.0, position)
+                NumericLiteral(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
@@ -540,6 +537,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
                     return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.BOOL)
+                    return CastValue(true, fromBoolean(number!=0.0, position))
             }
             DataType.BYTE -> {
                 if(targettype== DataType.UBYTE) {
@@ -558,6 +557,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
                     return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.BOOL)
+                    return CastValue(true, fromBoolean(number!=0.0, position))
             }
             DataType.UWORD -> {
                 if(targettype== DataType.BYTE && number <= 127)
@@ -568,6 +569,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return CastValue(true, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
                     return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.BOOL)
+                    return CastValue(true, fromBoolean(number!=0.0, position))
             }
             DataType.WORD -> {
                 if(targettype== DataType.BYTE && number >= -128 && number <=127)
@@ -586,6 +589,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 }
                 if(targettype== DataType.FLOAT)
                     return CastValue(true, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.BOOL)
+                    return CastValue(true, fromBoolean(number!=0.0, position))
             }
             DataType.FLOAT -> {
                 try {
@@ -597,11 +602,18 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                         return CastValue(true, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
                         return CastValue(true, NumericLiteral(targettype, number, position))
+                    if(targettype==DataType.BOOL)
+                        return CastValue(true, fromBoolean(number!=0.0, position))
                 } catch (x: ExpressionError) {
                     return CastValue(false, null)
                 }
             }
-            else -> {}
+            DataType.BOOL -> {
+                return CastValue(true, NumericLiteral(targettype, number, position))
+            }
+            else -> {
+                throw FatalAstException("type cast of weird type $type")
+            }
         }
         return CastValue(false, null)
     }

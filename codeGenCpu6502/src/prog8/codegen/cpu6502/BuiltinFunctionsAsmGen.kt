@@ -44,7 +44,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "abs" -> funcAbs(fcall, func, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
-            "boolean" -> funcBoolean(fcall, resultToStack, resultRegister, sscope)
             "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
             "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
@@ -696,32 +695,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             }
             assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, program, asmgen), RegisterOrPair.AY)
         }
-    }
-
-    private fun funcBoolean(fcall: IFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
-        when (val dt = fcall.args.single().inferType(program).getOr(DataType.UNDEFINED)) {
-            in ByteDatatypes -> {
-                assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.A, dt==DataType.BYTE)
-                asmgen.out("  beq  + |  lda  #1")
-                asmgen.out("+")
-            }
-            in WordDatatypes -> {
-                assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY, dt==DataType.WORD)
-                asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
-                asmgen.out("  beq  + |  lda  #1")
-                asmgen.out("+")
-            }
-            DataType.FLOAT -> {
-                assignAsmGen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.FAC1, true)
-                asmgen.out("  jsr  floats.SIGN")
-            }
-            else -> throw AssemblyError("weird type")
-        }
-
-        if(resultToStack)
-            asmgen.out("  sta  P8ESTACK_LO,x |  dex")
-        else if(resultRegister!=null)
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister, false, scope, program, asmgen), CpuRegister.A)
     }
 
     private fun funcRnd(func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {

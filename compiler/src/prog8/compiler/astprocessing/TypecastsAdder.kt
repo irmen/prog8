@@ -45,6 +45,15 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val rightDt = expr.right.inferType(program)
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
 
+            // convert bool type to byte
+            if(leftDt istype DataType.BOOL && rightDt.isBytes) {
+                return listOf(IAstModification.ReplaceNode(expr.left,
+                    TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
+            } else if(leftDt.isBytes && rightDt istype DataType.BOOL) {
+                return listOf(IAstModification.ReplaceNode(expr.right,
+                    TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
+            }
+
             // convert a negative operand for bitwise operator to the 2's complement positive number instead
             if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
                 val leftCv = expr.left.constValue(program)

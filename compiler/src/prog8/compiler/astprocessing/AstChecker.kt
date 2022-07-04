@@ -876,6 +876,8 @@ internal class AstChecker(private val program: Program,
                 // only exception allowed: str * constvalue
                 if(expr.right.constValue(program)==null)
                     errors.err("can only use string repeat with a constant number value", expr.left.position)
+            } else if(leftDt==DataType.BOOL && rightDt in ByteDatatypes || leftDt in ByteDatatypes && rightDt==DataType.BOOL) {
+                // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
             } else {
                 errors.err("left and right operands aren't the same type", expr.left.position)
             }
@@ -1072,8 +1074,14 @@ internal class AstChecker(private val program: Program,
                     }
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
                         var regname = ident.nameInSource[1].uppercase()
-                        if(regname.endsWith('L') || regname.endsWith('H') || regname.endsWith('s'))
-                            regname=regname.substring(0, regname.length-1)
+                        val lastLetter = regname.last().lowercaseChar()
+                        if(lastLetter in setOf('l', 'h', 's')) {
+                            regname = regname.substring(0, regname.length - 1)
+                            val lastLetter2 = regname.last().lowercaseChar()
+                            if(lastLetter2 in setOf('l', 'h', 's')) {
+                                regname = regname.substring(0, regname.length - 1)
+                            }
+                        }
                         val reg = RegisterOrPair.valueOf(regname)
                         val same = params.filter { it.value.registerOrPair==reg }
                         for(s in same) {
@@ -1370,6 +1378,9 @@ internal class AstChecker(private val program: Program,
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
             }
+            DataType.BOOL -> {
+                return true
+            }
             else -> return err("value of type ${value.type} not compatible with $targetDt")
         }
         return true
@@ -1429,12 +1440,13 @@ internal class AstChecker(private val program: Program,
         }
 
         val result =  when(targetDatatype) {
-            DataType.BYTE -> sourceDatatype== DataType.BYTE
-            DataType.UBYTE -> sourceDatatype== DataType.UBYTE
-            DataType.WORD -> sourceDatatype== DataType.BYTE || sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.WORD
-            DataType.UWORD -> sourceDatatype== DataType.UBYTE || sourceDatatype== DataType.UWORD
+            DataType.BOOL -> sourceDatatype in NumericDatatypes
+            DataType.BYTE -> sourceDatatype == DataType.BYTE || sourceDatatype == DataType.BOOL
+            DataType.UBYTE -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.BOOL
+            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.BOOL)
+            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD || sourceDatatype == DataType.BOOL
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
-            DataType.STR -> sourceDatatype== DataType.STR
+            DataType.STR -> sourceDatatype == DataType.STR
             else -> {
                 errors.err("cannot assign new value to variable of type $targetDatatype", position)
                 false

@@ -3,7 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-...
+- fix compiler crash txt.print_w(value(99) as ubyte)    where value()->word
+- fix imageviewer compilation crash
+
+- petaxian is larger again after introduction of BOOL type (against main branch). WHY??? FIX.
+  caused by replacing cast-to-bool by !=0 expression perhaps rather than optimized asm for boolean() func?
+  boolcheck.p8 illustrates problem: stack eval
 
 
 Need help with
@@ -97,10 +102,13 @@ So the idea is to add a true 'bool' type
    - idea: let BooleanLiteral subclass from NumericLiteral ?
 - add 'bool' type to grammar and parser
 - remove builtin function boolean() replace with typecast to BOOL
-- add ARRAY_OF_BOOL array type
-- logical expressions don't cast operands of BOOL type to BOOL anymore...
-- boolvar & 1 -> boolvar
+- logical expressions don't cast operands of BOOL type to BOOL anymore  (is this done???)
 - before codegen, BOOL type is simply discarded and replaced by UBYTE
+
+THE ABOVE HAS BEEN DONE
+
+- rewrite: boolvar & 1 -> boolvar,   (boolvar & 1 == 0) -> not boolvar
+- add ARRAY_OF_BOOL array type
 
 
 STRUCTS again?

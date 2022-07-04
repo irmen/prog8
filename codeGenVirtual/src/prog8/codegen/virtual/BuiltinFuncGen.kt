@@ -32,7 +32,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
             "msb" -> funcMsb(call, resultRegister)
             "lsb" -> funcLsb(call, resultRegister)
-            "boolean" -> funcBoolean(call, resultRegister)
             "memory" -> funcMemory(call, resultRegister)
             "peek" -> funcPeek(call, resultRegister)
             "peekw" -> funcPeekW(call, resultRegister)
@@ -352,38 +351,6 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
         code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = resultRegister, reg2=resultRegister)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
-        return code
-    }
-
-    private fun funcBoolean(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
-        val code = VmCodeChunk()
-        val vmDt = codeGen.vmType(call.args[0].type)
-        when (vmDt) {
-            VmDataType.FLOAT -> {
-                val fpValueReg = codeGen.vmRegisters.nextFreeFloat()
-                val fpSignReg = codeGen.vmRegisters.nextFreeFloat()
-                code += exprGen.translateExpression(call.args.single(), -1, fpValueReg)
-                code += VmCodeInstruction(Opcode.SGN, VmDataType.FLOAT, fpReg1 = fpSignReg, fpReg2 = fpValueReg)
-                code += VmCodeInstruction(Opcode.FTOSB, VmDataType.FLOAT, reg1 = resultRegister, fpReg1 = fpSignReg)
-            }
-            VmDataType.WORD -> {
-                val msbReg = codeGen.vmRegisters.nextFree()
-                val skipLabel = codeGen.createLabelName()
-                code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
-                code += VmCodeInstruction(Opcode.MSIG, VmDataType.BYTE, reg1 = msbReg, reg2=resultRegister)
-                code += VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=resultRegister, reg2=msbReg)
-                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=resultRegister, labelSymbol = skipLabel)
-                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value = 1)
-                code += VmCodeLabel(skipLabel)
-            }
-            else -> {
-                val skipLabel = codeGen.createLabelName()
-                code += exprGen.translateExpression(call.args.single(), resultRegister, -1)
-                code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=resultRegister, labelSymbol = skipLabel)
-                code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=resultRegister, value = 1)
-                code += VmCodeLabel(skipLabel)
-            }
-        }
         return code
     }
 

@@ -1,6 +1,5 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
@@ -107,8 +106,8 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
                 else -> "invalid"
             }
             return listOf(
-                IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanConversion(expr.left), expr),
-                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanConversion(expr.right), expr),
+                IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanCast(expr.left), expr),
+                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanCast(expr.right), expr),
             )
         }
 
@@ -149,11 +148,11 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return noModifications
     }
 
-    private fun wrapWithBooleanConversion(expr: Expression): Expression {
+    private fun wrapWithBooleanCast(expr: Expression): Expression {
         fun isBoolean(expr: Expression): Boolean {
-            return if(expr is IFunctionCall && expr.target.nameInSource==listOf("boolean"))
+            return if(expr.inferType(program) istype DataType.BOOL)
                 true
-            else if(expr is BinaryExpression && expr.operator in ComparisonOperators+listOf("and", "or", "xor"))
+            else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
                 true
             else if(expr is PrefixExpression && expr.operator == "not")
                 true
@@ -169,6 +168,6 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         return if(isBoolean(expr))
             expr
         else
-            BuiltinFunctionCall(IdentifierReference(listOf("boolean"), expr.position), mutableListOf(expr), expr.position)
+            TypecastExpression(expr, DataType.BOOL, true, expr.position)
     }
 }

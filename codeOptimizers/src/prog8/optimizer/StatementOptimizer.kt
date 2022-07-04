@@ -108,7 +108,7 @@ class StatementOptimizer(private val program: Program,
 
         // empty true part? switch with the else part
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
-            val invertedCondition = BinaryExpression(ifElse.condition, "==", NumericLiteral.fromBoolean(false, ifElse.condition.position), ifElse.condition.position)
+            val invertedCondition = BinaryExpression(ifElse.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, ifElse.condition.position), ifElse.condition.position)
             val emptyscope = AnonymousScope(mutableListOf(), ifElse.elsepart.position)
             val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(

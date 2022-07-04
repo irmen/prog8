@@ -6,9 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
-import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.FunctionCallStatement
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -51,6 +49,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
+        }
+
+        // if the expression is a comparison expression, or a logical expression, it produces the
+        // correct 'boolean' byte result so the cast can be removed.
+        val binExpr = typecast.expression as? BinaryExpression
+        if(binExpr!=null && binExpr.operator in ComparisonOperators + LogicalOperators) {
+            return listOf(IAstModification.ReplaceNode(typecast, binExpr, parent))
         }
 
         return noModifications
@@ -153,7 +158,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         fun replaceWithFalse(): Iterable<IAstModification> {
             errors.warn("condition is always false", containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral.fromBoolean(false, containment.position), parent))
+            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(DataType.UBYTE, 0.0, containment.position), parent))
         }
 
         fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
@@ -218,17 +223,20 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
 
-    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        if(functionCallExpr.target.nameInSource==listOf("boolean")) {
-            // boolean(expr) can be removed if expr is a comparison expression, or nested boolean()
-            val binexpr = functionCallExpr.args.single() as? BinaryExpression
-            if(binexpr!=null && binexpr.operator in ComparisonOperators) {
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, binexpr, parent))
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+
+        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
+            val newReturnTypes = subroutine.returntypes.map {
+                if(it==DataType.BOOL) DataType.UBYTE else it
             }
-            val fcall = functionCallExpr.args.single() as? IFunctionCall
-            if(fcall!=null && fcall.target.nameInSource==listOf("boolean")) {
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, fcall as Node, parent))
-            }
+            val newParams = subroutine.parameters.map {
+                if(it.type==DataType.BOOL) SubroutineParameter(it.name, DataType.UBYTE, it.position) else it
+            }.toMutableList()
+            val newSubroutine = Subroutine(subroutine.name, newParams, newReturnTypes,
+                subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers,
+                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, subroutine.statements,
+                subroutine.position)
+            return listOf(IAstModification.ReplaceNode(subroutine, newSubroutine, parent))
         }
         return noModifications
     }

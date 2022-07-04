@@ -106,7 +106,6 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("lsb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
     FSignature("msb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
     FSignature("mkword"      , true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
-    FSignature("boolean"     , true, listOf(FParam("value", NumericDatatypes)), DataType.UBYTE, ::builtinBoolean),
     FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UBYTE),
     FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
     FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
@@ -249,16 +248,6 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     val constLsb = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = (constMsb.number.toInt() shl 8) or constLsb.number.toInt()
     return NumericLiteral(DataType.UWORD, result.toDouble(), position)
-}
-
-private fun builtinBoolean(args: List<Expression>, position: Position, program: Program): NumericLiteral {
-    if (args.size != 1)
-        throw SyntaxError("boolean requires one argument", position)
-    val constvalue = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return if(constvalue.type==DataType.FLOAT)
-        NumericLiteral(DataType.UBYTE, constvalue.number.sign, args[0].position)
-    else
-        NumericLiteral.fromBoolean(constvalue.number!=0.0, args[0].position)
 }
 
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {

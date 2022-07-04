@@ -47,6 +47,7 @@ object InferredTypes {
         infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
 
+        val isBool get() = datatype == DataType.BOOL
         val isBytes get() = datatype in ByteDatatypes
         val isWords get() = datatype in WordDatatypes
         val isInteger get() = datatype in IntegerDatatypes
@@ -67,6 +68,7 @@ object InferredTypes {
             DataType.UWORD to InferredType.known(DataType.UWORD),
             DataType.WORD to InferredType.known(DataType.WORD),
             DataType.FLOAT to InferredType.known(DataType.FLOAT),
+            DataType.BOOL to InferredType.known(DataType.BOOL),
             DataType.STR to InferredType.known(DataType.STR),
             DataType.ARRAY_UB to InferredType.known(DataType.ARRAY_UB),
             DataType.ARRAY_B to InferredType.known(DataType.ARRAY_B),

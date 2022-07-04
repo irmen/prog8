@@ -8,6 +8,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
@@ -63,7 +64,7 @@ if CONDITION==0
          */
         val pos = untilLoop.position
         val loopLabel = program.makeLabel("untilloop", pos)
-        val equalsZero = BinaryExpression(untilLoop.condition, "==", NumericLiteral.fromBoolean(false, pos), pos)
+        val equalsZero = BinaryExpression(untilLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
@@ -88,7 +89,7 @@ _after:
         val pos = whileLoop.position
         val loopLabel = program.makeLabel("whileloop", pos)
         val afterLabel = program.makeLabel("afterwhile", pos)
-        val equalsZero = BinaryExpression(whileLoop.condition, "==", NumericLiteral.fromBoolean(false, pos), pos)
+        val equalsZero = BinaryExpression(whileLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             IfElse(equalsZero,

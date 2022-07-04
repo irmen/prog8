@@ -15,6 +15,12 @@ internal class BeforeAsmAstChanger(val program: Program,
                                    private val errors: IErrorReporter
 ) : AstWalker() {
 
+    override fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> {
+        if(numLiteral.type==DataType.BOOL)
+            return listOf(IAstModification.ReplaceNode(numLiteral, NumericLiteral(DataType.UBYTE, numLiteral.number, numLiteral.position), parent))
+        return noModifications
+
+    }
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw InternalCompilerException("break should have been replaced by goto $breakStmt")
     }
@@ -58,6 +64,12 @@ internal class BeforeAsmAstChanger(val program: Program,
         if(!options.dontReinitGlobals) {
             if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
                 throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        }
+
+        if(decl.datatype==DataType.BOOL) {
+            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name,
+                decl.value, decl.isArray, decl.sharedWithAsm, decl.subroutineParameter, decl.position)
+            return listOf(IAstModification.ReplaceNode(decl, ubyteDecl, parent))
         }
 
         return noModifications
@@ -167,6 +179,10 @@ internal class BeforeAsmAstChanger(val program: Program,
                 // (non-asm routines get a Return statement as needed, above)
                 mods += IAstModification.InsertLast(InlineAssembly("  rts\n", Position.DUMMY), subroutine)
             }
+        }
+
+        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
+            throw FatalAstException("boolean args and return types to ubyte should already have been done by earlier step")
         }
 
         return mods
