@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash txt.print_w(value(99) as ubyte)    where value()->word
 - fix imageviewer compilation crash
 
 - petaxian is larger again after introduction of BOOL type (against main branch). WHY??? FIX.

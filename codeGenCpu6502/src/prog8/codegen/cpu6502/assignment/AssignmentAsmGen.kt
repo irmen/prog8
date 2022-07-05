@@ -791,6 +791,20 @@ internal class AssignmentAsmGen(private val program: Program,
                 assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", target.datatype)
                 assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes)
             } else {
+                if(!(valueDt isAssignableTo targetDt)) {
+                    if(valueDt in WordDatatypes && targetDt in ByteDatatypes) {
+                        // word to byte, just take the lsb
+                        return assignCastViaLsbFunc(value, target)
+                    } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
+                        // word to word, just assign
+                        assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+                    } else if(valueDt in ByteDatatypes && targetDt in ByteDatatypes) {
+                        // byte to byte, just assign
+                        assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+                    }
+                    else
+                        throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
+                }
                 assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
             }
             return

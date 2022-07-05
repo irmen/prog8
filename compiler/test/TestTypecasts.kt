@@ -16,6 +16,26 @@ import prog8tests.helpers.compileText
 
 class TestTypecasts: FunSpec({
 
+    test("word to byte casts") {
+        val text="""
+            %import textio
+            main {
+                sub func(ubyte arg) -> word {
+                    return arg-99
+                }
+            
+                sub start() {
+                    txt.print_ub(func(0) as ubyte)
+                    txt.print_uw(func(0) as ubyte)
+                    txt.print_w(func(0) as ubyte)
+                }
+            }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 3
+
+    }
+
     test("add missing & to function arguments") {
         val text="""
             main  {
