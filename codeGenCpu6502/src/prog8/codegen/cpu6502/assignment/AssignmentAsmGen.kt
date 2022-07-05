@@ -467,7 +467,7 @@ internal class AssignmentAsmGen(private val program: Program,
     private fun attemptAssignToByteCompareZero(expr: BinaryExpression, assign: AsmAssignment): Boolean {
         when (expr.operator) {
             "==" -> {
-                when(val dt = assign.source.datatype) {
+                when(val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("invalid dt") }) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("""
@@ -504,7 +504,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             "!=" -> {
-                when(val dt = assign.source.datatype) {
+                when(val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("invalid dt") }) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("  beq  + |  lda  #1")

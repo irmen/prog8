@@ -3,11 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix imageviewer compilation crash
-
-- petaxian is larger again after introduction of BOOL type (against main branch). WHY??? FIX.
-  caused by replacing cast-to-bool by !=0 expression perhaps rather than optimized asm for boolean() func?
-  boolcheck.p8 illustrates problem: stack eval
+...
 
 
 Need help with

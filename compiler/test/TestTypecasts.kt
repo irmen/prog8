@@ -16,6 +16,27 @@ import prog8tests.helpers.compileText
 
 class TestTypecasts: FunSpec({
 
+    test("correct evaluation of words in boolean expressions") {
+        val text="""
+            main {
+                sub start() {
+                    uword camg
+                    ubyte @shared interlaced
+                    interlaced = (camg & ${'$'}0004) != 0
+                    interlaced++
+                    interlaced = (${'$'}0004 & camg) != 0
+                    interlaced++
+                    uword @shared ww
+                    ww = (camg & ${'$'}0004)
+                    ww++
+                    ww = (${'$'}0004 & camg)
+                }
+            }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 11
+    }
+
     test("word to byte casts") {
         val text="""
             %import textio
@@ -33,7 +54,6 @@ class TestTypecasts: FunSpec({
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 3
-
     }
 
     test("add missing & to function arguments") {
