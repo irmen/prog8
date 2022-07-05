@@ -300,7 +300,7 @@ type identifier  type                     storage size       example var declara
 ===============  =======================  =================  =========================================
 ``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
 ``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
---               boolean                  1 byte = 8 bits    ``byte myvar = true`` or ``byte myvar == false``
+``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar == false``
                                                              The true and false are actually just aliases
                                                              for the byte values 1 and 0.
 ``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
@@ -312,11 +312,13 @@ type identifier  type                     storage size       example var declara
 ``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
 ``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
 ``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``
+``bool[x]``      boolean array            5*x bytes          ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
 ``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
 ``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
 ``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``
 ``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
+``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
 ``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``
 ``str``          string (petscii)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
@@ -487,6 +489,11 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
 	(which in reality is just a byte value of 1 or 0).
 	Notice that the expression ``not x`` is equivalent to ``x==0``, and the compiler will treat it as such.
+
+	.. note::
+		You can use regular integers directly in logical expressions but these have to be converted to
+		the boolean value 0 or 1 every time, resulting in larger and slower code. Consider using
+		the ``bool`` variable type instead, where this conversion doesn't need to occur.
 
 	.. note::
 		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation

@@ -237,6 +237,20 @@ The signed integers integers are in the range -128..127 for bytes,
 and -32768..32767 for words.
 
 
+Boolean values
+^^^^^^^^^^^^^^
+
+These values are only ``true`` or ``false``, or 1 or 0. An integer's "truthy" value (i.e. a number
+converted to boolean) is ``false`` (0) when it is zero and ``true`` (1) for all other values.
+Logical expressions, comparisons and some other code might compile more efficiently if
+you explicitly use ``bool`` types instead of integers there because that will avoid this conversion.
+In the end the compiler translates boolean variables to a byte that stores just 0 or 1.
+
+If you find that you need a whole bunch of boolean variables or perhaps even an array of them,
+consider using bit masks in regular integer variables instead.
+This saves a lot of memory and may be faster as well.
+
+
 Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -645,7 +659,9 @@ Arithmetic and Logical expressions
 Arithmetic expressions are expressions that calculate a numeric result (integer or floating point).
 Many common arithmetic operators can be used and follow the regular precedence rules.
 Logical expressions are expressions that calculate a boolean result: true or false
-(which in reality are just a 1 or 0 integer value).
+(which in reality are just a 1 or 0 integer value). When using variables of the type ``bool``,
+logical expressions will compile more efficiently than when you're using regular integer type operands
+(because these have to be converted to 0 or 1 every time)
 
 You can use parentheses to group parts of an expresion to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
@@ -774,10 +790,6 @@ sort(array)
 
 Miscellaneous
 ^^^^^^^^^^^^^
-
-boolean(x)
-    Returns a byte value representing the boolean (truthy) value of x, where x can be any numeric type.
-    This means it returns 0 (false) when x equals 0, and 1 otherwise.
 
 cmp(x,y)
     Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!

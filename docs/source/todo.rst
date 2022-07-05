@@ -3,6 +3,13 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- add compiler error when using boolean with operators <,<=,>,>=  (== and != are ok!)
+- add compiler error when using boolean on lhs of operators -,*,/,% (+ is ok!)
+- add compiler error when using boolean on rhs operators /,%
+- test various scenarios of using bool type vs byte actually produces tighter code
+  make unit test of them?
+
+
 ...
 
 
