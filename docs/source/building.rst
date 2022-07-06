@@ -157,6 +157,13 @@ One or more .p8 module files
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 
+``-vm``
+    load and run a p8-virt listing in the internal VirtualMachine instead of compiling a prog8 program file..
+
+``-D SYMBOLNAME=VALUE``
+    Add this user-defined symbol directly to the beginning of the generated assembly file.
+    Can be repeated to define multiple symbols.
+
 
 Module source code files
 ------------------------
