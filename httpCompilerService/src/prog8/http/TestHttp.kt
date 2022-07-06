@@ -38,6 +38,7 @@ class RequestParser : Take {
             writeAssembly = true,
             slowCodegenWarnings = true,
             compilationTarget = "c64",
+            symbolDefs = emptyMap(),
             quietAssembler = false,
             asmListfile = false,
             experimentalCodegen = false

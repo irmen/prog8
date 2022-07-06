@@ -20,5 +20,6 @@ class CompilationOptions(val output: OutputType,
                          var asmQuiet: Boolean = false,
                          var asmListfile: Boolean = false,
                          var experimentalCodegen: Boolean = false,
-                         var outputDir: Path = Path("")
+                         var outputDir: Path = Path(""),
+                         var symbolDefs: Map<String, String> = emptyMap()
 )

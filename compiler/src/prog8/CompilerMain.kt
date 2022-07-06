@@ -46,10 +46,10 @@ private fun compileMain(args: Array<String>): Boolean {
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')")
-        .default(C64Target.NAME)
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt listing in the VM instead")
+    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) like -D SYMBOL=VALUE").multiple()
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -84,6 +84,8 @@ private fun compileMain(args: Array<String>): Boolean {
         return runVm(moduleFiles.first())
     }
 
+    val processedSymbols = processSymbolDefs(symbolDefs) ?: return false
+
     if(watchMode==true) {
         val watchservice = FileSystems.getDefault().newWatchService()
         val allImportedFiles = mutableSetOf<Path>()
@@ -104,6 +106,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     compilationTarget,
+                    processedSymbols,
                     srcdirs,
                     outputPath
                 )
@@ -156,6 +159,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     compilationTarget,
+                    processedSymbols,
                     srcdirs,
                     outputPath
                 )
@@ -191,6 +195,21 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     return true
+}
+
+private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
+    val result = mutableMapOf<String, String>()
+    val defPattern = """(.+)\s*=\s*(.+)""".toRegex()
+    for(def in symbolDefs) {
+        val match = defPattern.matchEntire(def.trim())
+        if(match==null) {
+            System.err.println("invalid symbol definition (expected NAME=VALUE): $def")
+            return null
+        }
+        val (_, name, value) = match.groupValues
+        result[name.trim()] = value.trim()
+    }
+    return result
 }
 
 fun runVm(listingFilename: String): Boolean {

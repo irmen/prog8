@@ -58,6 +58,9 @@ class CodeGen(internal val program: PtProgram,
             }
         }
 
+        if(options.symbolDefs.isNotEmpty())
+            throw AssemblyError("virtual target doesn't support symbols defined on the commandline")
+
         for (block in program.allBlocks()) {
             vmprog.addBlock(translate(block))
         }

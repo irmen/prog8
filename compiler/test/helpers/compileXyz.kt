@@ -37,6 +37,7 @@ internal fun compileFile(
         asmListfile = false,
         experimentalCodegen = false,
         platform.name,
+        symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests()
     )

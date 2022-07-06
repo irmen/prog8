@@ -38,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val compilationTarget: String,
+                        val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
                         val errors: IErrorReporter = ErrorReporter())
@@ -78,6 +79,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
                 outputDir = args.outputDir.normalize()
+                symbolDefs = args.symbolDefs
             }
             program = programresult
             importedFiles = imported

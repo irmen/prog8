@@ -73,6 +73,13 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ESTACK_LO = ${compTarget.machine.ESTACK_LO.toHex()}")
         asmgen.out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
 
+        if(options.symbolDefs.isNotEmpty()) {
+            asmgen.out("; -- user supplied symbols on the command line")
+            for((name, value) in options.symbolDefs) {
+                asmgen.out("$name = $value")
+            }
+        }
+
         when(options.output) {
             OutputType.RAW -> {
                 asmgen.out("; ---- raw assembler program ----")

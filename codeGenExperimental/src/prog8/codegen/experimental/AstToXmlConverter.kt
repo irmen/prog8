@@ -144,6 +144,15 @@ class AstToXmlConverter(internal val program: PtProgram,
                 xml.endElt()
             }
         }
+        if(options.symbolDefs.isNotEmpty()) {
+            xml.startChildren()
+            options.symbolDefs.forEach { name, value ->
+                xml.elt("symboldef")
+                xml.attr("name", name)
+                xml.attr("value", value)
+                xml.endElt()
+            }
+        }
         xml.endElt()
     }
 
