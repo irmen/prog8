@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add ARRAY_OF_BOOL array type
-
-
 ...
 
 

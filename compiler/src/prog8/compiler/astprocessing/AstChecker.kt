@@ -119,6 +119,10 @@ internal class AstChecker(private val program: Program,
 
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
+                    DataType.BOOL -> {
+                        if(iterableDt != DataType.ARRAY_BOOL)
+                            errors.err("bool loop variable can only loop over boolean array", forLoop.position)
+                    }
                     DataType.UWORD -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
                                 iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)

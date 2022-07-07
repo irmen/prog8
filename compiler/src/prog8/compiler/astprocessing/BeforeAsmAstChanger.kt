@@ -19,8 +19,8 @@ internal class BeforeAsmAstChanger(val program: Program,
         if(numLiteral.type==DataType.BOOL)
             return listOf(IAstModification.ReplaceNode(numLiteral, NumericLiteral(DataType.UBYTE, numLiteral.number, numLiteral.position), parent))
         return noModifications
-
     }
+
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw InternalCompilerException("break should have been replaced by goto $breakStmt")
     }
@@ -70,6 +70,12 @@ internal class BeforeAsmAstChanger(val program: Program,
             val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name,
                 decl.value, decl.isArray, decl.sharedWithAsm, decl.subroutineParameter, decl.position)
             return listOf(IAstModification.ReplaceNode(decl, ubyteDecl, parent))
+        }
+
+        if(decl.datatype==DataType.ARRAY_BOOL) {
+            val ubyteArrayDecl = VarDecl(decl.type, decl.origin, DataType.ARRAY_UB, decl.zeropage, decl.arraysize, decl.name,
+                decl.value, decl.isArray, decl.sharedWithAsm, decl.subroutineParameter, decl.position)
+            return listOf(IAstModification.ReplaceNode(decl, ubyteArrayDecl, parent))
         }
 
         return noModifications

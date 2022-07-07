@@ -93,7 +93,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             DataType.ARRAY_UW -> "uword["
             DataType.ARRAY_W -> "word["
             DataType.ARRAY_F -> "float["
-            else -> "?????"
+            DataType.ARRAY_BOOL -> "bool["
+            else -> throw IllegalArgumentException("weird dt: $dt")
         }
     }
 

@@ -10,15 +10,43 @@ import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
+import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 
 class TestTypecasts: FunSpec({
+
+    test("bool arrays") {
+        val text="""
+            main {
+                sub start() {
+                    bool[] barray = [true, false, 1, 0, 222]
+                    bool bb
+                    ubyte xx
+            
+                    for bb in barray {
+                        if bb
+                            xx++
+                    }
+                 }
+             }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 6
+        val arraydecl = stmts[0] as VarDecl
+        arraydecl.datatype shouldBe DataType.ARRAY_BOOL
+        val values = (arraydecl.value as ArrayLiteral).value
+        values.size shouldBe 5
+        values[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        values[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        values[2] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        values[3] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        values[4] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+    }
 
     test("correct handling of bool parameters") {
         val text="""

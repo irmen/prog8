@@ -13,6 +13,7 @@ enum class DataType {
     ARRAY_UW,           // pass by reference
     ARRAY_W,            // pass by reference
     ARRAY_F,            // pass by reference
+    ARRAY_BOOL,         // pass by reference
     UNDEFINED;
 
     /**
@@ -116,13 +117,13 @@ val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.BOOL)
 val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT, DataType.BOOL)
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
-val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F)
+val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
 val IterableDatatypes = arrayOf(
     DataType.STR,
     DataType.ARRAY_UB, DataType.ARRAY_B,
     DataType.ARRAY_UW, DataType.ARRAY_W,
-    DataType.ARRAY_F
+    DataType.ARRAY_F, DataType.ARRAY_BOOL
 )
 val PassByValueDatatypes = NumericDatatypes
 val PassByReferenceDatatypes = IterableDatatypes
@@ -132,14 +133,16 @@ val ArrayToElementTypes = mapOf(
     DataType.ARRAY_UB to DataType.UBYTE,
     DataType.ARRAY_W to DataType.WORD,
     DataType.ARRAY_UW to DataType.UWORD,
-    DataType.ARRAY_F to DataType.FLOAT
+    DataType.ARRAY_F to DataType.FLOAT,
+    DataType.ARRAY_BOOL to DataType.BOOL
 )
 val ElementToArrayTypes = mapOf(
     DataType.BYTE to DataType.ARRAY_B,
     DataType.UBYTE to DataType.ARRAY_UB,
     DataType.WORD to DataType.ARRAY_W,
     DataType.UWORD to DataType.ARRAY_UW,
-    DataType.FLOAT to DataType.ARRAY_F
+    DataType.FLOAT to DataType.ARRAY_F,
+    DataType.BOOL to DataType.ARRAY_BOOL
 )
 val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
