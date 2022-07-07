@@ -6,6 +6,7 @@
 ; FIXME #31
 main {
 	str   input = "string literal\r\n\"\\"
+    bool bb = false
 	ubyte c = 'x' ; character literal in bold
 	ubyte decimal = 0 + 1 - 2 * 3
 	float pi = 3.1415

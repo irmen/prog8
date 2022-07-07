@@ -38,9 +38,9 @@ syn match prog8Directive "\(^\|\s\)%\(zpreserved\|address\|import\|option\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%asm\>"
 
-syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\)\>"
+syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\)\>"
 syn region prog8ArrayType matchgroup=prog8Type
-            \ start="\<\%(u\?byte\|u\?word\|float\|str\)\[" end="\]"
+            \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\)\[" end="\]"
             \ transparent
 syn keyword prog8StorageClass const
 syn match prog8StorageClass "\(^\|\s\)\(@zp\|@shared\|@requirezp\)\>"

@@ -80,30 +80,6 @@ Optimizations:
 - when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 
-BOOL data type?
----------------
-Logical expressions now need to sprinkle boolean() calls on their operands to yield the correct boolean 0 or 1 result.
-This is inefficient because most of the time the operands already are boolean but the compiler doesn't know this
-because the type of boolean values is UBYTE (so theoretically the value can be anything from 0 - 255)
-
-So the idea is to add a true 'bool' type
-
-- add BOOL datatype to enumeration
-- optional (lot of work):
-   - add BooleanLiteral ast node to hold true and false, of type BOOL
-   - make 'true' and 'false' parse into BooleanLiterals
-   - make sure everything works again (all places using NumericLiteral also have to consider BooleanLiteral...)
-   - idea: let BooleanLiteral subclass from NumericLiteral ?
-- add 'bool' type to grammar and parser
-- remove builtin function boolean() replace with typecast to BOOL
-- logical expressions don't cast operands of BOOL type to BOOL anymore  (is this done???)
-- before codegen, BOOL type is simply discarded and replaced by UBYTE
-
-THE ABOVE HAS BEEN DONE
-
-- rewrite: boolvar & 1 -> boolvar,   (boolvar & 1 == 0) -> not boolvar
-- add ARRAY_OF_BOOL array type
-
 
 STRUCTS again?
 --------------
