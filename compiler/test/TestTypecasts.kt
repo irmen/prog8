@@ -7,14 +7,53 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.*
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.IfElse
+import prog8.code.core.DataType
+import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 
 class TestTypecasts: FunSpec({
+
+    test("correct handling of bool parameters") {
+        val text="""
+            main  {
+            
+                sub thing(bool b1, bool b2) -> bool {
+                    return (b1 and b2) or b1
+                }
+            
+                sub start() {
+                    bool boolvalue1 = true
+                    bool boolvalue2 = false
+                    uword xx
+            
+                    boolvalue1 = thing(true, false)
+                    boolvalue2 = thing(xx, xx)
+            
+                    if boolvalue1 and boolvalue2
+                        boolvalue1=false
+                 }
+            }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 9
+        val fcall1 = ((stmts[6] as Assignment).value as IFunctionCall)
+        fcall1.args[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        fcall1.args[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        val fcall2 = ((stmts[7] as Assignment).value as IFunctionCall)
+        (fcall2.args[0] as TypecastExpression).type shouldBe DataType.BOOL
+        (fcall2.args[1] as TypecastExpression).type shouldBe DataType.BOOL
+        val ifCond = (stmts[8] as IfElse).condition as BinaryExpression
+        ifCond.operator shouldBe "&"
+        (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")
+        (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("boolvalue2")
+    }
 
     test("correct evaluation of words in boolean expressions") {
         val text="""

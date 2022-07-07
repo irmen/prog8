@@ -55,9 +55,10 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                     return Pair("invalid number of arguments", call.position)
                 val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
-                    val actual = argtypes[mismatch].toString()
-                    val expected = consideredParamTypes[mismatch].toString()
-                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
+                    val actual = argtypes[mismatch]
+                    val expected = consideredParamTypes[mismatch]
+                    if(expected==DataType.BOOL && actual==DataType.UBYTE && call.args[mismatch].constValue(program)?.number !in setOf(0.0, 1.0))
+                        return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                 }
                 if(target.isAsmSubroutine) {
                     if(target.asmReturnvaluesRegisters.size>1) {
@@ -85,9 +86,9 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
                     val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
                     if (!anyCompatible) {
-                        val actual = pair.first.toString()
+                        val actual = pair.first
                         return if(pair.second.size==1) {
-                            val expected = pair.second[0].toString()
+                            val expected = pair.second[0]
                             Pair("argument ${index + 1} type mismatch, was: $actual expected: $expected", call.args[index].position)
                         } else {
                             val expected = pair.second.toList().toString()

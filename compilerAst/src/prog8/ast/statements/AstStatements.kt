@@ -770,9 +770,7 @@ class Subroutine(override val name: String,
     // code to provide the ability to reference asmsub parameters via qualified name:
     private val asmParamsDecls = mutableMapOf<String, VarDecl>()
 
-    fun searchAsmParameter(name: String): VarDecl? {
-        require(isAsmSubroutine)
-
+    fun searchParameter(name: String): VarDecl? {
         val existingDecl = asmParamsDecls[name]
         if(existingDecl!=null)
             return existingDecl

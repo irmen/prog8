@@ -5,9 +5,6 @@ For next release
 ^^^^^^^^^^^^^^^^
 - add ARRAY_OF_BOOL array type
 
-- test various scenarios of using bool type vs byte actually produces tighter code
-  make unit test of them?
-
 
 ...
 

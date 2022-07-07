@@ -159,7 +159,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
         argOrder.forEach {
             val param = callee.parameters[it]
-            val targetVar = callee.searchAsmParameter(param.name)!!
+            val targetVar = callee.searchParameter(param.name)!!
             asmgen.popCpuStack(param.type, targetVar, (call as Node).definingSubroutine)
         }
     }
