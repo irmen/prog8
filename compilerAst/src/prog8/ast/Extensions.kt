@@ -14,7 +14,7 @@ import prog8.code.core.ZeropageWish
 fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>, VarDecl> {
     val tmpvarName = if(altNames) {
         when (dt) {
-            DataType.UBYTE -> listOf("prog8_lib", "tempvar_ub2")
+            DataType.UBYTE, DataType.BOOL -> listOf("prog8_lib", "tempvar_ub2")
             DataType.BYTE -> listOf("prog8_lib", "tempvar_b2")
             DataType.UWORD -> listOf("prog8_lib", "tempvar_uw2")
             DataType.WORD -> listOf("prog8_lib", "tempvar_w2")
@@ -23,7 +23,7 @@ fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>
         }
     } else {
         when (dt) {
-            DataType.UBYTE -> listOf("prog8_lib", "tempvar_ub")
+            DataType.UBYTE, DataType.BOOL -> listOf("prog8_lib", "tempvar_ub")
             DataType.BYTE -> listOf("prog8_lib", "tempvar_b")
             DataType.UWORD -> listOf("prog8_lib", "tempvar_uw")
             DataType.WORD -> listOf("prog8_lib", "tempvar_w")

@@ -3,9 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add compiler error when using boolean with operators <,<=,>,>=  (== and != are ok!)
-- add compiler error when using boolean on lhs of operators -,*,/,% (+ is ok!)
-- add compiler error when using boolean on rhs operators /,%
+- add ARRAY_OF_BOOL array type
+
 - test various scenarios of using bool type vs byte actually produces tighter code
   make unit test of them?
 
@@ -24,7 +23,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- bool data type? see below
 - add some more optimizations in vmPeepholeOptimizer
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.

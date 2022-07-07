@@ -137,6 +137,22 @@ internal class BeforeAsmAstChanger(val program: Program,
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
 
+        // replace BOOL return type and parameters by UBYTE
+        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
+            val newReturnTypes = subroutine.returntypes.map {
+                if(it==DataType.BOOL) DataType.UBYTE else it
+            }
+            val newParams = subroutine.parameters.map {
+                if(it.type==DataType.BOOL) SubroutineParameter(it.name, DataType.UBYTE, it.position) else it
+            }.toMutableList()
+            val newSubroutine = Subroutine(subroutine.name, newParams, newReturnTypes,
+                subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers,
+                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, subroutine.statements,
+                subroutine.position)
+            return listOf(IAstModification.ReplaceNode(subroutine, newSubroutine, parent))
+        }
+
+
         // Most code generation targets only support subroutine inlining on asmsub subroutines
         // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
         if(!subroutine.isAsmSubroutine && options.compTarget.name!=VMTarget.NAME)

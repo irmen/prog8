@@ -462,6 +462,11 @@ internal class AstChecker(private val program: Program,
         if(numvalue!=null && targetDt.isKnown)
             checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
 
+        if(assignment.isAugmentable && targetDt istype DataType.BOOL) {
+            val operator = (assignment.value as? BinaryExpression)?.operator
+            if(operator in setOf("-", "*", "/", "%"))
+                errors.err("can't use boolean operand with this operator $operator", assignment.position)
+        }
         super.visit(assignment)
     }
 
@@ -890,6 +895,31 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        if(leftDt==DataType.BOOL || rightDt==DataType.BOOL ||
+            (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true ||
+            (expr.right as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true) {
+            if(expr.operator in setOf("<", "<=", ">", ">=")) {
+                errors.err("can't use boolean operand with this comparison operator", expr.position)
+            }
+            if(expr.operator in setOf("-", "*", "/", "%") && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
+                errors.err("can't use boolean operand with this operator", expr.left.position)
+            }
+            if(expr.operator=="+" && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
+                val rightNum = expr.right.constValue(program)?.number ?: 0.0
+                if(rightNum > 1.0)
+                    errors.err("can't use boolean operand with this operator", expr.left.position)
+            }
+            if(expr.operator == "==" || expr.operator == "!=") {
+                val leftNum = expr.left.constValue(program)?.number ?: 0.0
+                val rightNum = expr.right.constValue(program)?.number ?: 0.0
+                if(leftNum>1.0 || rightNum>1.0 || leftNum<0.0 || rightNum<0.0) {
+                    errors.warn("expression is always false", expr.position)
+                }
+            }
+            if((expr.operator == "/" || expr.operator == "%") && ( rightDt==DataType.BOOL || (expr.right as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
+                errors.err("can't use boolean operand with this operator", expr.right.position)
+            }
+        }
     }
 
     override fun visit(typecast: TypecastExpression) {
@@ -1121,6 +1151,11 @@ internal class AstChecker(private val program: Program,
             }
         }
         // else if(postIncrDecr.target.memoryAddress != null) { } // a memory location can always be ++/--
+
+        if(postIncrDecr.target.inferType(program) istype DataType.BOOL) {
+            errors.err("can't use boolean operand with this operator", postIncrDecr.position)
+        }
+
         super.visit(postIncrDecr)
     }
 

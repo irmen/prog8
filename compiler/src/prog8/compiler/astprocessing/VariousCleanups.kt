@@ -222,23 +222,5 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
         return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
     }
-
-    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-
-        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
-            val newReturnTypes = subroutine.returntypes.map {
-                if(it==DataType.BOOL) DataType.UBYTE else it
-            }
-            val newParams = subroutine.parameters.map {
-                if(it.type==DataType.BOOL) SubroutineParameter(it.name, DataType.UBYTE, it.position) else it
-            }.toMutableList()
-            val newSubroutine = Subroutine(subroutine.name, newParams, newReturnTypes,
-                subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers,
-                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, subroutine.statements,
-                subroutine.position)
-            return listOf(IAstModification.ReplaceNode(subroutine, newSubroutine, parent))
-        }
-        return noModifications
-    }
 }
 

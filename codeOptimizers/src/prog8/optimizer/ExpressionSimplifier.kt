@@ -193,6 +193,16 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
         }
 
+        // boolvar & 1  --> boolvar
+        // boolvar & 2  --> false
+        if(expr.operator=="&" && rightDt in IntegerDatatypes && (leftDt == DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
+            if(rightVal?.number==1.0) {
+                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+            } else if(rightVal?.number!=null && (rightVal.number.toInt() and 1)==0) {
+                return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
+            }
+        }
+
         // simplify when a term is constant and directly determines the outcome
         val constFalse = NumericLiteral.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {
