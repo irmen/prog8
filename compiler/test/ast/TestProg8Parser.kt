@@ -743,7 +743,7 @@ class TestProg8Parser: FunSpec( {
             main {
                 ubyte bb
                 uword ww
-                ubyte bb2 = (3+bb) or (3333+ww)       ; expression combining ubyte and uword
+                bool bb2 = (3+bb) or (3333+ww)       ; expression combining ubyte and uword
             }
         """)
         val module = parseModule(src)
@@ -755,7 +755,7 @@ class TestProg8Parser: FunSpec( {
         expr.operator shouldBe "or"
         expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
         expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
     }
 
     test("inferred type for typecasted expressions with logical operators") {
@@ -779,15 +779,15 @@ class TestProg8Parser: FunSpec( {
         val bb2 = (stmts[4] as VarDecl).value as BinaryExpression
         val zz2 = (stmts[5] as VarDecl).value as BinaryExpression
         qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
 
         zz2.operator shouldBe "or"
         val left = zz2.left as TypecastExpression
         val right = zz2.right as PrefixExpression
         left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
         right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE     //  'or' causes UBYTE result
+        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
     }
 
     test("type cast from byte to ubyte as desired target type") {

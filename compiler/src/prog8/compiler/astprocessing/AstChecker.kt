@@ -919,12 +919,12 @@ internal class AstChecker(private val program: Program,
                 errors.err("can't use boolean operand with this comparison operator", expr.position)
             }
             if(expr.operator in setOf("-", "*", "/", "%") && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
-                errors.err("can't use boolean operand with this operator", expr.left.position)
+                errors.err("can't use boolean operand with this operator ${expr.operator}", expr.left.position)
             }
             if(expr.operator=="+" && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
                 val rightNum = expr.right.constValue(program)?.number ?: 0.0
                 if(rightNum > 1.0)
-                    errors.err("can't use boolean operand with this operator", expr.left.position)
+                    errors.err("can't use boolean operand with this operator ${expr.operator}", expr.left.position)
             }
             if(expr.operator == "==" || expr.operator == "!=") {
                 val leftNum = expr.left.constValue(program)?.number ?: 0.0
@@ -934,7 +934,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
             if((expr.operator == "/" || expr.operator == "%") && ( rightDt==DataType.BOOL || (expr.right as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
-                errors.err("can't use boolean operand with this operator", expr.right.position)
+                errors.err("can't use boolean operand with this operator ${expr.operator}", expr.right.position)
             }
         }
     }
@@ -1170,7 +1170,7 @@ internal class AstChecker(private val program: Program,
         // else if(postIncrDecr.target.memoryAddress != null) { } // a memory location can always be ++/--
 
         if(postIncrDecr.target.inferType(program) istype DataType.BOOL) {
-            errors.err("can't use boolean operand with this operator", postIncrDecr.position)
+            errors.err("can't use boolean operand with this operator ${postIncrDecr.operator}", postIncrDecr.position)
         }
 
         super.visit(postIncrDecr)
