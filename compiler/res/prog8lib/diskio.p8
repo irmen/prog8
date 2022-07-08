@@ -6,7 +6,7 @@
 
 diskio {
 
-    sub directory(ubyte drivenumber) -> ubyte {
+    sub directory(ubyte drivenumber) -> bool {
         ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
 
         c64.SETNAM(1, "$")
@@ -61,12 +61,12 @@ io_error:
 
 
     ; internal variables for the iterative file lister / loader
-    ubyte list_skip_disk_name
+    bool list_skip_disk_name
     uword list_pattern
     uword list_blocks
-    ubyte iteration_in_progress = false
+    bool iteration_in_progress = false
     ubyte @zp first_byte
-    ubyte have_first_byte
+    bool have_first_byte
     str   list_filename = "?" * 32
 
 
@@ -98,7 +98,7 @@ io_error:
 
     ; ----- iterative file lister functions (uses io channel 12) -----
 
-    sub lf_start_list(ubyte drivenumber, uword pattern_ptr) -> ubyte {
+    sub lf_start_list(ubyte drivenumber, uword pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
         lf_end_list()
@@ -127,7 +127,7 @@ io_error:
         return false
     }
 
-    sub lf_next_entry() -> ubyte {
+    sub lf_next_entry() -> bool {
         ; -- retrieve the next entry from an iterative file listing session.
         ;    results will be found in list_blocks and list_filename.
         ;    if it returns false though, there are no more entries (or an error occurred).
@@ -199,7 +199,7 @@ close_end:
 
     ; ----- iterative file loader functions (uses io channel 11) -----
 
-    sub f_open(ubyte drivenumber, uword filenameptr) -> ubyte {
+    sub f_open(ubyte drivenumber, uword filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
         f_close()
@@ -343,7 +343,7 @@ _end        rts
 
     ; ----- iterative file saver functions (uses io channel 14) -----
 
-    sub f_open_w(ubyte drivenumber, uword filenameptr) -> ubyte {
+    sub f_open_w(ubyte drivenumber, uword filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
@@ -358,7 +358,7 @@ _end        rts
         return false
     }
 
-    sub f_write(uword bufferpointer, uword num_bytes) -> ubyte {
+    sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given umber of bytes to the currently open file
         if num_bytes!=0 {
             void c64.CHKOUT(14)        ; use #14 as input channel again
@@ -408,7 +408,7 @@ io_error:
         goto done
     }
 
-    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> ubyte {
+    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> bool {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
         uword @shared end_address = address + size
@@ -478,7 +478,7 @@ io_error:
 
     ; Internal routine, only to be used on Commander X16 platform if headerless=true,
     ; because this routine uses kernal support for that to load headerless files.
-    sub load_headerless_cx16(ubyte drivenumber, uword filenameptr, uword address_override, ubyte headerless) -> uword {
+    sub load_headerless_cx16(ubyte drivenumber, uword filenameptr, uword address_override, bool headerless) -> uword {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0

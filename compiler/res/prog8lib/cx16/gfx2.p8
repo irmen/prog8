@@ -28,7 +28,7 @@ gfx2 {
     uword width = 0
     uword height = 0
     ubyte bpp = 0
-    ubyte monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
+    bool monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
         when mode {
@@ -127,7 +127,7 @@ gfx2 {
         position(0, 0)
     }
 
-    sub monochrome_stipple(ubyte enable) {
+    sub monochrome_stipple(bool enable) {
         monochrome_dont_stipple_flag = not enable
     }
 
@@ -683,7 +683,7 @@ _done
         }
     }
 
-    sub position2(uword @zp x, uword y, ubyte also_port_1) {
+    sub position2(uword @zp x, uword y, bool also_port_1) {
         position(x, y)
         if also_port_1 {
             when active_mode {

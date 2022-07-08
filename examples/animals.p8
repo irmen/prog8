@@ -53,7 +53,7 @@ main {
         repeat {
             ubyte current_question = 1
             txt.print("\n\nanimal guessing game!\nthink of an animal.\n")
-            ubyte guessed = false
+            bool guessed = false
             while not guessed {
                 txt.print(questions[current_question])
                 txt.print("? ")

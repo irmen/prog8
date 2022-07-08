@@ -13,7 +13,7 @@ main {
         cx16.KEYHDL = &main.keyboard_scancode_handler.asm_shim
         sys.clear_irqd()
 
-        ubyte escape_pressed
+        bool escape_pressed
         while not escape_pressed {
             ; just sit here
         }
@@ -22,7 +22,7 @@ main {
         sys.clear_irqd()
     }
 
-    sub keyboard_scancode_handler(ubyte prefix, ubyte scancode, ubyte updown) {
+    sub keyboard_scancode_handler(ubyte prefix, ubyte scancode, bool updown) {
         txt.print_ubhex(prefix, true)
         txt.chrout(':')
         txt.print_ubhex(scancode, true)

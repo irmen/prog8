@@ -26,7 +26,7 @@ main {
 
         ubyte target_height = 10
         ubyte active_height = 24
-        ubyte upwards = true
+        bool upwards = true
 
         repeat {
             ;txt.plot(0,0)

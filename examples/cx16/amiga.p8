@@ -103,7 +103,7 @@ main {
 
 widget {
 
-    sub highlightedrect(uword x, uword y, uword width, uword height, ubyte fill, ubyte active) {
+    sub highlightedrect(uword x, uword y, uword width, uword height, bool fill, bool active) {
         gfx2.horizontal_line(x, y, width, 2)
         gfx2.vertical_line(x, y+1, height-1, 2)
         gfx2.vertical_line(x+width-1, y+1, height-1, 1)
@@ -128,7 +128,7 @@ widget {
     }
 
 
-    sub window_titlebar(uword x, uword y, uword width, uword titlestr, ubyte active) {
+    sub window_titlebar(uword x, uword y, uword width, uword titlestr, bool active) {
         const ubyte height = 11
         widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, true, active)
         gfx2.plot(x+widget.window_close_icon.width, y+height-1, 1) ; correct bottom left corner
@@ -138,7 +138,7 @@ widget {
         widget.window_flipsize_icon(x+width-44, y, active)
     }
 
-    sub window_flipsize_icon(uword x, uword y, ubyte active) {
+    sub window_flipsize_icon(uword x, uword y, bool active) {
         const uword width = 22
         const uword height = 11
         highlightedrect(x, y, width, height, true, active)
@@ -148,7 +148,7 @@ widget {
         gfx2.fillrect(x+6, y+3, 5, 2, 2)
     }
 
-    sub window_order_icon(uword x, uword y, ubyte active) {
+    sub window_order_icon(uword x, uword y, bool active) {
         const uword width = 22
         const uword height = 11
         highlightedrect(x, y, width, height, true, active)
@@ -158,7 +158,7 @@ widget {
         gfx2.rect(x+8, y+4, 10, 5, 1)       ; front
     }
 
-    sub window_close_icon(uword x, uword y, ubyte active) {
+    sub window_close_icon(uword x, uword y, bool active) {
         const uword width = 20
         const uword height = 11
         highlightedrect(x, y, width, height, true, active)
@@ -167,7 +167,7 @@ widget {
         gfx2.fillrect(x+8, y+4, 3, 3, 2)
     }
 
-    sub window_leftborder(uword x, uword y, uword height, ubyte active) {
+    sub window_leftborder(uword x, uword y, uword height, bool active) {
         gfx2.vertical_line(x, y, height, 2)
         ubyte color = 0
         if active
@@ -181,7 +181,7 @@ widget {
         gfx2.horizontal_line(x, y+height-1, width, 1)
     }
 
-    sub window_rightborder(uword x, uword y, uword width, uword height, ubyte active) {
+    sub window_rightborder(uword x, uword y, uword width, uword height, bool active) {
         gfx2.vertical_line(x+width-1-16, y+11, height-13,2)
         gfx2.vertical_line(x+width-1, y+11, height-11,1)
         ubyte color = 0

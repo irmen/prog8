@@ -27,7 +27,7 @@ main {
     ubyte nextBlock
     ubyte speedlevel
     ubyte holding
-    ubyte holdingAllowed
+    bool holdingAllowed
 
 
     sub start() {
@@ -390,7 +390,7 @@ waitkey:
         }
     }
 
-    sub drawBlock(ubyte x, ubyte y, ubyte erase) {
+    sub drawBlock(ubyte x, ubyte y, bool erase) {
         ubyte char = 79   ; top left edge
         if erase
             char = 32   ; space
@@ -538,21 +538,21 @@ blocklogic {
     ; The full play area is bordered by (in)visible characters that will collide.
     ; Collision is determined by reading the screen data directly.
 
-    sub canRotateCW(ubyte xpos, ubyte ypos) -> ubyte {
+    sub canRotateCW(ubyte xpos, ubyte ypos) -> bool {
         rotateCW()
-        ubyte nocollision = noCollision(xpos, ypos)
+        bool nocollision = noCollision(xpos, ypos)
         rotateCCW()
         return nocollision
     }
 
-    sub canRotateCCW(ubyte xpos, ubyte ypos) -> ubyte {
+    sub canRotateCCW(ubyte xpos, ubyte ypos) -> bool {
         rotateCCW()
-        ubyte nocollision = noCollision(xpos, ypos)
+        bool nocollision = noCollision(xpos, ypos)
         rotateCW()
         return nocollision
     }
 
-    sub noCollision(ubyte xpos, ubyte ypos) -> ubyte {
+    sub noCollision(ubyte xpos, ubyte ypos) -> bool {
         ubyte @zp i
         for i in 15 downto 0 {
             if currentBlock[i] and txt.getchr(xpos + (i&3), ypos+i/4)!=32
@@ -561,14 +561,14 @@ blocklogic {
         return true
     }
 
-    sub isGameOver(ubyte xpos, ubyte ypos) -> ubyte {
+    sub isGameOver(ubyte xpos, ubyte ypos) -> bool {
         main.drawBlock(xpos, ypos, true)
-        ubyte result = ypos==main.startYpos and not noCollision(xpos, ypos+1)
+        bool result = ypos==main.startYpos and not noCollision(xpos, ypos+1)
         main.drawBlock(xpos, ypos, false)
         return result
     }
 
-    sub isLineFull(ubyte ypos) -> ubyte {
+    sub isLineFull(ubyte ypos) -> bool {
         ubyte x
         for x in main.boardOffsetX to main.boardOffsetX+main.boardWidth-1 {
             if txt.getchr(x, ypos)==32

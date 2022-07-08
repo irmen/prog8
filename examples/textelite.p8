@@ -488,7 +488,7 @@ galaxy {
         travel_to(number, current_planet)
     }
 
-    sub starmap(ubyte local) {
+    sub starmap(bool local) {
         ubyte current_planet = planet.number
         ubyte px = planet.x
         ubyte py = planet.y
@@ -908,7 +908,7 @@ planet {
         }
     }
 
-    sub display(ubyte compressed, ubyte distance) {
+    sub display(bool compressed, ubyte distance) {
         if compressed {
             print_name_uppercase()
             if distance {

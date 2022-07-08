@@ -1,17 +1,17 @@
 %import textio
 %zeropage basicsafe
 
-main  {
 
-    bool[] barray = [true, false, 1, 0, 222]
+main {
+
+     sub noCollision(ubyte xpos, ubyte ypos) -> bool {
+        if xpos
+             return false
+        else
+             return true
+     }
 
     sub start() {
-        bool bb
-        ubyte xx
-
-        for bb in barray {
-            if bb
-                xx++
-        }
-     }
+        bool z=noCollision(1,2)
+    }
 }

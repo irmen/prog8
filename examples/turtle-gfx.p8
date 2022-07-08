@@ -30,7 +30,7 @@ turtle {
     float xpos
     float ypos
     float angle
-    ubyte pendown
+    bool pendown
 
     sub init() {
         xpos = 160.0

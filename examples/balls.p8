@@ -11,8 +11,8 @@ main {
         ubyte[255] BX
         ubyte[255] BY
         ubyte[255] BC
-        ubyte[255] DX
-        ubyte[255] DY
+        bool[255] DX
+        bool[255] DY
 
         txt.print("number of balls (1-255)? ")
         void txt.input_chars(input)
@@ -37,28 +37,28 @@ main {
                 ; Clear existing Location the ball is at
                 txt.setclr(BX[lp], BY[lp], 0)
 
-                if DX[lp] == 0 {
+                if not DX[lp] {
                     if (BX[lp] == 0)
-                        DX[lp] = 1
+                        DX[lp] = true
                     else
                         BX[lp]=BX[lp]-1
-                } else if DX[lp] == 1 {
+                } else if DX[lp] {
                     if (BX[lp] == txt.DEFAULT_WIDTH-1) {
                         BX[lp] = txt.DEFAULT_WIDTH-2
-                        DX[lp] = 0
+                        DX[lp] = false
                     } else {
                         BX[lp]=BX[lp]+1
                     }
                 }
-                if DY[lp] == 0 {
+                if not DY[lp] {
                     if (BY[lp] == 0)
-                        DY[lp] = 1
+                        DY[lp] = true
                     else
                         BY[lp]=BY[lp]-1
                 } else if DY[lp] == 1 {
                     if (BY[lp] == txt.DEFAULT_HEIGHT-1) {
                         BY[lp] = txt.DEFAULT_HEIGHT-2
-                        DY[lp] = 0
+                        DY[lp] = false
                     } else {
                         BY[lp]=BY[lp]+1
                     }
