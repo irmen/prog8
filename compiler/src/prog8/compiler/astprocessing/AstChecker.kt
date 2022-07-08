@@ -80,10 +80,11 @@ internal class AstChecker(private val program: Program,
             } else {
                 if (expectedReturnValues[0] != valueDt.getOr(DataType.UNDEFINED)) {
                     if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
-                        // if the return value is a bool and the return type is ubyte, allow this.
+                        // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
+                        errors.warn("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
                     } else if(valueDt istype DataType.UBYTE && expectedReturnValues[0] == DataType.BOOL) {
                         // if the return value is ubyte and the return type is bool, allow this only if value is 0 or 1
-                        val returnValue = returnStmt.value?.constValue(program)
+                        val returnValue = returnStmt.value as? NumericLiteral
                         if (returnValue == null || returnValue.type != DataType.UBYTE || (returnValue.number!=0.0 && returnValue.number!=1.0)) {
                             errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
                         }

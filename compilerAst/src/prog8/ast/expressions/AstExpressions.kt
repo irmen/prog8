@@ -185,16 +185,6 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
 
-        fun dynamicBooleanType(): InferredTypes.InferredType {
-            // as a special case, an expression yielding a boolean result, adapts the result
-            // type to what is required (byte or word), to avoid useless type casting
-            return when (parent) {
-                is TypecastExpression -> InferredTypes.InferredType.known((parent as TypecastExpression).type)
-                is Assignment -> (parent as Assignment).target.inferType(program)
-                else -> InferredTypes.InferredType.known(DataType.BOOL)
-            }
-        }
-
         return when (operator) {
             "+", "-", "*", "%", "/" -> {
                 if (!leftDt.isKnown || !rightDt.isKnown)
@@ -214,10 +204,10 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
                 }
             }
             "&", "|", "^" -> if(leftDt istype DataType.BOOL) InferredTypes.knownFor(DataType.UBYTE) else leftDt
-            "and", "or", "xor", "not" -> InferredTypes.knownFor(DataType.UBYTE)   // note: don't use BOOL type here to avoid type errors later! Will be replaced anyway.
+            "and", "or", "xor", "not" -> InferredTypes.knownFor(DataType.BOOL)
             "<", ">",
             "<=", ">=",
-            "==", "!=", "in" -> dynamicBooleanType()
+            "==", "!=", "in" -> InferredTypes.knownFor(DataType.BOOL)
             "<<", ">>" -> leftDt
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }

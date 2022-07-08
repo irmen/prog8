@@ -10,8 +10,9 @@ main {
         return key=='a'
      }
 
+
      sub func2() -> bool {
-        return key=='z'
+        return key==2
      }
 
     sub start() {
