@@ -79,8 +79,18 @@ internal class AstChecker(private val program: Program,
                 errors.err("return value type mismatch or unknown symbol", returnStmt.value!!.position)
             } else {
                 if (expectedReturnValues[0] != valueDt.getOr(DataType.UNDEFINED)) {
-                    if(expectedReturnValues[0] != DataType.BOOL || valueDt.isnot(DataType.UBYTE))
+                    if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
+                        // if the return value is a bool and the return type is ubyte, allow this.
+                    } else if(valueDt istype DataType.UBYTE && expectedReturnValues[0] == DataType.BOOL) {
+                        // if the return value is ubyte and the return type is bool, allow this only if value is 0 or 1
+                        val returnValue = returnStmt.value?.constValue(program)
+                        if (returnValue == null || returnValue.type != DataType.UBYTE || (returnValue.number!=0.0 && returnValue.number!=1.0)) {
+                            errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
+                        }
+                    }
+                    else {
                         errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
+                    }
                 }
             }
         }

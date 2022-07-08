@@ -4,14 +4,18 @@
 
 main {
 
-     sub noCollision(ubyte xpos, ubyte ypos) -> bool {
-        if xpos
-             return false
-        else
-             return true
+     ubyte key
+
+     sub func() -> ubyte {
+        return key=='a'
+     }
+
+     sub func2() -> bool {
+        return key=='z'
      }
 
     sub start() {
-        bool z=noCollision(1,2)
+        bool @shared z1=func()
+        bool @shared z2=func2()
     }
 }
