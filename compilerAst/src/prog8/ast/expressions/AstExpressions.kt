@@ -191,7 +191,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             return when (parent) {
                 is TypecastExpression -> InferredTypes.InferredType.known((parent as TypecastExpression).type)
                 is Assignment -> (parent as Assignment).target.inferType(program)
-                else -> InferredTypes.InferredType.known(DataType.UBYTE)        // note: don't use BOOL type here to avoid type errors later! Will be replaced anyway.
+                else -> InferredTypes.InferredType.known(DataType.BOOL)
             }
         }
 

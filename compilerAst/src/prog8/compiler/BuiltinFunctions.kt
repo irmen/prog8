@@ -226,7 +226,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when(target.datatype) {
-        DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F -> {
+        in ArrayDatatypes -> {
             arraySize = target.arraysize?.constIndex()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
