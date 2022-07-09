@@ -18,7 +18,7 @@ main {
             maze.drawStartFinish()
 
             txt.print(" enter=new maze")
-            c64.CHRIN()
+            void c64.CHRIN()
         }
     }
 
@@ -129,7 +129,7 @@ carve_restart_after_repath:
             }
         }
 
-        sub repath() -> ubyte {     ; TODO BOOL
+        sub repath() -> bool {
             ; repath: try to find a new start cell with possible directions.
             ; we limit our number of searches so that the algorith doesn't get stuck
             ; for too long on bad rng... just accept a few unused cells in that case.
