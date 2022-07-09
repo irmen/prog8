@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix code gen crashes in logical.p8 / testtypecasts
+
 - have a proper option to move the evalstack rather than just assembly symbol redefine
 - then make the cx16 virtual registers in syslib.p8 use that definition to be able to shift them around on non-cx16 targets
 
