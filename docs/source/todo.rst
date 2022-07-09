@@ -3,7 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- have a proper option to move the evalstack rather than just assembly symbol redefine
+- then make the cx16 virtual registers in syslib.p8 use that definition to be able to shift them around on non-cx16 targets
+
 ...
+
 
 
 Need help with
@@ -18,6 +22,9 @@ Future Things and Ideas
 Compiler:
 
 - add some more optimizations in vmPeepholeOptimizer
+- on non-cx16 targets: have an option that if zeropage=FULL, moves the cx16 virtual registers to ZP (same location as on x16?)
+  needs the dynamic base address for the symbols in syslib.p8
+  also needs a trick to allocate them in ZP like Cx16Zeropage already does
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
