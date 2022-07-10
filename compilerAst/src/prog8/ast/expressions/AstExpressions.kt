@@ -478,6 +478,11 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         }
     }
 
+    init {
+        if(type==DataType.BOOL)
+            throw FatalAstException("should not create NumericLiteral with BOOL type @$position")
+    }
+
     val asBooleanValue: Boolean = number != 0.0
 
     override fun linkParents(parent: Node) {

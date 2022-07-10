@@ -10,9 +10,7 @@ import prog8.ast.determineGosubArguments
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
-import prog8.code.core.DataType
-import prog8.code.core.Position
-import prog8.code.core.SourceCode
+import prog8.code.core.*
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
@@ -405,7 +403,17 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
+        var actualType = type
+        if(type==DataType.BOOL) {
+            if(srcExpr.operator in LogicalOperators + ComparisonOperators) {
+                // a comparison or logical expression is a boolean result (0 or 1) so we can safely
+                // reduce that to just a UBYTE type for the vm code that doesn't know about bools.
+                actualType = DataType.UBYTE
+            } else {
+                throw IllegalArgumentException("Ast expression still having BOOL type: $srcExpr  @${srcExpr.position}")
+            }
+        }
+        val expr = PtBinaryExpression(srcExpr.operator, actualType, srcExpr.position)
         expr.add(transformExpression(srcExpr.left))
         expr.add(transformExpression(srcExpr.right))
         return expr

@@ -136,7 +136,7 @@ internal class ExpressionsAsmGen(private val program: Program,
     private fun translateExpression(typecast: TypecastExpression) {
         translateExpressionInternal(typecast.expression)
         when(typecast.expression.inferType(program).getOr(DataType.UNDEFINED)) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BOOL -> {
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
                     DataType.UWORD, DataType.WORD -> {

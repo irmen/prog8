@@ -96,21 +96,6 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
 
-        // convert boolean and/or/xor/not operators to bitwise equivalents.
-        // the rest of the ast and codegen only has to work with bitwise boolean operations from now on.
-        if(expr.operator in setOf("and", "or", "xor")) {
-            expr.operator = when(expr.operator) {
-                "and" -> "&"
-                "or" -> "|"
-                "xor" -> "^"
-                else -> "invalid"
-            }
-            return listOf(
-                IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanCast(expr.left), expr),
-                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanCast(expr.right), expr),
-            )
-        }
-
         return noModifications
     }
 
@@ -146,28 +131,5 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
         }
 
         return noModifications
-    }
-
-    private fun wrapWithBooleanCast(expr: Expression): Expression {
-        fun isBoolean(expr: Expression): Boolean {
-            return if(expr.inferType(program) istype DataType.BOOL)
-                true
-            else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
-                true
-            else if(expr is PrefixExpression && expr.operator == "not")
-                true
-            else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
-                if(isBoolean(expr.left) && isBoolean(expr.right))
-                    true
-                else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
-            }
-            else
-                false
-        }
-
-        return if(isBoolean(expr))
-            expr
-        else
-            TypecastExpression(expr, DataType.BOOL, true, expr.position)
     }
 }

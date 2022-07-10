@@ -8,6 +8,12 @@ import kotlin.math.round
 
 
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
+
+    init {
+        if(type==DataType.BOOL)
+            throw java.lang.IllegalArgumentException("bool should have become ubyte @$position")
+    }
+
     override fun printProperties() {
         print(type)
     }
@@ -127,10 +133,12 @@ class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) 
 class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
 
     init {
+        if(type==DataType.BOOL)
+            throw java.lang.IllegalArgumentException("bool should have become ubyte @$position")
         if(type!=DataType.FLOAT) {
             val rounded = round(number)
             if (rounded != number)
-                throw IllegalArgumentException("refused rounding of float to avoid loss of precision")
+                throw IllegalArgumentException("refused rounding of float to avoid loss of precision @$position")
         }
     }
 

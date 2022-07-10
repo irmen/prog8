@@ -72,8 +72,7 @@ internal class NotExpressionChanger(val program: Program, val errors: IErrorRepo
 
             // all other not(x)  -->  x==0
             // this means that "not" will never occur anywhere again in the ast after this
-            val dt = expr.expression.inferType(program).getOr(DataType.UBYTE)
-            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(dt,0.0, expr.position), expr.position)
+            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(DataType.UBYTE,0.0, expr.position), expr.position)
             return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
         }
         return noModifications

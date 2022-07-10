@@ -1165,14 +1165,14 @@ $repeatLabel    lda  $counterVar
             return testVariableZeroAndJump(left, dt, operator, jumpIfFalseLabel)
 
         when(dt) {
-            DataType.UBYTE, DataType.UWORD -> {
+            DataType.BOOL, DataType.UBYTE, DataType.UWORD -> {
                 if(operator=="<") {
                     out("  jmp  $jumpIfFalseLabel")
                     return
                 } else if(operator==">=") {
                     return
                 }
-                if(dt==DataType.UBYTE) {
+                if(dt==DataType.UBYTE || dt==DataType.BOOL) {
                     assignExpressionToRegister(left, RegisterOrPair.A, false)
                     if (left is IFunctionCall && !left.isSimple)
                         out("  cmp  #0")
@@ -1252,7 +1252,7 @@ $repeatLabel    lda  $counterVar
         // optimized code if the expression is just an identifier (variable)
         val varname = asmVariableName(variable)
         when(dt) {
-            DataType.UBYTE -> when(operator) {
+            DataType.UBYTE, DataType.BOOL -> when(operator) {
                 "==" -> out("  lda  $varname |  bne  $jumpIfFalseLabel")
                 "!=" -> out("  lda  $varname |  beq  $jumpIfFalseLabel")
                 ">"  -> out("  lda  $varname |  beq  $jumpIfFalseLabel")

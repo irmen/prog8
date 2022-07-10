@@ -481,7 +481,7 @@ internal class AstChecker(private val program: Program,
 
         if(assignment.isAugmentable && targetDt istype DataType.BOOL) {
             val operator = (assignment.value as? BinaryExpression)?.operator
-            if(operator in setOf("-", "*", "/", "%"))
+            if(operator in InvalidOperatorsForBoolean)
                 errors.err("can't use boolean operand with this operator $operator", assignment.position)
         }
         super.visit(assignment)
@@ -918,7 +918,7 @@ internal class AstChecker(private val program: Program,
             if(expr.operator in setOf("<", "<=", ">", ">=")) {
                 errors.err("can't use boolean operand with this comparison operator", expr.position)
             }
-            if(expr.operator in setOf("-", "*", "/", "%") && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
+            if(expr.operator in InvalidOperatorsForBoolean && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
                 errors.err("can't use boolean operand with this operator ${expr.operator}", expr.left.position)
             }
             if(expr.operator=="+" && (leftDt==DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
