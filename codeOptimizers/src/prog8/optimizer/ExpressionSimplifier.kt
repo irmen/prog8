@@ -249,6 +249,28 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             else -> null
         }
 
+        if(rightVal!=null && leftDt==DataType.BOOL) {
+            // see if we can replace comparison against true/1 with simpler comparison against zero
+            if (expr.operator == "==") {
+                if (rightVal.number == 1.0) {
+                    val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.right.position)
+                    return listOf(
+                        IAstModification.SetExpression({expr.operator="!="}, expr, parent),
+                        IAstModification.ReplaceNode(expr.right, zero, expr)
+                    )
+                }
+            }
+            if (expr.operator == "!=") {
+                if (rightVal.number == 1.0) {
+                    val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.right.position)
+                    return listOf(
+                        IAstModification.SetExpression({expr.operator="=="}, expr, parent),
+                        IAstModification.ReplaceNode(expr.right, zero, expr)
+                    )
+                }
+            }
+        }
+
         if(newExpr != null)
             return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
 

@@ -3,10 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- petaxian has become larger (18630) why so much larger.   problematic lines:
-    gun.p8 95,110 if ( x <= GUN_MAX_LEFT and leftmost ) ...
-    enemy.p8 456 + bombs.p8 33 (while i<value)...
-
 - have a proper option to move the evalstack rather than just assembly symbol redefine
 - then make the cx16 virtual registers in syslib.p8 use that definition to be able to shift them around on non-cx16 targets
 

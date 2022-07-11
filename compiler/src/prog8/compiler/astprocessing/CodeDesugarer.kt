@@ -1,10 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -64,11 +61,12 @@ if CONDITION==0
          */
         val pos = untilLoop.position
         val loopLabel = program.makeLabel("untilloop", pos)
-        val equalsZero = BinaryExpression(untilLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
+        val ifCondition = invertCondition(untilLoop.condition)
+            ?: BinaryExpression(untilLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
-            IfElse(equalsZero,
+            IfElse(ifCondition,
                 AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
@@ -89,10 +87,11 @@ _after:
         val pos = whileLoop.position
         val loopLabel = program.makeLabel("whileloop", pos)
         val afterLabel = program.makeLabel("afterwhile", pos)
-        val equalsZero = BinaryExpression(whileLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
+        val ifCondition = invertCondition(whileLoop.condition)
+            ?: BinaryExpression(whileLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
-            IfElse(equalsZero,
+            IfElse(ifCondition,
                 AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),
