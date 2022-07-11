@@ -60,6 +60,8 @@ class CodeGen(internal val program: PtProgram,
 
         if(options.symbolDefs.isNotEmpty())
             throw AssemblyError("virtual target doesn't support symbols defined on the commandline")
+        if(options.evalStackBaseAddress!=null)
+            throw AssemblyError("virtual target doesn't use eval-stack")
 
         for (block in program.allBlocks()) {
             vmprog.addBlock(translate(block))

@@ -722,6 +722,7 @@ cx16 {
     ; $1300-$1bff is unused RAM on C128. We'll use $1a00-$1bff as the lo/hi evalstack.
     ; the virtual registers are allocated at the bottom of the eval-stack (should be ample space unless
     ; you're doing insane nesting of expressions...)
+    ; NOTE: the memory location of these registers can change based on the "-esa" compiler option
     &uword r0  = $1b00
     &uword r1  = $1b02
     &uword r2  = $1b04

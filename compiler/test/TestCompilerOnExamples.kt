@@ -37,6 +37,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         asmListfile = false,
         experimentalCodegen = false,
         compilationTarget = target.name,
+        evalStackBaseAddress = null,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )

@@ -164,6 +164,12 @@ One or more .p8 module files
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
 
+``-esa <address>``
+    Override the base address of the evaluation stack. Has to be page-aligned.
+    You can specify an integer or hexadecimal address.
+    When not compiling for the CommanderX16 target, the location of the 16 virtual registers cx16.r0..r15
+    is changed accordingly (to keep them in the same memory space as the evaluation stack).
+
 
 Module source code files
 ------------------------

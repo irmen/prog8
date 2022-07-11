@@ -16,8 +16,8 @@ class C64MachineDefinition: IMachineDefinition {
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
-    override val ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive
+    override var ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
+    override var ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive
 
     override lateinit var zeropage: Zeropage
 

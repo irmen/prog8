@@ -38,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val compilationTarget: String,
+                        val evalStackBaseAddress: UInt?,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -78,11 +79,17 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
+                evalStackBaseAddress = args.evalStackBaseAddress
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }
             program = programresult
             importedFiles = imported
+
+            if(compilationOptions.evalStackBaseAddress!=null) {
+                compTarget.machine.overrideEvalStack(compilationOptions.evalStackBaseAddress!!)
+            }
+
             processAst(program, args.errors, compilationOptions)
             if (compilationOptions.optimize) {
 //                println("*********** AST RIGHT BEFORE OPTIMIZING *************")

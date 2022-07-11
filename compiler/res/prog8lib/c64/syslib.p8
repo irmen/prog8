@@ -685,6 +685,7 @@ cx16 {
     ; (because there's no room for them in the zeropage)
     ; they are allocated at the bottom of the eval-stack (should be ample space unless
     ; you're doing insane nesting of expressions...)
+    ; NOTE: the memory location of these registers can change based on the "-esa" compiler option
     &uword r0  = $cf00
     &uword r1  = $cf02
     &uword r2  = $cf04

@@ -135,6 +135,8 @@ class AstToXmlConverter(internal val program: PtProgram,
         xml.attr("nosysinit", options.noSysInit.toString())
         xml.attr("dontreinitglobals", options.dontReinitGlobals.toString())
         xml.attr("optimize", options.optimize.toString())
+        if(options.evalStackBaseAddress!=null)
+            xml.attr("evalstackbase", options.evalStackBaseAddress!!.toString())
         if(options.zpReserved.isNotEmpty()) {
             xml.startChildren()
             options.zpReserved.forEach {

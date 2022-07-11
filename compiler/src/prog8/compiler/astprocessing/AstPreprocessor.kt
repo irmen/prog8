@@ -8,9 +8,43 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.Cx16Target
 
 
 class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
+
+    override fun before(program: Program): Iterable<IAstModification> {
+        if(compTarget.name!=Cx16Target.NAME) {
+            // reset the address of the virtual registers to be inside the evaluation stack.
+            // (we don't do this on CommanderX16 itself as the registers have a fixed location in Zeropage there)
+            val cx16block = program.allBlocks.single { it.name=="cx16" }
+            val memVars = cx16block.statements
+                .filterIsInstance<VarDecl>()
+                .associateBy { it.name }
+
+            val estack = compTarget.machine.ESTACK_HI
+            for(regnum in 0u..15u) {
+                val rX = memVars.getValue("r$regnum")
+                val rXL = memVars.getValue("r${regnum}L")
+                val rXH = memVars.getValue("r${regnum}H")
+                val rXs = memVars.getValue("r${regnum}s")
+                val rXsL = memVars.getValue("r${regnum}sL")
+                val rXsH = memVars.getValue("r${regnum}sH")
+                setAddress(rX, estack + 2u*regnum)
+                setAddress(rXL, estack + 2u*regnum)
+                setAddress(rXH, estack + 2u*regnum +1u)
+                setAddress(rXs, estack + 2u*regnum)
+                setAddress(rXsL, estack + 2u*regnum)
+                setAddress(rXsH, estack + 2u*regnum + 1u)
+            }
+        }
+        return noModifications
+    }
+
+    private fun setAddress(vardecl: VarDecl, address: UInt) {
+        val oldAddr = vardecl.value as NumericLiteral
+        vardecl.value = NumericLiteral(oldAddr.type, address.toDouble(), oldAddr.position)
+    }
 
     override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
         if(char.encoding== Encoding.DEFAULT)

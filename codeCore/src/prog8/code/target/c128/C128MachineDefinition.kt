@@ -16,8 +16,8 @@ class C128MachineDefinition: IMachineDefinition {
     override val PROGRAM_LOAD_ADDRESS = 0x1c01u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0x1a00u     //  $1a00-$1aff inclusive
-    override val ESTACK_HI = 0x1b00u     //  $1b00-$1bff inclusive
+    override var ESTACK_LO = 0x1a00u     //  $1a00-$1aff inclusive
+    override var ESTACK_HI = 0x1b00u     //  $1b00-$1bff inclusive
 
     override lateinit var zeropage: Zeropage
 

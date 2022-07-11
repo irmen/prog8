@@ -110,7 +110,6 @@ cx16 {
 
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the VirtualMachine as well but their location in memory is different
-; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
     &uword r0  = $0002
     &uword r1  = $0004
     &uword r2  = $0006

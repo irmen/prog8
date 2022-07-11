@@ -18,8 +18,8 @@ interface IMachineDefinition {
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int
-    val ESTACK_LO: UInt
-    val ESTACK_HI: UInt
+    var ESTACK_LO: UInt
+    var ESTACK_HI: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
 
     val opcodeNames: Set<String>
@@ -32,4 +32,9 @@ interface IMachineDefinition {
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
     fun isIOAddress(address: UInt): Boolean
+    fun overrideEvalStack(evalStackBaseAddress: UInt) {
+        require(evalStackBaseAddress and 255u == 0u)
+        ESTACK_LO = evalStackBaseAddress
+        ESTACK_HI = evalStackBaseAddress + 256u
+    }
 }

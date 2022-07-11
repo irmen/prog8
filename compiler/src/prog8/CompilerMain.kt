@@ -3,6 +3,7 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.code.core.CbmPrgLauncherType
+import prog8.code.core.toHex
 import prog8.code.target.*
 import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
@@ -15,7 +16,6 @@ import java.nio.file.Paths
 import java.nio.file.StandardWatchEventKinds
 import java.time.LocalDateTime
 import kotlin.system.exitProcess
-
 
 
 fun main(args: Array<String>) {
@@ -49,7 +49,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt listing in the VM instead")
-    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) like -D SYMBOL=VALUE").multiple()
+    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
+    val evalStackAddrString by cli.option(ArgType.String, fullName = "esa", description = "override the eval-stack base address (must be page aligned)")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -84,6 +85,25 @@ private fun compileMain(args: Array<String>): Boolean {
         return runVm(moduleFiles.first())
     }
 
+    var evalStackAddr: UInt? = null
+    if(evalStackAddrString!=null) {
+        try {
+            evalStackAddr = if (evalStackAddrString!!.startsWith("0x"))
+                evalStackAddrString!!.substring(2).toUInt(16)
+            else if (evalStackAddrString!!.startsWith("$"))
+                evalStackAddrString!!.substring(1).toUInt(16)
+            else
+                evalStackAddrString!!.toUInt()
+        } catch(nx: NumberFormatException) {
+            System.err.println("invalid address for evalstack: $evalStackAddrString")
+            return false
+        }
+        if(evalStackAddr !in 256u..65536u-512u || (evalStackAddr and 255u != 0u)) {
+            System.err.println("invalid address for evalstack: ${evalStackAddr.toHex()}")
+            return false
+        }
+    }
+
     val processedSymbols = processSymbolDefs(symbolDefs) ?: return false
 
     if(watchMode==true) {
@@ -106,6 +126,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     compilationTarget,
+                    evalStackAddr,
                     processedSymbols,
                     srcdirs,
                     outputPath
@@ -159,6 +180,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     compilationTarget,
+                    evalStackAddr,
                     processedSymbols,
                     srcdirs,
                     outputPath

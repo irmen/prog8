@@ -15,8 +15,8 @@ class CX16MachineDefinition: IMachineDefinition {
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
 
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override val ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
-    override val ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
+    override var ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
+    override var ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
 
     override lateinit var zeropage: Zeropage
 
