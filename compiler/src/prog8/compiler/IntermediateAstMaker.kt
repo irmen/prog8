@@ -403,16 +403,7 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        var actualType = type
-        if(type==DataType.BOOL) {
-            if(srcExpr.operator in LogicalOperators + ComparisonOperators) {
-                // a comparison or logical expression is a boolean result (0 or 1) so we can safely
-                // reduce that to just a UBYTE type for the vm code that doesn't know about bools.
-                actualType = DataType.UBYTE
-            } else {
-                throw IllegalArgumentException("Ast expression still having BOOL type: $srcExpr  @${srcExpr.position}")
-            }
-        }
+        val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
         val expr = PtBinaryExpression(srcExpr.operator, actualType, srcExpr.position)
         expr.add(transformExpression(srcExpr.left))
         expr.add(transformExpression(srcExpr.right))

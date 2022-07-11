@@ -84,7 +84,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         // but only if the containment check is the top-level expression.
         if(parent is BinaryExpression)
             return noModifications
-        if(expr.operator == "|") {
+        if(expr.operator == "|" || expr.operator=="or") {
             val leftBinExpr1 = expr.left as? BinaryExpression
             val rightBinExpr1 = expr.right as? BinaryExpression
 
@@ -100,7 +100,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         }
                         return false
                     }
-                    if(expr.operator!="|")
+                    if(expr.operator!="|" && expr.operator!="or")
                         return false
                     val leftBinExpr = expr.left as? BinaryExpression
                     val rightBinExpr = expr.right as? BinaryExpression

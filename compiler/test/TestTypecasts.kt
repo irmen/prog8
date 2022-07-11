@@ -14,11 +14,67 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 
 class TestTypecasts: FunSpec({
+    test("bool expressions with functioncalls") {
+        val text="""
+main {
+    sub ftrue(ubyte arg) -> ubyte {
+        arg++
+        return 64
+    }
+
+    sub start() {
+        bool ub1 = true
+        bool ub2 = true
+        bool ub3 = true
+        bool ub4 = 0
+        bool @shared bvalue
+
+        bvalue = ub1 xor ub2 xor ub3 xor true
+        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
+        bvalue = ub1 and ub2 and ftrue(99)
+    }
+}"""
+        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val stmts = result.program.entrypoint.statements
+        /*
+        ubyte ub1
+        ub1 = 1
+        ubyte ub2
+        ub2 = 1
+        ubyte ub3
+        ub3 = 1
+        ubyte @shared bvalue
+        bvalue = (((ub1^ub2)^ub3)^(1!=0))
+        bvalue = (((ub1^ub2)^ub3)^(ftrue(99)!=0))
+        bvalue = ((ub1&ub2)&(ftrue(99)!=0))
+        return
+         */
+        stmts.size shouldBe 11
+        val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
+        val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
+        val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
+        assignValue1.operator shouldBe "^"
+        assignValue2.operator shouldBe "^"
+        assignValue3.operator shouldBe "&"
+        val right1 = assignValue1.right as BinaryExpression
+        val right2 = assignValue2.right as BinaryExpression
+        val right3 = assignValue3.right as BinaryExpression
+        right1.operator shouldBe "!="
+        right2.operator shouldBe "!="
+        right3.operator shouldBe "!="
+        right1.left shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        right1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right2.left shouldBe instanceOf<IFunctionCall>()
+        right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right3.left shouldBe instanceOf<IFunctionCall>()
+        right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+    }
 
     test("logical with byte instead of bool") {
         val text="""
@@ -504,7 +560,7 @@ main  {
         (fcall2.args[0] as TypecastExpression).type shouldBe DataType.BOOL
         (fcall2.args[1] as TypecastExpression).type shouldBe DataType.BOOL
         val ifCond = (stmts[8] as IfElse).condition as BinaryExpression
-        ifCond.operator shouldBe "&"
+        ifCond.operator shouldBe "and" // no asm writing so logical expressions haven't been replaced with bitwise equivalents yet
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")
         (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("boolvalue2")
     }
@@ -523,11 +579,13 @@ main  {
                     ww = (camg & ${'$'}0004)
                     ww++
                     ww = (${'$'}0004 & camg)
+                    
+                    ubyte @shared wordNr2 = (interlaced >= ${'$'}33) + (interlaced >= ${'$'}66) + (interlaced >= ${'$'}99) + (interlaced >= ${'$'}CC)
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(VMTarget(), false, text, writeAssembly = true)!!
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 11
+        stmts.size shouldBe 14
     }
 
     test("word to byte casts") {

@@ -786,7 +786,7 @@ class TestProg8Parser: FunSpec( {
         val left = zz2.left as TypecastExpression
         val right = zz2.right as PrefixExpression
         left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
         zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
     }
 
@@ -885,6 +885,7 @@ class TestProg8Parser: FunSpec( {
                     str string = "hello"
                     ubyte[] array = [1,2,3,4]
                     
+                    bool bb
                     ubyte cc
                     if cc in [' ', '@', 0] {
                     }
@@ -892,8 +893,8 @@ class TestProg8Parser: FunSpec( {
                     if cc in "email" {
                     }
                     
-                    cc = 99 in array
-                    cc = '@' in string
+                    bb = 99 in array
+                    bb = '@' in string
                 }
             }
         """

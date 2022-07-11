@@ -3,28 +3,36 @@
 
 
 main {
-    sub ftrue(ubyte arg) -> ubyte {
-        arg++
-        txt.print(" ftrue ")
-        return 1
-    }
+  ubyte key
+
+  sub pushing_fire() -> ubyte {
+    return key == 'z'
+  }
+
+  sub pushing_left() -> ubyte {
+    return key == 'k' or key == 157
+  }
+
+  sub pushing_right() -> ubyte {
+    return key == 'l' or key == 29
+  }
 
     sub start() {
-        bool ub1 = true
-        bool ub2 = true
-        bool ub3 = true
-        bool ub4 = 0
-        bool bvalue
+        void pushing_fire()
+        void pushing_left()
+        void pushing_right()
 
-        txt.print("expected output: 0 ftrue 0 ftrue 1\n")
-        bvalue = ub1 xor ub2 xor ub3 xor true
-        txt.print_ub(bvalue)
-        txt.spc()
-        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
-        txt.print_ub(bvalue)
-        txt.spc()
-        bvalue = ub1 and ub2 and ftrue(99)
-        txt.print_ub(bvalue)
+        ubyte rnr = $99
+        ubyte wordNr = ((rnr >= $33) as ubyte) +
+            ((rnr >= $66) as ubyte) +
+            ((rnr >= $99) as ubyte) +
+            ((rnr >= $CC) as ubyte)
+
+        ubyte wordNr2 = (rnr >= $33) as ubyte + (rnr >= $66) as ubyte + (rnr >= $99) as ubyte + (rnr >= $CC) as ubyte
+
+        txt.print_uw(wordNr)
+        txt.nl()
+        txt.print_uw(wordNr2)
         txt.nl()
     }
 }

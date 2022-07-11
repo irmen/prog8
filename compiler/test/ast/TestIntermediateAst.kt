@@ -51,7 +51,9 @@ class TestIntermediateAst: FunSpec({
         arraydecl.name shouldBe "array"
         arraydecl.type shouldBe DataType.ARRAY_UB
 
-        val containment = (entry.children[2] as PtAssignment).value as PtContainmentCheck
+        val containmentCast = (entry.children[2] as PtAssignment).value as PtTypeCast
+        containmentCast.type shouldBe DataType.UBYTE
+        val containment = containmentCast.value as PtContainmentCheck
         (containment.element as PtNumber).number shouldBe 11.0
         val fcall = (entry.children[3] as PtAssignment).value as PtFunctionCall
         fcall.void shouldBe false

@@ -22,14 +22,17 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
 }
 
 internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
+    val boolRemover = BoolRemover(this)
+    boolRemover.visit(this)
+    boolRemover.applyModifications()
     val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
-    while(errors.noErrors() && fixer.applyModifications()>0) {
+    while (errors.noErrors() && fixer.applyModifications() > 0) {
         fixer.visit(this)
     }
     val cleaner = BeforeAsmTypecastCleaner(this, errors)
     cleaner.visit(this)
-    while(errors.noErrors() && cleaner.applyModifications()>0) {
+    while (errors.noErrors() && cleaner.applyModifications() > 0) {
         cleaner.visit(this)
     }
 }

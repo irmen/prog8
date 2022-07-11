@@ -263,10 +263,10 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
         printProgram(result.program)
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
 
         val value1 = (stmts[4] as Assignment).value as BinaryExpression
         val value2 = (stmts[5] as Assignment).value as BinaryExpression

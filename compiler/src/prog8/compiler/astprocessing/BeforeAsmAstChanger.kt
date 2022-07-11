@@ -60,34 +60,6 @@ internal class BeforeAsmAstChanger(val program: Program,
                 throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
 
-        if(decl.datatype==DataType.BOOL) {
-            var newvalue = decl.value
-            if(newvalue is NumericLiteral) {
-                if(newvalue.number!=0.0)
-                    newvalue = NumericLiteral(DataType.UBYTE, 1.0, newvalue.position)
-            }
-            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name,
-                newvalue, decl.isArray, decl.sharedWithAsm, decl.subroutineParameter, decl.position)
-            return listOf(IAstModification.ReplaceNode(decl, ubyteDecl, parent))
-        }
-
-        if(decl.datatype==DataType.ARRAY_BOOL) {
-            var newarray = decl.value
-            if(decl.value is ArrayLiteral) {
-                val oldArray = (decl.value as ArrayLiteral).value
-                val convertedArray = oldArray.map {
-                    var number: Expression = it
-                    if (it is NumericLiteral && it.type == DataType.BOOL)
-                        number = NumericLiteral(DataType.UBYTE, if (it.number == 0.0) 0.0 else 1.0, number.position)
-                    number
-                }.toTypedArray()
-                newarray = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), convertedArray, decl.position)
-            }
-            val ubyteArrayDecl = VarDecl(decl.type, decl.origin, DataType.ARRAY_UB, decl.zeropage, decl.arraysize, decl.name,
-                newarray, true, decl.sharedWithAsm, decl.subroutineParameter, decl.position)
-            return listOf(IAstModification.ReplaceNode(decl, ubyteArrayDecl, parent))
-        }
-
         return noModifications
     }
 
@@ -152,23 +124,6 @@ internal class BeforeAsmAstChanger(val program: Program,
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-
-        // replace BOOL return type and parameters by UBYTE
-        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
-            val newReturnTypes = subroutine.returntypes.map {
-                if(it==DataType.BOOL) DataType.UBYTE else it
-            }
-            val newParams = subroutine.parameters.map {
-                if(it.type==DataType.BOOL) SubroutineParameter(it.name, DataType.UBYTE, it.position) else it
-            }.toMutableList()
-            val newSubroutine = Subroutine(subroutine.name, newParams, newReturnTypes,
-                subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers,
-                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, subroutine.statements,
-                subroutine.position)
-            return listOf(IAstModification.ReplaceNode(subroutine, newSubroutine, parent))
-        }
-
-
         // Most code generation targets only support subroutine inlining on asmsub subroutines
         // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
         if(!subroutine.isAsmSubroutine && options.compTarget.name!=VMTarget.NAME)
@@ -213,28 +168,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             }
         }
 
-        if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
-            throw FatalAstException("boolean args and return types to ubyte should already have been done by earlier step")
-        }
-
         return mods
-    }
-
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        // convert boolean and/or/xor/not operators to bitwise equivalents.
-        // so that codegen only has to work with bitwise boolean operations from now on.
-        if(expr.operator in setOf("and", "or", "xor")) {
-            expr.operator = when(expr.operator) {
-                "and" -> "&"
-                "or" -> "|"
-                "xor" -> "^"
-                else -> "invalid"
-            }
-            return listOf(
-                IAstModification.ReplaceNode(expr.left, wrapWithBooleanCastIfNeeded(expr.left), expr),
-                IAstModification.ReplaceNode(expr.right, wrapWithBooleanCastIfNeeded(expr.right), expr),)
-        }
-        return noModifications
     }
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
@@ -436,28 +370,5 @@ internal class BeforeAsmAstChanger(val program: Program,
             )
         )
         return modifications
-    }
-
-    private fun wrapWithBooleanCastIfNeeded(expr: Expression): Expression {
-        fun isBoolean(expr: Expression): Boolean {
-            return if(expr.inferType(program) istype DataType.BOOL)
-                true
-            else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
-                true
-            else if(expr is PrefixExpression && expr.operator == "not")
-                true
-            else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
-                if(isBoolean(expr.left) && isBoolean(expr.right))
-                    true
-                else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
-            }
-            else
-                false
-        }
-
-        return if(isBoolean(expr))
-            expr
-        else
-            TypecastExpression(expr, DataType.BOOL, true, expr.position)
     }
 }

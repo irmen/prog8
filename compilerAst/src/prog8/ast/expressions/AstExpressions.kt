@@ -124,7 +124,8 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         val inferred = expression.inferType(program)
         return when(operator) {
             "+" -> inferred
-            "~", "not" -> {
+            "not" -> InferredTypes.knownFor(DataType.BOOL)
+            "~" -> {
                 when(inferred.getOr(DataType.UNDEFINED)) {
                     in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
                     in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)
@@ -1108,7 +1109,7 @@ class ContainmentCheck(var element: Expression,
         return iterable.referencesIdentifier(nameInSource)
     }
 
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.BOOL)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(replacement !is Expression)
