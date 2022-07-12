@@ -349,14 +349,10 @@ class CodeGen(internal val program: PtProgram,
                 code += VmCodeInstruction(Opcode.DEC, dt, reg1=reg)
             }
             else -> {
-                val valueReg = vmRegisters.nextFree()
-                if(value>0) {
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value= value)
-                    code += VmCodeInstruction(Opcode.ADD, dt, reg1 = reg, reg2 = valueReg)
-                }
-                else {
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value= -value)
-                    code += VmCodeInstruction(Opcode.SUB, dt, reg1 = reg, reg2 = valueReg)
+                code += if(value>0) {
+                    VmCodeInstruction(Opcode.ADD, dt, reg1 = reg, value=value)
+                } else {
+                    VmCodeInstruction(Opcode.SUB, dt, reg1 = reg, value=-value)
                 }
             }
         }
@@ -387,13 +383,13 @@ class CodeGen(internal val program: PtProgram,
                 if(value>0) {
                     code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
                     code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=value)
-                    code += VmCodeInstruction(Opcode.ADD, dt, reg1 = valueReg, reg2 = operandReg)
+                    code += VmCodeInstruction(Opcode.ADDR, dt, reg1 = valueReg, reg2 = operandReg)
                     code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
                 }
                 else {
                     code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
                     code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=-value)
-                    code += VmCodeInstruction(Opcode.SUB, dt, reg1 = valueReg, reg2 = operandReg)
+                    code += VmCodeInstruction(Opcode.SUBR, dt, reg1 = valueReg, reg2 = operandReg)
                     code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
                 }
             }
@@ -405,12 +401,10 @@ class CodeGen(internal val program: PtProgram,
         val code = VmCodeChunk()
         if(factor==1f)
             return code
-        if(factor==0f) {
-            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = 0f)
+        code += if(factor==0f) {
+            VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = 0f)
         } else {
-            val factorReg = vmRegisters.nextFreeFloat()
-            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += VmCodeInstruction(Opcode.MUL, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
+            VmCodeInstruction(Opcode.MUL, VmDataType.FLOAT, fpReg1 = fpReg, fpValue=factor)
         }
         return code
     }
@@ -446,13 +440,10 @@ class CodeGen(internal val program: PtProgram,
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
             code += VmCodeInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
         } else {
-            if (factor == 0) {
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
-            }
-            else {
-                val factorReg = vmRegisters.nextFree()
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
-                code += VmCodeInstruction(Opcode.MUL, dt, reg1=reg, reg2=factorReg)
+            code += if (factor == 0) {
+                VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0)
+            } else {
+                VmCodeInstruction(Opcode.MUL, dt, reg1=reg, value=factor)
             }
         }
         return code
@@ -489,12 +480,10 @@ class CodeGen(internal val program: PtProgram,
         val code = VmCodeChunk()
         if(factor==1f)
             return code
-        if(factor==0f) {
-            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = Float.MAX_VALUE)
+        code += if(factor==0f) {
+            VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = fpReg, fpValue = Float.MAX_VALUE)
         } else {
-            val factorReg = vmRegisters.nextFreeFloat()
-            code += VmCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += VmCodeInstruction(Opcode.DIVS, VmDataType.FLOAT, fpReg1 = fpReg, fpReg2 = factorReg)
+            VmCodeInstruction(Opcode.DIVS, VmDataType.FLOAT, fpReg1 = fpReg, fpValue=factor)
         }
         return code
     }
@@ -536,16 +525,13 @@ class CodeGen(internal val program: PtProgram,
             else
                 VmCodeInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
         } else {
-            if (factor == 0) {
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
-            }
-            else {
-                val factorReg = vmRegisters.nextFree()
-                code += VmCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
-                code += if(signed)
-                    VmCodeInstruction(Opcode.DIVS, dt, reg1=reg, reg2=factorReg)
+            code += if (factor == 0) {
+                VmCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
+            } else {
+                if(signed)
+                    VmCodeInstruction(Opcode.DIVS, dt, reg1=reg, value=factor)
                 else
-                    VmCodeInstruction(Opcode.DIV, dt, reg1=reg, reg2=factorReg)
+                    VmCodeInstruction(Opcode.DIV, dt, reg1=reg, value=factor)
             }
         }
         return code

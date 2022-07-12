@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add VM instructions to add/sub/mul/div/mod by an immediate value
+- vm: add logical instructions taking immediate value as well
 ...
 
 

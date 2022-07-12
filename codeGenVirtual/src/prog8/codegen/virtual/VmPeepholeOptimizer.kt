@@ -109,7 +109,7 @@ bges        reg1, reg2,       location  - jump to location in program given by l
     }
 
     private fun removeUselessArithmetic(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
-        // TODO this is hard to solve atm because the values are loaded into registers first
+        // TODO this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when (ins.opcode) {
