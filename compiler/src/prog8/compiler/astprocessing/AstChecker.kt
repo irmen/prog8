@@ -99,8 +99,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifElse: IfElse) {
-        if(!ifElse.condition.inferType(program).isInteger)
-            errors.err("condition value should be an integer type", ifElse.condition.position)
+        val dt = ifElse.condition.inferType(program)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL))
+            errors.err("condition value should be an integer type or bool", ifElse.condition.position)
         super.visit(ifElse)
     }
 
@@ -435,14 +436,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(!untilLoop.condition.inferType(program).isInteger)
-            errors.err("condition value should be an integer type", untilLoop.condition.position)
+        val dt = untilLoop.condition.inferType(program)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL))
+            errors.err("condition value should be an integer type or bool", untilLoop.condition.position)
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(!whileLoop.condition.inferType(program).isInteger)
-            errors.err("condition value should be an integer type", whileLoop.condition.position)
+        val dt = whileLoop.condition.inferType(program)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL))
+            errors.err("condition value should be an integer type or bool", whileLoop.condition.position)
         super.visit(whileLoop)
     }
 
@@ -891,9 +894,9 @@ internal class AstChecker(private val program: Program,
             "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
         }
 
-        if(leftDt !in NumericDatatypes && leftDt != DataType.STR)
+        if(leftDt !in NumericDatatypes && leftDt != DataType.STR && leftDt != DataType.BOOL)
             errors.err("left operand is not numeric or str", expr.left.position)
-        if(rightDt!in NumericDatatypes && rightDt != DataType.STR)
+        if(rightDt!in NumericDatatypes && rightDt != DataType.STR && rightDt != DataType.BOOL)
             errors.err("right operand is not numeric or str", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt==DataType.STR && rightDt in IntegerDatatypes && expr.operator=="*") {

@@ -4,9 +4,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.DataType
-import prog8.code.core.NumericDatatypes
+import prog8.code.core.NumericDatatypesNoBool
 import prog8.code.core.RegisterOrPair
-import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.compiler.BuiltinFunctions
 import prog8tests.helpers.compileText
@@ -31,7 +30,7 @@ class TestBuiltinFunctions: FunSpec({
         func.name shouldBe "sgn"
         func.parameters.size shouldBe 1
         func.parameters[0].name shouldBe "value"
-        func.parameters[0].possibleDatatypes shouldBe NumericDatatypes
+        func.parameters[0].possibleDatatypes shouldBe NumericDatatypesNoBool
         func.pure shouldBe true
         func.returnType shouldBe DataType.BYTE
 

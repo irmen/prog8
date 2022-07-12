@@ -3,8 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash (abs(fl))         ; WHY IS THIS GETTING A BOOLEAN CAST???
-- vm why is bb = bb2 and true  generating so large code?
+- bool @shared bb = bb2 and true    should not add typecast around bb2
 ...
 
 

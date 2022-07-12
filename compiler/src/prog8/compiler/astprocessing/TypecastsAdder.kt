@@ -43,20 +43,24 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
+        val leftCv = expr.left.constValue(program)
+        val rightCv = expr.right.constValue(program)
+
         if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
 
-            // convert bool type to byte
-            if(leftDt istype DataType.BOOL && rightDt.isBytes) {
-                return listOf(IAstModification.ReplaceNode(expr.left,
-                    TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
-            } else if(leftDt.isBytes && rightDt istype DataType.BOOL) {
-                return listOf(IAstModification.ReplaceNode(expr.right,
-                    TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
+            // convert bool type to byte if needed
+            if(leftDt istype DataType.BOOL && rightDt.isBytes && !rightDt.istype(DataType.BOOL)) {
+                if(rightCv==null || (rightCv.number!=1.0 && rightCv.number!=0.0))
+                    return listOf(IAstModification.ReplaceNode(expr.left,
+                        TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
+            } else if(leftDt.isBytes && !leftDt.istype(DataType.BOOL) && rightDt istype DataType.BOOL) {
+                if(leftCv==null || (leftCv.number!=1.0 && leftCv.number!=0.0))
+                    return listOf(IAstModification.ReplaceNode(expr.right,
+                        TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
             }
 
             // convert a negative operand for bitwise operator to the 2's complement positive number instead
             if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
-                val leftCv = expr.left.constValue(program)
                 if(leftCv!=null && leftCv.number<0) {
                     val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number
                     return listOf(IAstModification.ReplaceNode(
@@ -64,7 +68,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         NumericLiteral(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
                         expr))
                 }
-                val rightCv = expr.right.constValue(program)
                 if(rightCv!=null && rightCv.number<0) {
                     val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
                     return listOf(IAstModification.ReplaceNode(
@@ -203,6 +206,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                             arg,
                                             cast.valueOrZero(),
                                             call as Node)
+                            } else if(requiredType==DataType.BOOL && argtype!=DataType.BOOL) {
+                                // cast to bool
+                                addTypecastOrCastedValueModification(modifications, arg, requiredType, call as Node)
                             }
                         }
                     }

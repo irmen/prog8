@@ -94,12 +94,12 @@ private val functionSignatures: List<FSignature> = listOf(
     FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
     FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
     // cmp returns a status in the carry flag, but not a proper return value
-    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
-    FSignature("abs"         , true, listOf(FParam("value", IntegerDatatypes)), DataType.UWORD, ::builtinAbs),
+    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypesNoBool), FParam("value2", NumericDatatypesNoBool)), null),
+    FSignature("abs"         , true, listOf(FParam("value", IntegerDatatypesNoBool)), DataType.UWORD, ::builtinAbs),
     FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
     // normal functions follow:
     FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
-    FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypes)), DataType.BYTE, ::builtinSgn ),
+    FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypesNoBool)), DataType.BYTE, ::builtinSgn ),
     FSignature("sqrt16"      , true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
     FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
     FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
@@ -178,7 +178,7 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return when (constval.type) {
-        in IntegerDatatypes -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
+        in IntegerDatatypesNoBool -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
         else -> throw SyntaxError("abs requires one integer argument", position)
     }
 }

@@ -23,10 +23,10 @@ enum class DataType {
         when(this) {
             BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, FLOAT)
             UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT, BOOL)
-            BYTE -> targetType.oneOf(BYTE, WORD, FLOAT, BOOL)
-            UWORD -> targetType.oneOf(UWORD, FLOAT, BOOL)
-            WORD -> targetType.oneOf(WORD, FLOAT, BOOL)
-            FLOAT -> targetType.oneOf(FLOAT, BOOL)
+            BYTE -> targetType.oneOf(BYTE, WORD, FLOAT)
+            UWORD -> targetType.oneOf(UWORD, FLOAT)
+            WORD -> targetType.oneOf(WORD, FLOAT)
+            FLOAT -> targetType.oneOf(FLOAT)
             STR -> targetType.oneOf(STR, UWORD)
             in ArrayDatatypes -> targetType == this
             else -> false
@@ -115,7 +115,9 @@ enum class BranchCondition {
 val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.BOOL)
 val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.BOOL)
+val IntegerDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
 val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT, DataType.BOOL)
+val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)

@@ -93,6 +93,8 @@ internal class BoolRemover(val program: Program) : AstWalker() {
         fun isBoolean(expr: Expression): Boolean {
             return if(expr.inferType(program) istype DataType.BOOL)
                 true
+            else if(expr is NumericLiteral && expr.type in IntegerDatatypes && (expr.number==0.0 || expr.number==1.0))
+                true
             else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
                 true
             else if(expr is PrefixExpression && expr.operator == "not")

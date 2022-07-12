@@ -20,6 +20,51 @@ import prog8tests.helpers.compileText
 
 
 class TestTypecasts: FunSpec({
+
+    test("integer args for builtin funcs") {
+        val text="""
+            %import floats
+            main {
+                sub start() {
+                    float fl
+                    floats.print_f(abs(fl))
+                }
+            }"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), false, text, writeAssembly = false, errors=errors)
+        result shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "type mismatch, was: FLOAT expected one of: [UBYTE, BYTE, UWORD, WORD]"
+    }
+
+    test("not casting bool operands to logical operators") {
+        val text="""
+            %import textio
+            %zeropage basicsafe
+            
+            main {
+                sub start() {
+                    bool bb2=true
+                    bool @shared bb = bb2 and true
+                }
+            }"""
+        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 4
+        val expr = (stmts[3] as Assignment).value as BinaryExpression
+        expr.operator shouldBe "and"
+        expr.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
+
+        val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val stmts2 = result2.program.entrypoint.statements
+        stmts2.size shouldBe 6
+        val expr2 = (stmts2[4] as Assignment).value as BinaryExpression
+        expr2.operator shouldBe "&"
+        expr2.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("bb")
+    }
+
     test("bool expressions with functioncalls") {
         val text="""
 main {
@@ -50,7 +95,7 @@ main {
         ubyte ub3
         ub3 = 1
         ubyte @shared bvalue
-        bvalue = (((ub1^ub2)^ub3)^(1!=0))
+        bvalue = (((ub1^ub2)^ub3)^1)
         bvalue = (((ub1^ub2)^ub3)^(ftrue(99)!=0))
         bvalue = ((ub1&ub2)&(ftrue(99)!=0))
         return
@@ -62,14 +107,12 @@ main {
         assignValue1.operator shouldBe "^"
         assignValue2.operator shouldBe "^"
         assignValue3.operator shouldBe "&"
-        val right1 = assignValue1.right as BinaryExpression
+        val right1 = assignValue1.right as NumericLiteral
         val right2 = assignValue2.right as BinaryExpression
         val right3 = assignValue3.right as BinaryExpression
-        right1.operator shouldBe "!="
+        right1.number shouldBe 1.0
         right2.operator shouldBe "!="
         right3.operator shouldBe "!="
-        right1.left shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        right1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         right2.left shouldBe instanceOf<IFunctionCall>()
         right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         right3.left shouldBe instanceOf<IFunctionCall>()
