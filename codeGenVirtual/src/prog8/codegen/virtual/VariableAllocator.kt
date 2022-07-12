@@ -4,7 +4,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
 import prog8.code.core.*
 
-class VariableAllocator(private val st: SymbolTable, private val program: PtProgram, errors: IErrorReporter) {
+class VariableAllocator(private val st: SymbolTable, private val program: PtProgram) {
 
     private val allocations = mutableMapOf<List<String>, Int>()
     private var freeMemoryStart: Int

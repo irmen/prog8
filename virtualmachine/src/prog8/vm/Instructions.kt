@@ -13,8 +13,7 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
 Program to execute is not stored in this memory, it's just a separate list of instructions.
 Most instructions have an associated data type 'b','w','f'. (omitting it means 'b'/byte).
 Currently NO support for 24 or 32 bits integers.
-Floating point operations are just 'f' typed regular instructions, and additionally there are
-a few fp conversion instructions to
+Floating point operations are just 'f' typed regular instructions, and additionally there are a few fp conversion instructions
 
 
 LOAD/STORE

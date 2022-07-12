@@ -13,8 +13,7 @@ import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
 
-internal class AssemblyProgram(override val name: String,
-                               private val allocations: VariableAllocator
+class AssemblyProgram(override val name: String, private val allocations: VariableAllocator
 ) : IAssemblyProgram {
 
     private val globalInits = mutableListOf<VmCodeLine>()
@@ -71,9 +70,9 @@ internal class AssemblyProgram(override val name: String,
     fun getBlocks(): List<VmCodeChunk> = blocks
 }
 
-internal sealed class VmCodeLine
+sealed class VmCodeLine
 
-internal class VmCodeInstruction(
+class VmCodeInstruction(
     opcode: Opcode,
     type: VmDataType?=null,
     reg1: Int?=null,        // 0-$ffff
@@ -112,10 +111,10 @@ internal class VmCodeInstruction(
     }
 }
 
-internal class VmCodeLabel(val name: List<String>): VmCodeLine()
+class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
 
-internal class VmCodeChunk(initial: VmCodeLine? = null) {
+class VmCodeChunk(initial: VmCodeLine? = null) {
     val lines = mutableListOf<VmCodeLine>()
 
     init {

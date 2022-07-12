@@ -40,7 +40,7 @@ class CodeGen(internal val program: PtProgram,
               internal val errors: IErrorReporter
 ): IAssemblyGenerator {
 
-    internal val allocations = VariableAllocator(symbolTable, program, errors)
+    internal val allocations = VariableAllocator(symbolTable, program)
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
@@ -72,7 +72,7 @@ class CodeGen(internal val program: PtProgram,
             optimizer.optimize()
         }
 
-        println("Vm codegen: amount of vm registers=${vmRegisters.peekNext()}")
+        println("Vm codegen: virtual registers=${vmRegisters.peekNext()} memory usage=${allocations.freeMem}")
 
         return vmprog
     }

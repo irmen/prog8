@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- add VM instructions to add/sub/mul/div/mod by an immediate value
 ...
 
 
@@ -25,10 +26,12 @@ Compiler:
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
+- vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
+- move the vm unit tests to codeGenVirtual module and remove virtualmachine dependency in the compiler module
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
