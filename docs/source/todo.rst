@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: add logical instructions taking immediate value as well
+- fix compiler crash (abs(fl))         ; WHY IS THIS GETTING A BOOLEAN CAST???
+- vm why is bb = bb2 and true  generating so large code?
 ...
 
 

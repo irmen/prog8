@@ -163,10 +163,13 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.SQRT -> InsSQRT(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
+            Opcode.ANDR -> InsANDR(ins)
             Opcode.AND -> InsAND(ins)
             Opcode.ANDM -> InsANDM(ins)
+            Opcode.ORR -> InsORR(ins)
             Opcode.OR -> InsOR(ins)
             Opcode.ORM -> InsORM(ins)
+            Opcode.XORR -> InsXORR(ins)
             Opcode.XOR -> InsXOR(ins)
             Opcode.XORM ->InsXORM(ins)
             Opcode.INV -> InsINV(ins)
@@ -1295,11 +1298,20 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsAND(i: Instruction) {
+    private fun InsANDR(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left and right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left and right).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsAND(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) and i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) and i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1323,11 +1335,20 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsOR(i: Instruction) {
+    private fun InsORR(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left or right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left or right).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsOR(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) or i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) or i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1351,11 +1372,20 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun InsXOR(i: Instruction) {
+    private fun InsXORR(i: Instruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left xor right).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (left xor right).toUShort())
+            VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        pc++
+    }
+
+    private fun InsXOR(i: Instruction) {
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) xor i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) xor i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++

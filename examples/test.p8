@@ -1,18 +1,13 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 
 main {
     sub start() {
-        bool @shared zz
-        ubyte xx
-        ubyte yy
-
-        while xx<42 {
-            xx = yy+99
-            xx = yy*5
-        }
-
-        txt.print_ub(xx)
+        float fl
+        fl = -3.14
+        floats.print_f(abs(fl))         ; WHY IS THIS GETTING A BOOLEAN CAST???
+        txt.nl()
     }
 }

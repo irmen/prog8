@@ -126,9 +126,12 @@ LOGICAL/BITWISE
 ---------------
 All have type b or w.
 
-and         reg1, reg2                       - reg1 = reg1 bitwise and reg2
-or          reg1, reg2                       - reg1 = reg1 bitwise or reg2
-xor         reg1, reg2                       - reg1 = reg1 bitwise xor reg2
+andr        reg1, reg2                       - reg1 = reg1 bitwise and reg2
+and         reg1,          value             - reg1 = reg1 bitwise and value
+orr         reg1, reg2                       - reg1 = reg1 bitwise or reg2
+or          reg1,          value             - reg1 = reg1 bitwise or value
+xorr        reg1, reg2                       - reg1 = reg1 bitwise xor reg2
+xor         reg1,          value             - reg1 = reg1 bitwise xor value
 inv         reg1                             - reg1 = bitwise invert of reg1 (all bits flipped)
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
 asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
@@ -265,10 +268,13 @@ enum class Opcode {
     EXT,
     EXTS,
 
+    ANDR,
     AND,
     ANDM,
+    ORR,
     OR,
     ORM,
+    XORR,
     XOR,
     XORM,
     INV,
@@ -567,11 +573,14 @@ val instructionFormats = mutableMapOf(
     Opcode.CMP        to InstructionFormat.from("BW,r1,r2"),
     Opcode.EXT        to InstructionFormat.from("BW,r1"),
     Opcode.EXTS       to InstructionFormat.from("BW,r1"),
-    Opcode.AND        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ANDR       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.AND     to InstructionFormat.from("BW,r1,v"),
     Opcode.ANDM       to InstructionFormat.from("BW,r1,v"),
-    Opcode.OR         to InstructionFormat.from("BW,r1,r2"),
+    Opcode.ORR        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.OR      to InstructionFormat.from("BW,r1,v"),
     Opcode.ORM        to InstructionFormat.from("BW,r1,v"),
-    Opcode.XOR        to InstructionFormat.from("BW,r1,r2"),
+    Opcode.XORR       to InstructionFormat.from("BW,r1,r2"),
+    Opcode.XOR     to InstructionFormat.from("BW,r1,v"),
     Opcode.XORM       to InstructionFormat.from("BW,r1,v"),
     Opcode.INV        to InstructionFormat.from("BW,r1"),
     Opcode.INVM       to InstructionFormat.from("BW,v"),

@@ -111,21 +111,21 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                     code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
                 }
                 DataType.BYTE -> {
-                    val andReg = codeGen.vmRegisters.nextFree()
                     val notNegativeLabel = codeGen.createLabelName()
-                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=andReg, value=0x80)
-                    code += VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=andReg, reg2=resultRegister)
-                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=andReg, labelSymbol = notNegativeLabel)
+                    val compareReg = codeGen.vmRegisters.nextFree()
+                    code += VmCodeInstruction(Opcode.LOADR, VmDataType.BYTE, reg1=compareReg, reg2=resultRegister)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=compareReg, value=0x80)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=compareReg, labelSymbol = notNegativeLabel)
                     code += VmCodeInstruction(Opcode.NEG, VmDataType.BYTE, reg1=resultRegister)
                     code += VmCodeInstruction(Opcode.EXT, VmDataType.BYTE, reg1=resultRegister)
                     code += VmCodeLabel(notNegativeLabel)
                 }
                 DataType.WORD -> {
-                    val andReg = codeGen.vmRegisters.nextFree()
                     val notNegativeLabel = codeGen.createLabelName()
-                    code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=andReg, value=0x8000)
-                    code += VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=andReg, reg2=resultRegister)
-                    code += VmCodeInstruction(Opcode.BZ, VmDataType.WORD, reg1=andReg, labelSymbol = notNegativeLabel)
+                    val compareReg = codeGen.vmRegisters.nextFree()
+                    code += VmCodeInstruction(Opcode.LOADR, VmDataType.WORD, reg1=compareReg, reg2=resultRegister)
+                    code += VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=compareReg, value=0x8000)
+                    code += VmCodeInstruction(Opcode.BZ, VmDataType.WORD, reg1=compareReg, labelSymbol = notNegativeLabel)
                     code += VmCodeInstruction(Opcode.NEG, VmDataType.WORD, reg1=resultRegister)
                     code += VmCodeLabel(notNegativeLabel)
                 }
