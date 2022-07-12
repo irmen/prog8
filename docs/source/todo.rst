@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler bug: tehtriz: blocks fall through the bottom
-- fix compiler bug: maze: maze runner goes all wacky (both c64 and cx6)
-
 ...
 
 

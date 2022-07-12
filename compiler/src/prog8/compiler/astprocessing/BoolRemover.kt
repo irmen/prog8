@@ -82,35 +82,40 @@ internal class BoolRemover(val program: Program) : AstWalker() {
                 "xor" -> "^"
                 else -> "invalid"
             }
-            return listOf(
-                IAstModification.ReplaceNodeSafe(expr.left, wrapWithBooleanCastIfNeeded(expr.left), expr),
-                IAstModification.ReplaceNodeSafe(expr.right, wrapWithBooleanCastIfNeeded(expr.right), expr),)
+            val mods = mutableListOf<IAstModification>()
+            val newLeft = wrapWithBooleanCastIfNeeded(expr.left, program)
+            val newRight = wrapWithBooleanCastIfNeeded(expr.right, program)
+            if(newLeft!=null)
+                mods += IAstModification.ReplaceNodeSafe(expr.left, newLeft, expr)
+            if(newRight!=null)
+                mods += IAstModification.ReplaceNodeSafe(expr.right, newRight, expr)
+            return mods
         }
         return noModifications
     }
+}
 
-    private fun wrapWithBooleanCastIfNeeded(expr: Expression): Expression {
-        fun isBoolean(expr: Expression): Boolean {
-            return if(expr.inferType(program) istype DataType.BOOL)
+internal fun wrapWithBooleanCastIfNeeded(expr: Expression, program: Program): Expression? {
+    fun isBoolean(expr: Expression): Boolean {
+        return if(expr.inferType(program) istype DataType.BOOL)
+            true
+        else if(expr is NumericLiteral && expr.type in IntegerDatatypes && (expr.number==0.0 || expr.number==1.0))
+            true
+        else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
+            true
+        else if(expr is PrefixExpression && expr.operator == "not")
+            true
+        else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
+            if(isBoolean(expr.left) && isBoolean(expr.right))
                 true
-            else if(expr is NumericLiteral && expr.type in IntegerDatatypes && (expr.number==0.0 || expr.number==1.0))
-                true
-            else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
-                true
-            else if(expr is PrefixExpression && expr.operator == "not")
-                true
-            else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
-                if(isBoolean(expr.left) && isBoolean(expr.right))
-                    true
-                else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
-            }
-            else
-                false
+            else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
         }
-
-        return if(isBoolean(expr))
-            expr
         else
-            TypecastExpression(expr, DataType.BOOL, true, expr.position)
+            false
     }
+
+    return if(isBoolean(expr))
+        null
+    else
+        TypecastExpression(expr, DataType.BOOL, true, expr.position)
 }

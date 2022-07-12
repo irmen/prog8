@@ -46,71 +46,85 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val leftCv = expr.left.constValue(program)
         val rightCv = expr.right.constValue(program)
 
-        if(leftDt.isKnown && rightDt.isKnown && leftDt!=rightDt) {
-
-            // convert bool type to byte if needed
-            if(leftDt istype DataType.BOOL && rightDt.isBytes && !rightDt.istype(DataType.BOOL)) {
-                if(rightCv==null || (rightCv.number!=1.0 && rightCv.number!=0.0))
-                    return listOf(IAstModification.ReplaceNode(expr.left,
-                        TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
-            } else if(leftDt.isBytes && !leftDt.istype(DataType.BOOL) && rightDt istype DataType.BOOL) {
-                if(leftCv==null || (leftCv.number!=1.0 && leftCv.number!=0.0))
-                    return listOf(IAstModification.ReplaceNode(expr.right,
-                        TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
-            }
-
-            // convert a negative operand for bitwise operator to the 2's complement positive number instead
-            if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
-                if(leftCv!=null && leftCv.number<0) {
-                    val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number
-                    return listOf(IAstModification.ReplaceNode(
-                        expr.left,
-                        NumericLiteral(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
-                        expr))
-                }
-                if(rightCv!=null && rightCv.number<0) {
-                    val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
-                    return listOf(IAstModification.ReplaceNode(
-                        expr.right,
-                        NumericLiteral(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
-                        expr))
-                }
-
-                if(leftDt istype DataType.BYTE && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                    // cast left to unsigned
-                    val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
-                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                }
-                if(leftDt istype DataType.WORD && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                    // cast left to unsigned
-                    val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
-                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                }
-                if(rightDt istype DataType.BYTE && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                    // cast right to unsigned
-                    val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
-                    return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
-                }
-                if(rightDt istype DataType.WORD && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                    // cast right to unsigned
-                    val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
-                    return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
-                }
-            }
-
-
-            // determine common datatype and add typecast as required to make left and right equal types
-            val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
-            if(toFix!=null) {
+        if(leftDt.isKnown && rightDt.isKnown) {
+            if(expr.operator in LogicalOperators && leftDt.isInteger && rightDt.isInteger) {
+                // see if any of the operands needs conversion to bool
                 val modifications = mutableListOf<IAstModification>()
-                when {
-                    toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
-                    toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
-                    else -> throw FatalAstException("confused binary expression side")
+                val newLeft = wrapWithBooleanCastIfNeeded(expr.left, program)
+                val newRight = wrapWithBooleanCastIfNeeded(expr.right, program)
+                if(newLeft!=null)
+                    modifications += IAstModification.ReplaceNode(expr.left, newLeft, expr)
+                if(newRight!=null)
+                    modifications += IAstModification.ReplaceNode(expr.right, newRight, expr)
+                if(modifications.isNotEmpty())
+                    return modifications
+            }
+            if(leftDt!=rightDt) {
+                // convert bool type to byte if needed
+                if(leftDt istype DataType.BOOL && rightDt.isBytes && !rightDt.istype(DataType.BOOL)) {
+                    if(rightCv==null || (rightCv.number!=1.0 && rightCv.number!=0.0))
+                        return listOf(IAstModification.ReplaceNode(expr.left,
+                            TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
+                } else if(leftDt.isBytes && !leftDt.istype(DataType.BOOL) && rightDt istype DataType.BOOL) {
+                    if(leftCv==null || (leftCv.number!=1.0 && leftCv.number!=0.0))
+                        return listOf(IAstModification.ReplaceNode(expr.right,
+                            TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
                 }
-                return modifications
+
+                // convert a negative operand for bitwise operator to the 2's complement positive number instead
+                if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
+                    if(leftCv!=null && leftCv.number<0) {
+                        val value = if(rightDt.isBytes) 256+leftCv.number else 65536+leftCv.number
+                        return listOf(IAstModification.ReplaceNode(
+                            expr.left,
+                            NumericLiteral(rightDt.getOr(DataType.UNDEFINED), value, expr.left.position),
+                            expr))
+                    }
+                    if(rightCv!=null && rightCv.number<0) {
+                        val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
+                        return listOf(IAstModification.ReplaceNode(
+                            expr.right,
+                            NumericLiteral(leftDt.getOr(DataType.UNDEFINED), value, expr.right.position),
+                            expr))
+                    }
+
+                    if(leftDt istype DataType.BYTE && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                        // cast left to unsigned
+                        val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
+                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                    }
+                    if(leftDt istype DataType.WORD && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                        // cast left to unsigned
+                        val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
+                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                    }
+                    if(rightDt istype DataType.BYTE && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                        // cast right to unsigned
+                        val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                    }
+                    if(rightDt istype DataType.WORD && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
+                        // cast right to unsigned
+                        val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                    }
+                }
+
+
+                // determine common datatype and add typecast as required to make left and right equal types
+                val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
+                if(toFix!=null) {
+                    val modifications = mutableListOf<IAstModification>()
+                    when {
+                        toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
+                        toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
+                        else -> throw FatalAstException("confused binary expression side")
+                    }
+                    return modifications
+                }
             }
         }
+
         return noModifications
     }
 
