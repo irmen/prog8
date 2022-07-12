@@ -231,7 +231,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         when(type) {
             VmDataType.BYTE -> registers.setUB(reg, value.toUByte())
             VmDataType.WORD -> registers.setUW(reg, value.toUShort())
-            VmDataType.FLOAT -> throw java.lang.IllegalArgumentException("attempt to set integer result register but float type")
+            VmDataType.FLOAT -> throw IllegalArgumentException("attempt to set integer result register but float type")
         }
     }
 

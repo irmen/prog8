@@ -93,4 +93,78 @@ class TestVmPeepholeOpt: FunSpec({
         (lines[0] as VmCodeInstruction).ins.reg1 shouldBe 222
         (lines[0] as VmCodeInstruction).ins.reg2 shouldBe 99
     }
+
+    test("remove useless div/mul, add/sub") {
+        val(asm, allocations) = makeVmProgram(listOf(
+            VmCodeInstruction(Opcode.DIV, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.DIVS, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.MOD, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.DIV, VmDataType.BYTE, reg1=42, value = 2),
+            VmCodeInstruction(Opcode.DIVS, VmDataType.BYTE, reg1=42, value = 2),
+            VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=42, value = 2),
+            VmCodeInstruction(Opcode.MOD, VmDataType.BYTE, reg1=42, value = 2),
+            VmCodeInstruction(Opcode.ADD, VmDataType.BYTE, reg1=42, value = 0),
+            VmCodeInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 0)
+        ))
+        asm.lines().size shouldBe 10
+        val opt = VmPeepholeOptimizer(asm, allocations)
+        opt.optimize()
+        val lines = asm.lines()
+        lines.size shouldBe 4
+    }
+
+    test("replace add/sub 1 by inc/dec") {
+        val(asm, allocations) = makeVmProgram(listOf(
+            VmCodeInstruction(Opcode.ADD, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 1)
+        ))
+        asm.lines().size shouldBe 2
+        val opt = VmPeepholeOptimizer(asm, allocations)
+        opt.optimize()
+        val lines = asm.lines()
+        lines.size shouldBe 2
+        (lines[0] as VmCodeInstruction).ins.opcode shouldBe Opcode.INC
+        (lines[1] as VmCodeInstruction).ins.opcode shouldBe Opcode.DEC
+    }
+
+    test("remove useless and/or/xor") {
+        val(asm, allocations) = makeVmProgram(listOf(
+            VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 255),
+            VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 65535),
+            VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 0),
+            VmCodeInstruction(Opcode.XOR, VmDataType.BYTE, reg1=42, value = 0),
+            VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 200),
+            VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 60000),
+            VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 1),
+            VmCodeInstruction(Opcode.XOR, VmDataType.BYTE, reg1=42, value = 1)
+        ))
+        asm.lines().size shouldBe 8
+        val opt = VmPeepholeOptimizer(asm, allocations)
+        opt.optimize()
+        val lines = asm.lines()
+        lines.size shouldBe 4
+    }
+
+    test("replace and/or/xor by constant number") {
+        val(asm, allocations) = makeVmProgram(listOf(
+            VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 0),
+            VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 0),
+            VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 255),
+            VmCodeInstruction(Opcode.OR, VmDataType.WORD, reg1=42, value = 65535)
+        ))
+        asm.lines().size shouldBe 4
+        val opt = VmPeepholeOptimizer(asm, allocations)
+        opt.optimize()
+        val lines = asm.lines()
+        lines.size shouldBe 4
+        (lines[0] as VmCodeInstruction).ins.opcode shouldBe Opcode.LOAD
+        (lines[1] as VmCodeInstruction).ins.opcode shouldBe Opcode.LOAD
+        (lines[2] as VmCodeInstruction).ins.opcode shouldBe Opcode.LOAD
+        (lines[3] as VmCodeInstruction).ins.opcode shouldBe Opcode.LOAD
+        (lines[0] as VmCodeInstruction).ins.value shouldBe 0
+        (lines[1] as VmCodeInstruction).ins.value shouldBe 0
+        (lines[2] as VmCodeInstruction).ins.value shouldBe 255
+        (lines[3] as VmCodeInstruction).ins.value shouldBe 65535
+    }
 })

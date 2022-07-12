@@ -11,7 +11,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     init {
         if(type==DataType.BOOL)
-            throw java.lang.IllegalArgumentException("bool should have become ubyte @$position")
+            throw IllegalArgumentException("bool should have become ubyte @$position")
     }
 
     override fun printProperties() {
@@ -134,7 +134,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
 
     init {
         if(type==DataType.BOOL)
-            throw java.lang.IllegalArgumentException("bool should have become ubyte @$position")
+            throw IllegalArgumentException("bool should have become ubyte @$position")
         if(type!=DataType.FLOAT) {
             val rounded = round(number)
             if (rounded != number)

@@ -210,7 +210,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
                 DataType.ARRAY_UW -> Syscall.SORT_UWORD
                 DataType.ARRAY_W -> Syscall.SORT_WORD
                 DataType.STR -> Syscall.SORT_UBYTE
-                DataType.ARRAY_F -> throw java.lang.IllegalArgumentException("sorting a floating point array is not supported")
+                DataType.ARRAY_F -> throw IllegalArgumentException("sorting a floating point array is not supported")
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val code = VmCodeChunk()

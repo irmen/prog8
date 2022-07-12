@@ -3,9 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- bool @shared bb = bb2 and true    should not add typecast around bb2
 ...
-
 
 
 Need help with
@@ -19,7 +17,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- add some more optimizations in vmPeepholeOptimizer
 - on non-cx16 targets: have an option that if zeropage=FULL, moves the cx16 virtual registers to ZP (same location as on x16?)
   needs the dynamic base address for the symbols in syslib.p8
   also needs a trick to allocate them in ZP like Cx16Zeropage already does
@@ -31,6 +28,7 @@ Compiler:
 - vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
 - vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
+- vm: add ore optimizations in VmPeepholeOptimizer
 - move the vm unit tests to codeGenVirtual module and remove virtualmachine dependency in the compiler module
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.

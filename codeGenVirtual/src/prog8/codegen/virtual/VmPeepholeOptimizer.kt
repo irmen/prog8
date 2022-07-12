@@ -2,6 +2,7 @@ package prog8.codegen.virtual
 
 import prog8.vm.Instruction
 import prog8.vm.Opcode
+import prog8.vm.VmDataType
 
 internal class VmOptimizerException(msg: String): Exception(msg)
 
@@ -14,15 +15,13 @@ class VmPeepholeOptimizer(private val vmprog: AssemblyProgram, private val alloc
                     .filter { it.value is VmCodeInstruction }
                     .map { IndexedValue(it.index, (it.value as VmCodeInstruction).ins) }
                 val changed = removeNops(block, indexedInstructions)
-                        || removeDoubleLoadsAndStores(block, indexedInstructions)
-                        // || removeUselessArithmetic(block, indexedInstructions)   // TODO enable
+                        || removeDoubleLoadsAndStores(block, indexedInstructions)       // TODO not yet implemented
+                        || removeUselessArithmetic(block, indexedInstructions)
                         || removeWeirdBranches(block, indexedInstructions)
                         || removeDoubleSecClc(block, indexedInstructions)
                         || cleanupPushPop(block, indexedInstructions)
                 // TODO other optimizations:
-                //  other useless logical?
-                //  conditional set instructions with reg1==reg2
-                //  move complex optimizations such as unused registers, ...
+                //  more complex optimizations such as unused registers
             } while(changed)
         }
     }
@@ -79,7 +78,6 @@ class VmPeepholeOptimizer(private val vmprog: AssemblyProgram, private val alloc
 
     private fun removeWeirdBranches(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         //  jump/branch to label immediately below
-        //  branch instructions with reg1==reg2
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode==Opcode.JUMP && ins.labelSymbol!=null) {
@@ -92,41 +90,60 @@ class VmPeepholeOptimizer(private val vmprog: AssemblyProgram, private val alloc
                     }
                 }
             }
-/*
-beq         reg1, reg2,       location  - jump to location in program given by location, if reg1 == reg2
-bne         reg1, reg2,       location  - jump to location in program given by location, if reg1 != reg2
-blt         reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (unsigned)
-blts        reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (signed)
-ble         reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (unsigned)
-bles        reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (signed)
-bgt         reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (unsigned)
-bgts        reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (signed)
-bge         reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (unsigned)
-bges        reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (signed)
- */
         }
         return changed
     }
 
     private fun removeUselessArithmetic(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
-        // TODO this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
+        // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MOD -> {
-                    TODO("remove div/mul by 1")
+                    if (ins.value == 1) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    }
                 }
                 Opcode.ADD, Opcode.SUB -> {
-                    TODO("remove add/sub by 1 -> inc/dec, by 0->remove")
+                    if (ins.value == 1) {
+                        block.lines[idx] = VmCodeInstruction(
+                            if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
+                            ins.type,
+                            ins.reg1
+                        )
+                        changed = true
+                    } else if (ins.value == 0) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    }
                 }
                 Opcode.AND -> {
-                    TODO("and 0 -> 0, and ffff -> remove")
+                    if (ins.value == 0) {
+                        block.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
+                        changed = true
+                    } else if (ins.value == 255 && ins.type == VmDataType.BYTE) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    } else if (ins.value == 65535 && ins.type == VmDataType.WORD) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    }
                 }
                 Opcode.OR -> {
-                    TODO("or 0 -> remove, of ffff -> ffff")
+                    if (ins.value == 0) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    } else if ((ins.value == 255 && ins.type == VmDataType.BYTE) || (ins.value == 65535 && ins.type == VmDataType.WORD)) {
+                        block.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
+                        changed = true
+                    }
                 }
                 Opcode.XOR -> {
-                    TODO("xor 0 -> remove")
+                    if (ins.value == 0) {
+                        block.lines.removeAt(idx)
+                        changed = true
+                    }
                 }
                 else -> {}
             }

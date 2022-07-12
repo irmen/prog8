@@ -407,7 +407,18 @@ data class Instruction(
             if(format.value && (value==null && labelSymbol==null))
                 throw IllegalArgumentException("$opcode: missing a value or labelsymbol")
             if (fpReg1 != null || fpReg2 != null)
-                throw java.lang.IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
+                throw IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
+        }
+
+        if(opcode in setOf(Opcode.BEQ, Opcode.BNE, Opcode.BLT, Opcode.BLTS,
+                Opcode.BGT, Opcode.BGTS, Opcode.BLE, Opcode.BLES,
+                Opcode.BGE, Opcode.BGES,
+                Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
+                Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
+                Opcode.SGE, Opcode.SGES)) {
+            if((type==VmDataType.FLOAT && fpReg1==fpReg2) || reg1==reg2) {
+                throw IllegalArgumentException("$opcode: reg1 and reg2 should be different")
+            }
         }
     }
 
