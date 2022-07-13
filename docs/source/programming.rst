@@ -495,7 +495,9 @@ Breaking out of a loop prematurely is possible with the ``break`` statement.
     languages if this is *not* the case! A for loop from ubyte 10 to ubyte 2, for example, will iterate through
     all values 10, 11, 12, 13, .... 254, 255, 0  (wrapped), 1, 2. In other languages the entire loop will
     be skipped in such cases. But prog8 omits the overhead of an extra loop range check and/or branch for every for loop
-    by assuming the normal ranges.
+    because the most common case is that it is not needed.
+    You should add an explicit range check yourself if the ending value can be less than the start value and
+    a full wrap-around loop is not what you want!
 
 
 Conditional Execution

@@ -735,49 +735,53 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
-inline asmsub push_vera_context() clobbers(A) {
+asmsub push_vera_context() clobbers(A) {
     ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
     %asm {{
+        ; note cannot store this on cpu hardware stack because this gets called as a subroutine
         lda  cx16.VERA_ADDR_L
-        pha
+        sta  _vera_storage
         lda  cx16.VERA_ADDR_M
-        pha
+        sta  _vera_storage+1
         lda  cx16.VERA_ADDR_H
-        pha
+        sta  _vera_storage+2
         lda  cx16.VERA_CTRL
-        pha
+        sta  _vera_storage+3
         eor  #1
         sta  cx16.VERA_CTRL
         lda  cx16.VERA_ADDR_L
-        pha
+        sta  _vera_storage+4
         lda  cx16.VERA_ADDR_M
-        pha
+        sta  _vera_storage+5
         lda  cx16.VERA_ADDR_H
-        pha
+        sta  _vera_storage+6
         lda  cx16.VERA_CTRL
-        pha
+        sta  _vera_storage+7
+        rts
+_vera_storage:  .byte 0,0,0,0,0,0,0,0
     }}
 }
 
-inline asmsub pop_vera_context() clobbers(A) {
+asmsub pop_vera_context() clobbers(A) {
     ; -- use this at the end of your IRQ handler if it uses Vera registers, to restore the state
     %asm {{
-        pla
+        lda  cx16.push_vera_context._vera_storage+7
         sta  cx16.VERA_CTRL
-        pla
+        lda  cx16.push_vera_context._vera_storage+6
         sta  cx16.VERA_ADDR_H
-        pla
+        lda  cx16.push_vera_context._vera_storage+5
         sta  cx16.VERA_ADDR_M
-        pla
+        lda  cx16.push_vera_context._vera_storage+4
         sta  cx16.VERA_ADDR_L
-        pla
+        lda  cx16.push_vera_context._vera_storage+3
         sta  cx16.VERA_CTRL
-        pla
+        lda  cx16.push_vera_context._vera_storage+2
         sta  cx16.VERA_ADDR_H
-        pla
+        lda  cx16.push_vera_context._vera_storage+1
         sta  cx16.VERA_ADDR_M
-        pla
+        lda  cx16.push_vera_context._vera_storage+0
         sta  cx16.VERA_ADDR_L
+        rts
     }}
 }
 

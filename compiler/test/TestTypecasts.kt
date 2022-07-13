@@ -706,7 +706,7 @@ main  {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        result.program.entrypoint.statements.size shouldBe 13
+        result.program.entrypoint.statements.size shouldBe 15
     }
 
     test("invalid typecasts of numbers") {
