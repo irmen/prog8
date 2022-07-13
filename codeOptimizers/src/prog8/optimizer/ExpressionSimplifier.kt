@@ -30,8 +30,9 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
         val literal = typecast.expression as? NumericLiteral
         if (literal != null) {
             val newLiteral = literal.cast(typecast.type)
-            if (newLiteral.isValid && newLiteral.valueOrZero() !== literal)
-                mods += IAstModification.ReplaceNode(typecast.expression, newLiteral.valueOrZero(), typecast)
+            if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
+                mods += IAstModification.ReplaceNode(typecast, newLiteral.valueOrZero(), parent)
+            }
         }
 
         // remove redundant nested typecasts

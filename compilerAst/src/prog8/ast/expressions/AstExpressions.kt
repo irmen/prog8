@@ -757,9 +757,11 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             }
         }
 
-        // otherwise, select the "biggegst" datatype based on the elements in the array.
+        // otherwise, select the "biggest" datatype based on the elements in the array.
+        require(value.isNotEmpty()) { "can't determine type of empty array" }
         val datatypesInArray = value.map { it.inferType(program) }
-        require(datatypesInArray.isNotEmpty() && datatypesInArray.all { it.isKnown }) { "can't determine type of empty array" }
+        if(datatypesInArray.any{ it.isUnknown })
+            return InferredTypes.InferredType.unknown()
         val dts = datatypesInArray.map { it.getOr(DataType.UNDEFINED) }
         return when {
             DataType.FLOAT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_F)

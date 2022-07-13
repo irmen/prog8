@@ -90,6 +90,10 @@ psg {
         ; cx16.r1L = the voice number
         ; cx16.r2L = attack value
 
+        pushw(cx16.r0)
+        push(cx16.r1L)
+        push(cx16.r2L)
+        pushw(cx16.r9)
         ; calculate new volumes
         for cx16.r1L in 0 to 15 {
             when envelope_states[cx16.r1L] {
@@ -138,6 +142,10 @@ psg {
             cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r1L])
         }
         cx16.pop_vera_context()
+        popw(cx16.r9)
+        pop(cx16.r2L)
+        pop(cx16.r1L)
+        popw(cx16.r0)
     }
 
     ubyte[16] envelope_states

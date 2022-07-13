@@ -197,6 +197,14 @@ interface INameScope: IStatementContainer, INamedStatement {
             else
                 statementScope = (statementScope as Node).definingScope
         }
+
+        // still not found, maybe it is a symbol in another module
+        for(module in (this as Node).definingModule.program.modules) {
+            val stmt = module.searchSymbol(name)
+            if(stmt!=null)
+                return stmt
+        }
+
         return null
     }
 
