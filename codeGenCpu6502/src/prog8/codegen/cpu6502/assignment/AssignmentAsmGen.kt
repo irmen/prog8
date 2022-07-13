@@ -738,10 +738,10 @@ internal class AssignmentAsmGen(private val program: Program,
             return
         }
 
-        if(origTypeCastExpression.type == DataType.UBYTE) {
+        if(valueDt in WordDatatypes && origTypeCastExpression.type == DataType.UBYTE) {
             val parentTc = origTypeCastExpression.parent as? TypecastExpression
             if(parentTc!=null && parentTc.type==DataType.UWORD) {
-                // typecast something to ubyte and directly back to uword
+                // typecast a word value to ubyte and directly back to uword
                 // generate code for lsb(value) here instead of the ubyte typecast
                 return assignCastViaLsbFunc(value, target)
             }

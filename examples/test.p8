@@ -4,14 +4,9 @@
 
 main {
     sub start() {
-        repeat {
-            uword keys = cx16.kbdbuf_peek2()
-            txt.print_uwhex(keys, true)
-            if msb(keys) {
-                c64.GETIN()
-            }
-            txt.nl()
-        }
+        byte tx = 1
+        uword @shared zzzz= $2000 + (tx as ubyte)
+        txt.print_uwhex(zzzz,true)
     }
 }
 

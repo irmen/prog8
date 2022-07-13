@@ -701,6 +701,7 @@ main  {
                     fl = bb as float
                     bb = fl as byte
                     uw = fl as uword
+                    uw = 8888 + (bb as ubyte)
                 }
             }
         """
