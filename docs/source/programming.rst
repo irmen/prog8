@@ -899,14 +899,17 @@ memory(name, size, alignment)
 
 callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another ram-bank on the CommanderX16 (using the ``jsrfar`` routine)
-    The banked RAM is located in the address range $A000-$BFFF (8 kilobyte).
-    Notice that bank $00 is used by the Kernal and should not be used by user code.
+    The banked RAM is located in the address range $A000-$BFFF (8 kilobyte), but you can specify
+    any address in system ram (why this can be useful is explained at the end of this paragraph)
     The third argument can be used to designate the memory address
     of an argument for the routine; it will be loaded into the A register and will
     receive the result value returned by the routine in the A register. If you leave this at zero,
     no argument passing will be done.
     If the routine requires different arguments or return values, ``callfar`` cannot be used
     and you'll have to set up a call to ``jsrfar`` yourself to process this.
+    Note: the address can be a variable or other expression, which allows you to use ``callfar`` with bank 0 to do an indirect JSR to a subroutine
+    whose address can vary (jump table, etc.  ``goto`` can do an indirect JMP to a variable address): ``callfar(0, &routine, &argument)``
+    This is not very efficient though, so maybe you should write a small piece of inline assembly for this instead.
 
 callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another rom-bank on the CommanderX16

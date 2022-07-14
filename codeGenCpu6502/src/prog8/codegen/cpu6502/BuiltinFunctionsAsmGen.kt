@@ -139,20 +139,19 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             throw AssemblyError("callfar only works on cx16 target at this time")
 
         val bank = fcall.args[0].constValue(program)?.number?.toInt()
-        val address = fcall.args[1].constValue(program)?.number?.toInt()
-        if(bank==null || address==null)
-            throw AssemblyError("callfar (jsrfar) requires constant arguments")
-
-        if(address !in 0xa000..0xbfff)
-            throw AssemblyError("callfar done on address outside of cx16 banked ram")
-        if(bank==0)
-            throw AssemblyError("callfar done on bank 0 which is reserved for the kernal")
-
+        val address = fcall.args[1].constValue(program)?.number?.toInt() ?: 0
         val argAddrArg = fcall.args[2]
+        if(bank==null)
+            throw AssemblyError("callfar (jsrfar) bank has to be a constant")
+        if(fcall.args[1].constValue(program) == null) {
+            assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
+            asmgen.out("  sta  (+)+0 |  sty  (+)+1  ; store jsrfar address word")
+        }
+
         if(argAddrArg.constValue(program)?.number == 0.0) {
             asmgen.out("""
                 jsr  cx16.jsrfar
-                .word  ${address.toHex()}
++               .word  ${address.toHex()}
                 .byte  ${bank.toHex()}""")
         } else {
             when(argAddrArg) {
@@ -162,7 +161,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     asmgen.out("""
                         lda  ${asmgen.asmVariableName(argAddrArg.identifier)}
                         jsr  cx16.jsrfar
-                        .word  ${address.toHex()}
++                       .word  ${address.toHex()}
                         .byte  ${bank.toHex()}
                         sta  ${asmgen.asmVariableName(argAddrArg.identifier)}""")
                 }
@@ -170,7 +169,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     asmgen.out("""
                         lda  ${argAddrArg.number.toHex()}
                         jsr  cx16.jsrfar
-                        .word  ${address.toHex()}
++                       .word  ${address.toHex()}
                         .byte  ${bank.toHex()}
                         sta  ${argAddrArg.number.toHex()}""")
                 }

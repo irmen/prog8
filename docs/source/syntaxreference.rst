@@ -753,14 +753,14 @@ You can still ``break`` out of such a loop if you want though.
 Conditional Execution and Jumps
 -------------------------------
 
-Unconditional jump
-^^^^^^^^^^^^^^^^^^
+Unconditional jump: goto
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 To jump to another part of the program, you use a ``goto`` statement with an addres or the name
 of a label or subroutine::
 
-	goto  $c000		; address
-	goto  name		; label or subroutine
+    goto  $c000     ; address
+    goto  name      ; label or subroutine
 
     uword address = $4000
     goto  address   ; jump via address variable
@@ -770,6 +770,8 @@ to another piece of code that eventually returns).
 
 If you jump to an address variable (uword), it is doing an 'indirect' jump: the jump will be done
 to the address that's currently in the variable.
+Note: to do an indirect *JSR* to a routine with a varying address, you can use the ``callfar`` builtin function
+(which is not very efficient) or you have to write a small piece of inline assembly.
 
 
 Conditional execution
