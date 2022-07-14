@@ -868,7 +868,9 @@ sys {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{
             sei
-            stz  $01            ; bank the kernal in
+            stz  $01                        ; bank the kernal in
+            lda  #$80
+            sta  cx16.VERA_CTRL             ; reset Vera (kernal doesn't do this?)
             jmp  (cx16.RESET_VEC)
         }}
     }
