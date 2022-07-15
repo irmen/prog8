@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- txt.chrout("a") -> crash
+- conv.any2uword doesn't accept uppercase hex letters
 - see if we can let for loops skip the loop if end<start, without adding a lot of code size/duplicating the loop condition
   this is documented behiavor to now loop around but it's too easy to forget about
 

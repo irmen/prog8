@@ -799,8 +799,11 @@ internal class AstChecker(private val program: Program,
 
         fun isPassByReferenceElement(e: Expression): Boolean {
             if(e is IdentifierReference) {
-                val decl = e.targetVarDecl(program)!!
-                return decl.datatype in PassByReferenceDatatypes
+                val decl = e.targetVarDecl(program)
+                return if(decl!=null)
+                    decl.datatype in PassByReferenceDatatypes
+                else
+                    true     // is probably a symbol that needs addr-of
             }
             return e is StringLiteral
         }
