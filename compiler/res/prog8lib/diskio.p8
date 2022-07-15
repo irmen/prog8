@@ -208,14 +208,16 @@ close_end:
         c64.SETLFS(11, drivenumber, 0)
         void c64.OPEN()          ; open 11,8,0,"filename"
         if_cc {
-            iteration_in_progress = true
-            have_first_byte = false
-            void c64.CHKIN(11)        ; use #11 as input channel
-            if_cc {
-                first_byte = c64.CHRIN()   ; read first byte to test for file not found
-                if not c64.READST() {
-                    have_first_byte = true
-                    return true
+            if c64.READST()==0 {
+                iteration_in_progress = true
+                have_first_byte = false
+                void c64.CHKIN(11)        ; use #11 as input channel
+                if_cc {
+                    first_byte = c64.CHRIN()   ; read first byte to test for file not found
+                    if not c64.READST() {
+                        have_first_byte = true
+                        return true
+                    }
                 }
             }
         }
@@ -394,10 +396,12 @@ _end        rts
 
         while not c64.READST() {
             @(messageptr) = c64.CHRIN()
+            if @(messageptr) in "\r\n"
+                break
             messageptr++
         }
-
         @(messageptr) = 0
+
 done:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(15)
