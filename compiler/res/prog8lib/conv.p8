@@ -416,6 +416,9 @@ _loop
 	beq  _stop
 	cmp  #7                 ; screencode letters A-F are 1-6
 	bcc  _add_letter
+	and  #127
+	cmp  #97
+	bcs  _try_iso            ; maybe letter is iso:'a'-iso:'f' (97-102)
 	cmp  #'g'
 	bcs  _stop
 	cmp  #'a'
@@ -451,6 +454,11 @@ _add_letter
 	sta  P8ZP_SCRATCH_B1
 	pla
 	jmp  _calc
+_try_iso
+        cmp  #103
+        bcs  _stop
+        and  #63
+        bne  _add_letter
 	}}
 }
 

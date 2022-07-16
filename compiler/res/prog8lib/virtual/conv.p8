@@ -251,4 +251,13 @@ sub  bin2uword(str string) -> uword {
     }
 }
 
+sub  any2uword(str string) -> uword {
+    ; -- convert any number string (any prefix allowed) to uword.
+    when string[0] {
+        '$' -> return hex2uword(string)
+        '%' -> return bin2uword(string)
+        else -> return str2uword(string)
+    }
+}
+
 }

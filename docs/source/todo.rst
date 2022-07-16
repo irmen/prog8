@@ -3,9 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- conv.any2uword doesn't accept uppercase hex letters
 - see if we can let for loops skip the loop if end<start, without adding a lot of code size/duplicating the loop condition
-  this is documented behiavor to now loop around but it's too easy to forget about
+  this is documented behavior to now loop around but it's too easy to forget about
+    Lot of work because of so many special cases in ForLoopsAsmgen.....
+    How is it for the vm target? -> just 2 special cases in CodeGen.
 
 ...
 

@@ -279,6 +279,7 @@ class CodeGen(internal val program: PtProgram,
             code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         } else {
+            // TODO WHY THID DISTINCTION?
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
             code += addConstReg(loopvarDt, indexReg, step)
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
@@ -318,6 +319,7 @@ class CodeGen(internal val program: PtProgram,
             code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         } else {
+            // TODO WHY THIS DISTICTION ?
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
             code += addConstReg(loopvarDt, indexReg, step)
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
@@ -383,13 +385,13 @@ class CodeGen(internal val program: PtProgram,
                 if(value>0) {
                     code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
                     code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=value)
-                    code += VmCodeInstruction(Opcode.ADDR, dt, reg1 = valueReg, reg2 = operandReg)
+                    code += VmCodeInstruction(Opcode.ADDR, dt, reg1 = valueReg, reg2 = operandReg)          // TODO USE ADDM?
                     code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
                 }
                 else {
                     code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
                     code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=-value)
-                    code += VmCodeInstruction(Opcode.SUBR, dt, reg1 = valueReg, reg2 = operandReg)
+                    code += VmCodeInstruction(Opcode.SUBR, dt, reg1 = valueReg, reg2 = operandReg)          // TODO USE ADDM?
                     code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
                 }
             }
