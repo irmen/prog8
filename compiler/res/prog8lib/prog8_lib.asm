@@ -665,12 +665,9 @@ greaterequalzero_sb	.proc
 
 greaterequalzero_sw	.proc
 		lda  P8ESTACK_HI+1,x
-		bmi  equalzero_b._false
-		ora  P8ESTACK_LO+1,x
-		beq  equalzero_b._true
-		bne  equalzero_b._false
+	    	bpl  equalzero_b._true
+	    	bmi  equalzero_b._false
 		.pend
-
 
 memcopy16_up	.proc
 	; -- copy memory UP from (P8ZP_SCRATCH_W1) to (P8ZP_SCRATCH_W2) of length X/Y (16-bit, X=lo, Y=hi)
