@@ -94,6 +94,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "amiga",
             "bdmusic",
             "bobs",
+            "circles",
             "cobramk3-gfx",
             "colorbars",
             "datetime",

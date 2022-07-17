@@ -2,15 +2,20 @@
 %import textio
 
 ; Bitmap pixel graphics module for the CommanderX16
-; wraps the graphics functions that are in ROM.
-; only black/white monochrome 320x200 for now. (i.e. truncated at the bottom)
-; For full-screen 640x480 or 320x240 graphics, use the "gfx2" module instead. (but that is Cx16-specific)
+; Wraps the graphics functions that are in ROM.
+; Only lo-res 320x240 256 color mode for now.
+; Unlike graphics module on the C64, you can use colors() to set new drawing colors for every draw operation.
+; For other resolutions or other color modes, use the "gfx2" module instead. (which is Cx16-specific)
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
 
 graphics {
     const uword WIDTH = 320
-    const ubyte HEIGHT = 200
+    const ubyte HEIGHT = 240
+
+
+    ubyte stroke_color = 1
+    ubyte background_color = 0
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
@@ -27,8 +32,16 @@ graphics {
 
 
     sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
+        stroke_color = pixelcolor
+        background_color = bgcolor
         cx16.GRAPH_set_colors(pixelcolor, pixelcolor, bgcolor)
         cx16.GRAPH_clear()
+    }
+
+    sub colors(ubyte stroke, ubyte fill) {
+        ; this routine is only available on the cx16, other targets can't change colors on the fly
+        cx16.GRAPH_set_colors(stroke, fill, background_color)
+        stroke_color = stroke
     }
 
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
@@ -71,31 +84,31 @@ graphics {
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter + yy
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - xx
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter - yy
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - xx
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter + xx
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - yy
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter - xx
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - yy
             cx16.FB_cursor_position2()
-            cx16.FB_set_pixel(1)
+            cx16.FB_set_pixel(stroke_color)
             yy++
             if decisionOver2<=0 {
                 decisionOver2 += (yy as word)*2+1
