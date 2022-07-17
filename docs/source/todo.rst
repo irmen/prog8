@@ -3,9 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add item to XZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
-  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
-  Adapt the code in AstPreprocessor that relocates the registers as well.
 ...
 
 
@@ -20,17 +17,22 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- add item to XZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
+  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
+  Adapt the code in AstPreprocessor that relocates the registers as well.
+- for uword pointer variables: allow pointer[uword] array indexing >255 , rewrite it to @(pointer+index)
+  DO NOT allow this for regular array indexing because normal arrays can never exceed size 256
+
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
-- vm: don't store symbol names in instructions to make optimizing the IR easier? but what about jumps to labels. And it's no longer readable by humans.
-- vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
+- vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add ore optimizations in VmPeepholeOptimizer
-- see if we can let for loops skip the loop if end<start, without adding a lot of code size/duplicating the loop condition
-  this is documented behavior to now loop around but it's too easy to forget about
+- see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
+  this is documented behavior to now loop around but it's too easy to forget about!
     Lot of work because of so many special cases in ForLoopsAsmgen.....
     How is it for the vm target? -> just 2 special cases in CodeGen.
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
@@ -39,14 +41,12 @@ Compiler:
 - generate WASM from the new ast (or from vm code?) to run prog8 on a browser canvas?
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
-- simplifyConditionalExpression() should not split expression if it still results in stack-based evaluation, but how does it know?
-- simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar (what scenarios?)
+- simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar, can we detect & prevent this?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
-  Perhaps replace all uses of .proc/.pend by .block/.bend will fix that?
-  (but we lose the optimizing aspect of the assembler where it strips out unused code.
-  There's not really a dynamic switch possible as all assembly lib code is static and uses one or the other)
+  Perhaps replace all uses of .proc/.pend by .block/.bend will fix that with a compiler flag?
+  But all library code written in asm uses .proc already.....
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
 - ast: don't rewrite by-reference parameter type to uword, but keep the original type (str, array)
@@ -62,7 +62,7 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
-- add modes 2 and 3 to gfx2 (lowres 4 color and 16 color)?
+- add modes 3 and perhaps even 2 to gfx2 (16 color and 4 color)?
 - add a flood fill routine to gfx2?
 
 
@@ -83,9 +83,7 @@ Optimizations:
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
   the old CompilerAst, those checks should probably be removed, or be made permanent
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
-- AssignmentAsmGen.assignExpression() -> improve code gen for assigning boolean comparison expressions
-  Check what the vm target does here, maybe just do this as part of the vm -> 6502 codegen.
-- when a for loop's loopvariable isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
+- when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 
 
@@ -95,7 +93,7 @@ STRUCTS again?
 What if we were to re-introduce Structs in prog8? Some thoughts:
 
 - can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
-- is just some syntactic sugar for a scoped set of variables -> ast transform to do exactly this before codegen
+- is just some syntactic sugar for a scoped set of variables -> ast transform to do exactly this before codegen. Codegen doesn't know about struct.
 - no arrays of struct -- because too slow on 6502 to access those, rather use struct of arrays instead.
   can we make this a compiler/codegen only issue? i.e. syntax is just as if it was an array of structs?
   or make it explicit in the syntax so that it is clear what the memory layout of it is.

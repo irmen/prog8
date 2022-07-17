@@ -1,4 +1,3 @@
-%import floats
 %import graphics
 
 ; note: this program is tuned for the CX16, but with some minor modifications can run on other systems too.
@@ -10,12 +9,14 @@ main {
     uword[MAX_NUM_CIRCLES] circle_y
     ubyte[MAX_NUM_CIRCLES] circle_radius
     ubyte num_circles = 0
+    ubyte background_color
 
     sub start() {
         graphics.enable_bitmap_mode()
 
         repeat {
-            graphics.clear_screen(1, 0)
+            background_color = rnd()
+            graphics.clear_screen(0, background_color)
             num_circles = 0
             draw_circles()
         }
@@ -29,12 +30,11 @@ main {
         while num_circles<MAX_NUM_CIRCLES {
             x = rndw() % graphics.WIDTH
             y = rndw() % graphics.HEIGHT
-            color = 0
             radius = GROWTH_RATE * 2        ; use a bit of a buffer between circles.
             if not_colliding() {
                 radius -= GROWTH_RATE
-                ubyte color = 0
-                while not color
+                ubyte color = rnd()
+                while color==background_color
                     color = rnd()
                 graphics.colors(color, 0)
                 while not_edge() and not_colliding() {
