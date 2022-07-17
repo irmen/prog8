@@ -3,11 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- move the vm unit tests to codeGenVirtual module and remove virtualmachine dependency in the compiler module
 - add item to XZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
-  (can be done on C64 only for now)   Remove those addresses from the ZP free pool!!!
-  needs the dynamic base address for the symbols in syslib.p8
-  also needs a trick to allocate them in ZP like Cx16Zeropage already does
+  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
+  Adapt the code in AstPreprocessor that relocates the registers as well.
 ...
 
 

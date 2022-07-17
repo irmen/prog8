@@ -1,5 +1,6 @@
 package prog8tests.vm
 
+import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTable
@@ -7,8 +8,8 @@ import prog8.code.ast.PtProgram
 import prog8.codegen.virtual.*
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
+import prog8tests.vm.helpers.DummyMemsizer
+import prog8tests.vm.helpers.DummyStringEncoder
 
 class TestVmPeepholeOpt: FunSpec({
     fun makeVmProgram(lines: List<VmCodeLine>): Pair<AssemblyProgram, VariableAllocator> {

@@ -70,7 +70,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         asmgen.out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         asmgen.out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
-        asmgen.out(".weak")   // hack to allow user to override the following two with command line redefinition:
+        asmgen.out(".weak")   // hack to allow user to override the following two with command line redefinition (however, just use '-esa' command line option instead!)
         asmgen.out("P8ESTACK_LO = ${compTarget.machine.ESTACK_LO.toHex()}")
         asmgen.out("P8ESTACK_HI = ${compTarget.machine.ESTACK_HI.toHex()}")
         asmgen.out(".endweak")
