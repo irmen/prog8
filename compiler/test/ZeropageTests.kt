@@ -117,9 +117,9 @@ class TestC64Zeropage: FunSpec({
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), true, false, c64target, 999u))
         zp1.availableBytes() shouldBe 18
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target, 999u))
-        zp2.availableBytes() shouldBe 85
+        zp2.availableBytes() shouldBe 92
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target, 999u))
-        zp3.availableBytes() shouldBe 125
+        zp3.availableBytes() shouldBe 134
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
         zp4.availableBytes() shouldBe 239
         zp4.allocate(listOf("test"), DataType.UBYTE, null, null, errors)

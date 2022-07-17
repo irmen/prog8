@@ -3,11 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- see if we can let for loops skip the loop if end<start, without adding a lot of code size/duplicating the loop condition
-  this is documented behavior to now loop around but it's too easy to forget about
-    Lot of work because of so many special cases in ForLoopsAsmgen.....
-    How is it for the vm target? -> just 2 special cases in CodeGen.
-
+- move the vm unit tests to codeGenVirtual module and remove virtualmachine dependency in the compiler module
+- add item to XZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
+  (can be done on C64 only for now)   Remove those addresses from the ZP free pool!!!
+  needs the dynamic base address for the symbols in syslib.p8
+  also needs a trick to allocate them in ZP like Cx16Zeropage already does
 ...
 
 
@@ -22,9 +22,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- on non-cx16 targets: have an option that if zeropage=FULL, moves the cx16 virtual registers to ZP (same location as on x16?)
-  needs the dynamic base address for the symbols in syslib.p8
-  also needs a trick to allocate them in ZP like Cx16Zeropage already does
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
@@ -34,7 +31,10 @@ Compiler:
 - vm: how to remove all unused subroutines? (in the 6502 assembly codegen, we let 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add ore optimizations in VmPeepholeOptimizer
-- move the vm unit tests to codeGenVirtual module and remove virtualmachine dependency in the compiler module
+- see if we can let for loops skip the loop if end<start, without adding a lot of code size/duplicating the loop condition
+  this is documented behavior to now loop around but it's too easy to forget about
+    Lot of work because of so many special cases in ForLoopsAsmgen.....
+    How is it for the vm target? -> just 2 special cases in CodeGen.
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
