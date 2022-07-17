@@ -395,9 +395,10 @@ _end        rts
             goto io_error
 
         while not c64.READST() {
-            @(messageptr) = c64.CHRIN()
-            if @(messageptr) in "\r\n"
+            first_byte = c64.CHRIN()
+            if first_byte=='\r' or first_byte=='\n'
                 break
+            @(messageptr) = first_byte
             messageptr++
         }
         @(messageptr) = 0
