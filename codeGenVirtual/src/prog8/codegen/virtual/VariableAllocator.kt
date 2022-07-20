@@ -60,8 +60,8 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
                 DataType.FLOAT -> (variable.initialNumericValue ?: 0.0).toString()
                 in NumericDatatypes -> (variable.initialNumericValue ?: 0).toHex()
                 DataType.STR -> {
-                    val encoded = program.encoding.encodeString(variable.initialStringValue!!.first, variable.initialStringValue!!.second)
-                    encoded.joinToString(",") { it.toInt().toHex() } + ",0"
+                    val encoded = program.encoding.encodeString(variable.initialStringValue!!.first, variable.initialStringValue!!.second) + listOf(0u)
+                    encoded.joinToString(",") { it.toInt().toHex() }
                 }
                 DataType.ARRAY_F -> {
                     if(variable.initialArrayValue!=null) {

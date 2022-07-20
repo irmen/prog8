@@ -165,6 +165,11 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                     throw AssemblyError("non-array var indexing requires bytes index")
                 val idxReg = codeGen.vmRegisters.nextFree()
                 code += expressionEval.translateExpression(array.index, idxReg, -1)
+                if(zero) {
+                    // there's no STOREZIX instruction
+                    resultRegister = codeGen.vmRegisters.nextFree()
+                    code += VmCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=0)
+                }
                 code += VmCodeInstruction(Opcode.STOREIX, vmDt, reg1=resultRegister, reg2=idxReg, value = variableAddr)
                 return code
             }

@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- can the recursive cycle detector print the actual LINES that do the call?
+
 ...
 
 

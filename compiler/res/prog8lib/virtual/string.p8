@@ -113,4 +113,24 @@ string {
             ix++
         }
     }
+
+    sub startswith(str st, str prefix) -> bool {
+        ubyte prefix_len = length(prefix)
+        ubyte str_len = length(st)
+        if prefix_len > str_len
+            return false
+        cx16.r9L = st[prefix_len]
+        st[prefix_len] = 0
+        cx16.r9H = compare(st, prefix) as ubyte
+        st[prefix_len] = cx16.r9L
+        return cx16.r9H==0
+    }
+
+    sub endswith(str st, str suffix) -> bool {
+        ubyte suffix_len = length(suffix)
+        ubyte str_len = length(st)
+        if suffix_len > str_len
+            return false
+        return compare(st + str_len - suffix_len, suffix) == 0
+    }
 }
