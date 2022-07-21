@@ -197,10 +197,7 @@ class TestCallgraph: FunSpec({
         callgraph.checkRecursiveCalls(errors)
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 4
-        errors.warnings[0] shouldContain "contains recursive subroutine calls"
-        errors.warnings[1] shouldContain "start at"
-        errors.warnings[2] shouldContain "recurse1 at"
-        errors.warnings[3] shouldContain "recurse2 at"
+        errors.warnings[0] shouldContain "contains recursive subroutines"
     }
 
     test("no recursion warning if reference isn't a call") {

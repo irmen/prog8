@@ -3,8 +3,14 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- can the recursive cycle detector print the actual LINES that do the call?
-
+- what to do with the rouding difference in signed divide by 2 / 4  (double ror)?  it rounds towards minus infinity (so -5 / 2 = -3)
+  while the NON-optimized routine produces -2 .   Virtual machine also produces -3?
+  What rounding do we want?
+- add item to XyzZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
+  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
+  Adapt the code in AstPreprocessor that relocates the registers as well.
+- for uword pointer variables: allow pointer[uword] array indexing >255 , rewrite it to @(pointer+index)
+  DO NOT allow this for regular array indexing because normal arrays can never exceed size 256
 ...
 
 
@@ -18,13 +24,6 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-
-- add item to XZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
-  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
-  Adapt the code in AstPreprocessor that relocates the registers as well.
-- for uword pointer variables: allow pointer[uword] array indexing >255 , rewrite it to @(pointer+index)
-  DO NOT allow this for regular array indexing because normal arrays can never exceed size 256
-
 - vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
   this info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8

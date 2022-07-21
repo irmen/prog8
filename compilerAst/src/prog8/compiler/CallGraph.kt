@@ -129,54 +129,35 @@ class CallGraph(private val program: Program, private val allowMissingIdentifier
     }
 
     fun checkRecursiveCalls(errors: IErrorReporter) {
-        val cycles = recursionCycles()
-        if(cycles.any()) {
-            errors.warn("Program contains recursive subroutine calls. These only works in very specific limited scenarios!", cycles[0][0].position)
-            val printed = mutableSetOf<Subroutine>()
-            for(chain in cycles) {
-                if(chain[0] !in printed) {
-                    val chainStr = chain.joinToString(" <-- ") { "${it.name} at ${it.position}" }
-                    errors.warn("Cycle in (a subroutine call in) $chainStr", chain[0].position)
-                    printed.add(chain[0])
-                }
+        val recursiveSubroutines = recursionCycles()
+        if(recursiveSubroutines.any()) {
+            errors.warn("Program contains recursive subroutines. These only works in very specific limited scenarios!", recursiveSubroutines.first().position)
+            for(subroutine in recursiveSubroutines) {
+                errors.warn("recursive subroutine '${subroutine.name}'", subroutine.position)
             }
         }
     }
 
-    private fun recursionCycles(): List<List<Subroutine>> {
-        val chains = mutableListOf<MutableList<Subroutine>>()
+    private fun recursionCycles(): Set<Subroutine> {
+        val cycles = mutableSetOf<Subroutine>()
+
         for(caller in calls.keys) {
-            val visited = calls.keys.associateWith { false }.toMutableMap()
-            val recStack = calls.keys.associateWith { false }.toMutableMap()
-            val chain = mutableListOf<Subroutine>()
-            if(hasCycle(caller, visited, recStack, chain))
-                chains.add(chain)
+            if(hasRecursionCycle(caller))
+                cycles.add(caller)
         }
-        return chains
+        return cycles
     }
 
-    private fun hasCycle(sub: Subroutine, visited: MutableMap<Subroutine, Boolean>, recStack: MutableMap<Subroutine, Boolean>, chain: MutableList<Subroutine>): Boolean {
-        // mark current node as visited and add to recursion stack
-        if(recStack[sub]==true)
-            return true
-        if(visited[sub]==true)
-            return false
-
-        // mark visited and add to recursion stack
-        visited[sub] = true
-        recStack[sub] = true
-
-        // recurse for all neighbours
-        for(called in calls.getValue(sub)) {
-            if(hasCycle(called, visited, recStack, chain)) {
-                chain.add(called)
-                return true
+    private fun hasRecursionCycle(sub: Subroutine): Boolean {
+        val callCloud = calls.getValue(sub).toMutableSet()
+        var previousCloudSize = -1
+        while(callCloud.size > previousCloudSize && sub !in callCloud) {
+            previousCloudSize = callCloud.size
+            for(element in callCloud.toList()) {
+                callCloud.addAll(calls.getValue(element))
             }
         }
-
-        // pop from recursion stack
-        recStack[sub] = false
-        return false
+        return sub in callCloud
     }
 
     fun unused(module: Module) = module !in usedModules
