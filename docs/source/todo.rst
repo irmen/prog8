@@ -3,9 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- what to do with the rouding difference in signed divide by 2 / 4  (double ror)?  it rounds towards minus infinity (so -5 / 2 = -3)
-  while the NON-optimized routine produces -2 .   Virtual machine also produces -3?
-  What rounding do we want?
+- Add optimized signed word division for factors of 2 (bit shifting but this time with correct rounding)
+    CodeGen divideByConst() and divideByConstInplace()
+    ExpressionsAsmGen translateExpression()
+    ExpressionSimplifier optimizeDivision() ?
+
 - add item to XyzZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
   (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
   Adapt the code in AstPreprocessor that relocates the registers as well.

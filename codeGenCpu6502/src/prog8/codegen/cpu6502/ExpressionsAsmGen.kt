@@ -519,14 +519,14 @@ internal class ExpressionsAsmGen(private val program: Program,
                     val rightVal = expr.right.constValue(program)?.number?.toInt()
                     if(rightVal!=null && rightVal==2) {
                         translateExpressionInternal(expr.left)
-                        when(leftDt) {
-                            DataType.UBYTE -> asmgen.out("  lsr  P8ESTACK_LO+1,x")
-                            DataType.BYTE -> asmgen.out("  lda  P8ESTACK_LO+1,x |  asl  a |  ror  P8ESTACK_LO+1,x")
-                            DataType.UWORD -> asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
-                            DataType.WORD -> asmgen.out("  lda  P8ESTACK_HI+1,x |  asl  a |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
-                            else -> throw AssemblyError("wrong dt")
+                        // shifting only yields the correct rounded result on unsinged numbers
+                        if(leftDt==DataType.UBYTE) {
+                            asmgen.out("  lsr  P8ESTACK_LO+1,x")
+                            return
+                        } else if(leftDt==DataType.UWORD) {
+                            asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
+                            return
                         }
-                        return
                     }
                 }
             }

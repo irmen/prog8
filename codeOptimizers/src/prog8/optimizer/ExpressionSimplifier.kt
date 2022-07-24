@@ -21,7 +21,6 @@ import kotlin.math.pow
 
 class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
-    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
@@ -469,17 +468,10 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                     }
                 }
                 in powersOfTwo -> {
-                    if (leftDt in IntegerDatatypes) {
-                        // divided by a power of two => shift right
+                    if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
+                        // unsigned number divided by a power of two => shift right
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
-                    }
-                }
-                in negativePowersOfTwo -> {
-                    if (leftDt in IntegerDatatypes) {
-                        // divided by a negative power of two => negate, then shift right
-                        val numshifts = log2(-cv).toInt()
-                        return BinaryExpression(PrefixExpression("-", expr.left, expr.position), ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
@@ -535,13 +527,6 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr2.left, "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
-                    }
-                }
-                in negativePowersOfTwo -> {
-                    if (leftValue.inferType(program).isInteger) {
-                        // times a negative power of two => negate, then shift left
-                        val numshifts = log2(-cv).toInt()
-                        return BinaryExpression(PrefixExpression("-", expr2.left, expr.position), "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }

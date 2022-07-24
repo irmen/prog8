@@ -511,14 +511,14 @@ class CodeGen(internal val program: PtProgram,
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
-        if(pow2==1) {
+        if(pow2==1 && !signed) {
             // just shift 1 bit
             code += if(signed)
                 VmCodeInstruction(Opcode.ASR, dt, reg1=reg)
             else
                 VmCodeInstruction(Opcode.LSR, dt, reg1=reg)
         }
-        else if(pow2>=1) {
+        else if(pow2>=1 &&!signed) {
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
@@ -544,14 +544,14 @@ class CodeGen(internal val program: PtProgram,
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
-        if(pow2==1) {
+        if(pow2==1 && !signed) {
             // just shift 1 bit
             code += if(signed)
                 VmCodeInstruction(Opcode.ASRM, dt, value=address)
             else
                 VmCodeInstruction(Opcode.LSRM, dt, value=address)
         }
-        else if(pow2>=1) {
+        else if(pow2>=1 && !signed) {
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += VmCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
