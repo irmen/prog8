@@ -3,16 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Add optimized signed word division for factors of 2 (bit shifting but this time with correct rounding)
-    CodeGen divideByConst() and divideByConstInplace()
-    ExpressionsAsmGen translateExpression()
-    ExpressionSimplifier optimizeDivision() ?
-
 - add item to XyzZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
   (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
   Adapt the code in AstPreprocessor that relocates the registers as well.
 - for uword pointer variables: allow pointer[uword] array indexing >255 , rewrite it to @(pointer+index)
   DO NOT allow this for regular array indexing because normal arrays can never exceed size 256
+
 ...
 
 
@@ -26,8 +22,7 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is.
-  this info is needed for more advanced optimizations and later code generation steps.
+- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is. This info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
@@ -36,8 +31,8 @@ Compiler:
 - vm: add ore optimizations in VmPeepholeOptimizer
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
-    Lot of work because of so many special cases in ForLoopsAsmgen.....
-    How is it for the vm target? -> just 2 special cases in CodeGen.
+  Lot of work because of so many special cases in ForLoopsAsmgen.....
+  How is it for the vm target? -> just 2 special cases in CodeGen.
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.

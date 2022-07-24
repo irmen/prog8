@@ -519,14 +519,39 @@ internal class ExpressionsAsmGen(private val program: Program,
                     val rightVal = expr.right.constValue(program)?.number?.toInt()
                     if(rightVal!=null && rightVal==2) {
                         translateExpressionInternal(expr.left)
-                        // shifting only yields the correct rounded result on unsinged numbers
-                        if(leftDt==DataType.UBYTE) {
-                            asmgen.out("  lsr  P8ESTACK_LO+1,x")
-                            return
-                        } else if(leftDt==DataType.UWORD) {
-                            asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
-                            return
+                        when (leftDt) {
+                            DataType.UBYTE -> {
+                                asmgen.out("  lsr  P8ESTACK_LO+1,x")
+                            }
+                            DataType.UWORD -> {
+                                asmgen.out("  lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x")
+                            }
+                            DataType.BYTE -> {
+                                // signed divide using shift needs adjusting of negative value to get correct rounding towards zero
+                                asmgen.out("""
+                                    lda  P8ESTACK_LO+1,x
+                                    bpl  +
+                                    inc  P8ESTACK_LO+1,x
+                                    lda  P8ESTACK_LO+1,x
++                                   asl  a
+                                    ror  P8ESTACK_LO+1,x""")
+                            }
+                            DataType.WORD -> {
+                                // signed divide using shift needs adjusting of negative value to get correct rounding towards zero
+                                asmgen.out("""
+                                    lda  P8ESTACK_HI+1,x
+                                    bpl  ++
+                                    inc  P8ESTACK_LO+1,x
+                                    bne  +
+                                    inc  P8ESTACK_HI+1,x
++                                   lda  P8ESTACK_HI+1,x
++                                   asl  a
+                                    ror  P8ESTACK_HI+1,x
+                                    ror  P8ESTACK_LO+1,x""")
+                            }
+                            else -> throw AssemblyError("weird dt")
                         }
+                        return
                     }
                 }
             }

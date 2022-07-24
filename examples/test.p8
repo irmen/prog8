@@ -8,22 +8,24 @@ main {
         txt.nl()
     }
 
-    ; TODO test with new optimized division routines.
-
     sub start() {
-        byte qq = 1
-        byte bb = -51
-        derp((bb*qq)/-4, 1,2,3,4)
-        bb /= -4
-        txt.print_b(bb)
+        word qq = 1
+        word bb = -5051
+        derp((bb*qq)/-2, 1,2,3,4)
+        bb /= -2
+        txt.print_w(bb)
         txt.nl()
-        bb = 51
-        bb /= -4
-        txt.print_b(bb)
+        bb  = -5051
+        bb = -bb/2
+        txt.print_w(bb)
         txt.nl()
-        ubyte ubb = 51
-        ubb /= 4
-        txt.print_ub(ubb)
+        bb = 5051
+        bb /= -2
+        txt.print_w(bb)
+        txt.nl()
+        uword ubb = 5051
+        ubb /= 2
+        txt.print_uw(ubb)
         txt.nl()
     }
 }

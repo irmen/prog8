@@ -21,6 +21,7 @@ import kotlin.math.pow
 
 class ExpressionSimplifier(private val program: Program) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
+    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
@@ -469,7 +470,9 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 }
                 in powersOfTwo -> {
                     if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
-                        // unsigned number divided by a power of two => shift right
+                        // Unsigned number divided by a power of two => shift right
+                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),
+                        // so we leave that as is and let the code generator deal with it.
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
@@ -527,6 +530,14 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr2.left, "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
+                    }
+                }
+                in negativePowersOfTwo -> {
+                    if (leftValue.inferType(program).isInteger) {
+                        // times a negative power of two => negate, then shift
+                        val numshifts = log2(-cv).toInt()
+                        val negation = PrefixExpression("-", expr2.left, expr.position)
+                        return BinaryExpression(negation, "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
             }
