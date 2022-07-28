@@ -92,8 +92,8 @@ internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter) {
     fixer.visit(this)
 }
 
-internal fun Program.preprocessAst(errors: IErrorReporter, target: ICompilationTarget) {
-    val transforms = AstPreprocessor(this, errors, target)
+internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
+    val transforms = AstPreprocessor(this, errors, options)
     transforms.visit(this)
     var mods = transforms.applyModifications()
     while(mods>0)

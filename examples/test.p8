@@ -1,31 +1,26 @@
 %import textio
 %import string
-%zeropage basicsafe
+%zeropage kernalsafe
 
 main {
-    sub derp(word num, ubyte a1, ubyte a2, ubyte a3, ubyte a4) {
-        txt.print_w(num)
-        txt.nl()
-    }
-
     sub start() {
-        word qq = 1
-        word bb = -5051
-        derp((bb*qq)/-2, 1,2,3,4)
-        bb /= -2
-        txt.print_w(bb)
+        cx16.r0 = $ea31
+        cx16.r15 = $ff99
+        str name = "irmen"
+
+        txt.print_uwhex(cx16.r0, true)
+        txt.spc()
+        txt.print_uwhex(cx16.r15, true)
         txt.nl()
-        bb  = -5051
-        bb = -bb/2
-        txt.print_w(bb)
+        cx16.r7 = &name
+        txt.chrout(cx16.r7[0])
+        txt.chrout(cx16.r7[1])
+        txt.chrout(cx16.r7[2])
+        txt.chrout(cx16.r7[3])
+        txt.chrout(cx16.r7[4])
         txt.nl()
-        bb = 5051
-        bb /= -2
-        txt.print_w(bb)
-        txt.nl()
-        uword ubb = 5051
-        ubb /= 2
-        txt.print_uw(ubb)
-        txt.nl()
+
+        repeat {
+        }
     }
 }

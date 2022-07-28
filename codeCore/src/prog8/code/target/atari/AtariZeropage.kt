@@ -12,7 +12,6 @@ class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_W1 = 0xcdu      // temp storage 1 for a word  $cd+$ce
     override val SCRATCH_W2 = 0xcfu      // temp storage 2 for a word  $cf+$d0        TODO is $d0 okay to use?
 
-
     init {
         if (options.floats && options.zeropage !in arrayOf(
                 ZeropageType.FLOATSAFE,
@@ -41,5 +40,9 @@ class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
         }
 
         removeReservedFromFreePool()
+    }
+
+    override fun allocateCx16VirtualRegisters() {
+        TODO("Not known if atari can put the virtual regs in ZP")
     }
 }

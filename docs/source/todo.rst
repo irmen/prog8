@@ -3,12 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add item to XyzZeropage that enables an option that if zeropage=FULL or KERNALSAFE, moves the cx16 virtual registers to ZP, same location as on x16
-  (can be done on C64 only for now)   Remove those addresses from the ZP free pool = allocate them in ZP like Cx16Zeropage does
-  Adapt the code in AstPreprocessor that relocates the registers as well.
-- for uword pointer variables: allow pointer[uword] array indexing >255 , rewrite it to @(pointer+index)
-  DO NOT allow this for regular array indexing because normal arrays can never exceed size 256
-
 ...
 
 

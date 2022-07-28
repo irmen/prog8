@@ -117,4 +117,6 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         require(size>0)
         return free.containsAll((address until address+size.toUInt()).toList())
     }
+
+    abstract fun allocateCx16VirtualRegisters()
 }

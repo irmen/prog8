@@ -34,6 +34,9 @@ class TestAbstractZeropage: FunSpec({
 
             removeReservedFromFreePool()
         }
+
+        override fun allocateCx16VirtualRegisters() {
+        }
     }
 
 
@@ -119,18 +122,20 @@ class TestC64Zeropage: FunSpec({
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), false, false, c64target, 999u))
         zp2.availableBytes() shouldBe 92
         val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), false, false, c64target, 999u))
-        zp3.availableBytes() shouldBe 134
+        zp3.availableBytes() shouldBe 102
         val zp4 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
-        zp4.availableBytes() shouldBe 239
+        zp4.availableBytes() shouldBe 207
         zp4.allocate(listOf("test"), DataType.UBYTE, null, null, errors)
-        zp4.availableBytes() shouldBe 238
+        zp4.availableBytes() shouldBe 206
         zp4.allocate(listOf("test2"), DataType.UBYTE, null, null, errors)
-        zp4.availableBytes() shouldBe 237
+        zp4.availableBytes() shouldBe 205
     }
 
     test("testReservedSpace") {
         val zp1 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
-        zp1.availableBytes() shouldBe 239
+        zp1.availableBytes() shouldBe 207
+        4u shouldNotBeIn zp1.free
+        35u shouldNotBeIn zp1.free
         50u shouldBeIn zp1.free
         100u shouldBeIn zp1.free
         49u shouldBeIn zp1.free
@@ -139,7 +144,9 @@ class TestC64Zeropage: FunSpec({
         255u shouldBeIn zp1.free
         199u shouldBeIn zp1.free
         val zp2 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, listOf(50u .. 100u, 200u..255u), false, false, c64target, 999u))
-        zp2.availableBytes() shouldBe 139
+        zp2.availableBytes() shouldBe 107
+        4u shouldNotBeIn zp2.free
+        35u shouldNotBeIn zp2.free
         50u shouldNotBeIn zp2.free
         100u shouldNotBeIn zp2.free
         49u shouldBeIn zp2.free
@@ -147,6 +154,10 @@ class TestC64Zeropage: FunSpec({
         200u shouldNotBeIn zp2.free
         255u shouldNotBeIn zp2.free
         199u shouldBeIn zp2.free
+        val zp3 = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, listOf(50u .. 100u, 200u..255u), false, false, c64target, 999u))
+        zp2.availableBytes() shouldBe 107
+        4u shouldBeIn zp3.free
+        35u shouldNotBeIn zp3.free
     }
 
     test("testBasicsafeAllocation") {
@@ -173,7 +184,7 @@ class TestC64Zeropage: FunSpec({
 
     test("testFullAllocation") {
         val zp = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, false, c64target, 999u))
-        zp.availableBytes() shouldBe 239
+        zp.availableBytes() shouldBe 207
         zp.hasByteAvailable() shouldBe true
         zp.hasWordAvailable() shouldBe true
         var result = zp.allocate(emptyList(), DataType.UWORD, null, null, errors)

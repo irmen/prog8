@@ -1,9 +1,6 @@
 package prog8.code.target.c64
 
-import prog8.code.core.CompilationOptions
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.Zeropage
-import prog8.code.core.ZeropageType
+import prog8.code.core.*
 
 
 class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
@@ -69,5 +66,26 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
         }
 
         removeReservedFromFreePool()
+
+        if(options.zeropage==ZeropageType.FULL || options.zeropage==ZeropageType.KERNALSAFE) {
+            // in these cases there is enough space on the zero page to stick the cx16 virtual registers in there as well.
+            allocateCx16VirtualRegisters()
+        }
+    }
+
+    override fun allocateCx16VirtualRegisters() {
+        // Note: the 16 virtual registers R0-R15 are not regular allocated variables, they're *memory mapped* elsewhere to fixed addresses.
+        // However, to be able for the compiler to "see" them as zero page variables, we have to register them here as well.
+        // This is important because the compiler sometimes treats ZP variables more efficiently (for example if it's a pointer)
+        for(reg in 0..15) {
+            allocatedVariables[listOf("cx16", "r${reg}")]   = ZpAllocation((4+reg*2).toUInt(), DataType.UWORD, 2)       // cx16.r0 .. cx16.r15
+            allocatedVariables[listOf("cx16", "r${reg}s")]  = ZpAllocation((4+reg*2).toUInt(), DataType.WORD, 2)        // cx16.r0s .. cx16.r15s
+            allocatedVariables[listOf("cx16", "r${reg}L")]  = ZpAllocation((4+reg*2).toUInt(), DataType.UBYTE, 1)       // cx16.r0L .. cx16.r15L
+            allocatedVariables[listOf("cx16", "r${reg}H")]  = ZpAllocation((5+reg*2).toUInt(), DataType.UBYTE, 1)       // cx16.r0H .. cx16.r15H
+            allocatedVariables[listOf("cx16", "r${reg}sL")] = ZpAllocation((4+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sL .. cx16.r15sL
+            allocatedVariables[listOf("cx16", "r${reg}sH")] = ZpAllocation((5+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sH .. cx16.r15sH
+            free.remove((4+reg*2).toUInt())
+            free.remove((5+reg*2).toUInt())
+        }
     }
 }

@@ -40,4 +40,8 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         removeReservedFromFreePool()
     }
+
+    override fun allocateCx16VirtualRegisters() {
+        TODO("Not known if C128 can put the virtual regs in ZP")
+    }
 }

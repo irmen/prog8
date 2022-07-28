@@ -328,7 +328,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     println("Analyzing code...")
-    program.preprocessAst(errors, compilerOptions.compTarget)
+    program.preprocessAst(errors, compilerOptions)
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)

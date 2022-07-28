@@ -8,37 +8,46 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 
 
-class AstPreprocessor(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
+class AstPreprocessor(val program: Program,
+                      val errors: IErrorReporter,
+                      val options: CompilationOptions) : AstWalker() {
 
     override fun before(program: Program): Iterable<IAstModification> {
-        if(compTarget.name!=Cx16Target.NAME) {
-            // reset the address of the virtual registers to be inside the evaluation stack.
-            // (we don't do this on CommanderX16 itself as the registers have a fixed location in Zeropage there)
-            val cx16block = program.allBlocks.single { it.name=="cx16" }
-            val memVars = cx16block.statements
-                .filterIsInstance<VarDecl>()
-                .associateBy { it.name }
-
-            val estack = compTarget.machine.ESTACK_HI
-            for(regnum in 0u..15u) {
-                val rX = memVars.getValue("r$regnum")
-                val rXL = memVars.getValue("r${regnum}L")
-                val rXH = memVars.getValue("r${regnum}H")
-                val rXs = memVars.getValue("r${regnum}s")
-                val rXsL = memVars.getValue("r${regnum}sL")
-                val rXsH = memVars.getValue("r${regnum}sH")
-                setAddress(rX, estack + 2u*regnum)
-                setAddress(rXL, estack + 2u*regnum)
-                setAddress(rXH, estack + 2u*regnum +1u)
-                setAddress(rXs, estack + 2u*regnum)
-                setAddress(rXsL, estack + 2u*regnum)
-                setAddress(rXsH, estack + 2u*regnum + 1u)
-            }
+        if(options.compTarget.name==C64Target.NAME) {
+            relocateCx16VirtualRegisters(program, 0x0002u)      // same address as CommanderX16
+        }
+        else if(options.compTarget.name!=Cx16Target.NAME) {
+            relocateCx16VirtualRegisters(program, options.compTarget.machine.ESTACK_HI)
         }
         return noModifications
+    }
+
+    private fun relocateCx16VirtualRegisters(program: Program, baseAddress: UInt) {
+        // reset the address of the virtual registers to be inside the evaluation stack.
+        // (we don't do this on CommanderX16 itself as the registers have a fixed location in Zeropage there)
+        val cx16block = program.allBlocks.single { it.name == "cx16" }
+        val memVars = cx16block.statements
+            .filterIsInstance<VarDecl>()
+            .associateBy { it.name }
+
+        for (regnum in 0u..15u) {
+            val rX = memVars.getValue("r$regnum")
+            val rXL = memVars.getValue("r${regnum}L")
+            val rXH = memVars.getValue("r${regnum}H")
+            val rXs = memVars.getValue("r${regnum}s")
+            val rXsL = memVars.getValue("r${regnum}sL")
+            val rXsH = memVars.getValue("r${regnum}sH")
+            setAddress(rX, baseAddress + 2u * regnum)
+            setAddress(rXL, baseAddress + 2u * regnum)
+            setAddress(rXH, baseAddress + 2u * regnum + 1u)
+            setAddress(rXs, baseAddress + 2u * regnum)
+            setAddress(rXsL, baseAddress + 2u * regnum)
+            setAddress(rXsH, baseAddress + 2u * regnum + 1u)
+        }
     }
 
     private fun setAddress(vardecl: VarDecl, address: UInt) {
@@ -48,13 +57,13 @@ class AstPreprocessor(val program: Program, val errors: IErrorReporter, val comp
 
     override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
         if(char.encoding== Encoding.DEFAULT)
-            char.encoding = compTarget.defaultEncoding
+            char.encoding = options.compTarget.defaultEncoding
         return noModifications
     }
 
     override fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.encoding==Encoding.DEFAULT)
-            string.encoding = compTarget.defaultEncoding
+            string.encoding = options.compTarget.defaultEncoding
         return super.before(string, parent)
     }
 

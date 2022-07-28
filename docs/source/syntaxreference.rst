@@ -51,7 +51,6 @@ Directives
 	- type ``basic`` : add a tiny C64 BASIC program, whith a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
 
-
 .. data:: %zeropage <style>
 
     Level: module.
@@ -79,6 +78,16 @@ Directives
     - style ``dontuse`` -- don't use *any* location in the zeropage.
 
     Also read :ref:`zeropage`.
+
+.. note::
+    ``kernalsafe`` and ``full`` on the C64 leave enough room in the zeropage to reallocate the
+    16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
+    (but not on the same locations). They are relocated automatically by the compiler.
+    The other options need those locations for other things so those virtual registers have
+    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zero page
+    variables or pointers etc. will be a lot slower in those cases!
+    On the CommanderX16 the registers are always in zeropage. On other targets, for now, they
+    are always outside of the zeropage.
 
 .. data:: %zpreserved <fromaddress>,<toaddress>
 
