@@ -11,6 +11,7 @@ diskio {
 
         c64.SETNAM(1, "$")
         c64.SETLFS(13, drivenumber, 0)
+        ubyte status = 1
         void c64.OPEN()          ; open 13,8,0,"$"
         if_cs
             goto io_error
@@ -23,8 +24,13 @@ diskio {
         }
 
         ; while not key pressed / EOF encountered, read data.
-        ubyte status = c64.READST()
-        while not status {
+        status = c64.READST()
+        if status!=0 {
+            status = 1
+            goto io_error
+        }
+
+        while status==0 {
             ubyte low = c64.CHRIN()
             ubyte high = c64.CHRIN()
             txt.print_uw(mkword(high, low))
@@ -43,9 +49,9 @@ diskio {
             if c64.STOP2()
                 break
         }
+        status = c64.READST()
 
 io_error:
-        status = c64.READST()
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(13)
 
@@ -59,6 +65,42 @@ io_error:
         return true
     }
 
+    sub diskname(ubyte drivenumber) -> uword {
+        ; -- Returns pointer to disk name string or 0 if failure.
+
+        c64.SETNAM(1, "$")
+        c64.SETLFS(13, drivenumber, 0)
+        ubyte okay = false
+        void c64.OPEN()          ; open 13,8,0,"$"
+        if_cs
+            goto io_error
+        void c64.CHKIN(13)        ; use #13 as input channel
+        if_cs
+            goto io_error
+
+        repeat 6 {
+            void c64.CHRIN()     ; skip the 6 prologue bytes
+        }
+        if c64.READST()!=0
+            goto io_error
+
+        ; while not key pressed / EOF encountered, read data.
+        cx16.r0 = &list_filename
+        repeat {
+            @(cx16.r0) = c64.CHRIN()
+            if @(cx16.r0)==0
+                break
+            cx16.r0++
+        }
+        okay = true
+
+io_error:
+        c64.CLRCHN()        ; restore default i/o devices
+        c64.CLOSE(13)
+        if okay
+            return &list_filename
+        return 0
+    }
 
     ; internal variables for the iterative file lister / loader
     bool list_skip_disk_name
@@ -73,7 +115,7 @@ io_error:
     ; ----- get a list of files (uses iteration functions internally) -----
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
-        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
+        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested. Returns number of files.
         const uword names_buf_size = 800
         uword names_buffer = memory("filenames", names_buf_size, 0)
         uword buffer_start = names_buffer
