@@ -1,0 +1,51 @@
+%import textio
+%import floats
+%zeropage basicsafe
+%option no_sysinit
+
+; The "Byte Sieve" test.  https://en.wikipedia.org/wiki/Byte_Sieve
+; Note: this program is compatible with C64 and CX16.
+
+main {
+    sub start() {
+
+        c64.SETTIM(0, 0, 0)
+
+        const ubyte ITERS = 10
+        uword count
+        uword i
+        uword prime
+        uword k
+        const uword SIZEPL = 8191
+        uword flags_ptr = memory("flags", SIZEPL, $100)
+
+        txt.print("calculating...\n")
+
+        repeat ITERS {
+            sys.memset(flags_ptr, SIZEPL, 1)
+            count = 0
+            for i in 0 to SIZEPL-1 {
+                if @(flags_ptr+i) {
+                    prime = i + i + 3
+                    k = i + prime
+                    while k <= SIZEPL-1 {
+                        @(flags_ptr + k) = false
+                        k += prime
+                    }
+;                    txt.print_uw(prime)
+;                    txt.spc()
+                    count++
+                }
+            }
+        }
+
+        txt.print_uw(count)
+        txt.print(" primes\n")
+
+        float time = c64.RDTIM16() / 60.0
+        floats.print_f(time)
+        txt.print(" sec total = ")
+        floats.print_f(time/ITERS)
+        txt.print(" sec per iteration\n")
+    }
+}

@@ -10,10 +10,7 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.StandardWatchEventKinds
+import java.nio.file.*
 import java.time.LocalDateTime
 import kotlin.system.exitProcess
 
@@ -148,16 +145,26 @@ private fun compileMain(args: Array<String>): Boolean {
             }
             println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")
 
+            fun determineRecompilationNeeded(event: WatchKey): Boolean {
+                if(event.isValid) {
+                    for (changed in event.pollEvents()) {
+                        if (changed.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                            val changedPath = changed.context() as Path
+                            if (allImportedFiles.any { it.fileName == changedPath.fileName }) {
+                                println("  change detected: $changedPath")
+                                return true
+                            }
+                        }
+                    }
+                }
+                return false
+            }
+
             var recompile=false
             while(!recompile) {
                 val event = watchservice.take()
-                for (changed in event.pollEvents()) {
-                    val changedPath = changed.context() as Path
-                    if(allImportedFiles.any { it.fileName == changedPath.fileName }) {
-                        println("  change detected: $changedPath")
-                        recompile = true
-                    }
-                }
+                Thread.sleep(50)    // avoid multiple events on same file
+                recompile = determineRecompilationNeeded(event)
                 event.reset()
             }
 

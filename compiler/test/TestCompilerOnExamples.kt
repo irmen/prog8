@@ -127,6 +127,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
         listOf(
             "animals",
             "balls",
+            "bsieve",
             "cube3d",
             "cube3d-float",
             "cube3d-gfx",
