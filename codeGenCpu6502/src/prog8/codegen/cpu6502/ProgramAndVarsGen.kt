@@ -44,6 +44,15 @@ internal class ProgramAndVarsGen(
 
         if(errors.noErrors())  {
             program.allBlocks.forEach { block2asm(it) }
+
+            // the global list of all floating point constants for the whole program
+            asmgen.out("; global float constants")
+            for (flt in allocator.globalFloatConsts) {
+                val floatFill = compTarget.machine.getFloat(flt.key).makeFloatFillAsm()
+                val floatvalue = flt.key
+                asmgen.out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
+            }
+
             memorySlabs()
             footer()
         }
@@ -170,14 +179,6 @@ internal class ProgramAndVarsGen(
     }
 
     private fun footer() {
-        // the global list of all floating point constants for the whole program
-        asmgen.out("; global float constants")
-        for (flt in allocator.globalFloatConsts) {
-            val floatFill = compTarget.machine.getFloat(flt.key).makeFloatFillAsm()
-            val floatvalue = flt.key
-            asmgen.out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
-        }
-
         // program end
         asmgen.out("prog8_program_end\t; end of program label for progend()")
     }
