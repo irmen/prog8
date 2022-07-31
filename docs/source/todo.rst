@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- can we optimize logical expresions such as  if input_size and command_line[0]!=159 to not use stack eval anymore?
-
 ...
 
 

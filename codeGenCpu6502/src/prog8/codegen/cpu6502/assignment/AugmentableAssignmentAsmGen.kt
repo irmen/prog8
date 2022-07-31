@@ -236,7 +236,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     else -> {
                         // TODO use some other evaluation here; don't use the estack to transfer the address to read/write from
-                        asmgen.assignExpressionTo(memory.addressExpression, AsmAssignTarget(TargetStorageKind.STACK, program, asmgen, DataType.UWORD, memory.definingSubroutine))
+                        asmgen.assignExpressionTo(memory.addressExpression, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingSubroutine))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
@@ -305,7 +305,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.A,
                                             target.datatype == DataType.BYTE, null,
-                                            program,
                                             asmgen
                                         )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
@@ -317,7 +316,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.AY,
                                             target.datatype == DataType.WORD, null,
-                                            program,
                                             asmgen
                                         )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
@@ -329,7 +327,6 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                                         AsmAssignTarget.fromRegisters(
                                             RegisterOrPair.FAC1,
                                             true, null,
-                                            program,
                                             asmgen
                                         )
                                     val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)

@@ -234,10 +234,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             } else {
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
-                        AsmAssignTarget(TargetStorageKind.REGISTER, program, asmgen, parameter.value.type, sub, register = register)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, sub, register = register)
                     else {
                         val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
-                        AsmAssignTarget.fromRegisters(register, signed, sub, program, asmgen)
+                        AsmAssignTarget.fromRegisters(register, signed, sub, asmgen)
                     }
                 val src = if(valueDt in PassByReferenceDatatypes) {
                     if(value is IdentifierReference) {

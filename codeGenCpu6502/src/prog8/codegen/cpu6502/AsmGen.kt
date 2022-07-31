@@ -2874,7 +2874,7 @@ $repeatLabel    lda  $counterVar
                 }
             }
         } else {
-            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, program, this, target.datatype, scope, variableAsmName = asmVariableName(target.scopedName))
+            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.datatype, scope, variableAsmName = asmVariableName(target.scopedName))
             if (dt in ByteDatatypes) {
                 out("  pla")
                 assignRegister(RegisterOrPair.A, tgt)
