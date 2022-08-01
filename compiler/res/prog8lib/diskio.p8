@@ -109,15 +109,14 @@ io_error:
     bool iteration_in_progress = false
     ubyte @zp first_byte
     bool have_first_byte
-    str list_filename = "?" * 40
-    const uword filenames_buf_size = 800
-    uword filenames_buffer = memory("filenames", filenames_buf_size, 0)    ; note: if you know what you're doing (=doesn't call list_files()) your user code may reuse this buffer if required.
-
+    str list_filename = "?" * 50
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested. Returns number of files.
+        const uword filenames_buf_size = 800
+        uword filenames_buffer = memory("filenames", filenames_buf_size, 0)
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern_ptr) {
@@ -426,8 +425,8 @@ _end        rts
 
     sub status(ubyte drivenumber) -> uword {
         ; -- retrieve the disk drive's current status message
-        uword messageptr = filenames_buffer
-        c64.SETNAM(0, filenames_buffer)
+        uword messageptr = &list_filename
+        c64.SETNAM(0, list_filename)
         c64.SETLFS(15, drivenumber, 15)
         void c64.OPEN()          ; open 15,8,15
         if_cs
@@ -448,10 +447,10 @@ _end        rts
 done:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(15)
-        return filenames_buffer
+        return list_filename
 
 io_error:
-        void string.copy("?disk error", filenames_buffer)
+        list_filename = "?disk error"
         goto done
     }
 
@@ -553,10 +552,10 @@ io_error:
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive
-        filenames_buffer[0] = 's'
-        filenames_buffer[1] = ':'
-        ubyte flen = string.copy(filenameptr, filenames_buffer+2)
-        c64.SETNAM(flen+2, filenames_buffer)
+        list_filename[0] = 's'
+        list_filename[1] = ':'
+        ubyte flen = string.copy(filenameptr, &list_filename+2)
+        c64.SETNAM(flen+2, list_filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
         c64.CLRCHN()
@@ -565,12 +564,12 @@ io_error:
 
     sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
-        filenames_buffer[0] = 'r'
-        filenames_buffer[1] = ':'
-        ubyte flen_new = string.copy(newfileptr, filenames_buffer+2)
-        filenames_buffer[flen_new+2] = '='
-        ubyte flen_old = string.copy(oldfileptr, filenames_buffer+3+flen_new)
-        c64.SETNAM(3+flen_new+flen_old, filenames_buffer)
+        list_filename[0] = 'r'
+        list_filename[1] = ':'
+        ubyte flen_new = string.copy(newfileptr, &list_filename+2)
+        list_filename[flen_new+2] = '='
+        ubyte flen_old = string.copy(oldfileptr, &list_filename+3+flen_new)
+        c64.SETNAM(3+flen_new+flen_old, list_filename)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
         c64.CLRCHN()
