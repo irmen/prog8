@@ -138,6 +138,7 @@ Provides several routines that deal with disk drive I/O, such as:
 - display disk drive status
 - load and save data from and to the disk
 - delete and rename files on the disk
+- send arbitrary CbmDos command to disk drive
 
 On the Commander X16 it tries to use that machine's fast kernal loading routines if possible.
 

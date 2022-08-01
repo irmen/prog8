@@ -109,26 +109,26 @@ io_error:
     bool iteration_in_progress = false
     ubyte @zp first_byte
     bool have_first_byte
-    str   list_filename = "?" * 32
+    str list_filename = "?" * 40
+    const uword filenames_buf_size = 800
+    uword filenames_buffer = memory("filenames", filenames_buf_size, 0)    ; note: if you know what you're doing (=doesn't call list_files()) your user code may reuse this buffer if required.
 
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
         ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested. Returns number of files.
-        const uword names_buf_size = 800
-        uword names_buffer = memory("filenames", names_buf_size, 0)
-        uword buffer_start = names_buffer
+        uword buffer_start = filenames_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern_ptr) {
             while lf_next_entry() {
-                @(name_ptrs) = lsb(names_buffer)
+                @(name_ptrs) = lsb(filenames_buffer)
                 name_ptrs++
-                @(name_ptrs) = msb(names_buffer)
+                @(name_ptrs) = msb(filenames_buffer)
                 name_ptrs++
-                names_buffer += string.copy(diskio.list_filename, names_buffer) + 1
+                filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
                 files_found++
-                if names_buffer - buffer_start > names_buf_size-18
+                if filenames_buffer - buffer_start > filenames_buf_size-18
                     break
                 if files_found == max_names
                     break
@@ -426,8 +426,8 @@ _end        rts
 
     sub status(ubyte drivenumber) -> uword {
         ; -- retrieve the disk drive's current status message
-        uword messageptr = &filename
-        c64.SETNAM(0, filename)
+        uword messageptr = filenames_buffer
+        c64.SETNAM(0, filenames_buffer)
         c64.SETLFS(15, drivenumber, 15)
         void c64.OPEN()          ; open 15,8,15
         if_cs
@@ -448,10 +448,10 @@ _end        rts
 done:
         c64.CLRCHN()        ; restore default i/o devices
         c64.CLOSE(15)
-        return filename
+        return filenames_buffer
 
 io_error:
-        filename = "?disk error"
+        void string.copy("?disk error", filenames_buffer)
         goto done
     }
 
@@ -553,10 +553,10 @@ io_error:
 
     sub delete(ubyte drivenumber, uword filenameptr) {
         ; -- delete a file on the drive
-        filename[0] = 's'
-        filename[1] = ':'
-        ubyte flen = string.copy(filenameptr, &filename+2)
-        c64.SETNAM(flen+2, filename)
+        filenames_buffer[0] = 's'
+        filenames_buffer[1] = ':'
+        ubyte flen = string.copy(filenameptr, filenames_buffer+2)
+        c64.SETNAM(flen+2, filenames_buffer)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
         c64.CLRCHN()
@@ -565,17 +565,24 @@ io_error:
 
     sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
-        filename[0] = 'r'
-        filename[1] = ':'
-        ubyte flen_new = string.copy(newfileptr, &filename+2)
-        filename[flen_new+2] = '='
-        ubyte flen_old = string.copy(oldfileptr, &filename+3+flen_new)
-        c64.SETNAM(3+flen_new+flen_old, filename)
+        filenames_buffer[0] = 'r'
+        filenames_buffer[1] = ':'
+        ubyte flen_new = string.copy(newfileptr, filenames_buffer+2)
+        filenames_buffer[flen_new+2] = '='
+        ubyte flen_old = string.copy(oldfileptr, filenames_buffer+3+flen_new)
+        c64.SETNAM(3+flen_new+flen_old, filenames_buffer)
         c64.SETLFS(1, drivenumber, 15)
         void c64.OPEN()
         c64.CLRCHN()
         c64.CLOSE(1)
     }
 
-    str filename = "0:??????????????????????????????????????"
+    sub send_command(ubyte drivenumber, uword commandptr) {
+        ; -- send a dos command to the drive
+        c64.SETNAM(string.length(commandptr), commandptr)
+        c64.SETLFS(15, drivenumber, 15)
+        void c64.OPEN()
+        c64.CLRCHN()
+        c64.CLOSE(15)
+    }
 }
