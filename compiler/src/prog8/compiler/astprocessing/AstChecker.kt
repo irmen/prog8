@@ -327,8 +327,8 @@ internal class AstChecker(private val program: Program,
                 err("number of return registers is not the isSameAs as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 if(param.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE)
-                        err("parameter '${param.first.name}' should be (u)byte")
+                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE && param.first.type != DataType.BOOL)
+                        err("parameter '${param.first.name}' should be (u)byte or bool")
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
@@ -342,7 +342,7 @@ internal class AstChecker(private val program: Program,
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
                 if(pair.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                    if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE)
+                    if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE && pair.first != DataType.BOOL)
                         err("return value #${index + 1} should be (u)byte")
                 }
                 else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
