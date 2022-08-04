@@ -6,7 +6,7 @@ main {
 
     sub start() {
 
-        txt.print("ps2 scancode handler test - press keys! esc to quit!\n")
+        txt.print("ps2 custom key handler test - press keys! esc to quit!\n")
 
         sys.set_irqd()
         uword old_keyhdl = cx16.KEYHDL
@@ -22,7 +22,7 @@ main {
         sys.clear_irqd()
     }
 
-    sub keyboard_scancode_handler(ubyte prefix, ubyte scancode, bool updown) {
+    sub keyboard_scancode_handler(ubyte prefix, ubyte scancode, bool updown) -> bool {
         txt.print_ubhex(prefix, true)
         txt.chrout(':')
         txt.print_ubhex(scancode, true)
@@ -36,7 +36,7 @@ main {
             ; escape was pressed! exit back to basic
             main.start.escape_pressed = true
         }
-        return
+        return true     ; true = consume key event, false = continue processing it
 
 asm_shim:
         %asm {{
@@ -49,8 +49,15 @@ asm_shim:
 +           stx  prefix
             sta  scancode
             jsr  keyboard_scancode_handler
+            beq  +
             plx
             pla
+            lda #0     ;By setting A=0 we will consume this key event
+            tax
+            plp
+            rts
++           plx
+            pla     ; leave A untouched, continue processing
             plp
             rts
         }}

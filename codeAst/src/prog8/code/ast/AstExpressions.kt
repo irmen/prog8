@@ -15,9 +15,9 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         if(type==DataType.UNDEFINED) {
             @Suppress("LeakingThis")
             when(this) {
-                is PtBuiltinFunctionCall -> {}
-                is PtFunctionCall -> {}
-                is PtIdentifier -> {}
+                is PtBuiltinFunctionCall -> { /* void function call */ }
+                is PtFunctionCall -> { /* void function call */ }
+                is PtIdentifier -> { /* non-variable identifier */ }
                 else -> throw IllegalArgumentException("type should be known @$position")
             }
         }

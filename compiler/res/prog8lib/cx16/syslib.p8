@@ -98,7 +98,7 @@ cx16 {
     &uword  ISTOP           = $0328
     &uword  IGETIN          = $032a
     &uword  ICLALL          = $032c
-    &uword  KEYHDL          = $032e     ; keyboard scan code handler
+    &uword  KEYHDL          = $032e     ; keyboard scan code handler see examples/cx16/keyboardhandler.p8
     &uword  ILOAD           = $0330
     &uword  ISAVE           = $0332
     &uword  NMI_VEC         = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
