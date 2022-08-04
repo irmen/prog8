@@ -279,7 +279,7 @@ class CodeGen(internal val program: PtProgram,
             code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         } else {
-            // TODO WHY THID DISTINCTION?
+            // TODO WHY THIS DISTINCTION?
             code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
             code += addConstReg(loopvarDt, indexReg, step)
             code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)

@@ -3,11 +3,6 @@ package prog8.code.core
 import java.nio.file.Path
 
 
-interface IMachineFloat {
-    fun toDouble(): Double
-    fun makeFloatFillAsm(): String
-}
-
 enum class CpuType {
     CPU6502,
     CPU65c02,
@@ -27,7 +22,7 @@ interface IMachineDefinition {
     val cpu: CpuType
 
     fun initializeZeropage(compilerOptions: CompilationOptions)
-    fun getFloat(num: Number): IMachineFloat
+    fun getFloatAsmBytes(num: Number): String
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)

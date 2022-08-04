@@ -12,6 +12,15 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     init {
         if(type==DataType.BOOL)
             throw IllegalArgumentException("bool should have become ubyte @$position")
+        if(type==DataType.UNDEFINED) {
+            @Suppress("LeakingThis")
+            when(this) {
+                is PtBuiltinFunctionCall -> {}
+                is PtFunctionCall -> {}
+                is PtIdentifier -> {}
+                else -> throw IllegalArgumentException("type should be known @$position")
+            }
+        }
     }
 
     override fun printProperties() {

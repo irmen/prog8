@@ -1,12 +1,11 @@
 package prog8.code.target.cbm
 
-import prog8.code.core.IMachineFloat
 import prog8.code.core.InternalCompilerException
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
 
-data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, val b4: UByte): IMachineFloat {
+data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, val b4: UByte) {
 
     companion object {
         const val FLOAT_MAX_POSITIVE = 1.7014118345e+38         // bytes: 255,127,255,255,255
@@ -58,7 +57,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
         }
     }
 
-    override fun toDouble(): Double {
+    fun toDouble(): Double {
         if (this == zero) return 0.0
         val exp = b0.toInt() - 128
         val sign = (b1.toInt() and 0x80) > 0
@@ -67,7 +66,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
         return if (sign) -result else result
     }
 
-    override fun makeFloatFillAsm(): String {
+    fun makeFloatFillAsm(): String {
         val b0 = "$" + b0.toString(16).padStart(2, '0')
         val b1 = "$" + b1.toString(16).padStart(2, '0')
         val b2 = "$" + b2.toString(16).padStart(2, '0')

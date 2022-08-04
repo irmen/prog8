@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.core.AssemblyError
 import kotlin.math.min
 
 /*
@@ -268,7 +269,7 @@ object SysCalls {
                 val comparison = first.compareTo(second)
                 vm.registers.setSB(0, comparison.toByte())
             }
-            else -> TODO("syscall ${call.name}")
+            else -> throw AssemblyError("missing syscall ${call.name}")
         }
     }
 }

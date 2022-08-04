@@ -1283,7 +1283,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsEXT(i: Instruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1).toUShort())
-            VmDataType.WORD -> TODO("ext.w not yet supported, requires 32 bits registers")
+            VmDataType.WORD -> throw IllegalArgumentException("ext.w not yet supported, requires 32 bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1292,7 +1292,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsEXTS(i: Instruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1).toShort())
-            VmDataType.WORD -> TODO("exts.w not yet supported, requires 32 bits registers")
+            VmDataType.WORD -> throw IllegalArgumentException("exts.w not yet supported, requires 32 bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1761,7 +1761,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val newValue = value.toInt() ushr 8
                 registers.setUB(i.reg1!!, newValue.toUByte())
             }
-            VmDataType.WORD -> TODO("msig.w not yet supported, requires 32-bits registers")
+            VmDataType.WORD -> throw IllegalArgumentException("msig.w not yet supported, requires 32-bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1774,7 +1774,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val msb = registers.getUB(i.reg2!!)
                 registers.setUW(i.reg1, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
-            VmDataType.WORD -> TODO("concat.w not yet supported, requires 32-bits registers")
+            VmDataType.WORD -> throw IllegalArgumentException("concat.w not yet supported, requires 32-bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++

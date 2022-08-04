@@ -21,7 +21,7 @@ class C128MachineDefinition: IMachineDefinition {
 
     override lateinit var zeropage: Zeropage
 
-    override fun getFloat(num: Number) = Mflpt5.fromNumber(num)
+    override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.launcher == CbmPrgLauncherType.BASIC || compilerOptions.output == OutputType.PRG)

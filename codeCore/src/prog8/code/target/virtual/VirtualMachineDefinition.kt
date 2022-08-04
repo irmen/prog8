@@ -22,7 +22,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override lateinit var zeropage: Zeropage     // not actually used
 
-    override fun getFloat(num: Number) = TODO("float from number")
+    override fun getFloatAsmBytes(num: Number) = TODO("float asm bytes from number")
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return listOf("syslib")

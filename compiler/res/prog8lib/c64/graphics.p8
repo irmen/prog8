@@ -315,7 +315,7 @@ hline_zero2
     ; for efficiency of internal algorithms here is the internal plot routine
     ; that takes the plotx coordinate in a separate variable instead of the XY register pair:
 
-    uword internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
+    uword @zp internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
 
     asmsub  internal_plot(ubyte ploty @A) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{

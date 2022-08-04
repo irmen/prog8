@@ -45,7 +45,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
             "ror" -> funcRolRor(Opcode.ROXR, call, resultRegister)
             "rol2" -> funcRolRor(Opcode.ROL, call, resultRegister)
             "ror2" -> funcRolRor(Opcode.ROR, call, resultRegister)
-            else -> TODO("builtinfunc ${call.name}")
+            else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
     }
 

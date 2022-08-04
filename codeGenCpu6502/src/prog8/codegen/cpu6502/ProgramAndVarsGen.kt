@@ -48,7 +48,7 @@ internal class ProgramAndVarsGen(
             // the global list of all floating point constants for the whole program
             asmgen.out("; global float constants")
             for (flt in allocator.globalFloatConsts) {
-                val floatFill = compTarget.machine.getFloat(flt.key).makeFloatFillAsm()
+                val floatFill = compTarget.machine.getFloatAsmBytes(flt.key)
                 val floatvalue = flt.key
                 asmgen.out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
             }
@@ -497,7 +497,7 @@ internal class ProgramAndVarsGen(
                 if(initialValue==0) {
                     asmgen.out("$name\t.byte  0,0,0,0,0  ; float")
                 } else {
-                    val floatFill = compTarget.machine.getFloat(initialValue).makeFloatFillAsm()
+                    val floatFill = compTarget.machine.getFloatAsmBytes(initialValue)
                     asmgen.out("$name\t.byte  $floatFill  ; float $initialValue")
                 }
             }
@@ -556,7 +556,7 @@ internal class ProgramAndVarsGen(
             DataType.ARRAY_F -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
-                    compTarget.machine.getFloat(it.number!!).makeFloatFillAsm()
+                    compTarget.machine.getFloatAsmBytes(it.number!!)
                 }
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
