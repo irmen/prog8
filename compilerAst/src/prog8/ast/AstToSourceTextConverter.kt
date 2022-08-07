@@ -240,11 +240,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
-    override fun visit(gosub: GoSub) {
-        output("gosub ")
-        gosub.identifier.accept(this)
-    }
-
     override fun visit(ifElse: IfElse) {
         output("if ")
         ifElse.condition.accept(this)

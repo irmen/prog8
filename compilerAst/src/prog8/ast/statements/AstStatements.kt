@@ -584,24 +584,6 @@ class Jump(var address: UInt?,
         "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
 }
 
-// a GoSub is ONLY created internally for calling subroutines, there's no syntax for it in the language
-class GoSub(val identifier: IdentifierReference, override val position: Position) : Statement() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        identifier.linkParents(this)
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = GoSub(identifier.copy(), position)
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
-    override fun toString() =
-        "GoSub($identifier;  pos=$position)"
-}
-
 class FunctionCallStatement(override var target: IdentifierReference,
                             override var args: MutableList<Expression>,
                             val void: Boolean,
@@ -1065,7 +1047,6 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 
 // Calls to builtin functions will be replaced with this node just before handing the Ast to the codegen.
 // this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
-// in the codegen, because they have been converted into GoSub (for instance) or this node.
 // However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc. etc.) this is all moot.
 class BuiltinFunctionCallStatement(override var target: IdentifierReference,
                                    override var args: MutableList<Expression>,

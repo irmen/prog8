@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.code.core.DataType
@@ -286,6 +287,6 @@ class TestSubroutines: FunSpec({
 
         stmts.last() shouldBe instanceOf<Subroutine>()
         stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough
-        stmts.dropLast(2).last() shouldBe instanceOf<GoSub>()
+        stmts.dropLast(2).last() shouldBe instanceOf<IFunctionCall>()
     }
 })

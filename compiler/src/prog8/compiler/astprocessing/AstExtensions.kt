@@ -10,7 +10,6 @@ import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.compiler.printProgram
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {

@@ -1,6 +1,5 @@
 package prog8tests.vm
 
-import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTable

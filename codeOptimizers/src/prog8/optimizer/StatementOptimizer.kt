@@ -87,13 +87,16 @@ class StatementOptimizer(private val program: Program,
             if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
                 val arg = functionCallStatement.args[0]
                 if(!arg.isSimple && arg !is IFunctionCall) {
-                    val name = getTempRegisterName(arg.inferType(program))
-                    val tempvar = IdentifierReference(name, functionCallStatement.position)
-                    val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                    return listOf(
-                        IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
-                    )
+                    val dt = arg.inferType(program)
+                    if(dt.isInteger) {
+                        val name = getTempRegisterName(dt)
+                        val tempvar = IdentifierReference(name, functionCallStatement.position)
+                        val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                        return listOf(
+                            IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
+                            IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
+                        )
+                    }
                 }
             }
         }
@@ -239,25 +242,6 @@ class StatementOptimizer(private val program: Program,
             if (iterations == 1) {
                 errors.warn("iterations is always 1", iter.position)
                 return listOf(IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent))
-            }
-        }
-        return noModifications
-    }
-
-
-    // NOTE: do NOT remove a jump to the next statement, because this will lead to wrong code when this occurs at the end of a subroutine
-    // if we want to optimize this away, it can be done later at code generation time.
-
-    override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
-        // if the next statement is return with no returnvalue, change into a regular jump if there are no parameters as well.
-        val subroutineParams = gosub.identifier.targetSubroutine(program)?.parameters
-        if(subroutineParams!=null && subroutineParams.isEmpty()) {
-            val returnstmt = gosub.nextSibling() as? Return
-            if(returnstmt!=null && returnstmt.value==null) {
-                return listOf(
-                    IAstModification.Remove(returnstmt, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(gosub, Jump(null, gosub.identifier, null, gosub.position), parent)
-                )
             }
         }
         return noModifications

@@ -106,7 +106,7 @@ class Inliner(val program: Program): AstWalker() {
                                     } else
                                         false
                                 }
-                                is Jump, is GoSub -> true
+                                is Jump -> true
                                 else -> false
                             }
                     }
@@ -168,15 +168,6 @@ class Inliner(val program: Program): AstWalker() {
     override fun before(program: Program): Iterable<IAstModification> {
         DetermineInlineSubs(program)
         return super.before(program)
-    }
-
-    override fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> {
-        val sub = gosub.identifier.targetStatement(program) as? Subroutine
-        return if(sub==null)
-            noModifications
-        else
-            possibleInlineFcallStmt(sub, gosub, parent)
-
     }
 
     private fun possibleInlineFcallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {

@@ -931,7 +931,7 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
 syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
     uses this though except, possibly, the experimental code generation target!
-    The regular 6502 based compiler targets just use a gosub to asmsub kernal routines at
+    The regular 6502 based compiler targets just use a subroutine call to asmsub kernal routines at
     specific memory locations. So these builtin function calls are not useful yet except for
     experimentation in new code generation targets.
 

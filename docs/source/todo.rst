@@ -17,7 +17,7 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- vm Instruction needs to know what the read-registers/memory are, and what the write-register/memory is. This info is needed for more advanced optimizations and later code generation steps.
+- vm Instructions needs to know what the read-registers/memory are, and what the write-register/memory is. This info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
 - vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
@@ -44,9 +44,10 @@ Compiler:
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
 - ast: don't rewrite by-reference parameter type to uword, but keep the original type (str, array)
   BUT that makes the handling of these types different between the scope they are defined in, and the
-  scope they get passed in by reference...  unless we make str and array types by-reference ALWAYS? BUT that
-  makes simple code accessing them in the declared scope very slow because that then has to always go through
+  scope they get passed in by reference...  unless we make str and array types by-reference ALWAYS?
+  BUT that makes simple code accessing them in the declared scope very slow because that then has to always go through
   the pointer rather than directly referencing the variable symbol in the generated asm....
+  Or maybe make codegen smart to check if it's a subroutine parameter or local declared variable?
 
 
 Libraries:
@@ -67,7 +68,7 @@ Expressions:
 - rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'?
   "Three address code" was mentioned.  https://en.wikipedia.org/wiki/Three-address_code
   these variables have to be unique for each subroutine because they could otherwise be interfered with from irq routines etc.
-  The VM IL solves this already (by using unlimited registers) but still lacks a translation to 6502.
+  The VM IL solves this already (by using unlimited registers) but that still lacks a translation to 6502.
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
   and perhaps the assignment splitting in  BeforeAsmAstChanger  too
 

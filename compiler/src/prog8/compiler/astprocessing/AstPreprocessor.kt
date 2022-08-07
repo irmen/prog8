@@ -7,7 +7,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.Encoding
+import prog8.code.core.IErrorReporter
+import prog8.code.core.NumericDatatypes
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 

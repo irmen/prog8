@@ -114,7 +114,6 @@ abstract class AstWalker {
     open fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(gosub: GoSub, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(label: Label, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
@@ -157,7 +156,6 @@ abstract class AstWalker {
     open fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(gosub: GoSub, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(label: Label, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
@@ -305,12 +303,6 @@ abstract class AstWalker {
         track(before(jump, parent), jump, parent)
         jump.identifier?.accept(this, jump)
         track(after(jump, parent), jump, parent)
-    }
-
-    fun visit(gosub: GoSub, parent: Node) {
-        track(before(gosub, parent), gosub, parent)
-        gosub.identifier.accept(this, gosub)
-        track(after(gosub, parent), gosub, parent)
     }
 
     fun visit(ifElse: IfElse, parent: Node) {

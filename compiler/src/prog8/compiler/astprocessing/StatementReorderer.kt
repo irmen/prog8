@@ -7,9 +7,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.code.target.VMTarget
-import prog8.codegen.cpu6502.asmsub6502ArgsEvalOrder
-import prog8.codegen.cpu6502.asmsub6502ArgsHaveRegisterClobberRisk
 import prog8.compiler.BuiltinFunctions
 
 internal class StatementReorderer(val program: Program,
@@ -26,7 +23,6 @@ internal class StatementReorderer(val program: Program,
     // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
-    // - replace subroutine calls (statement) by just assigning the arguments to the parameters and then a GoSub to the routine.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address", "%option")
 
@@ -387,155 +383,4 @@ internal class StatementReorderer(val program: Program,
         )
         return listOf(IAstModification.ReplaceNode(assign, strcopy, assign.parent))
     }
-
-    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        val function = functionCallStatement.target.targetStatement(program)
-            ?: throw FatalAstException("no target for $functionCallStatement")
-        checkUnusedReturnValues(functionCallStatement, function, errors)
-        return tryReplaceCallWithGosub(functionCallStatement, parent, program, options)
-    }
-}
-
-
-internal fun tryReplaceCallWithGosub(
-    functionCallStatement: FunctionCallStatement,
-    parent: Node,
-    program: Program,
-    options: CompilationOptions
-): Iterable<IAstModification> {
-    val callee = functionCallStatement.target.targetStatement(program)!!
-    if(callee is Subroutine) {
-        if(callee.inline)
-            return emptyList()
-        return if(callee.isAsmSubroutine) {
-            if(options.compTarget.name==VMTarget.NAME)
-                emptyList()
-            else
-                tryReplaceCallAsmSubWithGosub(functionCallStatement, parent, callee)
-        }
-        else
-            tryReplaceCallNormalSubWithGosub(functionCallStatement, parent, callee, program)
-    }
-    return emptyList()
-}
-
-private fun tryReplaceCallNormalSubWithGosub(call: FunctionCallStatement, parent: Node, callee: Subroutine, program: Program): Iterable<IAstModification> {
-    val noModifications = emptyList<IAstModification>()
-
-    if(callee.parameters.isEmpty()) {
-        // 0 params -> just GoSub
-        return listOf(IAstModification.ReplaceNode(call, GoSub(call.target, call.position), parent))
-    }
-
-    if(callee.parameters.size==1) {
-        if(callee.parameters[0].type in IntegerDatatypes) {
-            // optimization: 1 integer param is passed via register(s) directly, not by assignment to param variable
-            return noModifications
-        }
-    }
-    else if(callee.parameters.size==2) {
-        if(callee.parameters[0].type in ByteDatatypes && callee.parameters[1].type in ByteDatatypes) {
-            // optimization: 2 simple byte param is passed via 2 registers directly, not by assignment to param variables
-            return noModifications
-        }
-    }
-
-    val assignParams =
-        callee.parameters.zip(call.args).map {
-            var argumentValue = it.second
-            val paramIdentifier = IdentifierReference(callee.scopedName + it.first.name, argumentValue.position)
-            val argDt = argumentValue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-            if(argDt in ArrayDatatypes) {
-                // pass the address of the array instead
-                if(argumentValue is IdentifierReference)
-                    argumentValue = AddressOf(argumentValue, argumentValue.position)
-            }
-            Assignment(AssignTarget(paramIdentifier, null, null, argumentValue.position), argumentValue, AssignmentOrigin.PARAMETERASSIGN, argumentValue.position)
-        }
-    val scope = AnonymousScope(assignParams.toMutableList(), call.position)
-    scope.statements += GoSub(call.target, call.position)
-    return listOf(IAstModification.ReplaceNode(call, scope, parent))
-}
-
-private fun tryReplaceCallAsmSubWithGosub(
-    call: FunctionCallStatement,
-    parent: Node,
-    callee: Subroutine
-): Iterable<IAstModification> {
-    val noModifications = emptyList<IAstModification>()
-
-    if(callee.parameters.isEmpty()) {
-        // 0 params -> just GoSub
-        val scope = AnonymousScope(mutableListOf(), call.position)
-        if(callee.shouldSaveX()) {
-            scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), call.position), mutableListOf(), true, call.position)
-        }
-        scope.statements += GoSub(call.target, call.position)
-        if(callee.shouldSaveX()) {
-            scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), call.position), mutableListOf(), true, call.position)
-        }
-        return listOf(IAstModification.ReplaceNode(call, scope, parent))
-    } else if(!asmsub6502ArgsHaveRegisterClobberRisk(call.args, callee.asmParameterRegisters)) {
-        // No register clobber risk, let the asmgen assign values to the registers directly.
-        // this is more efficient than first evaluating them to the stack.
-        // As complex expressions will be flagged as a clobber-risk, these will be simplified below.
-        return noModifications
-    } else {
-        // clobber risk; evaluate the arguments on the CPU stack first (in reverse order)...
-        return makeGosubWithArgsViaCpuStack(call, call.position, parent, callee)
-    }
-}
-
-private fun makeGosubWithArgsViaCpuStack(
-    call: IFunctionCall,
-    position: Position,
-    parent: Node,
-    callee: Subroutine
-): Iterable<IAstModification> {
-
-    fun popCall(targetName: List<String>, dt: DataType, position: Position): FunctionCallStatement {
-        return FunctionCallStatement(
-            IdentifierReference(listOf(if(dt in ByteDatatypes) "pop" else "popw"), position),
-            mutableListOf(IdentifierReference(targetName, position)),
-            true, position
-        )
-    }
-
-    fun pushCall(value: Expression, dt: DataType, position: Position): FunctionCallStatement {
-        val pushvalue = when(dt) {
-            DataType.UBYTE, DataType.UWORD -> value
-            in PassByReferenceDatatypes -> value
-            DataType.BYTE -> TypecastExpression(value, DataType.UBYTE, true, position)
-            DataType.WORD -> TypecastExpression(value, DataType.UWORD, true, position)
-            else -> throw FatalAstException("invalid dt $dt    $value")
-        }
-
-        return FunctionCallStatement(
-            IdentifierReference(listOf(if(dt in ByteDatatypes) "push" else "pushw"), position),
-            mutableListOf(pushvalue),
-            true, position
-        )
-    }
-
-    val argOrder = asmsub6502ArgsEvalOrder(callee)
-    val scope = AnonymousScope(mutableListOf(), position)
-    if(callee.shouldSaveX()) {
-        scope.statements += FunctionCallStatement(IdentifierReference(listOf("rsavex"), position), mutableListOf(), true, position)
-    }
-    argOrder.reversed().forEach {
-        val arg = call.args[it]
-        val param = callee.parameters[it]
-        scope.statements += pushCall(arg, param.type, arg.position)
-    }
-    // ... and pop them off again into the registers.
-    argOrder.forEach {
-        val param = callee.parameters[it]
-        val targetName = callee.scopedName + param.name
-        scope.statements += popCall(targetName, param.type, position)
-    }
-    scope.statements += GoSub(call.target, position)
-    if(callee.shouldSaveX()) {
-        scope.statements += FunctionCallStatement(IdentifierReference(listOf("rrestorex"), position), mutableListOf(), true, position)
-    }
-    return listOf(IAstModification.ReplaceNode(call as Node, scope, parent))
 }

@@ -3,9 +3,10 @@ package prog8.ast
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.InferredTypes
-import prog8.ast.statements.*
+import prog8.ast.statements.VarDecl
+import prog8.ast.statements.VarDeclOrigin
+import prog8.ast.statements.VarDeclType
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
@@ -58,35 +59,6 @@ fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
         dt.isPassByReference -> listOf("cx16", "r9")
         else -> throw FatalAstException("invalid dt $dt")
     }
-}
-
-fun determineGosubArguments(gosub: GoSub): Map<String, Expression> {
-    val parent = gosub.parent as IStatementContainer
-    val gosubIdx = parent.statements.indexOf(gosub)
-    val previousNodes = parent.statements.subList(0, gosubIdx).reversed()
-
-    val arguments = mutableMapOf<String, Expression>()
-    for (node in previousNodes) {
-        if(node !is Assignment || node.origin!=AssignmentOrigin.PARAMETERASSIGN)
-            break
-        arguments[node.target.identifier!!.nameInSource.last()] = node.value
-    }
-
-    // instead of just assigning to the parameters, another way is to use push()/pop()
-    if(previousNodes.isNotEmpty()) {
-        val first = previousNodes[0] as? IFunctionCall
-        if(first!=null && (first.target.nameInSource.singleOrNull() in arrayOf("pop", "popw"))) {
-            val numPops = previousNodes.indexOfFirst { (it as? IFunctionCall)?.target?.nameInSource?.singleOrNull() !in arrayOf("pop", "popw") }
-            val pops = previousNodes.subList(0, numPops)
-            val pushes = previousNodes.subList(numPops, numPops+numPops).reversed()
-            for ((push, pop) in pushes.zip(pops)) {
-                val name = ((pop as IFunctionCall).args.single() as IdentifierReference).nameInSource.last()
-                val arg = (push as IFunctionCall).args.single()
-                arguments[name] = arg
-            }
-        }
-    }
-    return arguments
 }
 
 fun maySwapOperandOrder(binexpr: BinaryExpression): Boolean {

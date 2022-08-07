@@ -317,7 +317,6 @@ class AsmGen(internal val program: Program,
                 val (asmLabel, indirect) = getJumpTarget(stmt)
                 jmp(asmLabel, indirect)
             }
-            is GoSub -> translate(stmt)
             is PostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is Label -> translate(stmt)
             is ConditionalBranch -> translate(stmt)
@@ -441,14 +440,8 @@ class AsmGen(internal val program: Program,
     internal fun saveXbeforeCall(functionCall: IFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)
 
-    internal fun saveXbeforeCall(gosub: GoSub)  =
-            functioncallAsmGen.saveXbeforeCall(gosub)
-
     internal fun restoreXafterCall(functionCall: IFunctionCall) =
             functioncallAsmGen.restoreXafterCall(functionCall)
-
-    internal fun restoreXafterCall(gosub: GoSub) =
-            functioncallAsmGen.restoreXafterCall(gosub)
 
     internal fun translateNormalAssignment(assign: AsmAssignment) =
             assignmentAsmGen.translateNormalAssignment(assign)
@@ -872,18 +865,6 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translate(gosub: GoSub) {
-        val tgt = gosub.identifier.targetSubroutine(program)
-        if(tgt!=null && tgt.isAsmSubroutine) {
-            // no need to rescue X , this has been taken care of already
-            out("  jsr  ${getJumpTarget(gosub)}")
-        } else {
-            saveXbeforeCall(gosub)
-            out("  jsr  ${getJumpTarget(gosub)}")
-            restoreXafterCall(gosub)
-        }
-    }
-
     private fun getJumpTarget(jump: Jump): Pair<String, Boolean> {
         val ident = jump.identifier
         val label = jump.generatedLabel
@@ -902,8 +883,6 @@ $repeatLabel    lda  $counterVar
             else -> Pair("????", false)
         }
     }
-
-    private fun getJumpTarget(gosub: GoSub): String = asmSymbolName(gosub.identifier)
 
     private fun translate(ret: Return, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->

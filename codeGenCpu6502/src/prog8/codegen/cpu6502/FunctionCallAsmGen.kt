@@ -7,7 +7,10 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.*
+import prog8.ast.statements.FunctionCallStatement
+import prog8.ast.statements.InlineAssembly
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.SubroutineParameter
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
@@ -35,31 +38,9 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         }
     }
 
-    internal fun saveXbeforeCall(gosub: GoSub) {
-        val sub = gosub.identifier.targetSubroutine(program)
-        if(sub?.shouldSaveX()==true) {
-            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            if(regSaveOnStack)
-                asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
-            else
-                asmgen.saveRegisterLocal(CpuRegister.X, gosub.definingSubroutine!!)
-        }
-    }
-
     internal fun restoreXafterCall(stmt: IFunctionCall) {
         val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
         if(sub.shouldSaveX()) {
-            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            if(regSaveOnStack)
-                asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
-            else
-                asmgen.restoreRegisterLocal(CpuRegister.X)
-        }
-    }
-
-    internal fun restoreXafterCall(gosub: GoSub) {
-        val sub = gosub.identifier.targetSubroutine(program)
-        if(sub?.shouldSaveX()==true) {
             val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
             if(regSaveOnStack)
                 asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
@@ -80,11 +61,6 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
 
         val sub = call.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.target}")
         val subAsmName = asmgen.asmSymbolName(call.target)
-
-        if(!isExpression && !sub.isAsmSubroutine) {
-            if(!optimizeIntArgsViaRegisters(sub))
-                throw AssemblyError("functioncall statements to non-asmsub should have been replaced by GoSub $call")
-        }
 
         if(sub.isAsmSubroutine) {
             argumentsViaRegisters(sub, call)

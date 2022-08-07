@@ -70,10 +70,6 @@ interface IAstVisitor {
         jump.identifier?.accept(this)
     }
 
-    fun visit(gosub: GoSub) {
-        gosub.identifier.accept(this)
-    }
-
     fun visit(ifElse: IfElse) {
         ifElse.condition.accept(this)
         ifElse.truepart.accept(this)

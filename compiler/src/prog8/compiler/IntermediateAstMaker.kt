@@ -6,11 +6,12 @@ import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.determineGosubArguments
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.Position
+import prog8.code.core.SourceCode
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
@@ -43,7 +44,6 @@ class IntermediateAstMaker(val program: Program) {
             is Directive -> transform(statement)
             is ForLoop -> transform(statement)
             is FunctionCallStatement -> transform(statement)
-            is GoSub -> transform(statement)
             is IfElse -> transform(statement)
             is InlineAssembly -> transform(statement)
             is Jump -> transform(statement)
@@ -85,12 +85,6 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transform(srcAssign: Assignment): PtNode {
-        if(srcAssign.origin==AssignmentOrigin.PARAMETERASSIGN) {
-            // assignments that are setting the parameters for a function call,
-            // will be gathered at the GoSub itself later.
-            return PtNop(srcAssign.position)
-        }
-
         val assign = PtAssignment(srcAssign.position)
         assign.add(transform(srcAssign.target))
         assign.add(transformExpression(srcAssign.value))
@@ -226,28 +220,6 @@ class IntermediateAstMaker(val program: Program) {
         val call = PtFunctionCall(target, type==DataType.UNDEFINED, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
-        return call
-    }
-
-    private fun transform(gosub: GoSub): PtFunctionCall {
-        // Gather the Goto and any preceding parameter assignments back into a single Function call node.
-        // (the reason it was split up in the first place, is because the Compiler Ast optimizers
-        // can then work on any complex expressions that are used as arguments.)
-        val arguments = determineGosubArguments(gosub)
-
-        val parameters = gosub.identifier.targetSubroutine(program)!!.parameters
-        if(arguments.size != parameters.size)
-            throw FatalAstException("mismatched number of parameter assignments for function call")
-
-        val target = transform(gosub.identifier)
-        val call = PtFunctionCall(target.targetName, true, DataType.UNDEFINED, gosub.position)
-
-        // put arguments in correct order for the parameters
-        parameters.forEach {
-            val argument = arguments.getValue(it.name)
-            call.add(transformExpression(argument))
-        }
-
         return call
     }
 
