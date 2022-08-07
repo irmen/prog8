@@ -1,9 +1,7 @@
 package prog8.codegen.virtual
 
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.SignedDatatypes
+import prog8.code.core.*
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
@@ -33,7 +31,9 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             else
                 fallbackAssign(assignment)
         } else if(array!=null) {
-            // TODO in-place array element assignment?
+            // NOTE: naive fallback assignment here will sometimes generate code that loads the index value multiple times
+            // in a register. It's way too much work to optimize that here - instead, we trust that the generated IL assembly
+            // will be optimized later and have the double assignments removed.
             fallbackAssign(assignment)
         } else {
             fallbackAssign(assignment)

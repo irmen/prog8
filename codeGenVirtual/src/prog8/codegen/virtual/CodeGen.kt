@@ -275,15 +275,8 @@ class CodeGen(internal val program: PtProgram,
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        if(step<3) {
-            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
-            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-        } else {
-            // TODO WHY THIS DISTINCTION?
-            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-            code += addConstReg(loopvarDt, indexReg, step)
-            code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-        }
+        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
+        code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
         code += VmCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel)
         return code
@@ -315,15 +308,8 @@ class CodeGen(internal val program: PtProgram,
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        if(step<3) {
-            code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
-            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-        } else {
-            // TODO WHY THIS DISTICTION ?
-            code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-            code += addConstReg(loopvarDt, indexReg, step)
-            code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
-        }
+        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
+        code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         code += if(rangeEndWrapped==0) {
             VmCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
         } else {
@@ -381,18 +367,13 @@ class CodeGen(internal val program: PtProgram,
             }
             else -> {
                 val valueReg = vmRegisters.nextFree()
-                val operandReg = vmRegisters.nextFree()
                 if(value>0) {
-                    code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=value)
-                    code += VmCodeInstruction(Opcode.ADDR, dt, reg1 = valueReg, reg2 = operandReg)          // TODO USE ADDM?
-                    code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value=value)
+                    code += VmCodeInstruction(Opcode.ADDM, dt, reg1=valueReg, value=address.toInt())
                 }
                 else {
-                    code += VmCodeInstruction(Opcode.LOADM, dt, reg1=valueReg, value=address.toInt())
-                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=operandReg, value=-value)
-                    code += VmCodeInstruction(Opcode.SUBR, dt, reg1 = valueReg, reg2 = operandReg)          // TODO USE ADDM?
-                    code += VmCodeInstruction(Opcode.STOREM, dt, reg1=valueReg, value=address.toInt())
+                    code += VmCodeInstruction(Opcode.LOAD, dt, reg1=valueReg, value=-value)
+                    code += VmCodeInstruction(Opcode.SUBM, dt, reg1=valueReg, value=address.toInt())
                 }
             }
         }
