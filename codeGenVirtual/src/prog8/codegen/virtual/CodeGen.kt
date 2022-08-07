@@ -82,6 +82,7 @@ class CodeGen(internal val program: PtProgram,
         val code = when(node) {
             is PtBlock -> translate(node)
             is PtSub -> translate(node)
+            is PtAsmSub -> translate(node)
             is PtScopeVarsDecls -> VmCodeChunk() // vars should be looked up via symbol table
             is PtVariable -> VmCodeChunk() // var should be looked up via symbol table
             is PtMemMapped -> VmCodeChunk() // memmapped var should be looked up via symbol table
@@ -103,7 +104,6 @@ class CodeGen(internal val program: PtProgram,
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> VmCodeChunk(VmCodeInlineAsm(node.assembly))
             is PtIncludeBinary -> VmCodeChunk(VmCodeInlineBinary(node.file, node.offset, node.length))
-            is PtAsmSub -> TODO("asmsub not yet supported on virtual machine target ${node.position}")
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -778,6 +778,17 @@ class CodeGen(internal val program: PtProgram,
             code += translateNode(child)
         }
         code += VmCodeComment("SUB-END '${sub.name}'")
+        return code
+    }
+
+    private fun translate(sub: PtAsmSub): VmCodeChunk {
+        val code = VmCodeChunk()
+        code += VmCodeComment("ASMSUB: ${sub.scopedName}")
+        code += VmCodeLabel(sub.scopedName)
+        for (child in sub.children) {
+            code += translateNode(child)
+        }
+        code += VmCodeComment("ASMSUB-END '${sub.name}'")
         return code
     }
 

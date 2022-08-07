@@ -8,6 +8,7 @@ class PtAsmSub(
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>,
+    val returnTypes: List<DataType>,
     val retvalRegisters: List<RegisterOrStatusflag>,
     val inline: Boolean,
     position: Position

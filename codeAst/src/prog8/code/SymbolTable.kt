@@ -212,7 +212,7 @@ class StMemVar(name: String,
 }
 
 
-class StSub(name: String, val parameters: List<StSubroutineParameter>, position: Position) :
+class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, position: Position) :
         StNode(name, StNodeType.SUBROUTINE, position) {
     override fun printProperties() {
         print(name)
@@ -220,7 +220,7 @@ class StSub(name: String, val parameters: List<StSubroutineParameter>, position:
 }
 
 
-class StRomSub(name: String, val address: UInt, parameters: List<StSubroutineParameter>, position: Position) :
+class StRomSub(name: String, val address: UInt, val parameters: List<StSubroutineParameter>, val returnTypes: List<DataType>, position: Position) :
     StNode(name, StNodeType.ROMSUB, position) {
     override fun printProperties() {
         print("$name  address=${address.toHex()}")

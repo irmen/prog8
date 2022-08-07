@@ -10,6 +10,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8.compiler.astprocessing.hasRtsInAsm
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -123,7 +124,7 @@ class TestSubroutines: FunSpec({
         asmfunc.isAsmSubroutine shouldBe true
         asmfunc.statements.single() shouldBe instanceOf<InlineAssembly>()
         (asmfunc.statements.single() as InlineAssembly).assembly.trim() shouldBe "rts"
-        asmfunc.amountOfRtsInAsm() shouldBe 1
+        asmfunc.hasRtsInAsm(C64Target()) shouldBe true
         func.isAsmSubroutine shouldBe false
         withClue("str param should have been changed to uword") {
             asmfunc.parameters.single().type shouldBe DataType.UWORD

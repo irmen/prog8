@@ -135,7 +135,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         // and if an assembly block doesn't contain a rts/rti, and some other situations.
         if (!subroutine.isAsmSubroutine) {
             if(subroutine.statements.isEmpty() ||
-                (subroutine.amountOfRtsInAsm() == 0
+                (!subroutine.hasRtsInAsm(options.compTarget)
                         && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
                         && subroutine.statements.last() !is Subroutine
                         && subroutine.statements.last() !is Return)) {
@@ -161,10 +161,12 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         if (!subroutine.inline || !options.optimize) {
-            if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && subroutine.amountOfRtsInAsm() == 0) {
+            if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && !subroutine.hasRtsInAsm(options.compTarget)) {
                 // make sure the NOT INLINED asm subroutine actually has a rts at the end
                 // (non-asm routines get a Return statement as needed, above)
-                mods += IAstModification.InsertLast(InlineAssembly("  rts\n", Position.DUMMY), subroutine)
+                val instruction = if(options.compTarget.name==VMTarget.NAME) "  return\n" else "  rts\n"
+                mods += IAstModification.InsertLast(InlineAssembly(instruction, Position.DUMMY), subroutine)
+                println("adding returnstmt3  ${subroutine.hasRtsInAsm(options.compTarget)}")    // TODO
             }
         }
 

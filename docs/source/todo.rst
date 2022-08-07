@@ -20,10 +20,10 @@ Compiler:
 - vm Instructions needs to know what the read-registers/memory are, and what the write-register/memory is. This info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
-- vm: somehow deal with asmsubs otherwise the vm IR can't fully encode all of prog8
+- vm: encode romsub & romsub call in VM IR  (but just crash in virtualmachine itself.)  ExpressionGen.kt
 - vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
-- vm: add ore optimizations in VmPeepholeOptimizer
+- vm: add more optimizations in VmPeepholeOptimizer
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
@@ -34,7 +34,6 @@ Compiler:
 - generate WASM from the new ast (or from vm code?) to run prog8 on a browser canvas?
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
-- simplifyConditionalExpression() sometimes introduces needless assignment to r9 tempvar, can we detect & prevent this?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...

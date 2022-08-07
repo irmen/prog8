@@ -743,13 +743,6 @@ class Subroutine(override val name: String,
         return KeepAresult(false, saveAonReturn)
     }
 
-    fun amountOfRtsInAsm(): Int = statements
-            .asSequence()
-            .filter { it is InlineAssembly }
-            .map { (it as InlineAssembly).assembly }
-            .count { " rti" in it || "\trti" in it || " rts" in it || "\trts" in it || " jmp" in it || "\tjmp" in it || " bra" in it || "\tbra" in it }
-
-
     // code to provide the ability to reference asmsub parameters via qualified name:
     private val asmParamsDecls = mutableMapOf<String, VarDecl>()
 

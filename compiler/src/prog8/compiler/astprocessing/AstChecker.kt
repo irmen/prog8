@@ -303,7 +303,7 @@ internal class AstChecker(private val program: Program,
             if (subroutine.returntypes.isNotEmpty()) {
                 // for asm subroutines with an address, no statement check is possible.
                 if (subroutine.asmAddress == null && !subroutine.inline)
-                    err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or rts/jmp/bra in case of %asm)")
+                    err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or the assembler equivalent in case of %asm)")
             }
         }
 

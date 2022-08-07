@@ -33,9 +33,10 @@ main  {
             for yy in 0 to 239 {
                 for xx in 0 to 319 {
                     ubyte pixel = sys.gfx_getpixel(xx, yy)
-                    if pixel>4
+                    if pixel>4 {
                         pixel-=4
-                    sys.gfx_plot(xx, yy, pixel)
+                        sys.gfx_plot(xx, yy, pixel)
+                    }
                 }
             }
         }

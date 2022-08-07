@@ -86,7 +86,11 @@ class Assembler {
                     println("warning: ignoring incbin command: $rest")
                     continue
                 }
-                val opcode = Opcode.valueOf(instr.uppercase())
+                val opcode = try {
+                    Opcode.valueOf(instr.uppercase())
+                } catch (ax: IllegalArgumentException) {
+                    throw IllegalArgumentException("invalid vmasm instruction: $instr", ax)
+                }
                 var type: VmDataType? = convertType(typestr)
                 val formats = instructionFormats.getValue(opcode)
                 val format: InstructionFormat

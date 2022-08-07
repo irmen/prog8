@@ -2,40 +2,27 @@
 %zeropage basicsafe
 
 main {
+    romsub $ea31 = foobar(uword derp @AY) -> ubyte @A
+    romsub $ea33 = foobar2() -> ubyte @A
+    romsub $ea33 = foobar3()
+
+    sub subroutine(ubyte subroutineArg) -> ubyte {
+        return subroutineArg+22
+    }
+
+    asmsub asmsubje(uword arg @AY) -> ubyte @A {
+        %asm {{
+            rts
+            return
+        }}
+    }
+
     sub start() {
-        bool aa = true
-        ubyte[] bb = [%0000, %1111]
-        uword w1 = %1000000000000001
-        uword w2 = %0000000000000010
+        ubyte @shared qq0 = subroutine(11)
+        ubyte @shared qq1 = foobar(12345)
+        ubyte @shared qq2 = foobar2()
+        foobar3()
 
-        if aa and w1 | w2
-            txt.print("ok")
-        else
-            txt.print("fail")
-        txt.spc()
-
-        if aa and w1 & w2
-            txt.print("fail")
-        else
-            txt.print("ok")
-        txt.spc()
-
-        if aa and bb[0] | %0100
-            txt.print("ok")
-        else
-            txt.print("fail")
-        txt.spc()
-
-        if aa and bb[0] & %0100
-            txt.print("fail")
-        else
-            txt.print("ok")
-        txt.spc()
-
-        aa = aa and bb[0] | %0100
-        txt.print_ub(aa)
-        txt.spc()
-        aa = aa and bb[0] & %0100
-        txt.print_ub(aa)
+        txt.print_ub(qq0)
     }
 }

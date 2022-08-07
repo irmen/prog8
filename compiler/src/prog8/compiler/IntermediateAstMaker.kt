@@ -285,6 +285,7 @@ class IntermediateAstMaker(val program: Program) {
             srcSub.asmAddress,
             srcSub.asmClobbers,
             params,
+            srcSub.returntypes,
             srcSub.asmReturnvaluesRegisters,
             srcSub.inline,
             srcSub.position)

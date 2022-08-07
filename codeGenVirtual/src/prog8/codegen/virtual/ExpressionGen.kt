@@ -1,7 +1,9 @@
 package prog8.codegen.virtual
 
+import prog8.code.StRomSub
 import prog8.code.StStaticVariable
 import prog8.code.StSub
+import prog8.code.StSubroutineParameter
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Opcode
@@ -812,45 +814,52 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
     }
 
     fun translate(fcall: PtFunctionCall, resultRegister: Int, resultFpRegister: Int): VmCodeChunk {
-        val subroutine = codeGen.symbolTable.flat.getValue(fcall.functionName) as StSub
-        val code = VmCodeChunk()
-        for ((arg, parameter) in fcall.args.zip(subroutine.parameters)) {
-            val paramDt = codeGen.vmType(parameter.type)
-            if(codeGen.isZero(arg)) {
-                if (paramDt == VmDataType.FLOAT) {
-                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                    code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
-                } else {
-                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                    code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+        when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.functionName)) {
+            is StSub -> {
+                val code = VmCodeChunk()
+                for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
+                    val paramDt = codeGen.vmType(parameter.type)
+                    if(codeGen.isZero(arg)) {
+                        if (paramDt == VmDataType.FLOAT) {
+                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                        } else {
+                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            code += VmCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                        }
+                    } else {
+                        if (paramDt == VmDataType.FLOAT) {
+                            val argFpReg = codeGen.vmRegisters.nextFreeFloat()
+                            code += translateExpression(arg, -1, argFpReg)
+                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            code += VmCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
+                        } else {
+                            val argReg = codeGen.vmRegisters.nextFree()
+                            code += translateExpression(arg, argReg, -1)
+                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            code += VmCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
+                        }
+                    }
                 }
-            } else {
-                if (paramDt == VmDataType.FLOAT) {
-                    val argFpReg = codeGen.vmRegisters.nextFreeFloat()
-                    code += translateExpression(arg, -1, argFpReg)
-                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                    code += VmCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
+                code += VmCodeInstruction(Opcode.CALL, labelSymbol=fcall.functionName)
+                if(fcall.type==DataType.FLOAT) {
+                    if (!fcall.void && resultFpRegister != 0) {
+                        // Call convention: result value is in fr0, so put it in the required register instead.
+                        code += VmCodeInstruction(Opcode.LOADR, VmDataType.FLOAT, fpReg1 = resultFpRegister, fpReg2 = 0)
+                    }
                 } else {
-                    val argReg = codeGen.vmRegisters.nextFree()
-                    code += translateExpression(arg, argReg, -1)
-                    val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
-                    code += VmCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
+                    if (!fcall.void && resultRegister != 0) {
+                        // Call convention: result value is in r0, so put it in the required register instead.
+                        code += VmCodeInstruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1 = resultRegister, reg2 = 0)
+                    }
                 }
+                return code
             }
+            is StRomSub -> {
+                TODO("call romsub $fcall")
+            }
+            else -> throw AssemblyError("invalid node type")
         }
-        code += VmCodeInstruction(Opcode.CALL, labelSymbol=fcall.functionName)
-        if(fcall.type==DataType.FLOAT) {
-            if (!fcall.void && resultFpRegister != 0) {
-                // Call convention: result value is in fr0, so put it in the required register instead.
-                code += VmCodeInstruction(Opcode.LOADR, VmDataType.FLOAT, fpReg1 = resultFpRegister, fpReg2 = 0)
-            }
-        } else {
-            if (!fcall.void && resultRegister != 0) {
-                // Call convention: result value is in r0, so put it in the required register instead.
-                code += VmCodeInstruction(Opcode.LOADR, codeGen.vmType(fcall.type), reg1 = resultRegister, reg2 = 0)
-            }
-        }
-        return code
     }
 
 }
