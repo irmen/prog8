@@ -4,10 +4,8 @@ import prog8.vm.Instruction
 import prog8.vm.Opcode
 import prog8.vm.VmDataType
 
-internal class VmOptimizerException(msg: String): Exception(msg)
 
-
-class VmPeepholeOptimizer(private val vmprog: AssemblyProgram, private val allocations: VariableAllocator) {
+class VmPeepholeOptimizer(private val vmprog: AssemblyProgram) {
     fun optimize() {
         vmprog.getBlocks().forEach { block ->
             do {

@@ -208,7 +208,7 @@ class Assembler {
                 if(format.fpValue)
                     floatValue = value!!
 
-                program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value = intValue, fpValue = floatValue))
+                program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue))
             }
         }
 

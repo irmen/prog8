@@ -68,7 +68,7 @@ class CodeGen(internal val program: PtProgram,
         }
 
         if(options.optimize) {
-            val optimizer = VmPeepholeOptimizer(vmprog, allocations)
+            val optimizer = VmPeepholeOptimizer(vmprog)
             optimizer.optimize()
         }
 

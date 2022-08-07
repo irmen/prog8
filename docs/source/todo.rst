@@ -16,7 +16,6 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- vm Instructions needs to know what the read-registers/memory are, and what the write-register/memory is. This info is needed for more advanced optimizations and later code generation steps.
 - vm: implement remaining sin/cos functions in math.p8
 - vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
 - vm: encode romsub & romsub call in VM IR  (but just crash in virtualmachine itself.)  ExpressionGen.kt
@@ -29,7 +28,7 @@ Compiler:
   How is it for the vm target? -> just 2 special cases in CodeGen.
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
-  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step.
+  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step instead.
 - generate WASM from the new ast (or from vm code?) to run prog8 on a browser canvas?
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.

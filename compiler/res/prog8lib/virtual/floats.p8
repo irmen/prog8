@@ -84,7 +84,7 @@ sub log2(float value) -> float {
 sub sqrt(float value) -> float {
     %asm {{
         loadm.f fr0,{floats.sqrt.value}
-        fsqrt.f fr0,fr0
+        sqrt.f fr0,fr0
         return
     }}
 }

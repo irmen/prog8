@@ -26,19 +26,19 @@ class TestVmPeepholeOpt: FunSpec({
     fun AssemblyProgram.lines(): List<VmCodeLine> = this.getBlocks().flatMap { it.lines }
 
     test("remove nops") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.JUMP, labelSymbol = listOf("dummy")),
             VmCodeInstruction(Opcode.NOP),
             VmCodeInstruction(Opcode.NOP)
         ))
         asm.lines().size shouldBe 3
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         asm.lines().size shouldBe 1
     }
 
     test("remove jmp to label below") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.JUMP, labelSymbol = listOf("label")),  // removed
             VmCodeLabel(listOf("label")),
             VmCodeInstruction(Opcode.JUMP, labelSymbol = listOf("label2")), // removed
@@ -49,7 +49,7 @@ class TestVmPeepholeOpt: FunSpec({
             VmCodeLabel(listOf("label3"))
         ))
         asm.lines().size shouldBe 8
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 5
@@ -61,7 +61,7 @@ class TestVmPeepholeOpt: FunSpec({
     }
 
     test("remove double sec/clc") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.SEC),
             VmCodeInstruction(Opcode.SEC),
             VmCodeInstruction(Opcode.SEC),
@@ -70,7 +70,7 @@ class TestVmPeepholeOpt: FunSpec({
             VmCodeInstruction(Opcode.CLC)
         ))
         asm.lines().size shouldBe 6
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 1
@@ -78,14 +78,14 @@ class TestVmPeepholeOpt: FunSpec({
     }
 
     test("push followed by pop") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=42),
             VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=42),
             VmCodeInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=99),
             VmCodeInstruction(Opcode.POP, VmDataType.BYTE, reg1=222)
         ))
         asm.lines().size shouldBe 4
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 1
@@ -95,7 +95,7 @@ class TestVmPeepholeOpt: FunSpec({
     }
 
     test("remove useless div/mul, add/sub") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.DIV, VmDataType.BYTE, reg1=42, value = 1),
             VmCodeInstruction(Opcode.DIVS, VmDataType.BYTE, reg1=42, value = 1),
             VmCodeInstruction(Opcode.MUL, VmDataType.BYTE, reg1=42, value = 1),
@@ -108,19 +108,19 @@ class TestVmPeepholeOpt: FunSpec({
             VmCodeInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 0)
         ))
         asm.lines().size shouldBe 10
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 4
     }
 
     test("replace add/sub 1 by inc/dec") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.ADD, VmDataType.BYTE, reg1=42, value = 1),
             VmCodeInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 1)
         ))
         asm.lines().size shouldBe 2
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 2
@@ -129,7 +129,7 @@ class TestVmPeepholeOpt: FunSpec({
     }
 
     test("remove useless and/or/xor") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 255),
             VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 65535),
             VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 0),
@@ -140,21 +140,21 @@ class TestVmPeepholeOpt: FunSpec({
             VmCodeInstruction(Opcode.XOR, VmDataType.BYTE, reg1=42, value = 1)
         ))
         asm.lines().size shouldBe 8
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 4
     }
 
     test("replace and/or/xor by constant number") {
-        val(asm, allocations) = makeVmProgram(listOf(
+        val(asm, _) = makeVmProgram(listOf(
             VmCodeInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 0),
             VmCodeInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 0),
             VmCodeInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 255),
             VmCodeInstruction(Opcode.OR, VmDataType.WORD, reg1=42, value = 65535)
         ))
         asm.lines().size shouldBe 4
-        val opt = VmPeepholeOptimizer(asm, allocations)
+        val opt = VmPeepholeOptimizer(asm)
         opt.optimize()
         val lines = asm.lines()
         lines.size shouldBe 4

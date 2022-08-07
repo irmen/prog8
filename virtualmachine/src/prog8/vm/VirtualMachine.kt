@@ -218,7 +218,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.FATAN -> InsFATAN(ins)
             Opcode.FLN -> InsFLN(ins)
             Opcode.FLOG -> InsFLOG(ins)
-            Opcode.FSQRT -> InsFSQRT(ins)
             Opcode.FROUND -> InsFROUND(ins)
             Opcode.FFLOOR -> InsFFLOOR(ins)
             Opcode.FCEIL -> InsFCEIL(ins)
@@ -1884,12 +1883,6 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsFCEIL(i: Instruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, ceil(value))
-        pc++
-    }
-
-    private fun InsFSQRT(i: Instruction) {
-        val value = registers.getFloat(i.fpReg2!!)
-        registers.setFloat(i.fpReg1!!, sqrt(value))
         pc++
     }
 
