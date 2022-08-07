@@ -3,7 +3,7 @@ package prog8.code.core
 val AssociativeOperators = setOf("+", "*", "&", "|", "^", "==", "!=")
 val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
 val LogicalOperators = setOf("and", "or", "xor", "not")
-val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "&", "|", "^", "<<", ">>", "%")
+val AugmentAssignmentOperators = setOf("+", "-", "/", "*", "&", "|", "^", "<<", ">>", "%", "and", "or", "xor")
 val BitwiseOperators = setOf("&", "|", "^", "~")
 // val InvalidOperatorsForBoolean = setOf("+", "-", "*", "/", "%", "<<", ">>") + BitwiseOperators
 

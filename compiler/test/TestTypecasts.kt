@@ -95,22 +95,23 @@ main {
         ubyte ub3
         ub3 = 1
         ubyte @shared bvalue
-        bvalue = (((ub1^ub2)^ub3)^1)
+        bvalue = ub1
+        bvalue ^= ub2
+        bvalue ^= ub3
+        bvalue ^= 1
         bvalue = (((ub1^ub2)^ub3)^(ftrue(99)!=0))
         bvalue = ((ub1&ub2)&(ftrue(99)!=0))
         return
          */
-        stmts.size shouldBe 11
-        val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
-        val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
-        val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
-        assignValue1.operator shouldBe "^"
+        stmts.size shouldBe 14
+        val assignValue1 = (stmts[7] as Assignment).value as IdentifierReference
+        val assignValue2 = (stmts[11] as Assignment).value as BinaryExpression
+        val assignValue3 = (stmts[12] as Assignment).value as BinaryExpression
+        assignValue1.nameInSource shouldBe listOf("ub1")
         assignValue2.operator shouldBe "^"
         assignValue3.operator shouldBe "&"
-        val right1 = assignValue1.right as NumericLiteral
         val right2 = assignValue2.right as BinaryExpression
         val right3 = assignValue3.right as BinaryExpression
-        right1.number shouldBe 1.0
         right2.operator shouldBe "!="
         right3.operator shouldBe "!="
         right2.left shouldBe instanceOf<IFunctionCall>()
