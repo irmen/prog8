@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix the obvious TODOs in CodeGen (vm)
+- vm: AssignmentGen - fix in-place array assign TODO
 
 ...
 

@@ -166,7 +166,6 @@ internal class BeforeAsmAstChanger(val program: Program,
                 // (non-asm routines get a Return statement as needed, above)
                 val instruction = if(options.compTarget.name==VMTarget.NAME) "  return\n" else "  rts\n"
                 mods += IAstModification.InsertLast(InlineAssembly(instruction, Position.DUMMY), subroutine)
-                println("adding returnstmt3  ${subroutine.hasRtsInAsm(options.compTarget)}")    // TODO
             }
         }
 
@@ -217,88 +216,7 @@ internal class BeforeAsmAstChanger(val program: Program,
             (binExpr.right as? NumericLiteral)?.number!=0.0)
             throw InternalCompilerException("0==X should have been swapped to if X==0")
 
-        // simplify the conditional expression, introduce simple assignments if required.
-        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
-        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
-        val simplify = simplifyConditionalExpression(binExpr)
-        val modifications = mutableListOf<IAstModification>()
-        if(simplify.rightVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(
-                ifElse,
-                simplify.rightVarAssignment,
-                parent as IStatementContainer
-            )
-        }
-        if(simplify.leftVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(
-                ifElse,
-                simplify.leftVarAssignment,
-                parent as IStatementContainer
-            )
-        }
-
-        return modifications
-    }
-
-    private class CondExprSimplificationResult(
-        val leftVarAssignment: Assignment?,
-        val leftOperandReplacement: Expression?,
-        val rightVarAssignment: Assignment?,
-        val rightOperandReplacement: Expression?
-    )
-
-    private fun simplifyConditionalExpression(expr: BinaryExpression): CondExprSimplificationResult {
-
-        // TODO: somehow figure out if the expr will result in stack-evaluation STILL after being split off,
-        //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
-        // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
-
-        if(options.compTarget.name==VMTarget.NAME)  // don't apply this optimization for Vm target
-            return CondExprSimplificationResult(null, null, null, null)
-
-        var leftAssignment: Assignment? = null
-        var leftOperandReplacement: Expression? = null
-        var rightAssignment: Assignment? = null
-        var rightOperandReplacement: Expression? = null
-
-        val separateLeftExpr = !expr.left.isSimple
-                && expr.left !is IFunctionCall
-                && expr.left !is ContainmentCheck
-        val separateRightExpr = !expr.right.isSimple
-                && expr.right !is IFunctionCall
-                && expr.right !is ContainmentCheck
-        val leftDt = expr.left.inferType(program)
-        val rightDt = expr.right.inferType(program)
-
-        if(!leftDt.isInteger || !rightDt.isInteger) {
-            // we can't reasonably simplify non-integer expressions
-            return CondExprSimplificationResult(null, null, null, null)
-        }
-
-        if(separateLeftExpr) {
-            val name = getTempRegisterName(leftDt)
-            leftOperandReplacement = IdentifierReference(name, expr.position)
-            leftAssignment = Assignment(
-                AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
-                expr.left,
-                AssignmentOrigin.BEFOREASMGEN, expr.position
-            )
-        }
-        if(separateRightExpr) {
-            val (tempVarName, _) = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
-            rightOperandReplacement = IdentifierReference(tempVarName, expr.position)
-            rightAssignment = Assignment(
-                AssignTarget(IdentifierReference(tempVarName, expr.position), null, null, expr.position),
-                expr.right,
-                AssignmentOrigin.BEFOREASMGEN, expr.position
-            )
-        }
-        return CondExprSimplificationResult(
-            leftAssignment, leftOperandReplacement,
-            rightAssignment, rightOperandReplacement
-        )
+        return noModifications
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {

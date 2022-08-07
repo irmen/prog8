@@ -827,7 +827,7 @@ main  {
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         val statements = result.program.entrypoint.statements
-        statements.size shouldBe 27
+        statements.size shouldBeGreaterThan 10
     }
 
     test("cast to unsigned in conditional") {

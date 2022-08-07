@@ -3,7 +3,6 @@ package prog8.ast
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.Expression
-import prog8.ast.expressions.InferredTypes
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.statements.VarDeclType
@@ -46,19 +45,6 @@ fun Program.getTempVar(dt: DataType, altNames: Boolean=false): Pair<List<String>
     block.statements.add(decl)
     decl.linkParents(block)
     return Pair(tmpvarName, decl)
-}
-
-fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
-    return when {
-        // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
-        dt istype DataType.UBYTE -> listOf("cx16", "r9L")
-        dt istype DataType.BOOL -> listOf("cx16", "r9L")
-        dt istype DataType.BYTE -> listOf("cx16", "r9sL")
-        dt istype DataType.UWORD -> listOf("cx16", "r9")
-        dt istype DataType.WORD -> listOf("cx16", "r9s")
-        dt.isPassByReference -> listOf("cx16", "r9")
-        else -> throw FatalAstException("invalid dt $dt")
-    }
 }
 
 fun maySwapOperandOrder(binexpr: BinaryExpression): Boolean {

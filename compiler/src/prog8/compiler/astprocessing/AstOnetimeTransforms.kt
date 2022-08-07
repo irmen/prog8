@@ -29,7 +29,7 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
     }
 
     private fun replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        if(options.compTarget.name== VMTarget.NAME)
+        if(options.compTarget.name==VMTarget.NAME)
             return noModifications  // vm codegen deals correctly with all cases
 
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)

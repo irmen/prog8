@@ -1,6 +1,7 @@
 package prog8.optimizer
 
 import prog8.ast.*
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -79,26 +80,6 @@ class StatementOptimizer(private val program: Program,
             val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
             if(first is Return)
                 return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
-        }
-
-        if(compTarget.name!=VMTarget.NAME) {
-            // see if we can optimize any complex argument expressions to be just a simple variable
-            // TODO for now, only works for single-argument functions because we use just 1 temp var: R9
-            if(functionCallStatement.target.nameInSource !in listOf(listOf("pop"), listOf("popw")) && functionCallStatement.args.size==1) {
-                val arg = functionCallStatement.args[0]
-                if(!arg.isSimple && arg !is IFunctionCall) {
-                    val dt = arg.inferType(program)
-                    if(dt.isInteger) {
-                        val name = getTempRegisterName(dt)
-                        val tempvar = IdentifierReference(name, functionCallStatement.position)
-                        val assignTempvar = Assignment(AssignTarget(tempvar.copy(), null, null, functionCallStatement.position), arg, AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                        return listOf(
-                            IAstModification.InsertBefore(functionCallStatement, assignTempvar, parent as IStatementContainer),
-                            IAstModification.ReplaceNode(arg, tempvar, functionCallStatement)
-                        )
-                    }
-                }
-            }
         }
 
         return noModifications
@@ -413,31 +394,20 @@ class StatementOptimizer(private val program: Program,
         if(compTarget.name==VMTarget.NAME)
             return noModifications
 
-        fun returnViaIntermediaryVar(value: Expression): Iterable<IAstModification>? {
-            val subr = returnStmt.definingSubroutine!!
-            val returnDt = subr.returntypes.single()
-            if (returnDt in IntegerDatatypes) {
+        val returnvalue = returnStmt.value
+        if (returnvalue!=null) {
+            val dt = returnvalue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+            if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
                 // first assign to intermediary variable, then return that
-                val (returnVarName, _) = program.getTempVar(returnDt)
+                val (returnVarName, _) = program.getTempVar(dt)
                 val returnValueIntermediary = IdentifierReference(returnVarName, returnStmt.position)
                 val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
-                val assign = Assignment(tgt, value, AssignmentOrigin.OPTIMIZER, returnStmt.position)
+                val assign = Assignment(tgt, returnvalue, AssignmentOrigin.OPTIMIZER, returnStmt.position)
                 val returnReplacement = Return(returnValueIntermediary.copy(), returnStmt.position)
                 return listOf(
                     IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),
                     IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
                 )
-            }
-            return null
-        }
-
-        // TODO decision when to use intermediary variable to calculate returnvalue seems a bit arbitrary...
-        val returnvalue = returnStmt.value
-        if (returnvalue!=null) {
-            if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
-                val mod = returnViaIntermediaryVar(returnvalue)
-                if(mod!=null)
-                    return mod
             }
         }
 
