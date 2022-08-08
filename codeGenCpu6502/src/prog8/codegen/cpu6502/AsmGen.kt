@@ -311,7 +311,7 @@ class AsmGen(internal val program: Program,
             is Subroutine -> programGen.translateSubroutine(stmt)
             is InlineAssembly -> translate(stmt)
             is BuiltinFunctionCallStatement -> builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
-            is FunctionCallStatement -> functioncallAsmGen.translateFunctionCallStatement(stmt)         // TODO try to remove this last usage of FunctionCallStatement node in the codegen.
+            is FunctionCallStatement -> functioncallAsmGen.translateFunctionCallStatement(stmt)
             is Assignment -> assignmentAsmGen.translate(stmt)
             is Jump -> {
                 val (asmLabel, indirect) = getJumpTarget(stmt)

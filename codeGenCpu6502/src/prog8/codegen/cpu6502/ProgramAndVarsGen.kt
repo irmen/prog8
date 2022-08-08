@@ -439,7 +439,7 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpStringWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
-            val svar = symboltable.lookup(variable.key) as StStaticVariable        // TODO faster in flat lookup table
+            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
             if(svar.initialStringValue!=null)
                 result.add(ZpStringWithInitial(variable.key, variable.value, svar.initialStringValue!!))
         }
@@ -450,7 +450,7 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpArrayWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
-            val svar = symboltable.lookup(variable.key) as StStaticVariable        // TODO faster in flat lookup table
+            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
             if(svar.initialArrayValue!=null)
                 result.add(ZpArrayWithInitial(variable.key, variable.value, svar.initialArrayValue!!))
         }

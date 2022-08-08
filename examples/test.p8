@@ -3,29 +3,11 @@
 
 main {
     sub start() {
-        &bool b1 = $0200
-        &uword mu1 = $0300
-        &uword mu2 = $0302
+        str @zp zpstr = "irmen"
+        ubyte[3] @zp zparr = [1,2,3]
 
-        &ubyte[4] marray = $0300
-        &uword[4] mwarray= $0300
-        &float[4] mfarray = $0400
-
-        mu1 = mu2
-        b1 = true
-        bool b2 = true
-        bool b3
-
-        b2 = b2 and b1
-        txt.print_ub(b2)
-        txt.nl()
-
-        ubyte ub1 = 1
-        ubyte ub2 = 2
-        ubyte ub3
-
-        ub2 = ub2 + ub1
-        txt.print_ub(ub2)
+        txt.print(zpstr)
+        txt.print_ub(zparr[2])
     }
 
 

@@ -630,8 +630,6 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     private fun fallbackToStackEval(assign: AsmAssignment) {
-        // TODO DON'T STACK-EVAL... perhaps by using a temp var? so that it becomes augmentable assignment expression?
-        //      or don't try to solve it here in this one case and rather rewrite the whole stack based value evaluation.
         // this routine is called for assigning a binaryexpression value:
         // - if it's a boolean comparison expression and the workaround isn't possible (no origTarget ast node)
         // - for all other binary expressions.
