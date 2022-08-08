@@ -3,7 +3,16 @@
 
 main {
     sub start() {
-        bool b1 = false
+        &bool b1 = $0200
+        &uword mu1 = $0300
+        &uword mu2 = $0302
+
+        &ubyte[4] marray = $0300
+        &uword[4] mwarray= $0300
+        &float[4] mfarray = $0400
+
+        mu1 = mu2
+        b1 = true
         bool b2 = true
         bool b3
 

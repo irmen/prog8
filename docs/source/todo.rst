@@ -16,9 +16,10 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- vm: implement remaining sin/cos functions in math.p8
-- vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now
-- vm: encode romsub & romsub call in VM IR  (but just crash in virtualmachine itself.)  ExpressionGen.kt
+- vm: implement remaining sin/cos functions in math.p8 and merge tables
+- vm: implement memory mapped variables properly in VariableAllocator
+- vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now. Maybe this gets solved by the previous item?
+- vm: encode romsub & romsub call in VM IR  (can just crash in virtualmachine itself because program is not in the simulated memory)  ExpressionGen.kt
 - vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add more optimizations in VmPeepholeOptimizer
@@ -29,9 +30,9 @@ Compiler:
 - when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
   It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
   So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step instead.
-- generate WASM from the new ast (or from vm code?) to run prog8 on a browser canvas?
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
+- generate WASM from the new ast (or from vm code?) to eventually run prog8 on a browser canvas?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
@@ -73,7 +74,7 @@ Optimizations:
 
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
   the old CompilerAst, those checks should probably be removed, or be made permanent
-- VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served
+- VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
 - when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 

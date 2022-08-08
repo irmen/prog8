@@ -81,6 +81,25 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
             }
             mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
         }
+        for (variable in st.allMemMappedVariables) {
+            val location = allocations.getValue(variable.scopedName)
+            val typeStr = when(variable.dt) {
+                DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
+                DataType.BYTE, DataType.ARRAY_B -> "byte"
+                DataType.UWORD, DataType.ARRAY_UW -> "uword"
+                DataType.WORD, DataType.ARRAY_W -> "word"
+                DataType.FLOAT, DataType.ARRAY_F -> "float"
+                else -> throw InternalCompilerException("weird dt")
+            }
+            val value = when(variable.dt) {
+                DataType.FLOAT -> "0.0"
+                in NumericDatatypes -> "0"
+                DataType.ARRAY_F -> (1..variable.length!!).joinToString(",") { "0.0" }
+                in ArrayDatatypes -> (1..variable.length!!).joinToString(",") { "0" }
+                else -> throw InternalCompilerException("weird dt for mem mapped var")
+            }
+            mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
+        }
         return mm
     }
 
