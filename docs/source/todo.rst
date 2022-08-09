@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- in a block marked option force_output, make all subroutines in asm using .block rather than .proc
+
 ...
 
 

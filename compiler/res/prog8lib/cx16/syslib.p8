@@ -306,7 +306,7 @@ romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
 romsub $ff5f = screen_mode(ubyte mode @A, ubyte getCurrent @Pc)  clobbers(A, X, Y) -> ubyte @Pc
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 ; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
-romsub $ff6e = jsrfar()
+romsub $ff6e = jsrfar()  ; following word = address to call, byte after that=rom/ram bank it is in
 romsub $ff74 = fetch(ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
 romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
 romsub $ff7a = cmpare(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)

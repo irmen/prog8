@@ -33,15 +33,12 @@ class CallGraph(private val program: Program, private val allowMissingIdentifier
     }
 
     private val usedBlocks: Set<Block> by lazy {
-        val blocksFromSubroutines = usedSubroutines.map { it.definingBlock }
         val blocksFromLibraries = program.allBlocks.filter { it.isInLibrary }
         val used = mutableSetOf<Block>()
 
         allIdentifiersAndTargets.forEach {
-            if(it.key.definingBlock in blocksFromSubroutines) {
-                val target = it.value.definingBlock
-                used.add(target)
-            }
+            val target = it.value.definingBlock
+            used.add(target)
         }
 
         used + blocksFromLibraries + program.entrypoint.definingBlock

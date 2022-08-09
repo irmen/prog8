@@ -333,16 +333,16 @@ internal class AstChecker(private val program: Program,
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
                 if(pair.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE && pair.first != DataType.BOOL)
-                        err("return value #${index + 1} should be (u)byte")
+                        err("return type #${index + 1} should be (u)byte")
                 }
-                else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (pair.first != DataType.UWORD && pair.first != DataType.WORD
                             && pair.first != DataType.STR && pair.first !in ArrayDatatypes && pair.first != DataType.FLOAT)
-                        err("return value #${index + 1} should be (u)word/address")
+                        err("return type #${index + 1} should be (u)word/address")
                 }
                 else if(pair.second.statusflag!=null) {
                     if (pair.first != DataType.UBYTE)
-                        err("return value #${index + 1} should be ubyte")
+                        err("return type #${index + 1} should be ubyte")
                 }
             }
 

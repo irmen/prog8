@@ -220,9 +220,25 @@ internal class AssignmentAsmGen(private val program: Program,
                             RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
                             RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
                             RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
-                            RegisterOrPair.AX -> assignRegisterpairWord(assign.target, RegisterOrPair.AX)
-                            RegisterOrPair.AY -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                            RegisterOrPair.XY -> assignRegisterpairWord(assign.target, RegisterOrPair.XY)
+                            RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
+                            RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
+                            RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
+                            RegisterOrPair.R0 -> assignVirtualRegister(assign.target, RegisterOrPair.R0)
+                            RegisterOrPair.R1 -> assignVirtualRegister(assign.target, RegisterOrPair.R1)
+                            RegisterOrPair.R2 -> assignVirtualRegister(assign.target, RegisterOrPair.R2)
+                            RegisterOrPair.R3 -> assignVirtualRegister(assign.target, RegisterOrPair.R3)
+                            RegisterOrPair.R4 -> assignVirtualRegister(assign.target, RegisterOrPair.R4)
+                            RegisterOrPair.R5 -> assignVirtualRegister(assign.target, RegisterOrPair.R5)
+                            RegisterOrPair.R6 -> assignVirtualRegister(assign.target, RegisterOrPair.R6)
+                            RegisterOrPair.R7 -> assignVirtualRegister(assign.target, RegisterOrPair.R7)
+                            RegisterOrPair.R8 -> assignVirtualRegister(assign.target, RegisterOrPair.R8)
+                            RegisterOrPair.R9 -> assignVirtualRegister(assign.target, RegisterOrPair.R9)
+                            RegisterOrPair.R10 -> assignVirtualRegister(assign.target, RegisterOrPair.R10)
+                            RegisterOrPair.R11 -> assignVirtualRegister(assign.target, RegisterOrPair.R11)
+                            RegisterOrPair.R12 -> assignVirtualRegister(assign.target, RegisterOrPair.R12)
+                            RegisterOrPair.R13 -> assignVirtualRegister(assign.target, RegisterOrPair.R13)
+                            RegisterOrPair.R14 -> assignVirtualRegister(assign.target, RegisterOrPair.R14)
+                            RegisterOrPair.R15 -> assignVirtualRegister(assign.target, RegisterOrPair.R15)
                             else -> {
                                 val sflag = returnValue.second.statusflag
                                 if(sflag!=null)
@@ -298,6 +314,17 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             else -> throw AssemblyError("weird assignment value type $value")
+        }
+    }
+
+    private fun assignVirtualRegister(target: AsmAssignTarget, register: RegisterOrPair) {
+        when(target.datatype) {
+            in ByteDatatypes -> {
+                asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
+                assignRegisterByte(target, CpuRegister.A)
+            }
+            in WordDatatypes -> assignRegisterpairWord(target, register)
+            else -> throw AssemblyError("expected byte or word")
         }
     }
 

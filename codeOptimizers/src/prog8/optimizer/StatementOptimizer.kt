@@ -1,7 +1,6 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -72,14 +71,6 @@ class StatementOptimizer(private val program: Program,
                     }
                 }
             }
-        }
-
-        // if the first instruction in the called subroutine is a return statement, remove the jump altogeter
-        val subroutine = functionCallStatement.target.targetSubroutine(program)
-        if(subroutine!=null) {
-            val first = subroutine.statements.asSequence().filterNot { it is VarDecl || it is Directive }.firstOrNull()
-            if(first is Return)
-                return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
         }
 
         return noModifications
@@ -396,18 +387,20 @@ class StatementOptimizer(private val program: Program,
 
         val returnvalue = returnStmt.value
         if (returnvalue!=null) {
-            val dt = returnvalue.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
-            if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
-                // first assign to intermediary variable, then return that
-                val (returnVarName, _) = program.getTempVar(dt)
-                val returnValueIntermediary = IdentifierReference(returnVarName, returnStmt.position)
-                val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
-                val assign = Assignment(tgt, returnvalue, AssignmentOrigin.OPTIMIZER, returnStmt.position)
-                val returnReplacement = Return(returnValueIntermediary.copy(), returnStmt.position)
-                return listOf(
-                    IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
-                )
+            val dt = returnvalue.inferType(program).getOr(DataType.UNDEFINED)
+            if(dt!=DataType.UNDEFINED) {
+                if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
+                    // first assign to intermediary variable, then return that
+                    val (returnVarName, _) = program.getTempVar(dt)
+                    val returnValueIntermediary = IdentifierReference(returnVarName, returnStmt.position)
+                    val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
+                    val assign = Assignment(tgt, returnvalue, AssignmentOrigin.OPTIMIZER, returnStmt.position)
+                    val returnReplacement = Return(returnValueIntermediary.copy(), returnStmt.position)
+                    return listOf(
+                        IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
+                    )
+                }
             }
         }
 
