@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- in a block marked option force_output, make all subroutines in asm using .block rather than .proc
-
 ...
 
 
@@ -39,7 +37,7 @@ Compiler:
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that with a compiler flag?
-  But all library code written in asm uses .proc already.....
+  But all library code written in asm uses .proc already..... (search/replace when writing the actual asm?)
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
 - ast: don't rewrite by-reference parameter type to uword, but keep the original type (str, array)

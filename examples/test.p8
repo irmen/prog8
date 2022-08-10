@@ -1,11 +1,9 @@
 %import textio
-%import diskio
 %zeropage basicsafe
 
 main {
     sub start() {
-        romsub $5000 = external_command() -> ubyte @R15
-        ubyte @shared result = external_command()
+        txt.print("yo")
     }
 
 ;    sub start2() {
@@ -20,4 +18,23 @@ main {
 ;
 ;        txt.print_ub(arr[3])
 ;    }
+}
+
+
+optional {
+    %option force_output
+
+    ubyte value
+
+    sub sub1() {
+        value++
+    }
+
+    sub sub2() {
+        value++
+    }
+
+    sub sub3() {
+        value++
+    }
 }

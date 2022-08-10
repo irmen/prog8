@@ -856,7 +856,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 return code
             }
             is StRomSub -> {
-                TODO("call romsub $fcall")
+                throw AssemblyError("virtual machine doesn't yet support calling romsub $fcall")
             }
             else -> throw AssemblyError("invalid node type")
         }

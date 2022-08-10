@@ -216,9 +216,9 @@ internal class ProgramAndVarsGen(
         if(!options.dontReinitGlobals) {
             // generate subroutine to initialize block-level (global) variables
             if (initializers.isNotEmpty()) {
-                asmgen.out("prog8_init_vars\t.proc\n")
+                asmgen.out("prog8_init_vars\t.block\n")
                 initializers.forEach { assign -> asmgen.translate(assign) }
-                asmgen.out("  rts\n  .pend")
+                asmgen.out("  rts\n  .bend")
             }
         }
 
@@ -270,17 +270,27 @@ internal class ProgramAndVarsGen(
 
         asmgen.out("")
 
+        val asmStartScope: String
+        val asmEndScope: String
+        if(sub.definingBlock.options().contains("force_output")) {
+            asmStartScope = ".block"
+            asmEndScope = ".bend"
+        } else {
+            asmStartScope = ".proc"
+            asmEndScope = ".pend"
+        }
+
         if(sub.isAsmSubroutine) {
             if(sub.asmAddress!=null)
                 return  // already done at the memvars section
 
             // asmsub with most likely just an inline asm in it
-            asmgen.out("${sub.name}\t.proc")
+            asmgen.out("${sub.name}\t$asmStartScope")
             sub.statements.forEach { asmgen.translate(it) }
-            asmgen.out("  .pend\n")
+            asmgen.out("  $asmEndScope\n")
         } else {
             // regular subroutine
-            asmgen.out("${sub.name}\t.proc")
+            asmgen.out("${sub.name}\t$asmStartScope")
 
             val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
             require(scope.type==StNodeType.SUBROUTINE)
@@ -357,7 +367,7 @@ internal class ProgramAndVarsGen(
                 .map { it.value as StStaticVariable }
             nonZpVariables2asm(variables)
 
-            asmgen.out("  .pend\n")
+            asmgen.out("  $asmEndScope\n")
         }
     }
 
