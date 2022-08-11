@@ -3,7 +3,18 @@
 
 main {
     sub start() {
-        txt.print("yo")
+        uword ww = $ff34
+        ww = ww ^ ww<<8
+        txt.print_uwhex(ww, true)
+        ww = $ff34
+        ww = ww ^ mkword(lsb(ww), 0)
+        txt.print_uwhex(ww, true)
+        ww = $ff34
+        ww  = ww ^ ww >> 8
+        txt.print_uwhex(ww, true)
+        ww = $ff34
+        ww  = ww ^ msb(ww)
+        txt.print_uwhex(ww, true)
     }
 
 ;    sub start2() {
@@ -18,23 +29,4 @@ main {
 ;
 ;        txt.print_ub(arr[3])
 ;    }
-}
-
-
-optional {
-    %option force_output
-
-    ubyte value
-
-    sub sub1() {
-        value++
-    }
-
-    sub sub2() {
-        value++
-    }
-
-    sub sub3() {
-        value++
-    }
 }
