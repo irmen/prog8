@@ -3,8 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- finish the logical expression optimizations set in TODO's in attemptAssignOptimizedBinexpr()
 - try more benchmarks from https://gglabs.us/node/2293
+- check that all examples still function correctly
 
 ...
 

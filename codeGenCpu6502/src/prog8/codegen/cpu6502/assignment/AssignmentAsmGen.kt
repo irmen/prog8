@@ -360,43 +360,44 @@ internal class AssignmentAsmGen(private val program: Program,
         if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
             if(expr.left.inferType(program).isBytes && expr.right.inferType(program).isBytes &&
                     expr.left.isSimple && expr.right.isSimple) {
-//                if(expr.right is NumericLiteral || expr.right is IdentifierReference) {
-//                    TODO("optimized code for logical with right number/variable arg (byte)")
-//                } else if(expr.left is NumericLiteral || expr.left is IdentifierReference) {
-//                    TODO("optimized code for logical with left number/variable arg (byte)")
-//                }
-
-                assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSubroutine)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-                when(expr.operator) {
-                    "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
-                    "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
-                    "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
-                    else -> throw AssemblyError("invalid operator")
+                if(expr.right is NumericLiteral || expr.right is IdentifierReference)
+                    assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
+                else if(expr.left is NumericLiteral || expr.left is IdentifierReference)
+                    assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
+                else {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSubroutine)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    when (expr.operator) {
+                        "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
+                        "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
+                        "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
+                        else -> throw AssemblyError("invalid operator")
+                    }
+                    assignRegisterByte(assign.target, CpuRegister.A)
                 }
-                assignRegisterByte(assign.target, CpuRegister.A)
                 return true
             }
             if(expr.left.inferType(program).isWords && expr.right.inferType(program).isWords &&
                     expr.left.isSimple && expr.right.isSimple) {
-//                if(expr.right is NumericLiteral || expr.right is IdentifierReference) {
-//                    TODO("optimized code for logical with right number/variable arg (word)")
-//                } else if(expr.left is NumericLiteral || expr.left is IdentifierReference) {
-//                    TODO("optimized code for logical with left number/variable arg (word)")
-//                }
-                assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSubroutine)
-                when(expr.operator) {
-                    "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
-                    "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
-                    "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
-                    else -> throw AssemblyError("invalid operator")
+                if(expr.right is NumericLiteral || expr.right is IdentifierReference)
+                    assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
+                else if(expr.left is NumericLiteral || expr.left is IdentifierReference)
+                    assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
+                else {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSubroutine)
+                    when (expr.operator) {
+                        "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
+                        "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
+                        "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
+                        else -> throw AssemblyError("invalid operator")
+                    }
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                 }
-                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                 return true
             }
             return false
@@ -594,6 +595,48 @@ internal class AssignmentAsmGen(private val program: Program,
             }
         }
         return false
+    }
+
+    private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: Expression, operator: String, right: Expression) {
+        assignExpressionToRegister(left, RegisterOrPair.A, false)
+        val operand = when(right) {
+            is NumericLiteral -> "#${right.number.toHex()}"
+            is IdentifierReference -> asmgen.asmSymbolName(right)
+            else -> throw AssemblyError("wrong right operand type")
+        }
+        when (operator) {
+            "&", "and" -> asmgen.out("  and  $operand")
+            "|", "or" -> asmgen.out("  ora  $operand")
+            "^", "xor" -> asmgen.out("  eor  $operand")
+            else -> throw AssemblyError("invalid operator")
+        }
+        assignRegisterByte(target, CpuRegister.A)
+    }
+
+    private fun assignLogicalWithSimpleRightOperandWord(target: AsmAssignTarget, left: Expression, operator: String, right: Expression) {
+        assignExpressionToRegister(left, RegisterOrPair.AY, false)
+        when(right) {
+            is NumericLiteral -> {
+                val number = right.number.toHex()
+                when (operator) {
+                    "&", "and" -> asmgen.out("  and  #<$number |  pha |  tya |  and  #>$number |  tay |  pla")
+                    "|", "or" -> asmgen.out("  ora  #<$number |  pha |  tya |  ora  #>$number |  tay |  pla")
+                    "^", "xor" -> asmgen.out("  eor  #<$number |  pha |  tya |  eor  #>$number |  tay |  pla")
+                    else -> throw AssemblyError("invalid operator")
+                }
+            }
+            is IdentifierReference -> {
+                val name = asmgen.asmSymbolName(right)
+                when (operator) {
+                    "&", "and" -> asmgen.out("  and  $name |  pha |  tya |  and  $name+1 |  tay |  pla")
+                    "|", "or" -> asmgen.out("  ora  $name |  pha |  tya |  ora  $name+1 |  tay |  pla")
+                    "^", "xor" -> asmgen.out("  eor  $name |  pha |  tya |  eor  $name+1 |  tay |  pla")
+                    else -> throw AssemblyError("invalid operator")
+                }
+            }
+            else -> throw AssemblyError("wrong right operand type")
+        }
+        assignRegisterpairWord(target, RegisterOrPair.AY)
     }
 
     private fun attemptAssignToByteCompareZero(expr: BinaryExpression, assign: AsmAssignment): Boolean {

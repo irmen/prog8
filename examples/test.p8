@@ -4,16 +4,15 @@
 main {
     sub start() {
         uword crc = $ffff
-        txt.print_uwhex(crc | (crc & $8000), true)
-;        if crc & $8000          ;  msb(crc) & $80
-;            txt.print("yes")
-;        else
-;            txt.print("fail!")
-;
-;        if msb(crc) & $80
-;            txt.print("yes")
-;        else
-;            txt.print("fail!")
+        if crc & $8000          ;  msb(crc) & $80
+            txt.print("yes")
+        else
+            txt.print("fail!")
+
+        if crc & $1234
+            txt.print("yes")
+        else
+            txt.print("fail!")
     }
 
 ;    sub start2() {
