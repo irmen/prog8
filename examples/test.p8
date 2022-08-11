@@ -3,17 +3,17 @@
 
 main {
     sub start() {
-        uword ww = $ff34
-        ww = ww ^ ww<<8
+        ubyte left = $12
+        ubyte right = $34
+        uword ww
+
+        ww = mkword(left, right)
         txt.print_uwhex(ww, true)
-        ww = $ff34
-        ww = ww ^ mkword(lsb(ww), 0)
+        ww = mkword(left, 0)
         txt.print_uwhex(ww, true)
-        ww = $ff34
-        ww  = ww ^ ww >> 8
+        ww = mkword(0, right)
         txt.print_uwhex(ww, true)
-        ww = $ff34
-        ww  = ww ^ msb(ww)
+        ww = right as uword
         txt.print_uwhex(ww, true)
     }
 

@@ -331,6 +331,14 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
             }
         }
 
+        if(functionCallExpr.target.nameInSource == listOf("mkword")) {
+            if(functionCallExpr.args[0].constValue(program)?.number==0.0) {
+                // just cast the lsb to uword
+                val cast = TypecastExpression(functionCallExpr.args[1], DataType.UWORD, true, functionCallExpr.position)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
+            }
+        }
+
         return noModifications
     }
 

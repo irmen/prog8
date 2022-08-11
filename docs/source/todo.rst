@@ -4,8 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - crc ^= mkword(@(data), 0)  produces faulty asm,   as opposed to crc ^= mkword(variable, 0)
-- optimize asm generated for mkword(0, X) and mkword(X, 0)
-- check signed value >> and << .... do we calculate the right thing?
 
 ...
 
