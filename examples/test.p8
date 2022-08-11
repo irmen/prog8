@@ -3,18 +3,16 @@
 
 main {
     sub start() {
-        ubyte left = $12
-        ubyte right = $34
-        uword ww
+        ubyte[] buffer = [$11,$22,$33,$44]
+        uword data = &buffer
 
-        ww = mkword(left, right)
-        txt.print_uwhex(ww, true)
-        ww = mkword(left, 0)
-        txt.print_uwhex(ww, true)
-        ww = mkword(0, right)
-        txt.print_uwhex(ww, true)
-        ww = right as uword
-        txt.print_uwhex(ww, true)
+        uword crc = $ffff
+        crc ^= mkword(@(data), 0)
+        txt.print_uwhex(crc, true)
+        crc = $ffff
+        ubyte variable = @(data)
+        crc ^= mkword(variable, 0)
+        txt.print_uwhex(crc, true)
     }
 
 ;    sub start2() {

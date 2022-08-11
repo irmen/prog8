@@ -865,9 +865,9 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 val mr0 = fcall.args[0] as? DirectMemoryRead
                 val mr1 = fcall.args[1] as? DirectMemoryRead
                 if (mr0 != null)
-                    needAsave =  mr0.addressExpression !is NumericLiteral && mr0.addressExpression !is IdentifierReference
+                    needAsave =  mr0.addressExpression !is NumericLiteral
                 if (mr1 != null)
-                    needAsave = needAsave or (mr1.addressExpression !is NumericLiteral && mr1.addressExpression !is IdentifierReference)
+                    needAsave = needAsave or (mr1.addressExpression !is NumericLiteral)
             }
             when(reg) {
                 RegisterOrPair.AX -> {

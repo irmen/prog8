@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- crc ^= mkword(@(data), 0)  produces faulty asm,   as opposed to crc ^= mkword(variable, 0)
-
 ...
 
 
