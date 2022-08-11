@@ -10,13 +10,14 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 
 // TODO add more peephole expression optimizations? Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
-class ExpressionSimplifier(private val program: Program) : AstWalker() {
+class ExpressionSimplifier(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
@@ -71,6 +72,22 @@ class ExpressionSimplifier(private val program: Program) : AstWalker() {
                 }
             }
         }
+
+        if(compTarget.name!=VMTarget.NAME) {
+            val booleanCondition = ifElse.condition as? BinaryExpression
+            if(booleanCondition!=null && booleanCondition.operator=="&") {
+                // special optimization of WORD & $ff00  ->  just and the msb of WORD with $ff
+                val rightNum = booleanCondition.right as? NumericLiteral
+                if(rightNum!=null && rightNum.type==DataType.UWORD && (rightNum.number.toInt() and 0x00ff)==0) {
+                    val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
+                    val bytevalue = NumericLiteral(DataType.UBYTE, (rightNum.number.toInt() shr 8).toDouble(), booleanCondition.right.position)
+                    return listOf(
+                        IAstModification.ReplaceNode(booleanCondition.left, msb, booleanCondition),
+                        IAstModification.ReplaceNode(booleanCondition.right, bytevalue, booleanCondition))
+                }
+            }
+        }
+
         return noModifications
     }
 

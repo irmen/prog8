@@ -360,6 +360,12 @@ internal class AssignmentAsmGen(private val program: Program,
         if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
             if(expr.left.inferType(program).isBytes && expr.right.inferType(program).isBytes &&
                     expr.left.isSimple && expr.right.isSimple) {
+//                if(expr.right is NumericLiteral || expr.right is IdentifierReference) {
+//                    TODO("optimized code for logical with right number/variable arg (byte)")
+//                } else if(expr.left is NumericLiteral || expr.left is IdentifierReference) {
+//                    TODO("optimized code for logical with left number/variable arg (byte)")
+//                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSubroutine)
@@ -375,6 +381,11 @@ internal class AssignmentAsmGen(private val program: Program,
             }
             if(expr.left.inferType(program).isWords && expr.right.inferType(program).isWords &&
                     expr.left.isSimple && expr.right.isSimple) {
+//                if(expr.right is NumericLiteral || expr.right is IdentifierReference) {
+//                    TODO("optimized code for logical with right number/variable arg (word)")
+//                } else if(expr.left is NumericLiteral || expr.left is IdentifierReference) {
+//                    TODO("optimized code for logical with left number/variable arg (word)")
+//                }
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)

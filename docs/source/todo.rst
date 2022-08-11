@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- finish the logical expression optimizations set in TODO's in attemptAssignOptimizedBinexpr()
+- try more benchmarks from https://gglabs.us/node/2293
+
 ...
 
 
@@ -77,6 +80,7 @@ Optimizations:
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
 - when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
+- optimize function argument expressions better (use temporary variables to replace non-simple expressions?)
 
 
 STRUCTS again?

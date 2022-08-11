@@ -3,16 +3,17 @@
 
 main {
     sub start() {
-        ubyte[] buffer = [$11,$22,$33,$44]
-        uword data = &buffer
-
         uword crc = $ffff
-        crc ^= mkword(@(data), 0)
-        txt.print_uwhex(crc, true)
-        crc = $ffff
-        ubyte variable = @(data)
-        crc ^= mkword(variable, 0)
-        txt.print_uwhex(crc, true)
+        txt.print_uwhex(crc | (crc & $8000), true)
+;        if crc & $8000          ;  msb(crc) & $80
+;            txt.print("yes")
+;        else
+;            txt.print("fail!")
+;
+;        if msb(crc) & $80
+;            txt.print("yes")
+;        else
+;            txt.print("fail!")
     }
 
 ;    sub start2() {

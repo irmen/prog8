@@ -60,8 +60,8 @@ fun Program.inlineSubroutines(): Int {
     return inliner.applyModifications()
 }
 
-fun Program.simplifyExpressions() : Int {
-    val opti = ExpressionSimplifier(this)
+fun Program.simplifyExpressions(target: ICompilationTarget) : Int {
+    val opti = ExpressionSimplifier(this, target)
     opti.visit(this)
     return opti.applyModifications()
 }
