@@ -43,6 +43,10 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
                 else -> throw InternalCompilerException("for this machine target, zero page type 'floatsafe' is not available. ${options.zeropage}")
             }
 
+            val distictFree = free.distinct()
+            free.clear()
+            free.addAll(distictFree)
+
             removeReservedFromFreePool()
 
             allocateCx16VirtualRegisters()

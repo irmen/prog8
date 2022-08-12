@@ -38,6 +38,10 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
             }
         }
 
+        val distictFree = free.distinct()
+        free.clear()
+        free.addAll(distictFree)
+
         removeReservedFromFreePool()
     }
 

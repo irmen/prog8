@@ -21,7 +21,7 @@ class AstPreprocessor(val program: Program,
 
     override fun before(program: Program): Iterable<IAstModification> {
         if(options.compTarget.name==C64Target.NAME) {
-            relocateCx16VirtualRegisters(program, 0x0002u)      // same address as CommanderX16
+            relocateCx16VirtualRegisters(program, 0x0004u)      // unfortunately, can't be the same address as CommanderX16
         }
         else if(options.compTarget.name!=Cx16Target.NAME) {
             relocateCx16VirtualRegisters(program, options.compTarget.machine.ESTACK_HI)
