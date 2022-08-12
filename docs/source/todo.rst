@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- try more benchmarks from https://gglabs.us/node/2293
 - check that all examples still function correctly
 
 ...
