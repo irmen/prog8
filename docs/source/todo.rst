@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- check that all examples still function correctly
-
 ...
 
 

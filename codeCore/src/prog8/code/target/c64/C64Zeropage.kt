@@ -56,7 +56,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             if(options.zeropage!= ZeropageType.DONTUSE) {
                 // add the free Zp addresses
                 // these are valid for the C-64 but allow BASIC to keep running fully *as long as you don't use tape I/O*
-                free.addAll(listOf(0x04, 0x05, 0x06, 0x0a, 0x0e,
+                free.addAll(listOf(0x02, 0x03, 0x04, 0x05, 0x06, 0x0a, 0x0e,
                         0x92, 0x96, 0x9b, 0x9c, 0x9e, 0x9f, 0xa5, 0xa6,
                         0xb0, 0xb1, 0xbe, 0xbf, 0xf9).map{it.toUInt()})
             } else {

@@ -7,10 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.CompilationOptions
-import prog8.code.core.Encoding
-import prog8.code.core.IErrorReporter
-import prog8.code.core.NumericDatatypes
+import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 
@@ -21,7 +18,11 @@ class AstPreprocessor(val program: Program,
 
     override fun before(program: Program): Iterable<IAstModification> {
         if(options.compTarget.name==C64Target.NAME) {
-            relocateCx16VirtualRegisters(program, 0x0004u)      // unfortunately, can't be the same address as CommanderX16
+            if(options.zeropage==ZeropageType.KERNALSAFE || options.zeropage==ZeropageType.FULL) {
+                // there is enough space in the zero page to put the cx16 virtual registers there.
+                // unfortunately, can't be the same address as CommanderX16.
+                relocateCx16VirtualRegisters(program, 0x0004u)
+            }
         }
         else if(options.compTarget.name!=Cx16Target.NAME) {
             relocateCx16VirtualRegisters(program, options.compTarget.machine.ESTACK_HI)

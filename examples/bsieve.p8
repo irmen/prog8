@@ -17,7 +17,7 @@ main {
         uword prime
         uword k
         const uword SIZEPL = 8191
-        uword flags_ptr = memory("flags", SIZEPL, $100)
+        uword @zp flags_ptr = memory("flags", SIZEPL, $100)
 
         txt.print("calculating...\n")
 

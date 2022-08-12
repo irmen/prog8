@@ -1,30 +1,21 @@
 %import textio
 %zeropage basicsafe
 
+
 main {
     sub start() {
-        uword crc = $ffff
-        if crc & $8000          ;  msb(crc) & $80
-            txt.print("yes")
-        else
-            txt.print("fail!")
 
-        if crc & $1234
-            txt.print("yes")
-        else
-            txt.print("fail!")
+        uword @zp flags_ptr = memory("flags", 200, 0)
+        txt.print("calculating...\n")
+        txt.print_uwhex(flags_ptr, true)
+        txt.nl()
+
+        repeat 10 {
+            txt.print("new iter\n")
+            txt.print_ub(@($06))
+            sys.memset(flags_ptr, 200, 0)
+        }
+
+        txt.print("done\n")
     }
-
-;    sub start2() {
-;        ubyte[] arr = [1,2,3,4]
-;        uword pointer
-;        ubyte ix
-;
-;        arr[ix] = arr[ix]+1
-;
-;;        arr[3] = arr[3]+1
-;;        pointer[3] = pointer[3]+1
-;
-;        txt.print_ub(arr[3])
-;    }
 }
