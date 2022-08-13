@@ -259,10 +259,7 @@ internal class AstChecker(private val program: Program,
                     )
                         count++
                 } else {
-                    if(" return" in assembly || "\treturn" in assembly
-                        || " jump" in assembly || "\tjump" in assembly
-                        || " jumpi" in assembly || "\tjumpi" in assembly
-                    )
+                    if(" return" in assembly || "\treturn" in assembly || " jump" in assembly || "\tjump" in assembly)
                         count++
                 }
             }

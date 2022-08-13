@@ -172,7 +172,7 @@ internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolea
 internal fun Subroutine.hasRtsInAsm(compTarget: ICompilationTarget): Boolean {
     val instructions =
         if(compTarget.name == VMTarget.NAME)
-            listOf(" return", "\treturn", " jump", "\tjump", " jumpi", "\tjumpi")
+            listOf(" return", "\treturn", " jump", "\tjump")
         else
             listOf(" rti", "\trti", " rts", "\trts", " jmp", "\tjmp", " bra", "\tbra")
     return statements

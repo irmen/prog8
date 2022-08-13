@@ -44,7 +44,6 @@ But you can decide whatever you want because here we just care about jumping and
 Saving/restoring registers is possible with PUSH and POP instructions.
 
 jump                    location      - continue running at instruction number given by location
-jumpi       reg1                      - continue running at instruction number in reg1
 call                    location      - save current instruction location+1, continue execution at instruction nr given by location
 calli       reg1                      - save current instruction location+1, continue execution at instruction number in reg1
 syscall                 value         - do a systemcall identified by call number
@@ -345,8 +344,11 @@ val OpcodesWithAddress = setOf(
     Opcode.LOADIX,
     Opcode.STOREM,
     Opcode.STOREX,
+    Opcode.STOREIX,
     Opcode.STOREZM,
     Opcode.STOREZX,
+    Opcode.JUMP,
+    Opcode.CALL,
     Opcode.INCM,
     Opcode.DECM,
     Opcode.NEGM,
