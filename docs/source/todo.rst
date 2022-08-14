@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix operator precedence: if rasterCount ^ $80 >= 230    EOR should precede >=
 - @(ptr) |= 3 -> asm peephole optimize remove the second ldy  if the instruction before doesn't modify y
 	ldy  #0
 	lda  (starfieldPtr2),y

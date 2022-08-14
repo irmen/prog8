@@ -5,17 +5,16 @@
 main {
     sub start() {
 
-        uword @zp flags_ptr = memory("flags", 200, 0)
-        txt.print("calculating...\n")
-        txt.print_uwhex(flags_ptr, true)
-        txt.nl()
+        ubyte rasterCount = 231
 
-        repeat 10 {
-            txt.print("new iter\n")
-            txt.print_ub(@($06))
-            sys.memset(flags_ptr, 200, 0)
-        }
+        if rasterCount >= 230
+            txt.print("y1")
 
-        txt.print("done\n")
+        if rasterCount ^ $80 >= 230
+            txt.print("y2")
+
+        if (rasterCount ^ $80) >= 230
+            txt.print("y3")
+
     }
 }

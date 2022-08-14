@@ -87,7 +87,7 @@ main {
             @(staticStar1) = 0
         else
             @(staticStar1) = 192
-        if (rasterCount ^ $80) >= 230
+        if rasterCount ^ $80 >= 230
             @(staticStar2) = 0
         else
             @(staticStar2) = 192
