@@ -70,6 +70,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             "cube3d-sprites",
             "plasma",
             "sprites",
+            "starfield",
             "turtle-gfx",
             "wizzine",
         ),

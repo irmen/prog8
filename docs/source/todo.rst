@@ -3,6 +3,18 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix operator precedence: if rasterCount ^ $80 >= 230    EOR should precede >=
+- @(ptr) |= 3 -> asm peephole optimize remove the second ldy  if the instruction before doesn't modify y
+	ldy  #0
+	lda  (starfieldPtr2),y
+	ora  #3
+	ldy  #0
+	sta  (starfieldPtr2),y
+- vm: intermediate code: don't flatten everything. Instead, as a new intermediary step,
+  convert the new Ast into *structured* intermediary code.
+  Basically keep the blocks and subroutines structure, including full subroutine signature information,
+
+
 ...
 
 
