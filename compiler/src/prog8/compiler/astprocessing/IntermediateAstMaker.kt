@@ -1,4 +1,4 @@
-package prog8.compiler
+package prog8.compiler.astprocessing
 
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
@@ -12,11 +12,16 @@ import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
+import prog8.compiler.BuiltinFunctions
+import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
+/**
+ *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
+ */
 class IntermediateAstMaker(val program: Program) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(

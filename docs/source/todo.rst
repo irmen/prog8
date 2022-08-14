@@ -6,6 +6,7 @@ For next release
 - vm: intermediate code: don't flatten everything. Instead, as a new intermediary step,
   convert the new Ast into *structured* intermediary code.
   Basically keep the blocks and subroutines structure, including full subroutine signature information,
+  don't do variable and zeropage allocations yet.
 
 
 ...

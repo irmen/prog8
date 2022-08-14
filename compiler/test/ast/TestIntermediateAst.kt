@@ -7,7 +7,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
-import prog8.compiler.IntermediateAstMaker
+import prog8.compiler.astprocessing.IntermediateAstMaker
 import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({

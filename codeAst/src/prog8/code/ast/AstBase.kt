@@ -3,7 +3,7 @@ package prog8.code.ast
 import prog8.code.core.*
 import java.nio.file.Path
 
-// New (work-in-progress) simplified AST for the code generator.
+// New simplified AST for the code generator.
 
 
 sealed class PtNode(val position: Position) {
