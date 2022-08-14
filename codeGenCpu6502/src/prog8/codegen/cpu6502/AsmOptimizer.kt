@@ -59,6 +59,13 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
+    mods = optimizeSamePointerIndexing(linesByFourteen, machine, program)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFourteen = getLinesBy(lines, 14)
+        numberOfOptimizations++
+    }
+
     // TODO more assembly peephole optimizations
 
     return numberOfOptimizations
@@ -313,6 +320,48 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                         mods.add(Modification(lines[0].index, true, null))
                     }
                 }
+            }
+        }
+    }
+
+    return mods
+}
+
+private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+
+    // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
+    // if Y isn't modified in between we can omit the second LDY:
+    //    ldy  #0
+    //    lda  (ptr),y
+    //    ora  #3       ; <-- instruction(s) that don't modify Y
+    //    ldy  #0       ; <-- can be removed
+    //    sta  (ptr),y
+
+    val mods = mutableListOf<Modification>()
+    for (lines in linesByFourteen) {
+        val first = lines[0].value.trimStart()
+        val second = lines[1].value.trimStart()
+        val third = lines[2].value.trimStart()
+        val fourth = lines[3].value.trimStart()
+        val fifth = lines[4].value.trimStart()
+        val sixth = lines[5].value.trimStart()
+
+        if(first.startsWith("ldy") && second.startsWith("lda") && fourth.startsWith("ldy") && fifth.startsWith("sta")) {
+            val firstvalue = first.substring(4)
+            val secondvalue = second.substring(4)
+            val fourthvalue = fourth.substring(4)
+            val fifthvalue = fifth.substring(4)
+            if("y" !in third && firstvalue==fourthvalue && secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y")) {
+                mods.add(Modification(lines[3].index, true, null))
+            }
+        }
+        if(first.startsWith("ldy") && second.startsWith("lda") && fifth.startsWith("ldy") && sixth.startsWith("sta")) {
+            val firstvalue = first.substring(4)
+            val secondvalue = second.substring(4)
+            val fifthvalue = fifth.substring(4)
+            val sixthvalue = sixth.substring(4)
+            if("y" !in third && "y" !in fourth && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
+                mods.add(Modification(lines[4].index, true, null))
             }
         }
     }
