@@ -450,8 +450,8 @@ internal class ProgramAndVarsGen(
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
             val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
-            if(svar.initialStringValue!=null)
-                result.add(ZpStringWithInitial(variable.key, variable.value, svar.initialStringValue!!))
+            if(svar.onetimeInitializationStringValue!=null)
+                result.add(ZpStringWithInitial(variable.key, variable.value, svar.onetimeInitializationStringValue!!))
         }
         return result
     }
@@ -461,8 +461,8 @@ internal class ProgramAndVarsGen(
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
             val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
-            if(svar.initialArrayValue!=null)
-                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.initialArrayValue!!))
+            if(svar.onetimeInitializationArrayValue!=null)
+                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.onetimeInitializationArrayValue!!))
         }
         return result
     }
@@ -481,7 +481,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; non-zeropage variables")
         val (stringvars, othervars) = variables.partition { it.dt==DataType.STR }
         stringvars.forEach {
-            outputStringvar(it.name, it.initialStringValue!!.second, it.initialStringValue!!.first)
+            outputStringvar(it.name, it.onetimeInitializationStringValue!!.second, it.onetimeInitializationStringValue!!.first)
         }
         othervars.sortedBy { it.type }.forEach {
             staticVariable2asm(it)
@@ -491,11 +491,11 @@ internal class ProgramAndVarsGen(
     private fun staticVariable2asm(variable: StStaticVariable) {
         val name = variable.name
         val initialValue: Number =
-            if(variable.initialNumericValue!=null) {
+            if(variable.onetimeInitializationNumericValue!=null) {
                 if(variable.dt== DataType.FLOAT)
-                    variable.initialNumericValue!!
+                    variable.onetimeInitializationNumericValue!!
                 else
-                    variable.initialNumericValue!!.toInt()
+                    variable.onetimeInitializationNumericValue!!.toInt()
             } else 0
 
         when (variable.dt) {
@@ -514,7 +514,7 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.initialArrayValue, variable.length)
+            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }

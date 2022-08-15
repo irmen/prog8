@@ -75,24 +75,24 @@ class AstToXmlConverter(internal val program: PtProgram,
                 xml.attr("zpwish", node.zpwish.name)
                 if(node.length!=null)
                     xml.attr("length", node.length.toString())
-                if(node.initialNumericValue!=null || node.initialArrayValue!=null || node.initialStringValue!=null) {
+                if(node.onetimeInitializationNumericValue!=null || node.onetimeInitializationArrayValue!=null || node.onetimeInitializationStringValue!=null) {
                     xml.startChildren()
-                    if(node.initialNumericValue!=null) {
-                        writeNumber(node.dt, node.initialNumericValue!!)
+                    if(node.onetimeInitializationNumericValue!=null) {
+                        writeNumber(node.dt, node.onetimeInitializationNumericValue!!)
                     }
-                    if(node.initialStringValue!=null) {
+                    if(node.onetimeInitializationStringValue!=null) {
                         xml.writeTextNode(
                             "string",
-                            listOf(Pair("encoding", node.initialStringValue!!.second.name)),
-                            node.initialStringValue!!.first,
+                            listOf(Pair("encoding", node.onetimeInitializationStringValue!!.second.name)),
+                            node.onetimeInitializationStringValue!!.first,
                             false
                         )
                     }
-                    if(node.initialArrayValue!=null) {
+                    if(node.onetimeInitializationArrayValue!=null) {
                         xml.elt("array")
                         xml.startChildren()
                         val eltDt = ArrayToElementTypes.getValue(node.dt)
-                        node.initialArrayValue!!.forEach {
+                        node.onetimeInitializationArrayValue!!.forEach {
                             if(it.number!=null) {
                                 writeNumber(eltDt, it.number!!)
                             }

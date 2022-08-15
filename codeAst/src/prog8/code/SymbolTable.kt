@@ -163,26 +163,26 @@ open class StNode(val name: String,
 
 class StStaticVariable(name: String,
                        val dt: DataType,
-                       val initialNumericValue: Double?,
-                       val initialStringValue: StString?,
-                       val initialArrayValue: StArray?,
+                       val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
+                       val onetimeInitializationStringValue: StString?,
+                       val onetimeInitializationArrayValue: StArray?,
                        val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
 
     init {
         if(length!=null) {
-            require(initialNumericValue == null)
-            if(initialArrayValue!=null)
-                require(length == initialArrayValue.size)
+            require(onetimeInitializationNumericValue == null)
+            if(onetimeInitializationArrayValue!=null)
+                require(length == onetimeInitializationArrayValue.size)
         }
-        if(initialNumericValue!=null)
+        if(onetimeInitializationNumericValue!=null)
             require(dt in NumericDatatypes)
-        if(initialArrayValue!=null)
+        if(onetimeInitializationArrayValue!=null)
             require(dt in ArrayDatatypes)
-        if(initialStringValue!=null) {
+        if(onetimeInitializationStringValue!=null) {
             require(dt == DataType.STR)
-            require(length == initialStringValue.first.length+1)
+            require(length == onetimeInitializationStringValue.first.length+1)
         }
     }
 

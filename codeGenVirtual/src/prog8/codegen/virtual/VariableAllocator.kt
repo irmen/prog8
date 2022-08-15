@@ -17,7 +17,7 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
         for (variable in st.allVariables) {
             val memsize =
                 when (variable.dt) {
-                    DataType.STR -> variable.initialStringValue!!.first.length + 1  // include the zero byte
+                    DataType.STR -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
                     in NumericDatatypes -> program.memsizer.memorySize(variable.dt)
                     in ArrayDatatypes -> program.memsizer.memorySize(variable.dt, variable.length!!)
                     else -> throw InternalCompilerException("weird dt")
@@ -57,22 +57,22 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
                 else -> throw InternalCompilerException("weird dt")
             }
             val value = when(variable.dt) {
-                DataType.FLOAT -> (variable.initialNumericValue ?: 0.0).toString()
-                in NumericDatatypes -> (variable.initialNumericValue ?: 0).toHex()
+                DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
+                in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0).toHex()
                 DataType.STR -> {
-                    val encoded = program.encoding.encodeString(variable.initialStringValue!!.first, variable.initialStringValue!!.second) + listOf(0u)
+                    val encoded = program.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue!!.second) + listOf(0u)
                     encoded.joinToString(",") { it.toInt().toHex() }
                 }
                 DataType.ARRAY_F -> {
-                    if(variable.initialArrayValue!=null) {
-                        variable.initialArrayValue!!.joinToString(",") { it.number!!.toString() }
+                    if(variable.onetimeInitializationArrayValue!=null) {
+                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toString() }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
                     }
                 }
                 in ArrayDatatypes -> {
-                    if(variable.initialArrayValue!==null) {
-                        variable.initialArrayValue!!.joinToString(",") { it.number!!.toHex() }
+                    if(variable.onetimeInitializationArrayValue!==null) {
+                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toHex() }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
                     }
