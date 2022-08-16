@@ -844,25 +844,28 @@ _done
             }
             6 -> {
                 ; hires 4c
+                ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
+                cx16.r11L = color
+                cx16.r8 = y
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     repeat 8 {
                         ; TODO rewrite this inner loop partly in assembly
                         ;      requires expanding the charbits to 2-bits per pixel (based on color)
                         ;      also it's way more efficient to draw whole horizontal spans instead of per-character
-                        ubyte charbits = cx16.vpeek(charset_bank, chardataptr)
+                        cx16.r9L = cx16.vpeek(charset_bank, chardataptr)  ; get the 8 horizontal character bits
+                        cx16.r7 = x
                         repeat 8 {
-                            charbits <<= 1
+                            cx16.r9L <<= 1
                             if_cs
-                                plot(x, y, color)
-                            x++
+                                plot(cx16.r7, cx16.r8, cx16.r11L)
+                            cx16.r7++
                         }
-                        x-=8
                         chardataptr++
-                        y++
+                        cx16.r8++
                     }
                     x+=8
-                    y-=8
+                    cx16.r8-=8
                     sctextptr++
                 }
             }
