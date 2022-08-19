@@ -15,6 +15,12 @@ psg {
     const ubyte RIGHT    = %10000000
 
     sub voice(ubyte voice_num, ubyte channel, ubyte volume, ubyte waveform, ubyte pulsewidth) {
+        ; -- Enables a 'voice' on the PSG.
+        ;    voice_num = 0-15, the voice number.
+        ;    channel = either LEFT or RIGHT or (LEFT|RIGHT). Specifies the stereo channel(s) to use.
+        ;    volume = 0-63, the starting volume for the voice
+        ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
+        ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
         envelope_states[voice_num] = 255
         cx16.r0 = $f9c2 + voice_num * 4
         cx16.VERA_CTRL = 0
@@ -30,12 +36,15 @@ psg {
 
 ;    sub freq_hz(ubyte voice_num, float hertz) {
 ;        ; this would rely on floating point math to convert hertz to vera frequency
-;        ; TODO should be replaced by integer math maybe with a lookup table?
+;        ; could be replaced by integer math maybe with a lookup table?
 ;        uword vera_freq = (hertz / 0.3725290298461914) as uword
 ;        freq(voice_num, vera_freq)
 ;    }
 
     sub freq(ubyte voice_num, uword vera_freq) {
+        ; -- Changes the frequency of the voice's sound.
+        ;    voice_num = 0-15,  vera_freq = 0-65535  calculate this via the formula given in the Vera's PSG documentation.
+        ;    (https://github.com/commanderx16/x16-docs/blob/master/VERA%20Programmer's%20Reference.md)
         cx16.r0 = $f9c0 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -47,6 +56,8 @@ psg {
     }
 
     sub volume(ubyte voice_num, ubyte vol) {
+        ; -- Modifies the volume of this voice.
+        ;    voice_num = 0-15, vol = 0-63 where 0=silent, 63=loudest.
         cx16.r0 = $f9c2 + voice_num * 4
         cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | vol)
         envelope_volumes[voice_num] = mkword(vol, 0)
@@ -54,11 +65,18 @@ psg {
     }
 
     sub pulse_width(ubyte voice_num, ubyte pw) {
+        ; -- Modifies the pulse width of this voice (when waveform=PULSE)
+        ;    voice_num = 0-15, pw = 0-63  where 0=narrow, 63=50%cycle so square wave.
         cx16.r0 = $f9c3 + voice_num * 4
         cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | pw)
     }
 
     sub envelope(ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) {
+        ; -- Enables AttackSustainRelease volume envelope for a voice.
+        ;    Note: this requires setting up envelopes_irq() as well, read its description.
+        ;    voice_num = 0-15   maxvolume = 0-63
+        ;    attack, sustain, release = 0-255 that determine the speed of the A/D/R.
+        ;    TODO describe how the speeds are calculated. For now, experiment. Higher values means *slower* enveloping.
         envelope_states[voice_num] = 255
         envelope_attacks[voice_num] = attack
         envelope_sustains[voice_num] = sustain
@@ -73,6 +91,7 @@ psg {
     }
 
     sub silent() {
+        ; -- Shut down all PSG voices.
         for cx16.r1L in 0 to 15 {
             envelope_states[cx16.r1L] = 255
             envelope_volumes[cx16.r1L] = 0
