@@ -1,5 +1,6 @@
 package prog8.codegen.experimental
 
+import prog8.code.StMemorySlab
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
@@ -47,7 +48,7 @@ class CodeGen(internal val program: PtProgram,
     internal val vmRegisters = VmRegisterPool()
 
     override fun compileToAssembly(): IAssemblyProgram? {
-        val irProg = IRProgram(program.name, options, program.encoding, symbolTable, allocations.memorySlabs)
+        val irProg = IRProgram(program.name, options, program.encoding, symbolTable)
 
         if(!options.dontReinitGlobals) {
             // collect global variables initializers
@@ -72,7 +73,7 @@ class CodeGen(internal val program: PtProgram,
             optimizer.optimize()
         }
 
-        println("IR codegen: virtual registers=${vmRegisters.peekNext()} memory usage=${allocations.freeMem}")
+        println("IR codegen: virtual registers=${vmRegisters.peekNext()}")
         irProg.writeFile()
 
         return DummyAssemblyProgram(irProg.name)
@@ -811,5 +812,11 @@ class CodeGen(internal val program: PtProgram,
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
 
     internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
+
+    fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): List<String> {
+        val scopedName = "prog8_memoryslabs.$name"
+        symbolTable.add(StMemorySlab(scopedName, size, align, position))
+        return scopedName.split('.', limit=2)
+    }
 }
 

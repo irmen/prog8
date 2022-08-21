@@ -17,8 +17,7 @@ import kotlin.io.path.div
 class IRProgram(val name: String,
                 private val options: CompilationOptions,
                 private val encoding: IStringEncoding,
-                private val st: SymbolTable,
-                private val memorySlabs: List<MemorySlab>) {
+                private val st: SymbolTable) {
 
     private val globalInits = mutableListOf<VmCodeLine>()
     private val blocks = mutableListOf<VmCodeChunk>()
@@ -93,11 +92,7 @@ class IRProgram(val name: String,
         }
 
         out.write("; MEMORY SLABS\n")
-        memorySlabs.forEach{ slab ->
-            out.write("MEMORYSLAB _${slab.label.joinToString(".")} ${slab.size} ${slab.align}\n")
-        }
-
-
+        st.allMemorySlabs.forEach{ slab -> out.write("MEMORYSLAB _${slab.name} ${slab.size} ${slab.align}\n") }
     }
 
     private fun BufferedWriter.writeLine(line: VmCodeLine) {
@@ -129,8 +124,6 @@ class IRProgram(val name: String,
 }
 
 sealed class VmCodeLine
-
-class MemorySlab(val name: String, val size: Int, val align: Int, val label: List<String>)
 
 class VmCodeInstruction(
     opcode: Opcode,

@@ -5,7 +5,6 @@ import prog8.code.core.*
 
 class VariableAllocator(st: SymbolTable, memsizer: IMemSizer) {
 
-    internal val memorySlabs = mutableListOf<MemorySlab>()      // TODO move this to the SymbolTable instead
     internal val allocations = mutableMapOf<List<String>, Int>()
     private var freeMemoryStart: Int
 
@@ -44,10 +43,4 @@ class VariableAllocator(st: SymbolTable, memsizer: IMemSizer) {
     }
 
     fun get(name: List<String>) = allocations.getValue(name)
-
-    fun addMemorySlab(name: String, size: Int, align: Int): List<String>? {
-        val label = listOf("prog8_memoryslabs", name)
-        memorySlabs.add(MemorySlab(name, size, align, label))
-        return label
-    }
 }

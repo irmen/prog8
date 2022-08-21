@@ -323,11 +323,11 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
 
     private fun funcMemory(call: PtBuiltinFunctionCall, resultRegister: Int): VmCodeChunk {
         val name = (call.args[0] as PtString).value
-        val size = (call.args[1] as PtNumber).number.toInt()
-        val align = (call.args[2] as PtNumber).number.toInt()
-        val slabName = codeGen.allocations.addMemorySlab(name, size, align)
+        val size = (call.args[1] as PtNumber).number.toUInt()
+        val align = (call.args[2] as PtNumber).number.toUInt()
+        val label = codeGen.addMemorySlab(name, size, align, call.position)
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = slabName)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = label)
         return code
     }
 

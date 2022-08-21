@@ -1,6 +1,7 @@
 main {
     sub start() {
 
+        ; TODO should generate address
         uword @shared slab1 = memory("slab 1", 2000, 0)
         uword @shared slab2 = memory("slab 1", 2000, 0)
         uword @shared slab3 = memory("other # slab", 2000, 64)
