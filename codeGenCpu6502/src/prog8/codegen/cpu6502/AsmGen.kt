@@ -8,6 +8,7 @@ import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.StMemorySlab
 import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
@@ -2895,6 +2896,12 @@ $repeatLabel    lda  $counterVar
         }
         else
             extra
+    }
+
+    fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): String {
+        val prefixedName = "prog8_memoryslab_$name"
+        symbolTable.add(StMemorySlab(prefixedName, size, align, null, position))
+        return prefixedName
     }
 }
 

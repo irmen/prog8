@@ -5,7 +5,7 @@ import prog8.code.core.*
 
 /**
  * Tree structure containing all symbol definitions in the program
- * (blocks, subroutines, variables (all types) and labels).
+ * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
 class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
     fun print() = printIndented(0)
@@ -217,10 +217,16 @@ class StMemVar(name: String,
     }
 }
 
-class StMemorySlab(name: String, val size: UInt, val align: UInt, position: Position):
+class StMemorySlab(
+    name: String,
+    val size: UInt,
+    val align: UInt,
+    val allocatedAddress: UInt? = null,     // this is used (for now) in the VM code generator
+    position: Position
+):
     StNode(name, StNodeType.MEMORYSLAB, position) {
     override fun printProperties() {
-        print("$name  size=$size  align=$align")
+        print("$name  size=$size  align=$align  address=$allocatedAddress")
     }
 }
 

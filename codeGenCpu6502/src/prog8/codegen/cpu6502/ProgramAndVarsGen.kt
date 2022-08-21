@@ -170,10 +170,10 @@ internal class ProgramAndVarsGen(
     private fun memorySlabs() {
         asmgen.out("; memory slabs")
         asmgen.out("prog8_slabs\t.block")
-        for((name, info) in allocator.memorySlabs) {
-            if(info.second>1u)
-                asmgen.out("\t.align  ${info.second.toHex()}")
-            asmgen.out("$name\t.fill  ${info.first}")
+        for(slab in symboltable.allMemorySlabs) {
+            if(slab.align>1u)
+                asmgen.out("\t.align  ${slab.align.toHex()}")
+            asmgen.out("${slab.name}\t.fill  ${slab.size}")
         }
         asmgen.out("\t.bend")
     }

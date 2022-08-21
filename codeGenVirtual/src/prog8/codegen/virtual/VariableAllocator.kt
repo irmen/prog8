@@ -1,5 +1,7 @@
 package prog8.codegen.virtual
 
+import prog8.code.StMemorySlab
+import prog8.code.StNodeType
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
 import prog8.code.core.*
@@ -103,20 +105,24 @@ class VariableAllocator(private val st: SymbolTable, private val program: PtProg
         return mm
     }
 
-    private val memorySlabsInternal = mutableMapOf<String, Triple<UInt, UInt, UInt>>()
-    internal val memorySlabs: Map<String, Triple<UInt, UInt, UInt>> = memorySlabsInternal
-
-    fun allocateMemorySlab(name: String, size: UInt, align: UInt): UInt {
+    fun allocateMemorySlab(name: String, size: UInt, align: UInt, position: Position): StMemorySlab {
         val address =
             if(align==0u || align==1u)
                 freeMemoryStart.toUInt()
             else
                 (freeMemoryStart.toUInt() + align-1u) and (0xffffffffu xor (align-1u))
-
-        memorySlabsInternal[name] = Triple(address, size, align)
         freeMemoryStart = (address + size).toInt()
-        return address
+
+        val slab = StMemorySlab(name, size, align, address, position)
+        st.add(slab)
+        return slab
     }
 
-    fun getMemorySlab(name: String): Triple<UInt, UInt, UInt>? = memorySlabsInternal[name]
+    fun getMemorySlab(name: String): StMemorySlab? {
+        val existing = st.children[name]
+        return if(existing==null || existing.type!=StNodeType.MEMORYSLAB)
+            null
+        else
+            existing as StMemorySlab
+    }
 }

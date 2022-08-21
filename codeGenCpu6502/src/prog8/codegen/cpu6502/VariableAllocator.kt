@@ -15,19 +15,11 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 ) {
 
     private val zeropage = options.compTarget.machine.zeropage
-    private val memorySlabsInternal = mutableMapOf<String, Pair<UInt, UInt>>()
-    internal val memorySlabs: Map<String, Pair<UInt, UInt>> = memorySlabsInternal
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val zeropageVars: Map<List<String>, Zeropage.ZpAllocation> = zeropage.allocatedVariables
 
     init {
         allocateZeropageVariables()
-    }
-
-    internal fun getMemorySlab(name: String) = memorySlabsInternal[name]
-
-    internal fun allocateMemorySlab(name: String, size: UInt, align: UInt) {
-        memorySlabsInternal[name] = Pair(size, align)
     }
 
     internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables

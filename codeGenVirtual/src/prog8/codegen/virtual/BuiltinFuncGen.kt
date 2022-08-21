@@ -325,17 +325,10 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val name = (call.args[0] as PtString).value
         val size = (call.args[1] as PtNumber).number.toUInt()
         val align = (call.args[2] as PtNumber).number.toUInt()
-        val existing = codeGen.allocations.getMemorySlab(name)
-        val address = if(existing==null)
-            codeGen.allocations.allocateMemorySlab(name, size, align)
-        else if(existing.second!=size || existing.third!=align) {
-            codeGen.errors.err("memory slab '$name' already exists with a different size or alignment", call.position)
-            return VmCodeChunk()
-        }
-        else
-            existing.first
+        val prefixedName = "prog8_memoryslab_$name"
+        val memorySlab = codeGen.allocations.getMemorySlab(prefixedName) ?: codeGen.allocations.allocateMemorySlab(prefixedName, size, align, call.position)
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, value=address.toInt())
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, value=memorySlab.allocatedAddress!!.toInt())
         return code
     }
 
