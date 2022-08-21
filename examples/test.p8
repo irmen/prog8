@@ -1,31 +1,16 @@
-%import textio
-%zeropage basicsafe
-
-
 main {
     sub start() {
 
-        ubyte c
-        ubyte radius = 1
-        ubyte[] circle_radius = [5,10,15,20,25,30]
+        uword @shared slab1 = memory("slab 1", 2000, 0)
+        uword @shared slab2 = memory("slab 1", 2000, 0)
+        uword @shared slab3 = memory("other # slab", 2000, 64)
 
-        for c in 0 to len(circle_radius)-1 {
-            if distance(c) < (radius as uword) + circle_radius[c]
-                txt.chrout('y')
-            else
-                txt.chrout('n')
+        uword @shared zz = slab1+slab2+slab3
 
-            cx16.r15 = (radius as uword) + circle_radius[c]
-            if distance(c) < cx16.r15
-                txt.chrout('y')
-            else
-                txt.chrout('n')
-            txt.nl()
-        }
-    }
+        uword @shared qq = zz
+        uword @shared qq2 = &zz
 
-    sub distance(ubyte cix) -> uword {
-        uword sqx = cix+10
-        return sqrt16(sqx*sqx)
+        qq=4242             ; TODO should generate symbol not allocated address
+        c64.EXTCOL = 42     ; TODO wrong VMASM code generated... should generate mapped memory address
     }
 }

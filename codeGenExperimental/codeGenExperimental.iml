@@ -12,5 +12,6 @@
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
     <orderEntry type="module" module-name="codeAst" />
     <orderEntry type="module" module-name="codeCore" />
+    <orderEntry type="module" module-name="virtualmachine" />
   </component>
 </module>
