@@ -2,9 +2,7 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.DataType
@@ -14,16 +12,43 @@ import prog8.compiler.BuiltinFunctions
 
 internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorReporter) : IAstVisitor {
 
+    override fun visit(program: Program) {
+        super.visit(program)
+
+        // detect invalid (double) memory slabs
+        for(slab in memorySlabs) {
+            val other = memorySlabs.first { it.name==slab.name }
+            if(other!==slab && (other.size!=slab.size || other.align!=slab.align)) {
+                errors.err("memory block '${slab.name}' already exists with a different size and/or alignment at ${other.position}", slab.position)
+            }
+        }
+    }
+
+    private class Slab(val name: String, val size: Int, val align: Int, val position: Position)
+    private val memorySlabs = mutableListOf<Slab>()
+
     override fun visit(functionCallExpr: FunctionCallExpression) {
         val error = checkTypes(functionCallExpr as IFunctionCall, program)
         if(error!=null)
             errors.err(error.first, error.second)
+        else {
+            if(functionCallExpr.target.nameInSource==listOf("memory")) {
+                val name = (functionCallExpr.args[0] as StringLiteral).value
+                val size = (functionCallExpr.args[1] as NumericLiteral).number.toInt()
+                val align = (functionCallExpr.args[2] as NumericLiteral).number.toInt()
+                memorySlabs.add(Slab(name, size, align, functionCallExpr.position))
+            }
+        }
+
+        super.visit(functionCallExpr)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
         val error = checkTypes(functionCallStatement as IFunctionCall, program)
         if(error!=null)
             errors.err(error.first, error.second)
+
+        super.visit(functionCallStatement)
     }
 
     companion object {

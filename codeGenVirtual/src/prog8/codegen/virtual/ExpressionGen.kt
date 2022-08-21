@@ -3,7 +3,6 @@ package prog8.codegen.virtual
 import prog8.code.StRomSub
 import prog8.code.StStaticVariable
 import prog8.code.StSub
-import prog8.code.StSubroutineParameter
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.vm.Opcode
