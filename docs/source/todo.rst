@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- check that subs with single integer arg are passing that in A or AY (and the sub itself stores it in the parameter variable)
 - vm: intermediate code: don't flatten everything. Instead, as a new intermediary step,
   convert the new Ast into *structured* intermediary code.
   Basically keep the blocks and subroutines structure, including full subroutine signature information,

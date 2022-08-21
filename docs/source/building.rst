@@ -47,6 +47,18 @@ For normal use, the ``installDist`` target should suffice and after succesful co
     java runtime (11 or newer). If you do have trouble building or running the compiler on your
     operating system, please let me know!
 
+    To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes
+    first. The easiest way to do this is the following:
+
+    1. make sure you have the Antlr4 plugin installed in IDEA
+    2. right click the grammar file Prog8ANTLR.g4 in the parser project, and choose "Generate Antlr Recognizer" from the menu.
+    3. rebuild the full project.
+
+    Alternatively you can also use the Makefile in the antlr directory to generate the parser, but for development the
+    Antlr4 plugin provides several extremely handy features so you'll probably want to have it installed anyway.
+
+    .. image:: _static/antlrparser.png
+       :alt: Generating the Antlr4 parser files
 
 
 What is a Prog8 "Program" anyway?
