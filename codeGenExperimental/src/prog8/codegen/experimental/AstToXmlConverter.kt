@@ -114,6 +114,14 @@ class AstToXmlConverter(internal val program: PtProgram,
                     node.address.toString(),
                     false)
             }
+            StNodeType.MEMORYSLAB -> {
+                node as StMemorySlab
+                xml.elt("memoryslab")
+                xml.writeAttribute("name", node.name)
+                xml.writeAttribute("size", node.size.toString())
+                xml.writeAttribute("align", node.align.toString())
+                xml.endElt()
+            }
             StNodeType.CONSTANT -> {
                 node as StConstant
                 xml.writeTextNode("const",
