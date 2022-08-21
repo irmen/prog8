@@ -775,15 +775,13 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun translate(block: PtBlock): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += VmCodeComment("BLOCK '${block.name}'  addr=${block.address}  lib=${block.library}")
+    private fun translate(block: PtBlock): VmBlock {
+        val vmblock = VmBlock(block.name, block.address, block.alignment)   // no use for other attributes yet?
         for (child in block.children) {
             if(child !is PtAssignment) // global variable initialization is done elsewhere
-                code += translateNode(child)
+                vmblock += translateNode(child)
         }
-        code += VmCodeComment("BLOCK-END '${block.name}'")
-        return code
+        return vmblock
     }
 
 
@@ -813,10 +811,10 @@ class CodeGen(internal val program: PtProgram,
 
     internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
 
-    fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): List<String> {
-        val scopedName = "prog8_memoryslabs.$name"
-        symbolTable.add(StMemorySlab(scopedName, size, align, position))
-        return scopedName.split('.', limit=2)
+    fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): String {
+        val scopedName = "prog8_memoryslab_$name"
+        symbolTable.add(StMemorySlab(scopedName, size, align, null, position))
+        return scopedName
     }
 }
 

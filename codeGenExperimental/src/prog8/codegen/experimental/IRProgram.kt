@@ -1,6 +1,7 @@
 package prog8.codegen.experimental
 
 import prog8.code.SymbolTable
+import prog8.code.ast.PtBlock
 import prog8.code.core.*
 import prog8.vm.Instruction
 import prog8.vm.Opcode
@@ -20,28 +21,50 @@ class IRProgram(val name: String,
                 private val st: SymbolTable) {
 
     private val globalInits = mutableListOf<VmCodeLine>()
-    private val blocks = mutableListOf<VmCodeChunk>()
+    private val blocks = mutableListOf<VmBlock>()
 
     fun writeFile() {
         val outfile = options.outputDir / ("$name.p8ir")
         println("Writing intermediate representation to $outfile")
         outfile.bufferedWriter().use { out ->
 
+            out.write("; PROGRAM '$name'\n")
+            writeOptions(out)
             writeVariableAllocations(out)
-            out.write("------PROGRAM------\n")
 
             if(!options.dontReinitGlobals) {
-                out.write("; global var inits\n")
+                // note: this a block of code that loads values and stores them into the global variables to reset their values.
+                out.write("\n[INITGLOBALS]\n")
                 globalInits.forEach { out.writeLine(it) }
+                out.write("[/INITGLOBALS]\n")
             }
 
-            out.write("; actual program code\n")
-            blocks.asSequence().flatMap { it.lines }.forEach { line->out.writeLine(line) }
+            out.write("\n[CODE]\n")
+            blocks.forEach { block ->
+                out.write("\n[BLOCK NAME=${block.name} ADDRESS=${block.address} ALIGN=${block.alignment}]\n")
+                block.lines.forEach { out.writeLine(it) }
+                out.write("[/BLOCK]\n")
+            }
+            out.write("[/CODE]\n")
         }
     }
 
+    private fun writeOptions(out: BufferedWriter) {
+        out.write("[OPTIONS]\n")
+        out.write("compTarget = ${options.compTarget.name}\n")
+        out.write("output = ${options.output}\n")
+        out.write("launcher = ${options.launcher}\n")
+        out.write("zeropage = ${options.zeropage}\n")
+        out.write("zpReserved = ${options.zpReserved}\n")
+        out.write("loadAddress = ${options.loadAddress}\n")
+        out.write("dontReinitGlobals = ${options.dontReinitGlobals}\n")
+        out.write("evalStackBaseAddress = ${options.evalStackBaseAddress}\n")
+        // other options not yet useful here?
+        out.write("[/OPTIONS]\n")
+    }
+
     private fun writeVariableAllocations(out: Writer) {
-        out.write("; NORMAL VARIABLES\n")
+        out.write("\n[VARIABLES]\n")
         for (variable in st.allVariables) {
             val typeStr = when(variable.dt) {
                 DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
@@ -77,8 +100,9 @@ class IRProgram(val name: String,
             // TODO have uninitialized variables? (BSS SECTION)
             out.write("VAR ${variable.scopedName.joinToString(".")} $typeStr = $value\n")
         }
+        out.write("[/VARIABLES]\n")
 
-        out.write("; MEMORY MAPPED VARIABLES\n")
+        out.write("\n[MEMORYMAPPEDVARIABLES]\n")
         for (variable in st.allMemMappedVariables) {
             val typeStr = when(variable.dt) {
                 DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
@@ -90,9 +114,11 @@ class IRProgram(val name: String,
             }
             out.write("MAP ${variable.scopedName.joinToString(".")} $typeStr ${variable.address}\n")
         }
+        out.write("[/MEMORYMAPPEDVARIABLES]\n")
 
-        out.write("; MEMORY SLABS\n")
-        st.allMemorySlabs.forEach{ slab -> out.write("MEMORYSLAB _${slab.name} ${slab.size} ${slab.align}\n") }
+        out.write("\n[MEMORYSLABS]\n")
+        st.allMemorySlabs.forEach{ slab -> out.write("SLAB _${slab.name} ${slab.size} ${slab.align}\n") }
+        out.write("[/MEMORYSLABS]\n")
     }
 
     private fun BufferedWriter.writeLine(line: VmCodeLine) {
@@ -119,8 +145,8 @@ class IRProgram(val name: String,
     }
 
     fun addGlobalInits(chunk: VmCodeChunk) = globalInits.addAll(chunk.lines)
-    fun addBlock(block: VmCodeChunk) = blocks.add(block)
-    fun getBlocks(): List<VmCodeChunk> = blocks
+    fun addBlock(block: VmBlock) = blocks.add(block)
+    fun getBlocks(): List<VmBlock> = blocks
 }
 
 sealed class VmCodeLine
@@ -167,7 +193,16 @@ class VmCodeInstruction(
 class VmCodeLabel(val name: List<String>): VmCodeLine()
 internal class VmCodeComment(val comment: String): VmCodeLine()
 
-class VmCodeChunk(initial: VmCodeLine? = null) {
+
+class VmBlock(
+    val name: String,
+    val address: UInt?,
+    val alignment: PtBlock.BlockAlignment,
+    initial: VmCodeLine? = null
+): VmCodeChunk(initial)
+
+
+open class VmCodeChunk(initial: VmCodeLine? = null) {
     val lines = mutableListOf<VmCodeLine>()
 
     init {

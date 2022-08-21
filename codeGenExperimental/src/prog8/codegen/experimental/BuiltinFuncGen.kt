@@ -327,7 +327,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val align = (call.args[2] as PtNumber).number.toUInt()
         val label = codeGen.addMemorySlab(name, size, align, call.position)
         val code = VmCodeChunk()
-        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = label)
+        code += VmCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = listOf(label))
         return code
     }
 

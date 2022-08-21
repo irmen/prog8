@@ -1,4 +1,7 @@
 main {
+
+    uword global1 = 1234
+
     sub start() {
 
         ; TODO should generate address
@@ -13,5 +16,14 @@ main {
 
         qq=4242             ; TODO should generate symbol not allocated address
         c64.EXTCOL = 42     ; TODO wrong VMASM code generated... should generate mapped memory address
+
+        qq=global1
+        qq=other.global2
     }
+}
+
+other {
+
+    uword global2 = 9999
+
 }
