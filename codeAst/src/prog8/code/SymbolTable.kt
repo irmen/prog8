@@ -54,6 +54,10 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         vars
     }
 
+    val allMemorySlabs: Collection<StMemorySlab> by lazy {
+        children.mapNotNull { if (it.value.type == StNodeType.MEMORYSLAB) it.value as StMemorySlab else null }
+    }
+
     override fun lookup(scopedName: List<String>) = flat[scopedName]
 }
 
@@ -68,7 +72,8 @@ enum class StNodeType {
     STATICVAR,
     MEMVAR,
     CONSTANT,
-    BUILTINFUNC
+    BUILTINFUNC,
+    MEMORYSLAB
 }
 
 
@@ -142,6 +147,7 @@ open class StNode(val name: String,
             StNodeType.LABEL -> print("(L) ")
             StNodeType.STATICVAR -> print("(V) ")
             StNodeType.MEMVAR -> print("(M) ")
+            StNodeType.MEMORYSLAB -> print("(MS) ")
             StNodeType.CONSTANT -> print("(C) ")
             StNodeType.BUILTINFUNC -> print("(F) ")
             StNodeType.ROMSUB -> print("(R) ")
@@ -211,6 +217,12 @@ class StMemVar(name: String,
     }
 }
 
+class StMemorySlab(name: String, val size: UInt, val align: UInt, position: Position):
+    StNode(name, StNodeType.MEMORYSLAB, position) {
+    override fun printProperties() {
+        print("$name  size=$size  align=$align")
+    }
+}
 
 class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, position: Position) :
         StNode(name, StNodeType.SUBROUTINE, position) {
