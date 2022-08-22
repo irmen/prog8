@@ -3,6 +3,18 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- add joypad controls to tehtriz x16 version
+    dpad left = "," (move left)
+    dpad right = "/" (move right)
+    controller B/Y btn = "Z" (rotate counter clockwise)
+    controller A/X btn = "X" (rotate clockwise)
+    dpad down = "." (descend)
+    controller B btn = " " (drop)
+    dpad up (and/or controller X btn) = "C" (hold)
+    controller start = F1 (new game)
+    make the 'R' tilemap a backwards R :)
+- fix 6502 codegen bug (check that it isn't also in vm codegen): complex comparison expression is evaluated wrong
+  see circles.p8 line 57; if distance(c) < (radius as uword) + circle_radius[c]
 - vm: intermediate code: don't flatten everything. Instead, as a new intermediary step,
   convert the new Ast into *structured* intermediary code.
   Basically keep the blocks and subroutines structure, including full subroutine signature information,

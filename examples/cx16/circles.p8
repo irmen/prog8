@@ -54,7 +54,9 @@ main {
                 return true
             ubyte @zp c
             for c in 0 to num_circles-1 {
-                if distance(c) < (radius as uword) + circle_radius[c]
+                ; TODO FIX THIS IN 6502 CODEGEN: if distance(c) < (radius as uword) + circle_radius[c]
+                cx16.r15 = (radius as uword) + circle_radius[c]
+                if distance(c) < cx16.r15
                     return false
             }
             return true
