@@ -28,12 +28,23 @@ main {
     ubyte speedlevel
     ubyte holding
     bool holdingAllowed
-
+    ubyte ticks_since_previous_action
+    ubyte ticks_since_previous_move
 
     sub start() {
         void cx16.screen_mode(3, false)     ; low res
         txt.color2(7,0)                     ; make sure correct screen colors are (re)set
         txt.clear_screen()
+
+        ; gimmick: make a mirrored R
+        cx16.vpoke(1,$f000+sc:'r'*8+0, %00111110)
+        cx16.vpoke(1,$f000+sc:'r'*8+1, %01100110)
+        cx16.vpoke(1,$f000+sc:'r'*8+2, %01100110)
+        cx16.vpoke(1,$f000+sc:'r'*8+3, %00111110)
+        cx16.vpoke(1,$f000+sc:'r'*8+4, %00011110)
+        cx16.vpoke(1,$f000+sc:'r'*8+5, %00110110)
+        cx16.vpoke(1,$f000+sc:'r'*8+6, %01100110)
+        cx16.vpoke(1,$f000+sc:'r'*8+7, %00000000)
 
         sound.init()
         newGame()
@@ -46,6 +57,14 @@ newgame:
         spawnNextBlock()
 
 waitkey:
+        sys.waitvsync()
+        ticks_since_previous_action++
+        ticks_since_previous_move++
+        if ticks_since_previous_action==0
+            ticks_since_previous_action=255
+        if ticks_since_previous_move==0
+            ticks_since_previous_move=255
+
         ubyte time_lo = lsb(c64.RDTIM16())
         if time_lo>=(60-4*speedlevel) {
             c64.SETTIM(0,0,0)
@@ -76,9 +95,8 @@ waitkey:
         }
 
         ubyte key=c64.GETIN()
-        if key==0 goto waitkey
-
         keypress(key)
+        joystick(cx16.joystick_get2(1))
 
         goto waitkey
 
@@ -129,68 +147,126 @@ waitkey:
         }
     }
 
+    sub rotate_counterclockwise() {
+        drawBlock(xpos, ypos, true)
+        if blocklogic.canRotateCCW(xpos, ypos) {
+            blocklogic.rotateCCW()
+            sound.blockrotate()
+        }
+        else if blocklogic.canRotateCCW(xpos-1, ypos) {
+            xpos--
+            blocklogic.rotateCCW()
+            sound.blockrotate()
+        }
+        else if blocklogic.canRotateCCW(xpos+1, ypos) {
+            xpos++
+            blocklogic.rotateCCW()
+            sound.blockrotate()
+        }
+        drawBlock(xpos, ypos, false)
+    }
+
+    sub rotate_clockwise() {
+        drawBlock(xpos, ypos, true)
+        if blocklogic.canRotateCW(xpos, ypos) {
+            blocklogic.rotateCW()
+            sound.blockrotate()
+        }
+        else if blocklogic.canRotateCW(xpos-1, ypos) {
+            xpos--
+            blocklogic.rotateCW()
+            sound.blockrotate()
+        }
+        else if blocklogic.canRotateCW(xpos+1, ypos) {
+            xpos++
+            blocklogic.rotateCW()
+            sound.blockrotate()
+        }
+        drawBlock(xpos, ypos, false)
+    }
+
+    sub hold_block() {
+        if holdingAllowed {
+            sound.swapping()
+            if holding<7 {
+                drawBlock(xpos, ypos, true)
+                ubyte newholding = blocklogic.currentBlockNum
+                swapBlock(holding)
+                holding = newholding
+                holdingAllowed = false
+            } else {
+                holding = blocklogic.currentBlockNum
+                drawBlock(xpos, ypos, true)
+                spawnNextBlock()
+            }
+            drawHoldBlock()
+        }
+    }
+
     sub keypress(ubyte key) {
         when key {
             157, ',' -> move_left()
             29, '/'  -> move_right()
             17, '.'  -> move_down_faster()
             145, ' ' -> drop_down_immediately()
-            'z' -> {
-                ; no joystick equivalent (there is only 1 fire button)
-                ; rotate counter clockwise
-                drawBlock(xpos, ypos, true)
-                if blocklogic.canRotateCCW(xpos, ypos) {
-                    blocklogic.rotateCCW()
-                    sound.blockrotate()
+            'z' -> rotate_counterclockwise()
+            'x' -> rotate_clockwise()
+            'c' -> hold_block()
+        }
+    }
+
+    sub joystick(uword joy) {
+        ; note: we don't process simultaneous button presses
+        when joy {
+            %1111111111111101 -> {
+                if ticks_since_previous_move > 5 {
+                    move_left()
+                    ticks_since_previous_move = 0
+                    ticks_since_previous_action = 0
                 }
-                else if blocklogic.canRotateCCW(xpos-1, ypos) {
-                    xpos--
-                    blocklogic.rotateCCW()
-                    sound.blockrotate()
-                }
-                else if blocklogic.canRotateCCW(xpos+1, ypos) {
-                    xpos++
-                    blocklogic.rotateCCW()
-                    sound.blockrotate()
-                }
-                drawBlock(xpos, ypos, false)
             }
-            'x' -> {
-                ; rotate clockwise
-                drawBlock(xpos, ypos, true)
-                if blocklogic.canRotateCW(xpos, ypos) {
-                    blocklogic.rotateCW()
-                    sound.blockrotate()
+            %1111111111111110 -> {
+                if ticks_since_previous_move > 5 {
+                    move_right()
+                    ticks_since_previous_move = 0
+                    ticks_since_previous_action = 0
                 }
-                else if blocklogic.canRotateCW(xpos-1, ypos) {
-                    xpos--
-                    blocklogic.rotateCW()
-                    sound.blockrotate()
-                }
-                else if blocklogic.canRotateCW(xpos+1, ypos) {
-                    xpos++
-                    blocklogic.rotateCW()
-                    sound.blockrotate()
-                }
-                drawBlock(xpos, ypos, false)
             }
-            'c' -> {
-                ; hold
-                if holdingAllowed {
-                    sound.swapping()
-                    if holding<7 {
-                        drawBlock(xpos, ypos, true)
-                        ubyte newholding = blocklogic.currentBlockNum
-                        swapBlock(holding)
-                        holding = newholding
-                        holdingAllowed = false
-                    } else {
-                        holding = blocklogic.currentBlockNum
-                        drawBlock(xpos, ypos, true)
-                        spawnNextBlock()
-                    }
-                    drawHoldBlock()
+            %1111111111111011 -> {
+                if ticks_since_previous_move > 5 {
+                    move_down_faster()
+                    ticks_since_previous_move = 0
+                    ticks_since_previous_action = 0
                 }
+            }
+            %1111111101111111 -> {
+                if ticks_since_previous_action > 200 {
+                    drop_down_immediately()
+                    ticks_since_previous_action = 0
+                }
+            }
+            %1111111110111111 -> {
+                if ticks_since_previous_action > 20 {
+                    rotate_counterclockwise()
+                    ticks_since_previous_action = 0
+                }
+            }
+            %1011111111111111, %0111111111111111 -> {
+                if ticks_since_previous_action > 20 {
+                    rotate_clockwise()
+                    ticks_since_previous_action = 0
+                }
+            }
+            %1111111111110111 -> {
+                if ticks_since_previous_action > 60 {
+                    hold_block()
+                    ticks_since_previous_action = 0
+                }
+            }
+            $ffff -> {
+                ; no button pressed, reset timers to allow button tapping
+                ticks_since_previous_move = 255
+                ticks_since_previous_action = 255
             }
         }
     }
@@ -248,17 +324,20 @@ waitkey:
         txt.print("────────────────────────")
         c64.CHROUT('I')
         txt.plot(7, 19)
-        txt.print("│    f1 for new game     │")
+        txt.print("│ f1/start for new game  │")
         txt.plot(7, 20)
         c64.CHROUT('J')
         txt.print("────────────────────────")
         c64.CHROUT('K')
 
-        ubyte key = 0
-        while key!=133 {
-            ; endless loop until user presses F1 to restart the game
+        ubyte key
+        do {
+            ; endless loop until user presses F1 or Start button to restart the game
+            cx16.r0 = cx16.joystick_get2(1)
+            if cx16.r0 & %0000000000010000 == 0
+                break
             key = c64.GETIN()
-        }
+        } until key==133
     }
 
     sub newGame() {
@@ -270,6 +349,8 @@ waitkey:
         nextBlock = rnd() % 7
         holding = 255
         holdingAllowed = true
+        ticks_since_previous_action = 0
+        ticks_since_previous_move = 0
     }
 
     sub swapBlock(ubyte newblock) {
@@ -316,6 +397,8 @@ waitkey:
         txt.print("spc  drop")
         txt.plot(29,23)
         txt.print("c  hold")
+        txt.plot(25,24)
+        txt.print("or joystick #1")
 
         txt.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
         txt.setcc(boardOffsetX-1, boardOffsetY-3, 255, 0)           ; invisible barrier
