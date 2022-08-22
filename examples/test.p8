@@ -5,25 +5,27 @@
 main {
     sub start() {
 
-        uword slab1 = memory("slab 1", 2000, 0)
-        uword slab2 = memory("slab 1", 2000, 0)
-        uword slab3 = memory("slab other", 2000, 64)
+        ubyte c
+        ubyte radius = 1
+        ubyte[] circle_radius = [5,10,15,20,25,30]
 
-        txt.print_uwhex(slab1, true)
-        txt.print_uwhex(slab2, true)
-        txt.print_uwhex(slab3, true)
+        for c in 0 to len(circle_radius)-1 {
+            if distance(c) < (radius as uword) + circle_radius[c]
+                txt.chrout('y')
+            else
+                txt.chrout('n')
 
+            cx16.r15 = (radius as uword) + circle_radius[c]
+            if distance(c) < cx16.r15
+                txt.chrout('y')
+            else
+                txt.chrout('n')
+            txt.nl()
+        }
+    }
 
-        ubyte rasterCount = 231
-
-        if rasterCount >= 230
-            txt.print("y1")
-
-        if rasterCount ^ $80 >= 230
-            txt.print("y2")
-
-        if (rasterCount ^ $80) >= 230
-            txt.print("y3")
-
+    sub distance(ubyte cix) -> uword {
+        uword sqx = cix+10
+        return sqrt16(sqx*sqx)
     }
 }

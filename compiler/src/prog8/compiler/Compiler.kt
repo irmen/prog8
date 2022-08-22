@@ -339,7 +339,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors, compilerOptions)
     errors.report()
-    program.changeNotExpression(errors)
+    program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
     program.addTypecasts(errors, compilerOptions)
     errors.report()

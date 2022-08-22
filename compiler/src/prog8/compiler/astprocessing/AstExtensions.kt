@@ -50,8 +50,8 @@ internal fun Program.reorderStatements(errors: IErrorReporter, options: Compilat
     }
 }
 
-internal fun Program.changeNotExpression(errors: IErrorReporter) {
-    val changer = NotExpressionChanger(this, errors)
+internal fun Program.changeNotExpressionAndIfComparisonExpr(errors: IErrorReporter, target: ICompilationTarget) {
+    val changer = NotExpressionAndIfComparisonExprChanger(this, errors, target)
     changer.visit(this)
     while(errors.noErrors() && changer.applyModifications()>0) {
         changer.visit(this)
