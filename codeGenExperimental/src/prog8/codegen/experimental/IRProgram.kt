@@ -20,8 +20,8 @@ class IRProgram(val name: String,
                 private val encoding: IStringEncoding,
                 private val st: SymbolTable) {
 
-    private val globalInits = mutableListOf<VmCodeLine>()
-    private val blocks = mutableListOf<VmBlock>()
+    val globalInits = mutableListOf<VmCodeLine>()
+    val blocks = mutableListOf<VmBlock>()
 
     fun writeFile() {
         val outfile = options.outputDir / ("$name.p8ir")
@@ -34,23 +34,52 @@ class IRProgram(val name: String,
 
             if(!options.dontReinitGlobals) {
                 // note: this a block of code that loads values and stores them into the global variables to reset their values.
-                out.write("\n[INITGLOBALS]\n")
+                out.write("\n<INITGLOBALS>\n")
                 globalInits.forEach { out.writeLine(it) }
-                out.write("[/INITGLOBALS]\n")
+                out.write("</INITGLOBALS>\n")
             }
 
-            out.write("\n[CODE]\n")
-            blocks.forEach { block ->
-                out.write("\n[BLOCK NAME=${block.name} ADDRESS=${block.address} ALIGN=${block.alignment}]\n")
-                block.lines.forEach { out.writeLine(it) }
-                out.write("[/BLOCK]\n")
+            out.write("\n<PROGRAM>\n")
+            writeBlocks(out)
+            out.write("</PROGRAM>\n")
+        }
+    }
+
+    private fun writeBlocks(out: BufferedWriter) {
+        blocks.forEach { block ->
+            out.write("\n<BLOCK NAME=${block.name} ADDRESS=${block.address} ALIGN=${block.alignment} POS=${block.position}>\n")
+            block.children.forEach {
+                when(it) {
+                    is VmSubroutine -> {
+                        out.write("<SUB ${it.scopedName.joinToString(".")} returntype=${it.returnType} POS=${it.position}>\n")
+                        it.lines.forEach { line -> out.writeLine(line) }
+                        out.write("</SUB>\n")
+                    }
+                    is VmAsmSubroutine -> {
+                        out.write("<ASMSUB ${it.scopedName.joinToString(".")} POS=${it.position}>\n")
+                        it.lines.forEach { line -> out.writeLine(line) }
+                        out.write("</ASMSUB>\n")
+                    }
+                    is VmInlineAsmChunk -> {
+                        out.write("<INLINEASM POS=${it.position}>\n")
+                        it.lines.forEach { line -> out.writeLine(line) }
+                        out.write("</INLINEASM>\n")
+                    }
+                    is VmCodeChunk -> {
+                        println("GENERIC CHUNK IN BLOCK $it ${it.position}")   // TODO must all be VmSubroutine
+                        it.lines.forEach { line -> out.writeLine(line) }
+                    }
+                    else -> {
+                        TODO("BLOCK CHILD $it")
+                    }
+                }
             }
-            out.write("[/CODE]\n")
+            out.write("</BLOCK>\n")
         }
     }
 
     private fun writeOptions(out: BufferedWriter) {
-        out.write("[OPTIONS]\n")
+        out.write("<OPTIONS>\n")
         out.write("compTarget = ${options.compTarget.name}\n")
         out.write("output = ${options.output}\n")
         out.write("launcher = ${options.launcher}\n")
@@ -60,11 +89,11 @@ class IRProgram(val name: String,
         out.write("dontReinitGlobals = ${options.dontReinitGlobals}\n")
         out.write("evalStackBaseAddress = ${options.evalStackBaseAddress}\n")
         // other options not yet useful here?
-        out.write("[/OPTIONS]\n")
+        out.write("</OPTIONS>\n")
     }
 
     private fun writeVariableAllocations(out: Writer) {
-        out.write("\n[VARIABLES]\n")
+        out.write("\n<VARIABLES>\n")
         for (variable in st.allVariables) {
             val typeStr = when(variable.dt) {
                 DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
@@ -100,9 +129,9 @@ class IRProgram(val name: String,
             // TODO have uninitialized variables? (BSS SECTION)
             out.write("VAR ${variable.scopedName.joinToString(".")} $typeStr = $value\n")
         }
-        out.write("[/VARIABLES]\n")
+        out.write("</VARIABLES>\n")
 
-        out.write("\n[MEMORYMAPPEDVARIABLES]\n")
+        out.write("\n<MEMORYMAPPEDVARIABLES>\n")
         for (variable in st.allMemMappedVariables) {
             val typeStr = when(variable.dt) {
                 DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
@@ -114,11 +143,11 @@ class IRProgram(val name: String,
             }
             out.write("MAP ${variable.scopedName.joinToString(".")} $typeStr ${variable.address}\n")
         }
-        out.write("[/MEMORYMAPPEDVARIABLES]\n")
+        out.write("</MEMORYMAPPEDVARIABLES>\n")
 
-        out.write("\n[MEMORYSLABS]\n")
+        out.write("\n<MEMORYSLABS>\n")
         st.allMemorySlabs.forEach{ slab -> out.write("SLAB _${slab.name} ${slab.size} ${slab.align}\n") }
-        out.write("[/MEMORYSLABS]\n")
+        out.write("</MEMORYSLABS>\n")
     }
 
     private fun BufferedWriter.writeLine(line: VmCodeLine) {
@@ -128,7 +157,7 @@ class IRProgram(val name: String,
                 write(line.ins.toString() + "\n")
             }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
-            is VmCodeInlineAsm -> {
+            is VmInlineAsm -> {
                 // TODO FIXUP ASM SYMBOLS???
                 write(line.assembly+"\n")
             }
@@ -146,7 +175,6 @@ class IRProgram(val name: String,
 
     fun addGlobalInits(chunk: VmCodeChunk) = globalInits.addAll(chunk.lines)
     fun addBlock(block: VmBlock) = blocks.add(block)
-    fun getBlocks(): List<VmBlock> = blocks
 }
 
 sealed class VmCodeLine
@@ -191,18 +219,32 @@ class VmCodeInstruction(
 }
 
 class VmCodeLabel(val name: List<String>): VmCodeLine()
-internal class VmCodeComment(val comment: String): VmCodeLine()
+class VmCodeComment(val comment: String): VmCodeLine()
 
 
 class VmBlock(
     val name: String,
     val address: UInt?,
     val alignment: PtBlock.BlockAlignment,
-    initial: VmCodeLine? = null
-): VmCodeChunk(initial)
+    val position: Position
+) {
+    val children = mutableListOf<VmCodeChunk>()
 
+    operator fun plusAssign(child: VmCodeChunk) {
+        children += child
+    }
+}
 
-open class VmCodeChunk(initial: VmCodeLine? = null) {
+class VmSubroutine(val scopedName: List<String>,
+                   val returnType: DataType?,
+                   position: Position,
+                   initial: VmCodeLine? = null): VmCodeChunk(position, initial)
+
+class VmAsmSubroutine(val scopedName: List<String>,
+                      position: Position,
+                      initial: VmCodeLine? = null): VmCodeChunk(position, initial)
+
+open class VmCodeChunk(val position: Position, initial: VmCodeLine? = null) {
     val lines = mutableListOf<VmCodeLine>()
 
     init {
@@ -219,9 +261,12 @@ open class VmCodeChunk(initial: VmCodeLine? = null) {
     }
 }
 
-internal class VmCodeInlineAsm(asm: String): VmCodeLine() {
+class VmInlineAsmChunk(asm: String, position: Position): VmCodeChunk(position, VmInlineAsm(asm))
+
+
+class VmInlineAsm(asm: String): VmCodeLine() {
     // TODO INLINE ASSEMBLY IN IL CODE
-    val assembly: String = "; TODO INLINE ASSMBLY IN IL CODE" // was:  asm.trimIndent()
+    val assembly: String = "; TODO INLINE ASSEMBLY IN IL CODE" // was:  asm.trimIndent()
 }
 
-internal class VmCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): VmCodeLine()
+class VmCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): VmCodeLine()

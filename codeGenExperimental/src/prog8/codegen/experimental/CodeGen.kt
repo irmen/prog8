@@ -53,7 +53,7 @@ class CodeGen(internal val program: PtProgram,
         if(!options.dontReinitGlobals) {
             // collect global variables initializers
             program.allBlocks().forEach {
-                val code = VmCodeChunk()
+                val code = VmCodeChunk(it.position)
                 it.children.filterIsInstance<PtAssignment>().forEach { assign -> code += assignmentGen.translate(assign) }
                 irProg.addGlobalInits(code)
             }
@@ -82,18 +82,17 @@ class CodeGen(internal val program: PtProgram,
 
     internal fun translateNode(node: PtNode): VmCodeChunk {
         val code = when(node) {
-            is PtBlock -> translate(node)
             is PtSub -> translate(node)
             is PtAsmSub -> translate(node)
-            is PtScopeVarsDecls -> VmCodeChunk() // vars should be looked up via symbol table
-            is PtVariable -> VmCodeChunk() // var should be looked up via symbol table
-            is PtMemMapped -> VmCodeChunk() // memmapped var should be looked up via symbol table
-            is PtConstant -> VmCodeChunk() // constants have all been folded into the code
+            is PtScopeVarsDecls -> VmCodeChunk(node.position) // vars should be looked up via symbol table
+            is PtVariable -> VmCodeChunk(node.position) // var should be looked up via symbol table
+            is PtMemMapped -> VmCodeChunk(node.position) // memmapped var should be looked up via symbol table
+            is PtConstant -> VmCodeChunk(node.position) // constants have all been folded into the code
             is PtAssignment -> assignmentGen.translate(node)
-            is PtNodeGroup -> translateGroup(node.children)
+            is PtNodeGroup -> translateGroup(node.children, node.position)
             is PtBuiltinFunctionCall -> translateBuiltinFunc(node, 0)
             is PtFunctionCall -> expressionEval.translate(node, 0, 0)
-            is PtNop -> VmCodeChunk()
+            is PtNop -> VmCodeChunk(node.position)
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
             is PtWhen -> translate(node)
@@ -101,11 +100,11 @@ class CodeGen(internal val program: PtProgram,
             is PtIfElse -> translate(node)
             is PtPostIncrDecr -> translate(node)
             is PtRepeatLoop -> translate(node)
-            is PtLabel -> VmCodeChunk(VmCodeLabel(node.scopedName))
-            is PtBreakpoint -> VmCodeChunk(VmCodeInstruction(Opcode.BREAKPOINT))
+            is PtLabel -> VmCodeChunk(node.position, VmCodeLabel(node.scopedName))
+            is PtBreakpoint -> VmCodeChunk(node.position, VmCodeInstruction(Opcode.BREAKPOINT))
             is PtConditionalBranch -> translate(node)
-            is PtInlineAssembly -> VmCodeChunk(VmCodeInlineAsm(node.assembly))
-            is PtIncludeBinary -> VmCodeChunk(VmCodeInlineBinary(node.file, node.offset, node.length))
+            is PtInlineAssembly -> VmInlineAsmChunk(node.assembly, node.position)
+            is PtIncludeBinary -> VmCodeChunk(node.position, VmCodeInlineBinary(node.file, node.offset, node.length))
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -121,16 +120,15 @@ class CodeGen(internal val program: PtProgram,
             is PtSubroutineParameter,
             is PtNumber,
             is PtArray,
+            is PtBlock,
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             else -> TODO("missing codegen for $node")
         }
-        if(code.lines.isNotEmpty() && node.position.line!=0)
-            code.lines.add(0, VmCodeComment(node.position.toString()))
         return code
     }
 
     private fun translate(branch: PtConditionalBranch): VmCodeChunk {
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(branch.position)
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
         code += when(branch.condition) {
@@ -157,9 +155,9 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(whenStmt: PtWhen): VmCodeChunk {
+        val code = VmCodeChunk(whenStmt.position)
         if(whenStmt.choices.children.isEmpty())
-            return VmCodeChunk()
-        val code = VmCodeChunk()
+            return code
         val valueReg = vmRegisters.nextFree()
         val choiceReg = vmRegisters.nextFree()
         val valueDt = vmType(whenStmt.value.type)
@@ -200,7 +198,7 @@ class CodeGen(internal val program: PtProgram,
     private fun translate(forLoop: PtForLoop): VmCodeChunk {
         val loopvar = symbolTable.lookup(forLoop.variable.targetName) as StStaticVariable
         val iterable = forLoop.iterable
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(forLoop.position)
         when(iterable) {
             is PtRange -> {
                 if(iterable.from is PtNumber && iterable.to is PtNumber)
@@ -240,7 +238,7 @@ class CodeGen(internal val program: PtProgram,
                         code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
                         code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
                         code += translateNode(forLoop.statements)
-                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
+                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize, iterable.position)
                         code += VmCodeInstruction(Opcode.BNE, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = loopLabel)
                     } else if(lengthBytes==256) {
                         code += VmCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
@@ -248,7 +246,7 @@ class CodeGen(internal val program: PtProgram,
                         code += VmCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
                         code += VmCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
                         code += translateNode(forLoop.statements)
-                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize)
+                        code += addConstReg(VmDataType.BYTE, indexReg, elementSize, iterable.position)
                         code += VmCodeInstruction(Opcode.BNZ, VmDataType.BYTE, reg1=indexReg, labelSymbol = loopLabel)
                     } else {
                         throw AssemblyError("iterator length should never exceed 256")
@@ -270,14 +268,14 @@ class CodeGen(internal val program: PtProgram,
         val loopvarAddress = allocations.get(loopvar.scopedName)
         val loopvarDt = vmType(loopvar.dt)
         val loopLabel = createLabelName()
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(forLoop.position)
 
         code += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
         code += expressionEval.translateExpression(iterable.from, indexReg, -1)
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
+        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step, iterable.position)
         code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
         code += VmCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel)
@@ -298,7 +296,7 @@ class CodeGen(internal val program: PtProgram,
         if(step>0 && rangeEndUntyped<rangeStart || step<0 && rangeEndUntyped>rangeStart)
             throw AssemblyError("empty range")
         val rangeEndWrapped = if(loopvarDt==VmDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(forLoop.position)
         val endvalueReg: Int
         if(rangeEndWrapped!=0) {
             endvalueReg = vmRegisters.nextFree()
@@ -310,7 +308,7 @@ class CodeGen(internal val program: PtProgram,
         code += VmCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
         code += VmCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
-        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step)
+        code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step, iterable.position)
         code += VmCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
         code += if(rangeEndWrapped==0) {
             VmCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
@@ -320,8 +318,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun addConstReg(dt: VmDataType, reg: Int, value: Int): VmCodeChunk {
-        val code = VmCodeChunk()
+    private fun addConstReg(dt: VmDataType, reg: Int, value: Int, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
@@ -349,8 +347,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun addConstMem(dt: VmDataType, address: UInt, value: Int): VmCodeChunk {
-        val code = VmCodeChunk()
+    private fun addConstMem(dt: VmDataType, address: UInt, value: Int, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
@@ -382,8 +380,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun multiplyByConstFloat(fpReg: Int, factor: Float): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun multiplyByConstFloat(fpReg: Int, factor: Float, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1f)
             return code
         code += if(factor==0f) {
@@ -394,8 +392,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun multiplyByConstFloatInplace(address: Int, factor: Float): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun multiplyByConstFloatInplace(address: Int, factor: Float, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1f)
             return code
         if(factor==0f) {
@@ -410,8 +408,8 @@ class CodeGen(internal val program: PtProgram,
 
     internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
-    internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun multiplyByConst(dt: VmDataType, reg: Int, factor: Int, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -434,8 +432,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun multiplyByConstInplace(dt: VmDataType, address: Int, factor: Int): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun multiplyByConstInplace(dt: VmDataType, address: Int, factor: Int, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -461,8 +459,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConstFloat(fpReg: Int, factor: Float): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun divideByConstFloat(fpReg: Int, factor: Float, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1f)
             return code
         code += if(factor==0f) {
@@ -473,8 +471,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConstFloatInplace(address: Int, factor: Float): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun divideByConstFloatInplace(address: Int, factor: Float, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1f)
             return code
         if(factor==0f) {
@@ -489,8 +487,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int, signed: Boolean): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun divideByConst(dt: VmDataType, reg: Int, factor: Int, signed: Boolean, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -518,8 +516,8 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConstInplace(dt: VmDataType, address: Int, factor: Int, signed: Boolean): VmCodeChunk {
-        val code = VmCodeChunk()
+    internal fun divideByConstInplace(dt: VmDataType, address: Int, factor: Int, signed: Boolean, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -558,7 +556,7 @@ class CodeGen(internal val program: PtProgram,
 
         val signed = ifElse.condition.left.type in arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
         val vmDt = vmType(ifElse.condition.left.type)
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(ifElse.position)
 
         fun translateNonZeroComparison(): VmCodeChunk {
             val elseBranch = when(ifElse.condition.operator) {
@@ -643,7 +641,7 @@ class CodeGen(internal val program: PtProgram,
 
 
     private fun translate(postIncrDecr: PtPostIncrDecr): VmCodeChunk {
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(postIncrDecr.position)
         val operationMem: Opcode
         val operationRegister: Opcode
         when(postIncrDecr.operator) {
@@ -700,15 +698,15 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translate(repeat: PtRepeatLoop): VmCodeChunk {
         when (constIntValue(repeat.count)) {
-            0 -> return VmCodeChunk()
-            1 -> return translateGroup(repeat.children)
+            0 -> return VmCodeChunk(repeat.position)
+            1 -> return translateGroup(repeat.children, repeat.position)
             256 -> {
                 // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
                 repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
             }
         }
 
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(repeat.position)
         val counterReg = vmRegisters.nextFree()
         val vmDt = vmType(repeat.count.type)
         code += expressionEval.translateExpression(repeat.count, counterReg, -1)
@@ -721,7 +719,7 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(jump: PtJump): VmCodeChunk {
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(jump.position)
         if(jump.address!=null)
             throw AssemblyError("cannot jump to memory location in the vm target")
         code += if(jump.generatedLabel!=null)
@@ -733,14 +731,14 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun translateGroup(group: List<PtNode>): VmCodeChunk {
-        val code = VmCodeChunk()
+    private fun translateGroup(group: List<PtNode>, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         group.forEach { code += translateNode(it) }
         return code
     }
 
     private fun translate(ret: PtReturn): VmCodeChunk {
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(ret.position)
         val value = ret.value
         if(value!=null) {
             // Call Convention: return value is always returned in r0 (or fr0 if float)
@@ -753,33 +751,39 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    private fun translate(sub: PtSub): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += VmCodeComment("SUB: ${sub.scopedName} -> ${sub.returntype}")
-        code += VmCodeLabel(sub.scopedName)
+    private fun translate(sub: PtSub): VmSubroutine {
+        val vmsub = VmSubroutine(sub.scopedName, sub.returntype, sub.position)
+        vmsub += VmCodeLabel(sub.scopedName)
         for (child in sub.children) {
-            code += translateNode(child)
+            vmsub += translateNode(child)
         }
-        code += VmCodeComment("SUB-END '${sub.name}'")
-        return code
+        return vmsub
     }
 
-    private fun translate(sub: PtAsmSub): VmCodeChunk {
-        val code = VmCodeChunk()
-        code += VmCodeComment("ASMSUB: ${sub.scopedName}")
-        code += VmCodeLabel(sub.scopedName)
+    private fun translate(sub: PtAsmSub): VmAsmSubroutine {
+        val vmsub = VmAsmSubroutine(sub.scopedName, sub.position)
+        vmsub += VmCodeLabel(sub.scopedName)
         for (child in sub.children) {
-            code += translateNode(child)
+            vmsub += translateNode(child)
         }
-        code += VmCodeComment("ASMSUB-END '${sub.name}'")
-        return code
+        return vmsub
     }
 
     private fun translate(block: PtBlock): VmBlock {
-        val vmblock = VmBlock(block.name, block.address, block.alignment)   // no use for other attributes yet?
+        val vmblock = VmBlock(block.name, block.address, block.alignment, block.position)   // no use for other attributes yet?
         for (child in block.children) {
-            if(child !is PtAssignment) // global variable initialization is done elsewhere
-                vmblock += translateNode(child)
+            when(child) {
+                is PtNop -> { /* nothing */ }
+                is PtAssignment -> { /* global variable initialization is done elsewhere */ }
+                is PtScopeVarsDecls -> { /* vars should be looked up via symbol table */ }
+                is PtSub -> vmblock += translateNode(child)
+                is PtAsmSub -> vmblock += translateNode(child)
+                is PtInlineAssembly -> vmblock += translateNode(child)
+                else -> {
+                    println("BLOCK: TRANSLATING WEIRD THING $child")
+                    vmblock += translateNode(child)
+                }
+            }
         }
         return vmblock
     }

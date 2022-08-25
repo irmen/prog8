@@ -46,11 +46,11 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         origAssign: PtAssignment
     ): VmCodeChunk {
         val vmDt = codeGen.vmType(value.type)
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(origAssign.position)
         when(value) {
             is PtIdentifier -> return code // do nothing, x=x null assignment.
             is PtMachineRegister -> return code // do nothing, reg=reg null assignment
-            is PtPrefix -> return inplacePrefix(value.operator, vmDt, address)
+            is PtPrefix -> return inplacePrefix(value.operator, vmDt, address, value.position)
             is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, value.type in SignedDatatypes, address, origAssign)
             is PtMemoryByte -> {
                 return if (!codeGen.options.compTarget.machine.isIOAddress(address.toUInt()))
@@ -97,8 +97,8 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         return fallbackAssign(origAssign)
     }
 
-    private fun inplacePrefix(operator: String, vmDt: VmDataType, address: Int): VmCodeChunk {
-        val code= VmCodeChunk()
+    private fun inplacePrefix(operator: String, vmDt: VmDataType, address: Int, position: Position): VmCodeChunk {
+        val code= VmCodeChunk(position)
         when(operator) {
             "+" -> { }
             "-" -> {
@@ -122,7 +122,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         val array = assignment.target.array
         val vmDt = codeGen.vmType(assignment.value.type)
 
-        val code = VmCodeChunk()
+        val code = VmCodeChunk(assignment.position)
         var resultRegister = -1
         var resultFpRegister = -1
         val zero = codeGen.isZero(assignment.value)
@@ -181,7 +181,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                     code += VmCodeInstruction(Opcode.STOREZM, vmDt, value=variableAddr)
                 } else {
                     val indexReg = codeGen.vmRegisters.nextFree()
-                    code += loadIndexReg(array, itemsize, indexReg)
+                    code += loadIndexReg(array, itemsize, indexReg, array.position)
                     code += VmCodeInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, value=variableAddr)
                 }
             } else {
@@ -191,7 +191,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                         code += VmCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, value=variableAddr)
                     } else {
                         val indexReg = codeGen.vmRegisters.nextFree()
-                        code += loadIndexReg(array, itemsize, indexReg)
+                        code += loadIndexReg(array, itemsize, indexReg, array.position)
                         code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
                     }
                 } else {
@@ -200,7 +200,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
                         code += VmCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, value=variableAddr)
                     } else {
                         val indexReg = codeGen.vmRegisters.nextFree()
-                        code += loadIndexReg(array, itemsize, indexReg)
+                        code += loadIndexReg(array, itemsize, indexReg, array.position)
                         code += VmCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, value=variableAddr)
                     }
                 }
@@ -231,8 +231,8 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         return code
     }
 
-    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, indexReg: Int): VmCodeChunk {
-        val code = VmCodeChunk()
+    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, indexReg: Int, position: Position): VmCodeChunk {
+        val code = VmCodeChunk(position)
         if(itemsize==1) {
             code += expressionEval.translateExpression(array.index, indexReg, -1)
         }

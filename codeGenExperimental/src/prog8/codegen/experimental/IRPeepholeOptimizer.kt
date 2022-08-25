@@ -7,37 +7,46 @@ import prog8.vm.VmDataType
 
 class IRPeepholeOptimizer(private val vmprog: IRProgram) {
     fun optimize() {
-        vmprog.getBlocks().forEach { block ->
-            do {
-                val indexedInstructions = block.lines.withIndex()
-                    .filter { it.value is VmCodeInstruction }
-                    .map { IndexedValue(it.index, (it.value as VmCodeInstruction).ins) }
-                val changed = removeNops(block, indexedInstructions)
-                        || removeDoubleLoadsAndStores(block, indexedInstructions)       // TODO not yet implemented
-                        || removeUselessArithmetic(block, indexedInstructions)
-                        || removeWeirdBranches(block, indexedInstructions)
-                        || removeDoubleSecClc(block, indexedInstructions)
-                        || cleanupPushPop(block, indexedInstructions)
-                // TODO other optimizations:
-                //  more complex optimizations such as unused registers
-            } while(changed)
+        vmprog.blocks.forEach { block ->
+            block.children.forEach { child ->
+                when(child) {
+                    is VmCodeChunk -> {
+                        do {
+                            val indexedInstructions = child.lines.withIndex()
+                                .filter { it.value is VmCodeInstruction }
+                                .map { IndexedValue(it.index, (it.value as VmCodeInstruction).ins) }
+                            val changed = removeNops(child, indexedInstructions)
+                                    || removeDoubleLoadsAndStores(child, indexedInstructions)       // TODO not yet implemented
+                                    || removeUselessArithmetic(child, indexedInstructions)
+                                    || removeWeirdBranches(child, indexedInstructions)
+                                    || removeDoubleSecClc(child, indexedInstructions)
+                                    || cleanupPushPop(child, indexedInstructions)
+                            // TODO other optimizations:
+                            //  more complex optimizations such as unused registers
+                        } while (changed)
+                    }
+                    else -> {
+                        TODO("block child $child")
+                    }
+                }
+            }
         }
     }
 
-    private fun cleanupPushPop(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun cleanupPushPop(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         //  push followed by pop to same target, or different target->replace with load
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode==Opcode.PUSH) {
-                if(idx < block.lines.size-1) {
-                    val insAfter = block.lines[idx+1] as? VmCodeInstruction
+                if(idx < chunk.lines.size-1) {
+                    val insAfter = chunk.lines[idx+1] as? VmCodeInstruction
                     if(insAfter!=null && insAfter.ins.opcode ==Opcode.POP) {
                         if(ins.reg1==insAfter.ins.reg1) {
-                            block.lines.removeAt(idx)
-                            block.lines.removeAt(idx)
+                            chunk.lines.removeAt(idx)
+                            chunk.lines.removeAt(idx)
                         } else {
-                            block.lines[idx] = VmCodeInstruction(Opcode.LOADR, ins.type, reg1=insAfter.ins.reg1, reg2=ins.reg1)
-                            block.lines.removeAt(idx+1)
+                            chunk.lines[idx] = VmCodeInstruction(Opcode.LOADR, ins.type, reg1=insAfter.ins.reg1, reg2=ins.reg1)
+                            chunk.lines.removeAt(idx+1)
                         }
                         changed = true
                     }
@@ -47,25 +56,24 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
         return changed
     }
 
-
-    private fun removeDoubleSecClc(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeDoubleSecClc(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         //  double sec, clc
         //  sec+clc or clc+sec
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode==Opcode.SEC || ins.opcode==Opcode.CLC) {
-                if(idx < block.lines.size-1) {
-                    val insAfter = block.lines[idx+1] as? VmCodeInstruction
+                if(idx < chunk.lines.size-1) {
+                    val insAfter = chunk.lines[idx+1] as? VmCodeInstruction
                     if(insAfter?.ins?.opcode == ins.opcode) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                     else if(ins.opcode==Opcode.SEC && insAfter?.ins?.opcode==Opcode.CLC) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                     else if(ins.opcode==Opcode.CLC && insAfter?.ins?.opcode==Opcode.SEC) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
@@ -74,16 +82,16 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
         return changed
     }
 
-    private fun removeWeirdBranches(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeWeirdBranches(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         //  jump/branch to label immediately below
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode==Opcode.JUMP && ins.labelSymbol!=null) {
                 // if jumping to label immediately following this
-                if(idx < block.lines.size-1) {
-                    val label = block.lines[idx+1] as? VmCodeLabel
+                if(idx < chunk.lines.size-1) {
+                    val label = chunk.lines[idx+1] as? VmCodeLabel
                     if(label?.name == ins.labelSymbol) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
@@ -92,54 +100,54 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
         return changed
     }
 
-    private fun removeUselessArithmetic(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeUselessArithmetic(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MOD -> {
                     if (ins.value == 1) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.ADD, Opcode.SUB -> {
                     if (ins.value == 1) {
-                        block.lines[idx] = VmCodeInstruction(
+                        chunk.lines[idx] = VmCodeInstruction(
                             if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
                             ins.type,
                             ins.reg1
                         )
                         changed = true
                     } else if (ins.value == 0) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.AND -> {
                     if (ins.value == 0) {
-                        block.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
+                        chunk.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
                         changed = true
                     } else if (ins.value == 255 && ins.type == VmDataType.BYTE) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     } else if (ins.value == 65535 && ins.type == VmDataType.WORD) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.OR -> {
                     if (ins.value == 0) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     } else if ((ins.value == 255 && ins.type == VmDataType.BYTE) || (ins.value == 65535 && ins.type == VmDataType.WORD)) {
-                        block.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
+                        chunk.lines[idx] = VmCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
                         changed = true
                     }
                 }
                 Opcode.XOR -> {
                     if (ins.value == 0) {
-                        block.lines.removeAt(idx)
+                        chunk.lines.removeAt(idx)
                         changed = true
                     }
                 }
@@ -149,18 +157,18 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
         return changed
     }
 
-    private fun removeNops(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeNops(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.NOP) {
                 changed = true
-                block.lines.removeAt(idx)
+                chunk.lines.removeAt(idx)
             }
         }
         return changed
     }
 
-    private fun removeDoubleLoadsAndStores(block: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeDoubleLoadsAndStores(chunk: VmCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
 
