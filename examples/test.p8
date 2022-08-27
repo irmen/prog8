@@ -20,11 +20,19 @@ main {
 
         qq=global1
         qq=other.global2
-        ; nested()
+        nested()
+        main.start.nested.nested2()
 
         ; TODO flatten nested subroutines in codegen
         sub nested() {
             qq++
+            txt.print("zzz")
+            nested2()
+
+            sub nested2() {
+                txt.print("zzz2")
+                qq++
+            }
         }
     }
 }

@@ -8,7 +8,33 @@ import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
 import java.nio.file.Path
 
-// TODO: move this Intermedate Representation into the actual compiler core, code gen modules can receive it as input rather than an Ast.
+/*
+PROGRAM:
+    OPTIONS                 (from CompilationOptions)
+    VARIABLES               (from Symboltable)
+    MEMORYMAPPEDVARIABLES   (from Symboltable)
+    MEMORYSLABS             (from Symboltable)
+    GLOBALINITS
+        CODE-LINE       (assignment to initialize a variable)
+        CODE-LINE       (assignment to initialize a variable)
+        ...
+    BLOCK
+        INLINEASM
+        INLINEASM
+        SUB
+            CODE-LINE  (label, instruction, comment, inlinebinary)
+            CODE-LINE
+            CODE-LINE
+            ...
+        SUB
+        SUB
+        ASMSUB
+        ASMSUB
+        ...
+    BLOCK
+    BLOCK
+    ...
+*/
 
 class IRProgram(val name: String,
                 val st: SymbolTable,
@@ -35,22 +61,16 @@ class IRBlock(
     operator fun plusAssign(sub: IRSubroutine) {
         subroutines += sub
     }
-    operator fun plusAssign(sub: IRAsmSubroutine) {
-        asmSubroutines += sub
-    }
-    operator fun plusAssign(asm: IRInlineAsmChunk) {
-        inlineAssembly += asm
-    }
+    operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
+    operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssembly += asm }
 }
 
-class IRSubroutine(val scopedName: List<String>,
+class IRSubroutine(val name: String,
                    val returnType: DataType?,
                    val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
 
-    operator fun plusAssign(chunk: IRCodeChunk) {
-        lines += chunk.lines
-    }
+    operator fun plusAssign(chunk: IRCodeChunk) { lines += chunk.lines }
 }
 
 class IRAsmSubroutine(val scopedName: List<String>,

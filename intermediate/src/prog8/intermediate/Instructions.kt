@@ -2,15 +2,18 @@ package prog8.intermediate
 
 /*
 
-Virtual machine:
+Intermediate Representation instructions for the IR Virtual machine.
+--------------------------------------------------------------------
 
+Specs of the virtual machine this will run on:
+Program to execute is not stored in the system memory, it's just a separate list of instructions.
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
 65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
                                              logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
-Program to execute is not stored in this memory, it's just a separate list of instructions.
+
 Most instructions have an associated data type 'b','w','f'. (omitting it means 'b'/byte).
 Currently NO support for 24 or 32 bits integers.
 Floating point operations are just 'f' typed regular instructions, and additionally there are a few fp conversion instructions

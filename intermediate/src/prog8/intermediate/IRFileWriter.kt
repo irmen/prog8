@@ -37,7 +37,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
                 out.write("</INLINEASM>\n")
             }
             block.subroutines.forEach {
-                out.write("<SUB SCOPEDNAME=${it.scopedName.joinToString(".")} RETURNTYPE=${it.returnType} POS=${it.position}>\n")
+                out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType} POS=${it.position}>\n")
                 it.lines.forEach { line -> out.writeLine(line) }
                 out.write("</SUB>\n")
             }

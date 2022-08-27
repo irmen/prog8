@@ -10,6 +10,19 @@ import java.util.*
 import kotlin.math.*
 import kotlin.random.Random
 
+/*
+
+Virtual machine specs:
+
+Program to execute is not stored in the system memory, it's just a separate list of instructions.
+65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
+65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
+65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
+Value stack, max 128 entries of 1 byte each.
+Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
+                                             logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
+
+ */
 
 class ProgramExitException(val status: Int): Exception()
 

@@ -47,6 +47,9 @@ class CodeGen(internal val program: PtProgram,
     internal val vmRegisters = VmRegisterPool()
 
     override fun compileToAssembly(): IAssemblyProgram? {
+
+        flattenNestedSubroutines()
+
         val irProg = IRProgram(program.name, symbolTable, options, program.encoding)
 
         if(!options.dontReinitGlobals) {
@@ -78,6 +81,56 @@ class CodeGen(internal val program: PtProgram,
         IRFileWriter(irProg).writeFile()
 
         return DummyAssemblyProgram(irProg.name)
+    }
+
+    private fun flattenNestedSubroutines() {
+        // this moves all nested subroutines up to the block scope.
+        val flattenedSubs = mutableListOf<Pair<PtBlock, PtSub>>()
+        val flattenedAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
+        val removalsSubs = mutableListOf<Pair<PtSub, PtSub>>()
+        val removalsAsmSubs = mutableListOf<Pair<PtSub, PtAsmSub>>()
+
+        fun flattenNestedAsm(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
+            val flattened = PtAsmSub(asmsub.scopedName.joinToString("."),
+                asmsub.address,
+                asmsub.clobbers,
+                asmsub.parameters,
+                asmsub.returnTypes,
+                asmsub.retvalRegisters,
+                asmsub.inline,
+                asmsub.position)
+            asmsub.children.forEach { flattened.add(it) }
+            flattenedAsmSubs += Pair(block, flattened)
+            removalsAsmSubs += Pair(parentSub, asmsub)
+        }
+
+        fun flattenNested(block: PtBlock, parentSub: PtSub, sub: PtSub) {
+            sub.children.filterIsInstance<PtSub>().forEach { subsub->flattenNested(block, sub, subsub) }
+            sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsm(block, sub, asmsubsub) }
+            val flattened = PtSub(sub.scopedName.joinToString("."),
+                sub.parameters,
+                sub.returntype,
+                sub.inline,
+                sub.position)
+            sub.children.forEach { if(it !is PtSub) flattened.add(it) }
+            flattenedSubs += Pair(block, flattened)
+            removalsSubs += Pair(parentSub, sub)
+        }
+
+        program.allBlocks().forEach { block ->
+            block.children.forEach {
+                if(it is PtSub) {
+                    // Only regular subroutines can have nested subroutines.
+                    it.children.filterIsInstance<PtSub>().forEach { subsub->flattenNested(block, it, subsub)}
+                    it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsm(block, it, asmsubsub)}
+                }
+            }
+        }
+
+        removalsSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
+        removalsAsmSubs.forEach { (parent, asmsub) -> parent.children.remove(asmsub) }
+        flattenedSubs.forEach { (block, sub) -> block.add(sub) }
+        flattenedAsmSubs.forEach { (block, asmsub) -> block.add(asmsub) }
     }
 
 
@@ -651,7 +704,6 @@ class CodeGen(internal val program: PtProgram,
             translateNonZeroComparison()
     }
 
-
     private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunk {
         val code = IRCodeChunk(postIncrDecr.position)
         val operationMem: Opcode
@@ -771,7 +823,7 @@ class CodeGen(internal val program: PtProgram,
                 is PtAssignment -> { /* global variable initialization is done elsewhere */ }
                 is PtScopeVarsDecls -> { /* vars should be looked up via symbol table */ }
                 is PtSub -> {
-                    val vmsub = IRSubroutine(child.scopedName, child.returntype, child.position)
+                    val vmsub = IRSubroutine(child.name, child.returntype, child.position)
                     for (line in child.children) {
                         vmsub += translateNode(line)
                     }
@@ -823,4 +875,3 @@ class CodeGen(internal val program: PtProgram,
         return scopedName
     }
 }
-
