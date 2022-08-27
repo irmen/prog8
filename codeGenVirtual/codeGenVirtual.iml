@@ -15,5 +15,6 @@
     <orderEntry type="module" module-name="codeAst" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="virtualmachine" />
+    <orderEntry type="module" module-name="intermediate" />
   </component>
 </module>

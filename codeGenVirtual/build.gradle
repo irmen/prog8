@@ -27,6 +27,7 @@ compileTestKotlin {
 dependencies {
     implementation project(':codeAst')
     implementation project(':codeCore')
+    implementation project(':intermediate')
     implementation project(':virtualmachine')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"

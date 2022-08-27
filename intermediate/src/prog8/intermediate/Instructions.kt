@@ -1,4 +1,4 @@
-package prog8.vm
+package prog8.intermediate
 
 /*
 

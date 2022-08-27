@@ -1,4 +1,4 @@
-package prog8.codegen.experimental
+package prog8.intermediate
 
 import prog8.code.core.*
 import java.io.BufferedWriter

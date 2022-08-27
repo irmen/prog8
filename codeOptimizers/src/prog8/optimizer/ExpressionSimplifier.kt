@@ -6,7 +6,10 @@ import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
-import prog8.ast.statements.*
+import prog8.ast.statements.AnonymousScope
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.IfElse
+import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*

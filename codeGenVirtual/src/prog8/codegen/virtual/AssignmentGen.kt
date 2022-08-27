@@ -1,9 +1,11 @@
 package prog8.codegen.virtual
 
 import prog8.code.ast.*
-import prog8.code.core.*
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
+import prog8.code.core.SignedDatatypes
+import prog8.intermediate.Opcode
+import prog8.intermediate.VmDataType
 
 internal class AssignmentGen(private val codeGen: CodeGen, private val expressionEval: ExpressionGen) {
 

@@ -5,8 +5,7 @@ import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
+import prog8.intermediate.*
 import kotlin.math.pow
 
 
@@ -773,8 +772,8 @@ class CodeGen(internal val program: PtProgram,
                 is PtScopeVarsDecls -> { /* vars should be looked up via symbol table */ }
                 is PtSub -> {
                     val vmsub = IRSubroutine(child.scopedName, child.returntype, child.position)
-                    for (child in child.children) {
-                        vmsub += translateNode(child)
+                    for (line in child.children) {
+                        vmsub += translateNode(line)
                     }
                     vmblock += vmsub
                 }

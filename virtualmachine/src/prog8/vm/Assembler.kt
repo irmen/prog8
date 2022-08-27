@@ -1,6 +1,7 @@
 package prog8.vm
 
 import prog8.code.core.unescape
+import prog8.intermediate.*
 
 
 class Assembler {

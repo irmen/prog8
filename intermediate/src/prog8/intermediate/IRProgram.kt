@@ -1,4 +1,4 @@
-package prog8.codegen.experimental
+package prog8.intermediate
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtBlock
@@ -6,10 +6,6 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
-import prog8.vm.Instruction
-import prog8.vm.Opcode
-import prog8.vm.OpcodesWithAddress
-import prog8.vm.VmDataType
 import java.nio.file.Path
 
 // TODO: move this Intermedate Representation into the actual compiler core, code gen modules can receive it as input rather than an Ast.
@@ -76,7 +72,7 @@ class IRCodeInstruction(
     fpReg2: Int?=null,      // 0-$ffff
     value: Int?=null,       // 0-$ffff
     fpValue: Float?=null,
-    labelSymbol: List<String>?=null    // alternative to value for branch/call/jump labels
+    labelSymbol: List<String>?=null    // alternative to value
 ): IRCodeLine() {
     val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue, labelSymbol)
 

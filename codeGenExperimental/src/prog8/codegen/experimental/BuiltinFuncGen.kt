@@ -5,9 +5,9 @@ import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.vm.Opcode
+import prog8.intermediate.*
 import prog8.vm.Syscall
-import prog8.vm.VmDataType
+
 
 internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen: ExpressionGen) {
 

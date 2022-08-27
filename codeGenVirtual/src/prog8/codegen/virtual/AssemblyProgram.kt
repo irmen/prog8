@@ -3,10 +3,10 @@ package prog8.codegen.virtual
 import prog8.code.core.AssemblyError
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram
-import prog8.vm.Instruction
-import prog8.vm.Opcode
-import prog8.vm.OpcodesWithAddress
-import prog8.vm.VmDataType
+import prog8.intermediate.Instruction
+import prog8.intermediate.Opcode
+import prog8.intermediate.OpcodesWithAddress
+import prog8.intermediate.VmDataType
 import java.io.BufferedWriter
 import java.nio.file.Path
 import kotlin.io.path.bufferedWriter

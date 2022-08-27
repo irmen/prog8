@@ -5,8 +5,8 @@ import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
 import prog8.codegen.virtual.*
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
+import prog8.intermediate.Opcode
+import prog8.intermediate.VmDataType
 import prog8tests.vm.helpers.DummyMemsizer
 import prog8tests.vm.helpers.DummyStringEncoder
 

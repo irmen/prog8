@@ -1,9 +1,4 @@
-package prog8.codegen.experimental
-
-import prog8.vm.Instruction
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
-
+package prog8.intermediate
 
 class IRPeepholeOptimizer(private val vmprog: IRProgram) {
     fun optimize() {
@@ -190,15 +185,5 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
             // ...
         }
         return changed
-    }
-}
-
-private interface ICodeChange { // TODO not used? remove?
-    fun perform(block: IRCodeChunk)
-
-    class Remove(val idx: Int): ICodeChange {
-        override fun perform(block: IRCodeChunk) {
-            block.lines.removeAt(idx)
-        }
     }
 }

@@ -1,6 +1,9 @@
 package prog8.vm
 
 import prog8.code.target.virtual.IVirtualMachineRunner
+import prog8.intermediate.Instruction
+import prog8.intermediate.Opcode
+import prog8.intermediate.VmDataType
 import java.awt.Color
 import java.awt.Toolkit
 import java.util.*
@@ -269,7 +272,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 throw IllegalArgumentException("can't POP a float")
             }
         }
-        setResultReg(i.reg1!!, value, i.type)
+        setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
@@ -669,9 +672,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsINC(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1)+1u).toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1)+1u).toUShort())
-            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1)+1f)
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1!!)+1u).toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1!!)+1u).toUShort())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1!!)+1f)
         }
         pc++
     }
@@ -688,27 +691,27 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsDEC(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1)-1u).toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1)-1u).toUShort())
-            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1)-1f)
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1!!)-1u).toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1!!)-1u).toUShort())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1!!)-1f)
         }
         pc++
     }
 
     private fun InsDECM(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value)-1u).toUByte())
-            VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value)-1u).toUShort())
-            VmDataType.FLOAT -> memory.setFloat(i.value!!, memory.getFloat(i.value)-1f)
+            VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value!!)-1u).toUByte())
+            VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value!!)-1u).toUShort())
+            VmDataType.FLOAT -> memory.setFloat(i.value!!, memory.getFloat(i.value!!)-1f)
         }
         pc++
     }
 
     private fun InsNEG(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, (-registers.getUB(i.reg1).toInt()).toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, (-registers.getUW(i.reg1).toInt()).toUShort())
-            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, -registers.getFloat(i.fpReg1))
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, (-registers.getUB(i.reg1!!).toInt()).toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, (-registers.getUW(i.reg1!!).toInt()).toUShort())
+            VmDataType.FLOAT -> registers.setFloat(i.fpReg1!!, -registers.getFloat(i.fpReg1!!))
         }
         pc++
     }
@@ -731,7 +734,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val left = registers.getFloat(i.fpReg1!!)
                 val right = registers.getFloat(i.fpReg2!!)
                 val result = arithFloat(left, "+", right)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -744,7 +747,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val result = arithFloat(left, "+", i.fpValue!!)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -773,7 +776,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val left = registers.getFloat(i.fpReg1!!)
                 val right = registers.getFloat(i.fpReg2!!)
                 val result = arithFloat(left, "-", right)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -786,7 +789,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val result = arithFloat(left, "-", i.fpValue!!)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -815,7 +818,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val left = registers.getFloat(i.fpReg1!!)
                 val right = registers.getFloat(i.fpReg2!!)
                 val result = arithFloat(left, "*", right)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -828,7 +831,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val result = arithFloat(left, "*", i.fpValue!!)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -885,7 +888,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                 val left = registers.getFloat(i.fpReg1!!)
                 val right = registers.getFloat(i.fpReg2!!)
                 val result = arithFloat(left, "/", right)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -898,7 +901,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val result = arithFloat(left, "/", i.fpValue!!)
-                registers.setFloat(i.fpReg1, result)
+                registers.setFloat(i.fpReg1!!, result)
             }
         }
         pc++
@@ -1281,7 +1284,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsEXT(i: Instruction) {
         when(i.type!!){
-            VmDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1).toUShort())
+            VmDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1!!).toUShort())
             VmDataType.WORD -> throw IllegalArgumentException("ext.w not yet supported, requires 32 bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1290,7 +1293,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsEXTS(i: Instruction) {
         when(i.type!!){
-            VmDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1).toShort())
+            VmDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1!!).toShort())
             VmDataType.WORD -> throw IllegalArgumentException("exts.w not yet supported, requires 32 bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1309,8 +1312,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsAND(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) and i.value!!.toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) and i.value!!.toUShort())
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) and i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) and i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1346,8 +1349,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsOR(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) or i.value!!.toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) or i.value!!.toUShort())
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) or i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) or i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1383,8 +1386,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsXOR(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1) xor i.value!!.toUByte())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1) xor i.value!!.toUShort())
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) xor i.value!!.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) xor i.value!!.toUShort())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1410,8 +1413,8 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
 
     private fun InsINV(i: Instruction) {
         when(i.type!!) {
-            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1).inv())
-            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1).inv())
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!).inv())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!).inv())
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         pc++
@@ -1462,12 +1465,12 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.BYTE -> {
                 val value = registers.getSB(i.reg1!!).toInt()
                 statusCarry = (value and 1)!=0
-                registers.setSB(i.reg1, (value shr 1).toByte())
+                registers.setSB(i.reg1!!, (value shr 1).toByte())
             }
             VmDataType.WORD -> {
                 val value = registers.getSW(i.reg1!!).toInt()
                 statusCarry = (value and 1)!=0
-                registers.setSW(i.reg1, (value shr 1).toShort())
+                registers.setSW(i.reg1!!, (value shr 1).toShort())
             }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1527,12 +1530,12 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.BYTE -> {
                 val value = registers.getUB(i.reg1!!).toInt()
                 statusCarry = (value and 1)!=0
-                registers.setUB(i.reg1, (value shr 1).toUByte())
+                registers.setUB(i.reg1!!, (value shr 1).toUByte())
             }
             VmDataType.WORD -> {
                 val value = registers.getUW(i.reg1!!).toInt()
                 statusCarry = (value and 1)!=0
-                registers.setUW(i.reg1, (value shr 1).toUShort())
+                registers.setUW(i.reg1!!, (value shr 1).toUShort())
             }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1597,12 +1600,12 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.BYTE -> {
                 val value = registers.getUB(i.reg1!!).toInt()
                 statusCarry = (value and 0x80)!=0
-                registers.setUB(i.reg1, (value shl 1).toUByte())
+                registers.setUB(i.reg1!!, (value shl 1).toUByte())
             }
             VmDataType.WORD -> {
                 val value = registers.getUW(i.reg1!!).toInt()
                 statusCarry = (value and 0x8000)!=0
-                registers.setUW(i.reg1, (value shl 1).toUShort())
+                registers.setUW(i.reg1!!, (value shl 1).toUShort())
             }
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1638,7 +1641,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                     (orig.toUInt().rotateRight(1) or carry).toUByte()
                 } else
                     orig.rotateRight(1)
-                registers.setUB(i.reg1, rotated)
+                registers.setUB(i.reg1!!, rotated)
             }
             VmDataType.WORD -> {
                 val orig = registers.getUW(i.reg1!!)
@@ -1648,7 +1651,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                     (orig.toUInt().rotateRight(1) or carry).toUShort()
                 } else
                     orig.rotateRight(1)
-                registers.setUW(i.reg1, rotated)
+                registers.setUW(i.reg1!!, rotated)
             }
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't ROR a float")
@@ -1701,7 +1704,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                     (orig.toUInt().rotateLeft(1) or carry).toUByte()
                 } else
                     orig.rotateLeft(1)
-                registers.setUB(i.reg1, rotated)
+                registers.setUB(i.reg1!!, rotated)
             }
             VmDataType.WORD -> {
                 val orig = registers.getUW(i.reg1!!)
@@ -1711,7 +1714,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
                     (orig.toUInt().rotateLeft(1) or carry).toUShort()
                 } else
                     orig.rotateLeft(1)
-                registers.setUW(i.reg1, rotated)
+                registers.setUW(i.reg1!!, rotated)
             }
             VmDataType.FLOAT -> {
                 throw IllegalArgumentException("can't ROL a float")
@@ -1771,7 +1774,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             VmDataType.BYTE -> {
                 val lsb = registers.getUB(i.reg1!!)
                 val msb = registers.getUB(i.reg2!!)
-                registers.setUW(i.reg1, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
+                registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
             VmDataType.WORD -> throw IllegalArgumentException("concat.w not yet supported, requires 32-bits registers")
             VmDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
@@ -1822,7 +1825,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsFPOW(i: Instruction) {
         val value = registers.getFloat(i.fpReg1!!)
         val exponent = registers.getFloat(i.fpReg2!!)
-        registers.setFloat(i.fpReg1, value.pow(exponent))
+        registers.setFloat(i.fpReg1!!, value.pow(exponent))
         pc++
     }
 

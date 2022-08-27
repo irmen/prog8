@@ -1,9 +1,8 @@
 package prog8.codegen.virtual
 
-import prog8.vm.Instruction
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
-
+import prog8.intermediate.Instruction
+import prog8.intermediate.Opcode
+import prog8.intermediate.VmDataType
 
 class VmPeepholeOptimizer(private val vmprog: AssemblyProgram) {
     fun optimize() {

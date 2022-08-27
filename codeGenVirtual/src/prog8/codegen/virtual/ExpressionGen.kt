@@ -5,8 +5,8 @@ import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.vm.Opcode
-import prog8.vm.VmDataType
+import prog8.intermediate.Opcode
+import prog8.intermediate.VmDataType
 
 
 internal class ExpressionGen(private val codeGen: CodeGen) {
