@@ -14,22 +14,29 @@ PROGRAM:
     VARIABLES               (from Symboltable)
     MEMORYMAPPEDVARIABLES   (from Symboltable)
     MEMORYSLABS             (from Symboltable)
-    GLOBALINITS
-        CODE-LINE       (assignment to initialize a variable)
-        CODE-LINE       (assignment to initialize a variable)
-        ...
+    INITGLOBALS
+        CODE
+            CODE-LINE       (assignment to initialize a variable)
+            ...
     BLOCK
         INLINEASM
         INLINEASM
         SUB
-            CODE-LINE  (label, instruction, comment, inlinebinary)
-            CODE-LINE
-            CODE-LINE
+            INLINEASM
+            INLINEASM
+            CODE
+                CODE-LINE  (label, instruction, comment, inlinebinary)
+                CODE-LINE
+                ...
+            CODE
+            CODE
             ...
         SUB
         SUB
         ASMSUB
+            INLINEASM
         ASMSUB
+            INLINEASM
         ...
     BLOCK
     BLOCK
@@ -45,7 +52,11 @@ class IRProgram(val name: String,
     val blocks = mutableListOf<IRBlock>()
 
     fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.lines)
-    fun addBlock(block: IRBlock) = blocks.add(block)
+    fun addBlock(block: IRBlock) {
+        if(blocks.any { it.name==block.name })
+            throw IllegalArgumentException("duplicate block ${block.name} ${block.position}")
+        blocks.add(block)
+    }
 }
 
 class IRBlock(
@@ -68,17 +79,30 @@ class IRBlock(
 class IRSubroutine(val name: String,
                    val returnType: DataType?,
                    val position: Position) {
-    val lines = mutableListOf<IRCodeLine>()
+    val chunks = mutableListOf<IRCodeChunk>()
 
-    operator fun plusAssign(chunk: IRCodeChunk) { lines += chunk.lines }
+    init {
+        if(!name.contains('.'))
+            throw IllegalArgumentException("subroutine name is not scoped: $name")
+        if(name.startsWith("main.main."))
+            throw IllegalArgumentException("subroutine name invalid main prefix: $name")
+    }
+
+    operator fun plusAssign(chunk: IRCodeChunk) { chunks+= chunk }
 }
 
-class IRAsmSubroutine(val scopedName: List<String>,
+class IRAsmSubroutine(val name: String,
                       val position: Position,
                       val address: UInt?,
                       val assembly: String) {
     val lines = mutableListOf<IRCodeLine>()
 
+    init {
+        if(!name.contains('.'))
+            throw IllegalArgumentException("subroutine name is not scoped: $name")
+        if(name.startsWith("main.main."))
+            throw IllegalArgumentException("subroutine name invalid main prefix: $name")
+    }
 }
 
 sealed class IRCodeLine
@@ -131,6 +155,9 @@ class IRCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): 
 open class IRCodeChunk(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
 
+    open fun isEmpty() = lines.isEmpty()
+    open fun isNotEmpty() = lines.isNotEmpty()
+
     operator fun plusAssign(line: IRCodeLine) {
         lines.add(line)
     }
@@ -140,5 +167,9 @@ open class IRCodeChunk(val position: Position) {
     }
 }
 
-class IRInlineAsmChunk(val asm: String, position: Position): IRCodeChunk(position)  // note: no lines, asm is in the property
+class IRInlineAsmChunk(val asm: String, position: Position): IRCodeChunk(position) {
+    // note: no lines, asm is in the property
+    override fun isEmpty() = asm.isBlank()
+    override fun isNotEmpty() = asm.isNotBlank()
+}
 

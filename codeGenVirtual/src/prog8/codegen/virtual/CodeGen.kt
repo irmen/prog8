@@ -72,7 +72,7 @@ class CodeGen(internal val program: PtProgram,
             optimizer.optimize()
         }
 
-        println("Vm codegen: virtual registers=${vmRegisters.peekNext()} memory usage=${allocations.freeMem}")
+        println("Vm codegen: memory usage=${allocations.freeMem}")
 
         return vmprog
     }

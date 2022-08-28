@@ -1,9 +1,15 @@
 package prog8.intermediate
 
+import prog8.code.StMemVar
+import prog8.code.StStaticVariable
 import prog8.code.core.*
 import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
+
+
+// TODO incbins
+
 
 class IRFileWriter(private val irProgram: IRProgram) {
     private val outfile = irProgram.options.outputDir / ("${irProgram.name}.p8ir")
@@ -17,9 +23,9 @@ class IRFileWriter(private val irProgram: IRProgram) {
 
         if(!irProgram.options.dontReinitGlobals) {
             // note: this a block of code that loads values and stores them into the global variables to reset their values.
-            out.write("\n<INITGLOBALS>\n")
+            out.write("\n<INITGLOBALS>\n<CODE>\n")
             irProgram.globalInits.forEach { out.writeLine(it) }
-            out.write("</INITGLOBALS>\n")
+            out.write("</CODE>\n</INITGLOBALS>\n")
         }
         writeBlocks()
         out.write("</PROGRAM>\n")
@@ -30,36 +36,53 @@ class IRFileWriter(private val irProgram: IRProgram) {
         irProgram.blocks.forEach { block ->
             out.write("\n<BLOCK NAME=${block.name} ADDRESS=${block.address} ALIGN=${block.alignment} POS=${block.position}>\n")
             block.inlineAssembly.forEach {
-                out.write("<INLINEASM POS=${it.position}>\n")
-                out.write(it.asm)
-                if(!it.asm.endsWith('\n'))
-                    out.write("\n")
-                out.write("</INLINEASM>\n")
+                writeInlineAsm(it)
             }
             block.subroutines.forEach {
-                out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType} POS=${it.position}>\n")
-                it.lines.forEach { line -> out.writeLine(line) }
+                out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType.toString().lowercase()} POS=${it.position}>\n")
+                // TODO rest of the signature
+                it.chunks.forEach { chunk ->
+                    if(chunk is IRInlineAsmChunk) {
+                        writeInlineAsm(chunk)
+                    } else {
+                        out.write("<CODE>\n")
+                        if (chunk.lines.isEmpty())
+                            throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
+                        chunk.lines.forEach { line -> out.writeLine(line) }
+                        out.write("</CODE>\n")
+                    }
+                }
                 out.write("</SUB>\n")
             }
             block.asmSubroutines.forEach {
-                out.write("<ASMSUB SCOPEDNAME=${it.scopedName.joinToString(".")} ADDRESS=${it.address} POS=${it.position}>\n")
-                it.lines.forEach { line -> out.writeLine(line) }
-                out.write("</ASMSUB>\n")
+                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} POS=${it.position}>\n")
+                // TODO rest of the signature
+                out.write("<INLINEASM POS=${it.position}>\n")
+                out.write(it.assembly.trimStart('\n').trimEnd(' ', '\n'))
+                out.write("\n</INLINEASM>\n</ASMSUB>\n")
             }
             out.write("</BLOCK>\n")
         }
     }
 
+    private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
+        out.write("<INLINEASM POS=${chunk.position}>\n")
+        out.write(chunk.asm.trimStart('\n').trimEnd(' ', '\n'))
+        out.write("\n</INLINEASM>\n")
+    }
+
     private fun writeOptions() {
         out.write("<OPTIONS>\n")
-        out.write("compTarget = ${irProgram.options.compTarget.name}\n")
-        out.write("output = ${irProgram.options.output}\n")
-        out.write("launcher = ${irProgram.options.launcher}\n")
-        out.write("zeropage = ${irProgram.options.zeropage}\n")
-        out.write("zpReserved = ${irProgram.options.zpReserved}\n")
-        out.write("loadAddress = ${irProgram.options.loadAddress}\n")
-        out.write("dontReinitGlobals = ${irProgram.options.dontReinitGlobals}\n")
-        out.write("evalStackBaseAddress = ${irProgram.options.evalStackBaseAddress}\n")
+        out.write("compTarget=${irProgram.options.compTarget.name}\n")
+        out.write("output=${irProgram.options.output}\n")
+        out.write("launcher=${irProgram.options.launcher}\n")
+        out.write("zeropage=${irProgram.options.zeropage}\n")
+        for(range in irProgram.options.zpReserved) {
+            out.write("zpReserved=${range.first},${range.last}\n")
+        }
+        out.write("loadAddress=${irProgram.options.loadAddress}\n")
+        out.write("dontReinitGlobals=${irProgram.options.dontReinitGlobals}\n")
+        out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress}\n")
         // other options not yet useful here?
         out.write("</OPTIONS>\n")
     }
@@ -67,20 +90,13 @@ class IRFileWriter(private val irProgram: IRProgram) {
     private fun writeVariableAllocations() {
         out.write("\n<VARIABLES>\n")
         for (variable in irProgram.st.allVariables) {
-            val typeStr = when(variable.dt) {
-                DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
-                DataType.BYTE, DataType.ARRAY_B -> "byte"
-                DataType.UWORD, DataType.ARRAY_UW -> "uword"
-                DataType.WORD, DataType.ARRAY_W -> "word"
-                DataType.FLOAT, DataType.ARRAY_F -> "float"
-                else -> throw InternalCompilerException("weird dt")
-            }
+            val typeStr = getTypeString(variable)
             val value = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
-                in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0).toHex()
+                in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0)
                 DataType.STR -> {
                     val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue!!.second) + listOf(0u)
-                    encoded.joinToString(",") { it.toInt().toHex() }
+                    encoded.joinToString(",") { it.toInt().toString() }
                 }
                 DataType.ARRAY_F -> {
                     if(variable.onetimeInitializationArrayValue!=null) {
@@ -91,35 +107,60 @@ class IRFileWriter(private val irProgram: IRProgram) {
                 }
                 in ArrayDatatypes -> {
                     if(variable.onetimeInitializationArrayValue!==null) {
-                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toHex() }
+                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toInt().toString() }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
                     }
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            // TODO have uninitialized variables? (BSS SECTION)
-            out.write("VAR ${variable.scopedName.joinToString(".")} $typeStr = $value\n")
+            // TODO have uninitialized variables and arrays? (BSS SECTION)
+            out.write("$typeStr ${variable.scopedName.joinToString(".")}=$value zp=${variable.zpwish}\n")
         }
         out.write("</VARIABLES>\n")
 
         out.write("\n<MEMORYMAPPEDVARIABLES>\n")
         for (variable in irProgram.st.allMemMappedVariables) {
-            val typeStr = when(variable.dt) {
-                DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
-                DataType.BYTE, DataType.ARRAY_B -> "byte"
-                DataType.UWORD, DataType.ARRAY_UW -> "uword"
-                DataType.WORD, DataType.ARRAY_W -> "word"
-                DataType.FLOAT, DataType.ARRAY_F -> "float"
-                else -> throw InternalCompilerException("weird dt")
-            }
-            out.write("MAP ${variable.scopedName.joinToString(".")} $typeStr ${variable.address}\n")
+            val typeStr = getTypeString(variable)
+            out.write("&$typeStr ${variable.scopedName.joinToString(".")}=${variable.address}\n")
         }
         out.write("</MEMORYMAPPEDVARIABLES>\n")
 
         out.write("\n<MEMORYSLABS>\n")
         irProgram.st.allMemorySlabs.forEach{ slab -> out.write("SLAB _${slab.name} ${slab.size} ${slab.align}\n") }
         out.write("</MEMORYSLABS>\n")
+    }
+
+    private fun getTypeString(memvar: StMemVar): String {
+        return when(memvar.dt) {
+            DataType.UBYTE -> "ubyte"
+            DataType.BYTE -> "byte"
+            DataType.UWORD -> "uword"
+            DataType.WORD -> "word"
+            DataType.FLOAT -> "float"
+            DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
+            DataType.ARRAY_B -> "byte[${memvar.length}]"
+            DataType.ARRAY_UW -> "uword[${memvar.length}]"
+            DataType.ARRAY_W -> "word[${memvar.length}]"
+            DataType.ARRAY_F -> "float[${memvar.length}]"
+            else -> throw InternalCompilerException("weird dt")
+        }
+    }
+
+    private fun getTypeString(variable : StStaticVariable): String {
+        return when(variable.dt) {
+            DataType.UBYTE -> "ubyte"
+            DataType.BYTE -> "byte"
+            DataType.UWORD -> "uword"
+            DataType.WORD -> "word"
+            DataType.FLOAT -> "float"
+            DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
+            DataType.ARRAY_B -> "byte[${variable.length}]"
+            DataType.ARRAY_UW -> "uword[${variable.length}]"
+            DataType.ARRAY_W -> "word[${variable.length}]"
+            DataType.ARRAY_F -> "float[${variable.length}]"
+            else -> throw InternalCompilerException("weird dt")
+        }
     }
 
     private fun BufferedWriter.writeLine(line: IRCodeLine) {
