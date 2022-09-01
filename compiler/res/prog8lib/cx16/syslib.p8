@@ -369,6 +369,7 @@ romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uwor
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
 ; keyboard, mouse, joystick
+; note: also see the kbdbuf_clear() helper routine below!
 romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X     ; key in A, queue length in X
 romsub $febd = kbdbuf_peek2() -> uword @AX             ; alternative to above to not have the hassle to deal with multiple return values
 romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
@@ -379,6 +380,15 @@ romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
+
+asmsub kbdbuf_clear() {
+    ; -- convenience helper routine to clear the keyboard buffer
+    %asm {{
+-       jsr  c64.GETIN
+        bne  -
+        rts
+    }}
+}
 
 asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
     ; -- convenience wrapper function that handles the screen resolution for mouse_config() for you
