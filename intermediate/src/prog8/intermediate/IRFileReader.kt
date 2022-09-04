@@ -412,7 +412,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                     else {
                         if(operand.startsWith('_')) {
                             // it's a label.
-                            labelSymbol = rest.split(",")[2].trim().split('.')      // keep the original case
+                            labelSymbol = rest.split(",")[2].trim().substring(1).split('.')      // keep the original case
                             value = null
                         } else {
                             value = parseValue(operand)
@@ -423,7 +423,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                         operand = operands.removeFirst().trim()
                         if(operand.startsWith('_')) {
                             // it's a label.
-                            labelSymbol = rest.split(",")[3].trim().split('.')      // keep the original case
+                            labelSymbol = rest.split(",")[3].trim().substring(1).split('.')      // keep the original case
                             value = null
                         } else {
                             value = parseValue(operand)

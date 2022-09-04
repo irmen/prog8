@@ -143,6 +143,10 @@ class IRCodeInstruction(
                 VmDataType.FLOAT, null -> {}
             }
         }
+
+        if(labelSymbol?.first()?.startsWith('_')==true) {
+            throw IllegalArgumentException("label/symbol should not start with underscore $labelSymbol")
+        }
     }
 }
 

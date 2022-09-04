@@ -30,7 +30,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             }
             is PtIdentifier -> {
                 val vmDt = codeGen.vmType(expr.type)
-                val mem = codeGen.allocations.get(expr.targetName)
+                val mem = codeGen.addressOf(expr.targetName)
                 code += if (expr.type in PassByValueDatatypes) {
                     if(vmDt==VmDataType.FLOAT)
                         IRCodeInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, value = mem)
@@ -43,7 +43,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             }
             is PtAddressOf -> {
                 val vmDt = codeGen.vmType(expr.type)
-                val mem = codeGen.allocations.get(expr.identifier.targetName)
+                val mem = codeGen.addressOf(expr.identifier.targetName)
                 code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
             }
             is PtMemoryByte -> {
@@ -107,7 +107,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val vmDt = codeGen.vmType(arrayIx.type)
         val code = IRCodeChunk(arrayIx.position)
         val idxReg = codeGen.vmRegisters.nextFree()
-        val arrayLocation = codeGen.allocations.get(arrayIx.variable.targetName)
+        val arrayLocation = codeGen.addressOf(arrayIx.variable.targetName)
 
         if(arrayIx.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
@@ -819,22 +819,22 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     val paramDt = codeGen.vmType(parameter.type)
                     if(codeGen.isZero(arg)) {
                         if (paramDt == VmDataType.FLOAT) {
-                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
                             code += IRCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
                         } else {
-                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
                             code += IRCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
                         }
                     } else {
                         if (paramDt == VmDataType.FLOAT) {
                             val argFpReg = codeGen.vmRegisters.nextFreeFloat()
                             code += translateExpression(arg, -1, argFpReg)
-                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
                             code += IRCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
                         } else {
                             val argReg = codeGen.vmRegisters.nextFree()
                             code += translateExpression(arg, argReg, -1)
-                            val mem = codeGen.allocations.get(fcall.functionName + parameter.name)
+                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
                             code += IRCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
                         }
                     }

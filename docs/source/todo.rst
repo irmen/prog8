@@ -3,11 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: intermediate code: don't flatten everything. Instead, as a new intermediary step,
-  convert the new Ast into *structured* intermediary code.
-  Basically keep the blocks and subroutines structure, including full subroutine signature information,
-  don't do variable and zeropage allocations yet.
-
+- IR/VM: add address-of support (see CodeGen.addrssOf())
+- IR/VM: add proper memory mapped variables support
+- IR/VM: add proper memory slabs support
 
 ...
 

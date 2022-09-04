@@ -25,14 +25,16 @@ main {
             nop
         }}
 
-        ; TODO should generate address
-        uword @shared slab1 = memory("slab 1", 2000, 0)
-        uword @shared slab2 = memory("slab 1", 2000, 0)
-        uword @shared slab3 = memory("other # slab", 2000, 64)
+; TODO add proper memory SLAB support to IR+VM
+;        uword @shared slab1 = memory("slab 1", 2000, 0)
+;        uword @shared slab2 = memory("slab 1", 2000, 0)
+;        uword @shared slab3 = memory("other # slab", 2000, 64)
+
         &uword mapped = $c000
         &ubyte[20] mappedarray = $c100
 
-        uword @shared zz = slab1+slab2+slab3
+        uword @shared zz
+        ; TODO  zz = slab1+slab2+slab3
 
         uword @shared @zp qq = zz
         uword @shared @zp qq2 = &zz

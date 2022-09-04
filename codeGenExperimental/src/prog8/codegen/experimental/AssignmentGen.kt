@@ -28,7 +28,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         val array = assignment.target.array
 
         return if(ident!=null) {
-            val address = codeGen.allocations.get(ident.targetName)
+            val address = codeGen.addressOf(ident.targetName)
             assignSelfInMemory(address, assignment.value, assignment)
         } else if(memory != null) {
             if(memory.address is PtNumber)
@@ -147,7 +147,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
             }
         }
         if(ident!=null) {
-            val address = codeGen.allocations.get(ident.targetName)
+            val address = codeGen.addressOf(ident.targetName)
             code += if(zero) {
                 IRCodeInstruction(Opcode.STOREZM, vmDt, value = address)
             } else {
@@ -159,7 +159,7 @@ internal class AssignmentGen(private val codeGen: CodeGen, private val expressio
         }
         else if(array!=null) {
             val variable = array.variable.targetName
-            var variableAddr = codeGen.allocations.get(variable)
+            var variableAddr = codeGen.addressOf(variable)
             val itemsize = codeGen.program.memsizer.memorySize(array.type)
 
             if(array.variable.type==DataType.UWORD) {

@@ -40,7 +40,6 @@ class CodeGen(internal val program: PtProgram,
               internal val errors: IErrorReporter
 ): IAssemblyGenerator {
 
-    internal val allocations = VariableAllocator(symbolTable, program.encoding, program.memsizer)
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
@@ -301,9 +300,9 @@ class CodeGen(internal val program: PtProgram,
                     code += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
-                val arrayAddress = allocations.get(iterable.targetName)
+                val arrayAddress = addressOf(iterable.targetName)
                 val iterableVar = symbolTable.lookup(iterable.targetName) as StStaticVariable
-                val loopvarAddress = allocations.get(loopvar.scopedName)
+                val loopvarAddress = addressOf(loopvar.scopedName)
                 val indexReg = vmRegisters.nextFree()
                 val tmpReg = vmRegisters.nextFree()
                 val loopLabel = createLabelName()
@@ -352,6 +351,11 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
+    internal fun addressOf(targetName: List<String>): Int {
+        println("TODO: IR SUPPORT FOR ADDRESS-OF $targetName")  // TODO address-of
+        return 4242
+    }
+
     private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
         val iterable = forLoop.iterable as PtRange
         val step = iterable.step.number.toInt()
@@ -359,7 +363,7 @@ class CodeGen(internal val program: PtProgram,
             throw AssemblyError("step 0")
         val indexReg = vmRegisters.nextFree()
         val endvalueReg = vmRegisters.nextFree()
-        val loopvarAddress = allocations.get(loopvar.scopedName)
+        val loopvarAddress = addressOf(loopvar.scopedName)
         val loopvarDt = vmType(loopvar.dt)
         val loopLabel = createLabelName()
         val code = IRCodeChunk(forLoop.position)
@@ -378,7 +382,7 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
         val loopLabel = createLabelName()
-        val loopvarAddress = allocations.get(loopvar.scopedName)
+        val loopvarAddress = addressOf(loopvar.scopedName)
         val indexReg = vmRegisters.nextFree()
         val loopvarDt = vmType(loopvar.dt)
         val iterable = forLoop.iterable as PtRange
@@ -753,7 +757,7 @@ class CodeGen(internal val program: PtProgram,
         val array = postIncrDecr.target.array
         val vmDt = vmType(postIncrDecr.target.type)
         if(ident!=null) {
-            val address = allocations.get(ident.targetName)
+            val address = addressOf(ident.targetName)
             code += IRCodeInstruction(operationMem, vmDt, value = address)
         } else if(memory!=null) {
             if(memory.address is PtNumber) {
@@ -769,7 +773,7 @@ class CodeGen(internal val program: PtProgram,
             }
         } else if (array!=null) {
             val variable = array.variable.targetName
-            var variableAddr = allocations.get(variable)
+            var variableAddr = addressOf(variable)
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
             if(fixedIndex!=null) {
