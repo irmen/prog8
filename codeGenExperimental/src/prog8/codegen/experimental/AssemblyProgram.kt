@@ -58,11 +58,20 @@ class AssemblyProgram(override val name: String, val irProgram: IRProgram): IAss
                 if(block.address!=null)
                     TODO("blocks can't have a load address for vm")
                 out.write("; BLOCK ${block.name} ${block.position}\n")
+                block.inlineAssembly.forEach { asm ->
+                    out.write("; ASM ${asm.position}\n")
+                    out.write(asm.asm)
+                    out.write("\n")
+                }
                 block.subroutines.forEach { sub ->
                     out.write("; SUB ${sub.name} ${sub.position}\n")
                     out.write("_${sub.name}:\n")
                     sub.chunks.forEach { chunk ->
-                        chunk.lines.forEach { out.writeLine(it) }
+                        if(chunk is IRInlineAsmChunk) {
+                            out.write("; ASM ${chunk.position}\n${chunk.asm}\n")
+                        } else {
+                            chunk.lines.forEach { out.writeLine(it) }
+                        }
                     }
                     out.write("; END SUB ${sub.name}\n")
                 }

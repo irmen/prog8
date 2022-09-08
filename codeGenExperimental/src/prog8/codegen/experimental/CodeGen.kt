@@ -172,7 +172,7 @@ class CodeGen(internal val program: PtProgram,
         }
     }
 
-    internal fun translateNode(node: PtNode): IRCodeChunk {
+    internal fun translateNode(node: PtNode): IRCodeChunkBase {
         val code = when(node) {
             is PtScopeVarsDecls -> IRCodeChunk(node.position) // vars should be looked up via symbol table
             is PtVariable -> IRCodeChunk(node.position) // var should be looked up via symbol table

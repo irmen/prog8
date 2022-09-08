@@ -83,7 +83,7 @@ class IRBlock(
 class IRSubroutine(val name: String,
                    val returnType: DataType?,
                    val position: Position) {
-    val chunks = mutableListOf<IRCodeChunk>()
+    val chunks = mutableListOf<IRCodeChunkBase>()
 
     init {
         if(!name.contains('.'))
@@ -92,7 +92,7 @@ class IRSubroutine(val name: String,
             throw IllegalArgumentException("subroutine name invalid main prefix: $name")
     }
 
-    operator fun plusAssign(chunk: IRCodeChunk) { chunks+= chunk }
+    operator fun plusAssign(chunk: IRCodeChunkBase) { chunks+= chunk }
 }
 
 class IRAsmSubroutine(val name: String,
@@ -160,22 +160,28 @@ class IRCodeComment(val comment: String): IRCodeLine()
 
 class IRCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): IRCodeLine()
 
-open class IRCodeChunk(val position: Position) {
+abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
 
-    open fun isEmpty() = lines.isEmpty()
-    open fun isNotEmpty() = lines.isNotEmpty()
+    abstract fun isEmpty(): Boolean
+    abstract fun isNotEmpty(): Boolean
+}
+
+class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
+
+    override fun isEmpty() = lines.isEmpty()
+    override fun isNotEmpty() = lines.isNotEmpty()
 
     operator fun plusAssign(line: IRCodeLine) {
         lines.add(line)
     }
 
-    operator fun plusAssign(chunk: IRCodeChunk) {
+    operator fun plusAssign(chunk: IRCodeChunkBase) {
         lines.addAll(chunk.lines)
     }
 }
 
-class IRInlineAsmChunk(val asm: String, position: Position): IRCodeChunk(position) {
+class IRInlineAsmChunk(val asm: String, position: Position): IRCodeChunkBase(position) {
     // note: no lines, asm is in the property
     override fun isEmpty() = asm.isBlank()
     override fun isNotEmpty() = asm.isNotBlank()

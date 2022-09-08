@@ -4,22 +4,22 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
     fun optimize() {
         vmprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             sub.chunks.forEach { chunk ->
-                do {
-                    val indexedInstructions = chunk.lines.withIndex()
-                        .filter { it.value is IRCodeInstruction }
-                        .map { IndexedValue(it.index, (it.value as IRCodeInstruction).ins) }
-                    val changed = removeNops(chunk, indexedInstructions)
-                            || removeDoubleLoadsAndStores(
-                        chunk,
-                        indexedInstructions
-                    )       // TODO not yet implemented
-                            || removeUselessArithmetic(chunk, indexedInstructions)
-                            || removeWeirdBranches(chunk, indexedInstructions)
-                            || removeDoubleSecClc(chunk, indexedInstructions)
-                            || cleanupPushPop(chunk, indexedInstructions)
-                    // TODO other optimizations:
-                    //  more complex optimizations such as unused registers
-                } while (changed)
+                // we don't optimize Inline Asm chunks here.
+                if(chunk is IRCodeChunk) {
+                    do {
+                        val indexedInstructions = chunk.lines.withIndex()
+                            .filter { it.value is IRCodeInstruction }
+                            .map { IndexedValue(it.index, (it.value as IRCodeInstruction).ins) }
+                        val changed = removeNops(chunk, indexedInstructions)
+                                || removeDoubleLoadsAndStores(chunk, indexedInstructions)       // TODO not yet implemented
+                                || removeUselessArithmetic(chunk, indexedInstructions)
+                                || removeWeirdBranches(chunk, indexedInstructions)
+                                || removeDoubleSecClc(chunk, indexedInstructions)
+                                || cleanupPushPop(chunk, indexedInstructions)
+                        // TODO other optimizations:
+                        //  more complex optimizations such as unused registers
+                    } while (changed)
+                }
             }
         }
     }

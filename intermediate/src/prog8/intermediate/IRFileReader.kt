@@ -121,6 +121,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             // ubyte[6] main.start.namestring=105,114,109,101,110,0
             val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
             val (type, arrayspec, name, value, _, zpwish) = match.destructured
+            // TODO what to do with 'value' ??
             val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
             val dt: DataType = parseDatatype(type, arraysize!=null)
             val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
