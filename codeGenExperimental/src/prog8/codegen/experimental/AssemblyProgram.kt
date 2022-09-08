@@ -48,7 +48,7 @@ class AssemblyProgram(override val name: String, val irProgram: IRProgram): IAss
             irProgram.blocks.firstOrNull()?.let {
                 if(it.subroutines.any { it.name=="main.start" }) {
                     // there is a "main.start" entrypoint, jump to it
-                    out.writeLine(IRCodeInstruction(Opcode.JUMP, labelSymbol = listOf("main.start")))
+                    out.writeLine(IRCodeInstruction(Opcode.JUMP, labelSymbol = "main.start"))
                 }
             }
 
@@ -96,7 +96,7 @@ private fun BufferedWriter.writeLine(line: IRCodeLine) {
             write("\n")
         }
         is IRCodeLabel -> {
-            write("_" + line.name.joinToString(".") + ":\n")
+            write("_${line.name}:\n")
         }
         else -> throw AssemblyError("invalid IR code line")
     }

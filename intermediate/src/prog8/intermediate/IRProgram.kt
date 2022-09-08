@@ -9,6 +9,10 @@ import prog8.code.core.Position
 import java.nio.file.Path
 
 /*
+
+note: all symbol names are flattened so that they're a single string that is globally unique.
+
+
 PROGRAM:
     OPTIONS                 (from CompilationOptions)
     VARIABLES               (from Symboltable)
@@ -116,9 +120,9 @@ class IRCodeInstruction(
     fpReg2: Int?=null,      // 0-$ffff
     value: Int?=null,       // 0-$ffff
     fpValue: Float?=null,
-    labelSymbol: List<String>?=null    // alternative to value
+    labelSymbol: String?=null    // alternative to value
 ): IRCodeLine() {
-    val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue, labelSymbol)
+    val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue,  if(labelSymbol==null) null else listOf(labelSymbol))
 
     init {
         if(reg1!=null && (reg1<0 || reg1>65536))
@@ -144,13 +148,13 @@ class IRCodeInstruction(
             }
         }
 
-        if(labelSymbol?.first()?.startsWith('_')==true) {
+        if(labelSymbol?.startsWith('_')==true) {
             throw IllegalArgumentException("label/symbol should not start with underscore $labelSymbol")
         }
     }
 }
 
-class IRCodeLabel(val name: List<String>): IRCodeLine()
+class IRCodeLabel(val name: String): IRCodeLine()
 
 class IRCodeComment(val comment: String): IRCodeLine()
 

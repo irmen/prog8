@@ -90,6 +90,7 @@ class CodeGen(internal val program: PtProgram,
         val removalsAsmSubs = mutableListOf<Pair<PtSub, PtAsmSub>>()
         val renameSubs = mutableListOf<Pair<PtBlock, PtSub>>()
         val renameAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
+        val renameLabels = mutableListOf<Pair<PtNode, PtLabel>>()
         val entrypoint = program.entrypoint()
 
         fun flattenNestedAsm(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
@@ -125,13 +126,22 @@ class CodeGen(internal val program: PtProgram,
                     // Only regular subroutines can have nested subroutines.
                     it.children.filterIsInstance<PtSub>().forEach { subsub->flattenNested(block, it, subsub)}
                     it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsm(block, it, asmsubsub)}
+                    it.children.filterIsInstance<PtLabel>().forEach { label->renameLabels.add(Pair(it, label))}
                     renameSubs += Pair(block, it)
                 }
                 if(it is PtAsmSub)
                     renameAsmSubs += Pair(block, it)
+                if(it is PtLabel)
+                    renameLabels += Pair(block, it)
             }
         }
 
+        renameLabels.forEach { (parent, label) ->
+            val renamedLabel = PtLabel(label.scopedName.joinToString("."), label.position)
+            val idx = parent.children.indexOf(label)
+            parent.children.removeAt(idx)
+            parent.children.add(idx, renamedLabel)
+        }
         removalsSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
         removalsAsmSubs.forEach { (parent, asmsub) -> parent.children.remove(asmsub) }
         flattenedSubs.forEach { (block, sub) -> block.add(sub) }
@@ -182,7 +192,7 @@ class CodeGen(internal val program: PtProgram,
             is PtRepeatLoop -> translate(node)
             is PtLabel -> {
                 val chunk = IRCodeChunk(node.position)
-                chunk += IRCodeLabel(node.scopedName)
+                chunk += IRCodeLabel(node.name)
                 return chunk
             }
             is PtBreakpoint -> {
@@ -302,7 +312,7 @@ class CodeGen(internal val program: PtProgram,
             is PtIdentifier -> {
                 val arrayAddress = addressOf(iterable.targetName)
                 val iterableVar = symbolTable.lookup(iterable.targetName) as StStaticVariable
-                val loopvarAddress = addressOf(loopvar.scopedName)
+                val loopvarAddress = addressOf(loopvar.scopedName)  // TODO name?
                 val indexReg = vmRegisters.nextFree()
                 val tmpReg = vmRegisters.nextFree()
                 val loopLabel = createLabelName()
@@ -363,7 +373,7 @@ class CodeGen(internal val program: PtProgram,
             throw AssemblyError("step 0")
         val indexReg = vmRegisters.nextFree()
         val endvalueReg = vmRegisters.nextFree()
-        val loopvarAddress = addressOf(loopvar.scopedName)
+        val loopvarAddress = addressOf(loopvar.scopedName)  // TODO name?
         val loopvarDt = vmType(loopvar.dt)
         val loopLabel = createLabelName()
         val code = IRCodeChunk(forLoop.position)
@@ -382,7 +392,7 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
         val loopLabel = createLabelName()
-        val loopvarAddress = addressOf(loopvar.scopedName)
+        val loopvarAddress = addressOf(loopvar.scopedName)      // TODO name?
         val indexReg = vmRegisters.nextFree()
         val loopvarDt = vmType(loopvar.dt)
         val iterable = forLoop.iterable as PtRange
@@ -820,9 +830,9 @@ class CodeGen(internal val program: PtProgram,
         if(jump.address!=null)
             throw AssemblyError("cannot jump to memory location in the vm target")
         code += if(jump.generatedLabel!=null)
-            IRCodeInstruction(Opcode.JUMP, labelSymbol = listOf(jump.generatedLabel!!))
+            IRCodeInstruction(Opcode.JUMP, labelSymbol = jump.generatedLabel!!)
         else if(jump.identifier!=null)
-            IRCodeInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.targetName)
+            IRCodeInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.targetName.joinToString("."))
         else
             throw AssemblyError("weird jump")
         return code
@@ -892,9 +902,9 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private var labelSequenceNumber = 0
-    internal fun createLabelName(): List<String> {
+    internal fun createLabelName(): String {
         labelSequenceNumber++
-        return listOf("prog8_label_gen_$labelSequenceNumber")
+        return "prog8_label_gen_$labelSequenceNumber"
     }
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunk =

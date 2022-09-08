@@ -335,7 +335,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         if(match==null) {
             // it's a label.
             val labelmatch = labelPattern.matchEntire(line.trim()) ?: throw IRParseException("invalid label")
-            return IRCodeLabel(labelmatch.groupValues[1].split('.'))
+            return IRCodeLabel(labelmatch.groupValues[1])
         }
 
         // it's an instruction.
@@ -370,7 +370,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         var fpReg3: Int? = null
         var value: Float? = null
         var operand: String?
-        var labelSymbol: List<String>? = null
+        var labelSymbol: String? = null
         if(operands.isNotEmpty() && operands[0].isNotEmpty()) {
             operand = operands.removeFirst().trim()
             if(operand[0]=='r')
@@ -380,7 +380,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             else {
                 if(operand.startsWith('_')) {
                     // it's a label.
-                    labelSymbol = rest.split(",")[0].trim().substring(1).split('.')      // keep the original case
+                    labelSymbol = rest.split(",")[0].trim().substring(1)      // keep the original case
                     value = null
                 } else {
                     value = parseValue(operand)
@@ -396,7 +396,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                 else {
                     if(operand.startsWith('_')) {
                         // it's a label.
-                        labelSymbol = rest.split(",")[1].trim().substring(1).split('.')      // keep the original case
+                        labelSymbol = rest.split(",")[1].trim().substring(1)      // keep the original case
                         value = null
                     } else {
                         value = parseValue(operand)
@@ -412,7 +412,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                     else {
                         if(operand.startsWith('_')) {
                             // it's a label.
-                            labelSymbol = rest.split(",")[2].trim().substring(1).split('.')      // keep the original case
+                            labelSymbol = rest.split(",")[2].trim().substring(1)      // keep the original case
                             value = null
                         } else {
                             value = parseValue(operand)
@@ -423,7 +423,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                         operand = operands.removeFirst().trim()
                         if(operand.startsWith('_')) {
                             // it's a label.
-                            labelSymbol = rest.split(",")[3].trim().substring(1).split('.')      // keep the original case
+                            labelSymbol = rest.split(",")[3].trim().substring(1)      // keep the original case
                             value = null
                         } else {
                             value = parseValue(operand)

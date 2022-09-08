@@ -328,7 +328,7 @@ internal class BuiltinFuncGen(private val codeGen: CodeGen, private val exprGen:
         val align = (call.args[2] as PtNumber).number.toUInt()
         val label = codeGen.addMemorySlab(name, size, align, call.position)
         val code = IRCodeChunk(call.position)
-        code += IRCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = listOf(label))
+        code += IRCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = label)
         return code
     }
 

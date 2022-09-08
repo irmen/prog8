@@ -839,7 +839,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                         }
                     }
                 }
-                code += IRCodeInstruction(Opcode.CALL, labelSymbol=fcall.functionName)
+                code += IRCodeInstruction(Opcode.CALL, labelSymbol=fcall.functionName.joinToString("."))
                 if(fcall.type==DataType.FLOAT) {
                     if (!fcall.void && resultFpRegister != 0) {
                         // Call convention: result value is in fr0, so put it in the required register instead.

@@ -21,8 +21,10 @@ main {
     sub start() {
         sys.wait(1)
 
+a_label:
         %asm {{
             nop
+            jump  a_label
         }}
 
 ; TODO add proper memory SLAB support to IR+VM

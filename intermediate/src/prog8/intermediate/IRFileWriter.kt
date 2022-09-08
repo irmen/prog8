@@ -169,7 +169,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
             is IRCodeInstruction -> {
                 write(line.ins.toString() + "\n")
             }
-            is IRCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
+            is IRCodeLabel -> write("_${line.name}:\n")
             is IRCodeInlineBinary -> {
                 write("incbin \"${line.file}\"")
                 if(line.offset!=null)

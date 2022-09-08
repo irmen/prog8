@@ -81,7 +81,7 @@ class IRPeepholeOptimizer(private val vmprog: IRProgram) {
                 // if jumping to label immediately following this
                 if(idx < chunk.lines.size-1) {
                     val label = chunk.lines[idx+1] as? IRCodeLabel
-                    if(label?.name == ins.labelSymbol) {
+                    if(ins.labelSymbol.size==1 && label?.name == ins.labelSymbol[0]) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
