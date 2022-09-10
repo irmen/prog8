@@ -3,7 +3,8 @@
 
 main {
 
-    uword global1 = 1234
+    uword @shared global1 = 1234
+    str @shared globalstring = "irmen"
 
     %asm {{
         nop
@@ -26,6 +27,8 @@ main {
             jump  a_label
         }}
 a_label:
+
+        %asmbinary "LICENSE", 200, 513
 
 ; TODO add proper memory SLAB support to IR+VM
 ;        uword @shared slab1 = memory("slab 1", 2000, 0)

@@ -1,9 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.StMemVar
-import prog8.code.StMemorySlab
-import prog8.code.StStaticVariable
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.ast.PtBlock
 import prog8.code.core.*
 import prog8.code.target.*
@@ -29,7 +26,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         val match = programPattern.matchEntire(line) ?: throw IRParseException("invalid PROGRAM")
         val programName = match.groups[1]!!.value
         val options = parseOptions(lines)
-        val variables = parseVariables(lines)
+        val variables = parseVariables(lines, options.dontReinitGlobals)
         val memorymapped = parseMemMapped(lines)
         val slabs = parseSlabs(lines)
         val initGlobals = parseInitGlobals(lines)
@@ -104,7 +101,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         )
     }
 
-    private fun parseVariables(lines: Iterator<String>): List<StStaticVariable> {
+    private fun parseVariables(lines: Iterator<String>, dontReinitGlobals: Boolean): List<StStaticVariable> {
         var line = lines.next()
         while(line.isBlank())
             line = lines.next()
@@ -121,11 +118,25 @@ class IRFileReader(outputDir: Path, programName: String) {
             // ubyte[6] main.start.namestring=105,114,109,101,110,0
             val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
             val (type, arrayspec, name, value, _, zpwish) = match.destructured
-            // TODO what to do with 'value' ??
             val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
             val dt: DataType = parseDatatype(type, arraysize!=null)
             val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-            variables.add(StStaticVariable(name, dt, null, null, null, arraysize, zp, Position.DUMMY))
+            var initNumeric: Double? = null
+            var initArray: StArray? = null
+            when(dt) {
+                in NumericDatatypes -> {
+                    if(dontReinitGlobals) {
+                        // we need to specify a one time initialization value
+                        initNumeric = value.toDouble()
+                    }
+                }
+                in ArrayDatatypes -> {
+                    initArray = value.split(',').map { StArrayElement(it.toDouble(), null) }
+                }
+                DataType.STR -> throw IRParseException("STR should have been converted to byte array")
+                else -> throw IRParseException("weird dt")
+            }
+            variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
         }
         return variables
     }
@@ -204,8 +215,12 @@ class IRFileReader(outputDir: Path, programName: String) {
             line = lines.next()
         if(line!="<INITGLOBALS>")
             throw IRParseException("invalid INITGLOBALS")
-        val chunk = parseCodeChunk(lines.next(), lines)!!
         line = lines.next()
+        var chunk = IRCodeChunk(Position.DUMMY)
+        if(line=="<CODE>") {
+            chunk = parseCodeChunk(line, lines)!!
+            line = lines.next()
+        }
         if(line!="</INITGLOBALS>")
             throw IRParseException("missing INITGLOBALS close tag")
         return chunk
@@ -322,12 +337,24 @@ class IRFileReader(outputDir: Path, programName: String) {
         }
         val chunk = IRCodeChunk(Position.DUMMY)
         while(true) {
-            val line = lines.next()
+            var line = lines.next()
             if (line == "</CODE>")
                 return chunk
             if (line.isBlank() || line.startsWith(';'))
                 continue
-            chunk += parseCodeLine(line)
+            if(line=="<BYTES>") {
+                val bytes = mutableListOf<Byte>()
+                line = lines.next()
+                while(line!="</BYTES>") {
+                    line.trimEnd().windowed(size=2, step=2) {
+                        bytes.add(it.toString().toByte(16))
+                    }
+                    line = lines.next()
+                }
+                chunk += IRCodeInlineBinary(bytes.toByteArray())
+            } else {
+                chunk += parseCodeLine(line)
+            }
         }
     }
 
@@ -341,9 +368,6 @@ class IRFileReader(outputDir: Path, programName: String) {
 
         // it's an instruction.
         val (_, instr, typestr, rest) = match.groupValues
-        if(instr=="incbin") {
-            TODO("incbin")
-        }
         val opcode = try {
             Opcode.valueOf(instr.uppercase())
         } catch (ax: IllegalArgumentException) {

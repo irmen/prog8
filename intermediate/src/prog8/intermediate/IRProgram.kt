@@ -6,7 +6,6 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
-import java.nio.file.Path
 
 /*
 
@@ -158,7 +157,7 @@ class IRCodeLabel(val name: String): IRCodeLine()
 
 class IRCodeComment(val comment: String): IRCodeLine()
 
-class IRCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): IRCodeLine()
+class IRCodeInlineBinary(val data: ByteArray): IRCodeLine()
 
 abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()

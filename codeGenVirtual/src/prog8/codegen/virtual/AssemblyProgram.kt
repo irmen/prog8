@@ -136,4 +136,9 @@ internal class VmCodeInlineAsm(asm: String): VmCodeLine() {
     val assembly: String = asm.trimIndent()
 }
 
-internal class VmCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): VmCodeLine()
+internal class VmCodeInlineBinary(val file: Path, val offset: UInt?, val length: UInt?): VmCodeLine() {
+    init {
+        require(file.isAbsolute)
+        require(file.toFile().isFile)
+    }
+}

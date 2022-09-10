@@ -180,11 +180,19 @@ class IntermediateAstMaker(val program: Program) {
         return when(directive.directive) {
             "%breakpoint" -> PtBreakpoint(directive.position)
             "%asmbinary" -> {
+                val filename = directive.args[0].str!!
                 val offset: UInt? = if(directive.args.size>=2) directive.args[1].int!! else null
                 val length: UInt? = if(directive.args.size>=3) directive.args[2].int!! else null
-                val sourcePath = Path(directive.definingModule.source.origin)
-                val includedPath = sourcePath.resolveSibling(directive.args[0].str!!)
-                PtIncludeBinary(includedPath, offset, length, directive.position)
+                val abspath = if(File(filename).isFile) {
+                    Path(filename).toAbsolutePath()
+                } else {
+                    val sourcePath = Path(directive.definingModule.source.origin)
+                    sourcePath.resolveSibling(filename).toAbsolutePath()
+                }
+                if(abspath.toFile().isFile)
+                    PtIncludeBinary(abspath, offset, length, directive.position)
+                else
+                    throw FatalAstException("included file doesn't exist")
             }
             "%asminclude" -> {
                 val result = loadAsmIncludeFile(directive.args[0].str!!, directive.definingModule.source)

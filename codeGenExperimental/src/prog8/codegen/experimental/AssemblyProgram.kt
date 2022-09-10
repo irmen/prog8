@@ -97,11 +97,12 @@ private fun BufferedWriter.writeLine(line: IRCodeLine) {
             write(line.ins.toString() + "\n")
         }
         is IRCodeInlineBinary -> {
-            write("incbin \"${line.file}\"")
-            if(line.offset!=null)
-                write(",${line.offset}")
-            if(line.length!=null)
-                write(",${line.length}")
+            write("!binary ")
+            line.data.withIndex().forEach {(index, byte) ->
+                write(byte.toString(16).padStart(2,'0'))
+                if(index and 63 == 63 && index<line.data.size-1)
+                    write("\n!binary ")
+            }
             write("\n")
         }
         is IRCodeLabel -> {

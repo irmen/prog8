@@ -6,6 +6,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
+import kotlin.io.path.readBytes
 import kotlin.math.pow
 
 
@@ -204,7 +205,10 @@ class CodeGen(internal val program: PtProgram,
             is PtInlineAssembly -> IRInlineAsmChunk(node.assembly, node.position)
             is PtIncludeBinary -> {
                 val chunk = IRCodeChunk(node.position)
-                chunk += IRCodeInlineBinary(node.file, node.offset, node.length)
+                val data =  node.file.readBytes()
+                    .drop(node.offset?.toInt() ?: 0)
+                    .take(node.length?.toInt() ?: Int.MAX_VALUE)
+                chunk += IRCodeInlineBinary(data.toByteArray())
                 return chunk
             }
             is PtAddressOf,

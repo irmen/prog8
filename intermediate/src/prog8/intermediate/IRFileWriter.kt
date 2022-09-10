@@ -8,9 +8,6 @@ import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
 
-// TODO incbins
-
-
 class IRFileWriter(private val irProgram: IRProgram) {
     private val outfile = irProgram.options.outputDir / ("${irProgram.name}.p8ir")
     private val out = outfile.bufferedWriter()
@@ -21,12 +18,14 @@ class IRFileWriter(private val irProgram: IRProgram) {
         writeOptions()
         writeVariableAllocations()
 
+        out.write("\n<INITGLOBALS>\n")
         if(!irProgram.options.dontReinitGlobals) {
+            out.write("<CODE>\n")
             // note: this a block of code that loads values and stores them into the global variables to reset their values.
-            out.write("\n<INITGLOBALS>\n<CODE>\n")
             irProgram.globalInits.forEach { out.writeLine(it) }
-            out.write("</CODE>\n</INITGLOBALS>\n")
+            out.write("</CODE>\n")
         }
+        out.write("</INITGLOBALS>\n")
         writeBlocks()
         out.write("</PROGRAM>\n")
         out.close()
@@ -91,9 +90,9 @@ class IRFileWriter(private val irProgram: IRProgram) {
         out.write("\n<VARIABLES>\n")
         for (variable in irProgram.st.allVariables) {
             val typeStr = getTypeString(variable)
-            val value = when(variable.dt) {
+            val value: String = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
-                in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0)
+                in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: "0")
                 DataType.STR -> {
                     val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue!!.second) + listOf(0u)
                     encoded.joinToString(",") { it.toInt().toString() }
@@ -171,12 +170,13 @@ class IRFileWriter(private val irProgram: IRProgram) {
             }
             is IRCodeLabel -> write("_${line.name}:\n")
             is IRCodeInlineBinary -> {
-                write("incbin \"${line.file}\"")
-                if(line.offset!=null)
-                    write(",${line.offset}")
-                if(line.length!=null)
-                    write(",${line.length}")
-                write("\n")
+                write("<BYTES>\n")
+                line.data.withIndex().forEach {(index, byte) ->
+                    write(byte.toString(16).padStart(2,'0'))
+                    if(index and 63 == 63 && index < line.data.size-1)
+                        write("\n")
+                }
+                write("\n</BYTES>\n")
             }
             else -> throw AssemblyError("invalid vm code line")
         }
