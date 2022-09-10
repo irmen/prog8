@@ -3,7 +3,7 @@ package prog8.codegen.experimental
 import prog8.code.SymbolTable
 import prog8.code.core.*
 
-class VariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
+class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
     internal val allocations = mutableMapOf<List<String>, Int>()
     private var freeMemoryStart: Int
@@ -24,18 +24,6 @@ class VariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, mems
                 }
 
             allocations[variable.scopedName] = nextLocation
-            nextLocation += memsize
-        }
-        for (memvar in st.allMemMappedVariables) {
-            // TODO virtual machine doesn't have memory mapped variables, so treat them as regular allocated variables for now
-            val memsize =
-                when (memvar.dt) {
-                    in NumericDatatypes -> memsizer.memorySize(memvar.dt)
-                    in ArrayDatatypes -> memsizer.memorySize(memvar.dt, memvar.length!!)
-                    else -> throw InternalCompilerException("weird dt")
-                }
-
-            allocations[memvar.scopedName] = nextLocation
             nextLocation += memsize
         }
 
@@ -78,25 +66,6 @@ class VariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, mems
                     }
                 }
                 else -> throw InternalCompilerException("weird dt")
-            }
-            mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
-        }
-        for (variable in st.allMemMappedVariables) {
-            val location = allocations.getValue(variable.scopedName)
-            val typeStr = when(variable.dt) {
-                DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
-                DataType.BYTE, DataType.ARRAY_B -> "byte"
-                DataType.UWORD, DataType.ARRAY_UW -> "uword"
-                DataType.WORD, DataType.ARRAY_W -> "word"
-                DataType.FLOAT, DataType.ARRAY_F -> "float"
-                else -> throw InternalCompilerException("weird dt")
-            }
-            val value = when(variable.dt) {
-                DataType.FLOAT -> "0.0"
-                in NumericDatatypes -> "0"
-                DataType.ARRAY_F -> (1..variable.length!!).joinToString(",") { "0.0" }
-                in ArrayDatatypes -> (1..variable.length!!).joinToString(",") { "0" }
-                else -> throw InternalCompilerException("weird dt for mem mapped var")
             }
             mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
         }

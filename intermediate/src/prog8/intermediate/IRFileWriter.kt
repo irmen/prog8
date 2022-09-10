@@ -20,10 +20,10 @@ class IRFileWriter(private val irProgram: IRProgram) {
 
         out.write("\n<INITGLOBALS>\n")
         if(!irProgram.options.dontReinitGlobals) {
-            out.write("<CODE>\n")
+            out.write("<C>\n")
             // note: this a block of code that loads values and stores them into the global variables to reset their values.
             irProgram.globalInits.forEach { out.writeLine(it) }
-            out.write("</CODE>\n")
+            out.write("</C>\n")
         }
         out.write("</INITGLOBALS>\n")
         writeBlocks()
@@ -44,11 +44,11 @@ class IRFileWriter(private val irProgram: IRProgram) {
                     if(chunk is IRInlineAsmChunk) {
                         writeInlineAsm(chunk)
                     } else {
-                        out.write("<CODE>\n")
+                        out.write("<C>\n")
                         if (chunk.lines.isEmpty())
                             throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
                         chunk.lines.forEach { line -> out.writeLine(line) }
-                        out.write("</CODE>\n")
+                        out.write("</C>\n")
                     }
                 }
                 out.write("</SUB>\n")

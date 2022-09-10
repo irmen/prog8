@@ -78,7 +78,7 @@ class CodeGen(internal val program: PtProgram,
         // TODO: this makes sure those I/O routines are correct, but this step should be skipped eventually.
         IRFileWriter(irProg).writeFile()
         val irProgFromDisk = IRFileReader(options.outputDir, irProg.name).readFile()
-        return AssemblyProgram(irProgFromDisk.name, irProgFromDisk)
+        return VmAssemblyProgram(irProgFromDisk.name, irProgFromDisk)
     }
 
     private fun flattenNestedSubroutines() {

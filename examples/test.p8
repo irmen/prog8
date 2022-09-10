@@ -50,7 +50,8 @@ a_label:
         uword[4] @shared wordzeroarray
 
         qq=4242             ; TODO should generate symbol not allocated address
-        mapped = 42     ; TODO wrong VMASM code generated... should generate mapped memory address
+        mapped = 99         ; TODO wrong VMASM code generated... should generate mapped memory address
+        mappedarray[1]=99
 
         qq=global1
         qq=other.global2

@@ -217,7 +217,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             throw IRParseException("invalid INITGLOBALS")
         line = lines.next()
         var chunk = IRCodeChunk(Position.DUMMY)
-        if(line=="<CODE>") {
+        if(line=="<C>") {
             chunk = parseCodeChunk(line, lines)!!
             line = lines.next()
         }
@@ -310,7 +310,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             val line = lines.next()
             if(line=="</SUB>")
                 return sub
-            val chunk = if(line=="<CODE>")
+            val chunk = if(line=="<C>")
                 parseCodeChunk(line, lines)
             else if(line.startsWith("<INLINEASM "))
                 parseInlineAssembly(line, lines)
@@ -329,16 +329,16 @@ class IRFileReader(outputDir: Path, programName: String) {
     }
 
     private fun parseCodeChunk(firstline: String, lines: Iterator<String>): IRCodeChunk? {
-        if(firstline!="<CODE>") {
+        if(firstline!="<C>") {
             if(firstline=="</SUB>")
                 return null
             else
-                throw IRParseException("invalid or empty CODE chunk")
+                throw IRParseException("invalid or empty <C>ODE chunk")
         }
         val chunk = IRCodeChunk(Position.DUMMY)
         while(true) {
             var line = lines.next()
-            if (line == "</CODE>")
+            if (line == "</C>")
                 return chunk
             if (line.isBlank() || line.startsWith(';'))
                 continue

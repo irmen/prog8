@@ -18,7 +18,7 @@ PROGRAM:
     MEMORYMAPPEDVARIABLES   (from Symboltable)
     MEMORYSLABS             (from Symboltable)
     INITGLOBALS
-        CODE
+        C (CODE)
             CODE-LINE       (assignment to initialize a variable)
             ...
     BLOCK
@@ -27,12 +27,12 @@ PROGRAM:
         SUB
             INLINEASM
             INLINEASM
-            CODE
+            C (CODE)
                 CODE-LINE  (label, instruction, comment, inlinebinary)
                 CODE-LINE
                 ...
-            CODE
-            CODE
+            C (CODE)
+            C (CODE)
             ...
         SUB
         SUB

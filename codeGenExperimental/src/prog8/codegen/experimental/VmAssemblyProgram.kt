@@ -8,36 +8,24 @@ import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
-class AssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
+class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
 
     // TODO once this is working, replace the codeGenVirtual by codeGenExperimental
-    // after that,
+    //      after that, remove the intermediate .p8ir file writing
+
 
     override fun assemble(options: CompilationOptions): Boolean {
         val outfile = options.outputDir / ("$name.p8virt")
         println("write code to $outfile")
 
         // at last, allocate the variables in memory.
-        val allocations = VariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
 
         outfile.bufferedWriter().use { out ->
             allocations.asVmMemory().forEach { (name, alloc) ->
                 out.write("; ${name.joinToString(".")}\n")
                 out.write(alloc + "\n")
             }
-//            with(irProgram.st) {
-//                allVariables.forEach {
-//                    //TODO("var $it")
-//                }
-//                allMemMappedVariables.forEach {
-//                    println("MAPPED ${it.name} ${it.address}")
-//                    // TODO implement proper memory mapped variable in VM - for now put them as regular variable to get it to compile
-//
-//                }
-//                allMemorySlabs.forEach {
-//                    TODO("implement proper memory slab allocation in VM")
-//                }
-//            }
 
             out.write("------PROGRAM------\n")
 
