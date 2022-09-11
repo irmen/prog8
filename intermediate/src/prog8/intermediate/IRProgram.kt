@@ -1,11 +1,8 @@
 package prog8.intermediate
 
+import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
-import prog8.code.ast.PtBlock
-import prog8.code.core.CompilationOptions
-import prog8.code.core.DataType
-import prog8.code.core.IStringEncoding
-import prog8.code.core.Position
+import prog8.code.core.*
 
 /*
 
@@ -25,6 +22,7 @@ PROGRAM:
         INLINEASM
         INLINEASM
         SUB
+            PARAMS
             INLINEASM
             INLINEASM
             C (CODE)
@@ -65,12 +63,18 @@ class IRProgram(val name: String,
 class IRBlock(
     val name: String,
     val address: UInt?,
-    val alignment: PtBlock.BlockAlignment,
+    val alignment: BlockAlignment,
     val position: Position
 ) {
     val subroutines = mutableListOf<IRSubroutine>()
     val asmSubroutines = mutableListOf<IRAsmSubroutine>()
     val inlineAssembly = mutableListOf<IRInlineAsmChunk>()
+
+    enum class BlockAlignment {
+        NONE,
+        WORD,
+        PAGE
+    }
 
     operator fun plusAssign(sub: IRSubroutine) {
         subroutines += sub
@@ -80,8 +84,10 @@ class IRBlock(
 }
 
 class IRSubroutine(val name: String,
+                   val parameters: List<StStaticVariable>,  // NOTE: these are the same objects as their occurrences as variables in the symbol table
                    val returnType: DataType?,
                    val position: Position) {
+
     val chunks = mutableListOf<IRCodeChunkBase>()
 
     init {
@@ -97,6 +103,9 @@ class IRSubroutine(val name: String,
 class IRAsmSubroutine(val name: String,
                       val position: Position,
                       val address: UInt?,
+                      val clobbers: Set<CpuRegister>,
+                      val parameters: List<IRAsmSubParam>,
+                      val returns: List<Pair<DataType, RegisterOrStatusflag>>,
                       val assembly: String) {
     val lines = mutableListOf<IRCodeLine>()
 
@@ -106,6 +115,8 @@ class IRAsmSubroutine(val name: String,
         if(name.startsWith("main.main."))
             throw IllegalArgumentException("subroutine name invalid main prefix: $name")
     }
+
+    class IRAsmSubParam(val name: String, val dt: DataType, val reg: RegisterOrStatusflag)
 }
 
 sealed class IRCodeLine

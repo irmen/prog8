@@ -39,7 +39,9 @@ class IRFileWriter(private val irProgram: IRProgram) {
             }
             block.subroutines.forEach {
                 out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType.toString().lowercase()} POS=${it.position}>\n")
-                // TODO rest of the signature
+                out.write("<PARAMS>\n")
+                it.parameters.forEach { param -> out.write("${getTypeString(param)} ${param.scopedName.joinToString(".")}\n") }
+                out.write("</PARAMS>\n")
                 it.chunks.forEach { chunk ->
                     if(chunk is IRInlineAsmChunk) {
                         writeInlineAsm(chunk)
@@ -54,8 +56,9 @@ class IRFileWriter(private val irProgram: IRProgram) {
                 out.write("</SUB>\n")
             }
             block.asmSubroutines.forEach {
-                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} POS=${it.position}>\n")
-                // TODO rest of the signature
+                val clobbers = it.clobbers.joinToString(",")
+                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} CLOBBERS=$clobbers POS=${it.position}>\n")
+                // TODO rest of the signature:  RETURNS = it.returns
                 out.write("<INLINEASM POS=${it.position}>\n")
                 out.write(it.assembly.trimStart('\n').trimEnd(' ', '\n'))
                 out.write("\n</INLINEASM>\n</ASMSUB>\n")
@@ -128,6 +131,22 @@ class IRFileWriter(private val irProgram: IRProgram) {
         out.write("\n<MEMORYSLABS>\n")
         irProgram.st.allMemorySlabs.forEach{ slab -> out.write("SLAB _${slab.name} ${slab.size} ${slab.align}\n") }
         out.write("</MEMORYSLABS>\n")
+    }
+
+    private fun getTypeString(dt : DataType): String {
+        return when(dt) {
+            DataType.UBYTE -> "ubyte"
+            DataType.BYTE -> "byte"
+            DataType.UWORD -> "uword"
+            DataType.WORD -> "word"
+            DataType.FLOAT -> "float"
+            DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
+            DataType.ARRAY_B -> "byte[]"
+            DataType.ARRAY_UW -> "uword[]"
+            DataType.ARRAY_W -> "word[]"
+            DataType.ARRAY_F -> "float[]"
+            else -> throw InternalCompilerException("weird dt")
+        }
     }
 
     private fun getTypeString(memvar: StMemVar): String {

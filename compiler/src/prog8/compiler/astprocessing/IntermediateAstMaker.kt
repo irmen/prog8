@@ -302,6 +302,8 @@ class IntermediateAstMaker(val program: Program) {
             srcSub.asmReturnvaluesRegisters,
             srcSub.inline,
             srcSub.position)
+        sub.parameters.forEach { it.first.parent=sub }
+
         if(srcSub.asmAddress==null) {
             var combinedAsm = ""
             for (asm in srcSub.statements)
@@ -322,6 +324,7 @@ class IntermediateAstMaker(val program: Program) {
             srcSub.returntypes.singleOrNull(),
             srcSub.inline,
             srcSub.position)
+        sub.parameters.forEach { it.parent=sub }
 
         if(vardecls.isNotEmpty()) sub.add(makeScopeVarsDecls(vardecls, sub.position))
         for (statement in statements)

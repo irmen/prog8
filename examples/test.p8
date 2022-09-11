@@ -55,10 +55,10 @@ a_label:
 
         qq=global1
         qq=other.global2
-        nested()
+        nested(11,22)
         main.start.nested.nested2()
 
-        sub nested() {
+        sub nested(ubyte a1, ubyte a2) {
             qq++
             txt.print("zzz")
             nested2()

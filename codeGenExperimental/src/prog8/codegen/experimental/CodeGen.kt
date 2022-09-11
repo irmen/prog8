@@ -863,14 +863,14 @@ class CodeGen(internal val program: PtProgram,
     }
 
     private fun translate(block: PtBlock): IRBlock {
-        val vmblock = IRBlock(block.name, block.address, block.alignment, block.position)   // no use for other attributes yet?
+        val vmblock = IRBlock(block.name, block.address, translate(block.alignment), block.position)   // no use for other attributes yet?
         for (child in block.children) {
             when(child) {
                 is PtNop -> { /* nothing */ }
                 is PtAssignment -> { /* global variable initialization is done elsewhere */ }
                 is PtScopeVarsDecls -> { /* vars should be looked up via symbol table */ }
                 is PtSub -> {
-                    val vmsub = IRSubroutine(child.name, child.returntype, child.position)
+                    val vmsub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
                     for (subchild in child.children) {
                         val translated = translateNode(subchild)
                         if(translated.isNotEmpty())
@@ -880,7 +880,11 @@ class CodeGen(internal val program: PtProgram,
                 }
                 is PtAsmSub -> {
                     val assembly = if(child.children.isEmpty()) "" else (child.children.single() as PtInlineAssembly).assembly
-                    vmblock += IRAsmSubroutine(child.name, child.position, child.address, assembly)
+                    vmblock += IRAsmSubroutine(child.name, child.position, child.address,
+                        child.clobbers,
+                        child.parameters.map { IRAsmSubroutine.IRAsmSubParam(it.first.name, it.first.type, it.second) },
+                        child.returnTypes.zip(child.retvalRegisters),
+                        assembly)
                 }
                 is PtInlineAssembly -> {
                     vmblock += IRInlineAsmChunk(child.assembly, child.position)
@@ -889,6 +893,20 @@ class CodeGen(internal val program: PtProgram,
             }
         }
         return vmblock
+    }
+
+    private fun translate(parameters: List<PtSubroutineParameter>) =
+        parameters.map {
+            val flattenedName = (it.definingSub()!!.scopedName + it.name)
+            symbolTable.flat.getValue(flattenedName) as StStaticVariable
+        }
+
+    private fun translate(alignment: PtBlock.BlockAlignment): IRBlock.BlockAlignment {
+        return when(alignment) {
+            PtBlock.BlockAlignment.NONE -> IRBlock.BlockAlignment.NONE
+            PtBlock.BlockAlignment.WORD -> IRBlock.BlockAlignment.WORD
+            PtBlock.BlockAlignment.PAGE -> IRBlock.BlockAlignment.PAGE
+        }
     }
 
 

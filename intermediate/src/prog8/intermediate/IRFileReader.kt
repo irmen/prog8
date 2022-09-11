@@ -1,7 +1,6 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.ast.PtBlock
 import prog8.code.core.*
 import prog8.code.target.*
 import java.nio.file.Path
@@ -30,7 +29,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         val memorymapped = parseMemMapped(lines)
         val slabs = parseSlabs(lines)
         val initGlobals = parseInitGlobals(lines)
-        val blocks = parseBlocksUntilProgramEnd(lines)
+        val blocks = parseBlocksUntilProgramEnd(lines, variables)
 
         val st = SymbolTable()
         variables.forEach { st.add(it) }
@@ -226,7 +225,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         return chunk
     }
 
-    private fun parseBlocksUntilProgramEnd(lines: Iterator<String>): List<IRBlock> {
+    private fun parseBlocksUntilProgramEnd(lines: Iterator<String>, variables: List<StStaticVariable>): List<IRBlock> {
         val blocks = mutableListOf<IRBlock>()
         while(true) {
             var line = lines.next()
@@ -234,27 +233,27 @@ class IRFileReader(outputDir: Path, programName: String) {
                 line = lines.next()
             if (line == "</PROGRAM>")
                 break
-            blocks.add(parseBlock(line, lines))
+            blocks.add(parseBlock(line, lines, variables))
         }
         return blocks
     }
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
     private val inlineAsmPattern = Regex("<INLINEASM POS=(.+)>")
-    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) POS=(.+)>")
+    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.+) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
     private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
     private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-    private fun parseBlock(startline: String, lines: Iterator<String>): IRBlock {
+    private fun parseBlock(startline: String, lines: Iterator<String>, variables: List<StStaticVariable>): IRBlock {
         var line = startline
         if(!line.startsWith("<BLOCK "))
             throw IRParseException("invalid BLOCK")
         val match = blockPattern.matchEntire(line) ?: throw IRParseException("invalid BLOCK")
         val (name, address, align, position) = match.destructured
         val addressNum = if(address=="null") null else address.toUInt()
-        val block = IRBlock(name, addressNum, PtBlock.BlockAlignment.valueOf(align), parsePosition(position))
+        val block = IRBlock(name, addressNum, IRBlock.BlockAlignment.valueOf(align), parsePosition(position))
         while(true) {
             line = lines.next()
             if(line.isBlank())
@@ -262,7 +261,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             if(line=="</BLOCK>")
                 return block
             if(line.startsWith("<SUB ")) {
-                val sub = parseSubroutine(line, lines)
+                val sub = parseSubroutine(line, lines, variables)
                 block += sub
             } else if(line.startsWith("<ASMSUB ")) {
                 val sub = parseAsmSubroutine(line, lines)
@@ -289,23 +288,33 @@ class IRFileReader(outputDir: Path, programName: String) {
     }
 
     private fun parseAsmSubroutine(startline: String, lines: Iterator<String>): IRAsmSubroutine {
-        // <ASMSUB NAME=main.testasmsub ADDRESS=null POS=[examples/test.p8: line 14 col 6-11]>
-        // TODO parse more signature stuff once it's there.
+        // <ASMSUB NAME=main.testasmsub ADDRESS=null CLOBBERS=A,Y POS=[examples/test.p8: line 14 col 6-11]>
         val match = asmsubPattern.matchEntire(startline) ?: throw IRParseException("invalid ASMSUB")
-        val (scopedname, address, pos) = match.destructured
+        val (scopedname, address, clobbers, pos) = match.destructured
         var line = lines.next()
         val asm = parseInlineAssembly(line, lines)
         while(line!="</ASMSUB>")
             line = lines.next()
-        return IRAsmSubroutine(scopedname, parsePosition(pos), if(address=="null") null else address.toUInt(), asm.asm)
+        val clobberRegs = clobbers.split(',').map { CpuRegister.valueOf(it) }
+        // TODO parse this additional signature stuff once it's there.
+        val parameters = mutableListOf<IRAsmSubroutine.IRAsmSubParam>()
+        val returns = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
+        return IRAsmSubroutine(scopedname,
+            parsePosition(pos), if(address=="null") null else address.toUInt(),
+            clobberRegs.toSet(),
+            parameters,
+            returns,
+            asm.asm)
     }
 
-    private fun parseSubroutine(startline: String, lines: Iterator<String>): IRSubroutine {
+    private fun parseSubroutine(startline: String, lines: Iterator<String>, variables: List<StStaticVariable>): IRSubroutine {
         // <SUB NAME=main.start.nested.nested2 RETURNTYPE=null POS=[examples/test.p8: line 54 col 14-16]>
-        // TODO parse more signature stuff once it's there.
         val match = subPattern.matchEntire(startline) ?: throw IRParseException("invalid SUB")
         val (name, returntype, pos) = match.destructured
-        val sub = IRSubroutine(name, if(returntype=="null") null else parseDatatype(returntype, false), parsePosition(pos))
+        val sub = IRSubroutine(name,
+            parseParameters(lines, variables),
+            if(returntype=="null") null else parseDatatype(returntype, false),
+            parsePosition(pos))
         while(true) {
             val line = lines.next()
             if(line=="</SUB>")
@@ -326,6 +335,21 @@ class IRFileReader(outputDir: Path, programName: String) {
         if(line=="</SUB>")
             throw IRParseException("missing SUB close tag")
         return sub
+    }
+
+    private fun parseParameters(lines: Iterator<String>, variables: List<StStaticVariable>): List<StStaticVariable> {
+        var line = lines.next()
+        if(line!="<PARAMS>")
+            throw IRParseException("missing PARAMS")
+        val params = mutableListOf<StStaticVariable>()
+        while(true) {
+            line = lines.next()
+            if(line=="</PARAMS>")
+                return params
+            val (datatype, name) = line.split(' ')
+            val dt = parseDatatype(datatype, datatype.contains('['))
+            params.add(variables.single { it.dt==dt && it.name==name})
+        }
     }
 
     private fun parseCodeChunk(firstline: String, lines: Iterator<String>): IRCodeChunk? {
