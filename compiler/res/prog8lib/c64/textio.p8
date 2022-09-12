@@ -468,6 +468,14 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 	}}
 }
 
+; ---- screen , color address
+%asm {{
+    .weak
+    screen_addr   =   $0400
+    .endweak
+    color_addr    =   $D800
+}}
+
 asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
 	; ---- sets the character in the screen matrix at the given position
 	%asm {{
@@ -484,10 +492,37 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 		bcc  +
 		inc  _mod+2
 +		pla
-_mod		sta  $ffff		; modified
+_mod		
+        sta  $ffff		; modified
 		rts
 
-_screenrows	.word  $0400 + range(0, 1000, 40)
+_screenrows	.word  screen_addr + range(0, 1000, 40)
+_ptr    = setchr._mod +1
+	}}
+}
+
+asmsub  setcol  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
+	; ---- sets the color in the screen matrix at the given position
+	%asm {{
+		pha
+		tya
+		asl  a
+		tay
+		lda  _colorrows+1,y
+		sta  _mod+2
+		txa
+		clc
+		adc  _colorrows,y
+		sta  _mod+1
+		bcc  +
+		inc  _mod+2
++		pla
+_mod		
+        sta  $ffff		; modified
+		rts
+
+_colorrows	.word  color_addr + range(0, 1000, 40)
+_ptr    = setcol._mod +1   
 	}}
 }
 
@@ -506,11 +541,31 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		sta  _mod+1
 		bcc  _mod
 		inc  _mod+2
-_mod		lda  $ffff		; modified
+_mod		
+        lda  $ffff		; modified
 		rts
 	}}
 }
-
+asmsub  getcol  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
+	; ---- get the character in the screen matrix at the given location
+	%asm  {{
+		pha
+		tya
+		asl  a
+		tay
+		lda  setchr._colorrows+1,y
+		sta  _mod+2
+		pla
+		clc
+		adc  setchr._colorrows,y
+		sta  _mod+1
+		bcc  _mod
+		inc  _mod+2
+_mod		
+        lda  $ffff		; modified
+		rts
+	}}
+}
 asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
 	; ---- set the color in A on the screen matrix at the given position
 	%asm {{
@@ -556,30 +611,9 @@ _mod		lda  $ffff		; modified
 
 sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
-	%asm {{
-		lda  row
-		asl  a
-		tay
-		lda  setchr._screenrows+1,y
-		sta  _charmod+2
-		adc  #$d4
-		sta  _colormod+2
-		lda  setchr._screenrows,y
-		clc
-		adc  column
-		sta  _charmod+1
-		sta  _colormod+1
-		bcc  +
-		inc  _charmod+2
-		inc  _colormod+2
-+		lda  char
-_charmod	sta  $ffff		; modified
-		lda  charcolor
-_colormod	sta  $ffff		; modified
-		rts
-	}}
+    setchr( column , row, char )
+    setcol( column , row, charcolor )    
 }
-
 asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 	; ---- safe wrapper around PLOT kernal routine, to save the X register.
 	%asm  {{
