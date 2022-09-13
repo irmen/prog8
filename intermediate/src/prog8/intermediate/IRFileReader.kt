@@ -240,7 +240,7 @@ class IRFileReader(outputDir: Path, programName: String) {
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
     private val inlineAsmPattern = Regex("<INLINEASM POS=(.+)>")
-    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.+) POS=(.+)>")
+    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.+) RETURNS=(.+) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
     private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
@@ -290,19 +290,37 @@ class IRFileReader(outputDir: Path, programName: String) {
     private fun parseAsmSubroutine(startline: String, lines: Iterator<String>): IRAsmSubroutine {
         // <ASMSUB NAME=main.testasmsub ADDRESS=null CLOBBERS=A,Y POS=[examples/test.p8: line 14 col 6-11]>
         val match = asmsubPattern.matchEntire(startline) ?: throw IRParseException("invalid ASMSUB")
-        val (scopedname, address, clobbers, pos) = match.destructured
+        val (scopedname, address, clobbers, returnSpec, pos) = match.destructured
+        // parse PARAMS
         var line = lines.next()
+        if(line!="<PARAMS>")
+            throw IRParseException("missing PARAMS")
+        val params = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
+        while(true) {
+            line = lines.next()
+            if(line=="</PARAMS>")
+                break
+            val (datatype, regOrSf) = line.split(' ')
+            val dt = parseDatatype(datatype, datatype.contains('['))
+            val regsf = parseRegisterOrStatusflag(regOrSf)
+            params += Pair(dt, regsf)
+        }
+        line = lines.next()
         val asm = parseInlineAssembly(line, lines)
         while(line!="</ASMSUB>")
             line = lines.next()
         val clobberRegs = clobbers.split(',').map { CpuRegister.valueOf(it) }
-        // TODO parse this additional signature stuff once it's there.
-        val parameters = mutableListOf<IRAsmSubroutine.IRAsmSubParam>()
         val returns = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
+        returnSpec.split(',').forEach{ rs ->
+            val (regstr, dtstr) = rs.split(':')
+            val dt = parseDatatype(dtstr, false)
+            val regsf = parseRegisterOrStatusflag(regstr)
+            returns.add(Pair(dt, regsf))
+        }
         return IRAsmSubroutine(scopedname,
             parsePosition(pos), if(address=="null") null else address.toUInt(),
             clobberRegs.toSet(),
-            parameters,
+            params,
             returns,
             asm.asm)
     }
@@ -558,6 +576,17 @@ class IRFileReader(outputDir: Path, programName: String) {
             throw IRParseException("attempt to parse a label as value")
         else
             return value.toFloat()
+    }
+
+    private fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {
+        var reg: RegisterOrPair? = null
+        var sf: Statusflag? = null
+        try {
+            reg = RegisterOrPair.valueOf(regs)
+        } catch (x: IllegalArgumentException) {
+            sf = Statusflag.valueOf(regs)
+        }
+        return RegisterOrStatusflag(reg, sf)
     }
 
     private fun parsePosition(strpos: String): Position {

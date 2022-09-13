@@ -35,8 +35,10 @@ PROGRAM:
         SUB
         SUB
         ASMSUB
+            PARAMS
             INLINEASM
         ASMSUB
+            PARAMS
             INLINEASM
         ...
     BLOCK
@@ -104,7 +106,7 @@ class IRAsmSubroutine(val name: String,
                       val position: Position,
                       val address: UInt?,
                       val clobbers: Set<CpuRegister>,
-                      val parameters: List<IRAsmSubParam>,
+                      val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
                       val returns: List<Pair<DataType, RegisterOrStatusflag>>,
                       val assembly: String) {
     val lines = mutableListOf<IRCodeLine>()
@@ -115,8 +117,6 @@ class IRAsmSubroutine(val name: String,
         if(name.startsWith("main.main."))
             throw IllegalArgumentException("subroutine name invalid main prefix: $name")
     }
-
-    class IRAsmSubParam(val name: String, val dt: DataType, val reg: RegisterOrStatusflag)
 }
 
 sealed class IRCodeLine

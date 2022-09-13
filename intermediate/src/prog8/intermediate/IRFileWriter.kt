@@ -57,8 +57,18 @@ class IRFileWriter(private val irProgram: IRProgram) {
             }
             block.asmSubroutines.forEach {
                 val clobbers = it.clobbers.joinToString(",")
-                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} CLOBBERS=$clobbers POS=${it.position}>\n")
-                // TODO rest of the signature:  RETURNS = it.returns
+                val returns = it.returns.map { (dt, reg) ->
+                    if(reg.registerOrPair!=null) "${reg.registerOrPair}:${dt.toString().lowercase()}"
+                    else "${reg.statusflag}:${dt.toString().lowercase()}"
+                }.joinToString(",")
+                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} CLOBBERS=$clobbers RETURNS=$returns POS=${it.position}>\n")
+                out.write("<PARAMS>\n")
+                it.parameters.forEach { (dt, regOrSf) ->
+                    val reg = if(regOrSf.registerOrPair!=null) regOrSf.registerOrPair.toString()
+                    else regOrSf.statusflag.toString()
+                    out.write("${dt.toString().lowercase()} $reg\n")
+                }
+                out.write("</PARAMS>\n")
                 out.write("<INLINEASM POS=${it.position}>\n")
                 out.write(it.assembly.trimStart('\n').trimEnd(' ', '\n'))
                 out.write("\n</INLINEASM>\n</ASMSUB>\n")

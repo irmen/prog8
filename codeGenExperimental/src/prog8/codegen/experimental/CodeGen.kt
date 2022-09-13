@@ -882,7 +882,7 @@ class CodeGen(internal val program: PtProgram,
                     val assembly = if(child.children.isEmpty()) "" else (child.children.single() as PtInlineAssembly).assembly
                     vmblock += IRAsmSubroutine(child.name, child.position, child.address,
                         child.clobbers,
-                        child.parameters.map { IRAsmSubroutine.IRAsmSubParam(it.first.name, it.first.type, it.second) },
+                        child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
                         child.returnTypes.zip(child.retvalRegisters),
                         assembly)
                 }
