@@ -3,10 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR/VM: add address-of support (see CodeGen.addrssOf())   use {X} syntax or change to &X? see AssemblyProgram.kt
+- IR/VM: add address-of support (see CodeGen.addressOf())  syntax = &X
 - IR/VM: add proper memory mapped variables support
 - IR/VM: add proper memory slabs support
-- IR/VM: fix other TODO's
 
 ...
 

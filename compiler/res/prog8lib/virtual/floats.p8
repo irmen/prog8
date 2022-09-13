@@ -10,7 +10,7 @@ floats {
 sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).
     %asm {{
-        loadm.f fr0,{floats.print_f.value}
+        loadm.f fr0,&floats.print_f.value
         syscall 25
         return
     }}
@@ -18,8 +18,8 @@ sub print_f(float value) {
 
 sub pow(float value, float power) -> float {
     %asm {{
-        loadm.f fr0,{floats.pow.value}
-        loadm.f fr1,{floats.pow.power}
+        loadm.f fr0,&floats.pow.value
+        loadm.f fr1,&floats.pow.power
         fpow.f fr0,fr1
         return
     }}
@@ -27,7 +27,7 @@ sub pow(float value, float power) -> float {
 
 sub fabs(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.fabs.value}
+        loadm.f fr0,&floats.fabs.value
         fabs.f fr0,fr0
         return
     }}
@@ -35,7 +35,7 @@ sub fabs(float value) -> float {
 
 sub sin(float angle) -> float {
     %asm {{
-        loadm.f fr0,{floats.sin.angle}
+        loadm.f fr0,&floats.sin.angle
         fsin.f fr0,fr0
         return
     }}
@@ -43,7 +43,7 @@ sub sin(float angle) -> float {
 
 sub cos(float angle) -> float {
     %asm {{
-        loadm.f fr0,{floats.cos.angle}
+        loadm.f fr0,&floats.cos.angle
         fcos.f fr0,fr0
         return
     }}
@@ -51,7 +51,7 @@ sub cos(float angle) -> float {
 
 sub tan(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.tan.value}
+        loadm.f fr0,&floats.tan.value
         ftan.f fr0,fr0
         return
     }}
@@ -59,7 +59,7 @@ sub tan(float value) -> float {
 
 sub atan(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.atan.value}
+        loadm.f fr0,&floats.atan.value
         fatan.f fr0,fr0
         return
     }}
@@ -67,7 +67,7 @@ sub atan(float value) -> float {
 
 sub ln(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.ln.value}
+        loadm.f fr0,&floats.ln.value
         fln.f fr0,fr0
         return
     }}
@@ -75,7 +75,7 @@ sub ln(float value) -> float {
 
 sub log2(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.log2.value}
+        loadm.f fr0,&floats.log2.value
         flog.f fr0,fr0
         return
     }}
@@ -83,7 +83,7 @@ sub log2(float value) -> float {
 
 sub sqrt(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.sqrt.value}
+        loadm.f fr0,&floats.sqrt.value
         sqrt.f fr0,fr0
         return
     }}
@@ -101,7 +101,7 @@ sub deg(float angle) -> float {
 
 sub round(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.round.value}
+        loadm.f fr0,&floats.round.value
         fround.f fr0,fr0
         return
     }}
@@ -109,7 +109,7 @@ sub round(float value) -> float {
 
 sub floor(float value) -> float {
     %asm {{
-        loadm.f fr0,{floats.floor.value}
+        loadm.f fr0,&floats.floor.value
         ffloor.f fr0,fr0
         return
     }}
@@ -118,7 +118,7 @@ sub floor(float value) -> float {
 sub ceil(float value) -> float {
     ; -- ceil: tr = int(f); if tr==f -> return  else return tr+1
     %asm {{
-        loadm.f fr0,{floats.ceil.value}
+        loadm.f fr0,&floats.ceil.value
         fceil.f fr0,fr0
         return
     }}

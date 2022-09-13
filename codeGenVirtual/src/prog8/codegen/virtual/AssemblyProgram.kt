@@ -48,9 +48,9 @@ class AssemblyProgram(override val name: String, private val allocations: Variab
             }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
             is VmCodeInlineAsm -> {
-                val asm = line.assembly.replace("""\{[a-zA-Z\d_\.]+\}""".toRegex()) { matchResult ->
-                    // "{ X }" -> address of X      // TODO USE &X instead for address of X????
-                    val name = matchResult.value.substring(1, matchResult.value.length-1).split('.')
+                val asm = line.assembly.replace("""&[a-zA-Z\d_\.]+""".toRegex()) { matchResult ->
+                    // "&X" -> address of X
+                    val name = matchResult.value.substring(1, matchResult.value.length).split('.')
                     allocations.get(name).toString() }
                 write(asm+"\n")
             }

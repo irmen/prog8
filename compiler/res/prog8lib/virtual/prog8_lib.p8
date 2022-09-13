@@ -42,8 +42,8 @@ prog8_lib {
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (it will use strcmp for you under water automatically).
         %asm {{
-            loadm.w r0, {prog8_lib.string_compare.st1}
-            loadm.w r1, {prog8_lib.string_compare.st2}
+            loadm.w r0,&prog8_lib.string_compare.st1
+            loadm.w r1,&prog8_lib.string_compare.st2
             syscall 29
             return
         }}
