@@ -191,9 +191,9 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 }
 
-class IRInlineAsmChunk(val asm: String, position: Position): IRCodeChunkBase(position) {
+class IRInlineAsmChunk(val assembly: String, position: Position): IRCodeChunkBase(position) {
     // note: no lines, asm is in the property
-    override fun isEmpty() = asm.isBlank()
-    override fun isNotEmpty() = asm.isNotBlank()
+    override fun isEmpty() = assembly.isBlank()
+    override fun isNotEmpty() = assembly.isNotBlank()
 }
 

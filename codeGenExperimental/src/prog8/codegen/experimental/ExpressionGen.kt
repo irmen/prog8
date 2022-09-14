@@ -30,21 +30,21 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             }
             is PtIdentifier -> {
                 val vmDt = codeGen.vmType(expr.type)
-                val mem = codeGen.addressOf(expr.targetName)
+                val addrOf = codeGen.addressOf(expr.targetName)
                 code += if (expr.type in PassByValueDatatypes) {
                     if(vmDt==VmDataType.FLOAT)
-                        IRCodeInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, value = mem)
+                        IRCodeInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = addrOf)
                     else
-                        IRCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, value = mem)
+                        IRCodeInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = addrOf)
                 } else {
                     // for strings and arrays etc., load the *address* of the value instead
-                    IRCodeInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, value = mem)
+                    IRCodeInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = addrOf)
                 }
             }
             is PtAddressOf -> {
                 val vmDt = codeGen.vmType(expr.type)
-                val mem = codeGen.addressOf(expr.identifier.targetName)
-                code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=mem)
+                val addrOf = codeGen.addressOf(expr.identifier.targetName)
+                code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, labelSymbol = addrOf)
             }
             is PtMemoryByte -> {
                 if(expr.address is PtNumber) {
@@ -107,7 +107,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         val vmDt = codeGen.vmType(arrayIx.type)
         val code = IRCodeChunk(arrayIx.position)
         val idxReg = codeGen.vmRegisters.nextFree()
-        val arrayLocation = codeGen.addressOf(arrayIx.variable.targetName)
+        val arrayLocationExpr = codeGen.addressOf(arrayIx.variable.targetName)
 
         if(arrayIx.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
@@ -116,25 +116,24 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             if(arrayIx.index.type!=DataType.UBYTE)
                 throw AssemblyError("non-array var indexing requires bytes index")
             code += translateExpression(arrayIx.index, idxReg, -1)
-            code += IRCodeInstruction(Opcode.LOADIX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
+            code += IRCodeInstruction(Opcode.LOADIX, vmDt, reg1=resultRegister, reg2=idxReg, labelSymbol = arrayLocationExpr)
             return code
         }
 
         if(arrayIx.index is PtNumber) {
-            // optimized code when index is known - just calculate the memory address here
-            val memOffset = (arrayIx.index as PtNumber).number.toInt() * eltSize
+            val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize).toString()
             if(vmDt==VmDataType.FLOAT)
-                code += IRCodeInstruction(Opcode.LOADM, VmDataType.FLOAT, fpReg1=resultFpRegister, value=arrayLocation+memOffset)
+                code += IRCodeInstruction(Opcode.LOADM, VmDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = "$arrayLocationExpr+$memOffset")
             else
-                code += IRCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, value=arrayLocation+memOffset)
+                code += IRCodeInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = "$arrayLocationExpr+$memOffset")
         } else {
             code += translateExpression(arrayIx.index, idxReg, -1)
             if(eltSize>1)
                 code += codeGen.multiplyByConst(VmDataType.BYTE, idxReg, eltSize, arrayIx.position)
             if(vmDt==VmDataType.FLOAT)
-                code += IRCodeInstruction(Opcode.LOADX, VmDataType.FLOAT, fpReg1 = resultFpRegister, reg1=idxReg, value = arrayLocation)
+                code += IRCodeInstruction(Opcode.LOADX, VmDataType.FLOAT, fpReg1 = resultFpRegister, reg1=idxReg, labelSymbol = arrayLocationExpr)
             else
-                code += IRCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, value = arrayLocation)
+                code += IRCodeInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=idxReg, labelSymbol = arrayLocationExpr)
         }
         return code
     }
@@ -416,16 +415,22 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorShiftRightInplace(address: Int, vmDt: VmDataType,  signed: Boolean, operand: PtExpression): IRCodeChunk {
+    internal fun operatorShiftRightInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType,  signed: Boolean, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         if(codeGen.isOne(operand)) {
             val opc = if (signed) Opcode.ASRM else Opcode.LSRM
-            code += IRCodeInstruction(opc, vmDt, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(opc, vmDt, value=knownAddress)
+            else
+                IRCodeInstruction(opc, vmDt, labelSymbol = addressOfSymbol)
         } else {
             val operandReg = codeGen.vmRegisters.nextFree()
             code += translateExpression(operand, operandReg, -1)
             val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
-            code += IRCodeInstruction(opc, vmDt, reg1 = operandReg, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(opc, vmDt, reg1 = operandReg, value=knownAddress)
+            else
+                IRCodeInstruction(opc, vmDt, reg1 = operandReg, labelSymbol = addressOfSymbol)
         }
         return code
     }
@@ -444,14 +449,20 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorShiftLeftInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorShiftLeftInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         if(codeGen.isOne(operand)){
-            code += IRCodeInstruction(Opcode.LSLM, vmDt, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.LSLM, vmDt, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.LSLM, vmDt, labelSymbol = addressOfSymbol)
         } else {
             val operandReg = codeGen.vmRegisters.nextFree()
             code += translateExpression(operand, operandReg, -1)
-            code += IRCodeInstruction(Opcode.LSLNM, vmDt, reg1=operandReg, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.LSLNM, vmDt, reg1=operandReg, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.LSLNM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
         }
         return code
     }
@@ -470,11 +481,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorXorInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorXorInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         val operandReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(operand, operandReg, -1)
-        code += IRCodeInstruction(Opcode.XORM, vmDt, reg1=operandReg, value = address)
+        code += if(knownAddress!=null)
+            IRCodeInstruction(Opcode.XORM, vmDt, reg1=operandReg, value = knownAddress)
+        else
+            IRCodeInstruction(Opcode.XORM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
         return code
     }
 
@@ -492,11 +506,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal  fun operatorAndInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal  fun operatorAndInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         val operandReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(operand, operandReg, -1)
-        code += IRCodeInstruction(Opcode.ANDM, vmDt, reg1=operandReg, value=address)
+        code += if(knownAddress!=null)
+            IRCodeInstruction(Opcode.ANDM, vmDt, reg1=operandReg, value=knownAddress)
+        else
+            IRCodeInstruction(Opcode.ANDM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
         return code
     }
 
@@ -514,11 +531,14 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorOrInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorOrInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         val operandReg = codeGen.vmRegisters.nextFree()
         code += translateExpression(operand, operandReg, -1)
-        code += IRCodeInstruction(Opcode.ORM, vmDt, reg1=operandReg, value = address)
+        code += if(knownAddress!=null)
+            IRCodeInstruction(Opcode.ORM, vmDt, reg1=operandReg, value = knownAddress)
+        else
+            IRCodeInstruction(Opcode.ORM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
         return code
     }
 
@@ -585,32 +605,48 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorDivideInplace(address: Int, vmDt: VmDataType, signed: Boolean, operand: PtExpression): IRCodeChunk {
+    internal fun operatorDivideInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, signed: Boolean, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         val constFactorRight = operand as? PtNumber
         if(vmDt==VmDataType.FLOAT) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toFloat()
-                code += codeGen.divideByConstFloatInplace(address, factor, operand.position)
+                code += codeGen.divideByConstFloatInplace(knownAddress, addressOfSymbol, factor, operand.position)
             } else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += if(signed)
-                    IRCodeInstruction(Opcode.DIVSM, vmDt, fpReg1 = operandFpReg, value=address)
-                else
-                    IRCodeInstruction(Opcode.DIVM, vmDt, fpReg1 = operandFpReg, value=address)
+                code += if(signed) {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVSM, vmDt, fpReg1 = operandFpReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVSM, vmDt, fpReg1 = operandFpReg, labelSymbol = addressOfSymbol)
+                }
+                else {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVM, vmDt, fpReg1 = operandFpReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVM, vmDt, fpReg1 = operandFpReg, labelSymbol = addressOfSymbol)
+                }
             }
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                code += codeGen.divideByConstInplace(vmDt, address, factor, signed, operand.position)
+                code += codeGen.divideByConstInplace(vmDt, knownAddress, addressOfSymbol, factor, signed, operand.position)
             } else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += if(signed)
-                    IRCodeInstruction(Opcode.DIVSM, vmDt, reg1=operandReg, value = address)
-                else
-                    IRCodeInstruction(Opcode.DIVM, vmDt, reg1=operandReg, value = address)
+                code += if(signed) {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVSM, vmDt, reg1 = operandReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVSM, vmDt, reg1 = operandReg, labelSymbol = addressOfSymbol)
+                }
+                else {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVM, vmDt, reg1 = operandReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVM, vmDt, reg1 = operandReg, labelSymbol = addressOfSymbol)
+                }
             }
         }
         return code
@@ -654,26 +690,32 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorMultiplyInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorMultiplyInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         val constFactorRight = operand as? PtNumber
         if(vmDt==VmDataType.FLOAT) {
             if(constFactorRight!=null) {
                 val factor = constFactorRight.number.toFloat()
-                code += codeGen.multiplyByConstFloatInplace(address, factor, constFactorRight.position)
+                code += codeGen.multiplyByConstFloatInplace(knownAddress, addressOfSymbol, factor, constFactorRight.position)
             } else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += IRCodeInstruction(Opcode.MULM, vmDt, fpReg1 = operandFpReg, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.MULM, vmDt, fpReg1 = operandFpReg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.MULM, vmDt, fpReg1 = operandFpReg, labelSymbol = addressOfSymbol)
             }
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                code += codeGen.multiplyByConstInplace(vmDt, address, factor, constFactorRight.position)
+                code += codeGen.multiplyByConstInplace(vmDt, knownAddress, addressOfSymbol, factor, constFactorRight.position)
             } else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += IRCodeInstruction(Opcode.MULM, vmDt, reg1=operandReg, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.MULM, vmDt, reg1=operandReg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.MULM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
             }
         }
         return code
@@ -717,25 +759,37 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorMinusInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorMinusInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         if(vmDt==VmDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                code += IRCodeInstruction(Opcode.DECM, vmDt, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.DECM, vmDt, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.DECM, vmDt, labelSymbol = addressOfSymbol)
             }
             else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += IRCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.SUBM, vmDt, fpReg1=operandFpReg, labelSymbol = addressOfSymbol)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                code += IRCodeInstruction(Opcode.DECM, vmDt, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.DECM, vmDt, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.DECM, vmDt, labelSymbol = addressOfSymbol)
             }
             else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += IRCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.SUBM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
             }
         }
         return code
@@ -787,25 +841,37 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
         return code
     }
 
-    internal fun operatorPlusInplace(address: Int, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
+    internal fun operatorPlusInplace(knownAddress: Int?, addressOfSymbol: String?, vmDt: VmDataType, operand: PtExpression): IRCodeChunk {
         val code = IRCodeChunk(operand.position)
         if(vmDt==VmDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                code += IRCodeInstruction(Opcode.INCM, vmDt, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.INCM, vmDt, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.INCM, vmDt, labelSymbol = addressOfSymbol)
             }
             else {
                 val operandFpReg = codeGen.vmRegisters.nextFreeFloat()
                 code += translateExpression(operand, -1, operandFpReg)
-                code += IRCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.ADDM, vmDt, fpReg1=operandFpReg, labelSymbol = addressOfSymbol)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                code += IRCodeInstruction(Opcode.INCM, vmDt, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.INCM, vmDt, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.INCM, vmDt, labelSymbol = addressOfSymbol)
             }
             else {
                 val operandReg = codeGen.vmRegisters.nextFree()
                 code += translateExpression(operand, operandReg, -1)
-                code += IRCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.ADDM, vmDt, reg1=operandReg, labelSymbol = addressOfSymbol)
             }
         }
         return code
@@ -819,23 +885,23 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                     val paramDt = codeGen.vmType(parameter.type)
                     if(codeGen.isZero(arg)) {
                         if (paramDt == VmDataType.FLOAT) {
-                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
-                            code += IRCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                            val addrOf = codeGen.addressOf(fcall.functionName + parameter.name)
+                            code += IRCodeInstruction(Opcode.STOREZM, paramDt, labelSymbol = addrOf)
                         } else {
                             val mem = codeGen.addressOf(fcall.functionName + parameter.name)
-                            code += IRCodeInstruction(Opcode.STOREZM, paramDt, value = mem)
+                            code += IRCodeInstruction(Opcode.STOREZM, paramDt, labelSymbol = mem)
                         }
                     } else {
                         if (paramDt == VmDataType.FLOAT) {
                             val argFpReg = codeGen.vmRegisters.nextFreeFloat()
                             code += translateExpression(arg, -1, argFpReg)
-                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
-                            code += IRCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, value = mem)
+                            val addrOf = codeGen.addressOf(fcall.functionName + parameter.name)
+                            code += IRCodeInstruction(Opcode.STOREM, paramDt, fpReg1 = argFpReg, labelSymbol = addrOf)
                         } else {
                             val argReg = codeGen.vmRegisters.nextFree()
                             code += translateExpression(arg, argReg, -1)
-                            val mem = codeGen.addressOf(fcall.functionName + parameter.name)
-                            code += IRCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, value = mem)
+                            val addrOf = codeGen.addressOf(fcall.functionName + parameter.name)
+                            code += IRCodeInstruction(Opcode.STOREM, paramDt, reg1 = argReg, labelSymbol = addrOf)
                         }
                     }
                 }

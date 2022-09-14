@@ -322,7 +322,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             clobberRegs.toSet(),
             params,
             returns,
-            asm.asm)
+            asm.assembly)
     }
 
     private fun parseSubroutine(startline: String, lines: Iterator<String>, variables: List<StStaticVariable>): IRSubroutine {

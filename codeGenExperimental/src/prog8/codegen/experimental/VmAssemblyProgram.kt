@@ -11,7 +11,7 @@ import kotlin.io.path.div
 class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
 
     // TODO once this is working, replace the codeGenVirtual by codeGenExperimental
-    //      after that, remove the intermediate .p8ir file writing
+    //      after that, add an option to the VmRunner to accept an IRProgram object directly and skip this intermediate .p8ir step when -emu is present
 
 
     override fun assemble(options: CompilationOptions): Boolean {
@@ -48,7 +48,7 @@ class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IA
                 out.write("; BLOCK ${block.name} ${block.position}\n")
                 block.inlineAssembly.forEach { asm ->
                     out.write("; ASM ${asm.position}\n")
-                    out.write(asm.asm)
+                    out.write(asm.assembly)
                     out.write("\n")
                 }
                 block.subroutines.forEach { sub ->
@@ -56,7 +56,9 @@ class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IA
                     out.write("_${sub.name}:\n")
                     sub.chunks.forEach { chunk ->
                         if(chunk is IRInlineAsmChunk) {
-                            out.write("; ASM ${chunk.position}\n${chunk.asm}\n")
+                            out.write("; ASM ${chunk.position}\n")
+                            out.write(processInlinedAsm(chunk.assembly, allocations))
+                            out.write("\n")
                         } else {
                             chunk.lines.forEach { out.writeLine(it) }
                         }
@@ -66,13 +68,21 @@ class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IA
                 block.asmSubroutines.forEach { sub ->
                     out.write("; ASMSUB ${sub.name} ${sub.position}\n")
                     out.write("_${sub.name}:\n")
-                    out.write(sub.assembly)
+                    out.write(processInlinedAsm(sub.assembly, allocations))
                     out.write("\n; END ASMSUB ${sub.name}\n")
                 }
                 out.write("; END BLOCK ${block.name}\n")
             }
         }
         return true
+    }
+
+    private fun processInlinedAsm(asm: String, allocations: VmVariableAllocator): String {
+        // need to replace &X by address of X.  TODO: this actually needs to be done by the vm assembler/loader. Then this can be omitted
+        return asm.replace("""&[a-zA-Z\d_\.]+""".toRegex()) { matchResult ->
+            // replace "&X" with the address of X
+            val name = matchResult.value.substring(1, matchResult.value.length).split('.')
+            allocations.get(name).toString() }
     }
 }
 

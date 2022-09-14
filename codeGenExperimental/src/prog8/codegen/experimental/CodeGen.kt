@@ -316,7 +316,7 @@ class CodeGen(internal val program: PtProgram,
             is PtIdentifier -> {
                 val arrayAddress = addressOf(iterable.targetName)
                 val iterableVar = symbolTable.lookup(iterable.targetName) as StStaticVariable
-                val loopvarAddress = addressOf(loopvar.scopedName)  // TODO name?
+                val loopvarAddress = addressOf(loopvar.scopedName)
                 val indexReg = vmRegisters.nextFree()
                 val tmpReg = vmRegisters.nextFree()
                 val loopLabel = createLabelName()
@@ -325,9 +325,9 @@ class CodeGen(internal val program: PtProgram,
                     // iterate over a zero-terminated string
                     code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                     code += IRCodeLabel(loopLabel)
-                    code += IRCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=tmpReg, reg2=indexReg, value = arrayAddress)
+                    code += IRCodeInstruction(Opcode.LOADX, VmDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = arrayAddress)
                     code += IRCodeInstruction(Opcode.BZ, VmDataType.BYTE, reg1=tmpReg, labelSymbol = endLabel)
-                    code += IRCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=tmpReg, value = loopvarAddress)
+                    code += IRCodeInstruction(Opcode.STOREM, VmDataType.BYTE, reg1=tmpReg, labelSymbol = loopvarAddress)
                     code += translateNode(forLoop.statements)
                     code += IRCodeInstruction(Opcode.INC, VmDataType.BYTE, reg1=indexReg)
                     code += IRCodeInstruction(Opcode.JUMP, labelSymbol = loopLabel)
@@ -342,16 +342,16 @@ class CodeGen(internal val program: PtProgram,
                         code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                         code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                         code += IRCodeLabel(loopLabel)
-                        code += IRCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
-                        code += IRCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
+                        code += IRCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=arrayAddress)
+                        code += IRCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, labelSymbol = loopvarAddress)
                         code += translateNode(forLoop.statements)
                         code += addConstReg(VmDataType.BYTE, indexReg, elementSize, iterable.position)
                         code += IRCodeInstruction(Opcode.BNE, VmDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = loopLabel)
                     } else if(lengthBytes==256) {
                         code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=indexReg, value=0)
                         code += IRCodeLabel(loopLabel)
-                        code += IRCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, value=arrayAddress)
-                        code += IRCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, value = loopvarAddress)
+                        code += IRCodeInstruction(Opcode.LOADX, vmType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=arrayAddress)
+                        code += IRCodeInstruction(Opcode.STOREM, vmType(elementDt), reg1=tmpReg, labelSymbol = loopvarAddress)
                         code += translateNode(forLoop.statements)
                         code += addConstReg(VmDataType.BYTE, indexReg, elementSize, iterable.position)
                         code += IRCodeInstruction(Opcode.BNZ, VmDataType.BYTE, reg1=indexReg, labelSymbol = loopLabel)
@@ -365,10 +365,7 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun addressOf(targetName: List<String>): Int {
-        println("TODO: IR SUPPORT FOR ADDRESS-OF $targetName")  // TODO address-of
-        return 4242
-    }
+    internal inline fun addressOf(targetName: List<String>): String = "&"+targetName.joinToString(".")
 
     private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
         val iterable = forLoop.iterable as PtRange
@@ -377,18 +374,18 @@ class CodeGen(internal val program: PtProgram,
             throw AssemblyError("step 0")
         val indexReg = vmRegisters.nextFree()
         val endvalueReg = vmRegisters.nextFree()
-        val loopvarAddress = addressOf(loopvar.scopedName)  // TODO name?
+        val loopvarAddress = addressOf(loopvar.scopedName)
         val loopvarDt = vmType(loopvar.dt)
         val loopLabel = createLabelName()
         val code = IRCodeChunk(forLoop.position)
 
         code += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
         code += expressionEval.translateExpression(iterable.from, indexReg, -1)
-        code += IRCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
+        code += IRCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarAddress)
         code += IRCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
         code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step, iterable.position)
-        code += IRCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+        code += IRCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarAddress)
         val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
         code += IRCodeInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel)
         return code
@@ -396,7 +393,7 @@ class CodeGen(internal val program: PtProgram,
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
         val loopLabel = createLabelName()
-        val loopvarAddress = addressOf(loopvar.scopedName)      // TODO name?
+        val loopvarAddress = addressOf(loopvar.scopedName)
         val indexReg = vmRegisters.nextFree()
         val loopvarDt = vmType(loopvar.dt)
         val iterable = forLoop.iterable as PtRange
@@ -417,11 +414,11 @@ class CodeGen(internal val program: PtProgram,
             endvalueReg = -1 // not used
         }
         code += IRCodeInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
-        code += IRCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, value=loopvarAddress)
+        code += IRCodeInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarAddress)
         code += IRCodeLabel(loopLabel)
         code += translateNode(forLoop.statements)
         code += addConstMem(loopvarDt, loopvarAddress.toUInt(), step, iterable.position)
-        code += IRCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, value = loopvarAddress)
+        code += IRCodeInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarAddress)
         code += if(rangeEndWrapped==0) {
             IRCodeInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
         } else {
@@ -504,16 +501,22 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun multiplyByConstFloatInplace(address: Int, factor: Float, position: Position): IRCodeChunk {
+    internal fun multiplyByConstFloatInplace(knownAddress: Int?, addressOfSymbol: String?, factor: Float, position: Position): IRCodeChunk {
         val code = IRCodeChunk(position)
         if(factor==1f)
             return code
         if(factor==0f) {
-            code += IRCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value = address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, value = knownAddress)
+            else
+                IRCodeInstruction(Opcode.STOREZM, VmDataType.FLOAT, labelSymbol = addressOfSymbol)
         } else {
             val factorReg = vmRegisters.nextFreeFloat()
             code += IRCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += IRCodeInstruction(Opcode.MULM, VmDataType.FLOAT, fpReg1 = factorReg, value = address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.MULM, VmDataType.FLOAT, fpReg1 = factorReg, value = knownAddress)
+            else
+                IRCodeInstruction(Opcode.MULM, VmDataType.FLOAT, fpReg1 = factorReg, labelSymbol = addressOfSymbol)
         }
         return code
     }
@@ -544,28 +547,40 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun multiplyByConstInplace(dt: VmDataType, address: Int, factor: Int, position: Position): IRCodeChunk {
+    internal fun multiplyByConstInplace(dt: VmDataType, knownAddress: Int?, addressOfSymbol: String?, factor: Int, position: Position): IRCodeChunk {
         val code = IRCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            code += IRCodeInstruction(Opcode.LSLM, dt, value = address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.LSLM, dt, value = knownAddress)
+            else
+                IRCodeInstruction(Opcode.LSLM, dt, labelSymbol = addressOfSymbol)
         }
         else if(pow2>=1) {
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += IRCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += IRCodeInstruction(Opcode.LSLNM, dt, reg1=pow2reg, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.LSLNM, dt, reg1=pow2reg, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.LSLNM, dt, reg1=pow2reg, labelSymbol = addressOfSymbol)
         } else {
             if (factor == 0) {
-                code += IRCodeInstruction(Opcode.STOREZM, dt, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.STOREZM, dt, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.STOREZM, dt, labelSymbol = addressOfSymbol)
             }
             else {
                 val factorReg = vmRegisters.nextFree()
                 code += IRCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value = factor)
-                code += IRCodeInstruction(Opcode.MULM, dt, reg1=factorReg, value = address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.MULM, dt, reg1=factorReg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.MULM, dt, reg1=factorReg, labelSymbol = addressOfSymbol)
             }
         }
         return code
@@ -583,18 +598,24 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConstFloatInplace(address: Int, factor: Float, position: Position): IRCodeChunk {
+    internal fun divideByConstFloatInplace(knownAddress: Int?, addressOfSymbol: String?, factor: Float, position: Position): IRCodeChunk {
         val code = IRCodeChunk(position)
         if(factor==1f)
             return code
         if(factor==0f) {
             val maxvalueReg = vmRegisters.nextFreeFloat()
             code += IRCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1 = maxvalueReg, fpValue = Float.MAX_VALUE)
-            code += IRCodeInstruction(Opcode.STOREM, VmDataType.FLOAT, fpReg1 = maxvalueReg, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.STOREM, VmDataType.FLOAT, fpReg1 = maxvalueReg, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.STOREM, VmDataType.FLOAT, fpReg1 = maxvalueReg, labelSymbol = addressOfSymbol)
         } else {
             val factorReg = vmRegisters.nextFreeFloat()
             code += IRCodeInstruction(Opcode.LOAD, VmDataType.FLOAT, fpReg1=factorReg, fpValue = factor)
-            code += IRCodeInstruction(Opcode.DIVSM, VmDataType.FLOAT, fpReg1 = factorReg, value=address)
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.DIVSM, VmDataType.FLOAT, fpReg1 = factorReg, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.DIVSM, VmDataType.FLOAT, fpReg1 = factorReg, labelSymbol = addressOfSymbol)
         }
         return code
     }
@@ -628,35 +649,58 @@ class CodeGen(internal val program: PtProgram,
         return code
     }
 
-    internal fun divideByConstInplace(dt: VmDataType, address: Int, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
+    internal fun divideByConstInplace(dt: VmDataType, knownAddress: Int?, addressOfSymbol: String?, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
         val code = IRCodeChunk(position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
         if(pow2==1 && !signed) {
-            code += IRCodeInstruction(Opcode.LSRM, dt, value=address)       // just simple bit shift
+            // just simple bit shift
+            code += if(knownAddress!=null)
+                IRCodeInstruction(Opcode.LSRM, dt, value=knownAddress)
+            else
+                IRCodeInstruction(Opcode.LSRM, dt, labelSymbol = addressOfSymbol)
         }
         else if(pow2>=1 && !signed) {
             // just shift multiple bits
             val pow2reg = vmRegisters.nextFree()
             code += IRCodeInstruction(Opcode.LOAD, dt, reg1=pow2reg, value=pow2)
-            code += if(signed)
-                IRCodeInstruction(Opcode.ASRNM, dt, reg1=pow2reg, value=address)
-            else
-                IRCodeInstruction(Opcode.LSRNM, dt, reg1=pow2reg, value=address)
+            code += if(signed) {
+                if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, labelSymbol = addressOfSymbol)
+            }
+            else {
+                if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, value = knownAddress)
+                else
+                    IRCodeInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = addressOfSymbol)
+            }
         } else {
             if (factor == 0) {
                 val reg = vmRegisters.nextFree()
                 code += IRCodeInstruction(Opcode.LOAD, dt, reg1=reg, value=0xffff)
-                code += IRCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=address)
+                code += if(knownAddress!=null)
+                    IRCodeInstruction(Opcode.STOREM, dt, reg1=reg, value=knownAddress)
+                else
+                    IRCodeInstruction(Opcode.STOREM, dt, reg1=reg, labelSymbol = addressOfSymbol)
             }
             else {
                 val factorReg = vmRegisters.nextFree()
                 code += IRCodeInstruction(Opcode.LOAD, dt, reg1=factorReg, value= factor)
-                code += if(signed)
-                    IRCodeInstruction(Opcode.DIVSM, dt, reg1=factorReg, value=address)
-                else
-                    IRCodeInstruction(Opcode.DIVM, dt, reg1=factorReg, value=address)
+                code += if(signed) {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVSM, dt, reg1 = factorReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVSM, dt, reg1 = factorReg, labelSymbol = addressOfSymbol)
+                }
+                else {
+                    if(knownAddress!=null)
+                        IRCodeInstruction(Opcode.DIVM, dt, reg1 = factorReg, value = knownAddress)
+                    else
+                        IRCodeInstruction(Opcode.DIVM, dt, reg1 = factorReg, labelSymbol = addressOfSymbol)
+                }
             }
         }
         return code
@@ -772,7 +816,7 @@ class CodeGen(internal val program: PtProgram,
         val vmDt = vmType(postIncrDecr.target.type)
         if(ident!=null) {
             val address = addressOf(ident.targetName)
-            code += IRCodeInstruction(operationMem, vmDt, value = address)
+            code += IRCodeInstruction(operationMem, vmDt, labelSymbol = address)
         } else if(memory!=null) {
             if(memory.address is PtNumber) {
                 val address = (memory.address as PtNumber).number.toInt()
@@ -792,14 +836,14 @@ class CodeGen(internal val program: PtProgram,
             val fixedIndex = constIntValue(array.index)
             if(fixedIndex!=null) {
                 variableAddr += fixedIndex*itemsize
-                code += IRCodeInstruction(operationMem, vmDt, value=variableAddr)
+                code += IRCodeInstruction(operationMem, vmDt, labelSymbol=variableAddr)
             } else {
                 val incReg = vmRegisters.nextFree()
                 val indexReg = vmRegisters.nextFree()
                 code += expressionEval.translateExpression(array.index, indexReg, -1)
-                code += IRCodeInstruction(Opcode.LOADX, vmDt, reg1=incReg, reg2=indexReg, value=variableAddr)
+                code += IRCodeInstruction(Opcode.LOADX, vmDt, reg1=incReg, reg2=indexReg, labelSymbol=variableAddr)
                 code += IRCodeInstruction(operationRegister, vmDt, reg1=incReg)
-                code += IRCodeInstruction(Opcode.STOREX, vmDt, reg1=incReg, reg2=indexReg, value=variableAddr)
+                code += IRCodeInstruction(Opcode.STOREX, vmDt, reg1=incReg, reg2=indexReg, labelSymbol=variableAddr)
             }
         } else
             throw AssemblyError("weird assigntarget")

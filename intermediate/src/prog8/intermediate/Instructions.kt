@@ -477,7 +477,10 @@ data class Instruction(
             result.add(",")
         }
         labelSymbol?.let {
-            result.add("_" + it.joinToString("."))
+            if(labelSymbol[0].startsWith('&'))
+                result.add(it.joinToString("."))    // address-of something
+            else
+                result.add("_" + it.joinToString("."))
         }
         if(result.last() == ",")
             result.removeLast()
