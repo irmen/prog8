@@ -48,10 +48,12 @@ class AssemblyProgram(override val name: String, private val allocations: Variab
             }
             is VmCodeLabel -> write("_" + line.name.joinToString(".") + ":\n")
             is VmCodeInlineAsm -> {
-                val asm = line.assembly.replace("""&[a-zA-Z\d_\.]+""".toRegex()) { matchResult ->
-                    // need to replace &X by address of X.  TODO: this actually needs to be done by the vm assembler/loader. Then this can be omitted
-                    val name = matchResult.value.substring(1, matchResult.value.length).split('.')
-                    allocations.get(name).toString() }
+                // TODO do we have to replace variable names by their allocated address???
+                val asm = line.assembly
+//                val asm = line.assembly.replace("""&[a-zA-Z\d_\.]+""".toRegex()) { matchResult ->
+//                    // need to replace &X by address of X.  TODO: this actually needs to be done by the vm assembler/loader. Then this can be omitted
+//                    val name = matchResult.value.substring(1, matchResult.value.length).split('.')
+//                    allocations.get(name).toString() }
                 write(asm+"\n")
             }
             is VmCodeInlineBinary -> {

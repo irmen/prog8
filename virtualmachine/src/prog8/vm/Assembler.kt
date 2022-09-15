@@ -67,19 +67,26 @@ class Assembler {
         val program = mutableListOf<Instruction>()
         val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
         val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
+        val binaryPattern = Regex("""!binary (.+)""")
         for (line in source.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue
             val match = instructionPattern.matchEntire(line.trim())
             if(match==null) {
-                val labelmatch = labelPattern.matchEntire(line.trim())
-                if(labelmatch==null)
-                    throw IllegalArgumentException("invalid line $line at line ${program.size+1}")
-                else {
-                    val label = labelmatch.groupValues[1]
-                    if(label in labels)
-                        throw IllegalArgumentException("label redefined $label")
-                    labels[label] = program.size
+                val binarymatch = binaryPattern.matchEntire(line.trim())
+                if(binarymatch!=null) {
+                    val hex = binarymatch.groups[1]!!.value
+                    TODO("binary ${hex}")
+                } else {
+                    val labelmatch = labelPattern.matchEntire(line.trim())
+                    if (labelmatch == null)
+                        throw IllegalArgumentException("invalid line $line at line ${program.size + 1}")
+                    else {
+                        val label = labelmatch.groupValues[1]
+                        if (label in labels)
+                            throw IllegalArgumentException("label redefined $label")
+                        labels[label] = program.size
+                    }
                 }
             } else {
                 val (_, instr, typestr, rest) = match.groupValues

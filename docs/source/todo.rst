@@ -3,10 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR: fix superfluous usage of addressOf()
-- IR: addressOfSymbol -> just 'symbol'
-- IR/VM: add address-of support (see CodeGen.addressOf())  syntax = &X
-- IR/VM: add proper memory mapped variables support
+- IR/VM: add proper memory mapped variables support - replace the symbol by the memory address in the IR code
+- IR/VM: add support for incbin (!binary)
 - IR/VM: add proper memory slabs support
 
 ...

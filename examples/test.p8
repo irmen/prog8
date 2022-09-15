@@ -24,7 +24,7 @@ main {
 
         %asm {{
             nop
-            jump  a_label
+            jump  _a_label
         }}
 a_label:
 
