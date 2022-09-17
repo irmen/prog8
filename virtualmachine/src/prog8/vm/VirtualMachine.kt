@@ -217,6 +217,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; pc++ }
             Opcode.SEC -> { statusCarry = true; pc++ }
+            Opcode.BINARYDATA -> TODO("BINARYDATA not yet supported in VM")
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)

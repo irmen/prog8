@@ -12,6 +12,9 @@ main {
         return
     }}
 
+    romsub $ee33 = myromsub(ubyte arg1 @A) clobbers() -> ubyte @Y
+    romsub $ee44 = myromsubmulti(ubyte arg1 @A) clobbers() -> ubyte @Y, ubyte @X, ubyte @Pc
+
     asmsub testasmsub(ubyte arg1 @A) clobbers(Y) -> uword @AX {
         %asm {{
             nop
@@ -20,6 +23,8 @@ main {
     }
 
     sub start() {
+        void myromsubmulti(44)
+        global1 = myromsub(44)
         sys.wait(1)
 
         %asm {{

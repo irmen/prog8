@@ -238,7 +238,11 @@ class StSub(name: String, val parameters: List<StSubroutineParameter>, val retur
 }
 
 
-class StRomSub(name: String, val address: UInt, val parameters: List<StSubroutineParameter>, val returnTypes: List<DataType>, position: Position) :
+class StRomSub(name: String,
+               val address: UInt,
+               val parameters: List<StRomSubParameter>,
+               val returns: List<RegisterOrStatusflag>,
+               position: Position) :
     StNode(name, StNodeType.ROMSUB, position) {
     override fun printProperties() {
         print("$name  address=${address.toHex()}")
@@ -247,6 +251,7 @@ class StRomSub(name: String, val address: UInt, val parameters: List<StSubroutin
 
 
 class StSubroutineParameter(val name: String, val type: DataType)
+class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
 class StArrayElement(val number: Double?, val addressOf: List<String>?)
 
 typealias StString = Pair<String, Encoding>

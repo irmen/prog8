@@ -230,7 +230,8 @@ class IntermediateAstMaker(val program: Program) {
         val type = srcCall.inferType(program).getOrElse {
             throw FatalAstException("unknown dt $srcCall")
         }
-        val call = PtFunctionCall(target, type==DataType.UNDEFINED, type, srcCall.position)
+        val isVoid = type==DataType.UNDEFINED
+        val call = PtFunctionCall(target, isVoid, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call

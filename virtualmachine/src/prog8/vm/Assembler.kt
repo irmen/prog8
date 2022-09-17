@@ -76,7 +76,10 @@ class Assembler {
                 val binarymatch = binaryPattern.matchEntire(line.trim())
                 if(binarymatch!=null) {
                     val hex = binarymatch.groups[1]!!.value
-                    TODO("binary ${hex}")
+                    val binary = hex.windowed(size=2, step=2).map {
+                        it.toString().toByte(16)
+                    }.toByteArray()
+                    program.add(Instruction(Opcode.BINARYDATA, binaryData = binary))
                 } else {
                     val labelmatch = labelPattern.matchEntire(line.trim())
                     if (labelmatch == null)

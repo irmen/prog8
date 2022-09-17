@@ -29,12 +29,15 @@ loadi       reg1, reg2                - load reg1 with value at memory indirect,
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
 loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2
 loadr       reg1, reg2                - load reg1 with value in register reg2
+loadcpu     reg1,         cpureg      - load reg1 with value from cpu register (register/registerpair/statusflag)
 
 storem      reg1,         address     - store reg1 at memory address
+storecpu    reg1,         cpureg      - store reg1 in cpu register (register/registerpair/statusflag)
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
 storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2
 storezm                   address     - store zero at memory address
+storezcpu                 cpureg      - store zero in cpu register (register/registerpair/statusflag)
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg
 
@@ -196,7 +199,7 @@ msig [b, w]   reg1, reg2                  - reg1 becomes the most significant by
 concat [b, w] reg1, reg2                  - reg1 = concatenated lsb/lsw of reg1 (as lsb) and lsb/lsw of reg2 (as msb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w]   reg1                        - push value in reg1 on the stack
 pop [b, w]    reg1                        - pop value from stack into reg1
-
+binarydata                                - 'instruction' to hold inlined binary data bytes
  */
 
 enum class Opcode {
@@ -207,11 +210,14 @@ enum class Opcode {
     LOADX,
     LOADIX,
     LOADR,
+    LOADCPU,
     STOREM,
+    STORECPU,
     STOREI,
     STOREX,
     STOREIX,
     STOREZM,
+    STOREZCPU,
     STOREZI,
     STOREZX,
 
@@ -338,7 +344,8 @@ enum class Opcode {
     POP,
     MSIG,
     CONCAT,
-    BREAKPOINT
+    BREAKPOINT,
+    BINARYDATA
 }
 
 val OpcodesWithAddress = setOf(
@@ -393,7 +400,8 @@ data class Instruction(
     val fpReg2: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
     val fpValue: Float?=null,
-    val labelSymbol: List<String>?=null    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
+    val labelSymbol: List<String>?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
+    val binaryData: ByteArray?=null
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
@@ -401,6 +409,9 @@ data class Instruction(
     val fpReg1direction: OperandDirection
 
     init {
+        if(opcode==Opcode.BINARYDATA && binaryData==null || binaryData!=null && opcode!=Opcode.BINARYDATA)
+            throw IllegalArgumentException("binarydata inconsistency")
+
         val formats = instructionFormats.getValue(opcode)
         if(type==null && !formats.containsKey(null))
             throw IllegalArgumentException("missing type")
@@ -560,11 +571,14 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<v | F,>fr1,<r1,<v"),
     Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<v | F,>fr1,<r1,<v"),
     Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
+    Opcode.LOADCPU    to InstructionFormat.from("BW,>r1"),
     Opcode.STOREM     to InstructionFormat.from("BW,<r1,<v     | F,<fr1,<v"),
+    Opcode.STORECPU   to InstructionFormat.from("BW,<r1"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,<v | F,<fr1,<r1,<v"),
     Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,<v | F,<fr1,<r1,<v"),
     Opcode.STOREZM    to InstructionFormat.from("BW,<v         | F,<v"),
+    Opcode.STOREZCPU  to InstructionFormat.from("BW"),
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,<v     | F,<r1,<v"),
     Opcode.JUMP       to InstructionFormat.from("N,<v"),
@@ -688,4 +702,5 @@ val instructionFormats = mutableMapOf(
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
+    Opcode.BINARYDATA to InstructionFormat.from("N"),
 )

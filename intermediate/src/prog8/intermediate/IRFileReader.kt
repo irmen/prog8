@@ -240,7 +240,7 @@ class IRFileReader(outputDir: Path, programName: String) {
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
     private val inlineAsmPattern = Regex("<INLINEASM POS=(.+)>")
-    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.+) RETURNS=(.+) POS=(.+)>")
+    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
     private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
@@ -309,7 +309,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         val asm = parseInlineAssembly(line, lines)
         while(line!="</ASMSUB>")
             line = lines.next()
-        val clobberRegs = clobbers.split(',').map { CpuRegister.valueOf(it) }
+        val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
         val returns = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
         returnSpec.split(',').forEach{ rs ->
             val (regstr, dtstr) = rs.split(':')

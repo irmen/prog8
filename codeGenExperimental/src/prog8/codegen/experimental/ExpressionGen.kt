@@ -913,7 +913,31 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
                 return code
             }
             is StRomSub -> {
-                throw AssemblyError("virtual machine doesn't yet support calling romsub $fcall")
+                val code = IRCodeChunk(fcall.position)
+                for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
+                    val paramDt = codeGen.vmType(parameter.type)
+                    val paramRegStr = if(parameter.register.registerOrPair!=null) parameter.register.registerOrPair.toString() else parameter.register.statusflag.toString()
+                    if(codeGen.isZero(arg)) {
+                        code += IRCodeInstruction(Opcode.STOREZCPU, paramDt, labelSymbol = paramRegStr)
+                    } else {
+                        if (paramDt == VmDataType.FLOAT)
+                            throw AssemblyError("doesn't support float register argument in asm romsub")
+                        val argReg = codeGen.vmRegisters.nextFree()
+                        code += translateExpression(arg, argReg, -1)
+                        code += IRCodeInstruction(Opcode.STORECPU, paramDt, reg1 = argReg, labelSymbol = paramRegStr)
+                    }
+                }
+                code += IRCodeInstruction(Opcode.CALL, value=callTarget.address.toInt())
+                if(!fcall.void) {
+                    if(callTarget.returns.size!=1)
+                        throw AssemblyError("expect precisely 1 return value")
+                    if(fcall.type==DataType.FLOAT)
+                        throw AssemblyError("doesn't support float register result in asm romsub")
+                    val returns = callTarget.returns.single()
+                    val regStr = if(returns.registerOrPair!=null) returns.registerOrPair.toString() else returns.statusflag.toString()
+                    code += IRCodeInstruction(Opcode.LOADCPU, codeGen.vmType(fcall.type), reg1=resultRegister, labelSymbol = regStr)
+                }
+                return code
             }
             else -> throw AssemblyError("invalid node type")
         }

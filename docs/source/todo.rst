@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR/VM: add proper memory mapped variables support - replace the symbol by the memory address in the IR code
-- IR/VM: add support for incbin (!binary)
+- VM Assembler: add support for translating symbols to address search for "TODO do we have to replace variable names by their allocated address" load.w r0,{_}txt.clear_screen.sequence
+- IR/VM: add proper memory mapped variables support - replace the symbol by the memory address in the IR code.
+- IR/VM: check that the above works ok now with the cx16 virtual registers.
 - IR/VM: add proper memory slabs support
 
 ...
@@ -21,9 +22,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 - vm: implement remaining sin/cos functions in math.p8 and merge tables
-- vm: implement memory mapped variables properly in VariableAllocator
-- vm: find a solution for the cx16.r0..r15 that "overlap" (r0, r0L, r0H etc) but in the vm each get their own separate variable location now. Maybe this gets solved by the previous item?
-- vm: encode romsub & romsub call in VM IR  (can just crash in virtualmachine itself because program is not in the simulated memory)  ExpressionGen.kt
 - vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
 - vm: add more optimizations in VmPeepholeOptimizer
