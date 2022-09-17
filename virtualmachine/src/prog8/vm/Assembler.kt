@@ -15,7 +15,8 @@ class Assembler {
     }
 
     fun initializeMemory(memsrc: String, memory: Memory) {
-        val instrPattern = Regex("""(.+?)\s+([a-z]+)\s+(.+)""", RegexOption.IGNORE_CASE)
+        labels.clear()
+        val instrPattern = Regex("""var (.+) @([0-9]+) ([a-z]+) (.+)""", RegexOption.IGNORE_CASE)
         for(line in memsrc.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue
@@ -23,9 +24,10 @@ class Assembler {
             if(match==null)
                 throw IllegalArgumentException("invalid line $line")
             else {
-                val (_, addr, what, values) = match.groupValues
-                var address = parseValue(addr, 0).toInt()
-                when(what) {
+                val (name, addrStr, datatype, values) = match.destructured
+                var address = parseValue(Opcode.LOADCPU, addrStr, 0).toInt()
+                labels[name] = address
+                when(datatype) {
                     "str" -> {
                         val string = values.trim('"').unescape()
                         memory.setString(address, string, false)
@@ -35,14 +37,14 @@ class Assembler {
                         memory.setString(address, string, true)
                     }
                     "ubyte", "byte" -> {
-                        val array = values.split(',').map { parseValue(it.trim(), 0).toInt() }
+                        val array = values.split(',').map { parseValue(Opcode.LOADCPU, it.trim(), 0).toInt() }
                         for (value in array) {
                             memory.setUB(address, value.toUByte())
                             address++
                         }
                     }
                     "uword", "word" -> {
-                        val array = values.split(',').map { parseValue(it.trim(), 0).toInt() }
+                        val array = values.split(',').map { parseValue(Opcode.LOADCPU, it.trim(), 0).toInt() }
                         for (value in array) {
                             memory.setUW(address, value.toUShort())
                             address += 2
@@ -55,14 +57,13 @@ class Assembler {
                             address += 4    // 32-bits floats
                         }
                     }
-                    else -> throw IllegalArgumentException("mem instr $what")
+                    else -> throw IllegalArgumentException("invalid datatype $datatype")
                 }
             }
         }
     }
 
     fun assembleProgram(source: CharSequence): List<Instruction> {
-        labels.clear()
         placeholders.clear()
         val program = mutableListOf<Instruction>()
         val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
@@ -134,9 +135,9 @@ class Assembler {
                         value = if(operand.startsWith('_')) {
                             // it's a label, keep the original case!
                             val labelname = rest.split(",").first().trim()
-                            parseValue(labelname, program.size)
+                            parseValue(opcode, labelname, program.size)
                         } else {
-                            parseValue(operand, program.size)
+                            parseValue(opcode, operand, program.size)
                         }
                         operands.clear()
                     }
@@ -147,7 +148,7 @@ class Assembler {
                         else if(operand[0]=='f' && operand[1]=='r')
                             fpReg2 = operand.substring(2).toInt()
                         else {
-                            value = parseValue(operand, program.size)
+                            value = parseValue(opcode, operand, program.size)
                             operands.clear()
                         }
                         if(operands.isNotEmpty()) {
@@ -157,12 +158,13 @@ class Assembler {
                             else if(operand[0]=='f' && operand[1]=='r')
                                 fpReg3 = operand.substring(2).toInt()
                             else {
-                                value = parseValue(operand, program.size)
+                                val symbol=rest.split(',').last()
+                                value = parseValue(opcode, symbol, program.size)
                                 operands.clear()
                             }
                             if(operands.isNotEmpty()) {
-                                operand = operands.removeFirst().trim()
-                                value = parseValue(operand, program.size)
+                                val symbol=rest.split(',').last()
+                                value = parseValue(opcode, symbol, program.size)
                                 operands.clear()
                             }
                         }
@@ -219,7 +221,21 @@ class Assembler {
                 if(format.fpValue)
                     floatValue = value!!
 
-                program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue))
+                if(opcode in OpcodesForCpuRegisters) {
+                    val reg=rest.split(',').last().lowercase()
+                    if(reg !in setOf(
+                        "_a", "_x", "_y",
+                        "_ax", "_ay", "_xy",
+                        "_r0", "_r1", "_r2", "_r3",
+                        "_r4", "_r5", "_r6", "_r7",
+                        "_r8", "_r9", "_r10","_r11",
+                        "_r12", "_r13", "_r14", "_r15",
+                        "_pc", "_pz", "_pv","_pn"))
+                        throw IllegalArgumentException("invalid cpu reg: $reg")
+                    program.add(Instruction(opcode, type, reg1, labelSymbol = listOf(reg.substring(1))))
+                } else {
+                    program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue))
+                }
             }
         }
 
@@ -229,14 +245,18 @@ class Assembler {
 
     private fun pass2replaceLabels(program: MutableList<Instruction>) {
         for((line, label) in placeholders) {
-            val replacement = labels.getValue(label)
-            program[line] = program[line].copy(value = replacement)
+            val replacement = labels[label]
+            if(replacement==null) {
+                println("TODO: find address of symbol $label")      // TODO
+            } else {
+                program[line] = program[line].copy(value = replacement)
+            }
         }
     }
 
-    private fun parseValue(value: String, pc: Int): Float {
+    private fun parseValue(opcode: Opcode, value: String, pc: Int): Float {
         if(value.startsWith("-")) {
-            return -parseValue(value.substring(1), pc)
+            return -parseValue(opcode, value.substring(1), pc)
         }
         if(value.startsWith('$'))
             return value.substring(1).toInt(16).toFloat()
@@ -245,7 +265,13 @@ class Assembler {
         if(value.startsWith("0x"))
             return value.substring(2).toInt(16).toFloat()
         if(value.startsWith('_')) {
-            placeholders[pc] = value.substring(1)
+            if(opcode !in OpcodesForCpuRegisters)
+                placeholders[pc] = value.substring(1)
+            return 0f
+        }
+        if(value[0].isLetter()) {
+            if(opcode !in OpcodesForCpuRegisters)
+                placeholders[pc] = value
             return 0f
         }
         return value.toFloat()

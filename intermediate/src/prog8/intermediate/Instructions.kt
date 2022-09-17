@@ -383,6 +383,12 @@ val OpcodesWithAddress = setOf(
     Opcode.ROXRM
 )
 
+val OpcodesForCpuRegisters = setOf(
+    Opcode.LOADCPU,
+    Opcode.STORECPU,
+    Opcode.STOREZCPU
+)
+
 
 enum class VmDataType {
     BYTE,

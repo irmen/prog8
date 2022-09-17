@@ -3,10 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- VM Assembler: add support for translating symbols to address search for "TODO do we have to replace variable names by their allocated address" load.w r0,{_}txt.clear_screen.sequence
+- IR/VM: add address calculation for simple addition:  conv.string_out+42
 - IR/VM: add proper memory mapped variables support - replace the symbol by the memory address in the IR code.
 - IR/VM: check that the above works ok now with the cx16 virtual registers.
 - IR/VM: add proper memory slabs support
+- IR/VM: improve unit tests
 
 ...
 

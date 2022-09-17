@@ -218,6 +218,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
             Opcode.CLC -> { statusCarry = false; pc++ }
             Opcode.SEC -> { statusCarry = true; pc++ }
             Opcode.BINARYDATA -> TODO("BINARYDATA not yet supported in VM")
+            Opcode.LOADCPU -> InsLOADCPU(ins)
+            Opcode.STORECPU -> InsSTORECPU(ins)
+            Opcode.STOREZCPU -> InsSTOREZCPU(ins)
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)
@@ -299,6 +302,30 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     private fun InsBREAKPOINT() {
         pc++
         throw BreakpointException(pc)
+    }
+
+    private fun InsLOADCPU(i: Instruction) {
+        println("VM:TODO: load reg ${i.reg1} from cpu register ${i.labelSymbol}")  // TODO
+        pc++
+    }
+
+    private fun InsSTORECPU(i: Instruction) {
+        val value: UShort = when(i.type!!) {
+            VmDataType.BYTE -> registers.getUB(i.reg1!!).toUShort()
+            VmDataType.WORD -> registers.getUW(i.reg1!!)
+            VmDataType.FLOAT -> throw IllegalArgumentException("there are no float cpu registers")
+        }
+        StoreCPU(value, i.type!!, i.labelSymbol!!.single())
+        pc++
+    }
+
+    private fun InsSTOREZCPU(i: Instruction) {
+        StoreCPU(0u, i.type!!, i.labelSymbol!!.single())
+        pc++
+    }
+
+    private fun StoreCPU(value: UShort, dt: VmDataType, regStr: String) {
+        println("VM:TODO: store a value into cpu register $regStr")  // TODO
     }
 
     private fun InsLOAD(i: Instruction) {

@@ -153,8 +153,11 @@ class CodeGen(internal val program: PtProgram,
             parent.children.remove(sub)
             if (sub === entrypoint) {
                 // entrypoint sub must be first sub
-                val firstsub = parent.children.withIndex().first { it.value is PtSub || it.value is PtAsmSub }
-                parent.add(firstsub.index, renamedSub)
+                val firstsub = parent.children.withIndex().firstOrNull() { it.value is PtSub || it.value is PtAsmSub }
+                if(firstsub!=null)
+                    parent.add(firstsub.index, renamedSub)
+                else
+                    parent.add(renamedSub)
             } else {
                 parent.add(renamedSub)
             }

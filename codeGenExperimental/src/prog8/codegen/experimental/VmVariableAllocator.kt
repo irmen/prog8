@@ -67,7 +67,7 @@ class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, me
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            mm.add(Pair(variable.scopedName, "$location $typeStr $value"))
+            mm.add(Pair(variable.scopedName, "@$location $typeStr $value"))
         }
         return mm
     }

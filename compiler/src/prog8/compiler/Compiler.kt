@@ -399,8 +399,8 @@ private fun createAssemblyAndAssemble(program: Program,
     //      to help clean up the code that still depends on them.
     // removeAllVardeclsFromAst(program)
 
-    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-    printProgram(program)
+//    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//    printProgram(program)
 
     val assembly = asmGeneratorFor(program, errors, symbolTable, compilerOptions).compileToAssembly()
     errors.report()

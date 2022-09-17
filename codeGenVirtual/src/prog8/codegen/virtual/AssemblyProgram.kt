@@ -24,8 +24,7 @@ class AssemblyProgram(override val name: String, private val allocations: Variab
         println("write code to $outfile")
         outfile.bufferedWriter().use { out ->
             allocations.asVmMemory().forEach { (name, alloc) ->
-                out.write("; ${name.joinToString(".")}\n")
-                out.write(alloc + "\n")
+                out.write("var ${name.joinToString(".")} $alloc\n")
             }
             out.write("------PROGRAM------\n")
 
