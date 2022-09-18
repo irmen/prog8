@@ -247,7 +247,15 @@ class Assembler {
         for((line, label) in placeholders) {
             val replacement = labels[label]
             if(replacement==null) {
-                println("TODO: find address of symbol $label")      // TODO
+                // it could be an address + index:   symbol+42
+                if('+' in label) {
+                    val (symbol, indexStr) = label.split('+')
+                    val index = indexStr.toInt()
+                    val address = labels.getValue(symbol) + index
+                    program[line] = program[line].copy(value = address)
+                } else {
+                    throw IllegalArgumentException("placeholder not found in labels: $label")
+                }
             } else {
                 program[line] = program[line].copy(value = replacement)
             }
