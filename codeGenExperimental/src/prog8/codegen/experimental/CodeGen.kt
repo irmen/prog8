@@ -1,5 +1,6 @@
 package prog8.codegen.experimental
 
+import prog8.code.StMemVar
 import prog8.code.StMemorySlab
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
@@ -69,6 +70,8 @@ class CodeGen(internal val program: PtProgram,
             irProg.addBlock(translate(block))
         }
 
+        replaceMemoryMappedVars(irProg)
+
         if(options.optimize) {
             val optimizer = IRPeepholeOptimizer(irProg)
             optimizer.optimize()
@@ -79,6 +82,51 @@ class CodeGen(internal val program: PtProgram,
         IRFileWriter(irProg).writeFile()
         val irProgFromDisk = IRFileReader(options.outputDir, irProg.name).readFile()
         return VmAssemblyProgram(irProgFromDisk.name, irProgFromDisk)
+    }
+
+    private fun replaceMemoryMappedVars(irProg: IRProgram) {
+        // replace memory mapped variable symbols with the memory address directly.
+        // note: we do still export the memory mapped symbols so a code generator can use those
+        //       for instance when a piece of inlined assembly references them.
+        val replacements = mutableListOf<Triple<IRCodeChunkBase, Int, UInt>>()
+        irProg.blocks.asSequence().flatMap { it.subroutines }.flatMap { it.chunks }.forEach { chunk ->
+            chunk.lines.withIndex().forEach {
+                (lineIndex, line)-> if(line is IRCodeInstruction) {
+                    val symbolExpr = line.ins.labelSymbol?.single()
+                    if(symbolExpr!=null) {
+                        val symbol: String
+                        val index: UInt
+                        if('+' in symbolExpr) {
+                            val operands = symbolExpr.split('+', )
+                            symbol = operands[0]
+                            index = operands[1].toUInt()
+                        } else {
+                            symbol = symbolExpr
+                            index = 0u
+                        }
+                        val target = symbolTable.flat[symbol.split('.')]
+                        if (target is StMemVar) {
+                            replacements.add(Triple(chunk, lineIndex, target.address+index))
+                        }
+                    }
+                }
+            }
+        }
+
+        replacements.forEach {
+            val old = it.first.lines[it.second] as IRCodeInstruction
+            it.first.lines[it.second] = IRCodeInstruction(
+                old.ins.opcode,
+                old.ins.type,
+                old.ins.reg1,
+                old.ins.reg2,
+                old.ins.fpReg1,
+                old.ins.fpReg2,
+                it.third.toInt(),
+                null,
+                null
+            )
+        }
     }
 
     private fun flattenNestedSubroutines() {

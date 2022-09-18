@@ -44,6 +44,7 @@ internal class ExpressionGen(private val codeGen: CodeGen) {
             is PtAddressOf -> {
                 val vmDt = codeGen.vmType(expr.type)
                 val symbol = expr.identifier.targetName.joinToString(".")
+                // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
                 code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, labelSymbol = symbol)
             }
             is PtMemoryByte -> {

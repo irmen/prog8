@@ -79,11 +79,6 @@ class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IA
     private fun processInlinedAsm(asm: String, allocations: VmVariableAllocator): String {
         // TODO do we have to replace variable names by their allocated address???
         return asm
-//        // need to replace &X by address of X.  TODO: this actually needs to be done by the vm assembler/loader. Then this can be omitted
-//        return asm.replace("""&[a-zA-Z\d_\.]+""".toRegex()) { matchResult ->
-//            // replace "&X" with the address of X
-//            val name = matchResult.value.substring(1, matchResult.value.length).split('.')
-//            allocations.get(name).toString() }
     }
 }
 

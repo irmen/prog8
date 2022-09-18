@@ -3,10 +3,11 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR/VM: add proper memory mapped variables support - replace the symbol by the memory address in the IR code.
-- IR/VM: check that the above works ok now with the cx16 virtual registers.
 - IR/VM: actually support the physical cpu registers and status flags in the STORECPU and LOADCPU opcodes.
-- IR/VM: add proper memory slabs support
+- IR: option to save IR in file
+- Replace existing vm codegen by expericodegen, expericodegen just stops at saving IR in file.
+- vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
+- write some documentation about the compiler architecture and where to plug a code generator onto.
 - IR/VM: improve unit tests
 
 ...
@@ -22,20 +23,17 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-- vm: implement remaining sin/cos functions in math.p8 and merge tables
+- vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
+- vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.
+- vm: add more optimizations in IRPeepholeOptimizer
 - vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
-- vm: rather than being able to jump to any 'address' (IPTR), use 'blocks' that have entry and exit points -> even better dead code elimination possible too
-- vm: add more optimizations in VmPeepholeOptimizer
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
   How is it for the vm target? -> just 2 special cases in CodeGen.
-- when the vm is stable and *if* its language can get promoted to prog8 IL, the variable allocation should be changed.
-  It's now done before the vm code generation, but the IL should probably not depend on the allocations already performed.
-  So the CodeGen doesn't do VariableAlloc *before* the codegen, but as a last step instead.
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
-- generate WASM from the new ast (or from vm code?) to eventually run prog8 on a browser canvas?
+- generate WASM to eventually run prog8 on a browser canvas?
 - make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...

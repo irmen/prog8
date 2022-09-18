@@ -5,7 +5,7 @@ import prog8.intermediate.*
 
 
 class Assembler {
-    private val labels = mutableMapOf<String, Int>()
+    private val symbolAddresses = mutableMapOf<String, Int>()
     private val placeholders = mutableMapOf<Int, String>()
 
     init {
@@ -15,8 +15,8 @@ class Assembler {
     }
 
     fun initializeMemory(memsrc: String, memory: Memory) {
-        labels.clear()
-        val instrPattern = Regex("""var (.+) @([0-9]+) ([a-z]+) (.+)""", RegexOption.IGNORE_CASE)
+        symbolAddresses.clear()
+        val instrPattern = Regex("""var (.+) @([0-9]+) ([a-z]+)(\[[0-9]+\])? (.+)""", RegexOption.IGNORE_CASE)
         for(line in memsrc.lines()) {
             if(line.isBlank() || line.startsWith(';'))
                 continue
@@ -24,9 +24,10 @@ class Assembler {
             if(match==null)
                 throw IllegalArgumentException("invalid line $line")
             else {
-                val (name, addrStr, datatype, values) = match.destructured
+                val (name, addrStr, datatype, arrayspec, values) = match.destructured
+                val numArrayElts = if(arrayspec.isBlank()) 1 else arrayspec.substring(1, arrayspec.length-1).toInt()
                 var address = parseValue(Opcode.LOADCPU, addrStr, 0).toInt()
-                labels[name] = address
+                symbolAddresses[name] = address
                 when(datatype) {
                     "str" -> {
                         val string = values.trim('"').unescape()
@@ -38,23 +39,50 @@ class Assembler {
                     }
                     "ubyte", "byte" -> {
                         val array = values.split(',').map { parseValue(Opcode.LOADCPU, it.trim(), 0).toInt() }
-                        for (value in array) {
-                            memory.setUB(address, value.toUByte())
-                            address++
+                        require(array.size==numArrayElts || array.size==1)
+                        if(numArrayElts > array.size) {
+                            val value = array.single().toUByte()
+                            repeat(numArrayElts) {
+                                memory.setUB(address, value)
+                                address++
+                            }
+                        } else {
+                            for (value in array) {
+                                memory.setUB(address, value.toUByte())
+                                address++
+                            }
                         }
                     }
                     "uword", "word" -> {
                         val array = values.split(',').map { parseValue(Opcode.LOADCPU, it.trim(), 0).toInt() }
-                        for (value in array) {
-                            memory.setUW(address, value.toUShort())
-                            address += 2
+                        require(array.size==numArrayElts || array.size==1)
+                        if(numArrayElts>array.size) {
+                            val value = array.single().toUShort()
+                            repeat(numArrayElts) {
+                                memory.setUW(address, value)
+                                address += 2
+                            }
+                        } else {
+                            for (value in array) {
+                                memory.setUW(address, value.toUShort())
+                                address += 2
+                            }
                         }
                     }
                     "float" -> {
                         val array = values.split(',').map { it.toFloat() }
-                        for (value in array) {
-                            memory.setFloat(address, value)
-                            address += 4    // 32-bits floats
+                        require(array.size==numArrayElts || array.size==1)
+                        if(numArrayElts>array.size) {
+                            val value = array.single()
+                            repeat(numArrayElts) {
+                                memory.setFloat(address, value)
+                                address += 4    // 32-bits floats
+                            }
+                        } else {
+                            for (value in array) {
+                                memory.setFloat(address, value)
+                                address += 4    // 32-bits floats
+                            }
                         }
                     }
                     else -> throw IllegalArgumentException("invalid datatype $datatype")
@@ -87,9 +115,9 @@ class Assembler {
                         throw IllegalArgumentException("invalid line $line at line ${program.size + 1}")
                     else {
                         val label = labelmatch.groupValues[1]
-                        if (label in labels)
+                        if (label in symbolAddresses)
                             throw IllegalArgumentException("label redefined $label")
-                        labels[label] = program.size
+                        symbolAddresses[label] = program.size
                     }
                 }
             } else {
@@ -245,13 +273,13 @@ class Assembler {
 
     private fun pass2replaceLabels(program: MutableList<Instruction>) {
         for((line, label) in placeholders) {
-            val replacement = labels[label]
+            val replacement = symbolAddresses[label]
             if(replacement==null) {
                 // it could be an address + index:   symbol+42
                 if('+' in label) {
                     val (symbol, indexStr) = label.split('+')
                     val index = indexStr.toInt()
-                    val address = labels.getValue(symbol) + index
+                    val address = symbolAddresses.getValue(symbol) + index
                     program[line] = program[line].copy(value = address)
                 } else {
                     throw IllegalArgumentException("placeholder not found in labels: $label")

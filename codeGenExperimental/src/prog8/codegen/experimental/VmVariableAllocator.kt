@@ -2,6 +2,7 @@ package prog8.codegen.experimental
 
 import prog8.code.SymbolTable
 import prog8.code.core.*
+import prog8.intermediate.getTypeString
 
 class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
@@ -26,24 +27,21 @@ class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, me
             allocations[variable.scopedName] = nextLocation
             nextLocation += memsize
         }
+        for(slab in st.allMemorySlabs) {
+            // we ignore the alignment for the VM.
+            allocations[slab.scopedName] = nextLocation
+            nextLocation += slab.size.toInt()
+        }
 
         freeMemoryStart = nextLocation
     }
 
-    fun get(name: List<String>) = allocations.getValue(name)
-
     fun asVmMemory(): List<Pair<List<String>, String>> {
         val mm = mutableListOf<Pair<List<String>, String>>()
+
+        // normal variables
         for (variable in st.allVariables) {
             val location = allocations.getValue(variable.scopedName)
-            val typeStr = when(variable.dt) {
-                DataType.UBYTE, DataType.ARRAY_UB, DataType.STR -> "ubyte"
-                DataType.BYTE, DataType.ARRAY_B -> "byte"
-                DataType.UWORD, DataType.ARRAY_UW -> "uword"
-                DataType.WORD, DataType.ARRAY_W -> "word"
-                DataType.FLOAT, DataType.ARRAY_F -> "float"
-                else -> throw InternalCompilerException("weird dt")
-            }
             val value = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
                 in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0).toHex()
@@ -67,8 +65,27 @@ class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, me
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            mm.add(Pair(variable.scopedName, "@$location $typeStr $value"))
+            mm.add(Pair(variable.scopedName, "@$location ${getTypeString(variable)} $value"))
         }
+
+        // memory mapped variables
+        for (variable in st.allMemMappedVariables) {
+            val value = when(variable.dt) {
+                DataType.FLOAT -> "0.0"
+                in NumericDatatypes -> "0"
+                DataType.ARRAY_F -> (1..variable.length!!).joinToString(",") { "0.0" }
+                in ArrayDatatypes -> (1..variable.length!!).joinToString(",") { "0" }
+                else -> throw InternalCompilerException("weird dt for mem mapped var")
+            }
+            mm.add(Pair(variable.scopedName, "@${variable.address} ${getTypeString(variable)} $value"))
+        }
+
+        // memory slabs.
+        for(slab in st.allMemorySlabs) {
+            val address = allocations.getValue(slab.scopedName)
+            mm.add(Pair(slab.scopedName, "@$address ubyte[${slab.size}] 0"))
+        }
+
         return mm
     }
 

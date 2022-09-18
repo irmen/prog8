@@ -446,7 +446,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                 fpReg1 = operand.substring(2).toInt()
             else {
                 if(operand.startsWith('_')) {
-                    // it's a label.
+                    // it's a label
                     labelSymbol = rest.split(",")[0].trim().substring(1)      // keep the original case
                     value = null
                 } else {
@@ -462,7 +462,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                     fpReg2 = operand.substring(2).toInt()
                 else {
                     if(operand.startsWith('_')) {
-                        // it's a label.
+                        // it's a label
                         labelSymbol = rest.split(",")[1].trim().substring(1)      // keep the original case
                         value = null
                     } else {
@@ -478,7 +478,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                         fpReg3 = operand.substring(2).toInt()
                     else {
                         if(operand.startsWith('_')) {
-                            // it's a label.
+                            // it's a label
                             labelSymbol = rest.split(",")[2].trim().substring(1)      // keep the original case
                             value = null
                         } else {
@@ -489,7 +489,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                     if(operands.isNotEmpty()) {
                         operand = operands.removeFirst().trim()
                         if(operand.startsWith('_')) {
-                            // it's a label.
+                            // it's a label
                             labelSymbol = rest.split(",")[3].trim().substring(1)      // keep the original case
                             value = null
                         } else {
@@ -573,7 +573,9 @@ class IRFileReader(outputDir: Path, programName: String) {
         else if(value.startsWith("0x"))
             value.substring(2).toInt(16).toFloat()
         else if(value.startsWith('_'))
-            throw IRParseException("attempt to parse a label as value")
+            throw IRParseException("attempt to parse a label as numeric value")
+        else if(value.startsWith('&'))
+            throw IRParseException("address-of should be done with normal LOAD <symbol>")
         else
             return value.toFloat()
     }

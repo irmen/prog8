@@ -23,7 +23,7 @@ LOAD/STORE
 ----------
 All have type b or w or f.
 
-load        reg1,         value       - load immediate value into register
+load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the address of the symbol.
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
@@ -204,7 +204,7 @@ binarydata                                - 'instruction' to hold inlined binary
 
 enum class Opcode {
     NOP,
-    LOAD,
+    LOAD,       // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
     LOADM,
     LOADI,
     LOADX,
