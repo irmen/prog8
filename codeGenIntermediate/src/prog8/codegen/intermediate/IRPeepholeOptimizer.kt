@@ -1,6 +1,8 @@
-package prog8.intermediate
+package prog8.codegen.intermediate
 
-class IRPeepholeOptimizer(private val irprog: IRProgram) {
+import prog8.intermediate.*
+
+internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     fun optimize() {
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             sub.chunks.forEach { chunk ->
@@ -28,10 +30,10 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         //  push followed by pop to same target, or different target->replace with load
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(ins.opcode==Opcode.PUSH) {
+            if(ins.opcode== Opcode.PUSH) {
                 if(idx < chunk.lines.size-1) {
                     val insAfter = chunk.lines[idx+1] as? IRCodeInstruction
-                    if(insAfter!=null && insAfter.ins.opcode ==Opcode.POP) {
+                    if(insAfter!=null && insAfter.ins.opcode == Opcode.POP) {
                         if(ins.reg1==insAfter.ins.reg1) {
                             chunk.lines.removeAt(idx)
                             chunk.lines.removeAt(idx)
@@ -52,18 +54,18 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         //  sec+clc or clc+sec
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(ins.opcode==Opcode.SEC || ins.opcode==Opcode.CLC) {
+            if(ins.opcode== Opcode.SEC || ins.opcode== Opcode.CLC) {
                 if(idx < chunk.lines.size-1) {
                     val insAfter = chunk.lines[idx+1] as? IRCodeInstruction
                     if(insAfter?.ins?.opcode == ins.opcode) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode==Opcode.SEC && insAfter?.ins?.opcode==Opcode.CLC) {
+                    else if(ins.opcode== Opcode.SEC && insAfter?.ins?.opcode== Opcode.CLC) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode==Opcode.CLC && insAfter?.ins?.opcode==Opcode.SEC) {
+                    else if(ins.opcode== Opcode.CLC && insAfter?.ins?.opcode== Opcode.SEC) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
@@ -77,11 +79,12 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         //  jump/branch to label immediately below
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(ins.opcode==Opcode.JUMP && ins.labelSymbol!=null) {
+            val labelSymbol = ins.labelSymbol
+            if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
                 // if jumping to label immediately following this
                 if(idx < chunk.lines.size-1) {
                     val label = chunk.lines[idx+1] as? IRCodeLabel
-                    if(ins.labelSymbol.size==1 && label?.name == ins.labelSymbol[0]) {
+                    if(labelSymbol.size==1 && label?.name == labelSymbol[0]) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }

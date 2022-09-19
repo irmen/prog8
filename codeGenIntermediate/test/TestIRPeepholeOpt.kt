@@ -3,6 +3,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.code.target.VMTarget
+import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
 
 class TestIRPeepholeOpt: FunSpec({

@@ -9,7 +9,7 @@ import prog8.intermediate.*
 import prog8.vm.Syscall
 
 
-internal class BuiltinFuncGen(private val codeGen: IntermediateCodeGen, private val exprGen: ExpressionGen) {
+internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
 
     fun translate(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunk {
         return when(call.name) {

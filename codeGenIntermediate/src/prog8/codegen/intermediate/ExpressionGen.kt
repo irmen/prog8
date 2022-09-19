@@ -8,7 +8,7 @@ import prog8.code.core.*
 import prog8.intermediate.*
 
 
-internal class ExpressionGen(private val codeGen: IntermediateCodeGen) {
+internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression, resultRegister: Int, resultFpRegister: Int): IRCodeChunk {
         require(codeGen.vmRegisters.peekNext() > resultRegister)
 

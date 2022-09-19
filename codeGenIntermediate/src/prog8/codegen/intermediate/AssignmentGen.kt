@@ -10,7 +10,7 @@ import prog8.intermediate.IRCodeInstruction
 import prog8.intermediate.Opcode
 import prog8.intermediate.VmDataType
 
-internal class AssignmentGen(private val codeGen: IntermediateCodeGen, private val expressionEval: ExpressionGen) {
+internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunk {
         if(assignment.target.children.single() is PtMachineRegister)

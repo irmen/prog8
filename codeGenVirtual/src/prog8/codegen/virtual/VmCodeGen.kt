@@ -6,7 +6,7 @@ import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyGenerator
 import prog8.code.core.IAssemblyProgram
 import prog8.code.core.IErrorReporter
-import prog8.codegen.intermediate.IntermediateCodeGen
+import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
 
@@ -17,7 +17,7 @@ class VmCodeGen(private val program: PtProgram,
 ): IAssemblyGenerator {
     override fun compileToAssembly(): IAssemblyProgram? {
 
-        val irCodeGen = IntermediateCodeGen(program, symbolTable, options, errors)
+        val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
 
         // TODO only write IR file if option is set to do so

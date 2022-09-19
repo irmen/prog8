@@ -11,7 +11,7 @@ import kotlin.io.path.readBytes
 import kotlin.math.pow
 
 
-class IntermediateCodeGen(
+class IRCodeGen(
     internal val program: PtProgram,
     internal val symbolTable: SymbolTable,
     internal val options: CompilationOptions,
