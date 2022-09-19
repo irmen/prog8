@@ -3,14 +3,21 @@ package prog8.vm
 /**
  * 65536 virtual integer registers of 16 bits wide.
  * 65536 virtual float registers of 32 bits wide.
+ * A,X and Y "physical" 6502 registers.
  */
 class Registers {
     private val registers = Array<UShort>(65536) { 0u }
     private val floatRegisters = Array(65535) { 0f }
+    var cpuA: UByte = 0u
+    var cpuX: UByte = 0u
+    var cpuY: UByte = 0u
 
     fun reset() {
         registers.fill(0u)
         floatRegisters.fill(0f)
+        cpuA = 0u
+        cpuX = 0u
+        cpuY = 0u
     }
 
     fun setUB(reg: Int, value: UByte) {

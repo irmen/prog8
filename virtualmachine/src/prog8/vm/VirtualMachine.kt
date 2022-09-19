@@ -31,7 +31,7 @@ class BreakpointException(val pc: Int): Exception()
 
 
 @Suppress("FunctionName")
-class VirtualMachine(val memory: Memory, program: List<Instruction>) {
+class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16virtualregsBaseAddress: Int) {
     val registers = Registers()
     val program: Array<Instruction> = program.toTypedArray()
     val callStack = Stack<Int>()
@@ -305,14 +305,39 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
     }
 
     private fun InsLOADCPU(i: Instruction) {
-        println("VM:TODO: load reg ${i.reg1} from cpu register ${i.labelSymbol}")  // TODO
+        val reg = i.labelSymbol!!.single()
+        val value: UInt
+        if(reg.startsWith('r')) {
+            val regnum = reg.substring(1).toInt()
+            val regAddr = cx16virtualregsBaseAddress + regnum*2
+            value = memory.getUW(regAddr).toUInt()
+        } else {
+            value = when(reg) {
+                "a" -> registers.cpuA.toUInt()
+                "x" -> registers.cpuX.toUInt()
+                "y" -> registers.cpuY.toUInt()
+                "ax" -> (registers.cpuA.toUInt() shl 8) or registers.cpuX.toUInt()
+                "ay" -> (registers.cpuA.toUInt() shl 8) or registers.cpuY.toUInt()
+                "xy" -> (registers.cpuX.toUInt() shl 8) or registers.cpuY.toUInt()
+                "pc" -> if(statusCarry) 1u else 0u
+                "pz" -> if(statusZero) 1u else 0u
+                "pn" -> if(statusNegative) 1u else 0u
+                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
+                else -> throw IllegalArgumentException("invalid cpu reg")
+            }
+        }
+        when(i.type!!) {
+            VmDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
+            VmDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
+            else -> throw java.lang.IllegalArgumentException("invalid cpu reg type")
+        }
         pc++
     }
 
     private fun InsSTORECPU(i: Instruction) {
-        val value: UShort = when(i.type!!) {
-            VmDataType.BYTE -> registers.getUB(i.reg1!!).toUShort()
-            VmDataType.WORD -> registers.getUW(i.reg1!!)
+        val value: UInt = when(i.type!!) {
+            VmDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
+            VmDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
             VmDataType.FLOAT -> throw IllegalArgumentException("there are no float cpu registers")
         }
         StoreCPU(value, i.type!!, i.labelSymbol!!.single())
@@ -324,8 +349,39 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>) {
         pc++
     }
 
-    private fun StoreCPU(value: UShort, dt: VmDataType, regStr: String) {
-        println("VM:TODO: store a value into cpu register $regStr")  // TODO
+    private fun StoreCPU(value: UInt, dt: VmDataType, regStr: String) {
+        if(regStr.startsWith('r')) {
+            val regnum = regStr.substring(1).toInt()
+            val regAddr = cx16virtualregsBaseAddress + regnum*2
+            when(dt) {
+                VmDataType.BYTE -> memory.setUB(regAddr, value.toUByte())
+                VmDataType.WORD -> memory.setUW(regAddr, value.toUShort())
+                else -> throw IllegalArgumentException("invalid reg dt")
+            }
+        } else {
+            when (regStr) {
+                "a" -> registers.cpuA = value.toUByte()
+                "x" -> registers.cpuX = value.toUByte()
+                "y" -> registers.cpuY = value.toUByte()
+                "ax" -> {
+                    registers.cpuA = (value and 255u).toUByte()
+                    registers.cpuX = (value shr 8).toUByte()
+                }
+                "ay" -> {
+                    registers.cpuA = (value and 255u).toUByte()
+                    registers.cpuY = (value shr 8).toUByte()
+                }
+                "xy" -> {
+                    registers.cpuX = (value and 255u).toUByte()
+                    registers.cpuY = (value shr 8).toUByte()
+                }
+                "pc" -> statusCarry = value == 1u
+                "pz" -> statusZero = value == 1u
+                "pn" -> statusNegative = value == 1u
+                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
+                else -> throw IllegalArgumentException("invalid cpu reg")
+            }
+        }
     }
 
     private fun InsLOAD(i: Instruction) {
@@ -2055,7 +2111,7 @@ class VmRunner: IVirtualMachineRunner {
         val assembler = Assembler()
         assembler.initializeMemory(memsrc, memory)
         val program = assembler.assembleProgram(programsrc)
-        val vm = VirtualMachine(memory, program)
+        val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
         vm.run(throttle = true)
     }
 }

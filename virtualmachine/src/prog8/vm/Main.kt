@@ -38,6 +38,6 @@ return"""
     assembler.initializeMemory(memsrc, memory)
     val program = assembler.assembleProgram(src)
 
-    val vm = VirtualMachine(memory, program)
+    val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
     vm.run()
 }

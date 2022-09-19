@@ -3,19 +3,31 @@ main {
 
     sub start() {
 
-        uword @shared slab1 = memory("slab 1", 2000, 0)
-        uword @shared slab2 = memory("slab 1", 2000, 0)
-        uword @shared slab3 = memory("other # slab", 2000, 64)
+        %asm {{
+            loadcpu.b r1,_a
+            loadcpu.b r1,_x
+            loadcpu.b r1,_y
+            loadcpu.w r1,_ax
+            loadcpu.w r1,_ay
+            loadcpu.w r1,_xy
+            loadcpu.b r1,_pc
+            loadcpu.b r1,_pn
+            loadcpu.b r1,_pz
+            loadcpu.w r1,_r0
+            loadcpu.w r1,_r15
 
-        uword total = slab1+slab2+slab3
-        txt.print_uw(slab1)
-        txt.nl()
-        txt.print_uw(slab2)
-        txt.nl()
-        txt.print_uw(slab3)
-        txt.nl()
-        txt.print_uw(total)
-        txt.nl()
+            storezcpu.b _a
+            storezcpu.b _x
+            storezcpu.b _y
+            storezcpu.w _ax
+            storezcpu.w _ay
+            storezcpu.w _xy
+            storezcpu.b _pc
+            storezcpu.b _pn
+            storezcpu.b _pz
+            storezcpu.b _r0
+            storezcpu.w _r15
+        }}
     }
 }
 

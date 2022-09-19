@@ -7,6 +7,7 @@ import prog8.intermediate.*
 class Assembler {
     private val symbolAddresses = mutableMapOf<String, Int>()
     private val placeholders = mutableMapOf<Int, String>()
+    var cx16virtualregBaseAdress = 0xff02
 
     init {
         require(instructionFormats.size== Opcode.values().size) {
@@ -25,6 +26,9 @@ class Assembler {
                 throw IllegalArgumentException("invalid line $line")
             else {
                 val (name, addrStr, datatype, arrayspec, values) = match.destructured
+                if(name=="cx16.r0") {
+                    cx16virtualregBaseAdress = addrStr.toInt()
+                }
                 val numArrayElts = if(arrayspec.isBlank()) 1 else arrayspec.substring(1, arrayspec.length-1).toInt()
                 var address = parseValue(Opcode.LOADCPU, addrStr, 0).toInt()
                 symbolAddresses[name] = address
@@ -250,17 +254,18 @@ class Assembler {
                     floatValue = value!!
 
                 if(opcode in OpcodesForCpuRegisters) {
-                    val reg=rest.split(',').last().lowercase()
+                    val regStr = rest.split(',').last().lowercase().trim()
+                    val reg = if(regStr.startsWith('_')) regStr.substring(1) else regStr
                     if(reg !in setOf(
-                        "_a", "_x", "_y",
-                        "_ax", "_ay", "_xy",
-                        "_r0", "_r1", "_r2", "_r3",
-                        "_r4", "_r5", "_r6", "_r7",
-                        "_r8", "_r9", "_r10","_r11",
-                        "_r12", "_r13", "_r14", "_r15",
-                        "_pc", "_pz", "_pv","_pn"))
+                        "a", "x", "y",
+                        "ax", "ay", "xy",
+                        "r0", "r1", "r2", "r3",
+                        "r4", "r5", "r6", "r7",
+                        "r8", "r9", "r10","r11",
+                        "r12", "r13", "r14", "r15",
+                        "pc", "pz", "pv","pn"))
                         throw IllegalArgumentException("invalid cpu reg: $reg")
-                    program.add(Instruction(opcode, type, reg1, labelSymbol = listOf(reg.substring(1))))
+                    program.add(Instruction(opcode, type, reg1, labelSymbol = listOf(reg)))
                 } else {
                     program.add(Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue))
                 }

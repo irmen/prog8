@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR/VM: actually support the physical cpu registers and status flags in the STORECPU and LOADCPU opcodes.
+- Join codeAst and codeCore modules?
 - IR: option to save IR in file
 - Replace existing vm codegen by expericodegen, expericodegen just stops at saving IR in file.
 - vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
