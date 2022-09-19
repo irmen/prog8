@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/codeAst/codeAst.iml" filepath="$PROJECT_DIR$/codeAst/codeAst.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeCore/codeCore.iml" filepath="$PROJECT_DIR$/codeCore/codeCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" filepath="$PROJECT_DIR$/codeGenExperimental/codeGenExperimental.iml" />

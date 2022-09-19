@@ -3,12 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Join codeAst and codeCore modules?
-- IR: option to save IR in file
 - Replace existing vm codegen by expericodegen, expericodegen just stops at saving IR in file.
-- vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
-- write some documentation about the compiler architecture and where to plug a code generator onto.
+- AFTER THIS, MERGE TO MASTER.
+- IR: option to save IR in file
 - IR/VM: improve unit tests
+- write some documentation about the compiler architecture and where to plug a code generator onto.
+- vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
 
 ...
 

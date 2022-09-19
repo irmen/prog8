@@ -24,7 +24,6 @@ compileTestKotlin {
 }
 
 dependencies {
-    implementation project(':codeAst')
     implementation project(':codeCore')
     implementation project(':compilerAst')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"

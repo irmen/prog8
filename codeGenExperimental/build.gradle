@@ -24,7 +24,6 @@ compileTestKotlin {
 }
 
 dependencies {
-    implementation project(':codeAst')
     implementation project(':codeCore')
     implementation project(':intermediate')
     implementation project(':virtualmachine')

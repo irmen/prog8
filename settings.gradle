@@ -1,7 +1,6 @@
 include(
     ':parser',
     ':codeCore',
-    ':codeAst',
     ':intermediate',
     ':compilerAst',
     ':codeOptimizers',
