@@ -5,6 +5,7 @@ include(
     ':compilerAst',
     ':codeOptimizers',
     ':virtualmachine',
+    ':codeGenIntermediate',
     ':codeGenVirtual',
     ':codeGenCpu6502',
     ':codeGenExperimental',

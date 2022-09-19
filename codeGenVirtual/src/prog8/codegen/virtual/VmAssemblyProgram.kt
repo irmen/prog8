@@ -1,4 +1,4 @@
-package prog8.codegen.experimental
+package prog8.codegen.virtual
 
 import prog8.code.core.AssemblyError
 import prog8.code.core.CompilationOptions
@@ -8,11 +8,7 @@ import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
-class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
-
-    // TODO once this is working, replace the codeGenVirtual by codeGenExperimental
-    //      after that, add an option to the VmRunner to accept an IRProgram object directly and skip this intermediate .p8ir step when -emu is present
-
+internal class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
 
     override fun assemble(options: CompilationOptions): Boolean {
         val outfile = options.outputDir / ("$name.p8virt")

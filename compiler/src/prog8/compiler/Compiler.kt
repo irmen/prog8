@@ -453,7 +453,7 @@ internal fun asmGeneratorFor(program: Program,
             return prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
         if (options.compTarget.name == VMTarget.NAME) {
             val intermediateAst = IntermediateAstMaker(program).transform()
-            return prog8.codegen.virtual.CodeGen(intermediateAst, symbolTable, options, errors)
+            return prog8.codegen.virtual.VmCodeGen(intermediateAst, symbolTable, options, errors)
         }
     }
 

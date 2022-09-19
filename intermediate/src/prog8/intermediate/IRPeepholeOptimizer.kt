@@ -1,8 +1,8 @@
 package prog8.intermediate
 
-class IRPeepholeOptimizer(private val vmprog: IRProgram) {
+class IRPeepholeOptimizer(private val irprog: IRProgram) {
     fun optimize() {
-        vmprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             sub.chunks.forEach { chunk ->
                 // we don't optimize Inline Asm chunks here.
                 if(chunk is IRCodeChunk) {

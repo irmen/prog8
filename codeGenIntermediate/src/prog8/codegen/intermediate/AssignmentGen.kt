@@ -1,4 +1,4 @@
-package prog8.codegen.experimental
+package prog8.codegen.intermediate
 
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
@@ -10,7 +10,7 @@ import prog8.intermediate.IRCodeInstruction
 import prog8.intermediate.Opcode
 import prog8.intermediate.VmDataType
 
-internal class AssignmentGen(private val codeGen: CodeGen, private val expressionEval: ExpressionGen) {
+internal class AssignmentGen(private val codeGen: IntermediateCodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunk {
         if(assignment.target.children.single() is PtMachineRegister)

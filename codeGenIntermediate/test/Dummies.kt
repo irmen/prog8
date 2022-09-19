@@ -1,5 +1,3 @@
-package prog8tests.vm.helpers
-
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.IMemSizer

@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Replace existing vm codegen by expericodegen, expericodegen just stops at saving IR in file.
-- AFTER THIS, MERGE TO MASTER.
 - IR: option to save IR in file
 - IR/VM: improve unit tests
 - write some documentation about the compiler architecture and where to plug a code generator onto.
@@ -23,6 +21,8 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
+
+- vm/ir: all(), any(), reverse() and sort() still depend on a VM Syscall. Get rid of this. (maybe use a IR 'builtin' function?)
 - vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.
 - vm: add more optimizations in IRPeepholeOptimizer

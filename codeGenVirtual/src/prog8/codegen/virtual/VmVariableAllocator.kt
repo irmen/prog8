@@ -1,10 +1,10 @@
-package prog8.codegen.experimental
+package prog8.codegen.virtual
 
 import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.intermediate.getTypeString
 
-class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
+internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
     internal val allocations = mutableMapOf<List<String>, Int>()
     private var freeMemoryStart: Int
