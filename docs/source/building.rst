@@ -166,6 +166,9 @@ One or more .p8 module files
 ``-asmlist``
     Generate an assembler listing file as well.
 
+``-keepIR``
+    Keep the IR code in a file (for targets that use it).
+
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 

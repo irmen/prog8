@@ -31,23 +31,24 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
+    val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
+    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
+    val evalStackAddrString by cli.option(ArgType.String, fullName = "esa", description = "override the eval-stack base address (must be page aligned)")
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
-    val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
+    val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
+    val keepIR by cli.option(ArgType.Boolean, fullName = "keepIR", description = "keep the IR code file (for targets that use it)")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
     val dontReinitGlobals by cli.option(ArgType.Boolean, fullName = "noreinit", description = "don't create code to reinitialize globals on multiple runs of the program (experimental!)")
+    val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
-    val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
-    val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
-    val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
-    val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
+    val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt or p8-ir listing in the VM instead")
-    val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
-    val evalStackAddrString by cli.option(ArgType.String, fullName = "esa", description = "override the eval-stack base address (must be page aligned)")
+    val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -122,6 +123,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
+                    keepIR == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,
@@ -186,6 +188,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
+                    keepIR == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,

@@ -42,7 +42,8 @@ class RequestParser : Take {
             symbolDefs = emptyMap(),
             quietAssembler = false,
             asmListfile = false,
-            experimentalCodegen = false
+            experimentalCodegen = false,
+            keepIR = false
         )
         val compilationResult = compileProgram(args)
         return RsJson(Jsonding())

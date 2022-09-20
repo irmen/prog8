@@ -21,11 +21,14 @@ class VmCodeGen(private val program: PtProgram,
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
 
-        // TODO only write IR file if option is set to do so
-        // create IR file on disk and read it back.
-        IRFileWriter(irProgram).writeFile()
-        val irProgram2 = IRFileReader(options.outputDir, irProgram.name).readFile()
-        return VmAssemblyProgram(irProgram2.name, irProgram2)
+        return if(options.keepIR) {
+            //create IR file on disk and read it back.
+            IRFileWriter(irProgram).writeFile()
+            val irProgram2 = IRFileReader(options.outputDir, irProgram.name).readFile()
+            VmAssemblyProgram(irProgram2.name, irProgram2)
+        } else {
+            VmAssemblyProgram(irProgram.name, irProgram)
+        }
     }
 
     companion object {

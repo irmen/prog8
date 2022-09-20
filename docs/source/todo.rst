@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- IR: option to save IR in file
 - IR/VM: improve unit tests
 - write some documentation about the compiler architecture and where to plug a code generator onto.
 - vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
