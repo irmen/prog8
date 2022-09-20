@@ -23,6 +23,7 @@ Future Things and Ideas
 Compiler:
 
 - vm/ir: all(), any(), reverse() and sort() still depend on a VM Syscall. Get rid of this. (maybe use a IR 'builtin' function?)
+- vm/ir: put variables and arrays in BSS section (unless -noreinit is specified)
 - vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.
 - vm: add more optimizations in IRPeepholeOptimizer

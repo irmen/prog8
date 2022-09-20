@@ -26,6 +26,7 @@ The software stack is implemented as follows:
 - 2 pages of memory are allocated for this, exact locations vary per machine target.
   For the C-64 they are set at $ce00 and $cf00 (so $ce00-$cfff is reserved).
   For the Commander X16 they are set at $0400 and $0500 (so $0400-$05ff are reserved).
+  This default location can be overridden using the `-esa` command line option.
 - these are the high and low bytes of the values on the stack (it's a 'split 16 bit word stack')
 - for byte values just the lsb page is used, for word values both pages
 - float values (5 bytes) are chopped up into 2 words and 1 byte on this stack.

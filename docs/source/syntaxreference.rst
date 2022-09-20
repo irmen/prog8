@@ -374,8 +374,8 @@ should be the *memory address* where the value is located::
 
 .. _pointervars:
 
-Direct access to memory locations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Direct access to memory locations ('peek' and 'poke')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Instead of defining a memory mapped name for a specific memory location, you can also
 directly access the memory. Enclose a numeric expression or literal with ``@(...)`` to do that::
 

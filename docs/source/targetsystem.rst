@@ -15,12 +15,14 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128  (*limited support*)
 - 'atari': the Atari 800 XL  (*experimental support*)
+- 'virtual': a builtin virtual machine
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
 
 .. hint::
     If you only use standard kernal and prog8 library routines,
-    it is possible to compile the *exact same program* for both machines (just change the compilation target flag)!
+    it is often possible to compile the *exact same program* for
+    different machines (just change the compilation target flag)!
 
 
 Memory Model

@@ -236,7 +236,7 @@ Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 fo
 The signed integers integers are in the range -128..127 for bytes,
 and -32768..32767 for words.
 
-.. caution::
+.. attention::
     Doing math on signed integers can result in code that is a lot larger and slower than
     when using unsigned integers. Make sure you really need the signed numbers, otherwise
     stick to unsigned integers for efficiency.
@@ -419,8 +419,8 @@ address you specified, and setting the varible will directly modify that memory 
 
 .. _pointervars_programming:
 
-Direct access to memory locations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Direct access to memory locations ('peek' and 'poke')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
 as the memory mapped address $d021.
 
@@ -483,7 +483,7 @@ Iterating with a floating point variable is not supported. If you want to loop o
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *do--until* loop is used to repeat a piece of code until a certain condition is true.
 The *repeat* loop is used as a short notation of a for loop where the loop variable doesn't matter and you're only interested in the number of iterations.
-(without iteration count specified it simply loops forever).
+(without iteration count specified it simply loops forever). A repeat loop will result in the most efficient code generated so use this if possible.
 
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 

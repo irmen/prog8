@@ -35,20 +35,19 @@ The most interesting gradle commands to run are probably:
         Creates a zipfile with the above in it, for easy distribution.
         This file can be found in ``./compiler/build/distributions/``
 
-For normal use, the ``installDist`` target should suffice and after succesful completion, you can start the compiler with:
+For normal use, the ``installDist`` task should suffice and after succesful completion, you can start the compiler with:
 
     ``./compiler/build/install/p8compile/bin/p8compile <options> <sourcefile>``
 
-(You should probably make an alias...)
+(You should probably make an alias or link...)
 
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
-    but the compiler should run on most operating systems that provide a fairly modern
-    java runtime (11 or newer). If you do have trouble building or running the compiler on your
-    operating system, please let me know!
+    but the compiler should run on all operating systems that provide a java runtime (version 11 or newer).
+    If you do have trouble building or running the compiler on your operating system, please let me know!
 
-    To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes
-    first. The easiest way to do this is the following:
+    To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes first.
+    The easiest way to do this is the following:
 
     1. make sure you have the Antlr4 plugin installed in IDEA
     2. right click the grammar file Prog8ANTLR.g4 in the parser project, and choose "Generate Antlr Recognizer" from the menu.
@@ -110,9 +109,10 @@ One or more .p8 module files
     Prints short command line usage information.
 
 ``-target <compilation target>``
-    Sets the target output of the compiler, currently 'c64' and 'cx16' are valid targets.
-    c64 = Commodore 64, c128 = Commodore 128, cx16 = Commander X16, atari = Atari 800 XL
-    Default = c64
+    Sets the target output of the compiler.
+    ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``atari`` = Atari 800 XL,
+    ``virtual`` = builtin virtual machine.
+    Default = ``c64``.
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with ':'), to search in for imported modules.
