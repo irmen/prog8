@@ -6,6 +6,8 @@ import prog8.code.core.IMachineDefinition
 import prog8.code.core.Zeropage
 import java.io.File
 import java.nio.file.Path
+import kotlin.io.path.name
+import kotlin.io.path.readText
 
 
 class VirtualMachineDefinition: IMachineDefinition {
@@ -32,8 +34,15 @@ class VirtualMachineDefinition: IMachineDefinition {
         println("\nStarting Virtual Machine...")
         // to not have external module dependencies we launch the virtual machine via reflection
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
-        val source = File("$programNameWithPath.p8virt").readText()
-        vm.runProgram(source, true)
+        val filename = programNameWithPath.name
+        if(filename.endsWith(".p8virt")) {
+            vm.runProgram(programNameWithPath.readText(), true)
+        } else if(File("$filename.p8virt").isFile) {
+            val source = File("$filename.p8virt").readText()
+            vm.runProgram(source, true)
+        }
+        else
+            throw IllegalArgumentException("vm can only run .p8virt or .p8ir files")
     }
 
     override fun isIOAddress(address: UInt): Boolean = false

@@ -8,10 +8,10 @@ import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
-internal class VmAssemblyProgram(override val name: String, val irProgram: IRProgram): IAssemblyProgram {
+internal class VmAssemblyProgram(override val name: String, private val irProgram: IRProgram): IAssemblyProgram {
 
-    override fun assemble(options: CompilationOptions): Boolean {
-        val outfile = options.outputDir / ("$name.p8virt")
+    override fun assemble(dummyOptions: CompilationOptions): Boolean {
+        val outfile = irProgram.options.outputDir / ("$name.p8virt")
         println("write code to $outfile")
 
         // at last, allocate the variables in memory.
@@ -24,7 +24,7 @@ internal class VmAssemblyProgram(override val name: String, val irProgram: IRPro
 
             out.write("------PROGRAM------\n")
 
-            if(!options.dontReinitGlobals) {
+            if(!irProgram.options.dontReinitGlobals) {
                 out.write("; global var inits\n")
                 irProgram.globalInits.forEach { out.writeLine(it) }
             }

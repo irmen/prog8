@@ -170,7 +170,7 @@ One or more .p8 module files
     Use experimental code generation backend (*incomplete*).
 
 ``-vm``
-    load and run a p8-virt listing in the internal VirtualMachine instead of compiling a prog8 program file..
+    load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
 
 ``-D SYMBOLNAME=VALUE``
     Add this user-defined symbol directly to the beginning of the generated assembly file.

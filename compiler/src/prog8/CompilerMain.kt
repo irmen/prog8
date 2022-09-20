@@ -2,10 +2,10 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.base.AstException
-import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.toHex
+import prog8.code.core.*
 import prog8.code.target.*
 import prog8.code.target.virtual.VirtualMachineDefinition
+import prog8.codegen.virtual.VmCodeGen
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
@@ -45,7 +45,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
-    val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt listing in the VM instead")
+    val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a p8-virt or p8-ir listing in the VM instead")
     val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
     val evalStackAddrString by cli.option(ArgType.String, fullName = "esa", description = "override the eval-stack base address (must be page aligned)")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
@@ -242,12 +242,27 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
 }
 
 fun runVm(listingFilename: String): Boolean {
-    val name =
-        if(listingFilename.endsWith(".p8virt"))
-            listingFilename.substring(0, listingFilename.length-7)
-        else
-            listingFilename
+    if(listingFilename.endsWith(".p8ir")) {
+        val withoutSuffix = listingFilename.substring(0, listingFilename.length-5)
+        val compiled = VmCodeGen.compileIR(withoutSuffix)
+        if (!compiled.assemble(CompilationOptions(  // these are just dummy options, the actual options are inside the .p8ir file itself:
+                OutputType.PRG,
+                CbmPrgLauncherType.NONE,
+                ZeropageType.DONTUSE,
+                emptyList(),
+                floats = true,
+                noSysInit = true,
+                compTarget = VMTarget(),
+                loadAddress = VMTarget().machine.PROGRAM_LOAD_ADDRESS
+            ))
+        ) {
+            return false
+        }
+        val vmdef = VirtualMachineDefinition()
+        vmdef.launchEmulator(0, Paths.get(withoutSuffix))
+        return true
+    }
     val vmdef = VirtualMachineDefinition()
-    vmdef.launchEmulator(0, Paths.get(name))
+    vmdef.launchEmulator(0, Paths.get(listingFilename))
     return true
 }
