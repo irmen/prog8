@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- write some documentation about the compiler architecture and where to plug a code generator onto.
 - vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
 
 ...

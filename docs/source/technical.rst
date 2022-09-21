@@ -119,3 +119,29 @@ Prog8 also provides some help to deal with this:
 - you should use a ``clobbers(X)`` specification for asmsub routines that modify the X register; the compiler will preserve it for you automatically when such a routine is called
 - the ``rsavex()`` and ``rrestorex()`` builtin functions can preserve and restore the X register
 - the ``rsave()`` and ``rrestore()`` builtin functions can preserve and restore *all* registers (but this is very slow and overkill if you only need to save X)
+
+
+Compiler Internals
+------------------
+
+Here is a diagram of how the compiler translates your program source code into a binary program:
+
+.. image:: prog8compiler.svg
+
+Some notes and references into the compiler's source code modules:
+
+#. The ``compileProgram()`` function (in the ``compiler`` module) does all the coordination and basically drives all of the flow shown in the diagram.
+#. ANTLR is a Java parser generator and is used for initial parsing of the source code. (``parser`` module)
+#. Most of the compiler and the optimizer operate on the *Compiler AST*. These are complicated
+   syntax nodes closely representing the Prog8 program structure. (``compilerAst`` module)
+#. For code generation, a much simpler *intermediate AST* has been defined that replaces the *Compiler AST*.
+   Most notably, node type information is now baked in. (``codeCore`` module)
+#. An *Intermediate Representation* has been defined that is generated from the intermediate AST. This IR
+   is more or less a machine code language for a virtual machine - and indeed this is what the built-in
+   prog8 VM will execute if you use the 'virtual' compilaton target and use ``-emu`` to launch the VM.
+   (``intermediate`` and ``codeGenIntermediate`` modules, and ``codeGenVirtual`` and ``virtualmachine`` module for the VM related stuff)
+#. Currently the 6502 ASM code generator still works directly on the *Compiler AST*. A future version
+   should replace this by working on the IR code, and should be much smaller and simpler.
+   (``codeGenCpu6502`` module)
+#. Other code generators may either work on the intermediate AST or on the IR. Selection of what code generator
+   to use is mostly based on the compilation target, and is done in the ``asmGeneratorFor()`` function.
