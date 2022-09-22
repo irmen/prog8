@@ -47,9 +47,9 @@ main {
 
         for pixelxb in 0 to 255 {
             pixelys = math.cos8(pixelxb) / 2
-            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)      ; TODO fix weird cast error
+            graphics.plot(pixelxb, pixelys+90 as uword)
             pixelys = math.sin8(pixelxb) / 2
-            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)      ; TODO fix weird cast error
+            graphics.plot(pixelxb, pixelys+90 as uword)
         }
     }
 
@@ -69,9 +69,9 @@ main {
 
         for pixelxb in 0 to 179 {
             pixelys = math.cosr8(pixelxb) / 2
-            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)    ; TODO fix weird cast error
+            graphics.plot(pixelxb, pixelys+90 as uword)
             pixelys = math.sinr8(pixelxb) / 2
-            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)    ; TODO fix weird cast error
+            graphics.plot(pixelxb, pixelys+90 as uword)
         }
     }
 
