@@ -974,6 +974,9 @@ internal class AssignmentAsmGen(private val program: Program,
                     } else if(valueDt in ByteDatatypes && targetDt in ByteDatatypes) {
                         // byte to byte, just assign
                         assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+                    } else if(valueDt in ByteDatatypes && targetDt in WordDatatypes) {
+                        // byte to word, assign and zero the msb
+                        TODO("cast byte to word: $value")
                     }
                     else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")

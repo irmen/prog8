@@ -35,21 +35,21 @@ main {
         graphics.line(256,0,256,height-1)
 
         ubyte pixelyb
-        uword pixelyw
         ubyte pixelxb
+        byte pixelys
 
         for pixelxb in 0 to 255 {
             pixelyb = math.cos8u(pixelxb) / 2
-            graphics.plot(pixelxb, pixelyb)
+            graphics.plot(pixelxb, pixelyb+20)
             pixelyb = math.sin8u(pixelxb) / 2
-            graphics.plot(pixelxb, pixelyb)
+            graphics.plot(pixelxb, pixelyb+20)
         }
 
         for pixelxb in 0 to 255 {
-            pixelyw = math.cos16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, pixelyw)
-            pixelyw = math.sin16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, pixelyw)
+            pixelys = math.cos8(pixelxb) / 2
+            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)      ; TODO fix weird cast error
+            pixelys = math.sin8(pixelxb) / 2
+            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)      ; TODO fix weird cast error
         }
     }
 
@@ -57,21 +57,21 @@ main {
         graphics.line(180,0,180,height-1)
 
         ubyte pixelyb
-        uword pixelyw
         ubyte pixelxb
+        byte pixelys
 
         for pixelxb in 0 to 179 {
             pixelyb = math.cosr8u(pixelxb) / 2
-            graphics.plot(pixelxb, pixelyb)
+            graphics.plot(pixelxb, pixelyb+20)
             pixelyb = math.sinr8u(pixelxb) / 2
-            graphics.plot(pixelxb, pixelyb)
+            graphics.plot(pixelxb, pixelyb+20)
         }
 
         for pixelxb in 0 to 179 {
-            pixelyw = math.cosr16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, pixelyw)
-            pixelyw = math.sinr16u(pixelxb) / 1024 + 120
-            graphics.plot(pixelxb, pixelyw)
+            pixelys = math.cosr8(pixelxb) / 2
+            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)    ; TODO fix weird cast error
+            pixelys = math.sinr8(pixelxb) / 2
+            graphics.plot(pixelxb, pixelys+90 as ubyte as uword)    ; TODO fix weird cast error
         }
     }
 
@@ -80,7 +80,7 @@ main {
         uword pixelxw
         ubyte r
 
-        ; circles with "degrees" from 0 to 255
+        ; circle with "degrees" from 0 to 255
         for r in 0 to 255 {
             pixelxw = ((math.sin8(r)/2 as word) + 80) as uword
             pixelyb = (math.cos8(r)/2 + height/2) as ubyte
@@ -88,12 +88,12 @@ main {
         }
 
         for r in 0 to 255 {
-            pixelxw = (math.sin16(r)/1024 + 80) as uword
-            pixelyb = (math.cos16(r)/1024 + height/2) as ubyte
-            graphics.plot(pixelxw, pixelyb)
+            pixelxw = math.sin8u(r)/2
+            pixelyb = math.cos8u(r)/2
+            graphics.plot(pixelxw + 16, pixelyb+50)
         }
 
-        ; circles with half-degrees from 0 to 179 (=full degrees 0..358 with steps of 2 degrees)
+        ; circle with half-degrees from 0 to 179 (=full degrees 0..358 with steps of 2 degrees)
         for r in 0 to 179 {
             pixelxw = (math.sinr8(r) as word /2 + 220) as uword
             pixelyb = (math.cosr8(r)/2 + height/2) as ubyte
@@ -101,10 +101,9 @@ main {
         }
 
         for r in 0 to 179 {
-            pixelxw = (math.sinr16(r) as word /1024 + 220) as uword
-            pixelyb = (math.cosr16(r)/1024 + height/2) as ubyte
-            graphics.plot(pixelxw, pixelyb)
+            pixelxw = math.sinr8u(r)/2
+            pixelyb = math.cosr8u(r)/2
+            graphics.plot(pixelxw + 156, pixelyb+50)
         }
-
     }
 }

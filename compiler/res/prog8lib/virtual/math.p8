@@ -19,7 +19,7 @@ math {
                              $0f, $11, $12, $14, $15, $17, $19, $1b, $1d, $1f, $21, $23, $25, $28, $2a, $2c,
                              $2f, $31, $34, $36, $39, $3b, $3e, $41, $43, $46, $49, $4c, $4f, $52, $55, $58,
                              $5a, $5d, $61, $64, $67, $6a, $6d, $70, $73, $76, $79, $7c]
-       return sintab[angle]
+        return sintab[angle]
     }
 
     sub cos8u(ubyte angle) -> ubyte {
@@ -40,7 +40,7 @@ math {
                              $bc, $be, $c1, $c4, $c6, $c9, $cb, $ce, $d0, $d3, $d5, $d7, $da, $dc, $de, $e0,
                              $e2, $e4, $e6, $e8, $ea, $eb, $ed, $ee, $f0, $f1, $f3, $f4, $f5, $f6, $f8, $f9,
                              $fa, $fa, $fb, $fc, $fd, $fd, $fe, $fe, $fe, $ff, $ff, $ff ]
-       return costab[angle]
+        return costab[angle]
     }
 
     sub sin8(ubyte angle) -> byte {
@@ -49,22 +49,6 @@ math {
 
     sub cos8(ubyte angle) -> byte {
         return 42     ; TODO
-    }
-
-    sub sin16(ubyte angle) -> word {
-        return 4242     ; TODO
-    }
-
-    sub cos16(ubyte angle) -> word {
-        return 4242     ; TODO
-    }
-
-    sub sin16u(ubyte angle) -> uword {
-        return 4242     ; TODO
-    }
-
-    sub cos16u(ubyte angle) -> uword {
-        return 4242     ; TODO
     }
 
     sub sinr8u(ubyte radians) -> ubyte {
@@ -109,19 +93,4 @@ math {
         return 42     ; TODO
     }
 
-    sub sinr16(ubyte radians) -> word {
-        return 4242     ; TODO
-    }
-
-    sub cosr16(ubyte radians) -> word {
-        return 4242     ; TODO
-    }
-
-    sub sinr16u(ubyte radians) -> uword {
-        return 4242     ; TODO
-    }
-
-    sub cosr16u(ubyte radians) -> uword {
-        return 4242     ; TODO
-    }
 }

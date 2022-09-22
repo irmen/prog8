@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
+- fix "can't cast BYTE to UWORD this should have been checked in the astchecker" crash
 
 ...
 
