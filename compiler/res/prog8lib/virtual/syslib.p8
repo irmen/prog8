@@ -87,6 +87,13 @@ sys {
         }}
     }
 
+    sub gfx_clear(ubyte color) {
+        %asm {{
+            loadm.b r0,sys.gfx_clear.color
+            syscall 9
+        }}
+    }
+
     sub gfx_plot(uword xx, uword yy, ubyte color) {
         %asm {{
             loadm.w r0,sys.gfx_plot.xx

@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: implement remaining sin/cos functions in virtual/math.p8 and merge tables
-
 ...
 
 
