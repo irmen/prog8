@@ -12,7 +12,6 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="intermediate" />
-    <orderEntry type="module" module-name="virtualmachine" />
     <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
   </component>

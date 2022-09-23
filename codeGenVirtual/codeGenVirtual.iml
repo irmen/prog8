@@ -16,5 +16,6 @@
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="intermediate" />
     <orderEntry type="module" module-name="codeGenIntermediate" />
+    <orderEntry type="module" module-name="virtualmachine" />
   </component>
 </module>

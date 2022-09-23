@@ -4,6 +4,7 @@ import prog8.code.core.AssemblyError
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IAssemblyProgram
 import prog8.intermediate.*
+import prog8.vm.Syscall
 import java.io.BufferedWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
@@ -84,7 +85,28 @@ private fun BufferedWriter.writeLine(line: IRCodeLine) {
             write("; ${line.comment}\n")
         }
         is IRCodeInstruction -> {
-            write(line.ins.toString() + "\n")
+            if(line.ins.opcode==Opcode.SYSCALL) {
+                // convert IM Syscall to VM Syscall
+                val vmSyscall = when(line.ins.value!!) {
+                    IMSyscall.SORT_UBYTE.ordinal -> Syscall.SORT_UBYTE
+                    IMSyscall.SORT_BYTE.ordinal -> Syscall.SORT_BYTE
+                    IMSyscall.SORT_UWORD.ordinal -> Syscall.SORT_UWORD
+                    IMSyscall.SORT_WORD.ordinal -> Syscall.SORT_WORD
+                    IMSyscall.ANY_BYTE.ordinal -> Syscall.ANY_BYTE
+                    IMSyscall.ANY_WORD.ordinal -> Syscall.ANY_WORD
+                    IMSyscall.ANY_FLOAT.ordinal -> Syscall.ANY_FLOAT
+                    IMSyscall.ALL_BYTE.ordinal -> Syscall.ALL_BYTE
+                    IMSyscall.ALL_WORD.ordinal -> Syscall.ALL_WORD
+                    IMSyscall.ALL_FLOAT.ordinal -> Syscall.ALL_FLOAT
+                    IMSyscall.REVERSE_BYTES.ordinal -> Syscall.REVERSE_BYTES
+                    IMSyscall.REVERSE_WORDS.ordinal -> Syscall.REVERSE_WORDS
+                    IMSyscall.REVERSE_FLOATS.ordinal -> Syscall.REVERSE_FLOATS
+                    else -> throw IllegalArgumentException("invalid IM syscall number ${line.ins.value}")
+                }
+                val newIns = line.ins.copy(value = vmSyscall.ordinal)
+                write(newIns.toString() + "\n")
+            } else
+                write(line.ins.toString() + "\n")
         }
         is IRCodeInlineBinary -> {
             write("!binary ")

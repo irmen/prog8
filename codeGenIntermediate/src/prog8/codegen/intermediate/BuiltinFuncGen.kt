@@ -6,7 +6,6 @@ import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.intermediate.*
-import prog8.vm.Syscall
 
 
 internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
@@ -67,10 +66,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val syscall =
             when (array.dt) {
                 DataType.ARRAY_UB,
-                DataType.ARRAY_B -> Syscall.ANY_BYTE
+                DataType.ARRAY_B -> IMSyscall.ANY_BYTE
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> Syscall.ANY_WORD
-                DataType.ARRAY_F -> Syscall.ANY_FLOAT
+                DataType.ARRAY_W -> IMSyscall.ANY_WORD
+                DataType.ARRAY_F -> IMSyscall.ANY_FLOAT
                 else -> throw IllegalArgumentException("weird type")
             }
         code += exprGen.translateExpression(call.args[0], 0, -1)
@@ -87,10 +86,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val syscall =
             when(array.dt) {
                 DataType.ARRAY_UB,
-                DataType.ARRAY_B -> Syscall.ALL_BYTE
+                DataType.ARRAY_B -> IMSyscall.ALL_BYTE
                 DataType.ARRAY_UW,
-                DataType.ARRAY_W -> Syscall.ALL_WORD
-                DataType.ARRAY_F -> Syscall.ALL_FLOAT
+                DataType.ARRAY_W -> IMSyscall.ALL_WORD
+                DataType.ARRAY_F -> IMSyscall.ALL_FLOAT
                 else -> throw IllegalArgumentException("weird type")
             }
         val code = IRCodeChunk(call.position)
@@ -187,37 +186,37 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcReverse(call: PtBuiltinFunctionCall): IRCodeChunk {
         val arrayName = call.args[0] as PtIdentifier
         val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
-        val sortSyscall =
+        val syscall =
             when(array.dt) {
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> Syscall.REVERSE_BYTES
-                DataType.ARRAY_UW, DataType.ARRAY_W -> Syscall.REVERSE_WORDS
-                DataType.ARRAY_F -> Syscall.REVERSE_FLOATS
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
+                DataType.ARRAY_UW, DataType.ARRAY_W -> IMSyscall.REVERSE_WORDS
+                DataType.ARRAY_F -> IMSyscall.REVERSE_FLOATS
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val code = IRCodeChunk(call.position)
         code += exprGen.translateExpression(call.args[0], 0, -1)
         code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
-        code += IRCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
+        code += IRCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         return code
     }
 
     private fun funcSort(call: PtBuiltinFunctionCall): IRCodeChunk {
         val arrayName = call.args[0] as PtIdentifier
         val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
-        val sortSyscall =
+        val syscall =
             when(array.dt) {
-                DataType.ARRAY_UB -> Syscall.SORT_UBYTE
-                DataType.ARRAY_B -> Syscall.SORT_BYTE
-                DataType.ARRAY_UW -> Syscall.SORT_UWORD
-                DataType.ARRAY_W -> Syscall.SORT_WORD
-                DataType.STR -> Syscall.SORT_UBYTE
+                DataType.ARRAY_UB -> IMSyscall.SORT_UBYTE
+                DataType.ARRAY_B -> IMSyscall.SORT_BYTE
+                DataType.ARRAY_UW -> IMSyscall.SORT_UWORD
+                DataType.ARRAY_W -> IMSyscall.SORT_WORD
+                DataType.STR -> IMSyscall.SORT_UBYTE
                 DataType.ARRAY_F -> throw IllegalArgumentException("sorting a floating point array is not supported")
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val code = IRCodeChunk(call.position)
         code += exprGen.translateExpression(call.args[0], 0, -1)
         code += IRCodeInstruction(Opcode.LOAD, VmDataType.BYTE, reg1=1, value=array.length)
-        code += IRCodeInstruction(Opcode.SYSCALL, value=sortSyscall.ordinal)
+        code += IRCodeInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         return code
     }
 

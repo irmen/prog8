@@ -17,7 +17,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- vm/ir: all(), any(), reverse() and sort() still depend on a VM Syscall. Get rid of this. (maybe use a IR 'builtin' function?)
 - vm/ir: put variables and arrays in BSS section (unless -noreinit is specified)
 - vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.
@@ -51,8 +50,8 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
-- add modes 3 and perhaps even 2 to gfx2 (16 color and 4 color)?
-- add a flood fill routine to gfx2?
+- add modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)?
+- add a flood fill (span fill/scanline fill) routine to gfx2?
 
 
 Expressions:

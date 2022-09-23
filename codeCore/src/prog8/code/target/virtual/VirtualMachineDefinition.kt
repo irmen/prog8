@@ -32,7 +32,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         println("\nStarting Virtual Machine...")
-        // to not have external module dependencies we launch the virtual machine via reflection
+        // to not have external module dependencies in our own module, we launch the virtual machine via reflection
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
         val filename = programNameWithPath.name
         if(filename.endsWith(".p8virt")) {
