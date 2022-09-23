@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix compiler crash in examples/vm/bsieve.p8
+- fix nullpointer in allocator in examples/vm/textelite.p8
+
 ...
 
 
