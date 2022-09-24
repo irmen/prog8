@@ -26,7 +26,7 @@ main {
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
-        VmRunner().runProgram(virtfile.readText(), false)
+        VmRunner().runProgram(virtfile.readText())
     }
 
     test("compile virtual: array with pointers") {
@@ -44,7 +44,7 @@ main {
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
-        VmRunner().runProgram(virtfile.readText(), false)
+        VmRunner().runProgram(virtfile.readText())
     }
 
     test("compile virtual: str args and return type") {
@@ -62,7 +62,7 @@ main {
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
-        VmRunner().runProgram(virtfile.readText(), false)
+        VmRunner().runProgram(virtfile.readText())
     }
 
     test("compile virtual: nested labels") {
@@ -71,6 +71,10 @@ main {
     sub start() {
         uword i
         uword k
+
+        while k <= 10 {
+            k++
+        }
 
 mylabel_outside:        
         for i in 0 to 10 {
@@ -98,7 +102,7 @@ mylabel_inside:
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
-        VmRunner().runProgram(virtfile.readText(), false)
+        VmRunner().runProgram(virtfile.readText())
     }
 
 })

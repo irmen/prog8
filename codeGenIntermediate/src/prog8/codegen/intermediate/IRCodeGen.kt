@@ -24,6 +24,7 @@ class IRCodeGen(
     internal val vmRegisters = RegisterPool()
 
     fun generate(): IRProgram {
+        flattenLabelNames()
         flattenNestedSubroutines()
 
         val irProg = IRProgram(program.name, symbolTable, options, program.encoding)
@@ -101,9 +102,31 @@ class IRCodeGen(
         }
     }
 
+    private fun flattenLabelNames() {
+        val renameLabels = mutableListOf<Pair<PtNode, PtLabel>>()
+
+        fun flattenRecurse(node: PtNode) {
+            node.children.forEach {
+                if (it is PtLabel)
+                    renameLabels += Pair(it.parent, it)
+                else
+                    flattenRecurse(it)
+            }
+        }
+
+        flattenRecurse(program)
+
+        renameLabels.forEach { (parent, label) ->
+            val renamedLabel = PtLabel(label.scopedName.joinToString("."), label.position)
+            val idx = parent.children.indexOf(label)
+            parent.children.removeAt(idx)
+            parent.children.add(idx, renamedLabel)
+        }
+    }
+
     private fun flattenNestedSubroutines() {
         // this moves all nested subroutines up to the block scope.
-        // also changes the name to be the fully scoped one so it becomes unique at the top level.
+        // also changes the name to be the fully scoped one, so it becomes unique at the top level.
         // also moves the start() entrypoint as first subroutine.
         val flattenedSubs = mutableListOf<Pair<PtBlock, PtSub>>()
         val flattenedAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
@@ -111,10 +134,9 @@ class IRCodeGen(
         val removalsAsmSubs = mutableListOf<Pair<PtSub, PtAsmSub>>()
         val renameSubs = mutableListOf<Pair<PtBlock, PtSub>>()
         val renameAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
-        val renameLabels = mutableListOf<Pair<PtNode, PtLabel>>()
         val entrypoint = program.entrypoint()
 
-        fun flattenNestedAsm(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
+        fun flattenNestedAsmSub(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
             val flattened = PtAsmSub(asmsub.scopedName.joinToString("."),
                 asmsub.address,
                 asmsub.clobbers,
@@ -128,9 +150,9 @@ class IRCodeGen(
             removalsAsmSubs += Pair(parentSub, asmsub)
         }
 
-        fun flattenNested(block: PtBlock, parentSub: PtSub, sub: PtSub) {
-            sub.children.filterIsInstance<PtSub>().forEach { subsub->flattenNested(block, sub, subsub) }
-            sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsm(block, sub, asmsubsub) }
+        fun flattenNestedSub(block: PtBlock, parentSub: PtSub, sub: PtSub) {
+            sub.children.filterIsInstance<PtSub>().forEach { subsub->flattenNestedSub(block, sub, subsub) }
+            sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsmSub(block, sub, asmsubsub) }
             val flattened = PtSub(sub.scopedName.joinToString("."),
                 sub.parameters,
                 sub.returntype,
@@ -145,24 +167,15 @@ class IRCodeGen(
             block.children.forEach {
                 if(it is PtSub) {
                     // Only regular subroutines can have nested subroutines.
-                    it.children.filterIsInstance<PtSub>().forEach { subsub->flattenNested(block, it, subsub)}
-                    it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsm(block, it, asmsubsub)}
-                    it.children.filterIsInstance<PtLabel>().forEach { label->renameLabels.add(Pair(it, label))}
+                    it.children.filterIsInstance<PtSub>().forEach { subsub->flattenNestedSub(block, it, subsub)}
+                    it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsmSub(block, it, asmsubsub)}
                     renameSubs += Pair(block, it)
                 }
                 if(it is PtAsmSub)
                     renameAsmSubs += Pair(block, it)
-                if(it is PtLabel)
-                    renameLabels += Pair(block, it)
             }
         }
 
-        renameLabels.forEach { (parent, label) ->
-            val renamedLabel = PtLabel(label.scopedName.joinToString("."), label.position)
-            val idx = parent.children.indexOf(label)
-            parent.children.removeAt(idx)
-            parent.children.add(idx, renamedLabel)
-        }
         removalsSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
         removalsAsmSubs.forEach { (parent, asmsub) -> parent.children.remove(asmsub) }
         flattenedSubs.forEach { (block, sub) -> block.add(sub) }

@@ -3,9 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix vm crash in TestCompilerVirtual: while loop
 - fix vm crash in TestCompilerVirtual: array with pointers
-- fix vm crash (while loop) in examples/vm/bsieve.p8  (Assembler)
 - fix vm crash (parseValue error) in examples/vm/textelite.p8 (Assembler)
 
 ...

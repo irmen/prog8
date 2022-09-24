@@ -16,7 +16,7 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pc shouldBe 0
         vm.stepCount shouldBe 0
-        vm.run(throttle = false)
+        vm.run()
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
         vm.pc shouldBe 0
@@ -37,7 +37,7 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pc shouldBe 0
         vm.stepCount shouldBe 0
-        vm.run(throttle = false)
+        vm.run()
         memory.getUW(1000) shouldBe 12345u
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
@@ -47,6 +47,6 @@ class TestVm: FunSpec( {
 
     test("vmrunner") {
         val runner = VmRunner()
-        runner.runProgram(";comment\n------PROGRAM------\n;comment\n", false)
+        runner.runProgram(";comment\n------PROGRAM------\n;comment\n")
     }
 })

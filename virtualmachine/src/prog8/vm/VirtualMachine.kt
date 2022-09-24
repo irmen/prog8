@@ -47,7 +47,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
             throw IllegalArgumentException("program cannot contain more than 65536 instructions")
     }
 
-    fun run(throttle: Boolean = true) {
+    fun run() {
         try {
             var before = System.nanoTime()
             var numIns = 0
@@ -55,9 +55,9 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
                 step()
                 numIns++
 
-                if(throttle && stepCount and 32767 == 0) {
-                    Thread.sleep(1)  // avoid 100% cpu core usage
-                }
+//                if(stepCount and 32767 == 0) {
+//                    Thread.sleep(1)  // avoid 100% cpu core usage
+//                }
 
                 if(stepCount and 0xffffff == 0) {
                     val now = System.nanoTime()
@@ -2105,13 +2105,13 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
 
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
-    override fun runProgram(source: String, throttle: Boolean) {
+    override fun runProgram(source: String) {
         val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)
         val memory = Memory()
         val assembler = Assembler()
         assembler.initializeMemory(memsrc, memory)
         val program = assembler.assembleProgram(programsrc)
         val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
-        vm.run(throttle = throttle)
+        vm.run()
     }
 }

@@ -27,7 +27,7 @@ main {
                         k += prime
                     }
                     txt.print_uw(prime)
-                    txt.spc()
+                    txt.nl()
                     count++
                 }
             }

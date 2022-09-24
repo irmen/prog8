@@ -36,10 +36,10 @@ class VirtualMachineDefinition: IMachineDefinition {
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
         val filename = programNameWithPath.name
         if(filename.endsWith(".p8virt")) {
-            vm.runProgram(programNameWithPath.readText(), true)
+            vm.runProgram(programNameWithPath.readText())
         } else if(File("$filename.p8virt").isFile) {
             val source = File("$filename.p8virt").readText()
-            vm.runProgram(source, true)
+            vm.runProgram(source)
         }
         else
             throw IllegalArgumentException("vm can only run .p8virt or .p8ir files")
@@ -53,5 +53,5 @@ class VirtualMachineDefinition: IMachineDefinition {
 }
 
 interface IVirtualMachineRunner {
-    fun runProgram(source: String, throttle: Boolean)
+    fun runProgram(source: String)
 }
