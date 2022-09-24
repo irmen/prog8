@@ -58,7 +58,12 @@ internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEnc
                 }
                 in ArrayDatatypes -> {
                     if(variable.onetimeInitializationArrayValue!==null) {
-                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toHex() }
+                        variable.onetimeInitializationArrayValue!!.joinToString(",") {
+                            if(it.number!=null)
+                                it.number!!.toHex()
+                            else
+                                "&${it.addressOf!!.joinToString(".")}"
+                        }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
                     }

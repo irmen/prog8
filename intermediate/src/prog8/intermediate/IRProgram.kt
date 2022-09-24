@@ -97,6 +97,12 @@ class IRSubroutine(val name: String,
             throw IllegalArgumentException("subroutine name is not scoped: $name")
         if(name.startsWith("main.main."))
             throw IllegalArgumentException("subroutine name invalid main prefix: $name")
+
+        // params and return value should not be str
+        if(parameters.any{ it.dt !in NumericDatatypes })
+            throw IllegalArgumentException("non-numeric parameter")
+        if(returnType!=null && returnType !in NumericDatatypes)
+            throw IllegalArgumentException("non-numeric returntype $returnType")
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) { chunks+= chunk }

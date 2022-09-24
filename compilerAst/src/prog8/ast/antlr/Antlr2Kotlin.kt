@@ -8,7 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.parser.Prog8ANTLRParser
-import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
 
@@ -20,7 +20,7 @@ private data class NumericLiteralNode(val number: Double, val datatype: DataType
 private fun ParserRuleContext.toPosition() : Position {
     val pathString = start.inputStream.sourceName
     val filename = if(SourceCode.isRegularFilesystemPath(pathString)) {
-        val path = Path.of(pathString)
+        val path = Path(pathString)
         if(path.isRegularFile()) {
             SourceCode.relative(path).toString()
         } else {

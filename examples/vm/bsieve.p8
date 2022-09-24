@@ -26,13 +26,14 @@ main {
                         @(flags_ptr + k) = false
                         k += prime
                     }
-;                    txt.print_uw(prime)
-;                    txt.spc()
+                    txt.print_uw(prime)
+                    txt.spc()
                     count++
                 }
             }
         }
 
+        txt.nl()
         txt.print_uw(count)
         txt.print(" primes\n")
     }

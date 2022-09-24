@@ -9,7 +9,7 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
-import java.nio.file.Path
+import kotlin.io.path.Path
 
 class VmCodeGen(private val program: PtProgram,
                 private val symbolTable: SymbolTable,
@@ -33,7 +33,7 @@ class VmCodeGen(private val program: PtProgram,
 
     companion object {
         fun compileIR(listingFilename: String): IAssemblyProgram {
-            val irProgram = IRFileReader(Path.of(""), listingFilename).readFile()
+            val irProgram = IRFileReader(Path(""), listingFilename).readFile()
             return VmAssemblyProgram(irProgram.name, irProgram)
         }
     }

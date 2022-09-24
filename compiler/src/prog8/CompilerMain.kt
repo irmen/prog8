@@ -13,6 +13,7 @@ import java.io.File
 import java.nio.file.*
 import java.time.LocalDateTime
 import kotlin.system.exitProcess
+import kotlin.io.path.Path
 
 
 fun main(args: Array<String>) {
@@ -142,7 +143,7 @@ private fun compileMain(args: Array<String>): Boolean {
             for (importedFile in allImportedFiles) {
                 print("  ")
                 println(importedFile)
-                val watchDir = importedFile.parent ?: Path.of("")
+                val watchDir = importedFile.parent ?: Path("")
                 watchDir.register(watchservice, StandardWatchEventKinds.ENTRY_MODIFY)
             }
             println("[${LocalDateTime.now().withNano(0)}]  Waiting for file changes.")

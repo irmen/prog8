@@ -93,6 +93,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
         out.write("loadAddress=${irProgram.options.loadAddress}\n")
         out.write("dontReinitGlobals=${irProgram.options.dontReinitGlobals}\n")
         out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress}\n")
+        out.write("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
         // other options not yet useful here?
         out.write("</OPTIONS>\n")
     }
@@ -117,7 +118,12 @@ class IRFileWriter(private val irProgram: IRProgram) {
                 }
                 in ArrayDatatypes -> {
                     if(variable.onetimeInitializationArrayValue!==null) {
-                        variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toInt().toString() }
+                        variable.onetimeInitializationArrayValue!!.joinToString(",") {
+                            if(it.number!=null)
+                                it.number!!.toInt().toString()
+                            else
+                                "&${it.addressOf!!.joinToString(".")}"
+                        }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
                     }

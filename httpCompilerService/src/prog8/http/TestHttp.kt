@@ -13,8 +13,8 @@ import org.takes.rs.RsJson
 import org.takes.tk.TkSlf4j
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import java.nio.file.Path
 import javax.json.Json
+import kotlin.io.path.Path
 
 
 class Jsonding: RsJson.Source {
@@ -31,7 +31,7 @@ class RequestParser : Take {
         val names = form.names()
         val a = form.param("a").single()
         val args = CompilerArguments(
-            Path.of(a),
+            Path(a),
             optimize = true,
             optimizeFloatExpressions = false,
             dontReinitGlobals = false,

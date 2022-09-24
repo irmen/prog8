@@ -320,9 +320,12 @@ class IntermediateAstMaker(val program: Program) {
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
+        var returntype = srcSub.returntypes.singleOrNull()
+        if(returntype==DataType.STR)
+            returntype=DataType.UWORD   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
-            srcSub.returntypes.singleOrNull(),
+            returntype,
             srcSub.inline,
             srcSub.position)
         sub.parameters.forEach { it.parent=sub }

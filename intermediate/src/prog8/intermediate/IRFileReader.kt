@@ -4,6 +4,7 @@ import prog8.code.*
 import prog8.code.core.*
 import prog8.code.target.*
 import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.io.path.bufferedReader
 import kotlin.io.path.div
 
@@ -54,6 +55,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         var dontReinitGlobals = false
         var evalStackBaseAddress: UInt? = null
+        var outputDir = Path("")
         if(line!="<OPTIONS>")
             throw IRParseException("invalid OPTIONS")
         while(true) {
@@ -82,6 +84,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                     val (start, end) = value.split(',')
                     zpReserved.add(UIntRange(start.toUInt(), end.toUInt()))
                 }
+                "outputDir" -> outputDir = Path(value)
                 else -> throw IRParseException("illegal OPTION $name")
             }
         }
@@ -96,7 +99,8 @@ class IRFileReader(outputDir: Path, programName: String) {
             target,
             loadAddress,
             dontReinitGlobals = dontReinitGlobals,
-            evalStackBaseAddress = evalStackBaseAddress
+            evalStackBaseAddress = evalStackBaseAddress,
+            outputDir = outputDir
         )
     }
 
@@ -130,7 +134,12 @@ class IRFileReader(outputDir: Path, programName: String) {
                     }
                 }
                 in ArrayDatatypes -> {
-                    initArray = value.split(',').map { StArrayElement(it.toDouble(), null) }
+                    initArray = value.split(',').map {
+                        if(it.startsWith('&'))
+                            StArrayElement(null, it.drop(1).split('.'))
+                        else
+                            StArrayElement(it.toDouble(), null)
+                    }
                 }
                 DataType.STR -> throw IRParseException("STR should have been converted to byte array")
                 else -> throw IRParseException("weird dt")
@@ -173,7 +182,7 @@ class IRFileReader(outputDir: Path, programName: String) {
                 "uword" -> DataType.ARRAY_UW
                 "float" -> DataType.ARRAY_F
                 "bool" -> DataType.ARRAY_B
-                else -> throw IRParseException("invalid dt")
+                else -> throw IRParseException("invalid dt $type")
             }
         } else {
             return when(type) {
@@ -183,7 +192,8 @@ class IRFileReader(outputDir: Path, programName: String) {
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
                 "bool" -> DataType.BOOL
-                else -> throw IRParseException("invalid dt")
+                // note: 'str' should not occur anymore in IR. Should be 'uword'
+                else -> throw IRParseException("invalid dt $type")
             }
         }
     }

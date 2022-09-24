@@ -12,17 +12,13 @@ import prog8.code.target.Cx16Target
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
-import java.nio.file.Path
-import kotlin.io.path.deleteExisting
-import kotlin.io.path.name
-import kotlin.io.path.readLines
-import kotlin.io.path.writeText
+import kotlin.io.path.*
 
 class TestIRFileInOut: FunSpec({
     test("test IR writer") {
         val st = SymbolTable()
         val target = Cx16Target()
-        val tempdir = Path.of(System.getProperty("java.io.tmpdir"))
+        val tempdir = Path(System.getProperty("java.io.tmpdir"))
         val options = CompilationOptions(
             OutputType.RAW,
             CbmPrgLauncherType.NONE,

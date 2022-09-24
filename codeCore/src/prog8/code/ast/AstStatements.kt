@@ -29,6 +29,14 @@ class PtSub(
     override fun printProperties() {
         print(name)
     }
+
+    init {
+        // params and return value should not be str
+        if(parameters.any{ it.type !in NumericDatatypes })
+            throw AssemblyError("non-numeric parameter")
+        if(returntype!=null && returntype !in NumericDatatypes)
+            throw AssemblyError("non-numeric returntype $returntype")
+    }
 }
 
 

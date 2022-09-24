@@ -2112,6 +2112,6 @@ class VmRunner: IVirtualMachineRunner {
         assembler.initializeMemory(memsrc, memory)
         val program = assembler.assembleProgram(programsrc)
         val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
-        vm.run(throttle = true)
+        vm.run(throttle = throttle)
     }
 }

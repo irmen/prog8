@@ -106,7 +106,7 @@ sealed class SourceCode {
      * [origin]: `library:/x/y/z.p8` for a given `pathString` of "x/y/z.p8"
      */
     class Resource(pathString: String): SourceCode() {
-        private val normalized = "/" + Path.of(pathString).normalize().toMutableList().joinToString("/")
+        private val normalized = "/" + Path(pathString).normalize().toMutableList().joinToString("/")
 
         override val isFromResources = true
         override val isFromFilesystem = false
@@ -125,7 +125,7 @@ sealed class SourceCode {
             }
             val stream = object {}.javaClass.getResourceAsStream(normalized)
             text = stream!!.reader().use { it.readText() }
-            name = Path.of(pathString).toFile().nameWithoutExtension
+            name = Path(pathString).toFile().nameWithoutExtension
         }
     }
 
