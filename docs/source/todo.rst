@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix vm symbol case insensitivity (TestCompilerVirtual)
 - fix vm crash in TestCompilerVirtual: array with pointers
-- fix vm crash (parseValue error) in examples/vm/textelite.p8 (Assembler)
+- fix vm crash (parseValue error) in examples/vm/textelite.p8 (Assembler, caused by above?)
 
 ...
 

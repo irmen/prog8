@@ -121,8 +121,11 @@ class IRFileWriter(private val irProgram: IRProgram) {
                         variable.onetimeInitializationArrayValue!!.joinToString(",") {
                             if(it.number!=null)
                                 it.number!!.toInt().toString()
-                            else
-                                "&${it.addressOf!!.joinToString(".")}"
+                            else {
+                                val target = variable.lookup(it.addressOf!!)
+                                    ?: throw InternalCompilerException("symbol not found: ${it.addressOf} in ${variable.scopedName}")
+                                "&${target.scopedName.joinToString(".")}"
+                            }
                         }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }

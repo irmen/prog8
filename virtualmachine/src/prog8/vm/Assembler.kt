@@ -17,6 +17,8 @@ class Assembler {
 
     fun initializeMemory(memsrc: String, memory: Memory) {
         symbolAddresses.clear()
+        val arrayValuePlaceholders = mutableListOf<Pair<Int, String>>()
+
         val instrPattern = Regex("""var (.+) @([0-9]+) ([a-z]+)(\[[0-9]+\])? (.+)""", RegexOption.IGNORE_CASE)
         for(line in memsrc.lines()) {
             if(line.isBlank() || line.startsWith(';'))
@@ -58,18 +60,33 @@ class Assembler {
                         }
                     }
                     "uword", "word" -> {
-                        val array = values.split(',').map { parseValue(Opcode.LOADCPU, it.trim(), 0).toInt() }
-                        require(array.size==numArrayElts || array.size==1)
-                        if(numArrayElts>array.size) {
-                            val value = array.single().toUShort()
-                            repeat(numArrayElts) {
-                                memory.setUW(address, value)
-                                address += 2
-                            }
+                        if(arrayspec.isBlank()) {
+                            // single value
+                            val value = parseValue(Opcode.LOADCPU, values.trim(), 0).toInt()
+                            memory.setUW(address, value.toUShort())
+                            address += 2
                         } else {
-                            for (value in array) {
-                                memory.setUW(address, value.toUShort())
-                                address += 2
+                            // array initializer
+                            val array = values.split(',').withIndex().map {(index, value) ->
+                                val tv = value.trim()
+                                if(tv.startsWith('&')) {
+                                    arrayValuePlaceholders += Pair(address+index*2, tv.drop(1))
+                                    9999    // will be replaced with correct value at the end.
+                                } else
+                                    parseValue(Opcode.LOADCPU, tv, 0).toInt()
+                            }
+                            require(array.size==numArrayElts || array.size==1)
+                            if(numArrayElts>array.size) {
+                                val value = array.single().toUShort()
+                                repeat(numArrayElts) {
+                                    memory.setUW(address, value)
+                                    address += 2
+                                }
+                            } else {
+                                for (value in array) {
+                                    memory.setUW(address, value.toUShort())
+                                    address += 2
+                                }
                             }
                         }
                     }
@@ -92,6 +109,12 @@ class Assembler {
                     else -> throw IllegalArgumentException("invalid datatype $datatype")
                 }
             }
+        }
+
+        // correct the addres-of values in array initializers
+        arrayValuePlaceholders.forEach { (address, symbol) ->
+            val addr = this.symbolAddresses.getValue(symbol)
+            memory.setUW(address, addr.toUShort())
         }
     }
 

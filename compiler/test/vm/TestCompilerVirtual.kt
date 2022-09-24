@@ -1,6 +1,7 @@
 package prog8tests.vm
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -32,11 +33,15 @@ main {
     test("compile virtual: array with pointers") {
         val src = """
 main {
-
     sub start() {
-        ubyte variable
-        uword[] words = [1111,2222,"three",&variable]
-        variable = 2222 in words
+        str localstr = "hello"
+        ubyte[] otherarray = [1,2,3]
+        uword[] words = [1111,2222,"three",&localstr,&otherarray]
+        uword @shared zz = &words
+        ubyte result = 2222 in words
+        zz = words[2]
+        zz++
+        zz = words[3]
     }
 }"""
         val othertarget = Cx16Target()
@@ -105,4 +110,31 @@ mylabel_inside:
         VmRunner().runProgram(virtfile.readText())
     }
 
+    test("case sensitive symbols") {
+        val src = """
+%zeropage basicsafe 
+            
+main {
+    sub start() {
+        ubyte bytevar = 11      ; var at 0
+        ubyte byteVAR = 22      ; var at 1
+        ubyte ByteVar = 33      ; var at 2
+        ubyte @shared total = bytevar+byteVAR+ByteVar   ; var at 3
+        goto skipLABEL
+SkipLabel:
+        return
+skipLABEL:
+        bytevar = 42
+    }
+}"""
+        val othertarget = Cx16Target()
+        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        val target = VMTarget()
+        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            vm.memory.getUB(0) shouldBe 42u
+            vm.memory.getUB(3) shouldBe 66u
+        }
+    }
 })

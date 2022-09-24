@@ -2106,6 +2106,10 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
     override fun runProgram(source: String) {
+        runAndTestProgram(source) { /* no tests */ }
+    }
+
+    fun runAndTestProgram(source: String, test: (VirtualMachine) -> Unit) {
         val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)
         val memory = Memory()
         val assembler = Assembler()
@@ -2113,5 +2117,6 @@ class VmRunner: IVirtualMachineRunner {
         val program = assembler.assembleProgram(programsrc)
         val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
         vm.run()
+        test(vm)
     }
 }
