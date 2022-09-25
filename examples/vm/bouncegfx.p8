@@ -1,6 +1,3 @@
-%import textio
-%zeropage basicsafe
-
 ; NOTE: meant to test to virtual machine output target (use -target virtual)
 
 main  {
@@ -24,6 +21,7 @@ main  {
         repeat {
             fade()
             plot_particles()
+            sys.wait(1)
             sys.waitvsync()
         }
 

@@ -915,15 +915,18 @@ class IRCodeGen(
             }
         }
 
+        val repeatLabel = createLabelName()
+        val skipRepeatLabel = createLabelName()
         val code = IRCodeChunk(repeat.position)
         val counterReg = vmRegisters.nextFree()
         val vmDt = vmType(repeat.count.type)
         code += expressionEval.translateExpression(repeat.count, counterReg, -1)
-        val repeatLabel = createLabelName()
+        code += IRCodeInstruction(Opcode.BZ, vmDt, reg1=counterReg, labelSymbol = skipRepeatLabel)
         code += IRCodeLabel(repeatLabel)
         code += translateNode(repeat.statements)
         code += IRCodeInstruction(Opcode.DEC, vmDt, reg1=counterReg)
         code += IRCodeInstruction(Opcode.BNZ, vmDt, reg1=counterReg, labelSymbol = repeatLabel)
+        code += IRCodeLabel(skipRepeatLabel)
         return code
     }
 

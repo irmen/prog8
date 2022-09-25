@@ -14,9 +14,10 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("--- TextElite v1.2 ---\n")
-        txt.print("VirtualMachine edition: no disk saving, bad text layout!\n")
+        txt.print("\n--- TextElite v1.2 ---\n")
+        txt.print("VirtualMachine edition: no disk saving, bad market table layout!\n")
 
+        planet.set_seed(0, 0)
         galaxy.travel_to(1, numforLave)
         market.init(0)  ;  Lave's market is seeded with 0
         ship.init()
@@ -435,11 +436,10 @@ galaxy {
         ubyte py = planet.y
         uword current_name = &planet.name
         ubyte pn = 0
-        uword scaling = 8
+        uword scaling = 2
         if local
-            scaling = 2
+            scaling = 1
 
-        scaling /= 2
         init(number)
         txt.clear_screen()
         txt.print("Galaxy #")
@@ -457,7 +457,7 @@ galaxy {
             ubyte distance = planet.distance(px, py)
             if distance <= max_distance {
                 planet.name = make_current_planet_name()
-                planet.name[0] |= 32       ; uppercase first letter
+                planet.name[0] = string.upperchar(planet.name[0])
                 uword tx = planet.x
                 uword ty = planet.y
                 if local {
@@ -465,27 +465,30 @@ galaxy {
                     ty = ty + 24 - py
                 }
                 tx /= scaling
-                ty /= scaling*2
+                ty /= scaling*4
                 ubyte sx = lsb(tx)
                 ubyte sy = lsb(ty)
                 ubyte char = '*'
                 if planet.number==current_planet
                     char = '%'
                 if local or planet.number==current_planet {
-                    ;; NOT SUPPORTED txt.plot(2+sx-2, 2+sy+1)
+                    txt.plot(2+sx-2, 2+sy+1)
                     txt.print(current_name)
                     if distance {
-                        ;; NOT SUPPORTED txt.plot(2+sx-2, 2+sy+2)
+                        txt.plot(2+sx-2, 2+sy+2)
                         util.print_10s(distance)
                         txt.print(" LY")
                     }
                 }
-                ;; NOT SUPPROTED txt.setchr(2+sx, 2+sy, char)
+                txt.setchr(2+sx, 2+sy, char)
             }
             pn++
         } until pn==0
 
-        ;; NOT SUPPORTED txt.plot(0,36)
+        if local
+            txt.plot(0, 20)
+        else
+            txt.plot(0, 33)
         txt.nl()
 
         travel_to(number, current_planet)
@@ -603,18 +606,6 @@ galaxy {
         rol(xl)
         return mkword(xh, xl)
     }
-
-    sub debug_seed() {
-        txt.print("\ngalaxy #")
-        txt.print_ub(number)
-        txt.print("\ngalaxy seed0=")
-        txt.print_uwhex(galaxy.seed[0], true)
-        txt.print("\ngalaxy seed1=")
-        txt.print_uwhex(galaxy.seed[1], true)
-        txt.print("\ngalaxy seed2=")
-        txt.print_uwhex(galaxy.seed[2], true)
-        txt.nl()
-    }
 }
 
 planet {
@@ -723,7 +714,7 @@ planet {
             }
         }
         randname[nx] = 0
-        randname[0] |= 32       ; uppercase first letter
+        randname[0] = string.upperchar(randname[0])
         return randname
     }
 
@@ -795,12 +786,12 @@ planet {
                         source_ptr = source_stack[stack_ptr]
                     } else {
                         if c == $b0 {
-                            @(result_ptr) = name[0] | 32
+                            @(result_ptr) = string.upperchar(name[0])
                             result_ptr++
                             concat_string(&name + 1)
                         }
                         else if c == $b1 {
-                            @(result_ptr) = name[0] | 32
+                            @(result_ptr) = string.upperchar(name[0])
                             result_ptr++
                             ubyte ni
                             for ni in 1 to len(name) {
@@ -914,9 +905,10 @@ planet {
     }
 
     sub print_name_uppercase() {
-        ubyte c
-        for c in name
-            txt.chrout(c | 32)
+        str uppername = "????????"
+        uppername = name
+        void string.upper(uppername)
+        txt.print(uppername)
     }
 
     sub getword(ubyte listnum, ubyte wordidx) -> uword {
@@ -933,8 +925,8 @@ util {
             if pc == 0
                 return true
             ; to lowercase for case insensitive compare:
-            pc &= 127
-            sc &= 127
+            pc = string.lowerchar(pc)
+            sc = string.lowerchar(sc)
             if pc != sc
                 return false
             prefixptr++

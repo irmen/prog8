@@ -120,4 +120,19 @@ sub  input_chars  (uword buffer) -> ubyte  {
     }}
 }
 
+sub  plot  (ubyte col, ubyte row) {
+    ; use ANSI escape sequence to position the cursor
+    txt.chrout(27)
+    txt.chrout('[')
+    txt.print_ub(row)
+    txt.chrout(';')
+    txt.print_ub(col)
+    txt.chrout('H')
+}
+
+sub setchr (ubyte col, ubyte row, ubyte char) {
+    plot(col, row)
+    txt.chrout(char)
+}
+
 }

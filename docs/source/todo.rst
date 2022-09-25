@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix examples/vm/textelite.p8 having wrong randomization? (starts with wrong planet)
-
 ...
 
 

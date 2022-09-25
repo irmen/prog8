@@ -5,28 +5,65 @@ main {
 
     sub start() {
 
-        uword[] words = [1111,2222,0,4444,3333]
+        ubyte v1 = 1
+        uword v2 = 1
 
-        txt.print_ub(all(words))
-        txt.nl()
-        txt.print_ub(any(words))
-        txt.nl()
-        sort(words)
+        ubyte counterb
+        uword counter
 
-        uword ww
-        for ww in words {
-            txt.print_uw(ww)
-            txt.spc()
+        repeat v1-1 {
+            txt.print("!")
         }
-        txt.nl()
 
-        reverse(words)
-        for ww in words {
-            txt.print_uw(ww)
-            txt.spc()
+        repeat v2-1 {
+            txt.print("?")
         }
-        txt.nl()
 
+        for counterb in 0 to v1 {
+            txt.print("y1")
+        }
+        for counter in 0 to v2 {
+            txt.print("y2")
+        }
+
+        repeat v1 {
+            txt.print("ok1")
+        }
+
+        repeat v2 {
+            txt.print("ok2")
+        }
+
+        repeat v1-1 {
+            txt.print("!")
+        }
+
+        repeat v2-1 {
+            txt.print("?")
+        }
+
+        while v1-1 {
+            txt.print("%")
+        }
+
+        while v2-1 {
+            txt.print("*")
+        }
+
+
+        for counterb in 0 to v1-1 {
+            txt.print("@")
+        }
+        for counter in 0 to v2-1 {
+            txt.print("y#")
+        }
+
+        repeat 0 {
+            txt.print("zero1")
+        }
+        repeat $0000 {
+            txt.print("zero2")
+        }
     }
 }
 
