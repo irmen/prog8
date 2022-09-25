@@ -1,6 +1,7 @@
 package prog8.vm
 
 import prog8.code.core.AssemblyError
+import java.lang.NumberFormatException
 import kotlin.math.min
 
 /*
@@ -253,13 +254,23 @@ object SysCalls {
             }
             Syscall.STR_TO_UWORD -> {
                 val stringAddr = vm.registers.getUW(0)
-                val string = vm.memory.getString(stringAddr.toInt())
-                vm.registers.setUW(0, string.toUShort())
+                val string = vm.memory.getString(stringAddr.toInt()).takeWhile { it.isDigit() }
+                val value = try {
+                    string.toUShort()
+                } catch(_: NumberFormatException) {
+                    0u
+                }
+                vm.registers.setUW(0, value)
             }
             Syscall.STR_TO_WORD -> {
                 val stringAddr = vm.registers.getUW(0)
-                val string = vm.memory.getString(stringAddr.toInt())
-                vm.registers.setSW(0, string.toShort())
+                val string = vm.memory.getString(stringAddr.toInt()).takeWhile { it.isDigit() }
+                val value = try {
+                    string.toShort()
+                } catch(_: NumberFormatException) {
+                    0
+                }
+                vm.registers.setSW(0, value)
             }
             Syscall.COMPARE_STRINGS -> {
                 val firstAddr = vm.registers.getUW(0)

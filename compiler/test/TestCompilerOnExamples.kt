@@ -3,18 +3,16 @@ package prog8tests
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.ICompilationTarget
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
+import prog8.code.target.*
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
-import prog8tests.helpers.assumeDirectory
-import prog8tests.helpers.cartesianProduct
-import prog8tests.helpers.outputDir
-import prog8tests.helpers.workingDir
+import prog8tests.helpers.*
+import prog8tests.helpers.compileText
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists
+import kotlin.io.path.readText
 
 
 /**
@@ -47,8 +45,11 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
 
 private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompilationTarget): Pair<String, Path> {
     val searchIn = mutableListOf(examplesDir)
-    if (target is Cx16Target) {
-        searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
+    when (target) {
+        is Cx16Target -> searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
+        is VMTarget -> searchIn.add(0, assumeDirectory(examplesDir, "vm"))
+        is C128Target -> searchIn.add(0, assumeDirectory(examplesDir, "c128"))
+        is AtariTarget -> searchIn.add(0, assumeDirectory(examplesDir, "atari"))
     }
     val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }
@@ -165,6 +166,27 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
         }
         test(displayNameCx16) {
             compileTheThing(filepathCx16, optimize, cx16target) shouldNotBe null
+        }
+    }
+})
+
+class TestCompilerOnExamplesVirtual: FunSpec({
+
+    val onlyVirtual = listOf(
+            "bouncegfx",
+            "bsieve",
+            "pixelshader",
+            "sincos",
+            "textelite"
+        )
+
+    onlyVirtual.forEach {
+        val target = VMTarget()
+        val (displayName, filepath) = prepareTestFiles(it, false, target)
+        test(displayName) {
+            val src = filepath.readText()
+            compileText(target, false, src, writeAssembly = true, keepIR=false) shouldNotBe null
+            compileText(target, false, src, writeAssembly = true, keepIR=true) shouldNotBe null
         }
     }
 })

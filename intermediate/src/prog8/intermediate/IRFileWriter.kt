@@ -122,6 +122,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
                             if(it.number!=null)
                                 it.number!!.toInt().toString()
                             else {
+                                // TODO : don't do a lookup; addressOf should be scoped properly already!
                                 val target = variable.lookup(it.addressOf!!)
                                     ?: throw InternalCompilerException("symbol not found: ${it.addressOf} in ${variable.scopedName}")
                                 "&${target.scopedName.joinToString(".")}"

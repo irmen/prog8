@@ -3,9 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix vm symbol case insensitivity (TestCompilerVirtual)
-- fix vm crash in TestCompilerVirtual: array with pointers
-- fix vm crash (parseValue error) in examples/vm/textelite.p8 (Assembler, caused by above?)
+- fix vm assembler bug in TestCompilerVirtual when no IR code is written (IRWriter.writeVariableAllocations TODO)
+- fix examples/vm/textelite.p8 having wrong randomization? (starts with wrong planet)
 
 ...
 
@@ -21,6 +20,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- vm: get rid of p8virt format and Assembler, run p8ir directly
 - vm/ir: put variables and arrays in BSS section (unless -noreinit is specified)
 - vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.

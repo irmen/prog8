@@ -180,6 +180,18 @@ class Assembler {
                 var fpReg3: Int? = null
                 var value: Float? = null
                 var operand: String?
+
+                fun parseValueOrPlaceholder(operand: String, pc: Int, rest: String, restIndex: Int, opcode: Opcode): Float {
+                    return if(operand.startsWith('_')) {
+                        placeholders[pc] = rest.split(",")[restIndex].trim().drop(1)
+                        0f
+                    } else if(operand[0].isLetter()) {
+                        placeholders[pc] = rest.split(",")[restIndex].trim()
+                        0f
+                    } else
+                        parseValue(opcode, operand, pc)
+                }
+
                 if(operands.isNotEmpty() && operands[0].isNotEmpty()) {
                     operand = operands.removeFirst().trim()
                     if(operand[0]=='r')
@@ -187,13 +199,7 @@ class Assembler {
                     else if(operand[0]=='f' && operand[1]=='r')
                         fpReg1 = operand.substring(2).toInt()
                     else {
-                        value = if(operand.startsWith('_')) {
-                            // it's a label, keep the original case!
-                            val labelname = rest.split(",").first().trim()
-                            parseValue(opcode, labelname, program.size)
-                        } else {
-                            parseValue(opcode, operand, program.size)
-                        }
+                        value = parseValueOrPlaceholder(operand, program.size, rest, 0, opcode)
                         operands.clear()
                     }
                     if(operands.isNotEmpty()) {
@@ -203,7 +209,7 @@ class Assembler {
                         else if(operand[0]=='f' && operand[1]=='r')
                             fpReg2 = operand.substring(2).toInt()
                         else {
-                            value = parseValue(opcode, operand, program.size)
+                            value = parseValueOrPlaceholder(operand, program.size, rest, 1, opcode)
                             operands.clear()
                         }
                         if(operands.isNotEmpty()) {
@@ -213,13 +219,11 @@ class Assembler {
                             else if(operand[0]=='f' && operand[1]=='r')
                                 fpReg3 = operand.substring(2).toInt()
                             else {
-                                val symbol=rest.split(',').last()
-                                value = parseValue(opcode, symbol, program.size)
+                                value = parseValueOrPlaceholder(operand, program.size, rest, 2, opcode)
                                 operands.clear()
                             }
                             if(operands.isNotEmpty()) {
-                                val symbol=rest.split(',').last()
-                                value = parseValue(opcode, symbol, program.size)
+                                TODO("placeholder symbol? $operands  rest=$rest'")
                                 operands.clear()
                             }
                         }
@@ -319,26 +323,18 @@ class Assembler {
     }
 
     private fun parseValue(opcode: Opcode, value: String, pc: Int): Float {
-        if(value.startsWith("-")) {
-            return -parseValue(opcode, value.substring(1), pc)
-        }
-        if(value.startsWith('$'))
-            return value.substring(1).toInt(16).toFloat()
-        if(value.startsWith('%'))
-            return value.substring(1).toInt(2).toFloat()
-        if(value.startsWith("0x"))
-            return value.substring(2).toInt(16).toFloat()
-        if(value.startsWith('_')) {
-            if(opcode !in OpcodesForCpuRegisters)
-                placeholders[pc] = value.substring(1)
-            return 0f
-        }
-        if(value[0].isLetter()) {
-            if(opcode !in OpcodesForCpuRegisters)
-                placeholders[pc] = value
-            return 0f
-        }
-        return value.toFloat()
+        return if(value.startsWith("-"))
+            -parseValue(opcode, value.substring(1), pc)
+        else if(value.startsWith('$'))
+            value.substring(1).toInt(16).toFloat()
+        else if(value.startsWith('%'))
+            value.substring(1).toInt(2).toFloat()
+        else if(value.startsWith("0x"))
+            value.substring(2).toInt(16).toFloat()
+        else if(value.startsWith('_') || value[0].isLetter())
+            throw IllegalArgumentException("attempt to parse non-numeric value $value")
+        else
+            value.toFloat()
     }
 
     private fun convertType(typestr: String): VmDataType? {

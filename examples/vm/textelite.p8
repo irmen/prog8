@@ -14,7 +14,7 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\u000c\n --- TextElite v1.2 ---\n")
+        txt.print("--- TextElite v1.2 ---\n")
         txt.print("VirtualMachine edition: no disk saving, bad text layout!\n")
 
         galaxy.travel_to(1, numforLave)
