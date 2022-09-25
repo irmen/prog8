@@ -191,6 +191,12 @@ Provides string manipulation routines.
 ``upper(string)``
     Uppercases the petscii-string in place.
 
+``lowerchar(char)``
+    Returns lowercased character.
+
+``upperchar(char)``
+    Returns uppercased character.
+
 ``startswith(string, prefix) -> bool``
     Returns true if string starts with prefix, otherwise false
 

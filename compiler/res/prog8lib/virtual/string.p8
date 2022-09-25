@@ -114,6 +114,18 @@ string {
         }
     }
 
+    sub lowerchar(ubyte char) -> ubyte {
+        if char >= 'A' and char <= 'Z'
+            char |= %00100000
+        return char
+    }
+
+    sub upperchar(ubyte char) -> ubyte {
+        if char >= 'a' and char <= 'z'
+            char &= %11011111
+        return char
+    }
+
     sub startswith(str st, str prefix) -> bool {
         ubyte prefix_len = length(prefix)
         ubyte str_len = length(st)

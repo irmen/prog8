@@ -224,6 +224,29 @@ _done       rts
         }}
     }
 
+    asmsub lowerchar(ubyte char @A) -> ubyte @A {
+        %asm {{
+            and  #$7f
+            cmp  #97
+            bcc  +
+            cmp  #123
+            bcs  +
+            and  #%11011111
++           rts
+        }}
+    }
+
+    asmsub upperchar(ubyte char @A) -> ubyte @A {
+        %asm {{
+            cmp  #65
+            bcc  +
+            cmp  #91
+            bcs  +
+            ora  #%00100000
++           rts
+        }}
+    }
+
     sub startswith(str st, str prefix) -> bool {
         ubyte prefix_len = length(prefix)
         ubyte str_len = length(st)
