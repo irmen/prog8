@@ -2900,7 +2900,7 @@ $repeatLabel    lda  $counterVar
 
     fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): String {
         val prefixedName = "prog8_memoryslab_$name"
-        symbolTable.add(StMemorySlab(prefixedName, size, align, null, position))
+        symbolTable.add(StMemorySlab(prefixedName, size, align, position))
         return prefixedName
     }
 }

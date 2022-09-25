@@ -1,12 +1,12 @@
 package prog8.codegen.virtual
 
-import prog8.code.SymbolTable
 import prog8.code.core.*
+import prog8.intermediate.IRSymbolTable
 import prog8.intermediate.getTypeString
 
-internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
+internal class VmVariableAllocator(val st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
-    internal val allocations = mutableMapOf<List<String>, Int>()
+    internal val allocations = mutableMapOf<String, Int>()
     private var freeMemoryStart: Int
 
     val freeMem: Int
@@ -15,7 +15,7 @@ internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEnc
 
     init {
         var nextLocation = 0
-        for (variable in st.allVariables) {
+        for (variable in st.allVariables()) {
             val memsize =
                 when (variable.dt) {
                     DataType.STR -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
@@ -24,24 +24,24 @@ internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEnc
                     else -> throw InternalCompilerException("weird dt")
                 }
 
-            allocations[variable.scopedName] = nextLocation
+            allocations[variable.name] = nextLocation
             nextLocation += memsize
         }
-        for(slab in st.allMemorySlabs) {
+        for(slab in st.allMemorySlabs()) {
             // we ignore the alignment for the VM.
-            allocations[slab.scopedName] = nextLocation
+            allocations[slab.name] = nextLocation
             nextLocation += slab.size.toInt()
         }
 
         freeMemoryStart = nextLocation
     }
 
-    fun asVmMemory(): List<Pair<List<String>, String>> {
-        val mm = mutableListOf<Pair<List<String>, String>>()
+    fun asVmMemory(): List<Pair<String, String>> {
+        val mm = mutableListOf<Pair<String, String>>()
 
         // normal variables
-        for (variable in st.allVariables) {
-            val location = allocations.getValue(variable.scopedName)
+        for (variable in st.allVariables()) {
+            val location = allocations.getValue(variable.name)
             val value = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
                 in NumericDatatypes -> (variable.onetimeInitializationNumericValue ?: 0).toHex()
@@ -70,11 +70,11 @@ internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEnc
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            mm.add(Pair(variable.scopedName, "@$location ${getTypeString(variable)} $value"))
+            mm.add(Pair(variable.name, "@$location ${getTypeString(variable)} $value"))
         }
 
         // memory mapped variables
-        for (variable in st.allMemMappedVariables) {
+        for (variable in st.allMemMappedVariables()) {
             val value = when(variable.dt) {
                 DataType.FLOAT -> "0.0"
                 in NumericDatatypes -> "0"
@@ -82,13 +82,13 @@ internal class VmVariableAllocator(val st: SymbolTable, val encoding: IStringEnc
                 in ArrayDatatypes -> (1..variable.length!!).joinToString(",") { "0" }
                 else -> throw InternalCompilerException("weird dt for mem mapped var")
             }
-            mm.add(Pair(variable.scopedName, "@${variable.address} ${getTypeString(variable)} $value"))
+            mm.add(Pair(variable.name, "@${variable.address} ${getTypeString(variable)} $value"))
         }
 
         // memory slabs.
-        for(slab in st.allMemorySlabs) {
-            val address = allocations.getValue(slab.scopedName)
-            mm.add(Pair(slab.scopedName, "@$address ubyte[${slab.size}] 0"))
+        for(slab in st.allMemorySlabs()) {
+            val address = allocations.getValue(slab.name)
+            mm.add(Pair(slab.name, "@$address ubyte[${slab.size}] 0"))
         }
 
         return mm

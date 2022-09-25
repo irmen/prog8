@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix vm assembler bug in TestCompilerVirtual when no IR code is written (IRWriter.writeVariableAllocations TODO)
 - fix examples/vm/textelite.p8 having wrong randomization? (starts with wrong planet)
 
 ...

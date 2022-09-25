@@ -32,7 +32,7 @@ class IRFileReader(outputDir: Path, programName: String) {
         val initGlobals = parseInitGlobals(lines)
         val blocks = parseBlocksUntilProgramEnd(lines, variables)
 
-        val st = SymbolTable()
+        val st = IRSymbolTable(null)
         variables.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
@@ -213,7 +213,7 @@ class IRFileReader(outputDir: Path, programName: String) {
             // example: "SLAB slabname 4096 0"
             val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
             val (name, size, align) = match.destructured
-            slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), null, Position.DUMMY))
+            slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), Position.DUMMY))
         }
         return slabs
     }
@@ -365,18 +365,19 @@ class IRFileReader(outputDir: Path, programName: String) {
         return sub
     }
 
-    private fun parseParameters(lines: Iterator<String>, variables: List<StStaticVariable>): List<StStaticVariable> {
+    private fun parseParameters(lines: Iterator<String>, variables: List<StStaticVariable>): List<IRSubroutine.IRParam> {
         var line = lines.next()
         if(line!="<PARAMS>")
             throw IRParseException("missing PARAMS")
-        val params = mutableListOf<StStaticVariable>()
+        val params = mutableListOf<IRSubroutine.IRParam>()
         while(true) {
             line = lines.next()
             if(line=="</PARAMS>")
                 return params
             val (datatype, name) = line.split(' ')
             val dt = parseDatatype(datatype, datatype.contains('['))
-            params.add(variables.single { it.dt==dt && it.name==name})
+            val orig = variables.single { it.dt==dt && it.name==name}
+            params.add(IRSubroutine.IRParam(name, dt, orig))
         }
     }
 

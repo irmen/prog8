@@ -6,7 +6,7 @@ import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
 
 
-public fun getTypeString(dt : DataType): String {
+fun getTypeString(dt : DataType): String {
     return when(dt) {
         DataType.UBYTE -> "ubyte"
         DataType.BYTE -> "byte"
@@ -22,7 +22,7 @@ public fun getTypeString(dt : DataType): String {
     }
 }
 
-public fun getTypeString(memvar: StMemVar): String {
+fun getTypeString(memvar: StMemVar): String {
     return when(memvar.dt) {
         DataType.UBYTE -> "ubyte"
         DataType.BYTE -> "byte"
@@ -38,7 +38,7 @@ public fun getTypeString(memvar: StMemVar): String {
     }
 }
 
-public fun getTypeString(variable : StStaticVariable): String {
+fun getTypeString(variable : StStaticVariable): String {
     return when(variable.dt) {
         DataType.UBYTE -> "ubyte"
         DataType.BYTE -> "byte"

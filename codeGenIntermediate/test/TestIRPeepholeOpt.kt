@@ -1,6 +1,5 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.codegen.intermediate.IRPeepholeOptimizer
@@ -15,7 +14,6 @@ class TestIRPeepholeOpt: FunSpec({
             chunk += line
         sub += chunk
         block += sub
-        val st = SymbolTable()
         val target = VMTarget()
         val options = CompilationOptions(
             OutputType.RAW,
@@ -27,7 +25,7 @@ class TestIRPeepholeOpt: FunSpec({
             compTarget = target,
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         )
-        val prog = IRProgram("test", st, options, target)
+        val prog = IRProgram("test", IRSymbolTable(null), options, target)
         prog.addBlock(block)
         return prog
     }

@@ -27,7 +27,7 @@ class IRCodeGen(
         flattenLabelNames()
         flattenNestedSubroutines()
 
-        val irProg = IRProgram(program.name, symbolTable, options, program.encoding)
+        val irProg = IRProgram(program.name, IRSymbolTable(symbolTable), options, program.encoding)
 
         if(!options.dontReinitGlobals) {
             // collect global variables initializers
@@ -996,7 +996,8 @@ class IRCodeGen(
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
             val flattenedName = (it.definingSub()!!.scopedName + it.name)
-            symbolTable.flat.getValue(flattenedName) as StStaticVariable
+            val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
+            IRSubroutine.IRParam(flattenedName.joinToString("."), orig.dt, orig)
         }
 
     private fun translate(alignment: PtBlock.BlockAlignment): IRBlock.BlockAlignment {
@@ -1036,7 +1037,7 @@ class IRCodeGen(
 
     fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): String {
         val scopedName = "prog8_memoryslab_$name"
-        symbolTable.add(StMemorySlab(scopedName, size, align, null, position))
+        symbolTable.add(StMemorySlab(scopedName, size, align, position))
         return scopedName
     }
 }

@@ -221,12 +221,11 @@ class StMemorySlab(
     name: String,
     val size: UInt,
     val align: UInt,
-    val allocatedAddress: UInt? = null,     // this is used (for now) in the VM code generator. TODO remove this once no longer used
     position: Position
 ):
     StNode(name, StNodeType.MEMORYSLAB, position) {
     override fun printProperties() {
-        print("$name  size=$size  align=$align  address=$allocatedAddress")
+        print("$name  size=$size  align=$align")
     }
 }
 

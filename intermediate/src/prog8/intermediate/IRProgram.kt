@@ -1,7 +1,6 @@
 package prog8.intermediate
 
 import prog8.code.StStaticVariable
-import prog8.code.SymbolTable
 import prog8.code.core.*
 
 /*
@@ -47,7 +46,7 @@ PROGRAM:
 */
 
 class IRProgram(val name: String,
-                val st: SymbolTable,
+                val st: IRSymbolTable,
                 val options: CompilationOptions,
                 val encoding: IStringEncoding) {
 
@@ -86,9 +85,11 @@ class IRBlock(
 }
 
 class IRSubroutine(val name: String,
-                   val parameters: List<StStaticVariable>,  // NOTE: these are the same objects as their occurrences as variables in the symbol table
+                   val parameters: List<IRParam>,
                    val returnType: DataType?,
                    val position: Position) {
+
+    class IRParam(val name: String, val dt: DataType, val orig: StStaticVariable)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
 
@@ -115,8 +116,6 @@ class IRAsmSubroutine(val name: String,
                       val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
                       val returns: List<Pair<DataType, RegisterOrStatusflag>>,
                       val assembly: String) {
-    val lines = mutableListOf<IRCodeLine>()
-
     init {
         if(!name.contains('.'))
             throw IllegalArgumentException("subroutine name is not scoped: $name")

@@ -38,7 +38,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
             block.subroutines.forEach {
                 out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType.toString().lowercase()} POS=${it.position}>\n")
                 out.write("<PARAMS>\n")
-                it.parameters.forEach { param -> out.write("${getTypeString(param)} ${param.scopedName.joinToString(".")}\n") }
+                it.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
                 out.write("</PARAMS>\n")
                 it.chunks.forEach { chunk ->
                     if(chunk is IRInlineAsmChunk) {
@@ -100,7 +100,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
 
     private fun writeVariableAllocations() {
         out.write("\n<VARIABLES>\n")
-        for (variable in irProgram.st.allVariables) {
+        for (variable in irProgram.st.allVariables()) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
@@ -121,12 +121,8 @@ class IRFileWriter(private val irProgram: IRProgram) {
                         variable.onetimeInitializationArrayValue!!.joinToString(",") {
                             if(it.number!=null)
                                 it.number!!.toInt().toString()
-                            else {
-                                // TODO : don't do a lookup; addressOf should be scoped properly already!
-                                val target = variable.lookup(it.addressOf!!)
-                                    ?: throw InternalCompilerException("symbol not found: ${it.addressOf} in ${variable.scopedName}")
-                                "&${target.scopedName.joinToString(".")}"
-                            }
+                            else
+                                "&${it.addressOf!!.joinToString(".")}"
                         }
                     } else {
                         (1..variable.length!!).joinToString(",") { "0" }
@@ -135,19 +131,19 @@ class IRFileWriter(private val irProgram: IRProgram) {
                 else -> throw InternalCompilerException("weird dt")
             }
             // TODO have uninitialized variables and arrays? (BSS SECTION)
-            out.write("$typeStr ${variable.scopedName.joinToString(".")}=$value zp=${variable.zpwish}\n")
+            out.write("$typeStr ${variable.name}=$value zp=${variable.zpwish}\n")
         }
         out.write("</VARIABLES>\n")
 
         out.write("\n<MEMORYMAPPEDVARIABLES>\n")
-        for (variable in irProgram.st.allMemMappedVariables) {
+        for (variable in irProgram.st.allMemMappedVariables()) {
             val typeStr = getTypeString(variable)
-            out.write("&$typeStr ${variable.scopedName.joinToString(".")}=${variable.address}\n")
+            out.write("&$typeStr ${variable.name}=${variable.address}\n")
         }
         out.write("</MEMORYMAPPEDVARIABLES>\n")
 
         out.write("\n<MEMORYSLABS>\n")
-        irProgram.st.allMemorySlabs.forEach{ slab -> out.write("SLAB ${slab.name} ${slab.size} ${slab.align}\n") }
+        irProgram.st.allMemorySlabs().forEach{ slab -> out.write("SLAB ${slab.name} ${slab.size} ${slab.align}\n") }
         out.write("</MEMORYSLABS>\n")
     }
 

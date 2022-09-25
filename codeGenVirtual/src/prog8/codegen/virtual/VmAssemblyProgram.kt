@@ -20,7 +20,7 @@ internal class VmAssemblyProgram(override val name: String, private val irProgra
 
         outfile.bufferedWriter().use { out ->
             allocations.asVmMemory().forEach { (name, alloc) ->
-                out.write("var ${name.joinToString(".")} $alloc\n")
+                out.write("var ${name} $alloc\n")
             }
 
             out.write("------PROGRAM------\n")

@@ -14,7 +14,6 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
-import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -31,7 +30,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(VMTarget(), false, text, writeAssembly = false, errors=errors)
+        val result = compileText(C64Target(), false, text, writeAssembly = false, errors=errors)
         result shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "type mismatch, was: FLOAT expected one of: [UBYTE, BYTE, UWORD, WORD]"
@@ -627,9 +626,9 @@ main  {
                     ubyte @shared wordNr2 = (interlaced >= ${'$'}33) + (interlaced >= ${'$'}66) + (interlaced >= ${'$'}99) + (interlaced >= ${'$'}CC)
                 }
             }"""
-        val result = compileText(VMTarget(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         val stmts = result.program.entrypoint.statements
-        stmts.size shouldBe 14
+        stmts.size shouldBeGreaterThan 10
     }
 
     test("word to byte casts") {
