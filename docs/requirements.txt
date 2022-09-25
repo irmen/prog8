@@ -1,2 +1,2 @@
-sphinx>=4.0
-sphinx_rtd_theme==1.0.0
+sphinx>=4.4.0, !=5.2.0.post0 # https://github.com/sphinx-doc/sphinx/issues/10860
+sphinx_rtd_theme>=1.0.0
