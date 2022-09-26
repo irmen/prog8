@@ -562,7 +562,7 @@ class IRFileReader {
         if(format.fpValue && value!=null)
             floatValue = value
 
-        return IRCodeInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol)
+        return IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol)
     }
 
     private fun convertVmType(typestr: String): VmDataType? {

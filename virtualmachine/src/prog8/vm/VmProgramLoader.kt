@@ -5,11 +5,11 @@ import java.lang.IllegalArgumentException
 
 class VmProgramLoader {
 
-    fun load(irProgram: IRProgram, memory: Memory): Array<Instruction> {
+    fun load(irProgram: IRProgram, memory: Memory): Array<IRInstruction> {
 
         // at long last, allocate the variables in memory.
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
-        val program = mutableListOf<Instruction>()
+        val program = mutableListOf<IRInstruction>()
 
         // TODO stuff the allocated variables into memory
 
@@ -22,7 +22,7 @@ class VmProgramLoader {
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
             if(it.subroutines.any { sub -> sub.name=="main.start" }) {
-                program.add(Instruction(Opcode.JUMP, labelSymbol = "main.start"))
+                program.add(IRInstruction(Opcode.JUMP, labelSymbol = "main.start"))
             }
         }
 

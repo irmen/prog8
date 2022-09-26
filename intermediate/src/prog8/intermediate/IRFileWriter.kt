@@ -152,9 +152,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun BufferedWriter.writeLine(line: IRCodeLine) {
         when(line) {
             is IRCodeComment -> write("; ${line.comment}\n")
-            is IRCodeInstruction -> {
-                write(line.ins.toString() + "\n")
-            }
+            is IRInstruction -> write(line.toString() + "\n")
             is IRCodeLabel -> write("_${line.name}:\n")
             is IRCodeInlineBinary -> {
                 write("<BYTES>\n")

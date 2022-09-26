@@ -6,7 +6,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.SignedDatatypes
 import prog8.intermediate.IRCodeChunk
-import prog8.intermediate.IRCodeInstruction
+import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
 import prog8.intermediate.VmDataType
 
@@ -62,8 +62,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 else {
                     // read and write a (i/o) memory location to itself.
                     val tempReg = codeGen.vmRegisters.nextFree()
-                    code += IRCodeInstruction(Opcode.LOADM, vmDt, reg1 = tempReg, value = address)
-                    code += IRCodeInstruction(Opcode.STOREM, vmDt, reg1 = tempReg, value = address)
+                    code += IRInstruction(Opcode.LOADM, vmDt, reg1 = tempReg, value = address)
+                    code += IRInstruction(Opcode.STOREM, vmDt, reg1 = tempReg, value = address)
                     code
                 }
             }
@@ -85,8 +85,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             is PtBinaryExpression -> return inplaceBinexpr(value.operator, value.right, vmDt, value.type in SignedDatatypes, null, symbol, origAssign)
             is PtMemoryByte -> {
                 val tempReg = codeGen.vmRegisters.nextFree()
-                code += IRCodeInstruction(Opcode.LOADM, vmDt, reg1 = tempReg, labelSymbol = symbol)
-                code += IRCodeInstruction(Opcode.STOREM, vmDt, reg1 = tempReg, labelSymbol = symbol)
+                code += IRInstruction(Opcode.LOADM, vmDt, reg1 = tempReg, labelSymbol = symbol)
+                code += IRInstruction(Opcode.STOREM, vmDt, reg1 = tempReg, labelSymbol = symbol)
                 return code
             }
             else -> return fallbackAssign(origAssign)
@@ -145,18 +145,18 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             "+" -> { }
             "-" -> {
                 code += if(knownAddress!=null)
-                    IRCodeInstruction(Opcode.NEGM, vmDt, value = knownAddress)
+                    IRInstruction(Opcode.NEGM, vmDt, value = knownAddress)
                 else
-                    IRCodeInstruction(Opcode.NEGM, vmDt, labelSymbol = addressSymbol)
+                    IRInstruction(Opcode.NEGM, vmDt, labelSymbol = addressSymbol)
             }
             "~" -> {
                 val regMask = codeGen.vmRegisters.nextFree()
                 val mask = if(vmDt==VmDataType.BYTE) 0x00ff else 0xffff
-                code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=regMask, value = mask)
+                code += IRInstruction(Opcode.LOAD, vmDt, reg1=regMask, value = mask)
                 code += if(knownAddress!=null)
-                    IRCodeInstruction(Opcode.XORM, vmDt, reg1=regMask, value = knownAddress)
+                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, value = knownAddress)
                 else
-                    IRCodeInstruction(Opcode.XORM, vmDt, reg1=regMask, labelSymbol = addressSymbol)
+                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, labelSymbol = addressSymbol)
             }
             else -> throw AssemblyError("weird prefix operator")
         }
@@ -192,12 +192,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(ident!=null) {
             val symbol = ident.targetName.joinToString(".")
             code += if(zero) {
-                IRCodeInstruction(Opcode.STOREZM, vmDt, labelSymbol = symbol)
+                IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = symbol)
             } else {
                 if (vmDt == VmDataType.FLOAT)
-                    IRCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = symbol)
+                    IRInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = symbol)
                 else
-                    IRCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    IRInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
             }
         }
         else if(array!=null) {
@@ -215,9 +215,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(zero) {
                     // there's no STOREZIX instruction
                     resultRegister = codeGen.vmRegisters.nextFree()
-                    code += IRCodeInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=0)
+                    code += IRInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, value=0)
                 }
-                code += IRCodeInstruction(Opcode.STOREIX, vmDt, reg1=resultRegister, reg2=idxReg, labelSymbol = variable)
+                code += IRInstruction(Opcode.STOREIX, vmDt, reg1=resultRegister, reg2=idxReg, labelSymbol = variable)
                 return code
             }
 
@@ -225,30 +225,30 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             if(zero) {
                 if(fixedIndex!=null) {
                     val offset = fixedIndex*itemsize
-                    code += IRCodeInstruction(Opcode.STOREZM, vmDt, labelSymbol = "$variable+$offset")
+                    code += IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = "$variable+$offset")
                 } else {
                     val indexReg = codeGen.vmRegisters.nextFree()
                     code += loadIndexReg(array, itemsize, indexReg, array.position)
-                    code += IRCodeInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, labelSymbol = variable)
+                    code += IRInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, labelSymbol = variable)
                 }
             } else {
                 if(vmDt== VmDataType.FLOAT) {
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
-                        code += IRCodeInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = "$variable+$offset")
+                        code += IRInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = "$variable+$offset")
                     } else {
                         val indexReg = codeGen.vmRegisters.nextFree()
                         code += loadIndexReg(array, itemsize, indexReg, array.position)
-                        code += IRCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, labelSymbol = variable)
+                        code += IRInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, labelSymbol = variable)
                     }
                 } else {
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
-                        code += IRCodeInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = "$variable+$offset")
+                        code += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = "$variable+$offset")
                     } else {
                         val indexReg = codeGen.vmRegisters.nextFree()
                         code += loadIndexReg(array, itemsize, indexReg, array.position)
-                        code += IRCodeInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, labelSymbol = variable)
+                        code += IRInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, labelSymbol = variable)
                     }
                 }
             }
@@ -257,19 +257,19 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             require(vmDt== VmDataType.BYTE)
             if(zero) {
                 if(memory.address is PtNumber) {
-                    code += IRCodeInstruction(Opcode.STOREZM, vmDt, value=(memory.address as PtNumber).number.toInt())
+                    code += IRInstruction(Opcode.STOREZM, vmDt, value=(memory.address as PtNumber).number.toInt())
                 } else {
                     val addressReg = codeGen.vmRegisters.nextFree()
                     code += expressionEval.translateExpression(memory.address, addressReg, -1)
-                    code += IRCodeInstruction(Opcode.STOREZI, vmDt, reg1=addressReg)
+                    code += IRInstruction(Opcode.STOREZI, vmDt, reg1=addressReg)
                 }
             } else {
                 if(memory.address is PtNumber) {
-                    code += IRCodeInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
+                    code += IRInstruction(Opcode.STOREM, vmDt, reg1=resultRegister, value=(memory.address as PtNumber).number.toInt())
                 } else {
                     val addressReg = codeGen.vmRegisters.nextFree()
                     code += expressionEval.translateExpression(memory.address, addressReg, -1)
-                    code += IRCodeInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
+                    code += IRInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg)
                 }
             }
         }

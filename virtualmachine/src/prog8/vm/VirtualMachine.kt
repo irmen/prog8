@@ -31,7 +31,7 @@ class BreakpointException(val pc: Int): Exception()
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
     val memory = Memory()
-    val program: Array<Instruction> = VmProgramLoader().load(irProgram, memory)  // TODO convert irProgram
+    val program: Array<IRInstruction> = VmProgramLoader().load(irProgram, memory)  // TODO convert irProgram
     val registers = Registers()
     val callStack = Stack<Int>()
     val valueStack = Stack<UByte>()       // max 128 entries
@@ -254,7 +254,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun InsPUSH(i: Instruction) {
+    private fun InsPUSH(i: IRInstruction) {
         if(valueStack.size>=128)
             throw StackOverflowError("valuestack limit 128 exceeded")
 
@@ -275,7 +275,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsPOP(i: Instruction) {
+    private fun InsPOP(i: IRInstruction) {
         val value = when(i.type!!) {
             VmDataType.BYTE -> {
                 valueStack.pop().toInt()
@@ -293,7 +293,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSYSCALL(i: Instruction) {
+    private fun InsSYSCALL(i: IRInstruction) {
         val call = Syscall.values()[i.value!!]
         SysCalls.call(call, this)
         pc++
@@ -304,7 +304,7 @@ class VirtualMachine(irProgram: IRProgram) {
         throw BreakpointException(pc)
     }
 
-    private fun InsLOADCPU(i: Instruction) {
+    private fun InsLOADCPU(i: IRInstruction) {
         val reg = i.labelSymbol!!
         val value: UInt
         if(reg.startsWith('r')) {
@@ -334,7 +334,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTORECPU(i: Instruction) {
+    private fun InsSTORECPU(i: IRInstruction) {
         val value: UInt = when(i.type!!) {
             VmDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
             VmDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
@@ -344,7 +344,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREZCPU(i: Instruction) {
+    private fun InsSTOREZCPU(i: IRInstruction) {
         StoreCPU(0u, i.type!!, i.labelSymbol!!)
         pc++
     }
@@ -384,7 +384,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun InsLOAD(i: Instruction) {
+    private fun InsLOAD(i: IRInstruction) {
         if(i.type==VmDataType.FLOAT)
             registers.setFloat(i.fpReg1!!, i.fpValue!!)
         else
@@ -392,7 +392,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLOADM(i: Instruction) {
+    private fun InsLOADM(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!!))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!!))
@@ -401,7 +401,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLOADI(i: Instruction) {
+    private fun InsLOADI(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(registers.getUW(i.reg2!!).toInt()))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(registers.getUW(i.reg2!!).toInt()))
@@ -410,7 +410,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLOADX(i: Instruction) {
+    private fun InsLOADX(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!! + registers.getUW(i.reg2!!).toInt()))
             VmDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!! + registers.getUW(i.reg2!!).toInt()))
@@ -419,7 +419,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLOADIX(i: Instruction) {
+    private fun InsLOADIX(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> {
                 val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
@@ -437,7 +437,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLOADR(i: Instruction) {
+    private fun InsLOADR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg2!!))
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg2!!))
@@ -446,7 +446,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREM(i: Instruction) {
+    private fun InsSTOREM(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(i.value!!, registers.getUB(i.reg1!!))
             VmDataType.WORD -> memory.setUW(i.value!!, registers.getUW(i.reg1!!))
@@ -455,7 +455,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREI(i: Instruction) {
+    private fun InsSTOREI(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt(), registers.getUB(i.reg1!!))
             VmDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt(), registers.getUW(i.reg1!!))
@@ -464,7 +464,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREX(i: Instruction) {
+    private fun InsSTOREX(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + i.value!!, registers.getUB(i.reg1!!))
             VmDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + i.value!!, registers.getUW(i.reg1!!))
@@ -473,7 +473,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREIX(i: Instruction) {
+    private fun InsSTOREIX(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> {
                 val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
@@ -491,7 +491,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREZM(i: Instruction) {
+    private fun InsSTOREZM(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(i.value!!, 0u)
             VmDataType.WORD -> memory.setUW(i.value!!, 0u)
@@ -500,7 +500,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREZI(i: Instruction) {
+    private fun InsSTOREZI(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt(), 0u)
             VmDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt(), 0u)
@@ -509,7 +509,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSTOREZX(i: Instruction) {
+    private fun InsSTOREZX(i: IRInstruction) {
         when (i.type!!) {
             VmDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt() + i.value!!, 0u)
             VmDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt() + i.value!!, 0u)
@@ -518,11 +518,11 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsJUMP(i: Instruction) {
+    private fun InsJUMP(i: IRInstruction) {
         pc = i.value!!
     }
 
-    private fun InsCALL(i: Instruction) {
+    private fun InsCALL(i: IRInstruction) {
         callStack.push(pc+1)
         pc = i.value!!
     }
@@ -534,49 +534,49 @@ class VirtualMachine(irProgram: IRProgram) {
             pc = callStack.pop()
     }
 
-    private fun InsBSTCC(i: Instruction) {
+    private fun InsBSTCC(i: IRInstruction) {
         if(!statusCarry)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBSTCS(i: Instruction) {
+    private fun InsBSTCS(i: IRInstruction) {
         if(statusCarry)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBSTEQ(i: Instruction) {
+    private fun InsBSTEQ(i: IRInstruction) {
         if(statusZero)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBSTNE(i: Instruction) {
+    private fun InsBSTNE(i: IRInstruction) {
         if(!statusZero)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBSTNEG(i: Instruction) {
+    private fun InsBSTNEG(i: IRInstruction) {
         if(statusNegative)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBSTPOS(i: Instruction) {
+    private fun InsBSTPOS(i: IRInstruction) {
         if(!statusNegative)
             pc = i.value!!
         else
             pc++
     }
 
-    private fun InsBZ(i: Instruction) {
+    private fun InsBZ(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 if(registers.getUB(i.reg1!!)==0.toUByte())
@@ -594,7 +594,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun InsBNZ(i: Instruction) {
+    private fun InsBNZ(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 if(registers.getUB(i.reg1!!)!=0.toUByte())
@@ -612,7 +612,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun InsBEQ(i: Instruction) {
+    private fun InsBEQ(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left==right)
             pc = i.value!!
@@ -620,7 +620,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBNE(i: Instruction) {
+    private fun InsBNE(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left!=right)
             pc = i.value!!
@@ -628,7 +628,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBLTU(i: Instruction) {
+    private fun InsBLTU(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left<right)
             pc = i.value!!
@@ -636,7 +636,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBLTS(i: Instruction) {
+    private fun InsBLTS(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left<right)
             pc = i.value!!
@@ -644,7 +644,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBGTU(i: Instruction) {
+    private fun InsBGTU(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left>right)
             pc = i.value!!
@@ -653,7 +653,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     }
 
-    private fun InsBGTS(i: Instruction) {
+    private fun InsBGTS(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left>right)
             pc = i.value!!
@@ -661,7 +661,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBLEU(i: Instruction) {
+    private fun InsBLEU(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left<=right)
             pc = i.value!!
@@ -670,7 +670,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     }
 
-    private fun InsBLES(i: Instruction) {
+    private fun InsBLES(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left<=right)
             pc = i.value!!
@@ -678,7 +678,7 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsBGEU(i: Instruction) {
+    private fun InsBGEU(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left>=right)
             pc = i.value!!
@@ -687,7 +687,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     }
 
-    private fun InsBGES(i: Instruction) {
+    private fun InsBGES(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left>=right)
             pc = i.value!!
@@ -695,63 +695,63 @@ class VirtualMachine(irProgram: IRProgram) {
             pc++
     }
 
-    private fun InsSEQ(i: Instruction) {
+    private fun InsSEQ(i: IRInstruction) {
         val (left: Int, right: Int) = getSetOnConditionOperands(i)
         val value = if(left==right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSNE(i: Instruction) {
+    private fun InsSNE(i: IRInstruction) {
         val (left: Int, right: Int) = getSetOnConditionOperands(i)
         val value = if(left!=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSLT(i: Instruction) {
+    private fun InsSLT(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left<right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSLTS(i: Instruction) {
+    private fun InsSLTS(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperands(i)
         val value = if(left<right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSGT(i: Instruction) {
+    private fun InsSGT(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left>right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSGTS(i: Instruction) {
+    private fun InsSGTS(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperands(i)
         val value = if(left>right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSLE(i: Instruction) {
+    private fun InsSLE(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left<=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSLES(i: Instruction) {
+    private fun InsSLES(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperands(i)
         val value = if(left<=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         pc++
     }
 
-    private fun InsSGE(i: Instruction) {
+    private fun InsSGE(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left>=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
@@ -759,7 +759,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     }
 
-    private fun InsSGES(i: Instruction) {
+    private fun InsSGES(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperands(i)
         val value = if(left>=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
@@ -767,7 +767,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     }
 
-    private fun InsINC(i: Instruction) {
+    private fun InsINC(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1!!)+1u).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1!!)+1u).toUShort())
@@ -776,7 +776,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsINCM(i: Instruction) {
+    private fun InsINCM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(address, (memory.getUB(address)+1u).toUByte())
@@ -786,7 +786,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDEC(i: Instruction) {
+    private fun InsDEC(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1!!)-1u).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (registers.getUW(i.reg1!!)-1u).toUShort())
@@ -795,7 +795,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDECM(i: Instruction) {
+    private fun InsDECM(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value!!)-1u).toUByte())
             VmDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value!!)-1u).toUShort())
@@ -804,7 +804,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsNEG(i: Instruction) {
+    private fun InsNEG(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (-registers.getUB(i.reg1!!).toInt()).toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, (-registers.getUW(i.reg1!!).toInt()).toUShort())
@@ -813,7 +813,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsNEGM(i: Instruction) {
+    private fun InsNEGM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(address, (-memory.getUB(address).toInt()).toUByte())
@@ -823,7 +823,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsADDR(i: Instruction) {
+    private fun InsADDR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("+", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("+", i.reg1!!, i.reg2!!)
@@ -837,7 +837,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsADD(i: Instruction) {
+    private fun InsADD(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultConstByte("+", i.reg1!!, i.value!!.toUByte())
             VmDataType.WORD -> plusMinusMultConstWord("+", i.reg1!!, i.value!!.toUShort())
@@ -850,7 +850,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsADDM(i: Instruction) {
+    private fun InsADDM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByteInplace("+", i.reg1!!, address)
@@ -865,7 +865,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSUBR(i: Instruction) {
+    private fun InsSUBR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("-", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("-", i.reg1!!, i.reg2!!)
@@ -879,7 +879,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSUB(i: Instruction) {
+    private fun InsSUB(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultConstByte("-", i.reg1!!, i.value!!.toUByte())
             VmDataType.WORD -> plusMinusMultConstWord("-", i.reg1!!, i.value!!.toUShort())
@@ -892,7 +892,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSUBM(i: Instruction) {
+    private fun InsSUBM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByteInplace("-", i.reg1!!, address)
@@ -907,7 +907,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsMULR(i: Instruction) {
+    private fun InsMULR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByte("*", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> plusMinusMultAnyWord("*", i.reg1!!, i.reg2!!)
@@ -921,7 +921,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsMUL(i: Instruction) {
+    private fun InsMUL(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultConstByte("*", i.reg1!!, i.value!!.toUByte())
             VmDataType.WORD -> plusMinusMultConstWord("*", i.reg1!!, i.value!!.toUShort())
@@ -934,7 +934,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsMULM(i: Instruction) {
+    private fun InsMULM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> plusMinusMultAnyByteInplace("*", i.reg1!!, address)
@@ -949,7 +949,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIVR(i: Instruction) {
+    private fun InsDIVR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModByteUnsigned("/", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> divModWordUnsigned("/", i.reg1!!, i.reg2!!)
@@ -958,7 +958,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIV(i: Instruction) {
+    private fun InsDIV(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModConstByteUnsigned("/", i.reg1!!, i.value!!.toUByte())
             VmDataType.WORD -> divModConstWordUnsigned("/", i.reg1!!, i.value!!.toUShort())
@@ -967,7 +967,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIVM(i: Instruction) {
+    private fun InsDIVM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> divModByteUnsignedInplace("/", i.reg1!!, address)
@@ -977,7 +977,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIVSR(i: Instruction) {
+    private fun InsDIVSR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModByteSigned("/", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> divModWordSigned("/", i.reg1!!, i.reg2!!)
@@ -991,7 +991,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIVS(i: Instruction) {
+    private fun InsDIVS(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModConstByteSigned("/", i.reg1!!, i.value!!.toByte())
             VmDataType.WORD -> divModConstWordSigned("/", i.reg1!!, i.value!!.toShort())
@@ -1004,7 +1004,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsDIVSM(i: Instruction) {
+    private fun InsDIVSM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> divModByteSignedInplace("/", i.reg1!!, address)
@@ -1019,7 +1019,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsMODR(i: Instruction) {
+    private fun InsMODR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModByteUnsigned("%", i.reg1!!, i.reg2!!)
             VmDataType.WORD -> divModWordUnsigned("%", i.reg1!!, i.reg2!!)
@@ -1028,7 +1028,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsMOD(i: Instruction) {
+    private fun InsMOD(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> divModConstByteUnsigned("%", i.reg1!!, i.value!!.toUByte())
             VmDataType.WORD -> divModConstWordUnsigned("%", i.reg1!!, i.value!!.toUShort())
@@ -1037,7 +1037,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSGN(i: Instruction) {
+    private fun InsSGN(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
             VmDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
@@ -1046,7 +1046,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsSQRT(i: Instruction) {
+    private fun InsSQRT(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             VmDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
@@ -1055,7 +1055,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsRND(i: Instruction) {
+    private fun InsRND(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, Random.nextInt().toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, Random.nextInt().toUShort())
@@ -1064,7 +1064,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsCMP(i: Instruction) {
+    private fun InsCMP(i: IRInstruction) {
         val comparison: Int
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1379,7 +1379,7 @@ class VirtualMachine(irProgram: IRProgram) {
         else -> throw IllegalArgumentException("operator word $operator")
     }
 
-    private fun InsEXT(i: Instruction) {
+    private fun InsEXT(i: IRInstruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1!!).toUShort())
             VmDataType.WORD -> throw IllegalArgumentException("ext.w not yet supported, requires 32 bits registers")
@@ -1388,7 +1388,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsEXTS(i: Instruction) {
+    private fun InsEXTS(i: IRInstruction) {
         when(i.type!!){
             VmDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1!!).toShort())
             VmDataType.WORD -> throw IllegalArgumentException("exts.w not yet supported, requires 32 bits registers")
@@ -1397,7 +1397,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsANDR(i: Instruction) {
+    private fun InsANDR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left and right).toUByte())
@@ -1407,7 +1407,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsAND(i: Instruction) {
+    private fun InsAND(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) and i.value!!.toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) and i.value!!.toUShort())
@@ -1416,7 +1416,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsANDM(i: Instruction) {
+    private fun InsANDM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1434,7 +1434,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsORR(i: Instruction) {
+    private fun InsORR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left or right).toUByte())
@@ -1444,7 +1444,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsOR(i: Instruction) {
+    private fun InsOR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) or i.value!!.toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) or i.value!!.toUShort())
@@ -1453,7 +1453,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsORM(i: Instruction) {
+    private fun InsORM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1471,7 +1471,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsXORR(i: Instruction) {
+    private fun InsXORR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, (left xor right).toUByte())
@@ -1481,7 +1481,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsXOR(i: Instruction) {
+    private fun InsXOR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) xor i.value!!.toUByte())
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) xor i.value!!.toUShort())
@@ -1490,7 +1490,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsXORM(i: Instruction) {
+    private fun InsXORM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1508,7 +1508,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsINV(i: Instruction) {
+    private fun InsINV(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!).inv())
             VmDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!).inv())
@@ -1517,7 +1517,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsINVM(i: Instruction) {
+    private fun InsINVM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> memory.setUB(address, memory.getUB(address).inv())
@@ -1527,7 +1527,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsASRN(i: Instruction) {
+    private fun InsASRN(i: IRInstruction) {
         val (left: Int, right: Int) = getLogicalOperandsS(i)
         statusCarry = (left and 1)!=0
         when(i.type!!) {
@@ -1538,7 +1538,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsASRNM(i: Instruction) {
+    private fun InsASRNM(i: IRInstruction) {
         val address = i.value!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
@@ -1557,7 +1557,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsASR(i: Instruction) {
+    private fun InsASR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val value = registers.getSB(i.reg1!!).toInt()
@@ -1574,7 +1574,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsASRM(i: Instruction) {
+    private fun InsASRM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1592,7 +1592,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSRN(i: Instruction) {
+    private fun InsLSRN(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         statusCarry = (left and 1u)!=0u
         when(i.type!!) {
@@ -1603,7 +1603,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSRNM(i: Instruction) {
+    private fun InsLSRNM(i: IRInstruction) {
         val address = i.value!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
@@ -1622,7 +1622,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSR(i: Instruction) {
+    private fun InsLSR(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val value = registers.getUB(i.reg1!!).toInt()
@@ -1639,7 +1639,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSRM(i: Instruction) {
+    private fun InsLSRM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1657,7 +1657,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSLN(i: Instruction) {
+    private fun InsLSLN(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1673,7 +1673,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSLNM(i: Instruction) {
+    private fun InsLSLNM(i: IRInstruction) {
         val address = i.value!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
@@ -1692,7 +1692,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSL(i: Instruction) {
+    private fun InsLSL(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val value = registers.getUB(i.reg1!!).toInt()
@@ -1709,7 +1709,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsLSLM(i: Instruction) {
+    private fun InsLSLM(i: IRInstruction) {
         val address = i.value!!
         when(i.type!!) {
             VmDataType.BYTE -> {
@@ -1727,7 +1727,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsROR(i: Instruction, useCarry: Boolean) {
+    private fun InsROR(i: IRInstruction, useCarry: Boolean) {
         val newStatusCarry: Boolean
         when (i.type!!) {
             VmDataType.BYTE -> {
@@ -1758,7 +1758,7 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsRORM(i: Instruction, useCarry: Boolean) {
+    private fun InsRORM(i: IRInstruction, useCarry: Boolean) {
         val newStatusCarry: Boolean
         val address = i.value!!
         when (i.type!!) {
@@ -1790,7 +1790,7 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsROL(i: Instruction, useCarry: Boolean) {
+    private fun InsROL(i: IRInstruction, useCarry: Boolean) {
         val newStatusCarry: Boolean
         when (i.type!!) {
             VmDataType.BYTE -> {
@@ -1821,7 +1821,7 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsROLM(i: Instruction, useCarry: Boolean) {
+    private fun InsROLM(i: IRInstruction, useCarry: Boolean) {
         val address = i.value!!
         val newStatusCarry: Boolean
         when (i.type!!) {
@@ -1853,7 +1853,7 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsMSIG(i: Instruction) {
+    private fun InsMSIG(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val value = registers.getUW(i.reg2!!)
@@ -1866,7 +1866,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsCONCAT(i: Instruction) {
+    private fun InsCONCAT(i: IRInstruction) {
         when(i.type!!) {
             VmDataType.BYTE -> {
                 val lsb = registers.getUB(i.reg1!!)
@@ -1879,114 +1879,114 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun InsFFROMUB(i: Instruction) {
+    private fun InsFFROMUB(i: IRInstruction) {
         registers.setFloat(i.fpReg1!!, registers.getUB(i.reg1!!).toFloat())
         pc++
     }
 
-    private fun InsFFROMSB(i: Instruction) {
+    private fun InsFFROMSB(i: IRInstruction) {
         registers.setFloat(i.fpReg1!!, registers.getSB(i.reg1!!).toFloat())
         pc++
     }
 
-    private fun InsFFROMUW(i: Instruction) {
+    private fun InsFFROMUW(i: IRInstruction) {
         registers.setFloat(i.fpReg1!!, registers.getUW(i.reg1!!).toFloat())
         pc++
     }
 
-    private fun InsFFROMSW(i: Instruction) {
+    private fun InsFFROMSW(i: IRInstruction) {
         registers.setFloat(i.fpReg1!!, registers.getSW(i.reg1!!).toFloat())
         pc++
     }
 
-    private fun InsFTOUB(i: Instruction) {
+    private fun InsFTOUB(i: IRInstruction) {
         registers.setUB(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toUByte())
         pc++
     }
 
-    private fun InsFTOUW(i: Instruction) {
+    private fun InsFTOUW(i: IRInstruction) {
         registers.setUW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toUShort())
         pc++
     }
 
-    private fun InsFTOSB(i: Instruction) {
+    private fun InsFTOSB(i: IRInstruction) {
         registers.setSB(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toByte())
         pc++
     }
 
-    private fun InsFTOSW(i: Instruction) {
+    private fun InsFTOSW(i: IRInstruction) {
         registers.setSW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toShort())
         pc++
     }
 
-    private fun InsFPOW(i: Instruction) {
+    private fun InsFPOW(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg1!!)
         val exponent = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, value.pow(exponent))
         pc++
     }
 
-    private fun InsFSIN(i: Instruction) {
+    private fun InsFSIN(i: IRInstruction) {
         val angle = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, sin(angle))
         pc++
     }
 
-    private fun InsFCOS(i: Instruction) {
+    private fun InsFCOS(i: IRInstruction) {
         val angle = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, cos(angle))
         pc++
     }
 
-    private fun InsFTAN(i: Instruction) {
+    private fun InsFTAN(i: IRInstruction) {
         val angle = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, tan(angle))
         pc++
     }
 
-    private fun InsFATAN(i: Instruction) {
+    private fun InsFATAN(i: IRInstruction) {
         val angle = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, atan(angle))
         pc++
     }
 
-    private fun InsFABS(i: Instruction) {
+    private fun InsFABS(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, abs(value))
         pc++
     }
 
-    private fun InsFLN(i: Instruction) {
+    private fun InsFLN(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, ln(value))
         pc++
     }
 
-    private fun InsFLOG(i: Instruction) {
+    private fun InsFLOG(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, log2(value))
         pc++
     }
 
-    private fun InsFROUND(i: Instruction) {
+    private fun InsFROUND(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, round(value))
         pc++
     }
 
-    private fun InsFFLOOR(i: Instruction) {
+    private fun InsFFLOOR(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, floor(value))
         pc++
     }
 
-    private fun InsFCEIL(i: Instruction) {
+    private fun InsFCEIL(i: IRInstruction) {
         val value = registers.getFloat(i.fpReg2!!)
         registers.setFloat(i.fpReg1!!, ceil(value))
         pc++
     }
 
-    private fun InsFCOMP(i: Instruction) {
+    private fun InsFCOMP(i: IRInstruction) {
         val left = registers.getFloat(i.fpReg1!!)
         val right = registers.getFloat(i.fpReg2!!)
         val result =
@@ -2000,7 +2000,7 @@ class VirtualMachine(irProgram: IRProgram) {
         pc++
     }
 
-    private fun getBranchOperands(i: Instruction): Pair<Int, Int> {
+    private fun getBranchOperands(i: IRInstruction): Pair<Int, Int> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
             VmDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
@@ -2011,7 +2011,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun getBranchOperandsU(i: Instruction): Pair<UInt, UInt> {
+    private fun getBranchOperandsU(i: IRInstruction): Pair<UInt, UInt> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
             VmDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
@@ -2022,7 +2022,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun getLogicalOperandsU(i: Instruction): Pair<UInt, UInt> {
+    private fun getLogicalOperandsU(i: IRInstruction): Pair<UInt, UInt> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
             VmDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
@@ -2033,7 +2033,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun getLogicalOperandsS(i: Instruction): Pair<Int, Int> {
+    private fun getLogicalOperandsS(i: IRInstruction): Pair<Int, Int> {
         return when(i.type) {
             VmDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), registers.getSB(i.reg2!!).toInt())
             VmDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), registers.getSW(i.reg2!!).toInt())
@@ -2044,7 +2044,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun getSetOnConditionOperands(ins: Instruction): Pair<Int, Int> {
+    private fun getSetOnConditionOperands(ins: IRInstruction): Pair<Int, Int> {
         return when(ins.type) {
             VmDataType.BYTE -> Pair(registers.getSB(ins.reg1!!).toInt(), registers.getSB(ins.reg2!!).toInt())
             VmDataType.WORD -> Pair(registers.getSW(ins.reg1!!).toInt(), registers.getSW(ins.reg2!!).toInt())
@@ -2055,7 +2055,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun getSetOnConditionOperandsU(ins: Instruction): Pair<UInt, UInt> {
+    private fun getSetOnConditionOperandsU(ins: IRInstruction): Pair<UInt, UInt> {
         return when(ins.type) {
             VmDataType.BYTE -> Pair(registers.getUB(ins.reg1!!).toUInt(), registers.getUB(ins.reg2!!).toUInt())
             VmDataType.WORD -> Pair(registers.getUW(ins.reg1!!).toUInt(), registers.getUW(ins.reg2!!).toUInt())

@@ -42,9 +42,9 @@ class TestVm: FunSpec( {
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("main.start2222", emptyList(), null, Position.DUMMY)        // TODO proper name main.start
         val code = IRCodeChunk(Position.DUMMY)
-        code += IRCodeInstruction(Opcode.LOAD, VmDataType.WORD, reg1=1, value=12345)
-        code += IRCodeInstruction(Opcode.STOREM, VmDataType.WORD, reg1=1, value=1000)
-        code += IRCodeInstruction(Opcode.RETURN)
+        code += IRInstruction(Opcode.LOAD, VmDataType.WORD, reg1=1, value=12345)
+        code += IRInstruction(Opcode.STOREM, VmDataType.WORD, reg1=1, value=1000)
+        code += IRInstruction(Opcode.RETURN)
         startSub += code
         block += startSub
         program.addBlock(block)

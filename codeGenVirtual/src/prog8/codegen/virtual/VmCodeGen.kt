@@ -9,6 +9,7 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
+import prog8.intermediate.IRProgram
 import java.nio.file.Path
 
 class VmCodeGen(private val program: PtProgram,
@@ -36,5 +37,15 @@ class VmCodeGen(private val program: PtProgram,
             val irProgram = IRFileReader().read(irFile)
             return VmAssemblyProgram(irProgram.name, irProgram)
         }
+    }
+}
+
+
+internal class VmAssemblyProgram(override val name: String, private val irProgram: IRProgram): IAssemblyProgram {
+
+    override fun assemble(options: CompilationOptions): Boolean {
+        val writtenFile = IRFileWriter(irProgram, null).write()
+        println("Wrote intermediate representation to $writtenFile")
+        return true
     }
 }

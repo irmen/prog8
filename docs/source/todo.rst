@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: merge IRCodeInstruction into Instruction directly
+- vm: move codeGenVirtual module into virtualmachine module?
 - vm: actually translate IRProgram to vm program list again.
 - docs: modify compiler arch picture once this is done.
 

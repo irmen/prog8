@@ -10,8 +10,8 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 if(chunk is IRCodeChunk) {
                     do {
                         val indexedInstructions = chunk.lines.withIndex()
-                            .filter { it.value is IRCodeInstruction }
-                            .map { IndexedValue(it.index, (it.value as IRCodeInstruction).ins) }
+                            .filter { it.value is IRInstruction }
+                            .map { IndexedValue(it.index, it.value as IRInstruction) }
                         val changed = removeNops(chunk, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk, indexedInstructions)       // TODO not yet implemented
                                 || removeUselessArithmetic(chunk, indexedInstructions)
@@ -26,19 +26,19 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         }
     }
 
-    private fun cleanupPushPop(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun cleanupPushPop(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         //  push followed by pop to same target, or different target->replace with load
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.PUSH) {
                 if(idx < chunk.lines.size-1) {
-                    val insAfter = chunk.lines[idx+1] as? IRCodeInstruction
-                    if(insAfter!=null && insAfter.ins.opcode == Opcode.POP) {
-                        if(ins.reg1==insAfter.ins.reg1) {
+                    val insAfter = chunk.lines[idx+1] as? IRInstruction
+                    if(insAfter!=null && insAfter.opcode == Opcode.POP) {
+                        if(ins.reg1==insAfter.reg1) {
                             chunk.lines.removeAt(idx)
                             chunk.lines.removeAt(idx)
                         } else {
-                            chunk.lines[idx] = IRCodeInstruction(Opcode.LOADR, ins.type, reg1=insAfter.ins.reg1, reg2=ins.reg1)
+                            chunk.lines[idx] = IRInstruction(Opcode.LOADR, ins.type, reg1=insAfter.reg1, reg2=ins.reg1)
                             chunk.lines.removeAt(idx+1)
                         }
                         changed = true
@@ -49,23 +49,23 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeDoubleSecClc(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeDoubleSecClc(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         //  double sec, clc
         //  sec+clc or clc+sec
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.SEC || ins.opcode== Opcode.CLC) {
                 if(idx < chunk.lines.size-1) {
-                    val insAfter = chunk.lines[idx+1] as? IRCodeInstruction
-                    if(insAfter?.ins?.opcode == ins.opcode) {
+                    val insAfter = chunk.lines[idx+1] as? IRInstruction
+                    if(insAfter?.opcode == ins.opcode) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode== Opcode.SEC && insAfter?.ins?.opcode== Opcode.CLC) {
+                    else if(ins.opcode== Opcode.SEC && insAfter?.opcode== Opcode.CLC) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode== Opcode.CLC && insAfter?.ins?.opcode== Opcode.SEC) {
+                    else if(ins.opcode== Opcode.CLC && insAfter?.opcode== Opcode.SEC) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
@@ -75,7 +75,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeWeirdBranches(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeWeirdBranches(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         //  jump/branch to label immediately below
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
@@ -94,7 +94,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
@@ -107,7 +107,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 }
                 Opcode.ADD, Opcode.SUB -> {
                     if (ins.value == 1) {
-                        chunk.lines[idx] = IRCodeInstruction(
+                        chunk.lines[idx] = IRInstruction(
                             if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
                             ins.type,
                             ins.reg1
@@ -120,7 +120,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 }
                 Opcode.AND -> {
                     if (ins.value == 0) {
-                        chunk.lines[idx] = IRCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
+                        chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
                         changed = true
                     } else if (ins.value == 255 && ins.type == VmDataType.BYTE) {
                         chunk.lines.removeAt(idx)
@@ -135,7 +135,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     } else if ((ins.value == 255 && ins.type == VmDataType.BYTE) || (ins.value == 65535 && ins.type == VmDataType.WORD)) {
-                        chunk.lines[idx] = IRCodeInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
+                        chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
                         changed = true
                     }
                 }
@@ -151,7 +151,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeNops(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeNops(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.NOP) {
@@ -162,7 +162,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeDoubleLoadsAndStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<Instruction>>): Boolean {
+    private fun removeDoubleLoadsAndStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
 
