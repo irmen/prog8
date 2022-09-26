@@ -1,4 +1,4 @@
-package prog8.codegen.virtual
+package prog8.vm.codegen
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
@@ -22,14 +22,8 @@ class VmCodeGen(private val program: PtProgram,
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
 
-        return if(options.keepIR) {
-            //create IR file on disk and read it back.
-            val irFile = IRFileWriter(irProgram, null).write()
-            val irProgram2 = IRFileReader().read(irFile)
-            VmAssemblyProgram(irProgram2.name, irProgram2)
-        } else {
-            VmAssemblyProgram(irProgram.name, irProgram)
-        }
+        // no need to check options.keepIR, as the VM file format *is* the IR file.
+        return VmAssemblyProgram(irProgram.name, irProgram)
     }
 
     companion object {
@@ -44,8 +38,8 @@ class VmCodeGen(private val program: PtProgram,
 internal class VmAssemblyProgram(override val name: String, private val irProgram: IRProgram): IAssemblyProgram {
 
     override fun assemble(options: CompilationOptions): Boolean {
-        val writtenFile = IRFileWriter(irProgram, null).write()
-        println("Wrote intermediate representation to $writtenFile")
+        // the VM reads the IR file from disk.
+        IRFileWriter(irProgram, null).write()
         return true
     }
 }

@@ -139,7 +139,7 @@ Some notes and references into the compiler's source code modules:
 #. An *Intermediate Representation* has been defined that is generated from the intermediate AST. This IR
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
    prog8 VM will execute if you use the 'virtual' compilaton target and use ``-emu`` to launch the VM.
-   (``intermediate`` and ``codeGenIntermediate`` modules, and ``codeGenVirtual`` and ``virtualmachine`` module for the VM related stuff)
+   (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
 #. Currently the 6502 ASM code generator still works directly on the *Compiler AST*. A future version
    should replace this by working on the IR code, and should be much smaller and simpler.
    (``codeGenCpu6502`` module)

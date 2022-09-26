@@ -17,6 +17,7 @@ import prog8.code.target.*
 import prog8.compiler.astprocessing.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
+import prog8.vm.codegen.VmCodeGen
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
@@ -455,7 +456,7 @@ internal fun asmGeneratorFor(program: Program,
             return prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
         if (options.compTarget.name == VMTarget.NAME) {
             val intermediateAst = IntermediateAstMaker(program).transform()
-            return prog8.codegen.virtual.VmCodeGen(intermediateAst, symbolTable, options, errors)
+            return VmCodeGen(intermediateAst, symbolTable, options, errors)
         }
     }
 

@@ -14,5 +14,6 @@
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="intermediate" />
+    <orderEntry type="module" module-name="codeGenIntermediate" />
   </component>
 </module>
