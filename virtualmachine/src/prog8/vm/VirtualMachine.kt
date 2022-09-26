@@ -1,9 +1,7 @@
 package prog8.vm
 
 import prog8.code.target.virtual.IVirtualMachineRunner
-import prog8.intermediate.Instruction
-import prog8.intermediate.Opcode
-import prog8.intermediate.VmDataType
+import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
 import java.util.*
@@ -31,9 +29,10 @@ class BreakpointException(val pc: Int): Exception()
 
 
 @Suppress("FunctionName")
-class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16virtualregsBaseAddress: Int) {
+class VirtualMachine(irProgram: IRProgram) {
+    val memory = Memory()
+    val program: Array<Instruction> = VmProgramLoader().load(irProgram, memory)  // TODO convert irProgram
     val registers = Registers()
-    val program: Array<Instruction> = program.toTypedArray()
     val callStack = Stack<Int>()
     val valueStack = Stack<UByte>()       // max 128 entries
     var pc = 0
@@ -41,6 +40,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
+    val cx16virtualregsBaseAddress = 0xff00     // TODO obtain from irProgram
 
     init {
         if(program.size>65536)
@@ -305,7 +305,7 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
     }
 
     private fun InsLOADCPU(i: Instruction) {
-        val reg = i.labelSymbol!!.single()
+        val reg = i.labelSymbol!!
         val value: UInt
         if(reg.startsWith('r')) {
             val regnum = reg.substring(1).toInt()
@@ -340,12 +340,12 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
             VmDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
             VmDataType.FLOAT -> throw IllegalArgumentException("there are no float cpu registers")
         }
-        StoreCPU(value, i.type!!, i.labelSymbol!!.single())
+        StoreCPU(value, i.type!!, i.labelSymbol!!)
         pc++
     }
 
     private fun InsSTOREZCPU(i: Instruction) {
-        StoreCPU(0u, i.type!!, i.labelSymbol!!.single())
+        StoreCPU(0u, i.type!!, i.labelSymbol!!)
         pc++
     }
 
@@ -2105,17 +2105,13 @@ class VirtualMachine(val memory: Memory, program: List<Instruction>, val cx16vir
 
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
-    override fun runProgram(source: String) {
-        runAndTestProgram(source) { /* no tests */ }
+    override fun runProgram(irSource: CharSequence) {
+        runAndTestProgram(irSource) { /* no tests */ }
     }
 
-    fun runAndTestProgram(source: String, test: (VirtualMachine) -> Unit) {
-        val (memsrc, programsrc) = source.split("------PROGRAM------".toRegex(), 2)
-        val memory = Memory()
-        val assembler = Assembler()
-        assembler.initializeMemory(memsrc, memory)
-        val program = assembler.assembleProgram(programsrc)
-        val vm = VirtualMachine(memory, program, assembler.cx16virtualregBaseAdress)
+    fun runAndTestProgram(irSource: CharSequence, test: (VirtualMachine) -> Unit) {
+        val irProgram = IRFileReader().read(irSource)
+        val vm = VirtualMachine(irProgram)
         vm.run()
         test(vm)
     }

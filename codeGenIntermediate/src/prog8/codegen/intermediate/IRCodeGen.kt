@@ -65,7 +65,7 @@ class IRCodeGen(
         irProg.blocks.asSequence().flatMap { it.subroutines }.flatMap { it.chunks }.forEach { chunk ->
             chunk.lines.withIndex().forEach {
                 (lineIndex, line)-> if(line is IRCodeInstruction) {
-                    val symbolExpr = line.ins.labelSymbol?.single()
+                    val symbolExpr = line.ins.labelSymbol
                     if(symbolExpr!=null) {
                         val symbol: String
                         val index: UInt

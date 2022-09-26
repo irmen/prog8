@@ -3,7 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: get rid of p8virt format and Assembler, run p8ir directly
+- vm: merge IRCodeInstruction into Instruction directly
+- vm: actually translate IRProgram to vm program list again.
+- docs: modify compiler arch picture once this is done.
 
 ...
 

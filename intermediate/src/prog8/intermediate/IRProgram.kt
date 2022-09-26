@@ -126,7 +126,7 @@ class IRAsmSubroutine(val name: String,
 
 sealed class IRCodeLine
 
-class IRCodeInstruction(
+class IRCodeInstruction(        // TODO join this into Instruction directly
     opcode: Opcode,
     type: VmDataType?=null,
     reg1: Int?=null,        // 0-$ffff
@@ -137,7 +137,7 @@ class IRCodeInstruction(
     fpValue: Float?=null,
     labelSymbol: String?=null    // alternative to value
 ): IRCodeLine() {
-    val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue,  if(labelSymbol==null) null else listOf(labelSymbol))
+    val ins = Instruction(opcode, type, reg1, reg2, fpReg1, fpReg2, value, fpValue, labelSymbol)
 
     init {
         if(reg1!=null && (reg1<0 || reg1>65536))

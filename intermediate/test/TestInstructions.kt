@@ -34,7 +34,7 @@ class TestInstructions: FunSpec({
     }
 
     test("with label") {
-        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, labelSymbol = listOf("a","b","c"))
+        val ins = Instruction(Opcode.BZ, VmDataType.WORD, reg1=11, labelSymbol = "a.b.c")
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe VmDataType.WORD
         ins.reg1 shouldBe 11

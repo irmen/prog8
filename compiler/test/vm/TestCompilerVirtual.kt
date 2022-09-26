@@ -26,10 +26,10 @@ main {
 }"""
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
         val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8virt")
+        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
         VmRunner().runProgram(virtfile2.readText())
     }
 
@@ -51,10 +51,10 @@ main {
         compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
         val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8virt")
+        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
         VmRunner().runProgram(virtfile2.readText())
     }
 
@@ -72,10 +72,10 @@ main {
 }"""
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
         val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8virt")
+        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
         VmRunner().runProgram(virtfile2.readText())
     }
 
@@ -115,10 +115,10 @@ mylabel_inside:
 
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
         val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8virt")
+        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
         VmRunner().runProgram(virtfile2.readText())
     }
 
@@ -143,14 +143,14 @@ skipLABEL:
         compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8virt")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
             vm.memory.getUB(3) shouldBe 66u
         }
 
         val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8virt")
+        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile2.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
             vm.memory.getUB(3) shouldBe 66u

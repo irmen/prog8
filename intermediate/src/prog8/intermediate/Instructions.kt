@@ -14,9 +14,10 @@ Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
                                              logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
 
-Most instructions have an associated data type 'b','w','f'. (omitting it means 'b'/byte).
+Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
+Most instructions have an associated data type 'b','w','f'. (omitting it defaults to 'b' - byte).
 Currently NO support for 24 or 32 bits integers.
-Floating point operations are just 'f' typed regular instructions, and additionally there are a few fp conversion instructions
+Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
 
 LOAD/STORE
@@ -406,7 +407,7 @@ data class Instruction(
     val fpReg2: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
     val fpValue: Float?=null,
-    val labelSymbol: List<String>?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
+    val labelSymbol: String?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
     val binaryData: ByteArray?=null
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
@@ -494,10 +495,10 @@ data class Instruction(
             result.add(",")
         }
         labelSymbol?.let {
-            if(labelSymbol[0].startsWith('&'))
-                result.add(it.joinToString("."))    // address-of something
+            if(it.startsWith('&'))
+                result.add(it)    // address-of something
             else
-                result.add("_" + it.joinToString("."))
+                result.add("_$it")
         }
         if(result.last() == ",")
             result.removeLast()

@@ -1,4 +1,4 @@
-package prog8.codegen.virtual
+package prog8.vm
 
 import prog8.code.core.*
 import prog8.intermediate.IRSymbolTable
