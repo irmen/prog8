@@ -30,9 +30,8 @@ class TestIRFileInOut: FunSpec({
             outputDir = tempdir
         )
         val program = IRProgram("unittest-irwriter", IRSymbolTable(null), options, target)
-        val writer = IRFileWriter(program)
-        writer.writeFile()
-        val generatedFile = tempdir.resolve("unittest-irwriter.p8ir")
+        val writer = IRFileWriter(program, null)
+        val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines.first() shouldBe "<PROGRAM NAME=unittest-irwriter>"
         lines.last() shouldBe "</PROGRAM>"
@@ -97,9 +96,7 @@ return
 """
         val tempfile = createTempFile(suffix = ".p8ir")
         tempfile.writeText(source)
-        val filepart = tempfile.name.dropLast(5)
-        val reader = IRFileReader(tempfile.parent, filepart)
-        val program = reader.readFile()
+        val program = IRFileReader().read(tempfile)
         tempfile.deleteExisting()
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2

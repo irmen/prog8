@@ -245,10 +245,11 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
     return result
 }
 
-fun runVm(listingFilename: String): Boolean {
-    if(listingFilename.endsWith(".p8ir")) {
-        val withoutSuffix = listingFilename.substring(0, listingFilename.length-5)
-        val compiled = VmCodeGen.compileIR(withoutSuffix)
+fun runVm(irFilename: String): Boolean {
+    val irFile = Path(irFilename)
+    if(irFilename.endsWith(".p8ir")) {
+        val withoutSuffix = irFilename.substring(0, irFilename.length-5)
+        val compiled = VmCodeGen.compileIR(irFile)
         if (!compiled.assemble(CompilationOptions(  // these are just dummy options, the actual options are inside the .p8ir file itself:
                 OutputType.PRG,
                 CbmPrgLauncherType.NONE,
@@ -267,6 +268,6 @@ fun runVm(listingFilename: String): Boolean {
         return true
     }
     val vmdef = VirtualMachineDefinition()
-    vmdef.launchEmulator(0, Paths.get(listingFilename))
+    vmdef.launchEmulator(0, irFile)
     return true
 }

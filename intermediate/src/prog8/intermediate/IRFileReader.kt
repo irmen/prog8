@@ -6,17 +6,18 @@ import prog8.code.target.*
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.bufferedReader
-import kotlin.io.path.div
 
 
-class IRFileReader(outputDir: Path, programName: String) {
-    private val infile = outputDir / ("${programName}.p8ir")
+class IRFileReader {
 
-    fun readFile(): IRProgram {
-        println("Reading intermediate representation from $infile")
-        infile.bufferedReader().use { reader ->
-            val lines = reader.readText().lines()
-            return parseProgram(lines.iterator())
+    fun read(irSourceCode: CharSequence): IRProgram {
+        return parseProgram(irSourceCode.lineSequence().iterator())
+    }
+
+    fun read(irSourceFile: Path): IRProgram {
+        println("Reading intermediate representation from $irSourceFile")
+        irSourceFile.bufferedReader().use { reader ->
+            return parseProgram(reader.lineSequence().iterator())
         }
     }
 

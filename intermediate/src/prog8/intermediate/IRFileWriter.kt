@@ -2,15 +2,16 @@ package prog8.intermediate
 
 import prog8.code.core.*
 import java.io.BufferedWriter
+import java.nio.file.Path
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
 
-class IRFileWriter(private val irProgram: IRProgram) {
-    private val outfile = irProgram.options.outputDir / ("${irProgram.name}.p8ir")
+class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
+    private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
     private val out = outfile.bufferedWriter()
 
-    fun writeFile() {
+    fun write(): Path {
         println("Writing intermediate representation to $outfile")
         out.write("<PROGRAM NAME=${irProgram.name}>\n")
         writeOptions()
@@ -27,6 +28,7 @@ class IRFileWriter(private val irProgram: IRProgram) {
         writeBlocks()
         out.write("</PROGRAM>\n")
         out.close()
+        return outfile
     }
 
     private fun writeBlocks() {

@@ -22,7 +22,7 @@ class CodeGen(private val program: PtProgram,
         val irProgram = irCodeGen.generate()
 
         // this stub only writes the IR program to disk but doesn't generate anything else.
-        IRFileWriter(irProgram).writeFile()
+        IRFileWriter(irProgram, null).write()
 
         println("** experimental codegen stub: no assembly generated **")
         return null

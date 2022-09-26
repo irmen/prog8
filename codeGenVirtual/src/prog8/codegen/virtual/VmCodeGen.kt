@@ -9,7 +9,7 @@ import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
-import kotlin.io.path.Path
+import java.nio.file.Path
 
 class VmCodeGen(private val program: PtProgram,
                 private val symbolTable: SymbolTable,
@@ -23,8 +23,8 @@ class VmCodeGen(private val program: PtProgram,
 
         return if(options.keepIR) {
             //create IR file on disk and read it back.
-            IRFileWriter(irProgram).writeFile()
-            val irProgram2 = IRFileReader(options.outputDir, irProgram.name).readFile()
+            val irFile = IRFileWriter(irProgram, null).write()
+            val irProgram2 = IRFileReader().read(irFile)
             VmAssemblyProgram(irProgram2.name, irProgram2)
         } else {
             VmAssemblyProgram(irProgram.name, irProgram)
@@ -32,8 +32,8 @@ class VmCodeGen(private val program: PtProgram,
     }
 
     companion object {
-        fun compileIR(listingFilename: String): IAssemblyProgram {
-            val irProgram = IRFileReader(Path(""), listingFilename).readFile()
+        fun compileIR(irFile: Path): IAssemblyProgram {
+            val irProgram = IRFileReader().read(irFile)
             return VmAssemblyProgram(irProgram.name, irProgram)
         }
     }
