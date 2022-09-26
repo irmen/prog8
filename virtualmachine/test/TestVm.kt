@@ -1,3 +1,5 @@
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
@@ -6,6 +8,7 @@ import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import prog8.vm.VirtualMachine
 import prog8.vm.VmRunner
+import java.lang.IllegalArgumentException
 
 class TestVm: FunSpec( {
 
@@ -39,9 +42,10 @@ class TestVm: FunSpec( {
 
     test("vm execution: modify memory") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
-        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
-        val startSub = IRSubroutine("main.start2222", emptyList(), null, Position.DUMMY)        // TODO proper name main.start
+        val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
         val code = IRCodeChunk(Position.DUMMY)
+        code += IRInstruction(Opcode.NOP)
         code += IRInstruction(Opcode.LOAD, VmDataType.WORD, reg1=1, value=12345)
         code += IRInstruction(Opcode.STOREM, VmDataType.WORD, reg1=1, value=1000)
         code += IRInstruction(Opcode.RETURN)
@@ -59,8 +63,19 @@ class TestVm: FunSpec( {
         vm.memory.getUW(1000) shouldBe 12345u
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
-        vm.pc shouldBe 2
-        vm.stepCount shouldBe 3
+        vm.pc shouldBe code.lines.size-1
+        vm.stepCount shouldBe code.lines.size
+    }
+
+    test("vm asmsub not supported") {
+        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val startSub = IRAsmSubroutine("main.asmstart", Position.DUMMY, 0x2000u, emptySet(), emptyList(), emptyList(), "inlined asm here")
+        block += startSub
+        program.addBlock(block)
+        shouldThrowWithMessage<IllegalArgumentException>("vm currently does not support asmsubs: main.asmstart") {
+            VirtualMachine(program)
+        }
     }
 
     test("vmrunner") {

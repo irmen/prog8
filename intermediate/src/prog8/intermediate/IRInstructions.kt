@@ -61,24 +61,24 @@ BRANCHING
 ---------
 All have type b or w except the branches that only check status bits.
 
-bstcc                         location  - branch to location if Status bit Carry is Clear
-bstcs                         location  - branch to location if Status bit Carry is Set
-bsteq                         location  - branch to location if Status bit Zero is set
-bstne                         location  - branch to location if Status bit Zero is not set
-bstneg                        location  - branch to location if Status bit Negative is not set
-bstpos                        location  - branch to location if Status bit Negative is not set
-bz          reg1,             location  - branch to location if reg1 is zero
-bnz         reg1,             location  - branch to location if reg1 is not zero
-beq         reg1, reg2,       location  - jump to location in program given by location, if reg1 == reg2
-bne         reg1, reg2,       location  - jump to location in program given by location, if reg1 != reg2
-blt         reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (unsigned)
-blts        reg1, reg2,       location  - jump to location in program given by location, if reg1 < reg2 (signed)
-ble         reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (unsigned)
-bles        reg1, reg2,       location  - jump to location in program given by location, if reg1 <= reg2 (signed)
-bgt         reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (unsigned)
-bgts        reg1, reg2,       location  - jump to location in program given by location, if reg1 > reg2 (signed)
-bge         reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (unsigned)
-bges        reg1, reg2,       location  - jump to location in program given by location, if reg1 >= reg2 (signed)
+bstcc                         address   - branch to location if Status bit Carry is Clear
+bstcs                         address   - branch to location if Status bit Carry is Set
+bsteq                         address   - branch to location if Status bit Zero is set
+bstne                         address   - branch to location if Status bit Zero is not set
+bstneg                        address   - branch to location if Status bit Negative is not set
+bstpos                        address   - branch to location if Status bit Negative is not set
+bz          reg1,             address   - branch to location if reg1 is zero
+bnz         reg1,             address   - branch to location if reg1 is not zero
+beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
+bne         reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
+blt         reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned)
+blts        reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed)
+ble         reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned)
+bles        reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed)
+bgt         reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
+bgts        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
+bge         reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
+bges        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 seq         reg1, reg2                  - set reg=1 if reg1 == reg2,  otherwise set reg1=0
 sne         reg1, reg2                  - set reg=1 if reg1 != reg2,  otherwise set reg1=0
 slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
@@ -381,7 +381,25 @@ val OpcodesWithAddress = setOf(
     Opcode.ROLM,
     Opcode.RORM,
     Opcode.ROXLM,
-    Opcode.ROXRM
+    Opcode.ROXRM,
+    Opcode.BSTCC,
+    Opcode.BSTCS,
+    Opcode.BSTEQ,
+    Opcode.BSTNE,
+    Opcode.BSTNEG,
+    Opcode.BSTPOS,
+    Opcode.BZ,
+    Opcode.BNZ,
+    Opcode.BEQ,
+    Opcode.BNE,
+    Opcode.BLT,
+    Opcode.BLTS,
+    Opcode.BLE,
+    Opcode.BLES,
+    Opcode.BGT,
+    Opcode.BGTS,
+    Opcode.BGE,
+    Opcode.BGES
 )
 
 val OpcodesForCpuRegisters = setOf(
@@ -463,12 +481,12 @@ data class IRInstruction(
 
         if (type==VmDataType.FLOAT) {
             if(format.fpValue && (fpValue==null && labelSymbol==null))
-                throw IllegalArgumentException("$opcode: missing a fp-value or labelsymbol")
+                throw IllegalArgumentException("missing a fp-value or labelsymbol")
         } else {
             if(format.value && (value==null && labelSymbol==null))
-                throw IllegalArgumentException("$opcode: missing a value or labelsymbol")
+                throw IllegalArgumentException("missing a value or labelsymbol")
             if (fpReg1 != null || fpReg2 != null)
-                throw IllegalArgumentException("$opcode: integer point instruction can't use floating point registers")
+                throw IllegalArgumentException("integer point instruction can't use floating point registers")
         }
 
         reg1direction = format.reg1direction

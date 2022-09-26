@@ -3,7 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- vm: actually translate IRProgram to vm program list again.
+- vm: replace addAssemblyToProgram() by call to IRFileLoader's logic, instead of duplicating it.
+- vm: fix TestCompilerVirtual executing wrong code? VM graphics window pops up...
 - docs: modify compiler arch picture once this is done.
 
 ...

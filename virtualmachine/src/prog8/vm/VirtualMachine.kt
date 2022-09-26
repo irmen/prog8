@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.StMemVar
 import prog8.code.target.virtual.IVirtualMachineRunner
 import prog8.intermediate.*
 import java.awt.Color
@@ -31,7 +32,7 @@ class BreakpointException(val pc: Int): Exception()
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
     val memory = Memory()
-    val program: Array<IRInstruction> = VmProgramLoader().load(irProgram, memory)  // TODO convert irProgram
+    val program: Array<IRInstruction>
     val registers = Registers()
     val callStack = Stack<Int>()
     val valueStack = Stack<UByte>()       // max 128 entries
@@ -40,11 +41,13 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
-    val cx16virtualregsBaseAddress = 0xff00     // TODO obtain from irProgram
+    private val cx16virtualregsBaseAddress: Int
 
     init {
+        program = VmProgramLoader().load(irProgram, memory).toTypedArray()
         if(program.size>65536)
             throw IllegalArgumentException("program cannot contain more than 65536 instructions")
+        cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
     }
 
     fun run() {

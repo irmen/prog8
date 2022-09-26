@@ -25,12 +25,9 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
-        val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
-        VmRunner().runProgram(virtfile2.readText())
     }
 
     test("compile virtual: array with pointers") {
@@ -50,12 +47,9 @@ main {
         val othertarget = Cx16Target()
         compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
-        val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
-        VmRunner().runProgram(virtfile2.readText())
     }
 
     test("compile virtual: str args and return type") {
@@ -71,12 +65,9 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
-        val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
-        VmRunner().runProgram(virtfile2.readText())
     }
 
     test("compile virtual: nested labels") {
@@ -114,18 +105,13 @@ mylabel_inside:
 }"""
 
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
-        val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
-        VmRunner().runProgram(virtfile2.readText())
     }
 
     test("case sensitive symbols") {
         val src = """
-%zeropage basicsafe 
-            
 main {
     sub start() {
         ubyte bytevar = 11      ; var at 0
@@ -142,16 +128,9 @@ skipLABEL:
         val othertarget = Cx16Target()
         compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true, keepIR=true)!!
+        val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUB(0) shouldBe 42u
-            vm.memory.getUB(3) shouldBe 66u
-        }
-
-        val result2 = compileText(target, true, src, writeAssembly = true, keepIR=false)!!
-        val virtfile2 = result2.compilationOptions.outputDir.resolve(result2.program.name + ".p8ir")
-        VmRunner().runAndTestProgram(virtfile2.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
             vm.memory.getUB(3) shouldBe 66u
         }

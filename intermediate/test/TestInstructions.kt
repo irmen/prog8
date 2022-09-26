@@ -1,4 +1,5 @@
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -73,25 +74,26 @@ class TestInstructions: FunSpec({
 
     test("missing type should fail") {
         shouldThrow<IllegalArgumentException> {
-            IRInstruction(Opcode.BZ, reg1=42, value=9999)
+            IRInstruction(Opcode.BZ, reg1=42, value=99)
         }
     }
 
     test("missing registers should fail") {
-        shouldThrow<IllegalArgumentException> {
-            IRInstruction(Opcode.BZ, VmDataType.BYTE, value=9999)
+        shouldThrowWithMessage<IllegalArgumentException>("missing a register (int)") {
+            IRInstruction(Opcode.BZ, VmDataType.BYTE, value=99)
         }
     }
 
     test("missing value should fail") {
-        shouldThrow<IllegalArgumentException> {
+        shouldThrowWithMessage<IllegalArgumentException>("missing a value or labelsymbol") {
             IRInstruction(Opcode.BZ, VmDataType.BYTE, reg1=42)
         }
     }
 
     test("all instructionformats") {
+        instructionFormats.size shouldBe Opcode.values().size
         Opcode.values().forEach {
             instructionFormats[it] shouldNotBe null
         }
-    }
+     }
 })
