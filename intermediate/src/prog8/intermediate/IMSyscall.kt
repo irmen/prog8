@@ -1,7 +1,8 @@
 package prog8.intermediate
 
-// calls to builtin operations that are too complex to be implemented as an IR instruction
+// Calls to builtin operations that are too complex to be implemented as an IR instruction
 // these use the SYSCALL instruction instead.
+// Note that in the VM these are translated into whatever the corresponding Syscall number in the VM is.
 
 enum class IMSyscall {
     SORT_UBYTE,

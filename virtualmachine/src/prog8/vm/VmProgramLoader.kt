@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.core.DataType
 import prog8.intermediate.*
 import kotlin.IllegalArgumentException
 
@@ -14,6 +15,8 @@ class VmProgramLoader {
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
         val symbolAddresses = allocations.allocations.toMutableMap()
         val program = mutableListOf<IRInstruction>()
+
+        varsToMemory(irProgram, allocations, symbolAddresses, memory)
 
         if(!irProgram.options.dontReinitGlobals)
             addToProgram(irProgram.globalInits, program, symbolAddresses)
@@ -55,6 +58,106 @@ class VmProgramLoader {
         return program
     }
 
+    private fun varsToMemory(
+        program: IRProgram,
+        allocations: VmVariableAllocator,
+        symbolAddresses: MutableMap<String, Int>,
+        memory: Memory
+    ) {
+        program.st.allVariables().forEach { variable ->
+            var addr = allocations.allocations.getValue(variable.name)
+            variable.onetimeInitializationNumericValue?.let {
+                when(variable.dt) {
+                    DataType.UBYTE -> memory.setUB(addr, it.toInt().toUByte())
+                    DataType.BYTE -> memory.setSB(addr, it.toInt().toByte())
+                    DataType.UWORD -> memory.setUW(addr, it.toInt().toUShort())
+                    DataType.WORD -> memory.setSW(addr, it.toInt().toShort())
+                    DataType.FLOAT -> memory.setFloat(addr, it.toFloat())
+                    else -> throw IllegalArgumentException("invalid dt")
+                }
+            }
+            variable.onetimeInitializationArrayValue?.let {
+                require(variable.length==it.size || it.size==1)
+                if(it.size==1) {
+                    val value = it[0].number!!
+                    when(variable.dt) {
+                        DataType.STR, DataType.ARRAY_UB -> {
+                            repeat(variable.length!!) {
+                                memory.setUB(addr, value.toInt().toUByte())
+                                addr++
+                            }
+                        }
+                        DataType.ARRAY_B -> {
+                            repeat(variable.length!!) {
+                                memory.setSB(addr, value.toInt().toByte())
+                                addr++
+                            }
+                        }
+                        DataType.ARRAY_UW -> {
+                            repeat(variable.length!!) {
+                                memory.setUW(addr, value.toInt().toUShort())
+                                addr+=2
+                            }
+                        }
+                        DataType.ARRAY_W -> {
+                            repeat(variable.length!!) {
+                                memory.setSW(addr, value.toInt().toShort())
+                                addr+=2
+                            }
+                        }
+                        DataType.ARRAY_F -> {
+                            repeat(variable.length!!) {
+                                memory.setFloat(addr, value.toFloat())
+                                addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                            }
+                        }
+                        else -> throw IllegalArgumentException("invalid dt")
+                    }
+                } else {
+                    when(variable.dt) {
+                        DataType.STR, DataType.ARRAY_UB -> {
+                            for(elt in it) {
+                                memory.setUB(addr, elt.number!!.toInt().toUByte())
+                                addr++
+                            }
+                        }
+                        DataType.ARRAY_B -> {
+                            for(elt in it) {
+                                memory.setSB(addr, elt.number!!.toInt().toByte())
+                                addr++
+                            }
+                        }
+                        DataType.ARRAY_UW -> {
+                            for(elt in it) {
+                                if(elt.addressOf!=null) {
+                                    val symbolAddress = symbolAddresses.getValue(elt.addressOf!!.joinToString("."))
+                                    memory.setUW(addr, symbolAddress.toUShort())
+                                } else {
+                                    memory.setUW(addr, elt.number!!.toInt().toUShort())
+                                }
+                                addr+=2
+                            }
+                        }
+                        DataType.ARRAY_W -> {
+                            for(elt in it) {
+                                memory.setSW(addr, elt.number!!.toInt().toShort())
+                                addr+=2
+                            }
+                        }
+                        DataType.ARRAY_F -> {
+                            for(elt in it) {
+                                memory.setSW(addr, elt.number!!.toInt().toShort())
+                                addr+=program.options.compTarget.machine.FLOAT_MEM_SIZE
+                            }
+                        }
+                        else -> throw IllegalArgumentException("invalid dt")
+                    }
+                }
+            }
+            require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
+        }
+    }
+
     private fun rememberPlaceholder(symbol: String, pc: Int) {
         placeholders[pc] = symbol
     }
@@ -90,7 +193,28 @@ class VmProgramLoader {
             when(it) {
                 is IRInstruction -> {
                     it.labelSymbol?.let { symbol -> rememberPlaceholder(symbol, program.size)}
-                    program += it
+                    if(it.opcode==Opcode.SYSCALL) {
+                        // convert IR Syscall to VM Syscall
+                        val vmSyscall = when(it.value!!) {
+                            IMSyscall.SORT_UBYTE.ordinal -> Syscall.SORT_UBYTE
+                            IMSyscall.SORT_BYTE.ordinal -> Syscall.SORT_BYTE
+                            IMSyscall.SORT_UWORD.ordinal -> Syscall.SORT_UWORD
+                            IMSyscall.SORT_WORD.ordinal -> Syscall.SORT_WORD
+                            IMSyscall.ANY_BYTE.ordinal -> Syscall.ANY_BYTE
+                            IMSyscall.ANY_WORD.ordinal -> Syscall.ANY_WORD
+                            IMSyscall.ANY_FLOAT.ordinal -> Syscall.ANY_FLOAT
+                            IMSyscall.ALL_BYTE.ordinal -> Syscall.ALL_BYTE
+                            IMSyscall.ALL_WORD.ordinal -> Syscall.ALL_WORD
+                            IMSyscall.ALL_FLOAT.ordinal -> Syscall.ALL_FLOAT
+                            IMSyscall.REVERSE_BYTES.ordinal -> Syscall.REVERSE_BYTES
+                            IMSyscall.REVERSE_WORDS.ordinal -> Syscall.REVERSE_WORDS
+                            IMSyscall.REVERSE_FLOATS.ordinal -> Syscall.REVERSE_FLOATS
+                            else -> throw IllegalArgumentException("invalid IM syscall number $it")
+                        }
+                        program += it.copy(value=vmSyscall.ordinal)
+                    } else {
+                        program += it
+                    }
                 }
                 is IRCodeInlineBinary -> program += IRInstruction(Opcode.BINARYDATA, binaryData = it.data)
                 is IRCodeComment -> { /* just ignore */ }
@@ -184,7 +308,7 @@ class VmProgramLoader {
                         }
                         if(operands.isNotEmpty()) {
                             TODO("placeholder symbol? $operands  rest=$rest'")
-                            operands.clear()
+                            // operands.clear()
                         }
                     }
                 }

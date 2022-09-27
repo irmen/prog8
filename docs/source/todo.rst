@@ -4,8 +4,8 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: replace addAssemblyToProgram() by call to IRFileLoader's logic, instead of duplicating it.
-- vm: fix TestCompilerVirtual executing wrong code? VM graphics window pops up...
-- docs: modify compiler arch picture once this is done.
+- replace throw IllegalArgumentException() by require()?
+- docs: modify compiler arch picture; remove p8virt
 
 ...
 

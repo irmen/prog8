@@ -74,7 +74,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
         code += exprGen.translateExpression(call.args[0], 0, -1)
         code += IRInstruction(Opcode.LOAD, VmDataType.BYTE, reg1 = 1, value = array.length)
-        code += IRInstruction(Opcode.SYSCALL, value = syscall.ordinal)
+        code += IRInstruction(Opcode.SYSCALL, value=syscall.ordinal)
         if (resultRegister != 0)
             code += IRInstruction(Opcode.LOADR, VmDataType.BYTE, reg1 = resultRegister, reg2 = 0)
         return code
