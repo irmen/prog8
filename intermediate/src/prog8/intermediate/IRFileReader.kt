@@ -427,7 +427,7 @@ class IRFileReader {
         } catch (ax: IllegalArgumentException) {
             throw IRParseException("invalid vmasm instruction: $instr")
         }
-        var type: VmDataType? = convertVmType(typestr)
+        var type: VmDataType? = convertIRType(typestr)
         val formats = instructionFormats.getValue(opcode)
         val format: InstructionFormat
         if(type !in formats) {
@@ -462,7 +462,7 @@ class IRFileReader {
                     labelSymbol = rest.split(",")[0].trim().substring(1)      // keep the original case
                     value = null
                 } else {
-                    value = parseValue(operand)
+                    value = parseIRValue(operand)
                 }
                 operands.clear()
             }
@@ -478,7 +478,7 @@ class IRFileReader {
                         labelSymbol = rest.split(",")[1].trim().substring(1)      // keep the original case
                         value = null
                     } else {
-                        value = parseValue(operand)
+                        value = parseIRValue(operand)
                     }
                     operands.clear()
                 }
@@ -494,7 +494,7 @@ class IRFileReader {
                             labelSymbol = rest.split(",")[2].trim().substring(1)      // keep the original case
                             value = null
                         } else {
-                            value = parseValue(operand)
+                            value = parseIRValue(operand)
                         }
                         operands.clear()
                     }
@@ -505,7 +505,7 @@ class IRFileReader {
                             labelSymbol = rest.split(",")[3].trim().substring(1)      // keep the original case
                             value = null
                         } else {
-                            value = parseValue(operand)
+                            value = parseIRValue(operand)
                         }
                     }
                 }
@@ -563,33 +563,6 @@ class IRFileReader {
             floatValue = value
 
         return IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol)
-    }
-
-    private fun convertVmType(typestr: String): VmDataType? {
-        return when(typestr.lowercase()) {
-            "" -> null
-            ".b" -> VmDataType.BYTE
-            ".w" -> VmDataType.WORD
-            ".f" -> VmDataType.FLOAT
-            else -> throw IRParseException("invalid type $typestr")
-        }
-    }
-
-    private fun parseValue(value: String): Float {
-        return if(value.startsWith("-"))
-            -parseValue(value.substring(1))
-        else if(value.startsWith('$'))
-            value.substring(1).toInt(16).toFloat()
-        else if(value.startsWith('%'))
-            value.substring(1).toInt(2).toFloat()
-        else if(value.startsWith("0x"))
-            value.substring(2).toInt(16).toFloat()
-        else if(value.startsWith('_'))
-            throw IRParseException("attempt to parse a label as numeric value")
-        else if(value.startsWith('&'))
-            throw IRParseException("address-of should be done with normal LOAD <symbol>")
-        else
-            return value.toFloat()
     }
 
     private fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {

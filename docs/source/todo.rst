@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: replace addAssemblyToProgram() by call to IRFileLoader's logic, instead of duplicating it.
+- vm: fix memory slabs (bsieve example)
 - replace throw IllegalArgumentException() by require()?
 
 ...

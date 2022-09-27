@@ -53,3 +53,30 @@ fun getTypeString(variable : StStaticVariable): String {
         else -> throw InternalCompilerException("weird dt")
     }
 }
+
+fun convertIRType(typestr: String): VmDataType? {
+    return when(typestr.lowercase()) {
+        "" -> null
+        ".b" -> VmDataType.BYTE
+        ".w" -> VmDataType.WORD
+        ".f" -> VmDataType.FLOAT
+        else -> throw IRParseException("invalid type $typestr")
+    }
+}
+
+fun parseIRValue(value: String): Float {
+    return if(value.startsWith("-"))
+        -parseIRValue(value.substring(1))
+    else if(value.startsWith('$'))
+        value.substring(1).toInt(16).toFloat()
+    else if(value.startsWith('%'))
+        value.substring(1).toInt(2).toFloat()
+    else if(value.startsWith("0x"))
+        value.substring(2).toInt(16).toFloat()
+    else if(value.startsWith('_'))
+        throw IRParseException("attempt to parse a label as numeric value")
+    else if(value.startsWith('&'))
+        throw IRParseException("address-of should be done with normal LOAD <symbol>")
+    else
+        return value.toFloat()
+}

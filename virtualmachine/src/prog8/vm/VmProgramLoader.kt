@@ -31,7 +31,7 @@ class VmProgramLoader {
 
         irProgram.blocks.forEach { block ->
             if(block.address!=null)
-                throw IllegalArgumentException("blocks cannot have a load address for vm: ${block.name}")
+                throw IRParseException("blocks cannot have a load address for vm: ${block.name}")
 
             block.inlineAssembly.forEach { addAssemblyToProgram(it, program) }
             block.subroutines.forEach {
@@ -44,14 +44,14 @@ class VmProgramLoader {
                 }
             }
             if(block.asmSubroutines.any())
-                throw IllegalArgumentException("vm currently does not support asmsubs: ${block.asmSubroutines.first().name}")
+                throw IRParseException("vm currently does not support asmsubs: ${block.asmSubroutines.first().name}")
         }
 
         pass2replaceLabelsByProgIndex(program, symbolAddresses)
 
         program.forEach {
             if(it.opcode in OpcodesWithAddress && it.value==null) {
-                throw IllegalArgumentException("instruction missing numeric value, label not replaced? $it")
+                throw IRParseException("instruction missing numeric value, label not replaced? $it")
             }
         }
 
@@ -73,7 +73,7 @@ class VmProgramLoader {
                     DataType.UWORD -> memory.setUW(addr, it.toInt().toUShort())
                     DataType.WORD -> memory.setSW(addr, it.toInt().toShort())
                     DataType.FLOAT -> memory.setFloat(addr, it.toFloat())
-                    else -> throw IllegalArgumentException("invalid dt")
+                    else -> throw IRParseException("invalid dt")
                 }
             }
             variable.onetimeInitializationArrayValue?.let {
@@ -111,7 +111,7 @@ class VmProgramLoader {
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
                         }
-                        else -> throw IllegalArgumentException("invalid dt")
+                        else -> throw IRParseException("invalid dt")
                     }
                 } else {
                     when(variable.dt) {
@@ -150,7 +150,7 @@ class VmProgramLoader {
                                 addr+=program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
                         }
-                        else -> throw IllegalArgumentException("invalid dt")
+                        else -> throw IRParseException("invalid dt")
                     }
                 }
             }
@@ -176,7 +176,7 @@ class VmProgramLoader {
                     val address = symbolAddresses.getValue(symbol) + index
                     program[line] = program[line].copy(value = address)
                 } else {
-                    throw IllegalArgumentException("placeholder not found in labels: $label")
+                    throw IRParseException("placeholder not found in labels: $label")
                 }
             } else {
                 program[line] = program[line].copy(value = replacement)
@@ -209,7 +209,7 @@ class VmProgramLoader {
                             IMSyscall.REVERSE_BYTES.ordinal -> Syscall.REVERSE_BYTES
                             IMSyscall.REVERSE_WORDS.ordinal -> Syscall.REVERSE_WORDS
                             IMSyscall.REVERSE_FLOATS.ordinal -> Syscall.REVERSE_FLOATS
-                            else -> throw IllegalArgumentException("invalid IM syscall number $it")
+                            else -> throw IRParseException("invalid IM syscall number $it")
                         }
                         program += it.copy(value=vmSyscall.ordinal)
                     } else {
@@ -234,14 +234,14 @@ class VmProgramLoader {
         asmChunk.assembly.lineSequence().forEach {
             val line = it.trim()
             val match = instructionPattern.matchEntire(line)
-                ?: throw IllegalArgumentException("invalid IR instruction: $line in ${asmChunk.position}")
+                ?: throw IRParseException("invalid IR instruction: $line in ${asmChunk.position}")
             val (instr, typestr, rest) = match.destructured
             val opcode = try {
                 Opcode.valueOf(instr.uppercase())
             } catch (ax: IllegalArgumentException) {
-                throw IllegalArgumentException("invalid vmasm instruction: $instr", ax)
+                throw IRParseException("invalid vmasm instruction: $instr")
             }
-            var type: VmDataType? = convertType(typestr)
+            var type: VmDataType? = convertIRType(typestr)
             val formats = instructionFormats.getValue(opcode)
             val format: InstructionFormat
             if(type !in formats) {
@@ -265,7 +265,7 @@ class VmProgramLoader {
             var value: Float? = null
             var operand: String?
 
-            fun parseValueOrPlaceholder(operand: String, pc: Int, rest: String, restIndex: Int, opcode: Opcode): Float {
+            fun parseValueOrPlaceholder(operand: String, pc: Int, rest: String, restIndex: Int): Float {
                 return if(operand.startsWith('_')) {
                     rememberPlaceholder(rest.split(",")[restIndex].trim().drop(1), pc)
                     0f
@@ -273,7 +273,7 @@ class VmProgramLoader {
                     rememberPlaceholder(rest.split(",")[restIndex].trim(), pc)
                     0f
                 } else
-                    parseValue(opcode, operand, pc)
+                    parseIRValue(operand)
             }
 
             if(operands.isNotEmpty() && operands[0].isNotEmpty()) {
@@ -283,7 +283,7 @@ class VmProgramLoader {
                 else if(operand[0]=='f' && operand[1]=='r')
                     fpReg1 = operand.substring(2).toInt()
                 else {
-                    value = parseValueOrPlaceholder(operand, program.size, rest, 0, opcode)
+                    value = parseValueOrPlaceholder(operand, program.size, rest, 0)
                     operands.clear()
                 }
                 if(operands.isNotEmpty()) {
@@ -293,7 +293,7 @@ class VmProgramLoader {
                     else if(operand[0]=='f' && operand[1]=='r')
                         fpReg2 = operand.substring(2).toInt()
                     else {
-                        value = parseValueOrPlaceholder(operand, program.size, rest, 1, opcode)
+                        value = parseValueOrPlaceholder(operand, program.size, rest, 1)
                         operands.clear()
                     }
                     if(operands.isNotEmpty()) {
@@ -303,7 +303,7 @@ class VmProgramLoader {
                         else if(operand[0]=='f' && operand[1]=='r')
                             fpReg3 = operand.substring(2).toInt()
                         else {
-                            value = parseValueOrPlaceholder(operand, program.size, rest, 2, opcode)
+                            value = parseValueOrPlaceholder(operand, program.size, rest, 2)
                             operands.clear()
                         }
                         if(operands.isNotEmpty()) {
@@ -326,31 +326,31 @@ class VmProgramLoader {
                 fpReg3 = null
             }
             if(reg3!=null)
-                throw IllegalArgumentException("too many reg arguments $line")
+                throw IRParseException("too many reg arguments $line")
             if(fpReg3!=null)
-                throw IllegalArgumentException("too many fpreg arguments $line")
+                throw IRParseException("too many fpreg arguments $line")
 
             if(type!=null && type !in formats)
-                throw IllegalArgumentException("invalid type code for $line")
+                throw IRParseException("invalid type code for $line")
             if(format.reg1 && reg1==null)
-                throw IllegalArgumentException("needs reg1 for $line")
+                throw IRParseException("needs reg1 for $line")
             if(format.reg2 && reg2==null)
-                throw IllegalArgumentException("needs reg2 for $line")
+                throw IRParseException("needs reg2 for $line")
             if(format.value && value==null)
-                throw IllegalArgumentException("needs value for $line")
+                throw IRParseException("needs value for $line")
             if(!format.reg1 && reg1!=null)
-                throw IllegalArgumentException("invalid reg1 for $line")
+                throw IRParseException("invalid reg1 for $line")
             if(!format.reg2 && reg2!=null)
-                throw IllegalArgumentException("invalid reg2 for $line")
+                throw IRParseException("invalid reg2 for $line")
             if(value!=null && opcode !in OpcodesWithAddress) {
                 when (type) {
                     VmDataType.BYTE -> {
                         if (value < -128 || value > 255)
-                            throw IllegalArgumentException("value out of range for byte: $value")
+                            throw IRParseException("value out of range for byte: $value")
                     }
                     VmDataType.WORD -> {
                         if (value < -32768 || value > 65535)
-                            throw IllegalArgumentException("value out of range for word: $value")
+                            throw IRParseException("value out of range for word: $value")
                     }
                     VmDataType.FLOAT -> {}
                     null -> {}
@@ -375,36 +375,11 @@ class VmProgramLoader {
                         "r8", "r9", "r10","r11",
                         "r12", "r13", "r14", "r15",
                         "pc", "pz", "pv","pn"))
-                    throw IllegalArgumentException("invalid cpu reg: $reg")
+                    throw IRParseException("invalid cpu reg: $reg")
                 program += IRInstruction(opcode, type, reg1, labelSymbol = reg)
             } else {
                 program += IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue)
             }
-        }
-    }
-
-    private fun parseValue(opcode: Opcode, value: String, pc: Int): Float {
-        return if(value.startsWith("-"))
-            -parseValue(opcode, value.substring(1), pc)
-        else if(value.startsWith('$'))
-            value.substring(1).toInt(16).toFloat()
-        else if(value.startsWith('%'))
-            value.substring(1).toInt(2).toFloat()
-        else if(value.startsWith("0x"))
-            value.substring(2).toInt(16).toFloat()
-        else if(value.startsWith('_') || value[0].isLetter())
-            throw IllegalArgumentException("attempt to parse non-numeric value $value")
-        else
-            value.toFloat()
-    }
-
-    private fun convertType(typestr: String): VmDataType? {
-        return when(typestr.lowercase()) {
-            "" -> null
-            ".b" -> VmDataType.BYTE
-            ".w" -> VmDataType.WORD
-            ".f" -> VmDataType.FLOAT
-            else -> throw IllegalArgumentException("invalid type $typestr")
         }
     }
 }

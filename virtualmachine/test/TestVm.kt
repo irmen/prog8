@@ -1,4 +1,3 @@
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -8,7 +7,6 @@ import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import prog8.vm.VirtualMachine
 import prog8.vm.VmRunner
-import java.lang.IllegalArgumentException
 
 class TestVm: FunSpec( {
 
@@ -73,7 +71,7 @@ class TestVm: FunSpec( {
         val startSub = IRAsmSubroutine("main.asmstart", Position.DUMMY, 0x2000u, emptySet(), emptyList(), emptyList(), "inlined asm here")
         block += startSub
         program.addBlock(block)
-        shouldThrowWithMessage<IllegalArgumentException>("vm currently does not support asmsubs: main.asmstart") {
+        shouldThrowWithMessage<IRParseException>("vm currently does not support asmsubs: main.asmstart") {
             VirtualMachine(program)
         }
     }
