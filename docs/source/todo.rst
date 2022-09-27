@@ -5,7 +5,6 @@ For next release
 ^^^^^^^^^^^^^^^^
 - vm: replace addAssemblyToProgram() by call to IRFileLoader's logic, instead of duplicating it.
 - replace throw IllegalArgumentException() by require()?
-- docs: modify compiler arch picture; remove p8virt
 
 ...
 
