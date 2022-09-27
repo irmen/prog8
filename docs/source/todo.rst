@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- replace throw IllegalArgumentException() by require()?
-
 ...
 
 

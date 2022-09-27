@@ -79,7 +79,7 @@ class TestInstructions: FunSpec({
     }
 
     test("missing registers should fail") {
-        shouldThrowWithMessage<IllegalArgumentException>("missing a register (int)") {
+        shouldThrowWithMessage<IllegalArgumentException>("missing reg1") {
             IRInstruction(Opcode.BZ, VmDataType.BYTE, value=99)
         }
     }

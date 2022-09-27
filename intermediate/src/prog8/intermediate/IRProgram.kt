@@ -55,8 +55,7 @@ class IRProgram(val name: String,
 
     fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.lines)
     fun addBlock(block: IRBlock) {
-        if(blocks.any { it.name==block.name })
-            throw IllegalArgumentException("duplicate block ${block.name} ${block.position}")
+        require(blocks.all { it.name != block.name}) { "duplicate block ${block.name} ${block.position}" }
         blocks.add(block)
     }
 }
@@ -94,16 +93,12 @@ class IRSubroutine(val name: String,
     val chunks = mutableListOf<IRCodeChunkBase>()
 
     init {
-        if(!name.contains('.'))
-            throw IllegalArgumentException("subroutine name is not scoped: $name")
-        if(name.startsWith("main.main."))
-            throw IllegalArgumentException("subroutine name invalid main prefix: $name")
+        require('.' in name) {"subroutine name is not scoped: $name"}
+        require(!name.startsWith("main.main.")) {"subroutine name invalid main prefix: $name"}
 
         // params and return value should not be str
-        if(parameters.any{ it.dt !in NumericDatatypes })
-            throw IllegalArgumentException("non-numeric parameter")
-        if(returnType!=null && returnType !in NumericDatatypes)
-            throw IllegalArgumentException("non-numeric returntype $returnType")
+        require(parameters.all{ it.dt in NumericDatatypes }) {"non-numeric parameter"}
+        require(returnType==null || returnType in NumericDatatypes) {"non-numeric returntype $returnType"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) { chunks+= chunk }
@@ -117,10 +112,8 @@ class IRAsmSubroutine(val name: String,
                       val returns: List<Pair<DataType, RegisterOrStatusflag>>,
                       val assembly: String) {
     init {
-        if(!name.contains('.'))
-            throw IllegalArgumentException("subroutine name is not scoped: $name")
-        if(name.startsWith("main.main."))
-            throw IllegalArgumentException("subroutine name invalid main prefix: $name")
+        require('.' in name) { "subroutine name is not scoped: $name" }
+        require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }
     }
 }
 

@@ -434,59 +434,41 @@ data class IRInstruction(
     val fpReg1direction: OperandDirection
 
     init {
-        if(labelSymbol?.startsWith('_')==true) {
-            throw IllegalArgumentException("label/symbol should not start with underscore $labelSymbol")
-        }
-        if(reg1!=null && (reg1<0 || reg1>65536))
-            throw IllegalArgumentException("reg1 out of bounds")
-        if(reg2!=null && (reg2<0 || reg2>65536))
-            throw IllegalArgumentException("reg2 out of bounds")
-        if(fpReg1!=null && (fpReg1<0 || fpReg1>65536))
-            throw IllegalArgumentException("fpReg1 out of bounds")
-        if(fpReg2!=null && (fpReg2<0 || fpReg2>65536))
-            throw IllegalArgumentException("fpReg2 out of bounds")
+        require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
+        require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
+        require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
+        require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
+        require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
         if(value!=null && opcode !in OpcodesWithAddress) {
             when (type) {
-                VmDataType.BYTE -> {
-                    if (value < -128 || value > 255)
-                        throw IllegalArgumentException("value out of range for byte: $value")
-                }
-                VmDataType.WORD -> {
-                    if (value < -32768 || value > 65535)
-                        throw IllegalArgumentException("value out of range for word: $value")
-                }
+                VmDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
+                VmDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
                 VmDataType.FLOAT, null -> {}
             }
         }
 
-        if(opcode==Opcode.BINARYDATA && binaryData==null || binaryData!=null && opcode!=Opcode.BINARYDATA)
-            throw IllegalArgumentException("binarydata inconsistency")
+        require((opcode==Opcode.BINARYDATA && binaryData!=null) || (opcode!=Opcode.BINARYDATA && binaryData==null)) {
+            "binarydata inconsistency"
+        }
 
         val formats = instructionFormats.getValue(opcode)
-        if(type==null && !formats.containsKey(null))
-            throw IllegalArgumentException("missing type")
+        require (type != null || formats.containsKey(null)) { "missing type" }
 
         val format = formats.getValue(type)
-        if(format.reg1 && reg1==null || format.reg2 && reg2==null)
-            throw IllegalArgumentException("missing a register (int)")
-
-        if(format.fpReg1 && fpReg1==null || format.fpReg2 && fpReg2==null)
-            throw IllegalArgumentException("missing a register (float)")
-
-        if(!format.reg1 && reg1!=null || !format.reg2 && reg2!=null)
-            throw IllegalArgumentException("too many registers (int)")
-
-        if(!format.fpReg1 && fpReg1!=null || !format.fpReg2 && fpReg2!=null)
-            throw IllegalArgumentException("too many registers (float)")
+        if(format.reg1) require(reg1!=null) { "missing reg1" }
+        if(format.reg2) require(reg2!=null) { "missing reg2" }
+        if(format.fpReg1) require(fpReg1!=null) { "missing fpReg1" }
+        if(format.fpReg2) require(fpReg2!=null) { "missing fpReg2" }
+        if(!format.reg1) require(reg1==null) { "invalid reg1" }
+        if(!format.reg2) require(reg2==null) { "invalid reg2" }
+        if(!format.fpReg1) require(fpReg1==null) { "invalid fpReg1" }
+        if(!format.fpReg2) require(fpReg2==null) { "invalid fpReg2" }
 
         if (type==VmDataType.FLOAT) {
-            if(format.fpValue && (fpValue==null && labelSymbol==null))
-                throw IllegalArgumentException("missing a fp-value or labelsymbol")
+            if(format.fpValue) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
         } else {
-            if(format.value && (value==null && labelSymbol==null))
-                throw IllegalArgumentException("missing a value or labelsymbol")
-            if (fpReg1 != null || fpReg2 != null)
-                throw IllegalArgumentException("integer point instruction can't use floating point registers")
+            if(format.value) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
+            require(fpReg1==null && fpReg2==null) {"integer point instruction can't use floating point registers"}
         }
 
         reg1direction = format.reg1direction
@@ -498,9 +480,10 @@ data class IRInstruction(
                 Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
                 Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
                 Opcode.SGE, Opcode.SGES)) {
-            if((type==VmDataType.FLOAT && fpReg1==fpReg2) || reg1==reg2) {
-                throw IllegalArgumentException("$opcode: reg1 and reg2 should be different")
-            }
+            if(type==VmDataType.FLOAT)
+                require(fpReg1!=fpReg2) {"$opcode: fpReg1 and fpReg2 should be different"}
+            else
+                require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
         }
     }
 

@@ -45,8 +45,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     init {
         program = VmProgramLoader().load(irProgram, memory).toTypedArray()
-        if(program.size>65536)
-            throw IllegalArgumentException("program cannot contain more than 65536 instructions")
+        require(program.size<=65536) {"program cannot contain more than 65536 instructions"}
         cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
     }
 

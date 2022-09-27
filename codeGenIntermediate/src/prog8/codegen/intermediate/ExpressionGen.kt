@@ -544,8 +544,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: VmDataType, resultRegister: Int): IRCodeChunk {
-        if(vmDt==VmDataType.FLOAT)
-            throw IllegalArgumentException("floating-point modulo not supported")
+        require(vmDt!=VmDataType.FLOAT) {"floating-point modulo not supported"}
         val code = IRCodeChunk(binExpr.position)
         val rightResultReg = codeGen.vmRegisters.nextFree()
         if(binExpr.right is PtNumber) {
