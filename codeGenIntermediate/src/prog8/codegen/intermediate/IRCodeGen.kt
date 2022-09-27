@@ -243,7 +243,7 @@ class IRCodeGen(
                 val data =  node.file.readBytes()
                     .drop(node.offset?.toInt() ?: 0)
                     .take(node.length?.toInt() ?: Int.MAX_VALUE)
-                chunk += IRCodeInlineBinary(data.toByteArray())
+                chunk += IRCodeInlineBinary(data.map { it.toUByte() })
                 return chunk
             }
             is PtAddressOf,

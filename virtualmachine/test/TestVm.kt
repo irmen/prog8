@@ -67,6 +67,22 @@ class TestVm: FunSpec( {
 
     test("vm asmsub not supported") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
+        val code = IRCodeChunk(Position.DUMMY)
+        code += IRInstruction(Opcode.BINARYDATA, binaryData = listOf(1u,2u,3u))
+        code += IRInstruction(Opcode.RETURN)
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+        val vm = VirtualMachine(program)
+        shouldThrowWithMessage<NotImplementedError>("An operation is not implemented: BINARYDATA not yet supported in VM") {
+            vm.run()
+        }
+    }
+
+    test("vm asmbinary not supported") {
+        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine("main.asmstart", Position.DUMMY, 0x2000u, emptySet(), emptyList(), emptyList(), "inlined asm here")
         block += startSub

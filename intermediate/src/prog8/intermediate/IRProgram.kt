@@ -130,7 +130,7 @@ class IRCodeLabel(val name: String): IRCodeLine()
 
 class IRCodeComment(val comment: String): IRCodeLine()
 
-class IRCodeInlineBinary(val data: ByteArray): IRCodeLine()
+class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine()
 
 abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
