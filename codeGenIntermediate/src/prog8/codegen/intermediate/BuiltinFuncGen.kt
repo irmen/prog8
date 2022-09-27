@@ -323,11 +323,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcMemory(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunk {
         val name = (call.args[0] as PtString).value
-        val size = (call.args[1] as PtNumber).number.toUInt()
-        val align = (call.args[2] as PtNumber).number.toUInt()
-        val label = codeGen.addMemorySlab(name, size, align, call.position)
         val code = IRCodeChunk(call.position)
-        code += IRInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = label)
+        code += IRInstruction(Opcode.LOAD, VmDataType.WORD, reg1=resultRegister, labelSymbol = "prog8_slabs.prog8_memoryslab_$name")
         return code
     }
 

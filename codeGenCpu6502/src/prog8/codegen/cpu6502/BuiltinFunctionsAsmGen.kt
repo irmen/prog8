@@ -15,8 +15,7 @@ import prog8.compiler.FSignature
 
 internal class BuiltinFunctionsAsmGen(private val program: Program,
                                       private val asmgen: AsmGen,
-                                      private val assignAsmGen: AssignmentAsmGen,
-                                      private val allocations: VariableAllocator) {
+                                      private val assignAsmGen: AssignmentAsmGen) {
 
     internal fun translateFunctioncallExpression(fcall: BuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         val func = BuiltinFunctions.getValue(fcall.target.nameInSource.single())
@@ -309,10 +308,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as StringLiteral).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
-        val size = (fcall.args[1] as NumericLiteral).number.toUInt()
-        val align = (fcall.args[2] as NumericLiteral).number.toUInt()
-        val prefixedName = asmgen.addMemorySlab(name, size, align, fcall.position)
-        val slabname = IdentifierReference(listOf("prog8_slabs", prefixedName), fcall.position)
+        val slabname = IdentifierReference(listOf("prog8_slabs", "prog8_memoryslab_$name"), fcall.position)
         slabname.linkParents(fcall)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = AddressOf(slabname, fcall.position))
         val target =

@@ -97,15 +97,10 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
     }
 
     fun add(variable: StMemorySlab) {
-        val scopedName: String
-        val varToadd: StMemorySlab
-        if('.' in variable.name) {
-            scopedName = variable.name
-            varToadd = variable
-        } else {
-            scopedName = variable.scopedName.joinToString(".")
-            varToadd = StMemorySlab(scopedName, variable.size, variable.align, variable.position)
-        }
-        table[scopedName] = varToadd
+        val varToadd = if('.' in variable.name)
+            variable
+        else
+            StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, variable.position)
+        table[varToadd.name] = varToadd
     }
 }

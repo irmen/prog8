@@ -1,7 +1,6 @@
 package prog8.codegen.intermediate
 
 import prog8.code.StMemVar
-import prog8.code.StMemorySlab
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
@@ -1037,10 +1036,4 @@ class IRCodeGen(
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
 
     internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
-
-    fun addMemorySlab(name: String, size: UInt, align: UInt, position: Position): String {
-        val scopedName = "prog8_memoryslab_$name"
-        symbolTable.add(StMemorySlab(scopedName, size, align, position))
-        return scopedName
-    }
 }

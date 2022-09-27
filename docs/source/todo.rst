@@ -4,8 +4,6 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: replace addAssemblyToProgram() by call to IRFileLoader's logic, instead of duplicating it.
-- vm: fix memory slabs (bsieve example)
-- replace throw IllegalArgumentException() by require()?
 
 ...
 
@@ -21,6 +19,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- replace throw IllegalArgumentException() by require()?
 - vm/ir: put variables and arrays in BSS section (unless -noreinit is specified)
 - vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether.

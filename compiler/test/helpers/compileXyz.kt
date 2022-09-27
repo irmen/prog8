@@ -1,15 +1,10 @@
 package prog8tests.helpers
 
-import prog8.ast.Program
-import prog8.code.core.*
-import prog8.code.target.C64Target
-import prog8.code.target.c64.C64Zeropage
-import prog8.codegen.cpu6502.AsmGen
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
-import prog8.compiler.astprocessing.SymbolTableMaker
 import prog8.compiler.compileProgram
-import prog8.compiler.determineProgramLoadAddress
 import java.nio.file.Path
 import kotlin.io.path.name
 
@@ -66,24 +61,4 @@ internal fun compileText(
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name,
         errors=errors, writeAssembly=writeAssembly, optFloatExpr = optFloatExpr, keepIR=keepIR)
-}
-
-
-internal fun generateAssembly(
-    program: Program,
-    options: CompilationOptions? = null
-): IAssemblyProgram? {
-    val coptions = options ?: CompilationOptions(OutputType.RAW, CbmPrgLauncherType.BASIC, ZeropageType.DONTUSE, emptyList(),
-        floats = true,
-        noSysInit = true,
-        compTarget = C64Target(),
-        loadAddress = 0u, outputDir = outputDir)
-    coptions.compTarget.machine.zeropage = C64Zeropage(coptions)
-    val st = SymbolTableMaker().makeFrom(program)
-    val errors = ErrorReporterForTests()
-    determineProgramLoadAddress(program, coptions, errors)
-    errors.report()
-    val asmgen = AsmGen(program, st, coptions, errors)
-    errors.report()
-    return asmgen.compileToAssembly()
 }

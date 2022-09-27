@@ -3,6 +3,8 @@ package prog8tests.vm
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.expressions.BuiltinFunctionCall
+import prog8.ast.statements.Assignment
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
@@ -133,6 +135,29 @@ skipLABEL:
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
             vm.memory.getUB(3) shouldBe 66u
+        }
+    }
+
+    test("memory slabs") {
+        val src = """
+main {
+    sub start() {
+        uword slab1 = memory("slab1", 2000, 64)
+        slab1[10]=42
+        slab1[11]=43
+        ubyte @shared value1 = slab1[10]     ; var at 2
+        ubyte @shared value2 = slab1[11]     ; var at 3
+    }
+}"""
+        val target = VMTarget()
+        val result = compileText(target, true, src, writeAssembly = true)!!
+        val start = result.program.entrypoint
+        start.statements.size shouldBe 9
+        ((start.statements[1] as Assignment).value as BuiltinFunctionCall).name shouldBe "memory"
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            vm.memory.getUB(2) shouldBe 42u
+            vm.memory.getUB(3) shouldBe 43u
         }
     }
 })
