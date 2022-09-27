@@ -77,7 +77,7 @@ class AsmGen(internal val program: Program,
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {
-        val fragment = (if(splitlines && " | " in str) str.replace("|", "\n") else str).trim('\n')
+        val fragment = (if(splitlines && " | " in str) str.replace("|", "\n") else str).trim('\r', '\n')
         if (splitlines) {
             for (line in fragment.splitToSequence('\n')) {
                 val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line
@@ -838,7 +838,7 @@ $repeatLabel    lda  $counterVar
                 if(stmt.definingModule.source is SourceCode.Generated)
                     throw AssemblyError("%asminclude inside non-library/non-filesystem module not yet supported")
                 loadAsmIncludeFile(includedName, stmt.definingModule.source).fold(
-                    success = { assemblyLines.add(it.trimEnd().trimStart('\n')) },
+                    success = { assemblyLines.add(it.trimEnd().trimStart('\r', '\n')) },
                     failure = { errors.err(it.toString(), stmt.position) }
                 )
             }
@@ -909,7 +909,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(asm: InlineAssembly) {
-        val assembly = asm.assembly.trimEnd().trimStart('\n')
+        val assembly = asm.assembly.trimEnd().trimStart('\r', '\n')
         assemblyLines.add(assembly)
     }
 

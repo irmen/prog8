@@ -19,7 +19,8 @@ main {
         const uword SIZEPL = 8191
         uword @zp flags_ptr = memory("flags", SIZEPL, $100)
 
-        txt.print("calculating...\n")
+        txt.print_ub(ITERS)
+        txt.print(" iterations, calculating...\n")
 
         repeat ITERS {
             sys.memset(flags_ptr, SIZEPL, 1)

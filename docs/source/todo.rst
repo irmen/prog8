@@ -56,12 +56,9 @@ Libraries:
 
 Expressions:
 
-- rethink the whole "isAugmentable" business.  Because the way this is determined, should always also be exactly mirrorred in the AugmentableAssignmentAsmGen or you'll get a crash at code gen time.
-  note: the new Ast doesn't need this any more so maybe we can get rid of it altogether in the old AST - but it's still used for something in the UnusedCodeRemover.
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
-- rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code that uses a fixed number of predetermined value 'variables'?
-  "Three address code" was mentioned.  https://en.wikipedia.org/wiki/Three-address_code
-  these variables have to be unique for each subroutine because they could otherwise be interfered with from irq routines etc.
+- rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code
+  that, for instance, uses a fixed number of predetermined value 'variables'?
   The VM IL solves this already (by using unlimited registers) but that still lacks a translation to 6502.
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
   and perhaps the assignment splitting in  BeforeAsmAstChanger  too
