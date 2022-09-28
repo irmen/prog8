@@ -101,12 +101,13 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeVariableAllocations() {
+
         out.write("\n<VARIABLES>\n")
         for (variable in irProgram.st.allVariables()) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
-                DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: 0.0).toString()
-                in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: "0")
+                DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()
+                in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt() ?: "").toString()
                 DataType.STR -> {
                     val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue!!.second) + listOf(0u)
                     encoded.joinToString(",") { it.toInt().toString() }
@@ -115,7 +116,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     if(variable.onetimeInitializationArrayValue!=null) {
                         variable.onetimeInitializationArrayValue!!.joinToString(",") { it.number!!.toString() }
                     } else {
-                        (1..variable.length!!).joinToString(",") { "0" }
+                        ""     // array will be zero'd out at program start
                     }
                 }
                 in ArrayDatatypes -> {
@@ -127,12 +128,11 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                                 "&${it.addressOf!!.joinToString(".")}"
                         }
                     } else {
-                        (1..variable.length!!).joinToString(",") { "0" }
+                        ""     // array will be zero'd out at program start
                     }
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            // TODO have uninitialized variables and arrays? (BSS SECTION)
             out.write("$typeStr ${variable.name}=$value zp=${variable.zpwish}\n")
         }
         out.write("</VARIABLES>\n")

@@ -52,7 +52,7 @@ evalStackBaseAddress=null
 </OPTIONS>
 
 <VARIABLES>
-uword sys.wait.jiffies=0 zp=DONTCARE
+uword sys.wait.jiffies= zp=DONTCARE
 </VARIABLES>
 
 <MEMORYMAPPEDVARIABLES>

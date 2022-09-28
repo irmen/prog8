@@ -76,9 +76,15 @@ class VmProgramLoader {
                 }
             }
             variable.onetimeInitializationArrayValue?.let {
-                require(variable.length==it.size || it.size==1)
-                if(it.size==1) {
-                    val value = it[0].number!!
+                require(variable.length==it.size || it.size==1 || it.size==0)
+                if(it.isEmpty() || it.size==1) {
+                    val value = if(it.isEmpty()) {
+                        require(variable.bss)
+                        0.0
+                    } else {
+                        require(!variable.bss)
+                        it[0].number!!
+                    }
                     when(variable.dt) {
                         DataType.STR, DataType.ARRAY_UB -> {
                             repeat(variable.length!!) {

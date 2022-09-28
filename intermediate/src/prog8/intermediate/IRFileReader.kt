@@ -112,7 +112,7 @@ class IRFileReader {
         if(line!="<VARIABLES>")
             throw IRParseException("invalid VARIABLES")
         val variables = mutableListOf<StStaticVariable>()
-        val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.+?) (zp=(.+))?")
+        val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) (zp=(.+))?")
         while(true) {
             line = lines.next()
             if(line=="</VARIABLES>")
@@ -125,27 +125,39 @@ class IRFileReader {
             val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
             val dt: DataType = parseDatatype(type, arraysize!=null)
             val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+            val bss: Boolean
             var initNumeric: Double? = null
             var initArray: StArray? = null
             when(dt) {
                 in NumericDatatypes -> {
-                    if(dontReinitGlobals) {
-                        // we need to specify a one time initialization value
+                    if(value.isBlank()) {
+                        require(!dontReinitGlobals)
+                        bss = true
+                    } else {
+                        require(dontReinitGlobals)
+                        bss = false
                         initNumeric = value.toDouble()
                     }
                 }
                 in ArrayDatatypes -> {
-                    initArray = value.split(',').map {
-                        if(it.startsWith('&'))
-                            StArrayElement(null, it.drop(1).split('.'))
-                        else
-                            StArrayElement(it.toDouble(), null)
+                    if(value.isBlank()) {
+                        bss = true
+                        initArray = emptyList()
+                    } else {
+                        bss = false
+                        initArray = value.split(',').map {
+                            if (it.startsWith('&'))
+                                StArrayElement(null, it.drop(1).split('.'))
+                            else
+                                StArrayElement(it.toDouble(), null)
+                        }
                     }
                 }
                 DataType.STR -> throw IRParseException("STR should have been converted to byte array")
                 else -> throw IRParseException("weird dt")
             }
-            variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
+
+            variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
         }
         return variables
     }

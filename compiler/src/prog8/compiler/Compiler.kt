@@ -394,7 +394,7 @@ private fun createAssemblyAndAssemble(program: Program,
     compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
-    val symbolTable = SymbolTableMaker().makeFrom(program)
+    val symbolTable = SymbolTableMaker().makeFrom(program, compilerOptions)
 
     // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
     //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.

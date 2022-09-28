@@ -169,6 +169,7 @@ open class StNode(val name: String,
 
 class StStaticVariable(name: String,
                        val dt: DataType,
+                       val bss: Boolean,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: StString?,
                        val onetimeInitializationArrayValue: StArray?,
@@ -177,10 +178,19 @@ class StStaticVariable(name: String,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position) {
 
     init {
+        if(bss) {
+            require(onetimeInitializationNumericValue==null)
+            require(onetimeInitializationStringValue==null)
+            require(onetimeInitializationArrayValue.isNullOrEmpty())
+        } else {
+            require(onetimeInitializationNumericValue!=null ||
+                    onetimeInitializationStringValue!=null ||
+                    onetimeInitializationArrayValue!=null)
+        }
         if(length!=null) {
             require(onetimeInitializationNumericValue == null)
             if(onetimeInitializationArrayValue!=null)
-                require(length == onetimeInitializationArrayValue.size)
+                require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
         }
         if(onetimeInitializationNumericValue!=null)
             require(dt in NumericDatatypes)
@@ -193,7 +203,7 @@ class StStaticVariable(name: String,
     }
 
     override fun printProperties() {
-        print("$name  dt=$dt  zpw=$zpwish")
+        print("$name  dt=$dt  zpw=$zpwish  bss=$bss")
     }
 }
 

@@ -70,7 +70,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                 return newArray
             }
             scopedName = variable.scopedName.joinToString(".")
-            varToadd = StStaticVariable(scopedName, variable.dt,
+            varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),

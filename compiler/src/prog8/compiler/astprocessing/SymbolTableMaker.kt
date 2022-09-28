@@ -7,6 +7,8 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.*
 import prog8.code.core.ArrayDatatypes
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
 import prog8.code.core.Position
 import java.util.*
 
@@ -14,10 +16,12 @@ internal class SymbolTableMaker: IAstVisitor {
 
     private val st = SymbolTable()
     private val scopestack = Stack<StNode>()
+    private var dontReinitGlobals = false
 
-    fun makeFrom(program: Program): SymbolTable {
+    fun makeFrom(program: Program, options: CompilationOptions): SymbolTable {
         scopestack.clear()
         st.children.clear()
+        dontReinitGlobals = options.dontReinitGlobals
         this.visit(program)
         program.builtinFunctions.names.forEach {
             val node = StNode(it, StNodeType.BUILTINFUNC, Position.DUMMY)
@@ -57,7 +61,7 @@ internal class SymbolTableMaker: IAstVisitor {
         val node =
             when(decl.type) {
                 VarDeclType.VAR -> {
-                    val initialNumeric = (decl.value as? NumericLiteral)?.number
+                    var initialNumeric = (decl.value as? NumericLiteral)?.number
                     val initialStringLit = decl.value as? StringLiteral
                     val initialString = if(initialStringLit==null) null else Pair(initialStringLit.value, initialStringLit.encoding)
                     val initialArrayLit = decl.value as? ArrayLiteral
@@ -71,7 +75,15 @@ internal class SymbolTableMaker: IAstVisitor {
                             initialStringLit.value.length+1  // include the terminating 0-byte
                         else
                             null
-                    StStaticVariable(decl.name, decl.datatype, initialNumeric, initialString, initialArray, numElements, decl.zeropage, decl.position)
+                    val bss = if(decl.datatype==DataType.STR)
+                        false
+                    else if(decl.isArray)
+                        initialArray.isNullOrEmpty()
+                    else {
+                        if(dontReinitGlobals) initialNumeric = initialNumeric ?: 0.0
+                        initialNumeric == null
+                    }
+                    StStaticVariable(decl.name, decl.datatype, bss, initialNumeric, initialString, initialArray, numElements, decl.zeropage, decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)
                 VarDeclType.MEMORY -> {
