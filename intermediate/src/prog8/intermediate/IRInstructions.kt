@@ -57,8 +57,8 @@ syscall                 value         - do a systemcall identified by call numbe
 return                                - restore last saved instruction location and continue at that instruction
 
 
-BRANCHING
----------
+BRANCHING and CONDITIONALS
+--------------------------
 All have type b or w except the branches that only check status bits.
 
 bstcc                         address   - branch to location if Status bit Carry is Clear
@@ -402,6 +402,29 @@ val OpcodesWithAddress = setOf(
     Opcode.BGES
 )
 
+val OpcodesThatBranch = setOf(
+    Opcode.JUMP,
+    Opcode.RETURN,
+    Opcode.BSTCC,
+    Opcode.BSTCS,
+    Opcode.BSTEQ,
+    Opcode.BSTNE,
+    Opcode.BSTNEG,
+    Opcode.BSTPOS,
+    Opcode.BZ,
+    Opcode.BNZ,
+    Opcode.BEQ,
+    Opcode.BNE,
+    Opcode.BLT,
+    Opcode.BLTS,
+    Opcode.BGT,
+    Opcode.BGTS,
+    Opcode.BLE,
+    Opcode.BLES,
+    Opcode.BGE,
+    Opcode.BGES
+)
+
 val OpcodesForCpuRegisters = setOf(
     Opcode.LOADCPU,
     Opcode.STORECPU,
@@ -414,122 +437,6 @@ enum class VmDataType {
     WORD,
     FLOAT
     // TODO add INT (32-bit)?   INT24 (24-bit)?
-}
-
-data class IRInstruction(
-    val opcode: Opcode,
-    val type: VmDataType?=null,
-    val reg1: Int?=null,        // 0-$ffff
-    val reg2: Int?=null,        // 0-$ffff
-    val fpReg1: Int?=null,      // 0-$ffff
-    val fpReg2: Int?=null,      // 0-$ffff
-    val value: Int?=null,       // 0-$ffff
-    val fpValue: Float?=null,
-    val labelSymbol: String?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
-    val binaryData: Collection<UByte>?=null
-): IRCodeLine() {
-    // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
-    // This knowledge is useful in IL assembly optimizers to see how registers are used.
-    val reg1direction: OperandDirection
-    val fpReg1direction: OperandDirection
-
-    init {
-        require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
-        require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
-        require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
-        require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
-        require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
-        if(value!=null && opcode !in OpcodesWithAddress) {
-            when (type) {
-                VmDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
-                VmDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
-                VmDataType.FLOAT, null -> {}
-            }
-        }
-
-        require((opcode==Opcode.BINARYDATA && binaryData!=null) || (opcode!=Opcode.BINARYDATA && binaryData==null)) {
-            "binarydata inconsistency"
-        }
-
-        val formats = instructionFormats.getValue(opcode)
-        require (type != null || formats.containsKey(null)) { "missing type" }
-
-        val format = formats.getValue(type)
-        if(format.reg1) require(reg1!=null) { "missing reg1" }
-        if(format.reg2) require(reg2!=null) { "missing reg2" }
-        if(format.fpReg1) require(fpReg1!=null) { "missing fpReg1" }
-        if(format.fpReg2) require(fpReg2!=null) { "missing fpReg2" }
-        if(!format.reg1) require(reg1==null) { "invalid reg1" }
-        if(!format.reg2) require(reg2==null) { "invalid reg2" }
-        if(!format.fpReg1) require(fpReg1==null) { "invalid fpReg1" }
-        if(!format.fpReg2) require(fpReg2==null) { "invalid fpReg2" }
-
-        if (type==VmDataType.FLOAT) {
-            if(format.fpValue) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
-        } else {
-            if(format.value) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
-            require(fpReg1==null && fpReg2==null) {"integer point instruction can't use floating point registers"}
-        }
-
-        reg1direction = format.reg1direction
-        fpReg1direction = format.fpReg1direction
-
-        if(opcode in setOf(Opcode.BEQ, Opcode.BNE, Opcode.BLT, Opcode.BLTS,
-                Opcode.BGT, Opcode.BGTS, Opcode.BLE, Opcode.BLES,
-                Opcode.BGE, Opcode.BGES,
-                Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
-                Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
-                Opcode.SGE, Opcode.SGES)) {
-            if(type==VmDataType.FLOAT)
-                require(fpReg1!=fpReg2) {"$opcode: fpReg1 and fpReg2 should be different"}
-            else
-                require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
-        }
-    }
-
-    override fun toString(): String {
-        val result = mutableListOf(opcode.name.lowercase())
-
-        when(type) {
-            VmDataType.BYTE -> result.add(".b ")
-            VmDataType.WORD -> result.add(".w ")
-            VmDataType.FLOAT -> result.add(".f ")
-            else -> result.add(" ")
-        }
-        reg1?.let {
-            result.add("r$it")
-            result.add(",")
-        }
-        reg2?.let {
-            result.add("r$it")
-            result.add(",")
-        }
-        fpReg1?.let {
-            result.add("fr$it")
-            result.add(",")
-        }
-        fpReg2?.let {
-            result.add("fr$it")
-            result.add(",")
-        }
-        value?.let {
-            result.add(it.toString())
-            result.add(",")
-        }
-        fpValue?.let {
-            result.add(it.toString())
-            result.add(",")
-        }
-        labelSymbol?.let {
-            if(it.startsWith('&'))
-                result.add(it)    // address-of something
-            else
-                result.add("_$it")
-        }
-        if(result.last() == ",")
-            result.removeLast()
-        return result.joinToString("").trimEnd()
-    }
 }
 
 enum class OperandDirection {
@@ -737,3 +644,120 @@ val instructionFormats = mutableMapOf(
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
     Opcode.BINARYDATA to InstructionFormat.from("N"),
 )
+
+
+data class IRInstruction(
+    val opcode: Opcode,
+    val type: VmDataType?=null,
+    val reg1: Int?=null,        // 0-$ffff
+    val reg2: Int?=null,        // 0-$ffff
+    val fpReg1: Int?=null,      // 0-$ffff
+    val fpReg2: Int?=null,      // 0-$ffff
+    val value: Int?=null,       // 0-$ffff
+    val fpValue: Float?=null,
+    val labelSymbol: String?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
+    val binaryData: Collection<UByte>?=null
+): IRCodeLine() {
+    // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
+    // This knowledge is useful in IL assembly optimizers to see how registers are used.
+    val reg1direction: OperandDirection
+    val fpReg1direction: OperandDirection
+
+    init {
+        require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
+        require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
+        require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
+        require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
+        require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
+        if(value!=null && opcode !in OpcodesWithAddress) {
+            when (type) {
+                VmDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
+                VmDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
+                VmDataType.FLOAT, null -> {}
+            }
+        }
+
+        require((opcode==Opcode.BINARYDATA && binaryData!=null) || (opcode!=Opcode.BINARYDATA && binaryData==null)) {
+            "binarydata inconsistency"
+        }
+
+        val formats = instructionFormats.getValue(opcode)
+        require (type != null || formats.containsKey(null)) { "missing type" }
+
+        val format = formats.getValue(type)
+        if(format.reg1) require(reg1!=null) { "missing reg1" }
+        if(format.reg2) require(reg2!=null) { "missing reg2" }
+        if(format.fpReg1) require(fpReg1!=null) { "missing fpReg1" }
+        if(format.fpReg2) require(fpReg2!=null) { "missing fpReg2" }
+        if(!format.reg1) require(reg1==null) { "invalid reg1" }
+        if(!format.reg2) require(reg2==null) { "invalid reg2" }
+        if(!format.fpReg1) require(fpReg1==null) { "invalid fpReg1" }
+        if(!format.fpReg2) require(fpReg2==null) { "invalid fpReg2" }
+
+        if (type==VmDataType.FLOAT) {
+            if(format.fpValue) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
+        } else {
+            if(format.value) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
+            require(fpReg1==null && fpReg2==null) {"integer point instruction can't use floating point registers"}
+        }
+
+        reg1direction = format.reg1direction
+        fpReg1direction = format.fpReg1direction
+
+        if(opcode in setOf(Opcode.BEQ, Opcode.BNE, Opcode.BLT, Opcode.BLTS,
+                Opcode.BGT, Opcode.BGTS, Opcode.BLE, Opcode.BLES,
+                Opcode.BGE, Opcode.BGES,
+                Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
+                Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
+                Opcode.SGE, Opcode.SGES)) {
+            if(type==VmDataType.FLOAT)
+                require(fpReg1!=fpReg2) {"$opcode: fpReg1 and fpReg2 should be different"}
+            else
+                require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
+        }
+    }
+
+    override fun toString(): String {
+        val result = mutableListOf(opcode.name.lowercase())
+
+        when(type) {
+            VmDataType.BYTE -> result.add(".b ")
+            VmDataType.WORD -> result.add(".w ")
+            VmDataType.FLOAT -> result.add(".f ")
+            else -> result.add(" ")
+        }
+        reg1?.let {
+            result.add("r$it")
+            result.add(",")
+        }
+        reg2?.let {
+            result.add("r$it")
+            result.add(",")
+        }
+        fpReg1?.let {
+            result.add("fr$it")
+            result.add(",")
+        }
+        fpReg2?.let {
+            result.add("fr$it")
+            result.add(",")
+        }
+        value?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        fpValue?.let {
+            result.add(it.toString())
+            result.add(",")
+        }
+        labelSymbol?.let {
+            if(it.startsWith('&'))
+                result.add(it)    // address-of something
+            else
+                result.add("_$it")
+        }
+        if(result.last() == ",")
+            result.removeLast()
+        return result.joinToString("").trimEnd()
+    }
+}

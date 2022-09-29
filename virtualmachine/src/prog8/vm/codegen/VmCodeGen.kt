@@ -7,10 +7,8 @@ import prog8.code.core.IAssemblyGenerator
 import prog8.code.core.IAssemblyProgram
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
-import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
-import java.nio.file.Path
 
 class VmCodeGen(private val program: PtProgram,
                 private val symbolTable: SymbolTable,
@@ -24,13 +22,6 @@ class VmCodeGen(private val program: PtProgram,
 
         // no need to check options.keepIR, as the VM file format *is* the IR file.
         return VmAssemblyProgram(irProgram.name, irProgram)
-    }
-
-    companion object {
-        fun compileIR(irFile: Path): IAssemblyProgram {
-            val irProgram = IRFileReader().read(irFile)
-            return VmAssemblyProgram(irProgram.name, irProgram)
-        }
     }
 }
 

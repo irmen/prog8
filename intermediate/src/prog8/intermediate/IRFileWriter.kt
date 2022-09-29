@@ -93,6 +93,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             out.write("zpReserved=${range.first},${range.last}\n")
         }
         out.write("loadAddress=${irProgram.options.loadAddress}\n")
+        out.write("optimize=${irProgram.options.optimize}\n")
         out.write("dontReinitGlobals=${irProgram.options.dontReinitGlobals}\n")
         out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress}\n")
         out.write("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")

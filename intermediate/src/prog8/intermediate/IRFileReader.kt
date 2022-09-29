@@ -55,6 +55,7 @@ class IRFileReader {
         val zpReserved = mutableListOf<UIntRange>()
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         var dontReinitGlobals = false
+        var optimize = true
         var evalStackBaseAddress: UInt? = null
         var outputDir = Path("")
         if(line!="<OPTIONS>")
@@ -86,6 +87,7 @@ class IRFileReader {
                     zpReserved.add(UIntRange(start.toUInt(), end.toUInt()))
                 }
                 "outputDir" -> outputDir = Path(value)
+                "optimize" -> optimize = value.toBoolean()
                 else -> throw IRParseException("illegal OPTION $name")
             }
         }
@@ -101,7 +103,8 @@ class IRFileReader {
             loadAddress,
             dontReinitGlobals = dontReinitGlobals,
             evalStackBaseAddress = evalStackBaseAddress,
-            outputDir = outputDir
+            outputDir = outputDir,
+            optimize = optimize
         )
     }
 

@@ -117,15 +117,15 @@ internal class SymbolTableMaker: IAstVisitor {
         // st.origAstLinks[label] = node
     }
 
-    override fun visit(fcall: BuiltinFunctionCall) {
-        if(fcall.name=="memory") {
+    override fun visit(bfc: BuiltinFunctionCall) {
+        if(bfc.name=="memory") {
             // memory slab allocations are a builtin functioncall in the program, but end up named as well in the symboltable
-            val name = (fcall.args[0] as StringLiteral).value
+            val name = (bfc.args[0] as StringLiteral).value
             require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
-            val size = (fcall.args[1] as NumericLiteral).number.toUInt()
-            val align = (fcall.args[2] as NumericLiteral).number.toUInt()
-            st.add(StMemorySlab("prog8_memoryslab_$name", size, align, fcall.position))
+            val size = (bfc.args[1] as NumericLiteral).number.toUInt()
+            val align = (bfc.args[2] as NumericLiteral).number.toUInt()
+            st.add(StMemorySlab("prog8_memoryslab_$name", size, align, bfc.position))
         }
-        super.visit(fcall)
+        super.visit(bfc)
     }
 }
