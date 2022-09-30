@@ -43,6 +43,8 @@ class IRFileReader {
         val program = IRProgram(programName, st, options, options.compTarget)
         program.addGlobalInits(initGlobals)
         blocks.forEach{ program.addBlock(it) }
+
+        program.validate()
         return program
     }
 
@@ -412,8 +414,8 @@ class IRFileReader {
                 return params
             val (datatype, name) = line.split(' ')
             val dt = parseDatatype(datatype, datatype.contains('['))
-            val orig = variables.single { it.dt==dt && it.name==name}
-            params.add(IRSubroutine.IRParam(name, dt, orig))
+            // val orig = variables.single { it.dt==dt && it.name==name}
+            params.add(IRSubroutine.IRParam(name, dt))
         }
     }
 

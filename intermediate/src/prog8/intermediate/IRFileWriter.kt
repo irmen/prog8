@@ -33,7 +33,28 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("</PROGRAM>\n")
         out.close()
 
-        println("$numChunks code chunks and $numLines lines.")
+        val usedRegisters = mutableSetOf<Int>()
+        val usedFpRegisters = mutableSetOf<Int>()
+        irProgram.blocks.forEach {
+            it.inlineAssembly.forEach { chunk ->
+                val used = chunk.usedRegisters()
+                usedRegisters += used.inputRegs + used.outputRegs
+                usedFpRegisters += used.inputFpRegs + used.outputFpRegs
+            }
+            it.subroutines.forEach { sub ->
+                sub.chunks.forEach { chunk ->
+                    val used = chunk.usedRegisters()
+                    usedRegisters += used.inputRegs + used.outputRegs
+                    usedFpRegisters += used.inputFpRegs + used.outputFpRegs
+                }
+            }
+            it.asmSubroutines.forEach { asmsub ->
+                val used = asmsub.usedRegisters()
+                usedRegisters += used.inputRegs + used.outputRegs
+                usedFpRegisters += used.inputFpRegs + used.outputFpRegs
+            }
+        }
+        println("($numLines lines in $numChunks code chunks, ${usedRegisters.size + usedFpRegisters.size} registers)")
         return outfile
     }
 
@@ -86,7 +107,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 }
                 out.write("</PARAMS>\n")
                 out.write("<INLINEASM IR=${it.isIR} POS=${it.position}>\n")
-                out.write(it.assembly.trimStart('\r', '\n').trimEnd(' ', '\r', '\n'))
+                out.write(it.assembly)
                 out.write("\n</INLINEASM>\n</ASMSUB>\n")
             }
             out.write("</BLOCK>\n")
@@ -95,7 +116,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
         out.write("<INLINEASM IR=${chunk.isIR} POS=${chunk.position}>\n")
-        out.write(chunk.assembly.trimStart('\r', '\n').trimEnd(' ', '\r', '\n'))
+        out.write(chunk.assembly)
         out.write("\n</INLINEASM>\n")
     }
 

@@ -98,6 +98,11 @@ class PtBlock(name: String,
 
 class PtInlineAssembly(val assembly: String, val isIR: Boolean, position: Position) : PtNode(position) {
     override fun printProperties() {}
+
+    init {
+        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
+        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
+    }
 }
 
 

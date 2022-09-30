@@ -38,6 +38,8 @@ class Inliner(val program: Program): AstWalker() {
                                 is Return -> {
                                     if(stmt.value is NumericLiteral)
                                         true
+                                    else if(stmt.value==null)
+                                        true
                                     else if (stmt.value is IdentifierReference) {
                                         makeFullyScoped(stmt.value as IdentifierReference)
                                         true

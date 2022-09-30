@@ -195,15 +195,15 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
 
     if(type!=null && type !in formats)
         throw IRParseException("invalid type code for $line")
-    if(format.reg1 && reg1==null)
+    if(format.reg1!=OperandDirection.UNUSED && reg1==null)
         throw IRParseException("needs reg1 for $line")
-    if(format.reg2 && reg2==null)
+    if(format.reg2!=OperandDirection.UNUSED && reg2==null)
         throw IRParseException("needs reg2 for $line")
-    if(format.value && value==null && labelSymbol==null)
+    if(format.valueIn && value==null && labelSymbol==null)
         throw IRParseException("needs value or symbol for $line")
-    if(!format.reg1 && reg1!=null)
+    if(format.reg1==OperandDirection.UNUSED && reg1!=null)
         throw IRParseException("invalid reg1 for $line")
-    if(!format.reg2 && reg2!=null)
+    if(format.reg2==OperandDirection.UNUSED && reg2!=null)
         throw IRParseException("invalid reg2 for $line")
     if(value!=null && opcode !in OpcodesWithAddress) {
         when (type) {
@@ -222,9 +222,9 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
     var floatValue: Float? = null
     var intValue: Int? = null
 
-    if(format.value && value!=null)
+    if(format.valueIn && value!=null)
         intValue = value.toInt()
-    if(format.fpValue && value!=null)
+    if(format.fpValueIn && value!=null)
         floatValue = value
 
     if(opcode in OpcodesForCpuRegisters) {

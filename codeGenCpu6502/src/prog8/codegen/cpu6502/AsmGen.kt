@@ -909,8 +909,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translate(asm: InlineAssembly) {
-        val assembly = asm.assembly.trimEnd().trimStart('\r', '\n')
-        assemblyLines.add(assembly)
+        assemblyLines.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
     }
 
     internal fun returnRegisterOfFunction(it: IdentifierReference): RegisterOrPair {

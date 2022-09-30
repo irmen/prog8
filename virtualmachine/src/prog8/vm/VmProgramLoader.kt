@@ -238,7 +238,7 @@ class VmProgramLoader {
                     symbolAddresses[parsed.name] = program.size
             }
         } else {
-            throw IRParseException("vm currently does not support real inlined assembly (only IR)': ${asmChunk.position}")
+            throw IRParseException("vm currently does not support real inlined assembly (only IR): ${asmChunk.position}")
         }
     }
 }

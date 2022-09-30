@@ -52,6 +52,8 @@ class IRCodeGen(
             optimizer.optimize()
         }
 
+        irProg.validate()
+
         return irProg
     }
 
@@ -1003,7 +1005,7 @@ class IRCodeGen(
         parameters.map {
             val flattenedName = (it.definingSub()!!.scopedName + it.name)
             val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
-            IRSubroutine.IRParam(flattenedName.joinToString("."), orig.dt, orig)
+            IRSubroutine.IRParam(flattenedName.joinToString("."), orig.dt)
         }
 
     private fun translate(alignment: PtBlock.BlockAlignment): IRBlock.BlockAlignment {

@@ -1,6 +1,5 @@
 package prog8.intermediate
 
-import prog8.code.StStaticVariable
 import prog8.code.core.*
 
 /*
@@ -64,6 +63,19 @@ class IRProgram(val name: String,
     fun addAsmSymbols(symbolDefs: Map<String, String>) {
         asmSymbols += symbolDefs
     }
+
+    fun validate() {
+        blocks.forEach {
+            it.inlineAssembly.forEach { chunk ->
+                require(chunk.lines.isEmpty())
+            }
+            it.subroutines.forEach { sub ->
+                sub.chunks.forEach { chunk ->
+                    if (chunk is IRInlineAsmChunk) { require(chunk.lines.isEmpty()) }
+                }
+            }
+        }
+    }
 }
 
 class IRBlock(
@@ -94,7 +106,7 @@ class IRSubroutine(val name: String,
                    val returnType: DataType?,
                    val position: Position) {
 
-    class IRParam(val name: String, val dt: DataType, val orig: StStaticVariable)
+    class IRParam(val name: String, val dt: DataType)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
 
@@ -123,28 +135,57 @@ class IRAsmSubroutine(
     init {
         require('.' in name) { "subroutine name is not scoped: $name" }
         require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }
+        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
+        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
     }
+
+    private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
+
+    fun usedRegisters() = registersUsed
 }
 
-sealed class IRCodeLine
+sealed class IRCodeLine {
+    abstract fun usedRegisters(): RegistersUsed
+}
 
-class IRCodeLabel(val name: String): IRCodeLine()
+class IRCodeLabel(val name: String): IRCodeLine() {
+    override fun usedRegisters() = RegistersUsed.EMPTY
+}
 
-class IRCodeComment(val comment: String): IRCodeLine()
+class IRCodeComment(val comment: String): IRCodeLine() {
+    override fun usedRegisters() = RegistersUsed.EMPTY
+}
 
-class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine()
+class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine() {
+    override fun usedRegisters() = RegistersUsed.EMPTY
+}
 
 abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
 
     abstract fun isEmpty(): Boolean
     abstract fun isNotEmpty(): Boolean
+    abstract fun usedRegisters(): RegistersUsed
 }
 
 class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
 
     override fun isEmpty() = lines.isEmpty()
     override fun isNotEmpty() = lines.isNotEmpty()
+    override fun usedRegisters(): RegistersUsed {
+        val inputRegs = mutableSetOf<Int>()
+        val outputRegs = mutableSetOf<Int>()
+        val inputFpRegs = mutableSetOf<Int>()
+        val outputFpRegs = mutableSetOf<Int>()
+        lines.forEach {
+            val used = it.usedRegisters()
+            inputRegs += used.inputRegs
+            outputRegs += used.outputRegs
+            inputFpRegs += used.inputFpRegs
+            outputFpRegs += used.outputFpRegs
+        }
+        return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
+    }
 
     operator fun plusAssign(line: IRCodeLine) {
         lines.add(line)
@@ -155,9 +196,54 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 }
 
+class RegistersUsed(
+    val inputRegs: Set<Int>,
+    val outputRegs: Set<Int>,
+    val inputFpRegs: Set<Int>,
+    val outputFpRegs: Set<Int>
+) {
+    override fun toString(): String {
+        return "input=$inputRegs, output=$outputRegs, inputFp=$inputFpRegs, outputFp=$outputFpRegs"
+    }
+
+    fun isEmpty() = inputRegs.isEmpty() && outputRegs.isEmpty() && inputFpRegs.isEmpty() && outputFpRegs.isEmpty()
+    fun isNotEmpty() = !isEmpty()
+
+    companion object {
+        val EMPTY = RegistersUsed(emptySet(), emptySet(), emptySet(), emptySet())
+    }
+}
+
 class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
     // note: no lines, asm is in the property
     override fun isEmpty() = assembly.isBlank()
     override fun isNotEmpty() = assembly.isNotBlank()
+    private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
+
+    init {
+        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
+        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
+    }
+
+    override fun usedRegisters() = registersUsed
 }
 
+private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {
+    val inputRegs = mutableSetOf<Int>()
+    val inputFpRegs = mutableSetOf<Int>()
+    val outputRegs = mutableSetOf<Int>()
+    val outputFpRegs = mutableSetOf<Int>()
+
+    if(isIR) {
+        assembly.lineSequence().forEach { line ->
+            val code = parseIRCodeLine(line.trim(), 0, mutableMapOf())
+            val used = code.usedRegisters()
+            inputRegs += used.inputRegs
+            outputRegs += used.outputRegs
+            inputFpRegs += used.inputFpRegs
+            outputFpRegs += used.outputFpRegs
+        }
+    }
+
+    return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
+}

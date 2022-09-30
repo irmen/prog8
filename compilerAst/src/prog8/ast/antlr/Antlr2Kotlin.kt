@@ -40,6 +40,7 @@ internal fun Prog8ANTLRParser.BlockContext.toAst(isInLibrary: Boolean) : Block {
             it.subroutinedeclaration()!=null -> it.subroutinedeclaration().toAst()
             it.directive()!=null -> it.directive().toAst()
             it.inlineasm()!=null -> it.inlineasm().toAst()
+            it.inlineir()!=null -> it.inlineir().toAst()
             it.labeldef()!=null -> it.labeldef().toAst()
             else -> throw FatalAstException("weird block node $it")
         }

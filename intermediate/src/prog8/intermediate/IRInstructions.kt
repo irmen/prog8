@@ -450,56 +450,55 @@ enum class IRDataType {
 }
 
 enum class OperandDirection {
+    UNUSED,
     INPUT,
     OUTPUT,
     INOUT
 }
 
 data class InstructionFormat(val datatype: IRDataType?,
-                             val reg1: Boolean, val reg1direction: OperandDirection,        // reg1 can be IN/OUT/INOUT
-                             val reg2: Boolean,         // always only IN
-                             val fpReg1: Boolean, val fpReg1direction: OperandDirection,    // fpreg1 can be IN/OUT/INOUT
-                             val fpReg2: Boolean,       // always only IN
-                             val value: Boolean,        // always only IN
-                             val fpValue: Boolean       // always only IN
+                             val reg1: OperandDirection,
+                             val reg2: OperandDirection,
+                             val fpReg1: OperandDirection,
+                             val fpReg2: OperandDirection,
+                             val valueIn: Boolean,
+                             val fpValueIn: Boolean
                              ) {
     companion object {
         fun from(spec: String): Map<IRDataType?, InstructionFormat> {
             val result = mutableMapOf<IRDataType?, InstructionFormat>()
             for(part in spec.split('|').map{ it.trim() }) {
-                var reg1 = false        // read/write/modify possible
-                var reg1Direction = OperandDirection.INPUT
-                var reg2 = false        // strictly read-only
-                var fpreg1 = false      // read/write/modify possible
-                var fpreg1Direction = OperandDirection.INPUT
-                var fpreg2 = false      // strictly read-only
-                var value = false       // strictly read-only
-                var fpvalue = false     // strictly read-only
+                var reg1 = OperandDirection.UNUSED
+                var reg2 = OperandDirection.UNUSED
+                var fpreg1 = OperandDirection.UNUSED
+                var fpreg2 = OperandDirection.UNUSED
+                var valueIn = false
+                var fpvalueIn = false
                 val splits = part.splitToSequence(',').iterator()
                 val typespec = splits.next()
                 while(splits.hasNext()) {
                     when(splits.next()) {
-                        "<r1" -> { reg1=true; reg1Direction=OperandDirection.INPUT }
-                        ">r1" -> { reg1=true; reg1Direction=OperandDirection.OUTPUT }
-                        "<>r1" -> { reg1=true; reg1Direction=OperandDirection.INOUT }
-                        "<r2" -> reg2 = true
-                        "<fr1" -> { fpreg1=true; fpreg1Direction=OperandDirection.INPUT }
-                        ">fr1" -> { fpreg1=true; fpreg1Direction=OperandDirection.OUTPUT }
-                        "<>fr1" -> { fpreg1=true; fpreg1Direction=OperandDirection.INOUT }
-                        "<fr2" -> fpreg2=true
-                        "<v" -> value = true
-                        "<fv" -> fpvalue = true
+                        "<r1" -> { reg1=OperandDirection.INPUT }
+                        ">r1" -> { reg1=OperandDirection.OUTPUT }
+                        "<>r1" -> { reg1=OperandDirection.INOUT }
+                        "<r2" -> reg2 = OperandDirection.INPUT
+                        "<fr1" -> { fpreg1=OperandDirection.INPUT }
+                        ">fr1" -> { fpreg1=OperandDirection.OUTPUT }
+                        "<>fr1" -> { fpreg1=OperandDirection.INOUT }
+                        "<fr2" -> fpreg2 = OperandDirection.INPUT
+                        "<v" -> valueIn = true
+                        "<fv" -> fpvalueIn = true
                         else -> throw IllegalArgumentException(spec)
                     }
                 }
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
                 if('B' in typespec)
-                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
                 if('W' in typespec)
-                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
                 if('F' in typespec)
-                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
             }
             return result
         }
@@ -674,7 +673,10 @@ data class IRInstruction(
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
     val reg1direction: OperandDirection
+    val reg2direction: OperandDirection
     val fpReg1direction: OperandDirection
+    val fpReg2direction: OperandDirection
+    private val registersUsed: RegistersUsed
 
     init {
         require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
@@ -697,25 +699,28 @@ data class IRInstruction(
         val formats = instructionFormats.getValue(opcode)
         require (type != null || formats.containsKey(null)) { "missing type" }
 
-        val format = formats.getValue(type)
-        if(format.reg1) require(reg1!=null) { "missing reg1" }
-        if(format.reg2) require(reg2!=null) { "missing reg2" }
-        if(format.fpReg1) require(fpReg1!=null) { "missing fpReg1" }
-        if(format.fpReg2) require(fpReg2!=null) { "missing fpReg2" }
-        if(!format.reg1) require(reg1==null) { "invalid reg1" }
-        if(!format.reg2) require(reg2==null) { "invalid reg2" }
-        if(!format.fpReg1) require(fpReg1==null) { "invalid fpReg1" }
-        if(!format.fpReg2) require(fpReg2==null) { "invalid fpReg2" }
+        val format = formats.getOrElse(type) { throw IllegalArgumentException("type $type invalid for $opcode") }
+        if(format.reg1!=OperandDirection.UNUSED) require(reg1!=null) { "missing reg1" }
+        if(format.reg2!=OperandDirection.UNUSED) require(reg2!=null) { "missing reg2" }
+        if(format.fpReg1!=OperandDirection.UNUSED) require(fpReg1!=null) { "missing fpReg1" }
+        if(format.fpReg2!=OperandDirection.UNUSED) require(fpReg2!=null) { "missing fpReg2" }
+        if(format.reg1==OperandDirection.UNUSED) require(reg1==null) { "invalid reg1" }
+        if(format.reg2==OperandDirection.UNUSED) require(reg2==null) { "invalid reg2" }
+        if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
+        if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
 
         if (type==IRDataType.FLOAT) {
-            if(format.fpValue) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
+            if(format.fpValueIn) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
         } else {
-            if(format.value) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
+            if(format.valueIn) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
             require(fpReg1==null && fpReg2==null) {"integer point instruction can't use floating point registers"}
         }
 
-        reg1direction = format.reg1direction
-        fpReg1direction = format.fpReg1direction
+
+        reg1direction = format.reg1
+        reg2direction = format.reg2
+        fpReg1direction = format.fpReg1
+        fpReg2direction = format.fpReg2
 
         if(opcode in setOf(Opcode.BEQ, Opcode.BNE, Opcode.BLT, Opcode.BLTS,
                 Opcode.BGT, Opcode.BGTS, Opcode.BLE, Opcode.BLES,
@@ -728,7 +733,45 @@ data class IRInstruction(
             else
                 require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
         }
+
+        val inputRegs = mutableSetOf<Int>()
+        val outputRegs = mutableSetOf<Int>()
+        val inputFpRegs = mutableSetOf<Int>()
+        val outputFpRegs = mutableSetOf<Int>()
+
+        when (reg1direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputRegs += reg1!!
+            OperandDirection.OUTPUT -> outputRegs += reg1!!
+            OperandDirection.INOUT -> {
+                inputRegs += reg1!!
+                outputRegs += reg1!!
+            }
+        }
+        when (reg2direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputRegs += reg2!!
+            else -> throw IllegalArgumentException("reg2 can only be input")
+        }
+        when (fpReg1direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputFpRegs += fpReg1!!
+            OperandDirection.OUTPUT -> outputFpRegs += fpReg1!!
+            OperandDirection.INOUT -> {
+                inputFpRegs += fpReg1!!
+                outputFpRegs += fpReg1!!
+            }
+        }
+        when (fpReg2direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputFpRegs += fpReg2!!
+            else -> throw IllegalArgumentException("fpReg2 can only be input")
+        }
+
+        registersUsed = RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
     }
+
+    override fun usedRegisters() = registersUsed
 
     override fun toString(): String {
         val result = mutableListOf(opcode.name.lowercase())
