@@ -5,6 +5,7 @@ import prog8.intermediate.*
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     fun optimize() {
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+            joinChunks(sub)
             sub.chunks.forEach { chunk ->
                 // we don't optimize Inline Asm chunks here.
                 if(chunk is IRCodeChunk) {
@@ -24,6 +25,40 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 }
             }
         }
+    }
+
+    private fun joinChunks(sub: IRSubroutine) {
+        /*
+        Subroutine contains a list of chunks.
+        Some can be joined into one.
+        TODO: this has to be changed later...
+        */
+
+        if(sub.chunks.isEmpty())
+            return
+
+        fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
+            if(previous is IRCodeChunk && chunk is IRCodeChunk) {
+                if(chunk.lines.any{ it is IRCodeInlineBinary})
+                    return false
+                return true
+
+                // TODO: only if all instructions are non-branching, allow it to join?
+                // return !chunk.lines.filterIsInstance<IRInstruction>().any {it.opcode in OpcodesThatBranch }
+            }
+            return false
+        }
+
+        val chunks = mutableListOf<IRCodeChunkBase>()
+        chunks += sub.chunks[0]
+        for(ix in 1 until sub.chunks.size) {
+            if(mayJoin(chunks.last(), sub.chunks[ix]))
+                chunks.last().lines += sub.chunks[ix].lines
+            else
+                chunks += sub.chunks[ix]
+        }
+        sub.chunks.clear()
+        sub.chunks += chunks
     }
 
     private fun cleanupPushPop(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {

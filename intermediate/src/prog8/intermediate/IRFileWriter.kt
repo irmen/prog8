@@ -10,6 +10,9 @@ import kotlin.io.path.div
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
     private val out = outfile.bufferedWriter()
+    private var numChunks = 0
+    private var numLines = 0
+
 
     fun write(): Path {
         println("Writing intermediate representation to $outfile")
@@ -28,6 +31,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         writeBlocks()
         out.write("</PROGRAM>\n")
         out.close()
+
+        println("$numChunks code chunks and $numLines lines.")
         return outfile
     }
 
@@ -43,13 +48,17 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 it.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
                 out.write("</PARAMS>\n")
                 it.chunks.forEach { chunk ->
+                    numChunks++
                     if(chunk is IRInlineAsmChunk) {
                         writeInlineAsm(chunk)
                     } else {
                         out.write("<C>\n")
                         if (chunk.lines.isEmpty())
                             throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
-                        chunk.lines.forEach { line -> out.writeLine(line) }
+                        chunk.lines.forEach { line ->
+                            numLines++
+                            out.writeLine(line)
+                        }
                         out.write("</C>\n")
                     }
                 }

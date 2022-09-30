@@ -18,10 +18,11 @@ Future Things and Ideas
 Compiler:
 
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
-- vm: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
-- vm: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether during execution/translation.
-- vm: add more optimizations in IRPeepholeOptimizer
-- vm: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
+- ir: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
+- ir: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether during execution/translation.
+- ir: joinChunks() in the IR optimizer should be changed accordingly
+- ir: add more optimizations in IRPeepholeOptimizer
+- ir: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
