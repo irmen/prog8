@@ -44,8 +44,8 @@ class TestVm: FunSpec( {
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
         val code = IRCodeChunk(Position.DUMMY)
         code += IRInstruction(Opcode.NOP)
-        code += IRInstruction(Opcode.LOAD, VmDataType.WORD, reg1=1, value=12345)
-        code += IRInstruction(Opcode.STOREM, VmDataType.WORD, reg1=1, value=1000)
+        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=1, value=12345)
+        code += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=1, value=1000)
         code += IRInstruction(Opcode.RETURN)
         startSub += code
         block += startSub
@@ -106,6 +106,9 @@ class TestVm: FunSpec( {
         val irSource="""<PROGRAM NAME=test>
 <OPTIONS>
 </OPTIONS>
+
+<ASMSYMBOLS>
+</ASMSYMBOLS>
 
 <VARIABLES>
 </VARIABLES>

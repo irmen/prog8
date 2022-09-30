@@ -15,6 +15,9 @@ class TestLaunchEmu: FunSpec({
 <OPTIONS>
 </OPTIONS>
 
+<ASMSYMBOLS>
+</ASMSYMBOLS>
+
 <VARIABLES>
 </VARIABLES>
 

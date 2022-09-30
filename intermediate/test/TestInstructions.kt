@@ -22,9 +22,9 @@ class TestInstructions: FunSpec({
     }
 
     test("with value") {
-        val ins = IRInstruction(Opcode.BZ, VmDataType.BYTE, reg1=42, value = 99)
+        val ins = IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42, value = 99)
         ins.opcode shouldBe Opcode.BZ
-        ins.type shouldBe VmDataType.BYTE
+        ins.type shouldBe IRDataType.BYTE
         ins.reg1 shouldBe 42
         ins.reg2 shouldBe null
         ins.value shouldBe 99
@@ -35,9 +35,9 @@ class TestInstructions: FunSpec({
     }
 
     test("with label") {
-        val ins = IRInstruction(Opcode.BZ, VmDataType.WORD, reg1=11, labelSymbol = "a.b.c")
+        val ins = IRInstruction(Opcode.BZ, IRDataType.WORD, reg1=11, labelSymbol = "a.b.c")
         ins.opcode shouldBe Opcode.BZ
-        ins.type shouldBe VmDataType.WORD
+        ins.type shouldBe IRDataType.WORD
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe null
         ins.value shouldBe null
@@ -48,9 +48,9 @@ class TestInstructions: FunSpec({
     }
 
     test("with output registers") {
-        val ins = IRInstruction(Opcode.ADDR, VmDataType.WORD, reg1=11, reg2=22)
+        val ins = IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=11, reg2=22)
         ins.opcode shouldBe Opcode.ADDR
-        ins.type shouldBe VmDataType.WORD
+        ins.type shouldBe IRDataType.WORD
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe 22
         ins.value shouldBe null
@@ -59,9 +59,9 @@ class TestInstructions: FunSpec({
         ins.fpReg1direction shouldBe OperandDirection.INPUT
         ins.toString() shouldBe "addr.w r11,r22"
 
-        val ins2 = IRInstruction(Opcode.SQRT, VmDataType.BYTE, reg1=11, reg2=22)
+        val ins2 = IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=11, reg2=22)
         ins2.opcode shouldBe Opcode.SQRT
-        ins2.type shouldBe VmDataType.BYTE
+        ins2.type shouldBe IRDataType.BYTE
         ins2.reg1 shouldBe 11
         ins2.reg2 shouldBe 22
         ins2.value shouldBe null
@@ -80,13 +80,13 @@ class TestInstructions: FunSpec({
 
     test("missing registers should fail") {
         shouldThrowWithMessage<IllegalArgumentException>("missing reg1") {
-            IRInstruction(Opcode.BZ, VmDataType.BYTE, value=99)
+            IRInstruction(Opcode.BZ, IRDataType.BYTE, value=99)
         }
     }
 
     test("missing value should fail") {
         shouldThrowWithMessage<IllegalArgumentException>("missing a value or labelsymbol") {
-            IRInstruction(Opcode.BZ, VmDataType.BYTE, reg1=42)
+            IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42)
         }
     }
 

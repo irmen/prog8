@@ -111,18 +111,25 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun removeWeirdBranches(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        //  jump/branch to label immediately below
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             val labelSymbol = ins.labelSymbol
             if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
-                // if jumping to label immediately following this
+                //  remove jump/branch to label immediately below
                 if(idx < chunk.lines.size-1) {
                     val label = chunk.lines[idx+1] as? IRCodeLabel
                     if(label?.name == labelSymbol) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
+                }
+            }
+            // remove useless RETURN
+            if(ins.opcode == Opcode.RETURN && idx>0) {
+                val previous = chunk.lines[idx-1] as? IRInstruction
+                if(previous?.opcode in setOf(Opcode.JUMP, Opcode.JUMPA, Opcode.RETURN)) {
+                    chunk.lines.removeAt(idx)
+                    changed = true
                 }
             }
         }
@@ -157,10 +164,10 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     if (ins.value == 0) {
                         chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
                         changed = true
-                    } else if (ins.value == 255 && ins.type == VmDataType.BYTE) {
+                    } else if (ins.value == 255 && ins.type == IRDataType.BYTE) {
                         chunk.lines.removeAt(idx)
                         changed = true
-                    } else if (ins.value == 65535 && ins.type == VmDataType.WORD) {
+                    } else if (ins.value == 65535 && ins.type == IRDataType.WORD) {
                         chunk.lines.removeAt(idx)
                         changed = true
                     }
@@ -169,7 +176,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     if (ins.value == 0) {
                         chunk.lines.removeAt(idx)
                         changed = true
-                    } else if ((ins.value == 255 && ins.type == VmDataType.BYTE) || (ins.value == 65535 && ins.type == VmDataType.WORD)) {
+                    } else if ((ins.value == 255 && ins.type == IRDataType.BYTE) || (ins.value == 65535 && ins.type == IRDataType.WORD)) {
                         chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
                         changed = true
                     }

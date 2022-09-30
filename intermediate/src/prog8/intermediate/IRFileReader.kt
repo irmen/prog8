@@ -27,6 +27,7 @@ class IRFileReader {
         val match = programPattern.matchEntire(line) ?: throw IRParseException("invalid PROGRAM")
         val programName = match.groups[1]!!.value
         val options = parseOptions(lines)
+        val asmsymbols = parseAsmSymbols(lines)
         val variables = parseVariables(lines, options.dontReinitGlobals)
         val memorymapped = parseMemMapped(lines)
         val slabs = parseSlabs(lines)
@@ -34,6 +35,7 @@ class IRFileReader {
         val blocks = parseBlocksUntilProgramEnd(lines, variables)
 
         val st = IRSymbolTable(null)
+        asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
         variables.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
@@ -42,6 +44,22 @@ class IRFileReader {
         program.addGlobalInits(initGlobals)
         blocks.forEach{ program.addBlock(it) }
         return program
+    }
+
+    private fun parseAsmSymbols(lines: Iterator<String>): Map<String, String> {
+        val symbols = mutableMapOf<String, String>()
+        var line = lines.next()
+        while(line.isBlank())
+            line = lines.next()
+        if(line!="<ASMSYMBOLS>")
+            throw IRParseException("invalid ASMSYMBOLS")
+        while(true) {
+            line = lines.next()
+            if(line=="</ASMSYMBOLS>")
+                return symbols
+            val (name, value) = line.split('=')
+            symbols[name] = value
+        }
     }
 
     private fun parseOptions(lines: Iterator<String>): CompilationOptions {

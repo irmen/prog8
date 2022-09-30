@@ -8,6 +8,7 @@ import prog8.code.*
 
 class IRSymbolTable(sourceSt: SymbolTable?) {
     private val table = mutableMapOf<String, StNode>()
+    private val asmSymbols = mutableMapOf<String, String>()
 
     init {
         if(sourceSt!=null) {
@@ -103,4 +104,10 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, variable.position)
         table[varToadd.name] = varToadd
     }
+
+    fun addAsmSymbol(name: String, value: String) {
+        asmSymbols[name] = value
+    }
+
+    fun getAsmSymbols(): Map<String, String> = asmSymbols
 }

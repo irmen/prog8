@@ -10,6 +10,7 @@ note: all symbol names are flattened so that they're a single string that is glo
 
 PROGRAM:
     OPTIONS                 (from CompilationOptions)
+    ASMSYMBOLS              (from command line defined symbols)
     VARIABLES               (from Symboltable)
     MEMORYMAPPEDVARIABLES   (from Symboltable)
     MEMORYSLABS             (from Symboltable)
@@ -50,6 +51,7 @@ class IRProgram(val name: String,
                 val options: CompilationOptions,
                 val encoding: IStringEncoding) {
 
+    val asmSymbols = mutableMapOf<String, String>()
     val globalInits = mutableListOf<IRCodeLine>()
     val blocks = mutableListOf<IRBlock>()
 
@@ -57,6 +59,10 @@ class IRProgram(val name: String,
     fun addBlock(block: IRBlock) {
         require(blocks.all { it.name != block.name}) { "duplicate block ${block.name} ${block.position}" }
         blocks.add(block)
+    }
+
+    fun addAsmSymbols(symbolDefs: Map<String, String>) {
+        asmSymbols += symbolDefs
     }
 }
 

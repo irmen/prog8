@@ -51,6 +51,9 @@ dontReinitGlobals=false
 evalStackBaseAddress=null
 </OPTIONS>
 
+<ASMSYMBOLS>
+</ASMSYMBOLS>
+
 <VARIABLES>
 uword sys.wait.jiffies= zp=DONTCARE
 </VARIABLES>

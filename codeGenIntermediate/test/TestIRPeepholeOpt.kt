@@ -52,7 +52,7 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.NOP),  // removed
             IRCodeLabel("label2"),
             IRInstruction(Opcode.JUMP, labelSymbol = "label3"),
-            IRInstruction(Opcode.INC, VmDataType.BYTE, reg1=1),
+            IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=1),
             IRCodeLabel("label3")
         ))
         irProg.lines().size shouldBe 8
@@ -86,10 +86,10 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("push followed by pop") {
         val irProg = makeIRProgram(listOf(
-            IRInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=42),
-            IRInstruction(Opcode.POP, VmDataType.BYTE, reg1=42),
-            IRInstruction(Opcode.PUSH, VmDataType.BYTE, reg1=99),
-            IRInstruction(Opcode.POP, VmDataType.BYTE, reg1=222)
+            IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=42),
+            IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=42),
+            IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=99),
+            IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=222)
         ))
         irProg.lines().size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)
@@ -103,16 +103,16 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("remove useless div/mul, add/sub") {
         val irProg = makeIRProgram(listOf(
-            IRInstruction(Opcode.DIV, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.DIVS, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.MUL, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.MOD, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.DIV, VmDataType.BYTE, reg1=42, value = 2),
-            IRInstruction(Opcode.DIVS, VmDataType.BYTE, reg1=42, value = 2),
-            IRInstruction(Opcode.MUL, VmDataType.BYTE, reg1=42, value = 2),
-            IRInstruction(Opcode.MOD, VmDataType.BYTE, reg1=42, value = 2),
-            IRInstruction(Opcode.ADD, VmDataType.BYTE, reg1=42, value = 0),
-            IRInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 0)
+            IRInstruction(Opcode.DIV, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.DIVS, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.MOD, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.DIV, IRDataType.BYTE, reg1=42, value = 2),
+            IRInstruction(Opcode.DIVS, IRDataType.BYTE, reg1=42, value = 2),
+            IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=42, value = 2),
+            IRInstruction(Opcode.MOD, IRDataType.BYTE, reg1=42, value = 2),
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=42, value = 0),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 0)
         ))
         irProg.lines().size shouldBe 10
         val opt = IRPeepholeOptimizer(irProg)
@@ -123,8 +123,8 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("replace add/sub 1 by inc/dec") {
         val irProg = makeIRProgram(listOf(
-            IRInstruction(Opcode.ADD, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.SUB, VmDataType.BYTE, reg1=42, value = 1)
+            IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 1)
         ))
         irProg.lines().size shouldBe 2
         val opt = IRPeepholeOptimizer(irProg)
@@ -137,14 +137,14 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("remove useless and/or/xor") {
         val irProg = makeIRProgram(listOf(
-            IRInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 255),
-            IRInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 65535),
-            IRInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 0),
-            IRInstruction(Opcode.XOR, VmDataType.BYTE, reg1=42, value = 0),
-            IRInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 200),
-            IRInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 60000),
-            IRInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 1),
-            IRInstruction(Opcode.XOR, VmDataType.BYTE, reg1=42, value = 1)
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, value = 255),
+            IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, value = 65535),
+            IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, value = 0),
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, value = 0),
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, value = 200),
+            IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, value = 60000),
+            IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, value = 1),
+            IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, value = 1)
         ))
         irProg.lines().size shouldBe 8
         val opt = IRPeepholeOptimizer(irProg)
@@ -155,10 +155,10 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("replace and/or/xor by constant number") {
         val irProg = makeIRProgram(listOf(
-            IRInstruction(Opcode.AND, VmDataType.BYTE, reg1=42, value = 0),
-            IRInstruction(Opcode.AND, VmDataType.WORD, reg1=42, value = 0),
-            IRInstruction(Opcode.OR, VmDataType.BYTE, reg1=42, value = 255),
-            IRInstruction(Opcode.OR, VmDataType.WORD, reg1=42, value = 65535)
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, value = 0),
+            IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, value = 0),
+            IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, value = 255),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, value = 65535)
         ))
         irProg.lines().size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)

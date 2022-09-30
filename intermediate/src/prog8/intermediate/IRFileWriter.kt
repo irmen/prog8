@@ -18,6 +18,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         println("Writing intermediate representation to $outfile")
         out.write("<PROGRAM NAME=${irProgram.name}>\n")
         writeOptions()
+        writeAsmSymbols()
         writeVariableAllocations()
 
         out.write("\n<INITGLOBALS>\n")
@@ -34,6 +35,12 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         println("$numChunks code chunks and $numLines lines.")
         return outfile
+    }
+
+    private fun writeAsmSymbols() {
+        out.write("<ASMSYMBOLS>\n")
+        irProgram.asmSymbols.forEach { (name, value) -> out.write("$name=$value\n" )}
+        out.write("</ASMSYMBOLS>\n")
     }
 
     private fun writeBlocks() {

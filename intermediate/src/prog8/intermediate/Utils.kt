@@ -54,12 +54,12 @@ fun getTypeString(variable : StStaticVariable): String {
     }
 }
 
-fun convertIRType(typestr: String): VmDataType? {
+fun convertIRType(typestr: String): IRDataType? {
     return when(typestr.lowercase()) {
         "" -> null
-        ".b" -> VmDataType.BYTE
-        ".w" -> VmDataType.WORD
-        ".f" -> VmDataType.FLOAT
+        ".b" -> IRDataType.BYTE
+        ".w" -> IRDataType.WORD
+        ".f" -> IRDataType.FLOAT
         else -> throw IRParseException("invalid type $typestr")
     }
 }
@@ -100,11 +100,11 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
     } catch (ax: IllegalArgumentException) {
         throw IRParseException("invalid vmasm instruction: $instr")
     }
-    var type: VmDataType? = convertIRType(typestr)
+    var type: IRDataType? = convertIRType(typestr)
     val formats = instructionFormats.getValue(opcode)
     val format: InstructionFormat
     if(type !in formats) {
-        type = VmDataType.BYTE
+        type = IRDataType.BYTE
         format = if(type !in formats)
             formats.getValue(null)
         else
@@ -207,15 +207,15 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
         throw IRParseException("invalid reg2 for $line")
     if(value!=null && opcode !in OpcodesWithAddress) {
         when (type) {
-            VmDataType.BYTE -> {
+            IRDataType.BYTE -> {
                 if (value < -128 || value > 255)
                     throw IRParseException("value out of range for byte: $value")
             }
-            VmDataType.WORD -> {
+            IRDataType.WORD -> {
                 if (value < -32768 || value > 65535)
                     throw IRParseException("value out of range for word: $value")
             }
-            VmDataType.FLOAT -> {}
+            IRDataType.FLOAT -> {}
             null -> {}
         }
     }

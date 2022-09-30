@@ -51,6 +51,7 @@ But you can decide whatever you want because here we just care about jumping and
 Saving/restoring registers is possible with PUSH and POP instructions.
 
 jump                    location      - continue running at instruction number given by location
+jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
 call                    location      - save current instruction location+1, continue execution at instruction nr given by location
 calli       reg1                      - save current instruction location+1, continue execution at instruction number in reg1
 syscall                 value         - do a systemcall identified by call number
@@ -67,6 +68,8 @@ bsteq                         address   - branch to location if Status bit Zero 
 bstne                         address   - branch to location if Status bit Zero is not set
 bstneg                        address   - branch to location if Status bit Negative is not set
 bstpos                        address   - branch to location if Status bit Negative is not set
+bstvc                         address   - branch to location if Status bit Overflow is not set
+bstvs                         address   - branch to location if Status bit Overflow is not set
 bz          reg1,             address   - branch to location if reg1 is zero
 bnz         reg1,             address   - branch to location if reg1 is not zero
 beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
@@ -223,6 +226,7 @@ enum class Opcode {
     STOREZX,
 
     JUMP,
+    JUMPA,
     CALL,
     SYSCALL,
     RETURN,
@@ -233,6 +237,8 @@ enum class Opcode {
     BSTNE,
     BSTNEG,
     BSTPOS,
+    BSTVC,
+    BSTVS,
     BZ,
     BNZ,
     BEQ,
@@ -359,6 +365,7 @@ val OpcodesWithAddress = setOf(
     Opcode.STOREZM,
     Opcode.STOREZX,
     Opcode.JUMP,
+    Opcode.JUMPA,
     Opcode.CALL,
     Opcode.INCM,
     Opcode.DECM,
@@ -404,6 +411,7 @@ val OpcodesWithAddress = setOf(
 
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
+    Opcode.JUMPA,
     Opcode.RETURN,
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -411,6 +419,8 @@ val OpcodesThatBranch = setOf(
     Opcode.BSTNE,
     Opcode.BSTNEG,
     Opcode.BSTPOS,
+    Opcode.BSTVC,
+    Opcode.BSTVS,
     Opcode.BZ,
     Opcode.BNZ,
     Opcode.BEQ,
@@ -432,7 +442,7 @@ val OpcodesForCpuRegisters = setOf(
 )
 
 
-enum class VmDataType {
+enum class IRDataType {
     BYTE,
     WORD,
     FLOAT
@@ -445,7 +455,7 @@ enum class OperandDirection {
     INOUT
 }
 
-data class InstructionFormat(val datatype: VmDataType?,
+data class InstructionFormat(val datatype: IRDataType?,
                              val reg1: Boolean, val reg1direction: OperandDirection,        // reg1 can be IN/OUT/INOUT
                              val reg2: Boolean,         // always only IN
                              val fpReg1: Boolean, val fpReg1direction: OperandDirection,    // fpreg1 can be IN/OUT/INOUT
@@ -454,8 +464,8 @@ data class InstructionFormat(val datatype: VmDataType?,
                              val fpValue: Boolean       // always only IN
                              ) {
     companion object {
-        fun from(spec: String): Map<VmDataType?, InstructionFormat> {
-            val result = mutableMapOf<VmDataType?, InstructionFormat>()
+        fun from(spec: String): Map<IRDataType?, InstructionFormat> {
+            val result = mutableMapOf<IRDataType?, InstructionFormat>()
             for(part in spec.split('|').map{ it.trim() }) {
                 var reg1 = false        // read/write/modify possible
                 var reg1Direction = OperandDirection.INPUT
@@ -485,11 +495,11 @@ data class InstructionFormat(val datatype: VmDataType?,
                 if(typespec=="N")
                     result[null] = InstructionFormat(null, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
                 if('B' in typespec)
-                    result[VmDataType.BYTE] = InstructionFormat(VmDataType.BYTE, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
                 if('W' in typespec)
-                    result[VmDataType.WORD] = InstructionFormat(VmDataType.WORD, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
                 if('F' in typespec)
-                    result[VmDataType.FLOAT] = InstructionFormat(VmDataType.FLOAT, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
+                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg1Direction, reg2, fpreg1, fpreg1Direction, fpreg2, value, fpvalue)
             }
             return result
         }
@@ -522,6 +532,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,<v     | F,<r1,<v"),
     Opcode.JUMP       to InstructionFormat.from("N,<v"),
+    Opcode.JUMPA      to InstructionFormat.from("N,<v"),
     Opcode.CALL       to InstructionFormat.from("N,<v"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<v"),
     Opcode.RETURN     to InstructionFormat.from("N"),
@@ -531,6 +542,8 @@ val instructionFormats = mutableMapOf(
     Opcode.BSTNE      to InstructionFormat.from("N,<v"),
     Opcode.BSTNEG     to InstructionFormat.from("N,<v"),
     Opcode.BSTPOS     to InstructionFormat.from("N,<v"),
+    Opcode.BSTVC      to InstructionFormat.from("N,<v"),
+    Opcode.BSTVS      to InstructionFormat.from("N,<v"),
     Opcode.BZ         to InstructionFormat.from("BW,<r1,<v"),
     Opcode.BNZ        to InstructionFormat.from("BW,<r1,<v"),
     Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<v"),
@@ -648,7 +661,7 @@ val instructionFormats = mutableMapOf(
 
 data class IRInstruction(
     val opcode: Opcode,
-    val type: VmDataType?=null,
+    val type: IRDataType?=null,
     val reg1: Int?=null,        // 0-$ffff
     val reg2: Int?=null,        // 0-$ffff
     val fpReg1: Int?=null,      // 0-$ffff
@@ -671,9 +684,9 @@ data class IRInstruction(
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
         if(value!=null && opcode !in OpcodesWithAddress) {
             when (type) {
-                VmDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
-                VmDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
-                VmDataType.FLOAT, null -> {}
+                IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
+                IRDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
+                IRDataType.FLOAT, null -> {}
             }
         }
 
@@ -694,7 +707,7 @@ data class IRInstruction(
         if(!format.fpReg1) require(fpReg1==null) { "invalid fpReg1" }
         if(!format.fpReg2) require(fpReg2==null) { "invalid fpReg2" }
 
-        if (type==VmDataType.FLOAT) {
+        if (type==IRDataType.FLOAT) {
             if(format.fpValue) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
         } else {
             if(format.value) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
@@ -710,7 +723,7 @@ data class IRInstruction(
                 Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
                 Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
                 Opcode.SGE, Opcode.SGES)) {
-            if(type==VmDataType.FLOAT)
+            if(type==IRDataType.FLOAT)
                 require(fpReg1!=fpReg2) {"$opcode: fpReg1 and fpReg2 should be different"}
             else
                 require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
@@ -721,9 +734,9 @@ data class IRInstruction(
         val result = mutableListOf(opcode.name.lowercase())
 
         when(type) {
-            VmDataType.BYTE -> result.add(".b ")
-            VmDataType.WORD -> result.add(".w ")
-            VmDataType.FLOAT -> result.add(".f ")
+            IRDataType.BYTE -> result.add(".b ")
+            IRDataType.WORD -> result.add(".w ")
+            IRDataType.FLOAT -> result.add(".f ")
             else -> result.add(" ")
         }
         reg1?.let {
