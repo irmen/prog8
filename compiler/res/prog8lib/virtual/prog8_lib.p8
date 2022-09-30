@@ -41,7 +41,7 @@ prog8_lib {
         ; Returns -1 (255), 0 or 1 depending on wether string1 sorts before, equal or after string2.
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (it will use strcmp for you under water automatically).
-        %asm {{
+        %ir {{
             loadm.w r0,prog8_lib.string_compare.st1
             loadm.w r1,prog8_lib.string_compare.st2
             syscall 29

@@ -72,6 +72,7 @@ block_statement:
 	| variabledeclaration
 	| subroutinedeclaration
 	| inlineasm
+	| inlineir
 	| labeldef
 	;
 
@@ -88,6 +89,7 @@ statement :
 	| branch_stmt
 	| subroutinedeclaration
 	| inlineasm
+	| inlineir
 	| returnstmt
 	| forloop
 	| whileloop
@@ -228,6 +230,8 @@ literalvalue :
 	;
 
 inlineasm :  '%asm' INLINEASMBLOCK;
+
+inlineir: '%ir' INLINEASMBLOCK;
 
 inline: 'inline';
 

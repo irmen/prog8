@@ -125,6 +125,9 @@ private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
     val asm = inlineasm()?.toAst()
     if(asm!=null) return asm
 
+    val ir = inlineir()?.toAst()
+    if(ir!=null) return ir
+
     val branchstmt = branch_stmt()?.toAst()
     if(branchstmt!=null) return branchstmt
 
@@ -252,7 +255,12 @@ private fun Prog8ANTLRParser.FunctioncallContext.toAst(): FunctionCallExpression
 
 private fun Prog8ANTLRParser.InlineasmContext.toAst(): InlineAssembly {
     val text = INLINEASMBLOCK().text
-    return InlineAssembly(text.substring(2, text.length-2), toPosition())
+    return InlineAssembly(text.substring(2, text.length-2), false, toPosition())
+}
+
+private fun Prog8ANTLRParser.InlineirContext.toAst(): InlineAssembly {
+    val text = INLINEASMBLOCK().text
+    return InlineAssembly(text.substring(2, text.length-2), true, toPosition())
 }
 
 private fun Prog8ANTLRParser.ReturnstmtContext.toAst() : Return {

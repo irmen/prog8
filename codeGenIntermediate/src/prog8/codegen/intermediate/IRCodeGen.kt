@@ -237,7 +237,7 @@ class IRCodeGen(
                 return chunk
             }
             is PtConditionalBranch -> translate(node)
-            is PtInlineAssembly -> IRInlineAsmChunk(node.assembly, node.position)
+            is PtInlineAssembly -> IRInlineAsmChunk(node.assembly, node.isIR, node.position)
             is PtIncludeBinary -> {
                 val chunk = IRCodeChunk(node.position)
                 val data =  node.file.readBytes()
@@ -979,15 +979,18 @@ class IRCodeGen(
                     vmblock += vmsub
                 }
                 is PtAsmSub -> {
-                    val assembly = if(child.children.isEmpty()) "" else (child.children.single() as PtInlineAssembly).assembly
-                    vmblock += IRAsmSubroutine(child.name, child.position, child.address,
+                    val assemblyChild = if(child.children.isEmpty()) null else (child.children.single() as PtInlineAssembly)
+                    vmblock += IRAsmSubroutine(
+                        child.name, child.position, child.address,
                         child.clobbers,
                         child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
                         child.returnTypes.zip(child.retvalRegisters),
-                        assembly)
+                        assemblyChild?.isIR==true,
+                        assemblyChild?.assembly ?: ""
+                    )
                 }
                 is PtInlineAssembly -> {
-                    vmblock += IRInlineAsmChunk(child.assembly, child.position)
+                    vmblock += IRInlineAsmChunk(child.assembly, child.isIR, child.position)
                 }
                 else -> TODO("BLOCK HAS WEIRD CHILD NODE $child")
             }

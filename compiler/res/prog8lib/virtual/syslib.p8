@@ -7,14 +7,14 @@ sys {
 
     sub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
-        %asm {{
+        %ir {{
             syscall 0
         }}
     }
 
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
-        %asm {{
+        %ir {{
             loadm.w r0,sys.wait.jiffies
             syscall 13
         }}
@@ -22,7 +22,7 @@ sys {
 
     sub waitvsync() {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        %asm {{
+        %ir {{
             syscall 14
         }}
     }
@@ -61,41 +61,41 @@ sys {
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
-        %asm {{
+        %ir {{
             loadm.b r0,sys.exit.returnvalue
             syscall 1
         }}
     }
 
     sub set_carry() {
-        %asm {{
+        %ir {{
             sec
         }}
     }
 
     sub clear_carry() {
-        %asm {{
+        %ir {{
             clc
         }}
     }
 
 
     sub gfx_enable(ubyte mode) {
-        %asm {{
+        %ir {{
             loadm.b r0,sys.gfx_enable.mode
             syscall 8
         }}
     }
 
     sub gfx_clear(ubyte color) {
-        %asm {{
+        %ir {{
             loadm.b r0,sys.gfx_clear.color
             syscall 9
         }}
     }
 
     sub gfx_plot(uword xx, uword yy, ubyte color) {
-        %asm {{
+        %ir {{
             loadm.w r0,sys.gfx_plot.xx
             loadm.w r1,sys.gfx_plot.yy
             loadm.b r2,sys.gfx_plot.color
@@ -104,7 +104,7 @@ sys {
     }
 
     sub gfx_getpixel(uword xx, uword yy) -> ubyte {
-        %asm {{
+        %ir {{
             loadm.w r0,sys.gfx_getpixel.xx
             loadm.w r1,sys.gfx_getpixel.yy
             syscall 30

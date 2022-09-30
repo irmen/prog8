@@ -195,7 +195,7 @@ sub  str2uword(str string) -> uword {
     ; -- returns the unsigned word value of the string number argument in AY
     ;    the number may NOT be preceded by a + sign and may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    %asm {{
+    %ir {{
         loadm.w r0,conv.str2uword.string
         syscall 11
         return
@@ -206,7 +206,7 @@ sub  str2word(str string) -> word {
     ; -- returns the signed word value of the string number argument in AY
     ;    the number may be preceded by a + or - sign but may NOT contain spaces
     ;    (any non-digit character will terminate the number string that is parsed)
-    %asm {{
+    %ir {{
         loadm.w r0,conv.str2word.string
         syscall 12
         return

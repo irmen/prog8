@@ -265,7 +265,7 @@ class IRFileReader {
     }
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
-    private val inlineAsmPattern = Regex("<INLINEASM POS=(.+)>")
+    private val inlineAsmPattern = Regex("<INLINEASM IR=(.+) POS=(.+)>")
     private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
@@ -299,16 +299,17 @@ class IRFileReader {
     }
 
     private fun parseInlineAssembly(startline: String, lines: Iterator<String>): IRInlineAsmChunk {
-        // <INLINEASM POS=[examples/test.p8: line 8 col 6-9]>
+        // <INLINEASM IR=true POS=[examples/test.p8: line 8 col 6-9]>
         val match = inlineAsmPattern.matchEntire(startline) ?: throw IRParseException("invalid INLINEASM")
-        val pos = parsePosition(match.groupValues[1])
+        val isIr = match.groupValues[1].toBoolean()
+        val pos = parsePosition(match.groupValues[2])
         val asmlines = mutableListOf<String>()
         var line = lines.next()
         while(line!="</INLINEASM>") {
             asmlines.add(line)
             line = lines.next()
         }
-        return IRInlineAsmChunk(asmlines.joinToString("\n"), pos)
+        return IRInlineAsmChunk(asmlines.joinToString("\n"), isIr, pos)
     }
 
     private fun parseAsmSubroutine(startline: String, lines: Iterator<String>): IRAsmSubroutine {
@@ -341,12 +342,15 @@ class IRFileReader {
             val regsf = parseRegisterOrStatusflag(regstr)
             returns.add(Pair(dt, regsf))
         }
-        return IRAsmSubroutine(scopedname,
+        return IRAsmSubroutine(
+            scopedname,
             parsePosition(pos), if(address=="null") null else address.toUInt(),
             clobberRegs.toSet(),
             params,
             returns,
-            asm.assembly)
+            asm.isIR,
+            asm.assembly
+        )
     }
 
     private fun parseSubroutine(startline: String, lines: Iterator<String>, variables: List<StStaticVariable>): IRSubroutine {

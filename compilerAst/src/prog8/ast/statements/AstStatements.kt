@@ -616,14 +616,14 @@ class FunctionCallStatement(override var target: IdentifierReference,
     override fun toString() = "FunctionCallStatement(target=$target, pos=$position)"
 }
 
-class InlineAssembly(val assembly: String, override val position: Position) : Statement() {
+class InlineAssembly(val assembly: String, val isIR: Boolean, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
 
-    override fun copy() = InlineAssembly(assembly, position)
+    override fun copy() = InlineAssembly(assembly, isIR, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)

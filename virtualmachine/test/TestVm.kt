@@ -84,7 +84,16 @@ class TestVm: FunSpec( {
     test("vm asmbinary not supported") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
-        val startSub = IRAsmSubroutine("main.asmstart", Position.DUMMY, 0x2000u, emptySet(), emptyList(), emptyList(), "inlined asm here")
+        val startSub = IRAsmSubroutine(
+            "main.asmstart",
+            Position.DUMMY,
+            0x2000u,
+            emptySet(),
+            emptyList(),
+            emptyList(),
+            true,
+            "inlined asm here"
+        )
         block += startSub
         program.addBlock(block)
         shouldThrowWithMessage<IRParseException>("vm currently does not support asmsubs: main.asmstart") {

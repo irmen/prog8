@@ -104,13 +104,16 @@ class IRSubroutine(val name: String,
     operator fun plusAssign(chunk: IRCodeChunkBase) { chunks+= chunk }
 }
 
-class IRAsmSubroutine(val name: String,
-                      val position: Position,
-                      val address: UInt?,
-                      val clobbers: Set<CpuRegister>,
-                      val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
-                      val returns: List<Pair<DataType, RegisterOrStatusflag>>,
-                      val assembly: String) {
+class IRAsmSubroutine(
+    val name: String,
+    val position: Position,
+    val address: UInt?,
+    val clobbers: Set<CpuRegister>,
+    val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
+    val returns: List<Pair<DataType, RegisterOrStatusflag>>,
+    val isIR: Boolean,
+    val assembly: String
+) {
     init {
         require('.' in name) { "subroutine name is not scoped: $name" }
         require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }
@@ -146,7 +149,7 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 }
 
-class IRInlineAsmChunk(val assembly: String, position: Position): IRCodeChunkBase(position) {
+class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
     // note: no lines, asm is in the property
     override fun isEmpty() = assembly.isBlank()
     override fun isNotEmpty() = assembly.isNotBlank()

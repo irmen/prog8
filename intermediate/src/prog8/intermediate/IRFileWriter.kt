@@ -78,7 +78,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     out.write("${dt.toString().lowercase()} $reg\n")
                 }
                 out.write("</PARAMS>\n")
-                out.write("<INLINEASM POS=${it.position}>\n")
+                out.write("<INLINEASM IR=${it.isIR} POS=${it.position}>\n")
                 out.write(it.assembly.trimStart('\r', '\n').trimEnd(' ', '\r', '\n'))
                 out.write("\n</INLINEASM>\n</ASMSUB>\n")
             }
@@ -87,7 +87,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        out.write("<INLINEASM POS=${chunk.position}>\n")
+        out.write("<INLINEASM IR=${chunk.isIR} POS=${chunk.position}>\n")
         out.write(chunk.assembly.trimStart('\r', '\n').trimEnd(' ', '\r', '\n'))
         out.write("\n</INLINEASM>\n")
     }

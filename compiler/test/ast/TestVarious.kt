@@ -17,7 +17,7 @@ class TestVarious: FunSpec({
     test("symbol names in inline assembly blocks") {
         val names1 = InlineAssembly("""
             
-        """, Position.DUMMY).names
+        """, false, Position.DUMMY).names
         names1 shouldBe emptySet()
 
         val names2 = InlineAssembly("""
@@ -29,7 +29,7 @@ label2:
 ; also not these
         ;;   ...or these
    // valid words  123456
-        """, Position.DUMMY).names
+        """, false, Position.DUMMY).names
 
         names2 shouldBe setOf("label", "lda", "sta", "ea", "value", "label2", "othervalue", "valid", "words")
     }

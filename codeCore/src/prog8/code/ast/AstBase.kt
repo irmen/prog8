@@ -96,7 +96,7 @@ class PtBlock(name: String,
 }
 
 
-class PtInlineAssembly(val assembly: String, position: Position) : PtNode(position) {
+class PtInlineAssembly(val assembly: String, val isIR: Boolean, position: Position) : PtNode(position) {
     override fun printProperties() {}
 }
 

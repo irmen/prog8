@@ -197,7 +197,7 @@ class IntermediateAstMaker(val program: Program) {
             "%asminclude" -> {
                 val result = loadAsmIncludeFile(directive.args[0].str!!, directive.definingModule.source)
                 val assembly = result.getOrElse { throw it }
-                PtInlineAssembly(assembly, directive.position)
+                PtInlineAssembly(assembly, false, directive.position)
             }
             else -> {
                 // other directives don't output any code (but could end up in option flags somewhere else)
@@ -252,7 +252,7 @@ class IntermediateAstMaker(val program: Program) {
     }
 
     private fun transform(srcNode: InlineAssembly): PtInlineAssembly =
-        PtInlineAssembly(srcNode.assembly, srcNode.position)
+        PtInlineAssembly(srcNode.assembly, srcNode.isIR, srcNode.position)
 
     private fun transform(srcJump: Jump): PtJump {
         val identifier = if(srcJump.identifier!=null) transform(srcJump.identifier!!) else null
@@ -306,13 +306,22 @@ class IntermediateAstMaker(val program: Program) {
         sub.parameters.forEach { it.first.parent=sub }
 
         if(srcSub.asmAddress==null) {
-            var combinedAsm = ""
-            for (asm in srcSub.statements)
-                combinedAsm += (asm as InlineAssembly).assembly + "\n"
-            if(combinedAsm.isNotEmpty())
-                sub.add(PtInlineAssembly(combinedAsm, srcSub.statements[0].position))
-            else
-                sub.add(PtInlineAssembly("", srcSub.position))
+            var combinedTrueAsm = ""
+            var combinedIrAsm = ""
+            for (asm in srcSub.statements) {
+                asm as InlineAssembly
+                if(asm.isIR)
+                    combinedIrAsm += asm.assembly + "\n"
+                else
+                    combinedTrueAsm += asm.assembly + "\n"
+            }
+
+            if(combinedTrueAsm.isNotEmpty())
+                sub.add(PtInlineAssembly(combinedTrueAsm, false, srcSub.statements[0].position))
+            if(combinedIrAsm.isNotEmpty())
+                sub.add(PtInlineAssembly(combinedIrAsm, true, srcSub.statements[0].position))
+            if(combinedIrAsm.isEmpty() && combinedTrueAsm.isEmpty())
+                sub.add(PtInlineAssembly("", true, srcSub.position))
         }
 
         return sub

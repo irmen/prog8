@@ -2,6 +2,17 @@
 
 main {
     sub start() {
+        %asm {{
+            lda  #99
+            rts
+        }}
+
+        %ir {{
+            nop
+            loadr r1,r2
+            return
+        }}
+
         ubyte @shared @zp var1 = 42
         uword @shared @zp var2 = 4242
         str @shared name = "irmen"

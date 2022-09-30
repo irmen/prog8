@@ -229,12 +229,16 @@ class VmProgramLoader {
         program: MutableList<IRInstruction>,
         symbolAddresses: MutableMap<String, Int>,
     ) {
-        asmChunk.assembly.lineSequence().forEach {
-            val parsed = parseIRCodeLine(it.trim(), program.size, placeholders)
-            if(parsed is IRInstruction)
-                program += parsed
-            else if(parsed is IRCodeLabel)
-                symbolAddresses[parsed.name] = program.size
+        if(asmChunk.isIR) {
+            asmChunk.assembly.lineSequence().forEach {
+                val parsed = parseIRCodeLine(it.trim(), program.size, placeholders)
+                if (parsed is IRInstruction)
+                    program += parsed
+                else if (parsed is IRCodeLabel)
+                    symbolAddresses[parsed.name] = program.size
+            }
+        } else {
+            throw IRParseException("vm currently does not support real inlined assembly (only IR)': ${asmChunk.position}")
         }
     }
 }

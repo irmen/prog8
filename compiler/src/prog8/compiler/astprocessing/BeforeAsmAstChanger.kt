@@ -167,8 +167,10 @@ internal class BeforeAsmAstChanger(val program: Program,
             if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && !subroutine.hasRtsInAsm(options.compTarget)) {
                 // make sure the NOT INLINED asm subroutine actually has a rts at the end
                 // (non-asm routines get a Return statement as needed, above)
-                val instruction = if(options.compTarget.name==VMTarget.NAME) "  return\n" else "  rts\n"
-                mods += IAstModification.InsertLast(InlineAssembly(instruction, Position.DUMMY), subroutine)
+                mods += if(options.compTarget.name==VMTarget.NAME)
+                    IAstModification.InsertLast(InlineAssembly("  return\n", true, Position.DUMMY), subroutine)
+                else
+                    IAstModification.InsertLast(InlineAssembly("  rts\n", false, Position.DUMMY), subroutine)
             }
         }
 
