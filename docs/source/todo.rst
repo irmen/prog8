@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: RegistersUsed should actually count the number of times a register is used too?
-
 ...
 
 

@@ -676,7 +676,6 @@ data class IRInstruction(
     val reg2direction: OperandDirection
     val fpReg1direction: OperandDirection
     val fpReg2direction: OperandDirection
-    private val registersUsed: RegistersUsed
 
     init {
         require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
@@ -733,45 +732,43 @@ data class IRInstruction(
             else
                 require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
         }
-
-        val inputRegs = mutableSetOf<Int>()
-        val outputRegs = mutableSetOf<Int>()
-        val inputFpRegs = mutableSetOf<Int>()
-        val outputFpRegs = mutableSetOf<Int>()
-
-        when (reg1direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.INPUT -> inputRegs += reg1!!
-            OperandDirection.OUTPUT -> outputRegs += reg1!!
-            OperandDirection.INOUT -> {
-                inputRegs += reg1!!
-                outputRegs += reg1!!
-            }
-        }
-        when (reg2direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.INPUT -> inputRegs += reg2!!
-            else -> throw IllegalArgumentException("reg2 can only be input")
-        }
-        when (fpReg1direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.INPUT -> inputFpRegs += fpReg1!!
-            OperandDirection.OUTPUT -> outputFpRegs += fpReg1!!
-            OperandDirection.INOUT -> {
-                inputFpRegs += fpReg1!!
-                outputFpRegs += fpReg1!!
-            }
-        }
-        when (fpReg2direction) {
-            OperandDirection.UNUSED -> {}
-            OperandDirection.INPUT -> inputFpRegs += fpReg2!!
-            else -> throw IllegalArgumentException("fpReg2 can only be input")
-        }
-
-        registersUsed = RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
     }
 
-    override fun usedRegisters() = registersUsed
+    fun addUsedRegistersCounts(
+        inputRegs: MutableMap<Int, Int>,
+        outputRegs: MutableMap<Int, Int>,
+        inputFpRegs: MutableMap<Int, Int>,
+        outputFpRegs: MutableMap<Int, Int>
+    ) {
+        when (this.reg1direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputRegs[this.reg1!!] = inputRegs.getValue(this.reg1)+1
+            OperandDirection.OUTPUT -> outputRegs[this.reg1!!] = outputRegs.getValue(this.reg1)+1
+            OperandDirection.INOUT -> {
+                inputRegs[this.reg1!!] = inputRegs.getValue(this.reg1)+1
+                outputRegs[this.reg1] = outputRegs.getValue(this.reg1)+1
+            }
+        }
+        when (this.reg2direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> outputRegs[this.reg2!!] = outputRegs.getValue(this.reg2)+1
+            else -> throw IllegalArgumentException("reg2 can only be input")
+        }
+        when (this.fpReg1direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputFpRegs[this.fpReg1!!] = inputFpRegs.getValue(this.fpReg1)+1
+            OperandDirection.OUTPUT -> outputFpRegs[this.fpReg1!!] = outputFpRegs.getValue(this.fpReg1)+1
+            OperandDirection.INOUT -> {
+                inputFpRegs[this.fpReg1!!] = inputFpRegs.getValue(this.fpReg1)+1
+                outputFpRegs[this.fpReg1] = outputFpRegs.getValue(this.fpReg1)+1
+            }
+        }
+        when (this.fpReg2direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.INPUT -> inputFpRegs[this.fpReg2!!] = inputFpRegs.getValue(this.fpReg2)+1
+            else -> throw IllegalArgumentException("fpReg2 can only be input")
+        }
+    }
 
     override fun toString(): String {
         val result = mutableListOf(opcode.name.lowercase())

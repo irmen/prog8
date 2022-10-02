@@ -33,28 +33,21 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("</PROGRAM>\n")
         out.close()
 
-        val usedRegisters = mutableSetOf<Int>()
-        val usedFpRegisters = mutableSetOf<Int>()
-        irProgram.blocks.forEach {
-            it.inlineAssembly.forEach { chunk ->
-                val used = chunk.usedRegisters()
-                usedRegisters += used.inputRegs + used.outputRegs
-                usedFpRegisters += used.inputFpRegs + used.outputFpRegs
-            }
-            it.subroutines.forEach { sub ->
-                sub.chunks.forEach { chunk ->
-                    val used = chunk.usedRegisters()
-                    usedRegisters += used.inputRegs + used.outputRegs
-                    usedFpRegisters += used.inputFpRegs + used.outputFpRegs
-                }
-            }
-            it.asmSubroutines.forEach { asmsub ->
-                val used = asmsub.usedRegisters()
-                usedRegisters += used.inputRegs + used.outputRegs
-                usedFpRegisters += used.inputFpRegs + used.outputFpRegs
-            }
+        var usedRegisters = 0
+
+        fun addUsed(used: RegistersUsed) {
+            used.inputRegs.forEach{ (reg, count) -> usedRegisters+=count }
+            used.outputRegs.forEach{ (reg, count) -> usedRegisters+=count }
+            used.inputFpRegs.forEach{ (reg, count) -> usedRegisters+=count }
+            used.outputFpRegs.forEach{ (reg, count) -> usedRegisters+=count }
         }
-        println("($numLines lines in $numChunks code chunks, ${usedRegisters.size + usedFpRegisters.size} registers)")
+
+        irProgram.blocks.forEach {
+            it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+            it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+            it.asmSubroutines.forEach { asmsub -> addUsed(asmsub.usedRegisters()) }
+        }
+        println("($numLines lines in $numChunks code chunks, $usedRegisters registers)")
         return outfile
     }
 

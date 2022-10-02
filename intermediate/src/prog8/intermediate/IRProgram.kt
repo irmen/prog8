@@ -144,21 +144,13 @@ class IRAsmSubroutine(
     fun usedRegisters() = registersUsed
 }
 
-sealed class IRCodeLine {
-    abstract fun usedRegisters(): RegistersUsed
-}
+sealed class IRCodeLine
 
-class IRCodeLabel(val name: String): IRCodeLine() {
-    override fun usedRegisters() = RegistersUsed.EMPTY
-}
+class IRCodeLabel(val name: String): IRCodeLine()
 
-class IRCodeComment(val comment: String): IRCodeLine() {
-    override fun usedRegisters() = RegistersUsed.EMPTY
-}
+class IRCodeComment(val comment: String): IRCodeLine()
 
-class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine() {
-    override fun usedRegisters() = RegistersUsed.EMPTY
-}
+class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine()
 
 abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
@@ -173,16 +165,13 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     override fun isEmpty() = lines.isEmpty()
     override fun isNotEmpty() = lines.isNotEmpty()
     override fun usedRegisters(): RegistersUsed {
-        val inputRegs = mutableSetOf<Int>()
-        val outputRegs = mutableSetOf<Int>()
-        val inputFpRegs = mutableSetOf<Int>()
-        val outputFpRegs = mutableSetOf<Int>()
+        val inputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val inputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val outputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val outputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         lines.forEach {
-            val used = it.usedRegisters()
-            inputRegs += used.inputRegs
-            outputRegs += used.outputRegs
-            inputFpRegs += used.inputFpRegs
-            outputFpRegs += used.outputFpRegs
+            if(it is IRInstruction)
+                it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
         }
         return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
     }
@@ -197,10 +186,11 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
 }
 
 class RegistersUsed(
-    val inputRegs: Set<Int>,
-    val outputRegs: Set<Int>,
-    val inputFpRegs: Set<Int>,
-    val outputFpRegs: Set<Int>
+    // register num -> number of uses
+    val inputRegs: Map<Int, Int>,
+    val outputRegs: Map<Int, Int>,
+    val inputFpRegs: Map<Int, Int>,
+    val outputFpRegs: Map<Int, Int>,
 ) {
     override fun toString(): String {
         return "input=$inputRegs, output=$outputRegs, inputFp=$inputFpRegs, outputFp=$outputFpRegs"
@@ -208,10 +198,6 @@ class RegistersUsed(
 
     fun isEmpty() = inputRegs.isEmpty() && outputRegs.isEmpty() && inputFpRegs.isEmpty() && outputFpRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
-
-    companion object {
-        val EMPTY = RegistersUsed(emptySet(), emptySet(), emptySet(), emptySet())
-    }
 }
 
 class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
@@ -229,19 +215,16 @@ class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Positi
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {
-    val inputRegs = mutableSetOf<Int>()
-    val inputFpRegs = mutableSetOf<Int>()
-    val outputRegs = mutableSetOf<Int>()
-    val outputFpRegs = mutableSetOf<Int>()
+    val inputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+    val inputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+    val outputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+    val outputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
             val code = parseIRCodeLine(line.trim(), 0, mutableMapOf())
-            val used = code.usedRegisters()
-            inputRegs += used.inputRegs
-            outputRegs += used.outputRegs
-            inputFpRegs += used.inputFpRegs
-            outputFpRegs += used.outputFpRegs
+            if(code is IRInstruction)
+                code.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
         }
     }
 
