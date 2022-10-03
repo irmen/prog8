@@ -33,21 +33,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("</PROGRAM>\n")
         out.close()
 
-        var usedRegisters = 0
-
-        fun addUsed(used: RegistersUsed) {
-            used.inputRegs.forEach{ (reg, count) -> usedRegisters+=count }
-            used.outputRegs.forEach{ (reg, count) -> usedRegisters+=count }
-            used.inputFpRegs.forEach{ (reg, count) -> usedRegisters+=count }
-            used.outputFpRegs.forEach{ (reg, count) -> usedRegisters+=count }
-        }
-
-        irProgram.blocks.forEach {
-            it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
-            it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
-            it.asmSubroutines.forEach { asmsub -> addUsed(asmsub.usedRegisters()) }
-        }
-        println("($numLines lines in $numChunks code chunks, $usedRegisters registers)")
+        val used = irProgram.registersUsed()
+        val numberUsed = (used.inputRegs.keys + used.outputRegs.keys).size + (used.inputFpRegs.keys + used.outputFpRegs.keys).size
+        println("($numLines lines in $numChunks code chunks, $numberUsed registers)")
         return outfile
     }
 

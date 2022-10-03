@@ -1,7 +1,6 @@
 package prog8.vm
 
 import prog8.code.core.AssemblyError
-import java.lang.NumberFormatException
 import kotlin.math.min
 
 /*

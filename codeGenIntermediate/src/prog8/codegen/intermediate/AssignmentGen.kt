@@ -6,9 +6,9 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.SignedDatatypes
 import prog8.intermediate.IRCodeChunk
+import prog8.intermediate.IRDataType
 import prog8.intermediate.IRInstruction
 import prog8.intermediate.Opcode
-import prog8.intermediate.IRDataType
 
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
 

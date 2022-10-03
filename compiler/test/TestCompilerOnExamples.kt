@@ -8,7 +8,6 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8tests.helpers.*
-import prog8tests.helpers.compileText
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists

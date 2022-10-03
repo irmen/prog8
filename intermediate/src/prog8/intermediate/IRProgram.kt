@@ -76,6 +76,32 @@ class IRProgram(val name: String,
             }
         }
     }
+
+    fun registersUsed(): RegistersUsed {
+        val inputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val inputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val outputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val outputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+
+        fun addUsed(usedRegisters: RegistersUsed) {
+            usedRegisters.inputRegs.forEach{ (reg, count) -> inputRegs[reg] = inputRegs.getValue(reg) + count }
+            usedRegisters.outputRegs.forEach{ (reg, count) -> outputRegs[reg] = outputRegs.getValue(reg) + count }
+            usedRegisters.inputFpRegs.forEach{ (reg, count) -> inputFpRegs[reg] = inputFpRegs.getValue(reg) + count }
+            usedRegisters.outputFpRegs.forEach{ (reg, count) -> outputFpRegs[reg] = outputFpRegs.getValue(reg) + count }
+        }
+
+        globalInits.forEach {
+            if(it is IRInstruction)
+                it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
+        }
+        blocks.forEach {
+            it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+            it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+            it.asmSubroutines.forEach { asmsub -> addUsed(asmsub.usedRegisters()) }
+        }
+
+        return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
+    }
 }
 
 class IRBlock(
