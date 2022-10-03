@@ -58,17 +58,19 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 out.write("</PARAMS>\n")
                 it.chunks.forEach { chunk ->
                     numChunks++
-                    if(chunk is IRInlineAsmChunk) {
-                        writeInlineAsm(chunk)
-                    } else {
-                        out.write("<C>\n")
-                        if (chunk.lines.isEmpty())
-                            throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
-                        chunk.lines.forEach { line ->
-                            numLines++
-                            out.writeLine(line)
+                    when (chunk) {
+                        is IRInlineAsmChunk -> writeInlineAsm(chunk)
+                        is IRInlineBinaryChunk -> writeInlineBytes(chunk)
+                        else -> {
+                            out.write("<C>\n")
+                            if (chunk.lines.isEmpty())
+                                throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
+                            chunk.lines.forEach { line ->
+                                numLines++
+                                out.writeLine(line)
+                            }
+                            out.write("</C>\n")
                         }
-                        out.write("</C>\n")
                     }
                 }
                 out.write("</SUB>\n")
@@ -93,6 +95,16 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             out.write("</BLOCK>\n")
         }
+    }
+
+    private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
+        out.write("<BYTES POS=${chunk.position}>\n")
+        chunk.data.withIndex().forEach {(index, byte) ->
+            out.write(byte.toString(16).padStart(2,'0'))
+            if(index and 63 == 63 && index < chunk.data.size-1)
+                out.write("\n")
+        }
+        out.write("\n</BYTES>\n")
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
@@ -170,18 +182,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun BufferedWriter.writeLine(line: IRCodeLine) {
         when(line) {
-            is IRCodeComment -> write("; ${line.comment}\n")
             is IRInstruction -> write(line.toString() + "\n")
             is IRCodeLabel -> write("_${line.name}:\n")
-            is IRCodeInlineBinary -> {
-                write("<BYTES>\n")
-                line.data.withIndex().forEach {(index, byte) ->
-                    write(byte.toString(16).padStart(2,'0'))
-                    if(index and 63 == 63 && index < line.data.size-1)
-                        write("\n")
-                }
-                write("\n</BYTES>\n")
-            }
             else -> throw AssemblyError("invalid vm code line")
         }
     }

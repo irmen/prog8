@@ -30,6 +30,7 @@ PROGRAM:
                 ...
             C (CODE)
             C (CODE)
+            BYTES
             ...
         SUB
         SUB
@@ -174,10 +175,6 @@ sealed class IRCodeLine
 
 class IRCodeLabel(val name: String): IRCodeLine()
 
-class IRCodeComment(val comment: String): IRCodeLine()
-
-class IRCodeInlineBinary(val data: Collection<UByte>): IRCodeLine()
-
 abstract class IRCodeChunkBase(val position: Position) {
     val lines = mutableListOf<IRCodeLine>()
 
@@ -211,6 +208,26 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 }
 
+class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
+    // note: no lines, asm is in the property
+    override fun isEmpty() = assembly.isBlank()
+    override fun isNotEmpty() = assembly.isNotBlank()
+    private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
+
+    init {
+        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
+        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
+    }
+
+    override fun usedRegisters() = registersUsed
+}
+
+class IRInlineBinaryChunk(val data: Collection<UByte>, position: Position): IRCodeChunkBase(position) {
+    override fun isEmpty() = data.isEmpty()
+    override fun isNotEmpty() = data.isNotEmpty()
+    override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap())
+}
+
 class RegistersUsed(
     // register num -> number of uses
     val inputRegs: Map<Int, Int>,
@@ -224,20 +241,6 @@ class RegistersUsed(
 
     fun isEmpty() = inputRegs.isEmpty() && outputRegs.isEmpty() && inputFpRegs.isEmpty() && outputFpRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
-}
-
-class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
-    // note: no lines, asm is in the property
-    override fun isEmpty() = assembly.isBlank()
-    override fun isNotEmpty() = assembly.isNotBlank()
-    private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
-
-    init {
-        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
-        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
-    }
-
-    override fun usedRegisters() = registersUsed
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {

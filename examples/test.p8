@@ -3,5 +3,7 @@ main {
         ubyte aa = 42
         ubyte bb = 99
         aa += bb
+
+        %asmbinary "build.gradle"
     }
 }

@@ -36,10 +36,11 @@ class VmProgramLoader {
             block.subroutines.forEach {
                 symbolAddresses[it.name] = program.size
                 it.chunks.forEach { chunk ->
-                    if(chunk is IRInlineAsmChunk)
-                        addAssemblyToProgram(chunk, program, symbolAddresses)
-                    else
-                        addToProgram(chunk.lines, program, symbolAddresses)
+                    when (chunk) {
+                        is IRInlineAsmChunk -> addAssemblyToProgram(chunk, program, symbolAddresses)
+                        is IRInlineBinaryChunk -> program += IRInstruction(Opcode.BINARYDATA, binaryData = chunk.data)
+                        else -> addToProgram(chunk.lines, program, symbolAddresses)
+                    }
                 }
             }
             if(block.asmSubroutines.any())
@@ -217,8 +218,6 @@ class VmProgramLoader {
                         program += it
                     }
                 }
-                is IRCodeInlineBinary -> program += IRInstruction(Opcode.BINARYDATA, binaryData = it.data)
-                is IRCodeComment -> { /* just ignore */ }
                 is IRCodeLabel -> { symbolAddresses[it.name] = program.size }
             }
         }

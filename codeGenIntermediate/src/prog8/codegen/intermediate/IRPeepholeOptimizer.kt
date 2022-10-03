@@ -39,8 +39,6 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
 
         fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
-                if(chunk.lines.any{ it is IRCodeInlineBinary})
-                    return false
                 return true
 
                 // TODO: only if all instructions are non-branching, allow it to join?

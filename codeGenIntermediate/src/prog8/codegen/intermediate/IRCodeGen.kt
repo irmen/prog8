@@ -240,12 +240,10 @@ class IRCodeGen(
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> IRInlineAsmChunk(node.assembly, node.isIR, node.position)
             is PtIncludeBinary -> {
-                val chunk = IRCodeChunk(node.position)
                 val data =  node.file.readBytes()
                     .drop(node.offset?.toInt() ?: 0)
                     .take(node.length?.toInt() ?: Int.MAX_VALUE)
-                chunk += IRCodeInlineBinary(data.map { it.toUByte() })
-                return chunk
+                return IRInlineBinaryChunk(data.map { it.toUByte() }, node.position)
             }
             is PtAddressOf,
             is PtContainmentCheck,

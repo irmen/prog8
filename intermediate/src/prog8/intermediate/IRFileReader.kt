@@ -286,6 +286,7 @@ class IRFileReader {
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
     private val inlineAsmPattern = Regex("<INLINEASM IR=(.+) POS=(.+)>")
+    private val bytesPattern = Regex("<BYTES POS=(.+)>")
     private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
@@ -387,6 +388,8 @@ class IRFileReader {
                 return sub
             val chunk = if(line=="<C>")
                 parseCodeChunk(line, lines)
+            else if(line.startsWith("<BYTES "))
+                parseBinaryBytes(line, lines)
             else if(line.startsWith("<INLINEASM "))
                 parseInlineAssembly(line, lines)
             else
@@ -401,6 +404,20 @@ class IRFileReader {
         if(line=="</SUB>")
             throw IRParseException("missing SUB close tag")
         return sub
+    }
+
+    private fun parseBinaryBytes(startline: String, lines: Iterator<String>): IRInlineBinaryChunk {
+        val match = bytesPattern.matchEntire(startline) ?: throw IRParseException("invalid BYTES")
+        val pos = parsePosition(match.groupValues[1])
+        val bytes = mutableListOf<UByte>()
+        var line = lines.next()
+        while(line!="</BYTES>") {
+            line.trimEnd().windowed(size=2, step=2) {
+                bytes.add(it.toString().toUByte(16))
+            }
+            line = lines.next()
+        }
+        return IRInlineBinaryChunk(bytes, pos)
     }
 
     private fun parseParameters(lines: Iterator<String>, variables: List<StStaticVariable>): List<IRSubroutine.IRParam> {
@@ -428,24 +445,12 @@ class IRFileReader {
         }
         val chunk = IRCodeChunk(Position.DUMMY)
         while(true) {
-            var line = lines.next()
+            val line = lines.next()
             if (line == "</C>")
                 return chunk
             if (line.isBlank() || line.startsWith(';'))
                 continue
-            if(line=="<BYTES>") {
-                val bytes = mutableListOf<UByte>()
-                line = lines.next()
-                while(line!="</BYTES>") {
-                    line.trimEnd().windowed(size=2, step=2) {
-                        bytes.add(it.toString().toUByte(16))
-                    }
-                    line = lines.next()
-                }
-                chunk += IRCodeInlineBinary(bytes)
-            } else {
-                chunk += parseIRCodeLine(line, 0, mutableMapOf())
-            }
+            chunk += parseIRCodeLine(line, 0, mutableMapOf())
         }
     }
 
