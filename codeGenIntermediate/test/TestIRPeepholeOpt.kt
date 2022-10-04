@@ -6,12 +6,12 @@ import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
 
 class TestIRPeepholeOpt: FunSpec({
-    fun makeIRProgram(lines: List<IRCodeLine>): IRProgram {
+    fun makeIRProgram(instructions: List<IRCodeLine>): IRProgram {
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val sub = IRSubroutine("main.start", emptyList(), null, Position.DUMMY)
         val chunk = IRCodeChunk(Position.DUMMY)
-        for(line in lines)
-            chunk += line
+        for(instr in instructions)
+            chunk += instr
         sub += chunk
         block += sub
         val target = VMTarget()
@@ -30,7 +30,7 @@ class TestIRPeepholeOpt: FunSpec({
         return prog
     }
 
-    fun IRProgram.lines(): List<IRCodeLine> = this.blocks.flatMap { it.subroutines }.flatMap { it.chunks }.flatMap { it.lines }
+    fun IRProgram.instructions(): List<IRCodeLine> = this.blocks.flatMap { it.subroutines }.flatMap { it.chunks }.flatMap { it.instructions }
 
     test("remove nops") {
         val irProg = makeIRProgram(listOf(
@@ -38,10 +38,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.NOP),
             IRInstruction(Opcode.NOP)
         ))
-        irProg.lines().size shouldBe 3
+        irProg.instructions().size shouldBe 3
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        irProg.lines().size shouldBe 1
+        irProg.instructions().size shouldBe 1
     }
 
     test("remove jmp to label below") {
@@ -55,10 +55,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=1),
             IRCodeLabel("label3")
         ))
-        irProg.lines().size shouldBe 8
+        irProg.instructions().size shouldBe 8
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 5
         (lines[0] as IRCodeLabel).name shouldBe "label"
         (lines[1] as IRCodeLabel).name shouldBe "label2"
@@ -76,10 +76,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.CLC),
             IRInstruction(Opcode.CLC)
         ))
-        irProg.lines().size shouldBe 6
+        irProg.instructions().size shouldBe 6
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 1
         (lines[0] as IRInstruction).opcode shouldBe Opcode.CLC
     }
@@ -91,10 +91,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=99),
             IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=222)
         ))
-        irProg.lines().size shouldBe 4
+        irProg.instructions().size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 1
         (lines[0] as IRInstruction).opcode shouldBe Opcode.LOADR
         (lines[0] as IRInstruction).reg1 shouldBe 222
@@ -114,10 +114,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=42, value = 0),
             IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 0)
         ))
-        irProg.lines().size shouldBe 10
+        irProg.instructions().size shouldBe 10
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 4
     }
 
@@ -126,10 +126,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=42, value = 1),
             IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 1)
         ))
-        irProg.lines().size shouldBe 2
+        irProg.instructions().size shouldBe 2
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 2
         (lines[0] as IRInstruction).opcode shouldBe Opcode.INC
         (lines[1] as IRInstruction).opcode shouldBe Opcode.DEC
@@ -146,10 +146,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, value = 1),
             IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, value = 1)
         ))
-        irProg.lines().size shouldBe 8
+        irProg.instructions().size shouldBe 8
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 4
     }
 
@@ -160,10 +160,10 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, value = 255),
             IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, value = 65535)
         ))
-        irProg.lines().size shouldBe 4
+        irProg.instructions().size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        val lines = irProg.lines()
+        val lines = irProg.instructions()
         lines.size shouldBe 4
         (lines[0] as IRInstruction).opcode shouldBe Opcode.LOAD
         (lines[1] as IRInstruction).opcode shouldBe Opcode.LOAD

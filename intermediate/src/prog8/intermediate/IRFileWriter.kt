@@ -11,7 +11,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
     private val out = outfile.bufferedWriter()
     private var numChunks = 0
-    private var numLines = 0
+    private var numInstr = 0
 
 
     fun write(): Path {
@@ -35,7 +35,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         val used = irProgram.registersUsed()
         val numberUsed = (used.inputRegs.keys + used.outputRegs.keys).size + (used.inputFpRegs.keys + used.outputFpRegs.keys).size
-        println("($numLines lines in $numChunks code chunks, $numberUsed registers)")
+        println("($numInstr instructions in $numChunks chunks, $numberUsed registers)")
         return outfile
     }
 
@@ -63,11 +63,11 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         is IRInlineBinaryChunk -> writeInlineBytes(chunk)
                         else -> {
                             out.write("<C>\n")
-                            if (chunk.lines.isEmpty())
+                            if (chunk.instructions.isEmpty())
                                 throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
-                            chunk.lines.forEach { line ->
-                                numLines++
-                                out.writeLine(line)
+                            chunk.instructions.forEach { instr ->
+                                numInstr++
+                                out.writeLine(instr)
                             }
                             out.write("</C>\n")
                         }

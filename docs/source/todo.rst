@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- ir: get rid of IRCodeLabel, make every label start a new code chunk, give those a 'label' property.
+- ir: fix joinChunks() in the IR optimizer ?
+
 ...
 
 
@@ -19,8 +22,6 @@ Compiler:
 
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - ir: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
-- ir: the above means that every label introduces a new code block. This eliminates the use of actual labels altogether during execution/translation.
-- ir: joinChunks() in the IR optimizer should be changed accordingly
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.

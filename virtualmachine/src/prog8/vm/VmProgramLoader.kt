@@ -39,7 +39,7 @@ class VmProgramLoader {
                     when (chunk) {
                         is IRInlineAsmChunk -> addAssemblyToProgram(chunk, program, symbolAddresses)
                         is IRInlineBinaryChunk -> program += IRInstruction(Opcode.BINARYDATA, binaryData = chunk.data)
-                        else -> addToProgram(chunk.lines, program, symbolAddresses)
+                        else -> addToProgram(chunk.instructions, program, symbolAddresses)
                     }
                 }
             }
@@ -187,11 +187,11 @@ class VmProgramLoader {
     }
 
     private fun addToProgram(
-        lines: Iterable<IRCodeLine>,
+        instructions: Iterable<IRCodeLine>,
         program: MutableList<IRInstruction>,
         symbolAddresses: MutableMap<String, Int>
     ) {
-        lines.map {
+        instructions.map {
             when(it) {
                 is IRInstruction -> {
                     it.labelSymbol?.let { symbol -> placeholders[program.size]=symbol }

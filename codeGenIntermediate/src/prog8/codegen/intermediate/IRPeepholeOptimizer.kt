@@ -10,7 +10,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 // we don't optimize Inline Asm chunks here.
                 if(chunk is IRCodeChunk) {
                     do {
-                        val indexedInstructions = chunk.lines.withIndex()
+                        val indexedInstructions = chunk.instructions.withIndex()
                             .filter { it.value is IRInstruction }
                             .map { IndexedValue(it.index, it.value as IRInstruction) }
                         val changed = removeNops(chunk, indexedInstructions)
@@ -51,7 +51,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         chunks += sub.chunks[0]
         for(ix in 1 until sub.chunks.size) {
             if(mayJoin(chunks.last(), sub.chunks[ix]))
-                chunks.last().lines += sub.chunks[ix].lines
+                chunks.last().instructions += sub.chunks[ix].instructions
             else
                 chunks += sub.chunks[ix]
         }
@@ -64,15 +64,15 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.PUSH) {
-                if(idx < chunk.lines.size-1) {
-                    val insAfter = chunk.lines[idx+1] as? IRInstruction
+                if(idx < chunk.instructions.size-1) {
+                    val insAfter = chunk.instructions[idx+1] as? IRInstruction
                     if(insAfter!=null && insAfter.opcode == Opcode.POP) {
                         if(ins.reg1==insAfter.reg1) {
-                            chunk.lines.removeAt(idx)
-                            chunk.lines.removeAt(idx)
+                            chunk.instructions.removeAt(idx)
+                            chunk.instructions.removeAt(idx)
                         } else {
-                            chunk.lines[idx] = IRInstruction(Opcode.LOADR, ins.type, reg1=insAfter.reg1, reg2=ins.reg1)
-                            chunk.lines.removeAt(idx+1)
+                            chunk.instructions[idx] = IRInstruction(Opcode.LOADR, ins.type, reg1=insAfter.reg1, reg2=ins.reg1)
+                            chunk.instructions.removeAt(idx+1)
                         }
                         changed = true
                     }
@@ -88,18 +88,18 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.SEC || ins.opcode== Opcode.CLC) {
-                if(idx < chunk.lines.size-1) {
-                    val insAfter = chunk.lines[idx+1] as? IRInstruction
+                if(idx < chunk.instructions.size-1) {
+                    val insAfter = chunk.instructions[idx+1] as? IRInstruction
                     if(insAfter?.opcode == ins.opcode) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                     else if(ins.opcode== Opcode.SEC && insAfter?.opcode== Opcode.CLC) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                     else if(ins.opcode== Opcode.CLC && insAfter?.opcode== Opcode.SEC) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
@@ -114,19 +114,19 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             val labelSymbol = ins.labelSymbol
             if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
                 //  remove jump/branch to label immediately below
-                if(idx < chunk.lines.size-1) {
-                    val label = chunk.lines[idx+1] as? IRCodeLabel
+                if(idx < chunk.instructions.size-1) {
+                    val label = chunk.instructions[idx+1] as? IRCodeLabel
                     if(label?.name == labelSymbol) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
             }
             // remove useless RETURN
             if(ins.opcode == Opcode.RETURN && idx>0) {
-                val previous = chunk.lines[idx-1] as? IRInstruction
+                val previous = chunk.instructions[idx-1] as? IRInstruction
                 if(previous?.opcode in setOf(Opcode.JUMP, Opcode.JUMPA, Opcode.RETURN)) {
-                    chunk.lines.removeAt(idx)
+                    chunk.instructions.removeAt(idx)
                     changed = true
                 }
             }
@@ -141,47 +141,47 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MOD -> {
                     if (ins.value == 1) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.ADD, Opcode.SUB -> {
                     if (ins.value == 1) {
-                        chunk.lines[idx] = IRInstruction(
+                        chunk.instructions[idx] = IRInstruction(
                             if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
                             ins.type,
                             ins.reg1
                         )
                         changed = true
                     } else if (ins.value == 0) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.AND -> {
                     if (ins.value == 0) {
-                        chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
                         changed = true
                     } else if (ins.value == 255 && ins.type == IRDataType.BYTE) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     } else if (ins.value == 65535 && ins.type == IRDataType.WORD) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.OR -> {
                     if (ins.value == 0) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     } else if ((ins.value == 255 && ins.type == IRDataType.BYTE) || (ins.value == 65535 && ins.type == IRDataType.WORD)) {
-                        chunk.lines[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
                         changed = true
                     }
                 }
                 Opcode.XOR -> {
                     if (ins.value == 0) {
-                        chunk.lines.removeAt(idx)
+                        chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
@@ -196,7 +196,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.NOP) {
                 changed = true
-                chunk.lines.removeAt(idx)
+                chunk.instructions.removeAt(idx)
             }
         }
         return changed

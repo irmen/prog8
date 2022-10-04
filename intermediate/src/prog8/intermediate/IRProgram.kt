@@ -55,7 +55,7 @@ class IRProgram(val name: String,
     val globalInits = mutableListOf<IRCodeLine>()
     val blocks = mutableListOf<IRBlock>()
 
-    fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.lines)
+    fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.instructions)
     fun addBlock(block: IRBlock) {
         require(blocks.all { it.name != block.name}) { "duplicate block ${block.name} ${block.position}" }
         blocks.add(block)
@@ -68,11 +68,11 @@ class IRProgram(val name: String,
     fun validate() {
         blocks.forEach {
             it.inlineAssembly.forEach { chunk ->
-                require(chunk.lines.isEmpty())
+                require(chunk.instructions.isEmpty())
             }
             it.subroutines.forEach { sub ->
                 sub.chunks.forEach { chunk ->
-                    if (chunk is IRInlineAsmChunk) { require(chunk.lines.isEmpty()) }
+                    if (chunk is IRInlineAsmChunk) { require(chunk.instructions.isEmpty()) }
                 }
             }
         }
@@ -176,7 +176,7 @@ sealed class IRCodeLine
 class IRCodeLabel(val name: String): IRCodeLine()
 
 abstract class IRCodeChunkBase(val position: Position) {
-    val lines = mutableListOf<IRCodeLine>()
+    val instructions = mutableListOf<IRCodeLine>()
 
     abstract fun isEmpty(): Boolean
     abstract fun isNotEmpty(): Boolean
@@ -185,14 +185,14 @@ abstract class IRCodeChunkBase(val position: Position) {
 
 class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
 
-    override fun isEmpty() = lines.isEmpty()
-    override fun isNotEmpty() = lines.isNotEmpty()
+    override fun isEmpty() = instructions.isEmpty()
+    override fun isNotEmpty() = instructions.isNotEmpty()
     override fun usedRegisters(): RegistersUsed {
         val inputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         val inputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         val outputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         val outputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        lines.forEach {
+        instructions.forEach {
             if(it is IRInstruction)
                 it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
         }
@@ -200,11 +200,11 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 
     operator fun plusAssign(line: IRCodeLine) {
-        lines.add(line)
+        instructions.add(line)
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {
-        lines.addAll(chunk.lines)
+        instructions.addAll(chunk.instructions)
     }
 }
 

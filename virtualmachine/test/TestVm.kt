@@ -61,8 +61,8 @@ class TestVm: FunSpec( {
         vm.memory.getUW(1000) shouldBe 12345u
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
-        vm.pc shouldBe code.lines.size-1
-        vm.stepCount shouldBe code.lines.size
+        vm.pc shouldBe code.instructions.size-1
+        vm.stepCount shouldBe code.instructions.size
     }
 
     test("vm asmsub not supported") {

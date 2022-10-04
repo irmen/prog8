@@ -63,9 +63,9 @@ class IRCodeGen(
         //       for instance when a piece of inlined assembly references them.
         val replacements = mutableListOf<Triple<IRCodeChunkBase, Int, UInt>>()
         irProg.blocks.asSequence().flatMap { it.subroutines }.flatMap { it.chunks }.forEach { chunk ->
-            chunk.lines.withIndex().forEach {
-                (lineIndex, line) -> if(line is IRInstruction) {
-                    val symbolExpr = line.labelSymbol
+            chunk.instructions.withIndex().forEach {
+                (idx, instr) -> if(instr is IRInstruction) {
+                    val symbolExpr = instr.labelSymbol
                     if(symbolExpr!=null) {
                         val symbol: String
                         val index: UInt
@@ -79,7 +79,7 @@ class IRCodeGen(
                         }
                         val target = symbolTable.flat[symbol.split('.')]
                         if (target is StMemVar) {
-                            replacements.add(Triple(chunk, lineIndex, target.address+index))
+                            replacements.add(Triple(chunk, idx, target.address+index))
                         }
                     }
                 }
@@ -87,8 +87,8 @@ class IRCodeGen(
         }
 
         replacements.forEach {
-            val old = it.first.lines[it.second] as IRInstruction
-            it.first.lines[it.second] = IRInstruction(
+            val old = it.first.instructions[it.second] as IRInstruction
+            it.first.instructions[it.second] = IRInstruction(
                 old.opcode,
                 old.type,
                 old.reg1,
