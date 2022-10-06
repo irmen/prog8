@@ -3,6 +3,7 @@ package prog8.vm
 import prog8.code.core.DataType
 import prog8.intermediate.*
 
+/*
 class VmProgramLoader {
 
     private val placeholders = mutableMapOf<Int, String>()      // program index to symbolname
@@ -13,12 +14,12 @@ class VmProgramLoader {
         placeholders.clear()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
         val symbolAddresses = allocations.allocations.toMutableMap()
-        val program = mutableListOf<IRInstruction>()
+        val programChunks = mutableListOf<IRCodeChunkBase>()
 
         varsToMemory(irProgram, allocations, symbolAddresses, memory)
 
         if(!irProgram.options.dontReinitGlobals)
-            addToProgram(irProgram.globalInits, program, symbolAddresses)
+            addToProgram(irProgram.globalInits, programChunks, symbolAddresses)
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
@@ -187,8 +188,8 @@ class VmProgramLoader {
     }
 
     private fun addToProgram(
-        instructions: Iterable<IRCodeLine>,
-        program: MutableList<IRInstruction>,
+        chunks: Iterable<IRCodeChunkBase>,
+        program: MutableList<IRCodeChunkBase>,
         symbolAddresses: MutableMap<String, Int>
     ) {
         instructions.map {
@@ -241,3 +242,4 @@ class VmProgramLoader {
         }
     }
 }
+*/

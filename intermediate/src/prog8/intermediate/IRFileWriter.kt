@@ -1,7 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.core.*
-import java.io.BufferedWriter
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.DataType
+import prog8.code.core.InternalCompilerException
+import prog8.code.core.NumericDatatypes
 import java.nio.file.Path
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
@@ -25,7 +27,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         if(!irProgram.options.dontReinitGlobals) {
             out.write("<C>\n")
             // note: this a block of code that loads values and stores them into the global variables to reset their values.
-            irProgram.globalInits.forEach { out.writeLine(it) }
+            irProgram.globalInits.forEach { out.write(it.toString()) }
             out.write("</C>\n")
         }
         out.write("</INITGLOBALS>\n")
@@ -67,7 +69,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                                 throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
                             chunk.instructions.forEach { instr ->
                                 numInstr++
-                                out.writeLine(instr)
+                                out.write(instr.toString())
                             }
                             out.write("</C>\n")
                         }
@@ -178,13 +180,5 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("\n<MEMORYSLABS>\n")
         irProgram.st.allMemorySlabs().forEach{ slab -> out.write("SLAB ${slab.name} ${slab.size} ${slab.align}\n") }
         out.write("</MEMORYSLABS>\n")
-    }
-
-    private fun BufferedWriter.writeLine(line: IRCodeLine) {
-        when(line) {
-            is IRInstruction -> write(line.toString() + "\n")
-            is IRCodeLabel -> write("_${line.name}:\n")
-            else -> throw AssemblyError("invalid vm code line")
-        }
     }
 }

@@ -52,7 +52,7 @@ class IRProgram(val name: String,
                 val encoding: IStringEncoding) {
 
     val asmSymbols = mutableMapOf<String, String>()
-    val globalInits = mutableListOf<IRCodeLine>()
+    val globalInits = mutableListOf<IRInstruction>()
     val blocks = mutableListOf<IRBlock>()
 
     fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.instructions)
@@ -91,10 +91,7 @@ class IRProgram(val name: String,
             usedRegisters.outputFpRegs.forEach{ (reg, count) -> outputFpRegs[reg] = outputFpRegs.getValue(reg) + count }
         }
 
-        globalInits.forEach {
-            if(it is IRInstruction)
-                it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
-        }
+        globalInits.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
         blocks.forEach {
             it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
             it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
@@ -171,19 +168,15 @@ class IRAsmSubroutine(
     fun usedRegisters() = registersUsed
 }
 
-sealed class IRCodeLine
-
-class IRCodeLabel(val name: String): IRCodeLine()
-
-abstract class IRCodeChunkBase(val position: Position) {
-    val instructions = mutableListOf<IRCodeLine>()
+abstract class IRCodeChunkBase(val label: String?, val position: Position) {
+    val instructions = mutableListOf<IRInstruction>()
 
     abstract fun isEmpty(): Boolean
     abstract fun isNotEmpty(): Boolean
     abstract fun usedRegisters(): RegistersUsed
 }
 
-class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
+class IRCodeChunk(label: String?, position: Position): IRCodeChunkBase(label, position) {
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
@@ -192,15 +185,12 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
         val inputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         val outputRegs = mutableMapOf<Int, Int>().withDefault { 0 }
         val outputFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        instructions.forEach {
-            if(it is IRInstruction)
-                it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
-        }
+        instructions.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
         return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
     }
 
-    operator fun plusAssign(line: IRCodeLine) {
-        instructions.add(line)
+    operator fun plusAssign(ins: IRInstruction) {
+        instructions.add(ins)
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {
@@ -208,8 +198,8 @@ class IRCodeChunk(position: Position): IRCodeChunkBase(position) {
     }
 }
 
-class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(position) {
-    // note: no lines, asm is in the property
+class IRInlineAsmChunk(label: String?, val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(label, position) {
+    // note: no instructions, asm is in the property
     override fun isEmpty() = assembly.isBlank()
     override fun isNotEmpty() = assembly.isNotBlank()
     private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
@@ -222,11 +212,14 @@ class IRInlineAsmChunk(val assembly: String, val isIR: Boolean, position: Positi
     override fun usedRegisters() = registersUsed
 }
 
-class IRInlineBinaryChunk(val data: Collection<UByte>, position: Position): IRCodeChunkBase(position) {
+class IRInlineBinaryChunk(label: String?, val data: Collection<UByte>, position: Position): IRCodeChunkBase(label, position) {
+    // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
     override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap())
 }
+
+typealias IRCodeChunks = List<IRCodeChunkBase>
 
 class RegistersUsed(
     // register num -> number of uses
@@ -251,9 +244,11 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
-            val code = parseIRCodeLine(line.trim(), 0, mutableMapOf())
-            if(code is IRInstruction)
-                code.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
+            val result = parseIRCodeLine(line.trim(), 0, mutableMapOf())
+            result.fold(
+                ifLeft = { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) },
+                ifRight = { /* labels can be skipped */ }
+            )
         }
     }
 

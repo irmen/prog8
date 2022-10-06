@@ -1,8 +1,7 @@
-package prog8
+package prog8.code
 
 /**
  * By convention, the right side of an `Either` is used to hold successful values.
- *
  */
 sealed class Either<out L, out R> {
 

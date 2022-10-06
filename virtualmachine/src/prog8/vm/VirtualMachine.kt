@@ -44,10 +44,14 @@ class VirtualMachine(irProgram: IRProgram) {
     private val cx16virtualregsBaseAddress: Int
 
     init {
+        program = emptyArray()      // TODO
+        cx16virtualregsBaseAddress = 0  // TODO
+/* TODO !!!
         program = VmProgramLoader().load(irProgram, memory).toTypedArray()
         require(program.size<=65536) {"program cannot contain more than 65536 instructions"}
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
         cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
+*/
     }
 
     fun run() {

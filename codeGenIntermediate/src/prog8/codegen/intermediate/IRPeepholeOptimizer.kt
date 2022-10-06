@@ -34,7 +34,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         TODO: this has to be changed later...
         */
 
-        if(sub.chunks.isEmpty())
+/*        if(sub.chunks.isEmpty())
             return
 
         fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
@@ -56,7 +56,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 chunks += sub.chunks[ix]
         }
         sub.chunks.clear()
-        sub.chunks += chunks
+        sub.chunks += chunks*/
     }
 
     private fun cleanupPushPop(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
@@ -112,15 +112,16 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             val labelSymbol = ins.labelSymbol
+
             if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
-                //  remove jump/branch to label immediately below
-                if(idx < chunk.instructions.size-1) {
-                    val label = chunk.instructions[idx+1] as? IRCodeLabel
-                    if(label?.name == labelSymbol) {
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    }
-                }
+                //  TODO remove jump/branch to label immediately below (= next chunk if it has that label)
+//                if(idx < chunk.instructions.size-1) {
+//                    val label = chunk.instructions[idx+1] as? IRCodeLabel
+//                    if(label?.name == labelSymbol) {
+//                        chunk.instructions.removeAt(idx)
+//                        changed = true
+//                    }
+//                }
             }
             // remove useless RETURN
             if(ins.opcode == Opcode.RETURN && idx>0) {

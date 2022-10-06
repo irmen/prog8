@@ -53,7 +53,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes)
                 || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypes && sub.parameters[1].type in ByteDatatypes)
 
-    internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {
+    internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {            // TODO remove isExpression unused parameter
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!

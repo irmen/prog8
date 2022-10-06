@@ -1,7 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.StMemVar
-import prog8.code.StStaticVariable
+import prog8.code.*
 import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
 
@@ -85,12 +84,12 @@ fun parseIRValue(value: String): Float {
 private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>): IRCodeLine {
+fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>): Either<IRInstruction, String> {
     // Note: this function is used from multiple places:
     // the IR File Reader but also the VirtualMachine itself to make sense of any inline vmasm blocks.
     val labelmatch = labelPattern.matchEntire(line.trim())
     if(labelmatch!=null)
-        return IRCodeLabel(labelmatch.groupValues[1])
+        return right(labelmatch.groupValues[1])     // it's a label.
 
     val match = instructionPattern.matchEntire(line)
         ?: throw IRParseException("invalid IR instruction: $line")
@@ -240,8 +239,8 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
                 "pc", "pz", "pv","pn"))
             throw IRParseException("invalid cpu reg: $reg")
 
-        return IRInstruction(opcode, type, reg1, labelSymbol = reg)
+        return left(IRInstruction(opcode, type, reg1, labelSymbol = reg))
     }
 
-    return IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol = labelSymbol)
+    return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol = labelSymbol))
 }

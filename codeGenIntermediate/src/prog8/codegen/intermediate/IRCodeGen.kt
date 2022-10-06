@@ -34,9 +34,12 @@ class IRCodeGen(
         if(!options.dontReinitGlobals) {
             // collect global variables initializers
             program.allBlocks().forEach {
-                val code = IRCodeChunk(it.position)
-                it.children.filterIsInstance<PtAssignment>().forEach { assign -> code += assignmentGen.translate(assign) }
-                irProg.addGlobalInits(code)
+                val result = mutableListOf<IRCodeChunkBase>()
+                it.children.filterIsInstance<PtAssignment>().forEach { assign -> result += assignmentGen.translate(assign) }
+                result.forEach { chunk ->
+                    if (chunk is IRCodeChunk) irProg.addGlobalInits(chunk)
+                    else throw AssemblyError("only expect code chunk for global inits")
+                }
             }
         }
 
@@ -209,17 +212,17 @@ class IRCodeGen(
         }
     }
 
-    internal fun translateNode(node: PtNode): IRCodeChunkBase {
-        val code = when(node) {
-            is PtScopeVarsDecls -> IRCodeChunk(node.position) // vars should be looked up via symbol table
-            is PtVariable -> IRCodeChunk(node.position) // var should be looked up via symbol table
-            is PtMemMapped -> IRCodeChunk(node.position) // memmapped var should be looked up via symbol table
-            is PtConstant -> IRCodeChunk(node.position) // constants have all been folded into the code
+    internal fun translateNode(node: PtNode): IRCodeChunks {
+        return when(node) {
+            is PtScopeVarsDecls -> emptyList() // vars should be looked up via symbol table
+            is PtVariable -> emptyList() // var should be looked up via symbol table
+            is PtMemMapped -> emptyList() // memmapped var should be looked up via symbol table
+            is PtConstant -> emptyList() // constants have all been folded into the code
             is PtAssignment -> assignmentGen.translate(node)
-            is PtNodeGroup -> translateGroup(node.children, node.position)
+            is PtNodeGroup -> translateGroup(node.children)
             is PtBuiltinFunctionCall -> translateBuiltinFunc(node, 0)
             is PtFunctionCall -> expressionEval.translate(node, 0, 0)
-            is PtNop -> IRCodeChunk(node.position)
+            is PtNop -> emptyList()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
             is PtWhen -> translate(node)
@@ -227,23 +230,19 @@ class IRCodeGen(
             is PtIfElse -> translate(node)
             is PtPostIncrDecr -> translate(node)
             is PtRepeatLoop -> translate(node)
-            is PtLabel -> {
-                val chunk = IRCodeChunk(node.position)
-                chunk += IRCodeLabel(node.name)
-                return chunk
-            }
+            is PtLabel -> listOf(IRCodeChunk(node.name, node.position))
             is PtBreakpoint -> {
-                val chunk = IRCodeChunk(node.position)
+                val chunk = IRCodeChunk(null, node.position)
                 chunk += IRInstruction(Opcode.BREAKPOINT)
-                return chunk
+                listOf(chunk)
             }
             is PtConditionalBranch -> translate(node)
-            is PtInlineAssembly -> IRInlineAsmChunk(node.assembly, node.isIR, node.position)
+            is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, node.position))
             is PtIncludeBinary -> {
                 val data =  node.file.readBytes()
                     .drop(node.offset?.toInt() ?: 0)
                     .take(node.length?.toInt() ?: Int.MAX_VALUE)
-                return IRInlineBinaryChunk(data.map { it.toUByte() }, node.position)
+                listOf(IRInlineBinaryChunk(null, data.map { it.toUByte() }, node.position))
             }
             is PtAddressOf,
             is PtContainmentCheck,
@@ -265,14 +264,13 @@ class IRCodeGen(
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
             else -> TODO("missing codegen for $node")
         }
-        return code
     }
 
-    private fun translate(branch: PtConditionalBranch): IRCodeChunk {
-        val code = IRCodeChunk(branch.position)
+    private fun translate(branch: PtConditionalBranch): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
-        code += when(branch.condition) {
+        val branchIns = when(branch.condition) {
             BranchCondition.CS -> IRInstruction(Opcode.BSTCC, labelSymbol = elseLabel)
             BranchCondition.CC -> IRInstruction(Opcode.BSTCS, labelSymbol = elseLabel)
             BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, labelSymbol = elseLabel)
@@ -282,70 +280,97 @@ class IRCodeGen(
             BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = elseLabel)
             BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = elseLabel)
         }
-        code += translateNode(branch.trueScope)
+        addInstr(result, branchIns, null, branch.position)
+        result += translateNode(branch.trueScope)
         if(branch.falseScope.children.isNotEmpty()) {
             val endLabel = createLabelName()
-            code += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
-            code += IRCodeLabel(elseLabel)
-            code += translateNode(branch.falseScope)
-            code += IRCodeLabel(endLabel)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null, branch.position)
+            val chunks = translateNode(branch.falseScope)
+            result += labelFirstChunk(chunks, elseLabel)
+            result += IRCodeChunk(endLabel, branch.position)
         } else {
-            code += IRCodeLabel(elseLabel)
+            result += IRCodeChunk(elseLabel, branch.position)
         }
-        return code
+        return result
     }
 
-    private fun translate(whenStmt: PtWhen): IRCodeChunk {
-        val code = IRCodeChunk(whenStmt.position)
+    private fun labelFirstChunk(chunks: IRCodeChunks, label: String): IRCodeChunks {
+        require(chunks.isNotEmpty() && label.isNotBlank())
+        val newChunks = chunks.drop(1).toMutableList()
+        val labeledFirstChunk = when(val first=chunks[0]) {
+            is IRCodeChunk -> {
+                val newChunk = IRCodeChunk(label, first.position)
+                first.instructions.forEach { newChunk += it }
+                newChunk
+            }
+            is IRInlineAsmChunk -> {
+                IRInlineAsmChunk(label, first.assembly, first.isIR, first.position)
+            }
+            is IRInlineBinaryChunk -> {
+                IRInlineBinaryChunk(label, first.data, first.position)
+            }
+            else -> {
+                throw AssemblyError("invalid chunk")
+            }
+        }
+        newChunks.add(0, labeledFirstChunk)
+        return newChunks
+    }
+
+    private fun translate(whenStmt: PtWhen): IRCodeChunks {
         if(whenStmt.choices.children.isEmpty())
-            return code
+            return emptyList()
+        val result = mutableListOf<IRCodeChunkBase>()
         val valueReg = registers.nextFree()
         val choiceReg = registers.nextFree()
         val valueDt = irType(whenStmt.value.type)
-        code += expressionEval.translateExpression(whenStmt.value, valueReg, -1)
+        result += expressionEval.translateExpression(whenStmt.value, valueReg, -1)
         val choices = whenStmt.choices.children.map {it as PtWhenChoice }
         val endLabel = createLabelName()
         for (choice in choices) {
             if(choice.isElse) {
-                code += translateNode(choice.statements)
+                result += translateNode(choice.statements)
             } else {
                 val skipLabel = createLabelName()
                 val values = choice.values.children.map {it as PtNumber}
                 if(values.size==1) {
-                    code += IRInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=values[0].number.toInt())
-                    code += IRInstruction(Opcode.BNE, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = skipLabel)
-                    code += translateNode(choice.statements)
+                    val chunk = IRCodeChunk(null, whenStmt.position)
+                    chunk += IRInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=values[0].number.toInt())
+                    chunk += IRInstruction(Opcode.BNE, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = skipLabel)
+                    result += chunk
+                    result += translateNode(choice.statements)
                     if(choice.statements.children.last() !is PtReturn)
-                        code += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null, whenStmt.position)
                 } else {
                     val matchLabel = createLabelName()
+                    val chunk = IRCodeChunk(null, whenStmt.position)
                     for (value in values) {
-                        code += IRInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=value.number.toInt())
-                        code += IRInstruction(Opcode.BEQ, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = matchLabel)
+                        chunk += IRInstruction(Opcode.LOAD, valueDt, reg1=choiceReg, value=value.number.toInt())
+                        chunk += IRInstruction(Opcode.BEQ, valueDt, reg1=valueReg, reg2=choiceReg, labelSymbol = matchLabel)
                     }
-                    code += IRInstruction(Opcode.JUMP, labelSymbol = skipLabel)
-                    code += IRCodeLabel(matchLabel)
-                    code += translateNode(choice.statements)
+                    chunk += IRInstruction(Opcode.JUMP, labelSymbol = skipLabel)
+                    result += chunk
+                    result += labelFirstChunk(translateNode(choice.statements), matchLabel)
                     if(choice.statements.children.last() !is PtReturn)
-                        code += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null, whenStmt.position)
                 }
-                code += IRCodeLabel(skipLabel)
+                result += IRCodeChunk(skipLabel, whenStmt.position)
             }
         }
-        code += IRCodeLabel(endLabel)
-        return code
+        result += IRCodeChunk(endLabel, whenStmt.position)
+        return result
     }
 
-    private fun translate(forLoop: PtForLoop): IRCodeChunk {
+    private fun translate(forLoop: PtForLoop): IRCodeChunks {
         val loopvar = symbolTable.lookup(forLoop.variable.targetName) as StStaticVariable
         val iterable = forLoop.iterable
-        val code = IRCodeChunk(forLoop.position)
+        val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
             is PtRange -> {
                 if(iterable.from is PtNumber && iterable.to is PtNumber)
-                    code += translateForInConstantRange(forLoop, loopvar)
+                    result += translateForInConstantRange(forLoop, loopvar)
                 else
-                    code += translateForInNonConstantRange(forLoop, loopvar)
+                    result += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
                 val symbol = iterable.targetName.joinToString(".")
@@ -357,15 +382,18 @@ class IRCodeGen(
                 val endLabel = createLabelName()
                 if(iterableVar.dt==DataType.STR) {
                     // iterate over a zero-terminated string
-                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0)
-                    code += IRCodeLabel(loopLabel)
-                    code += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = symbol)
-                    code += IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=tmpReg, labelSymbol = endLabel)
-                    code += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=tmpReg, labelSymbol = loopvarSymbol)
-                    code += translateNode(forLoop.statements)
-                    code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
-                    code += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
-                    code += IRCodeLabel(endLabel)
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0), null, forLoop.position)
+                    val chunk = IRCodeChunk(loopLabel, forLoop.position)
+                    chunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = symbol)
+                    chunk += IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=tmpReg, labelSymbol = endLabel)
+                    chunk += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=tmpReg, labelSymbol = loopvarSymbol)
+                    result += chunk
+                    result += translateNode(forLoop.statements)
+                    val jumpChunk = IRCodeChunk(null, forLoop.position)
+                    jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
+                    jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
+                    result += jumpChunk
+                    result += IRCodeChunk(endLabel, forLoop.position)
                 } else {
                     // iterate over array
                     val elementDt = ArrayToElementTypes.getValue(iterable.type)
@@ -373,22 +401,26 @@ class IRCodeGen(
                     val lengthBytes = iterableVar.length!! * elementSize
                     if(lengthBytes<256) {
                         val lengthReg = registers.nextFree()
-                        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0)
-                        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, value=lengthBytes)
-                        code += IRCodeLabel(loopLabel)
-                        code += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
-                        code += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                        code += translateNode(forLoop.statements)
-                        code += addConstReg(IRDataType.BYTE, indexReg, elementSize, iterable.position)
-                        code += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = loopLabel)
+                        val chunk = IRCodeChunk(null, forLoop.position)
+                        chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0)
+                        chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, value=lengthBytes)
+                        result += chunk
+                        val chunk2 = IRCodeChunk(loopLabel, forLoop.position)
+                        chunk2 += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
+                        chunk2 += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                        result += chunk2
+                        result += translateNode(forLoop.statements)
+                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize, iterable.position)
+                        addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, reg2=lengthReg, labelSymbol = loopLabel), null, forLoop.position)
                     } else if(lengthBytes==256) {
-                        code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0)
-                        code += IRCodeLabel(loopLabel)
-                        code += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
-                        code += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                        code += translateNode(forLoop.statements)
-                        code += addConstReg(IRDataType.BYTE, indexReg, elementSize, iterable.position)
-                        code += IRInstruction(Opcode.BNZ, IRDataType.BYTE, reg1=indexReg, labelSymbol = loopLabel)
+                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0), null, forLoop.position)
+                        val chunk = IRCodeChunk(loopLabel, forLoop.position)
+                        chunk += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
+                        chunk += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                        result += chunk
+                        result += translateNode(forLoop.statements)
+                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize, iterable.position)
+                        addInstr(result, IRInstruction(Opcode.BNZ, IRDataType.BYTE, reg1=indexReg, labelSymbol = loopLabel), null, forLoop.position)
                     } else {
                         throw AssemblyError("iterator length should never exceed 256")
                     }
@@ -396,10 +428,10 @@ class IRCodeGen(
             }
             else -> throw AssemblyError("weird for iterable")
         }
-        return code
+        return result
     }
 
-    private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
+    private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunks {
         val iterable = forLoop.iterable as PtRange
         val step = iterable.step.number.toInt()
         if (step==0)
@@ -409,21 +441,20 @@ class IRCodeGen(
         val loopvarSymbol = loopvar.scopedName.joinToString(".")
         val loopvarDt = irType(loopvar.dt)
         val loopLabel = createLabelName()
-        val code = IRCodeChunk(forLoop.position)
+        val result = mutableListOf<IRCodeChunkBase>()
 
-        code += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
-        code += expressionEval.translateExpression(iterable.from, indexReg, -1)
-        code += IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol)
-        code += IRCodeLabel(loopLabel)
-        code += translateNode(forLoop.statements)
-        code += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
-        code += IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol)
+        result += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
+        result += expressionEval.translateExpression(iterable.from, indexReg, -1)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol), null, forLoop.position)
+        result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+        result += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
+        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol), null, forLoop.position)
         val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
-        code += IRInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel)
-        return code
+        addInstr(result, IRInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel), null, forLoop.position)
+        return result
     }
 
-    private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunk {
+    private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunks {
         val loopLabel = createLabelName()
         val loopvarSymbol = loopvar.scopedName.joinToString(".")
         val indexReg = registers.nextFree()
@@ -437,30 +468,33 @@ class IRCodeGen(
         if(step>0 && rangeEndUntyped<rangeStart || step<0 && rangeEndUntyped>rangeStart)
             throw AssemblyError("empty range")
         val rangeEndWrapped = if(loopvarDt==IRDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
-        val code = IRCodeChunk(forLoop.position)
         val endvalueReg: Int
+        val result = mutableListOf<IRCodeChunkBase>()
+        val chunk = IRCodeChunk(null, forLoop.position)
         if(rangeEndWrapped!=0) {
             endvalueReg = registers.nextFree()
-            code += IRInstruction(Opcode.LOAD, loopvarDt, reg1 = endvalueReg, value = rangeEndWrapped)
+            chunk += IRInstruction(Opcode.LOAD, loopvarDt, reg1 = endvalueReg, value = rangeEndWrapped)
         } else {
             endvalueReg = -1 // not used
         }
-        code += IRInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
-        code += IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol)
-        code += IRCodeLabel(loopLabel)
-        code += translateNode(forLoop.statements)
-        code += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
-        code += IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol)
-        code += if(rangeEndWrapped==0) {
+        chunk += IRInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
+        chunk += IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol)
+        result += chunk
+        result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+        result += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
+        val chunk2 = IRCodeChunk(null, forLoop.position)
+        chunk2 += IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol)
+        chunk2 += if(rangeEndWrapped==0) {
             IRInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
         } else {
             IRInstruction(Opcode.BNE, loopvarDt, reg1 = indexReg, reg2 = endvalueReg, labelSymbol = loopLabel)
         }
-        return code
+        result += chunk2
+        return result
     }
 
     private fun addConstReg(dt: IRDataType, reg: Int, value: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
@@ -489,7 +523,7 @@ class IRCodeGen(
     }
 
     private fun addConstMem(dt: IRDataType, knownAddress: UInt?, symbol: String?, value: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
@@ -544,7 +578,7 @@ class IRCodeGen(
     }
 
     internal fun multiplyByConstFloat(fpReg: Int, factor: Float, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1f)
             return code
         code += if(factor==0f) {
@@ -556,7 +590,7 @@ class IRCodeGen(
     }
 
     internal fun multiplyByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1f)
             return code
         if(factor==0f) {
@@ -578,7 +612,7 @@ class IRCodeGen(
     internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
 
     internal fun multiplyByConst(dt: IRDataType, reg: Int, factor: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -602,7 +636,7 @@ class IRCodeGen(
     }
 
     internal fun multiplyByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -641,7 +675,7 @@ class IRCodeGen(
     }
 
     internal fun divideByConstFloat(fpReg: Int, factor: Float, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1f)
             return code
         code += if(factor==0f) {
@@ -653,7 +687,7 @@ class IRCodeGen(
     }
 
     internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1f)
             return code
         if(factor==0f) {
@@ -675,7 +709,7 @@ class IRCodeGen(
     }
 
     internal fun divideByConst(dt: IRDataType, reg: Int, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -704,7 +738,7 @@ class IRCodeGen(
     }
 
     internal fun divideByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
+        val code = IRCodeChunk(null, position)
         if(factor==1)
             return code
         val pow2 = powersOfTwo.indexOf(factor)
@@ -760,15 +794,15 @@ class IRCodeGen(
         return code
     }
 
-    private fun translate(ifElse: PtIfElse): IRCodeChunk {
+    private fun translate(ifElse: PtIfElse): IRCodeChunks {
         if(ifElse.condition.operator !in ComparisonOperators)
             throw AssemblyError("if condition should only be a binary comparison expression")
 
         val signed = ifElse.condition.left.type in arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
         val irDt = irType(ifElse.condition.left.type)
-        val code = IRCodeChunk(ifElse.position)
 
-        fun translateNonZeroComparison(): IRCodeChunk {
+        fun translateNonZeroComparison(): IRCodeChunks {
+            val result = mutableListOf<IRCodeChunkBase>()
             val elseBranch = when(ifElse.condition.operator) {
                 "==" -> Opcode.BNE
                 "!=" -> Opcode.BEQ
@@ -781,50 +815,49 @@ class IRCodeGen(
 
             val leftReg = registers.nextFree()
             val rightReg = registers.nextFree()
-            code += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
-            code += expressionEval.translateExpression(ifElse.condition.right, rightReg, -1)
+            result += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
+            result += expressionEval.translateExpression(ifElse.condition.right, rightReg, -1)
             if(ifElse.elseScope.children.isNotEmpty()) {
                 // if and else parts
                 val elseLabel = createLabelName()
                 val afterIfLabel = createLabelName()
-                code += IRInstruction(elseBranch, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = elseLabel)
-                code += translateNode(ifElse.ifScope)
-                code += IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel)
-                code += IRCodeLabel(elseLabel)
-                code += translateNode(ifElse.elseScope)
-                code += IRCodeLabel(afterIfLabel)
+                addInstr(result, IRInstruction(elseBranch, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = elseLabel), null, ifElse.position)
+                result += translateNode(ifElse.ifScope)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null, ifElse.position)
+                result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                result += IRCodeChunk(afterIfLabel, ifElse.position)
             } else {
                 // only if part
                 val afterIfLabel = createLabelName()
-                code += IRInstruction(elseBranch, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = afterIfLabel)
-                code += translateNode(ifElse.ifScope)
-                code += IRCodeLabel(afterIfLabel)
+                addInstr(result, IRInstruction(elseBranch, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = afterIfLabel), null, ifElse.position)
+                result += translateNode(ifElse.ifScope)
+                result += IRCodeChunk(afterIfLabel, ifElse.position)
             }
-            return code
+            return result
         }
 
-        fun translateZeroComparison(): IRCodeChunk {
-            fun equalOrNotEqualZero(elseBranch: Opcode): IRCodeChunk {
+        fun translateZeroComparison(): IRCodeChunks {
+            fun equalOrNotEqualZero(elseBranch: Opcode): IRCodeChunks {
+                val result = mutableListOf<IRCodeChunkBase>()
                 val leftReg = registers.nextFree()
-                code += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
+                result += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
                 if(ifElse.elseScope.children.isNotEmpty()) {
                     // if and else parts
                     val elseLabel = createLabelName()
                     val afterIfLabel = createLabelName()
-                    code += IRInstruction(elseBranch, irDt, reg1=leftReg, labelSymbol = elseLabel)
-                    code += translateNode(ifElse.ifScope)
-                    code += IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel)
-                    code += IRCodeLabel(elseLabel)
-                    code += translateNode(ifElse.elseScope)
-                    code += IRCodeLabel(afterIfLabel)
+                    addInstr(result, IRInstruction(elseBranch, irDt, reg1=leftReg, labelSymbol = elseLabel), null, ifElse.position)
+                    result += translateNode(ifElse.ifScope)
+                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null, ifElse.position)
+                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                    result += IRCodeChunk(afterIfLabel, ifElse.position)
                 } else {
                     // only if part
                     val afterIfLabel = createLabelName()
-                    code += IRInstruction(elseBranch, irDt, reg1=leftReg, labelSymbol = afterIfLabel)
-                    code += translateNode(ifElse.ifScope)
-                    code += IRCodeLabel(afterIfLabel)
+                    addInstr(result, IRInstruction(elseBranch, irDt, reg1=leftReg, labelSymbol = afterIfLabel), null, ifElse.position)
+                    result += translateNode(ifElse.ifScope)
+                    result += IRCodeChunk(afterIfLabel, ifElse.position)
                 }
-                return code
+                return result
             }
 
             return when (ifElse.condition.operator) {
@@ -849,8 +882,7 @@ class IRCodeGen(
             translateNonZeroComparison()
     }
 
-    private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunk {
-        val code = IRCodeChunk(postIncrDecr.position)
+    private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunks {
         val operationMem: Opcode
         val operationRegister: Opcode
         when(postIncrDecr.operator) {
@@ -868,19 +900,22 @@ class IRCodeGen(
         val memory = postIncrDecr.target.memory
         val array = postIncrDecr.target.array
         val irDt = irType(postIncrDecr.target.type)
+        val result = mutableListOf<IRCodeChunkBase>()
         if(ident!=null) {
-            code += IRInstruction(operationMem, irDt, labelSymbol = ident.targetName.joinToString("."))
+            addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.targetName.joinToString(".")), null, postIncrDecr.position)
         } else if(memory!=null) {
             if(memory.address is PtNumber) {
                 val address = (memory.address as PtNumber).number.toInt()
-                code += IRInstruction(operationMem, irDt, value = address)
+                addInstr(result, IRInstruction(operationMem, irDt, value = address), null, postIncrDecr.position)
             } else {
                 val incReg = registers.nextFree()
                 val addressReg = registers.nextFree()
-                code += expressionEval.translateExpression(memory.address, addressReg, -1)
-                code += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = addressReg)
-                code += IRInstruction(operationRegister, irDt, reg1 = incReg)
-                code += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = addressReg)
+                result += expressionEval.translateExpression(memory.address, addressReg, -1)
+                val chunk = IRCodeChunk(null, postIncrDecr.position)
+                chunk += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = addressReg)
+                chunk += IRInstruction(operationRegister, irDt, reg1 = incReg)
+                chunk += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = addressReg)
+                result += chunk
             }
         } else if (array!=null) {
             val variable = array.variable.targetName.joinToString(".")
@@ -888,25 +923,27 @@ class IRCodeGen(
             val fixedIndex = constIntValue(array.index)
             if(fixedIndex!=null) {
                 val offset = fixedIndex*itemsize
-                code += IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset")
+                addInstr(result, IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset"), null, postIncrDecr.position)
             } else {
                 val incReg = registers.nextFree()
                 val indexReg = registers.nextFree()
-                code += expressionEval.translateExpression(array.index, indexReg, -1)
-                code += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
-                code += IRInstruction(operationRegister, irDt, reg1=incReg)
-                code += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
+                result += expressionEval.translateExpression(array.index, indexReg, -1)
+                val chunk = IRCodeChunk(null, postIncrDecr.position)
+                chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
+                chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
+                chunk += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
+                result += chunk
             }
         } else
             throw AssemblyError("weird assigntarget")
 
-        return code
+        return result
     }
 
-    private fun translate(repeat: PtRepeatLoop): IRCodeChunk {
+    private fun translate(repeat: PtRepeatLoop): IRCodeChunks {
         when (constIntValue(repeat.count)) {
-            0 -> return IRCodeChunk(repeat.position)
-            1 -> return translateGroup(repeat.children, repeat.position)
+            0 -> return emptyList()
+            1 -> return translateGroup(repeat.children)
             256 -> {
                 // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
                 repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
@@ -915,22 +952,23 @@ class IRCodeGen(
 
         val repeatLabel = createLabelName()
         val skipRepeatLabel = createLabelName()
-        val code = IRCodeChunk(repeat.position)
         val counterReg = registers.nextFree()
         val irDt = irType(repeat.count.type)
-        code += expressionEval.translateExpression(repeat.count, counterReg, -1)
-        code += IRInstruction(Opcode.BZ, irDt, reg1=counterReg, labelSymbol = skipRepeatLabel)
-        code += IRCodeLabel(repeatLabel)
-        code += translateNode(repeat.statements)
-        code += IRInstruction(Opcode.DEC, irDt, reg1=counterReg)
-        code += IRInstruction(Opcode.BNZ, irDt, reg1=counterReg, labelSymbol = repeatLabel)
-        code += IRCodeLabel(skipRepeatLabel)
-        return code
+        val result = mutableListOf<IRCodeChunkBase>()
+        result += expressionEval.translateExpression(repeat.count, counterReg, -1)
+        addInstr(result, IRInstruction(Opcode.BZ, irDt, reg1=counterReg, labelSymbol = skipRepeatLabel), null, repeat.position)
+        result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
+        val chunk = IRCodeChunk(null, repeat.position)
+        chunk += IRInstruction(Opcode.DEC, irDt, reg1=counterReg)
+        chunk += IRInstruction(Opcode.BNZ, irDt, reg1=counterReg, labelSymbol = repeatLabel)
+        result += chunk
+        result += IRCodeChunk(skipRepeatLabel, repeat.position)
+        return result
     }
 
-    private fun translate(jump: PtJump): IRCodeChunk {
-        val code = IRCodeChunk(jump.position)
-        code += if(jump.address!=null) {
+    private fun translate(jump: PtJump): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val instr = if(jump.address!=null) {
             IRInstruction(Opcode.JUMPA, value = jump.address!!.toInt())
         } else {
             if (jump.generatedLabel != null)
@@ -940,27 +978,28 @@ class IRCodeGen(
             else
                 throw AssemblyError("weird jump")
         }
-        return code
+        addInstr(result, instr, null, jump.position)
+        return result
     }
 
-    private fun translateGroup(group: List<PtNode>, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
-        group.forEach { code += translateNode(it) }
-        return code
+    private fun translateGroup(group: List<PtNode>): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        group.forEach { result += translateNode(it) }
+        return result
     }
 
-    private fun translate(ret: PtReturn): IRCodeChunk {
-        val code = IRCodeChunk(ret.position)
+    private fun translate(ret: PtReturn): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
         val value = ret.value
         if(value!=null) {
             // Call Convention: return value is always returned in r0 (or fr0 if float)
-            code += if(value.type==DataType.FLOAT)
+            result += if(value.type==DataType.FLOAT)
                 expressionEval.translateExpression(value, -1, 0)
             else
                 expressionEval.translateExpression(value, 0, -1)
         }
-        code += IRInstruction(Opcode.RETURN)
-        return code
+        addInstr(result, IRInstruction(Opcode.RETURN), null, ret.position)
+        return result
     }
 
     private fun translate(block: PtBlock): IRBlock {
@@ -973,9 +1012,7 @@ class IRCodeGen(
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
                     for (subchild in child.children) {
-                        val translated = translateNode(subchild)
-                        if(translated.isNotEmpty())
-                            sub += translated
+                        translateNode(subchild).forEach { sub += it }
                     }
                     irBlock += sub
                 }
@@ -991,7 +1028,7 @@ class IRCodeGen(
                     )
                 }
                 is PtInlineAssembly -> {
-                    irBlock += IRInlineAsmChunk(child.assembly, child.isIR, child.position)
+                    irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, child.position)
                 }
                 else -> TODO("weird child node $child")
             }
@@ -1034,7 +1071,7 @@ class IRCodeGen(
         return "prog8_label_gen_$labelSequenceNumber"
     }
 
-    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunk =
+    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks =
         builtinFuncGen.translate(call, resultRegister)
 
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
