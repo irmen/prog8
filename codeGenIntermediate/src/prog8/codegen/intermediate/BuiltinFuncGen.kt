@@ -407,13 +407,12 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun assignRegisterTo(target: PtExpression, register: Int): IRCodeChunks {
-        val code = IRCodeChunk(null, target.position)
         val assignment = PtAssignment(target.position)
         val assignTarget = PtAssignTarget(target.position)
         assignTarget.children.add(target)
         assignment.children.add(assignTarget)
         assignment.children.add(PtMachineRegister(register, target.type, target.position))
-        val result = mutableListOf<IRCodeChunkBase>(code)
+        val result = mutableListOf<IRCodeChunkBase>()
         result += codeGen.translateNode(assignment)
         return result
     }

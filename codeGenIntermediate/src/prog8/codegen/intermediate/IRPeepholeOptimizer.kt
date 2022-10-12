@@ -5,6 +5,7 @@ import prog8.intermediate.*
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     fun optimize() {
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+            removeEmptyChunks(sub)
             joinChunks(sub)
             sub.chunks.forEach { chunk ->
                 // we don't optimize Inline Asm chunks here.
@@ -27,6 +28,51 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         }
     }
 
+    private fun removeEmptyChunks(sub: IRSubroutine) {
+        if(sub.chunks.isEmpty())
+            return
+
+        /*
+        Empty Code chunk with label ->
+            If next chunk has no label -> move label to next chunk, remove original
+            If next chunk has label -> label name should be the same, remove original. Otherwise FOR NOW leave it in place. (TODO: consolidate labels into 1)
+        Empty Code chunk without label ->
+            should not have been generated! ERROR.
+         */
+
+
+        val relabelChunks = mutableListOf<Pair<Int, String>>()
+        val removeChunks = mutableListOf<Int>()
+
+        sub.chunks.withIndex().forEach { (index, chunk) ->
+            require(chunk.isNotEmpty() || chunk.label!=null) {
+                "chunk should have instructions and/or a label"
+            }
+
+            if(chunk is IRCodeChunk && chunk.label!=null && chunk.instructions.isEmpty()) {
+                val nextchunk = sub.chunks[index+1]
+                if(nextchunk.label==null) {
+                    // can transplant label to next chunk and remove this empty one.
+                    relabelChunks += Pair(index+1, chunk.label!!)
+                    removeChunks += index
+                 } else {
+                    if(chunk.label==nextchunk.label)
+                         removeChunks += index
+                    else {
+                        // TODO: consolidate labels on same chunk
+                    }
+                }
+            }
+        }
+
+        relabelChunks.forEach { (index, label) ->
+            val chunk = IRCodeChunk(label, sub.chunks[index].position)
+            chunk.instructions += sub.chunks[index].instructions
+            sub.chunks[index] = chunk
+        }
+        removeChunks.reversed().forEach { index -> sub.chunks.removeAt(index) }
+    }
+
     private fun joinChunks(sub: IRSubroutine) {
         /*
         Subroutine contains a list of chunks.
@@ -34,9 +80,10 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         TODO: this has to be changed later...
         */
 
-/*        if(sub.chunks.isEmpty())
+        if(sub.chunks.isEmpty())
             return
 
+/*
         fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
                 return true

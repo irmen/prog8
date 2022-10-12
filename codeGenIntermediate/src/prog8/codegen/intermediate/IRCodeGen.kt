@@ -213,7 +213,7 @@ class IRCodeGen(
     }
 
     internal fun translateNode(node: PtNode): IRCodeChunks {
-        return when(node) {
+        val chunks = when(node) {
             is PtScopeVarsDecls -> emptyList() // vars should be looked up via symbol table
             is PtVariable -> emptyList() // var should be looked up via symbol table
             is PtMemMapped -> emptyList() // memmapped var should be looked up via symbol table
@@ -264,6 +264,14 @@ class IRCodeGen(
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
             else -> TODO("missing codegen for $node")
         }
+
+        chunks.forEach { chunk ->
+            require(chunk.isNotEmpty() || chunk.label != null) {
+                "chunk should have instructions and/or a label"
+            }
+        }
+
+        return chunks
     }
 
     private fun translate(branch: PtConditionalBranch): IRCodeChunks {

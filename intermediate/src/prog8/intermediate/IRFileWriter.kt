@@ -64,12 +64,14 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         is IRInlineAsmChunk -> writeInlineAsm(chunk)
                         is IRInlineBinaryChunk -> writeInlineBytes(chunk)
                         else -> {
-                            out.write("<C>\n")
-                            if (chunk.instructions.isEmpty())
-                                throw InternalCompilerException("empty code chunk in ${it.name} ${it.position}")
+                            if(chunk.label!=null)
+                                out.write("<C LABEL=${chunk.label}>\n")
+                            else
+                                out.write("<C>\n")
                             chunk.instructions.forEach { instr ->
                                 numInstr++
                                 out.write(instr.toString())
+                                out.write("\n")
                             }
                             out.write("</C>\n")
                         }
@@ -100,7 +102,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
-        out.write("<BYTES POS=${chunk.position}>\n")
+        out.write("<BYTES LABEL=${chunk.label ?: ""} POS=${chunk.position}>\n")
         chunk.data.withIndex().forEach {(index, byte) ->
             out.write(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)
@@ -110,7 +112,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        out.write("<INLINEASM IR=${chunk.isIR} POS=${chunk.position}>\n")
+        out.write("<INLINEASM LABEL=${chunk.label ?: ""} IR=${chunk.isIR} POS=${chunk.position}>\n")
         out.write(chunk.assembly)
         out.write("\n</INLINEASM>\n")
     }

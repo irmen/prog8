@@ -263,7 +263,7 @@ class IRFileReader {
         line = lines.next()
         var chunk = IRCodeChunk(null, Position.DUMMY)
         if(line=="<C>") {
-            chunk = parseCodeChunk(line, lines, null)!!
+            chunk = parseCodeChunk(line, lines)!!
             line = lines.next()
         }
         if(line!="</INITGLOBALS>")
@@ -285,8 +285,8 @@ class IRFileReader {
     }
 
     private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
-    private val inlineAsmPattern = Regex("<INLINEASM IR=(.+) POS=(.+)>")
-    private val bytesPattern = Regex("<BYTES POS=(.+)>")
+    private val inlineAsmPattern = Regex("<INLINEASM LABEL=(.*) IR=(.+) POS=(.+)>")
+    private val bytesPattern = Regex("<BYTES LABEL=(.*) POS=(.+)>")
     private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
     private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
@@ -312,18 +312,19 @@ class IRFileReader {
                 val sub = parseAsmSubroutine(line, lines)
                 block += sub
             } else if(line.startsWith("<INLINEASM ")) {
-                val asm = parseInlineAssembly(line, lines, null)
+                val asm = parseInlineAssembly(line, lines)
                 block += asm
             } else
                 throw IRParseException("invalid line in BLOCK")
         }
     }
 
-    private fun parseInlineAssembly(startline: String, lines: Iterator<String>, label: String?): IRInlineAsmChunk {
-        // <INLINEASM IR=true POS=[examples/test.p8: line 8 col 6-9]>
+    private fun parseInlineAssembly(startline: String, lines: Iterator<String>): IRInlineAsmChunk {
+        // <INLINEASM LABEL=optional-label IR=true POS=[examples/test.p8: line 8 col 6-9]>
         val match = inlineAsmPattern.matchEntire(startline) ?: throw IRParseException("invalid INLINEASM")
-        val isIr = match.groupValues[1].toBoolean()
-        val pos = parsePosition(match.groupValues[2])
+        val label = match.groupValues[1]
+        val isIr = match.groupValues[2].toBoolean()
+        val pos = parsePosition(match.groupValues[3])
         val asmlines = mutableListOf<String>()
         var line = lines.next()
         while(line!="</INLINEASM>") {
@@ -352,7 +353,7 @@ class IRFileReader {
             params += Pair(dt, regsf)
         }
         line = lines.next()
-        val asm = parseInlineAssembly(line, lines, null)
+        val asm = parseInlineAssembly(line, lines)
         while(line!="</ASMSUB>")
             line = lines.next()
         val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
@@ -386,12 +387,12 @@ class IRFileReader {
             val line = lines.next()
             if(line=="</SUB>")
                 return sub
-            val chunk = if(line=="<C>")
-                parseCodeChunk(line, lines, null)
+            val chunk = if(line.startsWith("<C"))
+                parseCodeChunk(line, lines)
             else if(line.startsWith("<BYTES "))
-                parseBinaryBytes(line, lines, null)
+                parseBinaryBytes(line, lines)
             else if(line.startsWith("<INLINEASM "))
-                parseInlineAssembly(line, lines, null)
+                parseInlineAssembly(line, lines)
             else
                 throw IRParseException("invalid sub child node")
 
@@ -406,9 +407,10 @@ class IRFileReader {
         return sub
     }
 
-    private fun parseBinaryBytes(startline: String, lines: Iterator<String>, label: String?): IRInlineBinaryChunk {
+    private fun parseBinaryBytes(startline: String, lines: Iterator<String>): IRInlineBinaryChunk {
         val match = bytesPattern.matchEntire(startline) ?: throw IRParseException("invalid BYTES")
-        val pos = parsePosition(match.groupValues[1])
+        val label = match.groupValues[1]
+        val pos = parsePosition(match.groupValues[2])
         val bytes = mutableListOf<UByte>()
         var line = lines.next()
         while(line!="</BYTES>") {
@@ -436,13 +438,17 @@ class IRFileReader {
         }
     }
 
-    private fun parseCodeChunk(firstline: String, lines: Iterator<String>, label: String?): IRCodeChunk? {
-        if(firstline!="<C>") {
+    private fun parseCodeChunk(firstline: String, lines: Iterator<String>): IRCodeChunk? {
+        if(!firstline.startsWith("<C")) {
             if(firstline=="</SUB>")
                 return null
             else
                 throw IRParseException("invalid or empty <C>ODE chunk")
         }
+        val label = if(firstline.startsWith("<C LABEL="))
+            firstline.split('=', limit = 2)[1].dropLast(1)
+        else
+            null
         val chunk = IRCodeChunk(label, Position.DUMMY)
         while(true) {
             val line = lines.next()

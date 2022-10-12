@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: get rid of IRCodeLabel, make every label start a new code chunk, give those a 'label' property.
 - ir: fix program to be list of chunks
+- ir: fix unit tests
+- ir: link all sequential chunks to another (exiting one chunk 'calls' the next chunk)
 - ir: jump/branch instructions don't link to a PC index anymore, but to the actual chunk with that label
 - ir: fix joinChunks() in the IR optimizer ? Fix TestIRPeepholeOptimizer and TestVm
 - vm: program is list of chunks, fix dispatcher

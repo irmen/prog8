@@ -72,7 +72,8 @@ class IRProgram(val name: String,
             }
             it.subroutines.forEach { sub ->
                 sub.chunks.forEach { chunk ->
-                    if (chunk is IRInlineAsmChunk) { require(chunk.instructions.isEmpty()) }
+                    if (chunk is IRCodeChunk) require(chunk.instructions.isNotEmpty() || chunk.label!=null)
+                    else require(chunk.instructions.isEmpty())
                 }
             }
         }
@@ -143,7 +144,12 @@ class IRSubroutine(val name: String,
         require(returnType==null || returnType in NumericDatatypes) {"non-numeric returntype $returnType"}
     }
 
-    operator fun plusAssign(chunk: IRCodeChunkBase) { chunks+= chunk }
+    operator fun plusAssign(chunk: IRCodeChunkBase) {
+        require(chunk.isNotEmpty() || chunk.label!=null) {
+            "chunk should have instructions and/or a label"
+        }
+        chunks+= chunk
+    }
 }
 
 class IRAsmSubroutine(

@@ -56,8 +56,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 listOf(code)
             }
             is PtMemoryByte -> {
-                val code = IRCodeChunk(null, expr.position)
-                val result = mutableListOf<IRCodeChunkBase>(code)
+                val result = mutableListOf<IRCodeChunkBase>()
                 if(expr.address is PtNumber) {
                     val address = (expr.address as PtNumber).number.toInt()
                     addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, value = address), null, expr.position)
