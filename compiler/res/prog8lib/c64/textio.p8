@@ -56,16 +56,16 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
-		ldy  #250
--		sta  c64.Screen+250*0-1,y
-		sta  c64.Screen+250*1-1,y
-		sta  c64.Screen+250*2-1,y
-		sta  c64.Screen+250*3-1,y
-		dey
-		bne  -
-		rts
+        ldy  #0
+    -   sta  c64.Screen+250*0,y
+        sta  c64.Screen+250*1,y
+        sta  c64.Screen+250*2,y
+        sta  c64.Screen+250*3,y
+        iny
+        cpy #250
+        bne  -
+        rts
         }}
-}
 
 asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
