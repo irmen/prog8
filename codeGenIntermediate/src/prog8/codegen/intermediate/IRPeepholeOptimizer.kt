@@ -7,24 +7,25 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             removeEmptyChunks(sub)
             joinChunks(sub)
-            sub.chunks.forEach { chunk ->
+            sub.chunks.withIndex().forEach { (index, chunk1) ->
                 // we don't optimize Inline Asm chunks here.
-                if(chunk is IRCodeChunk) {
+                val chunk2 = if(index<sub.chunks.size-1) sub.chunks[index+1] else null
+                if(chunk1 is IRCodeChunk) {
                     do {
-                        val indexedInstructions = chunk.instructions.withIndex()
-                            .filter { it.value is IRInstruction }
-                            .map { IndexedValue(it.index, it.value as IRInstruction) }
-                        val changed = removeNops(chunk, indexedInstructions)
-                                || removeDoubleLoadsAndStores(chunk, indexedInstructions)       // TODO not yet implemented
-                                || removeUselessArithmetic(chunk, indexedInstructions)
-                                || removeWeirdBranches(chunk, indexedInstructions)
-                                || removeDoubleSecClc(chunk, indexedInstructions)
-                                || cleanupPushPop(chunk, indexedInstructions)
+                        val indexedInstructions = chunk1.instructions.withIndex()
+                            .map { IndexedValue(it.index, it.value) }
+                        val changed = removeNops(chunk1, indexedInstructions)
+                                || removeDoubleLoadsAndStores(chunk1, indexedInstructions)       // TODO not yet implemented
+                                || removeUselessArithmetic(chunk1, indexedInstructions)
+                                || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
+                                || removeDoubleSecClc(chunk1, indexedInstructions)
+                                || cleanupPushPop(chunk1, indexedInstructions)
                         // TODO other optimizations:
                         //  more complex optimizations such as unused registers
                     } while (changed)
                 }
             }
+            removeEmptyChunks(sub)
         }
     }
 
@@ -36,6 +37,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         Empty Code chunk with label ->
             If next chunk has no label -> move label to next chunk, remove original
             If next chunk has label -> label name should be the same, remove original. Otherwise FOR NOW leave it in place. (TODO: consolidate labels into 1)
+            If is last chunk -> keep chunk in place because of the label.
         Empty Code chunk without label ->
             should not have been generated! ERROR.
          */
@@ -45,28 +47,30 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         val removeChunks = mutableListOf<Int>()
 
         sub.chunks.withIndex().forEach { (index, chunk) ->
-            require(chunk.isNotEmpty() || chunk.label!=null) {
-                "chunk should have instructions and/or a label"
-            }
-
-            if(chunk is IRCodeChunk && chunk.label!=null && chunk.instructions.isEmpty()) {
-                val nextchunk = sub.chunks[index+1]
-                if(nextchunk.label==null) {
-                    // can transplant label to next chunk and remove this empty one.
-                    relabelChunks += Pair(index+1, chunk.label!!)
+            if(chunk is IRCodeChunk && chunk.instructions.isEmpty()) {
+                if(chunk.label==null) {
                     removeChunks += index
-                 } else {
-                    if(chunk.label==nextchunk.label)
-                         removeChunks += index
-                    else {
-                        // TODO: consolidate labels on same chunk
+                } else {
+                    if (index < sub.chunks.size - 1) {
+                        val nextchunk = sub.chunks[index + 1]
+                        if (nextchunk.label == null) {
+                            // can transplant label to next chunk and remove this empty one.
+                            relabelChunks += Pair(index + 1, chunk.label!!)
+                            removeChunks += index
+                        } else {
+                            if (chunk.label == nextchunk.label)
+                                removeChunks += index
+                            else {
+                                // TODO: consolidate labels on same chunk
+                            }
+                        }
                     }
                 }
             }
         }
 
         relabelChunks.forEach { (index, label) ->
-            val chunk = IRCodeChunk(label, sub.chunks[index].position)
+            val chunk = IRCodeChunk(label, sub.chunks[index].position, null)
             chunk.instructions += sub.chunks[index].instructions
             sub.chunks[index] = chunk
         }
@@ -155,20 +159,17 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun removeWeirdBranches(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+    private fun removeWeirdBranches(chunk: IRCodeChunk, nextChunk: IRCodeChunkBase?, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             val labelSymbol = ins.labelSymbol
 
+            // remove jump/branch to label immediately below (= next chunk if it has that label)
             if(ins.opcode== Opcode.JUMP && labelSymbol!=null) {
-                //  TODO remove jump/branch to label immediately below (= next chunk if it has that label)
-//                if(idx < chunk.instructions.size-1) {
-//                    val label = chunk.instructions[idx+1] as? IRCodeLabel
-//                    if(label?.name == labelSymbol) {
-//                        chunk.instructions.removeAt(idx)
-//                        changed = true
-//                    }
-//                }
+                if(idx==chunk.instructions.size-1 && ins.branchTarget===nextChunk) {
+                    chunk.instructions.removeAt(idx)
+                    changed = true
+                }
             }
             // remove useless RETURN
             if(ins.opcode == Opcode.RETURN && idx>0) {

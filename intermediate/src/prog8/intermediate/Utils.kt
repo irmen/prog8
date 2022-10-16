@@ -84,7 +84,7 @@ fun parseIRValue(value: String): Float {
 private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>): Either<IRInstruction, String> {
+fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholders: MutableMap<Pair<IRCodeChunk, Int>, String>): Either<IRInstruction, String> {
     // Note: this function is used from multiple places:
     // the IR File Reader but also the VirtualMachine itself to make sense of any inline vmasm blocks.
     val labelmatch = labelPattern.matchEntire(line.trim())
@@ -124,14 +124,16 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
     var operand: String?
     var labelSymbol: String? = null
 
-    fun parseValueOrPlaceholder(operand: String, pc: Int, rest: String, restIndex: Int): Float? {
+    fun parseValueOrPlaceholder(operand: String, location: Pair<IRCodeChunk, Int>?, rest: String, restIndex: Int): Float? {
         return if(operand.startsWith('_')) {
             labelSymbol = rest.split(",")[restIndex].trim().drop(1)
-            placeholders[pc] = labelSymbol!!
+            if(location!=null)
+                placeholders[location] = labelSymbol!!
             null
         } else if(operand[0].isLetter()) {
             labelSymbol = rest.split(",")[restIndex].trim()
-            placeholders[pc] = labelSymbol!!
+            if(location!=null)
+                placeholders[location] = labelSymbol!!
             null
         } else {
             parseIRValue(operand)
@@ -145,7 +147,7 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
         else if(operand[0]=='f' && operand[1]=='r')
             fpReg1 = operand.substring(2).toInt()
         else {
-            value = parseValueOrPlaceholder(operand, pc, rest, 0)
+            value = parseValueOrPlaceholder(operand, location, rest, 0)
             operands.clear()
         }
         if(operands.isNotEmpty()) {
@@ -155,7 +157,7 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
             else if(operand[0]=='f' && operand[1]=='r')
                 fpReg2 = operand.substring(2).toInt()
             else {
-                value = parseValueOrPlaceholder(operand, pc, rest, 1)
+                value = parseValueOrPlaceholder(operand, location, rest, 1)
                 operands.clear()
             }
             if(operands.isNotEmpty()) {
@@ -165,7 +167,7 @@ fun parseIRCodeLine(line: String, pc: Int, placeholders: MutableMap<Int, String>
                 else if(operand[0]=='f' && operand[1]=='r')
                     fpReg3 = operand.substring(2).toInt()
                 else {
-                    value = parseValueOrPlaceholder(operand, pc, rest, 2)
+                    value = parseValueOrPlaceholder(operand, location, rest, 2)
                     operands.clear()
                 }
                 if(operands.isNotEmpty()) {

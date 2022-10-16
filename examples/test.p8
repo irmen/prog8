@@ -1,9 +1,10 @@
+%import textio
+
 main {
     sub start() {
         ubyte aa = 42
         ubyte bb = 99
         aa += bb
-
-        %asmbinary "build.gradle"
+        txt.print_ub(aa)
     }
 }

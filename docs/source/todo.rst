@@ -3,12 +3,14 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: fix program to be list of chunks
-- ir: fix unit tests
+- ir: check that block and sub labels are also on the first chunk in said block/sub
 - ir: link all sequential chunks to another (exiting one chunk 'calls' the next chunk)
-- ir: jump/branch instructions don't link to a PC index anymore, but to the actual chunk with that label
-- ir: fix joinChunks() in the IR optimizer ? Fix TestIRPeepholeOptimizer and TestVm
+- ir: fix JUMP, RETURN and all branching instructions to reference a chunk + index instead of just a single programcounter index
+- ir: fix removeWeirdBranches in IR optimizer
+- ir: fix unit tests
+- ir: fix joinChunks() in the IR optimizer
 - vm: program is list of chunks, fix dispatcher
+- add cx16diskio.vload_raw() to load headerless files into vram
 
 ...
 

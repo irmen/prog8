@@ -86,7 +86,7 @@ return
 <PARAMS>
 uword sys.wait.jiffies
 </PARAMS>
-<INLINEASM IR=true POS=[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]>
+<INLINEASM LABEL= IR=true POS=[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]>
             loadm.w r0,sys.wait.jiffies
             syscall 13
 </INLINEASM>

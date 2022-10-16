@@ -667,8 +667,9 @@ data class IRInstruction(
     val fpReg2: Int?=null,      // 0-$ffff
     val value: Int?=null,       // 0-$ffff
     val fpValue: Float?=null,
-    val labelSymbol: String?=null,    // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
-    val binaryData: Collection<UByte>?=null
+    val labelSymbol: String?=null,          // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
+    val binaryData: Collection<UByte>?=null,
+    var branchTarget: IRCodeChunk? = null    // will be linked after loading
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.

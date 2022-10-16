@@ -16,7 +16,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtMachineRegister -> {
                 if(resultRegister!=expr.register) {
                     val vmDt = codeGen.irType(expr.type)
-                    val code = IRCodeChunk(null, expr.position)
+                    val code = IRCodeChunk(null, expr.position, null)
                     code += IRInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=expr.register)
                     listOf(code)
                 } else {
@@ -25,7 +25,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is PtNumber -> {
                 val vmDt = codeGen.irType(expr.type)
-                val code = IRCodeChunk(null, expr.position)
+                val code = IRCodeChunk(null, expr.position, null)
                 code += if(vmDt==IRDataType.FLOAT)
                     IRInstruction(Opcode.LOAD, vmDt, fpReg1 = resultFpRegister, fpValue = expr.number.toFloat())
                 else
@@ -35,7 +35,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtIdentifier -> {
                 val vmDt = codeGen.irType(expr.type)
                 val symbol = expr.targetName.joinToString(".")
-                val code = IRCodeChunk(null, expr.position)
+                val code = IRCodeChunk(null, expr.position, null)
                 code += if (expr.type in PassByValueDatatypes) {
                     if(vmDt==IRDataType.FLOAT)
                         IRInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = symbol)
@@ -51,7 +51,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val vmDt = codeGen.irType(expr.type)
                 val symbol = expr.identifier.targetName.joinToString(".")
                 // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
-                val code = IRCodeChunk(null, expr.position)
+                val code = IRCodeChunk(null, expr.position, null)
                 code += IRInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, labelSymbol = symbol)
                 listOf(code)
             }
@@ -394,7 +394,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=valueReg, fpReg1 = leftFpReg, fpReg2 = rightFpReg), null, binExpr.position)
                 addInstr(result, IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=valueReg, labelSymbol = label), null, binExpr.position)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, value=0), null, binExpr.position)
-                result += IRCodeChunk(label, binExpr.position)
+                result += IRCodeChunk(label, binExpr.position, null)
             }
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
@@ -985,7 +985,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
 
 internal fun addInstr(code: MutableList<IRCodeChunkBase>, instr: IRInstruction, label: String?, position: Position = Position.DUMMY) {
-    code += IRCodeChunk(label, position).also {
+    code += IRCodeChunk(label, position, null).also {
         it += instr
     }
 }

@@ -261,7 +261,7 @@ class IRFileReader {
         if(line!="<INITGLOBALS>")
             throw IRParseException("invalid INITGLOBALS")
         line = lines.next()
-        var chunk = IRCodeChunk(null, Position.DUMMY)
+        var chunk = IRCodeChunk(null, Position.DUMMY, null)
         if(line=="<C>") {
             chunk = parseCodeChunk(line, lines)!!
             line = lines.next()
@@ -449,14 +449,14 @@ class IRFileReader {
             firstline.split('=', limit = 2)[1].dropLast(1)
         else
             null
-        val chunk = IRCodeChunk(label, Position.DUMMY)
+        val chunk = IRCodeChunk(label, Position.DUMMY, null)
         while(true) {
             val line = lines.next()
             if (line == "</C>")
                 return chunk
             if (line.isBlank() || line.startsWith(';'))
                 continue
-            val result = parseIRCodeLine(line, 0, mutableMapOf())
+            val result = parseIRCodeLine(line, null, mutableMapOf())
             result.fold(
                 ifLeft = {
                     chunk += it

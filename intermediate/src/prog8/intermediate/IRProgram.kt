@@ -66,6 +66,9 @@ class IRProgram(val name: String,
     }
 
     fun validate() {
+
+        // TODO: check that block and sub labels are also on the first chunk in said block/sub
+
         blocks.forEach {
             it.inlineAssembly.forEach { chunk ->
                 require(chunk.instructions.isEmpty())
@@ -182,7 +185,9 @@ abstract class IRCodeChunkBase(val label: String?, val position: Position) {
     abstract fun usedRegisters(): RegistersUsed
 }
 
-class IRCodeChunk(label: String?, position: Position): IRCodeChunkBase(label, position) {
+class IRCodeChunk(label: String?,
+                  position: Position,
+                  var next: IRCodeChunk?): IRCodeChunkBase(label, position) {
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
@@ -250,7 +255,7 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
-            val result = parseIRCodeLine(line.trim(), 0, mutableMapOf())
+            val result = parseIRCodeLine(line.trim(), null, mutableMapOf())
             result.fold(
                 ifLeft = { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) },
                 ifRight = { /* labels can be skipped */ }
