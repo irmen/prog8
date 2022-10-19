@@ -514,16 +514,26 @@ if statements
 Conditional execution means that the flow of execution changes based on certiain conditions,
 rather than having fixed gotos or subroutine calls::
 
-	if aa>4 goto overflow
+    if xx==5 {
+        yy = 99
+        zz = 42
+    } else {
+        aa = 3
+        bb = 9
+    }
 
-	if xx==3  yy = 4
-	if xx==3  yy = 4 else  aa = 2
+    if xx==5
+        yy = 42
+    else if xx==6
+        yy = 43
+    else
+        yy = 44
 
-	if xx==5 {
-		yy = 99
-	} else {
-		aa = 3
-	}
+    if aa>4 goto some_label
+
+    if xx==3  yy = 4
+
+    if xx==3  yy = 4 else  aa = 2
 
 
 Conditional jumps (``if condition goto label``) are compiled using 6502's branching instructions (such as ``bne`` and ``bcc``) so

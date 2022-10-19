@@ -783,19 +783,23 @@ Note: to do an indirect *JSR* to a routine with a varying address, you can use t
 (which is not very efficient) or you have to write a small piece of inline assembly.
 
 
-Conditional execution
-^^^^^^^^^^^^^^^^^^^^^
+if statements
+^^^^^^^^^^^^^
 
 With the 'if' / 'else' statement you can execute code depending on the value of a condition::
 
 	if  <expression>  <statements>  [else  <statements> ]
 
-where <statements> can be just a single statement for instance just a ``goto``, or it can be a block such as this::
+If  <statements> is just a single statement, for instance just a ``goto`` or a single assignment,
+it's possible to just write the statement without any curly braces.
+However if <statements> is a block of multiple statements, you'll have to enclose it in curly braces::
 
 	if  <expression> {
 		<statements>
+	} else if <expression> {
+		<statements>
 	} else {
-	  	<alternative statements>
+		<statements>
 	}
 
 
@@ -807,7 +811,7 @@ itself defines on what status register bit it should branch on::
 
 	if_XX  <statements>  [else  <statements> ]
 
-where <statements> can be just a single statement for instance just a ``goto``, or it can be a block such as this::
+where <statements> can be just a single statement or a block again::
 
 	if_XX {
 		<statements>
