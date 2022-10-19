@@ -1005,7 +1005,7 @@ internal class AstChecker(private val program: Program,
                 // It's not (yet) possible to handle these multiple return values because assignments
                 // are only to a single unique target at the same time.
                 //   EXCEPTION:
-                // if the asmsub returns multiple values and one of them is via a status register bit,
+                // if the asmsub returns multiple values and one of them is via a status register bit (such as carry),
                 // it *is* possible to handle them by just actually assigning the register value and
                 // dealing with the status bit as just being that, the status bit after the call.
                 val (returnRegisters, _) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
