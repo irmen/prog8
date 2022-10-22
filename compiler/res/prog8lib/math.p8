@@ -71,4 +71,16 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {
+        ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
+        %asm {{
+            sta  math.randword.sr1
+            sty  math.randword.sr1+1
+            lda  cx16.r0L
+            ldy  cx16.r0H
+            sta  math.randword.sr2
+            sty  math.randword.sr2+1
+            rts
+        }}
+    }
 }

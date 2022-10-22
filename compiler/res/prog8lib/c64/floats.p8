@@ -171,6 +171,29 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 
 &uword AYINT_facmo = $64      ; $64/$65 contain result of AYINT
 
+sub rndf() -> float {
+    %asm {{
+        stx  P8ZP_SCRATCH_REG
+        lda  #1
+        jsr  FREADSA
+        jsr  RND		; rng into fac1
+        ldx  P8ZP_SCRATCH_REG
+        rts
+    }}
+}
+
+asmsub rndseedf(ubyte s1 @A, ubyte s2 @X, ubyte s3 @Y) clobbers(X) {
+    %asm {{
+        pha
+        tya
+        ora  #128           ; make sure the seed is negative
+        tay
+        pla
+        jsr  FREADS24AXY
+        jmp  RND
+    }}
+}
+
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"
 

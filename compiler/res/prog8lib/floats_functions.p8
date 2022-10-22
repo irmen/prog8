@@ -221,15 +221,4 @@ sub ceil(float value) -> float {
     }}
 }
 
-sub rndf() -> float {
-    %asm {{
-        stx  P8ZP_SCRATCH_REG
-        lda  #1
-        jsr  FREADSA
-        jsr  RND		; rng into fac1
-        ldx  P8ZP_SCRATCH_REG
-        rts
-    }}
-}
-
 }

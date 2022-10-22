@@ -3,8 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: get rid of IRCodeLabel, make every label start a new code chunk, give those a 'label' property.
-- ir: fix joinChunks() in the IR optimizer ?
+- replace rnd() builtin functions by regular functions in math and in floats
+- update docs for rnd() and rndseed() functions
+- ir: replace RND opcodes by syscalls
+- ir: asmsub contents remains blank in IR file
 
 ...
 

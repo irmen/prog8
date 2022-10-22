@@ -41,6 +41,8 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
+    private var randomGenerator = Random(0xa55a7653)
+    private var randomGeneratorFloats = Random(0xc0d3dbad)
     private val cx16virtualregsBaseAddress: Int
 
     init {
@@ -1061,9 +1063,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsRND(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, Random.nextInt().toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, Random.nextInt().toUShort())
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, Random.nextFloat())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, randomGenerator.nextInt().toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, randomGenerator.nextInt().toUShort())
+            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, randomGeneratorFloats.nextFloat())
         }
         pc++
     }
@@ -2104,6 +2106,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     fun waitvsync() {
         Toolkit.getDefaultToolkit().sync()      // not really the same as wait on vsync, but there's noting else
+    }
+
+    fun randomSeed(seed1: UShort, seed2: UShort) {
+        randomGenerator = Random(((seed1.toUInt() shl 16) or seed2.toUInt()).toInt())
+    }
+
+    fun randomSeedFloat(seed1: UByte, seed2: UByte, seed3: UByte) {
+        val seed = (seed1.toUInt() shl 24) or (seed2.toUInt() shl 16) or (seed3.toUInt())
+        randomGeneratorFloats = Random(seed.toInt())
     }
 }
 

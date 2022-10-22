@@ -130,4 +130,14 @@ sub rndf() -> float {
         return
     }}
 }
+
+sub rndseedf(ubyte s1, ubyte s2, ubyte s3) {
+    %ir {{
+        loadm.b  r0,floats.rndseedf.s1
+        loadm.b  r1,floats.rndseedf.s2
+        loadm.b  r2,floats.rndseedf.s3
+        syscall 32
+    }}
+}
+
 }

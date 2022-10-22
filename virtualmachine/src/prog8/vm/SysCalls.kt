@@ -37,6 +37,8 @@ SYSCALLS:
 28 = reverse_floats array
 29 = compare strings
 30 = gfx_getpixel      ; get byte pixel value at coordinates r0.w/r1.w
+31 = rndseed
+32 = rndfseed
 */
 
 enum class Syscall {
@@ -70,7 +72,9 @@ enum class Syscall {
     REVERSE_WORDS,
     REVERSE_FLOATS,
     COMPARE_STRINGS,
-    GFX_GETPIXEL
+    GFX_GETPIXEL,
+    RNDSEED,
+    RNDFSEED
 }
 
 object SysCalls {
@@ -278,6 +282,17 @@ object SysCalls {
                 val second = vm.memory.getString(secondAddr.toInt())
                 val comparison = first.compareTo(second)
                 vm.registers.setSB(0, comparison.toByte())
+            }
+            Syscall.RNDFSEED -> {
+                val seed1 = vm.registers.getUB(0)
+                val seed2 = vm.registers.getUB(1)
+                val seed3 = vm.registers.getUB(2)
+                vm.randomSeedFloat(seed1, seed2, seed3)
+            }
+            Syscall.RNDSEED -> {
+                val seed1 = vm.registers.getUW(0)
+                val seed2 = vm.registers.getUW(1)
+                vm.randomSeed(seed1, seed2)
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

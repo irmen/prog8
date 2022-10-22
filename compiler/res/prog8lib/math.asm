@@ -229,23 +229,7 @@ _divisor	.word 0
 		.pend
 
 
-randseed	.proc
-	; -- reset the random seeds for the byte and word random generators
-	;    arguments: uword seed in A/Y   clobbers A
-	;    (default starting values are:  A=$2c Y=$9e)
-		sta  randword._seed
-		sty  randword._seed+1
-		clc
-		adc  #14
-		sta  randbyte._seed
-		rts
-		.pend
-
-
-randbyte        .proc
-	; -- 8 bit pseudo random number generator into A (by just reusing randword)
-		jmp  randword
-		.pend
+randbyte = randword    ; -- 8 bit pseudo random number generator into A (by just reusing randword)
 
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
