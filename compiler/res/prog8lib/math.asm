@@ -229,43 +229,31 @@ _divisor	.word 0
 		.pend
 
 
-randbyte = randword    ; -- 8 bit pseudo random number generator into A (by just reusing randword)
-
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
-
-		; rand64k       ;Factors of 65535: 3 5 17 257
-		lda sr1+1
-		asl a
-		asl a
-		eor sr1+1
-		asl a
-		eor sr1+1
-		asl a
-		asl a
-		eor sr1+1
-		asl a
-		rol sr1         ;shift this left, "random" bit comes from low
-		rol sr1+1
-		; rand32k       ;Factors of 32767: 7 31 151 are independent and can be combined
-		lda sr2+1
-		asl a
-		eor sr2+1
-		asl a
-		asl a
-		ror sr2         ;shift this right, random bit comes from high - nicer when eor with sr1
-		rol sr2+1
-		lda sr1+1         ;can be left out
-		eor sr2+1         ;if you dont use
-		tay               ;y as suggested
-		lda sr1           ;mix up lowbytes of SR1
-		eor sr2           ;and SR2 to combine both
+	;    default seed = $00c2 $1137
+        ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
+		inc x1
+		clc
+x1=*+1
+		lda #$00	;x1
+c1=*+1
+		eor #$c2	;c1
+a1=*+1
+		eor #$11	;a1
+		sta a1
+b1=*+1
+		adc #$37	;b1
+		sta b1
+		lsr a
+		eor a1
+		adc c1
+		sta c1
+		ldy b1
 		rts
-
-sr1     	.word $a55a
-sr2     	.word $7653
-
 		.pend
+
+randbyte = randword    ; -- 8 bit pseudo random number generator into A (by just reusing randword)
 
 
 ; ----------- optimized multiplications (stack) : ---------
