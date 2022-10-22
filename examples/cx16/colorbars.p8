@@ -1,4 +1,5 @@
 %import textio
+%import math
 
 ; Amiga 'copper' bars color cycling effect
 
@@ -126,7 +127,7 @@ colors {
 
     sub random_rgb12() {
         do {
-            uword rr = rndw()
+            uword rr = math.rndw()
             target_red = msb(rr) & 15
             target_green = lsb(rr)
             target_blue = target_green & 15

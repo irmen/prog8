@@ -43,7 +43,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
             "abs" -> funcAbs(fcall, func, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, func, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, func, resultToStack, resultRegister, sscope)
-            "rnd", "rndw" -> funcRnd(func, resultToStack, resultRegister, sscope)
             "sqrt16" -> funcSqrt16(fcall, func, resultToStack, resultRegister, sscope)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
@@ -684,28 +683,6 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                 else -> throw AssemblyError("weird type")
             }
             assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, asmgen), RegisterOrPair.AY)
-        }
-    }
-
-    private fun funcRnd(func: FSignature, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: Subroutine?) {
-        when(func.name) {
-            "rnd" -> {
-                if(resultToStack)
-                    asmgen.out("  jsr  prog8_lib.func_rnd_stack")
-                else {
-                    asmgen.out("  jsr  math.randbyte")
-                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, asmgen), CpuRegister.A)
-                }
-            }
-            "rndw" -> {
-                if(resultToStack)
-                    asmgen.out("  jsr  prog8_lib.func_rndw_stack")
-                else {
-                    asmgen.out("  jsr  math.randword")
-                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, asmgen), RegisterOrPair.AY)
-                }
-            }
-            else -> throw AssemblyError("wrong func")
         }
     }
 

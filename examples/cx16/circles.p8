@@ -1,4 +1,5 @@
 %import graphics
+%import math
 
 ; note: this program is tuned for the CX16, but with some minor modifications can run on other systems too.
 
@@ -15,7 +16,7 @@ main {
         graphics.enable_bitmap_mode()
 
         repeat {
-            background_color = rnd()
+            background_color = math.rnd()
             graphics.clear_screen(0, background_color)
             num_circles = 0
             draw_circles()
@@ -28,14 +29,14 @@ main {
         ubyte @zp radius
 
         while num_circles<MAX_NUM_CIRCLES {
-            x = rndw() % graphics.WIDTH
-            y = rndw() % graphics.HEIGHT
+            x = math.rndw() % graphics.WIDTH
+            y = math.rndw() % graphics.HEIGHT
             radius = GROWTH_RATE * 2        ; use a bit of a buffer between circles.
             if not_colliding() {
                 radius -= GROWTH_RATE
-                ubyte color = rnd()
+                ubyte color = math.rnd()
                 while color==background_color
-                    color = rnd()
+                    color = math.rnd()
                 graphics.colors(color, 0)
                 while not_edge() and not_colliding() {
                     graphics.disc(x, y as ubyte, radius)

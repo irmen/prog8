@@ -244,24 +244,6 @@ func_sqrt16_into_A	.proc
 		rts
 		.pend
 
-func_rnd_stack	.proc
-	; -- put a random ubyte on the estack
-		jsr  math.randbyte
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
-func_rndw_stack	.proc
-	; -- put a random uword on the estack
-		jsr  math.randword
-		sta  P8ESTACK_LO,x
-		tya
-		sta  P8ESTACK_HI,x
-		dex
-		rts
-		.pend
-
 
 func_sort_ub	.proc
 		; 8bit unsigned sort

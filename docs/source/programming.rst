@@ -858,12 +858,6 @@ popw(value)
     pops a 16-bit word value off the CPU hardware stack into the given variable. Only variables can be used.
     Lowlevel function that should normally not be used.
 
-rnd()
-    returns a pseudo-random byte from 0..255
-
-rndw()
-    returns a pseudo-random word from 0..65535
-
 rol(x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,

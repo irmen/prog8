@@ -6,17 +6,17 @@
 main {
 
     sub printnumbers() {
-        txt.print_ub(rnd())
+        txt.print_ub(math.rnd())
         txt.spc()
-        txt.print_ub(rnd())
+        txt.print_ub(math.rnd())
         txt.spc()
-        txt.print_ub(rnd())
+        txt.print_ub(math.rnd())
         txt.nl()
-        txt.print_uw(rndw())
+        txt.print_uw(math.rndw())
         txt.spc()
-        txt.print_uw(rndw())
+        txt.print_uw(math.rndw())
         txt.spc()
-        txt.print_uw(rndw())
+        txt.print_uw(math.rndw())
         txt.nl()
         floats.print_f(floats.rndf())
         txt.spc()

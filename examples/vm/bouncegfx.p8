@@ -1,5 +1,7 @@
 ; NOTE: meant to test to virtual machine output target (use -target virtual)
 
+%import math
+
 main  {
 
     sub start() {
@@ -10,10 +12,10 @@ main  {
 
         ubyte pi
         for pi in 0 to 127 {
-            particleX[pi] = rndw() % 319 as word
-            particleY[pi] = rndw() % 240 as word
-            particleDX[pi] = (rnd() & 1)*2 as byte - 1
-            particleDY[pi] = (rnd() & 1)*2 as byte - 1
+            particleX[pi] = math.rndw() % 319 as word
+            particleY[pi] = math.rndw() % 240 as word
+            particleDX[pi] = (math.rnd() & 1)*2 as byte - 1
+            particleDY[pi] = (math.rnd() & 1)*2 as byte - 1
         }
 
         sys.gfx_enable(0)       ; enable lo res screen

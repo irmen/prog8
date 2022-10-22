@@ -1,5 +1,6 @@
 %import syslib
 %import textio
+%import math
 %import test_stack
 %zeropage basicsafe
 
@@ -41,7 +42,7 @@ main {
                 active_height--
                 upwards = false
             } else {
-                target_height = 8 + rnd() % 16
+                target_height = 8 + math.rnd() % 16
                 if upwards
                     mountain = 233
                 else
@@ -56,7 +57,7 @@ main {
             txt.scroll_left(true)
 
             ; float the balloon
-            if rnd() & %10000
+            if math.rnd() & %10000
                 c64.SPXY[1] ++
             else
                 c64.SPXY[1] --
@@ -70,10 +71,10 @@ main {
                 txt.setcc(39, yy, 160, 8)        ; draw mountain
             }
 
-            yy = rnd()
+            yy = math.rnd()
             if yy > 100 {
                 ; draw a star
-                txt.setcc(39, yy % (active_height-1), '.', rnd())
+                txt.setcc(39, yy % (active_height-1), '.', math.rnd())
             }
 
             if yy > 200 {
@@ -84,7 +85,7 @@ main {
                     tree = 88
                 else if yy & %00100000 != 0
                     tree = 65
-                if rnd() > 130
+                if math.rnd() > 130
                     treecolor = 13
                 txt.setcc(39, active_height, tree, treecolor)
             }

@@ -1,6 +1,7 @@
 %import gfx2
 %import floats
 %import textio
+%import math
 %zeropage dontuse
 
 main {
@@ -76,7 +77,7 @@ main {
         sys.wait(2*60)
 
         repeat 255
-            gfx2.line(rndw() % 640, rndw() % 480, rndw() % 640, rndw() % 480, 1)
+            gfx2.line(math.rndw() % 640, math.rndw() % 480, math.rndw() % 640, math.rndw() % 480, 1)
 
         sys.wait(1*60)
     }

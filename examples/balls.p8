@@ -1,4 +1,5 @@
 %import textio
+%import math
 %zeropage basicsafe
 
 ; Note: this program is compatible with C64 and CX16.
@@ -22,11 +23,11 @@ main {
         ; Setup Starting Ball Positions
         ubyte lp
         for lp in 0 to ballCount-1 {
-            BX[lp] = rnd() % txt.DEFAULT_WIDTH
-            BY[lp] = rnd() % txt.DEFAULT_HEIGHT
-            BC[lp] = rnd() & 15
-            DX[lp] = rnd() & 1
-            DY[lp] = rnd() & 1
+            BX[lp] = math.rnd() % txt.DEFAULT_WIDTH
+            BY[lp] = math.rnd() % txt.DEFAULT_HEIGHT
+            BC[lp] = math.rnd() & 15
+            DX[lp] = math.rnd() & 1
+            DY[lp] = math.rnd() & 1
         }
 
         ; display balls

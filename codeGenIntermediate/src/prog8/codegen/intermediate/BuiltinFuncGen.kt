@@ -26,8 +26,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "rsavex",
             "rrestore",
             "rrestorex" -> IRCodeChunk(call.position) // vm doesn't have registers to save/restore
-            "rnd" -> funcRnd(resultRegister, call.position)
-            "rndw" -> funcRndw(resultRegister, call.position)
             "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
             "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
             "msb" -> funcMsb(call, resultRegister)
@@ -306,18 +304,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             code += exprGen.translateExpression(call.args.single(), addressReg, -1)
             code += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultRegister, reg2 = addressReg)
         }
-        return code
-    }
-
-    private fun funcRnd(resultRegister: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
-        code += IRInstruction(Opcode.RND, IRDataType.BYTE, reg1=resultRegister)
-        return code
-    }
-
-    private fun funcRndw(resultRegister: Int, position: Position): IRCodeChunk {
-        val code = IRCodeChunk(position)
-        code += IRInstruction(Opcode.RND, IRDataType.WORD, reg1=resultRegister)
         return code
     }
 

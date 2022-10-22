@@ -1,5 +1,6 @@
 %import textio
 %import syslib
+%import math
 %zeropage basicsafe
 
 
@@ -41,7 +42,7 @@ main {
         for i in 0 to 7 {
             c64.SPRPTR[i] = $0a00 / 64
             c64.SPXY[i*2] = 50+25*i
-            c64.SPXY[i*2+1] = rnd()
+            c64.SPXY[i*2+1] = math.rnd()
         }
 
         c64.SPENA = 255                ; enable all sprites
@@ -59,7 +60,7 @@ irq {
         ubyte @zp i
         for i in 0 to 14 step 2 {
             c64.SPXY[i+1]--
-            ubyte @zp r = rnd()
+            ubyte @zp r = math.rnd()
             if r>200
                 c64.SPXY[i]++
             else if r<40

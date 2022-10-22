@@ -3,9 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- replace rnd() builtin functions by regular functions in math and in floats
-- update docs for rnd() and rndseed() functions
 - ir: replace RND opcodes by syscalls
+- optimizer: check that simple trampoline asmsub gets optimized away (such as math.rnd)
 - ir: asmsub contents remains blank in IR file
 
 ...

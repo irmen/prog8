@@ -10,6 +10,7 @@
 
 %import syslib
 %import textio
+%import math
 %import test_stack
 
 
@@ -261,7 +262,7 @@ waitkey:
         xpos = startXpos
         ypos = startYpos
         speedlevel = 1
-        nextBlock = rnd() % 7
+        nextBlock = math.rnd() % 7
         holding = 255
         holdingAllowed = true
     }
@@ -276,7 +277,7 @@ waitkey:
 
     sub spawnNextBlock() {
         swapBlock(nextBlock)
-        nextBlock = (rnd() + c64.RASTER) % 7
+        nextBlock = (math.rnd() + c64.RASTER) % 7
         drawNextBlock()
         holdingAllowed = true
     }
