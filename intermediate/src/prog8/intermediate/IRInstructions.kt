@@ -126,7 +126,6 @@ mod         reg1,              value        - remainder (modulo) of unsigned div
 sqrt        reg1, reg2                      - reg1 is the square root of reg2
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
-rnd         reg1                            - get a random number (byte, word or float)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
@@ -288,7 +287,6 @@ enum class Opcode {
     SQRT,
     SGN,
     CMP,
-    RND,
     EXT,
     EXTS,
 
@@ -588,7 +586,6 @@ val instructionFormats = mutableMapOf(
     Opcode.DIVSM      to InstructionFormat.from("BW,<r1,<v    | F,<fr1,<v"),
     Opcode.SQRT       to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.RND        to InstructionFormat.from("BW,>r1       | F,>fr1"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<v"),
     Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),

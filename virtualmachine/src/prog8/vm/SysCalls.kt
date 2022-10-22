@@ -74,7 +74,10 @@ enum class Syscall {
     COMPARE_STRINGS,
     GFX_GETPIXEL,
     RNDSEED,
-    RNDFSEED
+    RNDFSEED,
+    RND,
+    RNDW,
+    RNDF
 }
 
 object SysCalls {
@@ -293,6 +296,15 @@ object SysCalls {
                 val seed1 = vm.registers.getUW(0)
                 val seed2 = vm.registers.getUW(1)
                 vm.randomSeed(seed1, seed2)
+            }
+            Syscall.RND -> {
+                vm.registers.setUB(0, vm.randomGenerator.nextInt().toUByte())
+            }
+            Syscall.RNDW -> {
+                vm.registers.setUW(0, vm.randomGenerator.nextInt().toUShort())
+            }
+            Syscall.RNDF -> {
+                vm.registers.setFloat(0, vm.randomGeneratorFloats.nextFloat())
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

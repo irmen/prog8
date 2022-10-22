@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: replace RND opcodes by syscalls
-- optimizer: check that simple trampoline asmsub gets optimized away (such as math.rnd)
 - ir: asmsub contents remains blank in IR file
 
 ...

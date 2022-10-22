@@ -41,8 +41,8 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
-    private var randomGenerator = Random(0xa55a7653)
-    private var randomGeneratorFloats = Random(0xc0d3dbad)
+    internal var randomGenerator = Random(0xa55a7653)
+    internal var randomGeneratorFloats = Random(0xc0d3dbad)
     private val cx16virtualregsBaseAddress: Int
 
     init {
@@ -181,7 +181,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MOD -> InsMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
-            Opcode.RND -> InsRND(ins)
             Opcode.SQRT -> InsSQRT(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
@@ -1057,15 +1056,6 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, sqrt(registers.getFloat(i.fpReg2!!)))
-        }
-        pc++
-    }
-
-    private fun InsRND(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, randomGenerator.nextInt().toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, randomGenerator.nextInt().toUShort())
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, randomGeneratorFloats.nextFloat())
         }
         pc++
     }
