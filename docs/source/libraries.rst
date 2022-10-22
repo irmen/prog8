@@ -261,6 +261,7 @@ rndf()
 
 rndseedf(ubyte s1, ubyte s2, ubyte s3)
     Sets a new seed for the float pseudo-RNG sequence. The seed consists of a three byte value.
+    Do not use zeros for the seed!
 
     .. attention::
         The rndseedf and maybe the rndf routines may change a bit in the future.
@@ -297,6 +298,7 @@ rndw()
 
 rndseed(uword seed1, uword seed2)
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
+    Do not use zeros for the seed!
 
 sin8u(x)
     Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
