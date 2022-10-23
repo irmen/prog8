@@ -852,7 +852,8 @@ internal class AssignmentAsmGen(private val program: Program,
                     fun assignViaExprEval(addressExpression: Expression) {
                         asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
-                        assignRegisterByte(target, CpuRegister.A)
+                        asmgen.out("  ldy  #0")
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
                     }
 
                     when (value.addressExpression) {
@@ -1972,18 +1973,10 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
-        // we make an exception in the type check for assigning something to a cx16 virtual register, or a register pair
-        // these will be correctly typecasted from a byte to a word value
-        if(target.register !in Cx16VirtualRegisters &&
-            target.register!=RegisterOrPair.AX && target.register!=RegisterOrPair.AY && target.register!=RegisterOrPair.XY) {
-            if(target.kind== TargetStorageKind.VARIABLE) {
-                val parts = target.asmVarname.split('.')
-                if (parts.size != 2 || parts[0] != "cx16")
-                    require(target.datatype in ByteDatatypes)
-            } else {
-                require(target.datatype in ByteDatatypes)
-            }
-        }
+        // we make an exception in the type check for assigning something to a register pair AX, AY or XY
+        // these will be correctly typecasted from a byte to a word value here
+        if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
+            require(target.datatype in ByteDatatypes)
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
