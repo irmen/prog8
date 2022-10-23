@@ -150,6 +150,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
 
     private fun visitFunctionCall(call: IFunctionCall) {
+        if(call.target.nameInSource==listOf("rnd") || call.target.nameInSource==listOf("rndw")) {
+            val target = call.target.targetStatement(program)
+            if(target==null) {
+                errors.err("rnd() and rndw() builtin functions have been moved into the math module", call.position)
+                return
+            }
+        }
         when (val target = call.target.targetStatement(program)) {
             is Subroutine -> {
                 val expectedNumberOfArgs: Int = target.parameters.size

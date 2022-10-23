@@ -257,7 +257,14 @@ tan(x)
     Tangent.
 
 rndf()
-    returns a pseudo-random float between 0.0 and 1.0
+    returns the next random float between 0.0 and 1.0 from the Pseudo RNG sequence.
+
+rndseedf(ubyte s1, ubyte s2, ubyte s3)
+    Sets a new seed for the float pseudo-RNG sequence. The seed consists of a three byte value.
+    Do not use zeros for the seed!
+
+    .. attention::
+        The rndseedf and maybe the rndf routines may change a bit in the future.
 
 
 graphics
@@ -276,12 +283,22 @@ Use the ``gfx2`` library if you want full-screen graphics or non-monochrome draw
 
 math
 ----
-Low level math routines. You should not normally have to bother with this directly.
-The compiler needs it to implement most of the math operations in your programs.
+Low level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
+Pseudo-Random number generators (byte and word).
+Various 8-bit integer trig functions that use lookup tables to quickly calculate sine and cosines.
+Usually a custom lookup table is the way to go if your application needs these,
+but perhaps the provided ones can be of service too.
 
-However there's a bunch of 8-bit integer trig functions in here too that use lookup tables
-to quickly calculate sine and cosines. Usually a custom lookup table is the way to go if your
-application needs this, but perhaps the provided ones can be of service too:
+
+rnd()
+    Returns next random byte 0-255 from the pseudo-RNG sequence.
+
+rndw()
+    Returns next random word 0-65535 from the pseudo-RNG sequence.
+
+rndseed(uword seed1, uword seed2)
+    Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
+    Do not use zeros for the seed!
 
 sin8u(x)
     Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255

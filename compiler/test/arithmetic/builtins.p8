@@ -2,6 +2,7 @@
 %import floats
 %import string
 %import syslib
+%import math
 %import test_stack
 %zeropage basicsafe
 
@@ -281,17 +282,17 @@ main {
         txt.nl()
 
 
-        ub = rnd()
+        ub = math.rnd()
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+rnd()*1+zero
+        ub = zero+math.rnd()*1+zero
         txt.print_ub(ub)
         txt.nl()
 
-        uw = rndw()
+        uw = math.rndw()
         txt.print_uw(uw)
         txt.nl()
-        uw = zero+rndw()*1+zero
+        uw = zero+math.rndw()*1+zero
         txt.print_uw(uw)
         txt.nl()
 

@@ -4,7 +4,6 @@ import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
-import prog8.code.core.Position
 import prog8.intermediate.*
 
 
@@ -26,8 +25,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "rsavex",
             "rrestore",
             "rrestorex" -> emptyList()  // vm doesn't have registers to save/restore
-            "rnd" -> funcRnd(resultRegister, call.position)
-            "rndw" -> funcRndw(resultRegister, call.position)
             "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
             "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
             "msb" -> funcMsb(call, resultRegister)
@@ -359,18 +356,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
         }
         return result
-    }
-
-    private fun funcRnd(resultRegister: Int, position: Position): IRCodeChunks {
-        val code = IRCodeChunk(null, position, null)
-        code += IRInstruction(Opcode.RND, IRDataType.BYTE, reg1=resultRegister)
-        return listOf(code)
-    }
-
-    private fun funcRndw(resultRegister: Int, position: Position): IRCodeChunks {
-        val code = IRCodeChunk(null, position, null)
-        code += IRInstruction(Opcode.RND, IRDataType.WORD, reg1=resultRegister)
-        return listOf(code)
     }
 
     private fun funcMemory(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks {

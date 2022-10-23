@@ -44,18 +44,18 @@ class TestBuiltinFunctions: FunSpec({
         conv.returns.reg shouldBe RegisterOrPair.A
     }
 
-    test("not-pure func with fixed type") {
-        val func = BuiltinFunctions.getValue("rnd")
-        func.name shouldBe "rnd"
-        func.parameters.size shouldBe 0
+    test("not-pure func with varying result value type") {
+        val func = BuiltinFunctions.getValue("cmp")
+        func.name shouldBe "cmp"
+        func.parameters.size shouldBe 2
         func.pure shouldBe false
-        func.returnType shouldBe DataType.UBYTE
+        func.returnType shouldBe null
 
-        val conv = func.callConvention(emptyList())
-        conv.params.size shouldBe 0
-        conv.returns.dt shouldBe DataType.UBYTE
+        val conv = func.callConvention(listOf(DataType.UWORD, DataType.UWORD))
+        conv.params.size shouldBe 2
+        conv.returns.dt shouldBe null
         conv.returns.floatFac1 shouldBe false
-        conv.returns.reg shouldBe RegisterOrPair.A
+        conv.returns.reg shouldBe null
     }
 
     test("func without return type") {

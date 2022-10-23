@@ -159,4 +159,27 @@ math {
         return costab[radians] as byte
     }
 
+    sub rnd() -> ubyte {
+        %ir {{
+            syscall 33
+            return
+        }}
+    }
+
+    sub rndw() -> uword {
+        %ir {{
+            syscall 34
+            return
+        }}
+    }
+
+    sub rndseed(uword seed1, uword seed2) {
+        ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
+        %ir {{
+            loadm.w r0,math.rndseed.seed1
+            loadm.w r1,math.rndseed.seed2
+            syscall 31
+            return
+        }}
+    }
 }

@@ -258,8 +258,8 @@ class TestSubroutines: FunSpec({
               sub start() {
                   label()
                   label(1)
-                  void rnd()
-                  void rnd(1)
+                  void cmp(22,44)
+                  void cmp(11)
               }
             }
         """

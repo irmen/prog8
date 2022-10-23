@@ -43,6 +43,8 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
+    internal var randomGenerator = Random(0xa55a7653)
+    internal var randomGeneratorFloats = Random(0xc0d3dbad)
     private val cx16virtualregsBaseAddress: Int
 
     init {
@@ -203,7 +205,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MOD -> InsMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
-            Opcode.RND -> InsRND(ins)
             Opcode.SQRT -> InsSQRT(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
@@ -1082,15 +1083,6 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, sqrt(registers.getFloat(i.fpReg2!!)))
-        }
-        nextPc()
-    }
-
-    private fun InsRND(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, Random.nextInt().toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, Random.nextInt().toUShort())
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, Random.nextFloat())
         }
         nextPc()
     }
@@ -2131,6 +2123,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     fun waitvsync() {
         Toolkit.getDefaultToolkit().sync()      // not really the same as wait on vsync, but there's noting else
+    }
+
+    fun randomSeed(seed1: UShort, seed2: UShort) {
+        randomGenerator = Random(((seed1.toUInt() shl 16) or seed2.toUInt()).toInt())
+    }
+
+    fun randomSeedFloat(seed1: UByte, seed2: UByte, seed3: UByte) {
+        val seed = (seed1.toUInt() shl 24) or (seed2.toUInt() shl 16) or (seed3.toUInt())
+        randomGeneratorFloats = Random(seed.toInt())
     }
 }
 

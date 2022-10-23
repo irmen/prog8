@@ -919,4 +919,19 @@ main  {
             }"""
         compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("memory reads byte into word variable") {
+        val text = """
+            main {
+                sub start() {
+                    uword @shared ww
+                    uword address = $1000
+                    ww = @(address+100)
+                    ww = @(address+1000)
+                    cx16.r0 = @(address+100)
+                    cx16.r0 = @(address+1000)
+                }
+            }"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })

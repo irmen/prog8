@@ -71,4 +71,28 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    asmsub rnd() -> ubyte @A {
+        %asm {{
+            jmp  math.randbyte
+        }}
+    }
+
+    asmsub rndw() -> uword @AY {
+        %asm {{
+            jmp  math.randword
+        }}
+    }
+
+    asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {
+        ; -- set new pseudo RNG's seed values. Defaults are: $00c2, $1137
+        %asm {{
+            sta  math.randword.x1
+            sty  math.randword.c1
+            lda  cx16.r0L
+            sta  math.randword.a1
+            lda  cx16.r0H
+            sta  math.randword.b1
+            rts
+        }}
+    }
 }

@@ -9,6 +9,7 @@
 
 %import syslib
 %import textio
+%import math
 %import test_stack
 %import psg
 
@@ -346,7 +347,7 @@ waitkey:
         xpos = startXpos
         ypos = startYpos
         speedlevel = 1
-        nextBlock = rnd() % 7
+        nextBlock = math.rnd() % 7
         holding = 255
         holdingAllowed = true
         ticks_since_previous_action = 0
@@ -362,7 +363,7 @@ waitkey:
 
     sub spawnNextBlock() {
         swapBlock(nextBlock)
-        nextBlock = (rnd() + lsb(c64.RDTIM16())) % 7
+        nextBlock = (math.rnd() + lsb(c64.RDTIM16())) % 7
         drawNextBlock()
         holdingAllowed = true
     }

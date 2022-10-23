@@ -1,4 +1,5 @@
 %import textio
+%import math
 
 ; Even though prog8 only has support for extremely limited recursion,
 ; you can write recursive algorithms with a bit of extra work by building your own explicit stack structure.
@@ -135,8 +136,8 @@ carve_restart_after_repath:
             ; for too long on bad rng... just accept a few unused cells in that case.
             repeat 255 {
                 do {
-                    cx = rnd() % numCellsHoriz
-                    cy = rnd() % numCellsVert
+                    cx = math.rnd() % numCellsHoriz
+                    cy = math.rnd() % numCellsVert
                 } until not @(celladdr(cx, cy)) & STONE
                 if available_uncarved()
                     return true
@@ -164,7 +165,7 @@ carve_restart_after_repath:
 
             ubyte[4] bitflags = [LEFT,RIGHT,UP,DOWN]
             repeat {
-                ubyte choice = candidates & bitflags[rnd() & 3]
+                ubyte choice = candidates & bitflags[math.rnd() & 3]
                 if choice
                     return choice
             }
