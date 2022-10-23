@@ -74,7 +74,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         result += exprGen.translateExpression(call.args[0], 0, -1)
         result += IRCodeChunk(null, call.position, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
-            it += IRInstruction(Opcode.SYSCALL, value = syscall.ordinal)
+            it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
             if (resultRegister != 0)
                 it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1 = resultRegister, reg2 = 0)
         }
@@ -97,7 +97,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         result += exprGen.translateExpression(call.args[0], 0, -1)
         result += IRCodeChunk(null, call.position, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
-            it += IRInstruction(Opcode.SYSCALL, value = syscall.ordinal)
+            it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
             if (resultRegister != 0)
                 it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1 = resultRegister, reg2 = 0)
         }
@@ -216,7 +216,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         result += exprGen.translateExpression(call.args[0], 0, -1)
         result += IRCodeChunk(null, call.position, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
-            it += IRInstruction(Opcode.SYSCALL, value = syscall.ordinal)
+            it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
         }
         return result
     }
@@ -238,7 +238,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         result += exprGen.translateExpression(call.args[0], 0, -1)
         result += IRCodeChunk(null, call.position, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
-            it += IRInstruction(Opcode.SYSCALL, value = syscall.ordinal)
+            it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
         }
         return result
     }

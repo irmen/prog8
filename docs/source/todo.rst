@@ -4,13 +4,13 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - vm: program is list of chunks, fix dispatcher
-- ir: see TODO replace IM syscalls by their VM Syscall equivalent
-- ir: fix JUMP, RETURN and all branching instructions to reference a chunk + index instead of just a single programcounter index
-- ir: fix removeWeirdBranches in IR optimizer
+- maybe?: make sure last %ir chunk in a subroutine ends with a jump or a return instruction
 - ir: fix unit tests
 - ir: fix joinChunks() in the IR optimizer - there are WAY too many chunks with 1 instruction in them only
+- ir: fix removeWeirdBranches in IR optimizer
 - ir: next in IRCodeChunk can also be a Asm Chunk which can have next as well
 - add cx16diskio.vload_raw() to load headerless files into vram
+- mention the syntax highlighting files in the readme and the docs, and add note to the IDEA one that it can also be used in Rider
 
 ...
 

@@ -357,6 +357,8 @@ val OpcodesThatBranch = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
     Opcode.RETURN,
+    Opcode.CALL,
+    Opcode.SYSCALL,
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTEQ,

@@ -116,8 +116,10 @@ class IRProgram(val name: String,
                         chunk.instructions.forEach {
                             if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null) {
                                 val targetChunk = labeledChunks.getValue(it.labelSymbol)
-                                require(targetChunk is IRCodeChunk) { "target $targetChunk with label ${targetChunk.label} has to be a code chunk" }
-                                it.branchTarget = targetChunk
+                                if(targetChunk is IRCodeChunk)
+                                    it.branchTarget = targetChunk
+                                else
+                                    println("TODO: branchTarget to non-codechunk $targetChunk with label ${targetChunk.label}") // TODO
                             }
                             // note: branches with an address value cannot be linked to something...
                         }
@@ -147,8 +149,16 @@ class IRProgram(val name: String,
                     require(sub.chunks.first().label == sub.name) { "first chunk in subroutine should have sub name as its label" }
                 }
                 sub.chunks.forEach { chunk ->
-                    if (chunk is IRCodeChunk) require(chunk.instructions.isNotEmpty() || chunk.label!=null)
-                    else require(chunk.instructions.isEmpty())
+                    if (chunk is IRCodeChunk)
+                        require(chunk.instructions.isNotEmpty() || chunk.label!=null)
+                    else
+                        require(chunk.instructions.isEmpty())
+                    chunk.instructions.forEach {
+                        if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch) {
+                            if(it.branchTarget==null) println("TODO: fix branching instruction to label ${it.labelSymbol} should have branchTarget set")  // TODO
+                            // TODO  require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                        }
+                    }
                 }
             }
         }

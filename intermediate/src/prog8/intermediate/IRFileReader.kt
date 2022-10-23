@@ -46,6 +46,7 @@ class IRFileReader {
 
         program.linkChunks()
         program.validate()
+
         return program
     }
 

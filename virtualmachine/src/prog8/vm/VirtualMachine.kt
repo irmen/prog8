@@ -122,12 +122,14 @@ class VirtualMachine(irProgram: IRProgram) {
         if(pcIndex>=pcChunk.instructions.size) {
             pcIndex = 0
             if(pcChunk.next==null)
-                TODO("huh no next chunk in $pcChunk")
+                TODO("no next chunk in $pcChunk (remove this check)")
             pcChunk = pcChunk.next!!
         }
     }
 
-    private inline fun branchTo(i: IRInstruction) {
+    private fun branchTo(i: IRInstruction) {
+        if(i.branchTarget==null)
+            TODO("no branchtarget in $i (remove this check)")
         pcChunk = i.branchTarget!!
         pcIndex = 0
     }
