@@ -2,7 +2,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import prog8.codegen.intermediate.IRChunkLinker
 import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
 
@@ -25,6 +24,7 @@ class TestIRPeepholeOpt: FunSpec({
         )
         val prog = IRProgram("test", IRSymbolTable(null), options, target)
         prog.addBlock(block)
+        prog.linkChunks()
         prog.validate()
         return prog
     }
@@ -44,7 +44,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.NOP)
         ))
         irProg.chunks().single().instructions.size shouldBe 3
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         irProg.chunks().single().instructions.size shouldBe 1
@@ -64,7 +63,6 @@ class TestIRPeepholeOpt: FunSpec({
 
         irProg.chunks().size shouldBe 4
         irProg.chunks().flatMap { it.instructions }.size shouldBe 5
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         irProg.chunks().size shouldBe 3
@@ -87,7 +85,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.CLC)
         ))
         irProg.chunks().single().instructions.size shouldBe 6
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         val instr = irProg.chunks().single().instructions
@@ -103,7 +100,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=222)
         ))
         irProg.chunks().single().instructions.size shouldBe 4
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         val instr = irProg.chunks().single().instructions
@@ -127,7 +123,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 0)
         ))
         irProg.chunks().single().instructions.size shouldBe 10
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         irProg.chunks().single().instructions.size shouldBe 4
@@ -139,7 +134,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=42, value = 1)
         ))
         irProg.chunks().single().instructions.size shouldBe 2
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         val instr = irProg.chunks().single().instructions
@@ -160,7 +154,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, value = 1)
         ))
         irProg.chunks().single().instructions.size shouldBe 8
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         irProg.chunks().single().instructions.size shouldBe 4
@@ -174,7 +167,6 @@ class TestIRPeepholeOpt: FunSpec({
             IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, value = 65535)
         ))
         irProg.chunks().single().instructions.size shouldBe 4
-        IRChunkLinker(irProg).link()
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
         val instr = irProg.chunks().single().instructions

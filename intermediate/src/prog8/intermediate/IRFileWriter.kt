@@ -25,10 +25,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         out.write("\n<INITGLOBALS>\n")
         if(!irProgram.options.dontReinitGlobals) {
-            out.write("<C>\n")
             // note: this a block of code that loads values and stores them into the global variables to reset their values.
-            irProgram.globalInits.forEach { out.write(it.toString()) }
-            out.write("</C>\n")
+            writeCodeChunk(irProgram.globalInits)
         }
         out.write("</INITGLOBALS>\n")
         writeBlocks()
@@ -63,18 +61,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     when (chunk) {
                         is IRInlineAsmChunk -> writeInlineAsm(chunk)
                         is IRInlineBinaryChunk -> writeInlineBytes(chunk)
-                        else -> {
-                            if(chunk.label!=null)
-                                out.write("<C LABEL=${chunk.label}>\n")
-                            else
-                                out.write("<C>\n")
-                            chunk.instructions.forEach { instr ->
-                                numInstr++
-                                out.write(instr.toString())
-                                out.write("\n")
-                            }
-                            out.write("</C>\n")
-                        }
+                        is IRCodeChunk -> writeCodeChunk(chunk)
+                        else -> throw InternalCompilerException("invalid chunk")
                     }
                 }
                 out.write("</SUB>\n")
@@ -99,6 +87,19 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             out.write("</BLOCK>\n")
         }
+    }
+
+    private fun writeCodeChunk(chunk: IRCodeChunk) {
+        if(chunk.label!=null)
+            out.write("<C LABEL=${chunk.label}>\n")
+        else
+            out.write("<C>\n")
+        chunk.instructions.forEach { instr ->
+            numInstr++
+            out.write(instr.toString())
+            out.write("\n")
+        }
+        out.write("</C>\n")
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {

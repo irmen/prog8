@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.intermediate.*
@@ -11,14 +12,14 @@ class VmProgramLoader {
         placeholders.clear()
         irProgram.validate()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
-        val symbolAddresses = allocations.allocations.toMutableMap()
+        val variableAddresses = allocations.allocations.toMutableMap()
         val programChunks = mutableListOf<IRCodeChunk>()
 
-        varsToMemory(irProgram, allocations, symbolAddresses, memory)
+        varsToMemory(irProgram, allocations, variableAddresses, memory)
 
         if(!irProgram.options.dontReinitGlobals) {
             if(irProgram.globalInits.isNotEmpty())
-                addToProgram(irProgram.globalInits, programChunks, symbolAddresses)
+                programChunks += irProgram.globalInits
         }
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
@@ -31,18 +32,19 @@ class VmProgramLoader {
             }
         }
 
-        // TODO load rest of the program
+        // load rest of the program into the list
         irProgram.blocks.forEach { block ->
             if(block.address!=null)
                 throw IRParseException("blocks cannot have a load address for vm: ${block.name}")
 
-            block.inlineAssembly.forEach { addAssemblyToProgram(it, programChunks, symbolAddresses) }
+            block.inlineAssembly.forEach { addAssemblyToProgram(it, programChunks, variableAddresses) }
             block.subroutines.forEach {
                 it.chunks.forEach { chunk ->
                     when (chunk) {
-                        is IRInlineAsmChunk -> addAssemblyToProgram(chunk, programChunks, symbolAddresses)
+                        is IRInlineAsmChunk -> addAssemblyToProgram(chunk, programChunks, variableAddresses)
                         is IRInlineBinaryChunk -> TODO("inline binary data not yet supported in the VM")
-                        else -> addToProgram(chunk.instructions, programChunks, symbolAddresses)
+                        is IRCodeChunk -> programChunks += chunk
+                        else -> throw AssemblyError("weird chunk type")
                     }
                 }
             }
@@ -50,33 +52,34 @@ class VmProgramLoader {
                 throw IRParseException("vm currently does not support asmsubs: ${block.asmSubroutines.first().name}")
         }
 
-        pass2replaceLabelsByProgIndex(programChunks, symbolAddresses)
-
-        programChunks.asSequence().flatMap { it.instructions }.forEach {
-            if(it.opcode in OpcodesWithAddress && it.value==null) {
-                throw IRParseException("instruction missing numeric value, label not replaced? $it")
-            }
-        }
+        pass2replaceLabelsByProgIndex(programChunks, variableAddresses)
 
         return programChunks
     }
 
     private fun pass2replaceLabelsByProgIndex(
         chunks: MutableList<IRCodeChunk>,
-        symbolAddresses: MutableMap<String, Int>
+        variableAddresses: MutableMap<String, Int>
     ) {
         for((ref, label) in placeholders) {
             val (chunk, line) = ref
-            val replacement = symbolAddresses[label]
+            val replacement = variableAddresses[label]
             if(replacement==null) {
                 // it could be an address + index:   symbol+42
                 if('+' in label) {
                     val (symbol, indexStr) = label.split('+')
                     val index = indexStr.toInt()
-                    val address = symbolAddresses.getValue(symbol) + index
+                    val address = variableAddresses.getValue(symbol) + index
                     chunk.instructions[line] = chunk.instructions[line].copy(value = address)
                 } else {
-                    throw IRParseException("placeholder not found in labels: $label")
+                    // placeholder is not a variable, so it must be a label of a code chunk instead
+                    val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
+                    if(target==null)
+                        throw IRParseException("placeholder not found in variables nor labels: $label")
+                    else {
+                        require(chunk.instructions[line].opcode in OpcodesThatBranch)
+                        chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, value = null)
+                    }
                 }
             } else {
                 chunk.instructions[line] = chunk.instructions[line].copy(value = replacement)
@@ -84,39 +87,39 @@ class VmProgramLoader {
         }
     }
 
-    private fun addToProgram(
-        instructions: Iterable<IRInstruction>,
-        program: MutableList<IRCodeChunk>,
-        symbolAddresses: MutableMap<String, Int>
-    ) {
-        val chunk = IRCodeChunk(null, Position.DUMMY, null)
-        instructions.map {
-            it.labelSymbol?.let { symbol -> placeholders[Pair(chunk, chunk.instructions.size)]=symbol }
-            if(it.opcode==Opcode.SYSCALL) {
-                // convert IR Syscall to VM Syscall
-                val vmSyscall = when(it.value!!) {
-                    IMSyscall.SORT_UBYTE.ordinal -> Syscall.SORT_UBYTE
-                    IMSyscall.SORT_BYTE.ordinal -> Syscall.SORT_BYTE
-                    IMSyscall.SORT_UWORD.ordinal -> Syscall.SORT_UWORD
-                    IMSyscall.SORT_WORD.ordinal -> Syscall.SORT_WORD
-                    IMSyscall.ANY_BYTE.ordinal -> Syscall.ANY_BYTE
-                    IMSyscall.ANY_WORD.ordinal -> Syscall.ANY_WORD
-                    IMSyscall.ANY_FLOAT.ordinal -> Syscall.ANY_FLOAT
-                    IMSyscall.ALL_BYTE.ordinal -> Syscall.ALL_BYTE
-                    IMSyscall.ALL_WORD.ordinal -> Syscall.ALL_WORD
-                    IMSyscall.ALL_FLOAT.ordinal -> Syscall.ALL_FLOAT
-                    IMSyscall.REVERSE_BYTES.ordinal -> Syscall.REVERSE_BYTES
-                    IMSyscall.REVERSE_WORDS.ordinal -> Syscall.REVERSE_WORDS
-                    IMSyscall.REVERSE_FLOATS.ordinal -> Syscall.REVERSE_FLOATS
-                    else -> throw IRParseException("invalid IM syscall number $it")
-                }
-                chunk += it.copy(value=vmSyscall.ordinal)
-            } else {
-                chunk += it
-            }
-        }
-        program += chunk
-    }
+    // TODO replace IM syscalls by their VM Syscall equivalent
+//    private fun addToProgram(
+//        instructions: Iterable<IRInstruction>,
+//        program: MutableList<IRCodeChunk>
+//    ) {
+//        val chunk = IRCodeChunk(null, Position.DUMMY, null)
+//        instructions.map {
+//            it.labelSymbol?.let { symbol -> placeholders[Pair(chunk, chunk.instructions.size)]=symbol }
+//            if(it.opcode==Opcode.SYSCALL) {
+//                // convert IR Syscall to VM Syscall
+//                val vmSyscall = when(it.value!!) {
+//                    IMSyscall.SORT_UBYTE.ordinal -> Syscall.SORT_UBYTE
+//                    IMSyscall.SORT_BYTE.ordinal -> Syscall.SORT_BYTE
+//                    IMSyscall.SORT_UWORD.ordinal -> Syscall.SORT_UWORD
+//                    IMSyscall.SORT_WORD.ordinal -> Syscall.SORT_WORD
+//                    IMSyscall.ANY_BYTE.ordinal -> Syscall.ANY_BYTE
+//                    IMSyscall.ANY_WORD.ordinal -> Syscall.ANY_WORD
+//                    IMSyscall.ANY_FLOAT.ordinal -> Syscall.ANY_FLOAT
+//                    IMSyscall.ALL_BYTE.ordinal -> Syscall.ALL_BYTE
+//                    IMSyscall.ALL_WORD.ordinal -> Syscall.ALL_WORD
+//                    IMSyscall.ALL_FLOAT.ordinal -> Syscall.ALL_FLOAT
+//                    IMSyscall.REVERSE_BYTES.ordinal -> Syscall.REVERSE_BYTES
+//                    IMSyscall.REVERSE_WORDS.ordinal -> Syscall.REVERSE_WORDS
+//                    IMSyscall.REVERSE_FLOATS.ordinal -> Syscall.REVERSE_FLOATS
+//                    else -> throw IRParseException("invalid IM syscall number $it")
+//                }
+//                chunk += it.copy(value=vmSyscall.ordinal)
+//            } else {
+//                chunk += it
+//            }
+//        }
+//        program += chunk
+//    }
 
     private fun varsToMemory(
         program: IRProgram,

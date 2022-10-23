@@ -3,13 +3,13 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: check that block and sub labels are also on the first chunk in said block/sub
-- ir: link all sequential chunks to another (exiting one chunk 'calls' the next chunk)
+- vm: program is list of chunks, fix dispatcher
+- ir: see TODO replace IM syscalls by their VM Syscall equivalent
 - ir: fix JUMP, RETURN and all branching instructions to reference a chunk + index instead of just a single programcounter index
 - ir: fix removeWeirdBranches in IR optimizer
 - ir: fix unit tests
-- ir: fix joinChunks() in the IR optimizer
-- vm: program is list of chunks, fix dispatcher
+- ir: fix joinChunks() in the IR optimizer - there are WAY too many chunks with 1 instruction in them only
+- ir: next in IRCodeChunk can also be a Asm Chunk which can have next as well
 - add cx16diskio.vload_raw() to load headerless files into vram
 
 ...

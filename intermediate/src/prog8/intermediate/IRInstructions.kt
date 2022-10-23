@@ -353,60 +353,6 @@ enum class Opcode {
     BINARYDATA
 }
 
-val OpcodesWithAddress = setOf(
-    Opcode.LOADM,
-    Opcode.LOADX,
-    Opcode.LOADIX,
-    Opcode.STOREM,
-    Opcode.STOREX,
-    Opcode.STOREIX,
-    Opcode.STOREZM,
-    Opcode.STOREZX,
-    Opcode.JUMP,
-    Opcode.JUMPA,
-    Opcode.CALL,
-    Opcode.INCM,
-    Opcode.DECM,
-    Opcode.NEGM,
-    Opcode.ADDM,
-    Opcode.SUBM,
-    Opcode.MULM,
-    Opcode.DIVM,
-    Opcode.DIVSM,
-    Opcode.INVM,
-    Opcode.ORM,
-    Opcode.XORM,
-    Opcode.ANDM,
-    Opcode.ASRM,
-    Opcode.LSRM,
-    Opcode.LSLM,
-    Opcode.LSLNM,
-    Opcode.LSRNM,
-    Opcode.ASRNM,
-    Opcode.ROLM,
-    Opcode.RORM,
-    Opcode.ROXLM,
-    Opcode.ROXRM,
-    Opcode.BSTCC,
-    Opcode.BSTCS,
-    Opcode.BSTEQ,
-    Opcode.BSTNE,
-    Opcode.BSTNEG,
-    Opcode.BSTPOS,
-    Opcode.BZ,
-    Opcode.BNZ,
-    Opcode.BEQ,
-    Opcode.BNE,
-    Opcode.BLT,
-    Opcode.BLTS,
-    Opcode.BLE,
-    Opcode.BLES,
-    Opcode.BGT,
-    Opcode.BGTS,
-    Opcode.BGE,
-    Opcode.BGES
-)
-
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
@@ -681,7 +627,7 @@ data class IRInstruction(
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
-        if(value!=null && opcode !in OpcodesWithAddress) {
+        if(value!=null) {
             when (type) {
                 IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
                 IRDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}

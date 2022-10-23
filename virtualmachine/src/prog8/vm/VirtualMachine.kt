@@ -117,10 +117,12 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private inline fun nextPc() {
+    private fun nextPc() {
         pcIndex ++
         if(pcIndex>=pcChunk.instructions.size) {
             pcIndex = 0
+            if(pcChunk.next==null)
+                TODO("huh no next chunk in $pcChunk")
             pcChunk = pcChunk.next!!
         }
     }

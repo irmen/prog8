@@ -42,7 +42,7 @@ class PtNodeGroup : PtNode(Position.DUMMY) {
 }
 
 
-abstract class PtNamedNode(val name: String, position: Position): PtNode(position) {
+sealed class PtNamedNode(val name: String, position: Position): PtNode(position) {
     val scopedName: List<String> by lazy {
         var namedParent: PtNode = this.parent
         if(namedParent is PtProgram)

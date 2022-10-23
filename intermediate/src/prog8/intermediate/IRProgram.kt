@@ -52,10 +52,13 @@ class IRProgram(val name: String,
                 val encoding: IStringEncoding) {
 
     val asmSymbols = mutableMapOf<String, String>()
-    val globalInits = mutableListOf<IRInstruction>()
+    val globalInits = IRCodeChunk(null, Position.DUMMY, null)
     val blocks = mutableListOf<IRBlock>()
 
-    fun addGlobalInits(chunk: IRCodeChunk) = globalInits.addAll(chunk.instructions)
+    fun addGlobalInits(chunk: IRCodeChunk) {
+        globalInits += chunk
+    }
+
     fun addBlock(block: IRBlock) {
         require(blocks.all { it.name != block.name}) { "duplicate block ${block.name} ${block.position}" }
         blocks.add(block)
@@ -65,15 +68,84 @@ class IRProgram(val name: String,
         asmSymbols += symbolDefs
     }
 
+    fun linkChunks() {
+        val labeledChunks = blocks.flatMap { it.subroutines }.flatMap { it.chunks }.associateBy { it.label }
+
+        if(globalInits.isNotEmpty()) {
+            if(globalInits.next==null) {
+                val firstBlock = blocks.firstOrNull()
+                if(firstBlock!=null) {
+                    if(firstBlock.inlineAssembly.isNotEmpty()) {
+                        TODO("link to inline assembly block")
+                        // irprog.globalInits.next = firstBlock.inlineAssembly.first()
+                    } else if(firstBlock.subroutines.isNotEmpty()) {
+                        val firstSub = firstBlock.subroutines.first()
+                        if(firstSub.chunks.isNotEmpty()) {
+                            val firstChunk = firstSub.chunks.first()
+                            when(firstChunk) {
+                                is IRCodeChunk -> globalInits.next = firstChunk
+                                else -> TODO("link to other type of chunk")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+            sub.chunks.withIndex().forEach { (index, chunk) ->
+
+                when (chunk) {
+                    is IRCodeChunk -> {
+                        // link sequential chunks
+                        val jump = chunk.instructions.lastOrNull()?.opcode
+                        if (jump == null || jump !in setOf(Opcode.JUMP, Opcode.JUMPA, Opcode.RETURN)) {
+                            // no jump at the end, so link to next chunk (if it exists)
+                            if(index<sub.chunks.size-1) {
+                                val nextChunk = sub.chunks[index + 1]
+                                if (nextChunk is IRCodeChunk)
+                                    chunk.next = nextChunk
+                                else
+                                    throw AssemblyError("code chunk flows into following non-code chunk")
+                            } else {
+                                TODO("???")
+                            }
+                        }
+
+                        // link all jump and branching instructions to their target
+                        chunk.instructions.forEach {
+                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null) {
+                                val targetChunk = labeledChunks.getValue(it.labelSymbol)
+                                require(targetChunk is IRCodeChunk) { "target $targetChunk with label ${targetChunk.label} has to be a code chunk" }
+                                it.branchTarget = targetChunk
+                            }
+                            // note: branches with an address value cannot be linked to something...
+                        }
+                    }
+                    is IRInlineAsmChunk -> {
+                        // TODO("link next of asm chunk")
+                    }
+                    is IRInlineBinaryChunk -> {
+                        // TODO("link next of binary chunk")
+                    }
+                    else -> throw AssemblyError("invalid chunk")
+                }
+            }
+        }
+    }
+
     fun validate() {
-
-        // TODO: check that block and sub labels are also on the first chunk in said block/sub
-
-        blocks.forEach {
-            it.inlineAssembly.forEach { chunk ->
+        blocks.forEach { block ->
+            if(block.inlineAssembly.isNotEmpty()) {
+                require(block.inlineAssembly.first().label == block.name) { "first block chunk should have block name as its label" }
+            }
+            block.inlineAssembly.forEach { chunk ->
                 require(chunk.instructions.isEmpty())
             }
-            it.subroutines.forEach { sub ->
+            block.subroutines.forEach { sub ->
+                if(sub.chunks.isNotEmpty()) {
+                    require(sub.chunks.first().label == sub.name) { "first chunk in subroutine should have sub name as its label" }
+                }
                 sub.chunks.forEach { chunk ->
                     if (chunk is IRCodeChunk) require(chunk.instructions.isNotEmpty() || chunk.label!=null)
                     else require(chunk.instructions.isEmpty())
@@ -95,7 +167,7 @@ class IRProgram(val name: String,
             usedRegisters.outputFpRegs.forEach{ (reg, count) -> outputFpRegs[reg] = outputFpRegs.getValue(reg) + count }
         }
 
-        globalInits.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
+        globalInits.instructions.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
         blocks.forEach {
             it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
             it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
@@ -112,9 +184,9 @@ class IRBlock(
     val alignment: BlockAlignment,
     val position: Position
 ) {
+    val inlineAssembly = mutableListOf<IRInlineAsmChunk>()
     val subroutines = mutableListOf<IRSubroutine>()
     val asmSubroutines = mutableListOf<IRAsmSubroutine>()
-    val inlineAssembly = mutableListOf<IRInlineAsmChunk>()
 
     enum class BlockAlignment {
         NONE,
@@ -177,7 +249,7 @@ class IRAsmSubroutine(
     fun usedRegisters() = registersUsed
 }
 
-abstract class IRCodeChunkBase(val label: String?, val position: Position) {
+sealed class IRCodeChunkBase(val label: String?, val position: Position) {
     val instructions = mutableListOf<IRInstruction>()
 
     abstract fun isEmpty(): Boolean
@@ -187,7 +259,7 @@ abstract class IRCodeChunkBase(val label: String?, val position: Position) {
 
 class IRCodeChunk(label: String?,
                   position: Position,
-                  var next: IRCodeChunk?): IRCodeChunkBase(label, position) {
+                  var next: IRCodeChunk?): IRCodeChunkBase(label, position) {                   // TODO next can also be InlineAsmChunk!! which can also have a next again.
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()

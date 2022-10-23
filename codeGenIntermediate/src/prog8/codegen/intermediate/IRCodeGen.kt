@@ -49,17 +49,57 @@ class IRCodeGen(
             irProg.addBlock(translate(block))
 
         replaceMemoryMappedVars(irProg)
-        IRChunkLinker(irProg).link()
+        ensureFirstChunkLabels(irProg)
+        irProg.linkChunks()
 
         if(options.optimize) {
             val optimizer = IRPeepholeOptimizer(irProg)
             optimizer.optimize()
-            IRChunkLinker(irProg).link()    // re-link
+            irProg.linkChunks() // re-link
         }
 
         irProg.validate()
-
         return irProg
+    }
+
+    private fun ensureFirstChunkLabels(irProg: IRProgram) {
+        // make sure that first chunks in Blocks and Subroutines share the name of the block/sub as label.
+
+        irProg.blocks.forEach { block ->
+            if(block.inlineAssembly.isNotEmpty()) {
+                val first = block.inlineAssembly.first()
+                if(first.label==null) {
+                    val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.position)
+                    block.inlineAssembly.removeAt(0)
+                    block.inlineAssembly.add(0, replacement)
+                } else if(first.label != block.name) {
+                    throw AssemblyError("first chunk in block has label that differs from block name")
+                }
+            }
+
+            block.subroutines.forEach { sub ->
+                if(sub.chunks.isNotEmpty()) {
+                    val first = sub.chunks.first()
+                    if(first.label==null) {
+                        val replacement = when(first) {
+                            is IRCodeChunk -> {
+                                val replacement = IRCodeChunk(sub.name, first.position, first.next)
+                                replacement.instructions += first.instructions
+                                replacement
+                            }
+                            is IRInlineAsmChunk -> IRInlineAsmChunk(sub.name, first.assembly, first.isIR, first.position)
+                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.name, first.data, first.position)
+                            else -> throw AssemblyError("invalid chunk")
+                        }
+                        sub.chunks.removeAt(0)
+                        sub.chunks.add(0, replacement)
+                    } else if(first.label != sub.name) {
+                        val next = if(first is IRCodeChunk) first else null
+                        sub.chunks.add(0, IRCodeChunk(sub.name, sub.position, next))
+                    }
+                }
+            }
+        }
     }
 
     private fun replaceMemoryMappedVars(irProg: IRProgram) {
@@ -309,7 +349,7 @@ class IRCodeGen(
         val labeledFirstChunk = when(val first=chunks[0]) {
             is IRCodeChunk -> {
                 val newChunk = IRCodeChunk(label, first.position, null)
-                first.instructions.forEach { newChunk += it }
+                newChunk.instructions += first.instructions
                 newChunk
             }
             is IRInlineAsmChunk -> {
