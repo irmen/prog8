@@ -23,6 +23,7 @@ internal class CodeDesugarer(val program: Program,
     // - replace while and do-until loops by just jumps.
     // - replace peek() and poke() by direct memory accesses.
     // - repeat-forever loops replaced by label+jump.
+    // - pointer[word] replaced by @(pointer+word)
 
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
@@ -132,6 +133,33 @@ _after:
                 IAstModification.InsertLast(jump, repeatLoop.body),
                 IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent)
             )
+        }
+        return noModifications
+    }
+
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        // replace pointervar[word] by @(pointervar+word)
+        val indexExpr = arrayIndexedExpression.indexer.indexExpr
+        val indexerDt = indexExpr.inferType(program)
+        if(indexerDt.isWords) {
+            val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)!!
+            if(arrayVar.datatype==DataType.UWORD) {
+                val add: Expression =
+                    if(indexExpr.constValue(program)?.number==0.0)
+                        arrayIndexedExpression.arrayvar.copy()
+                    else
+                        BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexExpr, arrayIndexedExpression.position)
+                return if(parent is AssignTarget) {
+                    // assignment to array
+                    val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
+                    val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
+                    listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
+                } else {
+                    // read from array
+                    val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
+                    listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+                }
+            }
         }
         return noModifications
     }

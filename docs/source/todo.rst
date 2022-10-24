@@ -4,6 +4,8 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - ir: asmsub contents remains blank in IR file
+- add cx16diskio.vload_raw() to load headerless files into vram
+- mention the syntax highlighting files in the readme and the docs, and add note to the IDEA one that it can also be used in Rider
 
 ...
 
