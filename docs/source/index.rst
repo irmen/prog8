@@ -182,6 +182,10 @@ If you're targeting the CommanderX16 instead, there's a choice of the official `
 and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
 using the ``-emu`` or ``-emu2`` command line options)
 
+**Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
+Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.
+
+
 
 .. toctree::
     :maxdepth: 2
