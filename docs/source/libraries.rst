@@ -365,6 +365,7 @@ cx16diskio  (cx16 only)
 -----------------------
 Available for the Cx16 target. Contains extensions to the load and load_raw routines from the regular
 diskio module, to deal with loading of potentially large files in to banked ram (HiRam).
+Routines to directly load data into video ram are also present (vload and vload_raw).
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
 to 16 bits, 64Kb)
 
