@@ -7,6 +7,7 @@ import prog8.intermediate.*
 
 class TestIRPeepholeOpt: FunSpec({
     fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {
+        require(chunks.first().label=="main.start")
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val sub = IRSubroutine("main.start", emptyList(), null, Position.DUMMY)
         chunks.forEach { sub += it }
@@ -30,7 +31,7 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     fun makeIRProgram(instructions: List<IRInstruction>): IRProgram {
-        val chunk = IRCodeChunk(null, Position.DUMMY, null)
+        val chunk = IRCodeChunk("main.start", Position.DUMMY, null)
         instructions.forEach { chunk += it }
         return makeIRProgram(listOf(chunk))
     }
@@ -50,10 +51,10 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     test("remove jmp to label below") {
-        val c1 = IRCodeChunk(null, Position.DUMMY, null)
-        c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")  // removed
+        val c1 = IRCodeChunk("main.start", Position.DUMMY, null)
+        c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")  // removed, but chunk stays because of label
         val c2 = IRCodeChunk("label", Position.DUMMY, null)
-        c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2") // removed
+        c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2") // removed, but chunk stays because of label
         c2 += IRInstruction(Opcode.NOP)  // removed
         val c3 = IRCodeChunk("label2", Position.DUMMY, null)
         c3 += IRInstruction(Opcode.JUMP, labelSymbol = "label3")
@@ -65,10 +66,15 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().flatMap { it.instructions }.size shouldBe 5
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize()
-        irProg.chunks().size shouldBe 3
-        irProg.chunks()[0].label shouldBe "label"
-        irProg.chunks()[1].label shouldBe "label2"
-        irProg.chunks()[2].label shouldBe "label3"
+        irProg.chunks().size shouldBe 4
+        irProg.chunks()[0].label shouldBe "main.start"
+        irProg.chunks()[1].label shouldBe "label"
+        irProg.chunks()[2].label shouldBe "label2"
+        irProg.chunks()[3].label shouldBe "label3"
+        irProg.chunks()[0].isEmpty() shouldBe true
+        irProg.chunks()[1].isEmpty() shouldBe true
+        irProg.chunks()[2].isEmpty() shouldBe false
+        irProg.chunks()[3].isEmpty() shouldBe true
         val instr = irProg.chunks().flatMap { it.instructions }
         instr.size shouldBe 2
         instr[0].opcode shouldBe Opcode.JUMP

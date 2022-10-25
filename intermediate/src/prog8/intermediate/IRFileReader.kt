@@ -333,7 +333,7 @@ class IRFileReader {
             asmlines.add(line)
             line = lines.next()
         }
-        return IRInlineAsmChunk(label, asmlines.joinToString("\n"), isIr, pos)
+        return IRInlineAsmChunk(label, asmlines.joinToString("\n"), isIr, pos, null)
     }
 
     private fun parseAsmSubroutine(startline: String, lines: Iterator<String>): IRAsmSubroutine {
@@ -421,7 +421,7 @@ class IRFileReader {
             }
             line = lines.next()
         }
-        return IRInlineBinaryChunk(label, bytes, pos)
+        return IRInlineBinaryChunk(label, bytes, pos, null)
     }
 
     private fun parseParameters(lines: Iterator<String>): List<IRSubroutine.IRParam> {

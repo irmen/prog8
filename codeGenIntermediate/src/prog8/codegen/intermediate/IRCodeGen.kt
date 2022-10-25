@@ -69,7 +69,7 @@ class IRCodeGen(
             if(block.inlineAssembly.isNotEmpty()) {
                 val first = block.inlineAssembly.first()
                 if(first.label==null) {
-                    val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.position)
+                    val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.position, first.next)
                     block.inlineAssembly.removeAt(0)
                     block.inlineAssembly.add(0, replacement)
                 } else if(first.label != block.name) {
@@ -87,8 +87,8 @@ class IRCodeGen(
                                 replacement.instructions += first.instructions
                                 replacement
                             }
-                            is IRInlineAsmChunk -> IRInlineAsmChunk(sub.name, first.assembly, first.isIR, first.position)
-                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.name, first.data, first.position)
+                            is IRInlineAsmChunk -> IRInlineAsmChunk(sub.name, first.assembly, first.isIR, first.position, first.next)
+                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.name, first.data, first.position, first.next)
                             else -> throw AssemblyError("invalid chunk")
                         }
                         sub.chunks.removeAt(0)
@@ -278,12 +278,12 @@ class IRCodeGen(
                 listOf(chunk)
             }
             is PtConditionalBranch -> translate(node)
-            is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, node.position))
+            is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, node.position, null))
             is PtIncludeBinary -> {
                 val data =  node.file.readBytes()
                     .drop(node.offset?.toInt() ?: 0)
                     .take(node.length?.toInt() ?: Int.MAX_VALUE)
-                listOf(IRInlineBinaryChunk(null, data.map { it.toUByte() }, node.position))
+                listOf(IRInlineBinaryChunk(null, data.map { it.toUByte() }, node.position, null))
             }
             is PtAddressOf,
             is PtContainmentCheck,
@@ -348,15 +348,15 @@ class IRCodeGen(
         val newChunks = chunks.drop(1).toMutableList()
         val labeledFirstChunk = when(val first=chunks[0]) {
             is IRCodeChunk -> {
-                val newChunk = IRCodeChunk(label, first.position, null)
+                val newChunk = IRCodeChunk(label, first.position, first.next)
                 newChunk.instructions += first.instructions
                 newChunk
             }
             is IRInlineAsmChunk -> {
-                IRInlineAsmChunk(label, first.assembly, first.isIR, first.position)
+                IRInlineAsmChunk(label, first.assembly, first.isIR, first.position, first.next)
             }
             is IRInlineBinaryChunk -> {
-                IRInlineBinaryChunk(label, first.data, first.position)
+                IRInlineBinaryChunk(label, first.data, first.position, first.next)
             }
             else -> {
                 throw AssemblyError("invalid chunk")
@@ -1077,7 +1077,7 @@ class IRCodeGen(
                     )
                 }
                 is PtInlineAssembly -> {
-                    irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, child.position)
+                    irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, child.position, null)
                 }
                 else -> TODO("weird child node $child")
             }

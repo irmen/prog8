@@ -272,7 +272,7 @@ class VmProgramLoader {
         symbolAddresses: MutableMap<String, Int>,
     ): Pair<IRCodeChunkBase, IRCodeChunk> {
         if(asmChunk.isIR) {
-            val chunk = IRCodeChunk(asmChunk.label, asmChunk.position, null)        // TODO keep track of the chunk's next pointer
+            val chunk = IRCodeChunk(asmChunk.label, asmChunk.position, asmChunk.next)
             asmChunk.assembly.lineSequence().forEach {
                 val parsed = parseIRCodeLine(it.trim(), Pair(chunk, chunk.instructions.size), placeholders)
                 parsed.fold(

@@ -101,15 +101,7 @@ class VirtualMachine(irProgram: IRProgram) {
         var left=count
         while(left>0) {
             if(pcIndex >= pcChunk.instructions.size) {
-                if(pcChunk.next!=null) {
-                    // go to next chunk
-                    pcChunk = pcChunk.next!!
-                    pcIndex = 0
-                } else {
-                    // end of program reached
-                    exit()
-                    break
-                }
+                stepNextChunk()
             }
             stepCount++
             dispatch(pcChunk.instructions[pcIndex])
@@ -117,14 +109,26 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
+    private fun stepNextChunk() {
+        val nextChunk = pcChunk.next
+        when (nextChunk) {
+            is IRCodeChunk -> {
+                pcChunk = nextChunk
+                pcIndex = 0
+            }
+            null -> {
+                exit()   // end of program reached
+            }
+            else -> {
+                throw IllegalArgumentException("VM cannot run code from non-code chunk $nextChunk")
+            }
+        }
+    }
+
     private fun nextPc() {
         pcIndex ++
-        if(pcIndex>=pcChunk.instructions.size) {
-            pcIndex = 0
-            if(pcChunk.next==null)
-                TODO("no next chunk in $pcChunk (remove this check)")
-            pcChunk = pcChunk.next!!
-        }
+        if(pcIndex>=pcChunk.instructions.size)
+            stepNextChunk()
     }
 
     private fun branchTo(i: IRInstruction) {

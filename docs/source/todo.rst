@@ -3,11 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: fix linkChunks() in IRProgram and addAssemblyToProgram() next pointer tracking
-- vm: program is list of chunks, fix dispatcher
 - ir: fix unit tests
 - ir: fix removeWeirdBranches in IR optimizer
-- ir: next in IRCodeChunk can also be a Asm Chunk which can have next as well
 - update diagram in technical.rst?
 
 ...

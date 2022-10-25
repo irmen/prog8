@@ -111,8 +111,6 @@ class IRProgram(val name: String,
                                     chunk.next = next
                                 else
                                     throw AssemblyError("code chunk flows into following non-code chunk")
-                            } else {
-                                TODO("???")
                             }
                         }
 
@@ -131,12 +129,12 @@ class IRProgram(val name: String,
                     is IRInlineAsmChunk -> {
                         val next = nextChunk()
                         if(next!=null) {
-                            // TODO if chunk doesn't end in a jump or return statement, flow continues into the next chunk
+                            val lastInstr = chunk.instructions.lastOrNull()
+                            if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                                chunk.next = next
                         }
                     }
-                    is IRInlineBinaryChunk -> {
-                        // TODO("link next of binary chunk")
-                    }
+                    is IRInlineBinaryChunk -> { }
                     else -> throw AssemblyError("invalid chunk")
                 }
             }
@@ -266,7 +264,7 @@ class IRAsmSubroutine(
     fun usedRegisters() = registersUsed
 }
 
-sealed class IRCodeChunkBase(val label: String?, val position: Position) {
+sealed class IRCodeChunkBase(val label: String?, val position: Position, var next: IRCodeChunkBase?) {
     val instructions = mutableListOf<IRInstruction>()
 
     abstract fun isEmpty(): Boolean
@@ -274,9 +272,7 @@ sealed class IRCodeChunkBase(val label: String?, val position: Position) {
     abstract fun usedRegisters(): RegistersUsed
 }
 
-class IRCodeChunk(label: String?,
-                  position: Position,
-                  var next: IRCodeChunk?): IRCodeChunkBase(label, position) {                   // TODO next can also be InlineAsmChunk!! which can also have a next again.
+class IRCodeChunk(label: String?, position: Position, next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
@@ -298,7 +294,11 @@ class IRCodeChunk(label: String?,
     }
 }
 
-class IRInlineAsmChunk(label: String?, val assembly: String, val isIR: Boolean, position: Position): IRCodeChunkBase(label, position) {
+class IRInlineAsmChunk(label: String?,
+                       val assembly: String,
+                       val isIR: Boolean,
+                       position: Position,
+                       next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
     // note: no instructions, asm is in the property
     override fun isEmpty() = assembly.isBlank()
     override fun isNotEmpty() = assembly.isNotBlank()
@@ -312,7 +312,10 @@ class IRInlineAsmChunk(label: String?, val assembly: String, val isIR: Boolean, 
     override fun usedRegisters() = registersUsed
 }
 
-class IRInlineBinaryChunk(label: String?, val data: Collection<UByte>, position: Position): IRCodeChunkBase(label, position) {
+class IRInlineBinaryChunk(label: String?,
+                          val data: Collection<UByte>,
+                          position: Position,
+                          next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
     // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
