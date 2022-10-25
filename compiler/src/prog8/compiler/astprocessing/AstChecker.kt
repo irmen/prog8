@@ -252,16 +252,8 @@ internal class AstChecker(private val program: Program,
             }
 
             override fun visit(inlineAssembly: InlineAssembly) {
-                val assembly = inlineAssembly.assembly
-                if(compilerOptions.compTarget.name!=VMTarget.NAME) {
-                    if (" rti" in assembly || "\trti" in assembly || " rts" in assembly || "\trts" in assembly ||
-                        " jmp" in assembly || "\tjmp" in assembly || " bra" in assembly || "\tbra" in assembly
-                    )
-                        count++
-                } else {
-                    if(" return" in assembly || "\treturn" in assembly || " jump" in assembly || "\tjump" in assembly)
-                        count++
-                }
+                if(inlineAssembly.hasReturnOrRts(compilerOptions.compTarget))
+                    count++
             }
         }
 

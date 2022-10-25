@@ -136,7 +136,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun dispatch(ins: IRInstruction) {
         when(ins.opcode) {
-            Opcode.NOP -> { nextPc() }
+            Opcode.NOP -> nextPc()
             Opcode.LOAD -> InsLOAD(ins)
             Opcode.LOADM -> InsLOADM(ins)
             Opcode.LOADX -> InsLOADX(ins)

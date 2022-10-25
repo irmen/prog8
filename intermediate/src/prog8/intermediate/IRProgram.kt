@@ -93,18 +93,22 @@ class IRProgram(val name: String,
         }
 
         blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+
+
             sub.chunks.withIndex().forEach { (index, chunk) ->
+
+                fun nextChunk(): IRCodeChunkBase? = if(index<sub.chunks.size-1) sub.chunks[index + 1] else null
 
                 when (chunk) {
                     is IRCodeChunk -> {
                         // link sequential chunks
                         val jump = chunk.instructions.lastOrNull()?.opcode
-                        if (jump == null || jump !in setOf(Opcode.JUMP, Opcode.JUMPA, Opcode.RETURN)) {
+                        if (jump == null || jump !in OpcodesThatJump) {
                             // no jump at the end, so link to next chunk (if it exists)
-                            if(index<sub.chunks.size-1) {
-                                val nextChunk = sub.chunks[index + 1]
-                                if (nextChunk is IRCodeChunk)
-                                    chunk.next = nextChunk
+                            val next = nextChunk()
+                            if(next!=null) {
+                                if (next is IRCodeChunk)
+                                    chunk.next = next
                                 else
                                     throw AssemblyError("code chunk flows into following non-code chunk")
                             } else {
@@ -125,7 +129,10 @@ class IRProgram(val name: String,
                         }
                     }
                     is IRInlineAsmChunk -> {
-                        // TODO("link next of asm chunk")
+                        val next = nextChunk()
+                        if(next!=null) {
+                            // TODO if chunk doesn't end in a jump or return statement, flow continues into the next chunk
+                        }
                     }
                     is IRInlineBinaryChunk -> {
                         // TODO("link next of binary chunk")

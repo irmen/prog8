@@ -78,22 +78,20 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun joinChunks(sub: IRSubroutine) {
-        /*
-        Subroutine contains a list of chunks.
-        Some can be joined into one.
-        TODO: this has to be changed later...
-        */
+        // Subroutine contains a list of chunks. Some can be joined into one.
 
         if(sub.chunks.isEmpty())
             return
 
-/*
         fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
+            if(chunk.label!=null)
+                return false
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
+                // if the previous chunk doesn't end in a jump or a return, flow continues into the next chunk
+                val lastInstruction = previous.instructions.lastOrNull()
+                if(lastInstruction!=null)
+                    return lastInstruction.opcode !in OpcodesThatJump
                 return true
-
-                // TODO: only if all instructions are non-branching, allow it to join?
-                // return !chunk.lines.filterIsInstance<IRInstruction>().any {it.opcode in OpcodesThatBranch }
             }
             return false
         }
@@ -107,7 +105,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 chunks += sub.chunks[ix]
         }
         sub.chunks.clear()
-        sub.chunks += chunks*/
+        sub.chunks += chunks
     }
 
     private fun cleanupPushPop(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
@@ -174,7 +172,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // remove useless RETURN
             if(ins.opcode == Opcode.RETURN && idx>0) {
                 val previous = chunk.instructions[idx-1] as? IRInstruction
-                if(previous?.opcode in setOf(Opcode.JUMP, Opcode.JUMPA, Opcode.RETURN)) {
+                if(previous?.opcode in OpcodesThatJump) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }

@@ -12,7 +12,6 @@ import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.code.target.VMTarget
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -170,15 +169,8 @@ internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolea
 }
 
 internal fun Subroutine.hasRtsInAsm(compTarget: ICompilationTarget): Boolean {
-    val instructions =
-        if(compTarget.name == VMTarget.NAME)
-            listOf(" return", "\treturn", " jump", "\tjump")
-        else
-            listOf(" rti", "\trti", " rts", "\trts", " jmp", "\tjmp", " bra", "\tbra")
     return statements
         .asSequence()
         .filterIsInstance<InlineAssembly>()
-        .any {
-            instructions.any { instr->instr in it.assembly }
-        }
+        .any { it.hasReturnOrRts(compTarget) }
 }

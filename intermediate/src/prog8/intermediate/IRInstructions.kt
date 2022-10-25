@@ -353,6 +353,12 @@ enum class Opcode {
     BINARYDATA
 }
 
+val OpcodesThatJump = setOf(
+    Opcode.JUMP,
+    Opcode.JUMPA,
+    Opcode.RETURN
+)
+
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,

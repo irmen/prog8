@@ -7,6 +7,7 @@ import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 
 
 interface INamedStatement {
@@ -628,6 +629,15 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
+    fun hasReturnOrRts(target: ICompilationTarget): Boolean {
+        return if(target.name!= VMTarget.NAME) {
+            " rti" in assembly || "\trti" in assembly || " rts" in assembly || "\trts" in assembly ||
+            " jmp" in assembly || "\tjmp" in assembly || " bra" in assembly || "\tbra" in assembly
+        } else {
+            " return" in assembly || "\treturn" in assembly || " jump" in assembly || "\tjump" in assembly || " jumpa" in assembly || "\tjumpa" in assembly
+        }
+    }
 
 
     val names: Set<String> by lazy {
