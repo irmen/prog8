@@ -323,8 +323,8 @@ internal class AstChecker(private val program: Program,
                         err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
-                    if (param.first.type != DataType.UBYTE)
-                        err("parameter '${param.first.name}' should be ubyte")
+                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BOOL)
+                        err("parameter '${param.first.name}' should be bool or ubyte")
                 }
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
@@ -338,8 +338,8 @@ internal class AstChecker(private val program: Program,
                         err("return type #${index + 1} should be (u)word/address")
                 }
                 else if(pair.second.statusflag!=null) {
-                    if (pair.first != DataType.UBYTE)
-                        err("return type #${index + 1} should be ubyte")
+                    if (pair.first != DataType.UBYTE && pair.first != DataType.BOOL)
+                        err("return type #${index + 1} should be bool or ubyte")
                 }
             }
 
