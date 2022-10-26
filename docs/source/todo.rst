@@ -3,6 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- improve prefix expression codgen in AssignmentAsmGen.assignExpression():
+  don't do this for complex assign targets such as array elements: "first assign the value to the target then apply the operator in place on the target."
+  this triggers foo[x] = -b  to be a 2-step assignment with array in-place modification...
+
+- fix the array in place assignment issue, see AstOnetimeTransforms
+
 - ir: asmsub contents remains blank in IR file
 
 ...

@@ -1840,7 +1840,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
-                    else -> throw AssemblyError("no asm gen for in-place invert ubyte for ${target.kind}")
+                    else -> TODO("no asm gen for in-place invert ubyte for ${target.kind}")
                 }
             }
             DataType.UWORD -> {
@@ -1864,7 +1864,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
-                    else -> throw AssemblyError("no asm gen for in-place invert uword for ${target.kind}")
+                    else -> TODO("no asm gen for in-place invert uword for ${target.kind}")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
@@ -1898,7 +1898,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't in-place negate")
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
-                    else -> throw AssemblyError("no asm gen for in-place negate byte")
+                    else -> TODO("no asm gen for in-place negate byte")
                 }
             }
             DataType.WORD -> {
@@ -1956,7 +1956,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
-                    else -> throw AssemblyError("no asm gen for in-place negate word")
+                    else -> TODO("no asm gen for in-place negate word")
                 }
             }
             DataType.FLOAT -> {
@@ -1970,7 +1970,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         """)
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
-                    else -> throw AssemblyError("weird target kind for inplace negate float ${target.kind}")
+                    else -> TODO("no asmgen for inplace negate float ${target.kind}")
                 }
             }
             else -> throw AssemblyError("negate of invalid type $dt")

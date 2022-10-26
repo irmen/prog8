@@ -1,45 +1,37 @@
-%import textio
-%import math
 %import floats
+%import textio
 %zeropage basicsafe
 
 main {
+  byte[10] foo
+  ubyte[10] foou
+  word[10] foow
+  uword[10] foowu
+  float[10] flt
+  byte d
 
-    sub printnumbers() {
-        txt.print_ub(math.rnd())
-        txt.spc()
-        txt.print_ub(math.rnd())
-        txt.spc()
-        txt.print_ub(math.rnd())
-        txt.nl()
-        txt.print_uw(math.rndw())
-        txt.spc()
-        txt.print_uw(math.rndw())
-        txt.spc()
-        txt.print_uw(math.rndw())
-        txt.nl()
-        floats.print_f(floats.rndf())
-        txt.spc()
-        floats.print_f(floats.rndf())
-        txt.spc()
-        floats.print_f(floats.rndf())
-        txt.nl()
-    }
+  sub start() {
+    ; foo[0] = -d         ; TODO fix codegen in assignExpression that splits this up
+
+    uword pointer = $1000
+    uword index
+    foou[1] = 42
+    pointer[$40] = 24
+    pointer[$40] = foou[1]+10
+    txt.print_ub(@($1040))
+    txt.nl()
+    pointer[index+$100] = foou[1]
+    pointer[index+$1000] = foou[1]+1
+    txt.print_ub(@($1100))
+    txt.nl()
+    txt.print_ub(@($2000))
+    txt.nl()
 
 
-    sub start() {
-        txt.print("initial:\n")
-        math.rndseed($a55a, $7653)
-        floats.rndseedf(11,22,33)
-        printnumbers()
-        txt.print("\nsame seeds:\n")
-        math.rndseed($a55a, $7653)
-        floats.rndseedf(11,22,33)
-        printnumbers()
-        txt.print("\ndifferent seeds:\n")
-        math.rndseed($1234, $5678)
-        floats.rndseedf(44,55,66)
-        printnumbers()
-        txt.nl()
-    }
+;    foo[0] = -foo[0]
+;    foou[0] = ~foou[0]
+;    foow[0] = -foow[0]
+;    foowu[0] = ~foowu[0]
+;    flt[0] = -flt[0]            ; TODO also fix crash when selecting vm target: fpReg1 out of bounds
+  }
 }

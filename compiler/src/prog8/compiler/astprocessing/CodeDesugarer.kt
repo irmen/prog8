@@ -10,8 +10,7 @@ import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
 
-internal class CodeDesugarer(val program: Program,
-                             private val errors: IErrorReporter) : AstWalker() {
+internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     // Some more code shuffling to simplify the Ast that the codegenerator has to process.
     // Several changes have already been done by the StatementReorderer !
@@ -138,7 +137,8 @@ _after:
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        // replace pointervar[word] by @(pointervar+word)
+        // replace pointervar[word] by @(pointervar+word) to avoid the
+        // "array indexing is limited to byte size 0..255" error for pointervariables.
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val indexerDt = indexExpr.inferType(program)
         if(indexerDt.isWords) {
