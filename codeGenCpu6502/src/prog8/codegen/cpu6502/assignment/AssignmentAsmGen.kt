@@ -287,18 +287,36 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             is PrefixExpression -> {
-                // first assign the value to the target then apply the operator in place on the target.
-                translateNormalAssignment(AsmAssignment(
-                    AsmAssignSource.fromAstSource(value.expression, program, asmgen),
-                    assign.target,
-                    false, program.memsizer, assign.position
-                ))
-                val target = virtualRegsToVariables(assign.target)
-                when(value.operator) {
-                    "+" -> {}
-                    "-" -> augmentableAsmGen.inplaceNegate(target, target.datatype)
-                    "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
-                    else -> throw AssemblyError("invalid prefix operator")
+                if(assign.target.array==null) {
+                    // First assign the value to the target then apply the operator in place on the target.
+                    // This saves a temporary variable
+                    translateNormalAssignment(
+                        AsmAssignment(
+                            AsmAssignSource.fromAstSource(value.expression, program, asmgen),
+                            assign.target,
+                            false, program.memsizer, assign.position
+                        )
+                    )
+                    val target = virtualRegsToVariables(assign.target)
+                    when (value.operator) {
+                        "+" -> {}
+                        "-" -> augmentableAsmGen.inplaceNegate(target, target.datatype)
+                        "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
+                        else -> throw AssemblyError("invalid prefix operator")
+                    }
+                } else {
+                    // array[x] = -array[x]   ... use a tempvar then store that back into the array.
+                    val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
+                    val assignToTempvar = AsmAssignment(assign.source,
+                        AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
+                        false, program.memsizer, assign.position)
+                    asmgen.translateNormalAssignment(assignToTempvar)
+                    when(assign.target.datatype) {
+                        in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
+                        in WordDatatypes -> assignVariableWord(assign.target, tempvar)
+                        DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
+                        else -> throw AssemblyError("weird dt")
+                    }
                 }
             }
             is ContainmentCheck -> {
