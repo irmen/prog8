@@ -3,6 +3,7 @@ package prog8tests.codegeneration
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.compileText
 
 class TestArrayInplaceAssign: FunSpec({
@@ -17,18 +18,16 @@ class TestArrayInplaceAssign: FunSpec({
             }
         """
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
     test("array in-place negation (integer types)") {
         val text = """
-%import floats
-
 main {
   byte[10] foo
   ubyte[10] foou
   word[10] foow
   uword[10] foowu
-  float[10] flt
 
   sub start() {
     foo[1] = 42
@@ -36,16 +35,13 @@ main {
 
     foow[1] = 4242
     foow[1] = -foow[1]
-
-    ; TODO floating point in-place negation is not yet implemented in the code generator
-    ; flt[1] = 42.42
-    ; flt[1] = -flt[1]
   }
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    // TODO implement this in codegen and enable test
+    // TODO implement this in 6502 codegen, fix the fpReg1 out of bounds issue in vmcodegen, and re-enable test
     xtest("array in-place negation (float type) - ignored for now because not implemented in codegen yet") {
         val text = """
 %import floats
@@ -58,6 +54,7 @@ main {
     flt[1] = -flt[1]
   }
 }"""
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
@@ -76,6 +73,7 @@ main {
   }
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 })
 

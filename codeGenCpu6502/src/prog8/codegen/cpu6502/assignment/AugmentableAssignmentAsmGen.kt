@@ -21,13 +21,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         when (val value = assign.source.expression!!) {
             is PrefixExpression -> {
                 // A = -A , A = +A, A = ~A, A = not A
-                val target = assignmentAsmGen.virtualRegsToVariables(assign.target)
-                val itype = value.inferType(program)
-                val type = itype.getOrElse { throw AssemblyError("unknown dt") }
                 when (value.operator) {
                     "+" -> {}
                     "-" -> inplaceNegate(assign)
-                    "~" -> inplaceInvert(target, type)
+                    "~" -> inplaceInvert(assign)
                     else -> throw AssemblyError("invalid prefix operator")
                 }
             }
@@ -1796,8 +1793,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    internal fun inplaceInvert(target: AsmAssignTarget, dt: DataType) {
-        when (dt) {
+    internal fun inplaceInvert(assign: AsmAssignment) {
+        val target = assign.target
+        when (assign.target.datatype) {
             DataType.UBYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
@@ -1840,7 +1838,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
-                    TargetStorageKind.ARRAY -> TODO("no asm gen for in-place invert ubyte for ${target.kind}")
+                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -1865,7 +1863,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
-                    TargetStorageKind.ARRAY -> TODO("no asm gen for in-place invert uword for ${target.kind}")
+                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -1875,7 +1873,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     internal fun inplaceNegate(assign: AsmAssignment) {
         val target = assign.target
-        when (val dt=assign.target.datatype) {
+        when (assign.target.datatype) {
             DataType.BYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
@@ -1980,7 +1978,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("weird target for float negation")
                 }
             }
-            else -> throw AssemblyError("negate of invalid type $dt")
+            else -> throw AssemblyError("negate of invalid type")
         }
     }
 

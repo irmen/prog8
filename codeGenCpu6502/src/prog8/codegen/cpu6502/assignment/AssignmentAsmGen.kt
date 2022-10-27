@@ -297,11 +297,10 @@ internal class AssignmentAsmGen(private val program: Program,
                             false, program.memsizer, assign.position
                         )
                     )
-                    val target = virtualRegsToVariables(assign.target)
                     when (value.operator) {
                         "+" -> {}
                         "-" -> augmentableAsmGen.inplaceNegate(assign)
-                        "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
+                        "~" -> augmentableAsmGen.inplaceInvert(assign)
                         else -> throw AssemblyError("invalid prefix operator")
                     }
                 } else {

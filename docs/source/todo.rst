@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix the array in place assignment issue
+- fix flt[1] = -flt[1] compiler crash for vm target: fpReg1 out of bounds, re enable test in TestArrayInplaceAssign
 
 - ir: asmsub contents remains blank in IR file
 
