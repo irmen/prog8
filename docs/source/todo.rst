@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix the array in place assignment issue, see AstOnetimeTransforms
+- fix the array in place assignment issue
 
 - ir: asmsub contents remains blank in IR file
 

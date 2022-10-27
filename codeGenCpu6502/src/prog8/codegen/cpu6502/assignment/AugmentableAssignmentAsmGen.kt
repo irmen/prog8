@@ -26,7 +26,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 val type = itype.getOrElse { throw AssemblyError("unknown dt") }
                 when (value.operator) {
                     "+" -> {}
-                    "-" -> inplaceNegate(target, type)
+                    "-" -> inplaceNegate(assign)
                     "~" -> inplaceInvert(target, type)
                     else -> throw AssemblyError("invalid prefix operator")
                 }
@@ -1840,7 +1840,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
-                    else -> TODO("no asm gen for in-place invert ubyte for ${target.kind}")
+                    TargetStorageKind.ARRAY -> TODO("no asm gen for in-place invert ubyte for ${target.kind}")
+                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.UWORD -> {
@@ -1864,15 +1865,17 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         }
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
-                    else -> TODO("no asm gen for in-place invert uword for ${target.kind}")
+                    TargetStorageKind.ARRAY -> TODO("no asm gen for in-place invert uword for ${target.kind}")
+                    else -> throw AssemblyError("weird target")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")
         }
     }
 
-    internal fun inplaceNegate(target: AsmAssignTarget, dt: DataType) {
-        when (dt) {
+    internal fun inplaceNegate(assign: AsmAssignment) {
+        val target = assign.target
+        when (val dt=assign.target.datatype) {
             DataType.BYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
@@ -1896,9 +1899,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             else -> throw AssemblyError("invalid reg dt for byte negate")
                         }
                     }
-                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't in-place negate")
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
-                    else -> TODO("no asm gen for in-place negate byte")
+                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
+                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.WORD -> {
@@ -1955,8 +1959,10 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                             else -> throw AssemblyError("invalid reg dt for word neg")
                         }
                     }
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
-                    else -> TODO("no asm gen for in-place negate word")
+                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
+                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.FLOAT -> {
@@ -1970,7 +1976,8 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                         """)
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
-                    else -> TODO("no asmgen for inplace negate float ${target.kind}")
+                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
+                    else -> throw AssemblyError("weird target for float negation")
                 }
             }
             else -> throw AssemblyError("negate of invalid type $dt")

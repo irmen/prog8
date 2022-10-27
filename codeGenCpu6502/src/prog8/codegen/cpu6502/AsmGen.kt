@@ -106,7 +106,7 @@ class AsmGen(internal val program: Program,
             DataType.BYTE -> listOf("cx16", "r9sL")
             DataType.UWORD -> listOf("cx16", "r9")
             DataType.WORD -> listOf("cx16", "r9s")
-            DataType.FLOAT -> listOf("floats", "tempvar_swap_float")      // defined in floats.p8
+            DataType.FLOAT -> TODO("no temporary float var available")
             else -> throw FatalAstException("invalid dt $dt")
         }
     }

@@ -300,23 +300,12 @@ internal class AssignmentAsmGen(private val program: Program,
                     val target = virtualRegsToVariables(assign.target)
                     when (value.operator) {
                         "+" -> {}
-                        "-" -> augmentableAsmGen.inplaceNegate(target, target.datatype)
+                        "-" -> augmentableAsmGen.inplaceNegate(assign)
                         "~" -> augmentableAsmGen.inplaceInvert(target, target.datatype)
                         else -> throw AssemblyError("invalid prefix operator")
                     }
                 } else {
-                    // array[x] = -array[x]   ... use a tempvar then store that back into the array.
-                    val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
-                    val assignToTempvar = AsmAssignment(assign.source,
-                        AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
-                        false, program.memsizer, assign.position)
-                    asmgen.translateNormalAssignment(assignToTempvar)
-                    when(assign.target.datatype) {
-                        in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
-                        in WordDatatypes -> assignVariableWord(assign.target, tempvar)
-                        DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
-                        else -> throw AssemblyError("weird dt")
-                    }
+                    assignPrefixedExpressionToArrayElt(assign)
                 }
             }
             is ContainmentCheck -> {
@@ -332,6 +321,22 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             else -> throw AssemblyError("weird assignment value type $value")
+        }
+    }
+
+    internal fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment) {
+        // array[x] = -value   ... use a tempvar then store that back into the array.
+        require(assign.source.expression is PrefixExpression)
+        val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
+        val assignToTempvar = AsmAssignment(assign.source,
+            AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
+            false, program.memsizer, assign.position)
+        asmgen.translateNormalAssignment(assignToTempvar)
+        when(assign.target.datatype) {
+            in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
+            in WordDatatypes -> assignVariableWord(assign.target, tempvar)
+            DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
+            else -> throw AssemblyError("weird dt")
         }
     }
 

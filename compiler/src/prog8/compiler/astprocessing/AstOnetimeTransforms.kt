@@ -16,31 +16,6 @@ import prog8.code.target.VMTarget
 
 internal class AstOnetimeTransforms(private val program: Program, private val options: CompilationOptions) : AstWalker() {
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        if(options.compTarget.name != VMTarget.NAME) {
-            // The 6502 code-gen doesn't contain code to deal with arr[0] = -arr[0] and arr[0] = ~arr[0].
-            // Replace this by assignment, operation, assignment.
-            // TODO make the codegen better so this work around can be removed
-
-//            if (assignment.isAugmentable) {
-//                val arrayIdx = assignment.target.arrayindexed
-//                if (arrayIdx != null) {
-//                    val prefixed = assignment.value as? PrefixExpression
-//                    if (prefixed != null) {
-//                        println("array self-assignment, operator = ${prefixed.operator}")
-//                        if (prefixed.operator == "-") {
-//                            TODO("array in-place -")
-//                        } else if (prefixed.operator == "~") {
-//                            TODO("array in-place ~")
-//                        }
-//                    }
-//                }
-//            }
-
-        }
-        return noModifications
-    }
-
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(parent !is VarDecl) {
             if(options.compTarget.name == VMTarget.NAME)
