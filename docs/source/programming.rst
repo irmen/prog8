@@ -260,7 +260,7 @@ Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
-and currently all floating point operations are specific to the Commodore-64.
+and currently all floating point operations are specific to the Commodore 64.
 This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
 So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
 are banked in.

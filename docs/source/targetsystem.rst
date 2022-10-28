@@ -64,7 +64,7 @@ reserved address    in use for
 ==================  =======================
 
 The actual machine will often have many other special addresses as well,
-For example, the Commodore-64 has:
+For example, the Commodore 64 has:
 
 - ROMs installed in the machine: BASIC, kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
 - memory-mapped I/O registers, for the video and sound chips, and the CIA's. Occupying ``$d000``--``$dfff``.

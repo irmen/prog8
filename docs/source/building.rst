@@ -68,7 +68,7 @@ It contains all of the program's code and data and has a certain file format tha
 allows it to be loaded directly on the target system.   Prog8 currently has no built-in
 support for programs that exceed 64 Kb of memory, nor for multi-part loaders.
 
-For the Commodore-64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
+For the Commodore 64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
 This way the user can load it as any other program and simply RUN it to start. (This is a regular ".prg" program).
 Prog8 can create those, but it is also possible to output plain binary programs
 that can be loaded into memory anywhere.

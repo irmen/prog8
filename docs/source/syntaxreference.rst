@@ -119,7 +119,7 @@ Directives
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
+      to deal with floating point numbers (by using various subroutines from the Commodore 64 kernal).
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include
@@ -662,7 +662,7 @@ flag such as Carry (Pc).
     The 'virtual' 16-bit registers from the Commander X16 can also be specified as ``R0`` .. ``R15`` .
     This means you don't have to set them up manually before calling a subroutine that takes
     one or more parameters in those 'registers'. You can just list the arguments directly.
-    *This also works on the Commodore-64!*  (however they are not as efficient there because they're not in zeropage)
+    *This also works on the Commodore 64!*  (however they are not as efficient there because they're not in zeropage)
     In prog8 and assembly code these 'registers' are directly accessible too via
     ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
     ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),

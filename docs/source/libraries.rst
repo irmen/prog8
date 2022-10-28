@@ -46,7 +46,7 @@ sys (part of syslib)
     The following return values are currently defined:
 
     - 16 = compiled for CommanderX16 with 65C02 CPU
-    - 64 = compiled for Commodore-64 with 6502/6510 CPU
+    - 64 = compiled for Commodore 64 with 6502/6510 CPU
 
 ``exit(returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.
@@ -356,7 +356,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 palette  (cx16 only)
 --------------------
 Available for the Cx16 target. Various routines to set the display color palette.
-There are also a few better looking Commodore-64 color palettes available here,
+There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C-64.
 
