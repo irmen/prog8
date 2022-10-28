@@ -150,7 +150,7 @@ Directives
     The assembler will include the file as raw assembly source text at this point,
     prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
     from prog8 code. However they can be referenced from other assembly code if properly prefixed.
-    You can ofcourse use a label in your prog8 code just before the %asminclude directive, and reference
+    You can of course use a label in your prog8 code just before the %asminclude directive, and reference
     that particular label to get to (the start of) the included assembly.
     Be careful: you risk symbol redefinitions or duplications if you include a piece of
     assembly into a prog8 block that already defines symbols itself.

@@ -7,7 +7,7 @@ All variables are static in memory
 
 All variables are allocated statically, there is no concept of dynamic heap or stack frames.
 Essentially all variables are global (but scoped) and can be accessed and modified anywhere,
-but care should be taken ofcourse to avoid unexpected side effects.
+but care should be taken of course to avoid unexpected side effects.
 
 Especially when you're dealing with interrupts or re-entrant routines: don't modify variables
 that you not own or else you will break stuff.

@@ -74,7 +74,7 @@ the new target system.
 
 There are several other support libraries that you may want to port (``diskio``, ``graphics`` to name a few).
 
-Also ofcourse if there are unique things available on the new target system, don't hesitate to provide
+Also of course if there are unique things available on the new target system, don't hesitate to provide
 extensions to the ``syslib`` or perhaps a new special custom library altogether.
 
 
