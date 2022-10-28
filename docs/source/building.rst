@@ -182,7 +182,7 @@ One or more .p8 module files
 ``-esa <address>``
     Override the base address of the evaluation stack. Has to be page-aligned.
     You can specify an integer or hexadecimal address.
-    When not compiling for the CommanderX16 target, the location of the 16 virtual registers cx16.r0..r15
+    When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
 

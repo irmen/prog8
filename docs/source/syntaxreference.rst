@@ -86,7 +86,7 @@ Directives
     The other options need those locations for other things so those virtual registers have
     to be put into memory elsewhere (outside of the zeropage). Trying to use them as zero page
     variables or pointers etc. will be a lot slower in those cases!
-    On the CommanderX16 the registers are always in zeropage. On other targets, for now, they
+    On the Commander X16 the registers are always in zeropage. On other targets, for now, they
     are always outside of the zeropage.
 
 .. data:: %zpreserved <fromaddress>,<toaddress>

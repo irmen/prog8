@@ -907,7 +907,7 @@ memory(name, size, alignment)
     You can only treat it as a pointer or use it in inline assembly.
 
 callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another ram-bank on the CommanderX16 (using the ``jsrfar`` routine)
+    Calls an assembly routine in another ram-bank on the Commander X16 (using the ``jsrfar`` routine)
     The banked RAM is located in the address range $A000-$BFFF (8 kilobyte), but you can specify
     any address in system ram (why this can be useful is explained at the end of this paragraph)
     The third argument can be used to designate the memory address
@@ -921,7 +921,7 @@ callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
     This is not very efficient though, so maybe you should write a small piece of inline assembly for this instead.
 
 callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another rom-bank on the CommanderX16
+    Calls an assembly routine in another rom-bank on the Commander X16
     The banked ROM is located in the address range $C000-$FFFF (16 kilobyte).
     There are 32 banks (0 to 31).
     The third argument can be used to designate the memory address

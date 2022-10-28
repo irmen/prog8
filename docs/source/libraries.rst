@@ -45,7 +45,7 @@ sys (part of syslib)
     system when the program is running.
     The following return values are currently defined:
 
-    - 16 = compiled for CommanderX16 with 65C02 CPU
+    - 16 = compiled for Commander X16 with 65C02 CPU
     - 64 = compiled for Commodore 64 with 6502/6510 CPU
 
 ``exit(returncode)``
