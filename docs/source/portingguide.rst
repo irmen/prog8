@@ -50,7 +50,7 @@ ROM routines
 ------------
 #. provide a list of the core ROM routines on the system, with names, addresses, and call signatures.
 
-Ideally there are at least some routines to manipulate the screen and get some user input(clear, print text, print numbers, input strings from the keyboard)
+Ideally there are at least some routines to manipulate the screen and get some user input (clear, print text, print numbers, input strings from the keyboard)
 Routines to initialize the system to a sane state and to do a warm reset are useful too.
 The more the merrier.
 
