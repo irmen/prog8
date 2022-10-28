@@ -8,7 +8,7 @@ Module file
 -----------
 
 This is a file with the ``.p8`` suffix, containing *directives* and *code blocks*, described below.
-The file is a text file wich can also contain:
+The file is a text file which can also contain:
 
 Lines, whitespace, indentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,7 +48,7 @@ Directives
 	Global setting, selects the program launcher stub to use.
 	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
 
-	- type ``basic`` : add a tiny C64 BASIC program, whith a SYS statement calling into the machine code
+	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
 
 .. data:: %zeropage <style>
@@ -225,7 +225,7 @@ and after that, a combination of letters, numbers, or underscores. Examples of v
 Code blocks
 -----------
 
-A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
+A named block of actual program code. It defines a *scope* (also known as 'namespace') and
 can only contain *directives*, *variable declarations*, *subroutines* or *inline assembly*::
 
     <blockname> [<address>] {
@@ -270,7 +270,7 @@ Variable declarations
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
-or an expression. If you don't provide an intial value yourself, zero will be used.
+or an expression. If you don't provide an initial value yourself, zero will be used.
 You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
 the variable will be allocated in normal memory elsewhere.
@@ -505,7 +505,7 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 		the ``bool`` variable type instead, where this conversion doesn't need to occur.
 
 	.. note::
-		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation
+		Unlike most other programming languages, there is no short-circuit or McCarthy evaluation
 		for the logical ``and`` and ``or`` operators. This means that prog8 currently always evaluates
 		all operands from these logical expressions, even when one of them already determines the outcome!
 
@@ -765,7 +765,7 @@ Conditional Execution and Jumps
 Unconditional jump: goto
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-To jump to another part of the program, you use a ``goto`` statement with an addres or the name
+To jump to another part of the program, you use a ``goto`` statement with an address or the name
 of a label or subroutine::
 
     goto  $c000     ; address
@@ -806,7 +806,7 @@ However if <statements> is a block of multiple statements, you'll have to enclos
 **Special status register branch form:**
 
 There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
-It is almost the same as the regular if-statement but it lacks a contional expression part, because the if-statement
+It is almost the same as the regular if-statement but it lacks a conditional expression part, because the if-statement
 itself defines on what status register bit it should branch on::
 
 	if_XX  <statements>  [else  <statements> ]
@@ -826,7 +826,7 @@ It can also be one of the four aliases that are easier to read: ``if_z``, ``if_n
 .. caution::
     These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
     that the status register (still) contains the correct status bits.
-    This is not always the case after a fuction call or other operations!
+    This is not always the case after a function call or other operations!
     If in doubt, check the generated assembly code!
 
 

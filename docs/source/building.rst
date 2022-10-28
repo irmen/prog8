@@ -95,7 +95,7 @@ For normal use the compiler can be invoked with the command:
 
 By default, assembly code is generated and written to ``sourcefile.asm``.
 It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
-that creastes the final runnable program.
+that creates the final runnable program.
 
 
 Command line options

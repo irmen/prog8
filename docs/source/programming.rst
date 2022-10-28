@@ -108,7 +108,7 @@ Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
 If you omit both the name and address, the entire block is *ignored* by the compiler (and a warning is displayed).
-This is a way to quickly "comment out" a piece of code that is unfinshed or may contain errors that you
+This is a way to quickly "comment out" a piece of code that is unfinished or may contain errors that you
 want to work on later, because the contents of the ignored block are not fully parsed either.
 
 The address can be used to place a block at a specific location in memory.
@@ -353,7 +353,7 @@ It can be correctly displayed on the screen only if a iso-8859-15 charset has be
 
 You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
-of the total string still cannot exceed 255 characaters.
+of the total string still cannot exceed 255 characters.
 A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
 And a new string value can be assigned to another string, but no bounds check is done
 so be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
@@ -370,7 +370,7 @@ as newlines, quote characters themselves, and so on. The ones used most often ar
 ``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
 read the syntax reference on strings.
 
-Using the ``in`` operator you can easily check if a characater is present in a string,
+Using the ``in`` operator you can easily check if a character is present in a string,
 example: ``if '@' in email_address {....}`` (however this gives no clue about the location
 in the string where the character is present, if you need that, use the ``string.find()``
 library function instead)
@@ -412,10 +412,10 @@ for the constant itself). This is only valid for the simple numeric types (byte,
 When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,
 rather than being newly allocated. The initial value (mandatory) must be a valid
 memory address.  Reading the variable will read the given data type from the
-address you specified, and setting the varible will directly modify that memory location(s)::
+address you specified, and setting the variable will directly modify that memory location(s)::
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
-	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
+	&word  SCREENCOLORS = $d020             ; a 16-bit word at the address $d020-$d021
 
 .. _pointervars_programming:
 
@@ -511,7 +511,7 @@ Conditional Execution
 if statements
 ^^^^^^^^^^^^^
 
-Conditional execution means that the flow of execution changes based on certiain conditions,
+Conditional execution means that the flow of execution changes based on certain conditions,
 rather than having fixed gotos or subroutine calls::
 
     if xx==5 {
@@ -567,7 +567,7 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
 .. caution::
     These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
     that the status register (still) contains the correct status bits.
-    This is not always the case after a fuction call or other operations!
+    This is not always the case after a function call or other operations!
     If in doubt, check the generated assembly code!
 
 .. note::
@@ -643,7 +643,7 @@ If possible, the expression is parsed and evaluated by the compiler itself at co
 Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 Expressions can contain procedure and function calls.
 There are various built-in functions such as sin(), cos() that can be used in expressions (see :ref:`builtinfunctions`).
-You can also reference idendifiers defined elsewhere in your code.
+You can also reference identifiers defined elsewhere in your code.
 
 Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
 
@@ -680,7 +680,7 @@ Logical expressions are expressions that calculate a boolean result: true or fal
 logical expressions will compile more efficiently than when you're using regular integer type operands
 (because these have to be converted to 0 or 1 every time)
 
-You can use parentheses to group parts of an expresion to change the precedence.
+You can use parentheses to group parts of an expression to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
 within parentheses will be evaluated first. So ``(4 + 8) * 2`` is 24 and not 20,
 and ``(true or false) and false`` is false instead of true.

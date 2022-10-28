@@ -150,7 +150,7 @@ Provides string manipulation routines.
 ``length(str) -> ubyte length``
     Number of bytes in the string. This value is determined during runtime and counts upto
     the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
-    Don't confuse this with ``len`` and ``sizeof``
+    Don't confuse this with ``len`` and ``sizeof``!
 
 ``left(source, length, target)``
     Copies the left side of the source string of the given length to target string.
@@ -176,8 +176,8 @@ Provides string manipulation routines.
     and the index in the string. Or 0+carry bit clear if the character was not found.
 
 ``compare(string1, string2) -> ubyte result``
-    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
-    Note that you can also directly compare strings and string values with eachother
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use string.compare for you under water automatically).
 
 ``copy(from, to) -> ubyte length``
