@@ -83,6 +83,7 @@ Code example
 Here is a hello world program::
 
     %import textio
+    %zeropage basicsafe
 
     main {
         sub start() {
