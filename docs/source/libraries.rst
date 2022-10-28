@@ -283,7 +283,7 @@ Use the ``gfx2`` library if you want full-screen graphics or non-monochrome draw
 
 math
 ----
-Low level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
+Low-level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
 Pseudo-Random number generators (byte and word).
 Various 8-bit integer trig functions that use lookup tables to quickly calculate sine and cosines.
 Usually a custom lookup table is the way to go if your application needs these,
@@ -337,7 +337,7 @@ and allows you to print it anywhere on the screen.
 
 prog8_lib
 ---------
-Low level language support. You should not normally have to bother with this directly.
+Low-level language support. You should not normally have to bother with this directly.
 The compiler needs it for various built-in system routines.
 
 
