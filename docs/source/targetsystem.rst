@@ -64,7 +64,7 @@ reserved address    in use for
 ==================  =======================
 
 The actual machine will often have many other special addresses as well,
-For example, the Commodore-64 has:
+For example, the Commodore 64 has:
 
 - ROMs installed in the machine: BASIC, kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
 - memory-mapped I/O registers, for the video and sound chips, and the CIA's. Occupying ``$d000``--``$dfff``.
@@ -80,7 +80,7 @@ ZeroPage ("ZP")
 
 The ZeroPage memory block ``$02``--``$ff`` can be regarded as 254 CPU 'registers', because
 they take less clock cycles to access and need fewer instruction bytes than accessing other memory locations outside of the ZP.
-Theoretically they can all be used in a program, with the follwoing limitations:
+Theoretically they can all be used in a program, with the following limitations:
 
 - several addresses (``$02``, ``$03``, ``$fb - $fc``, ``$fd - $fe``) are reserved for internal use
 - most other addresses will already be in use by the machine's operating system or kernal,
@@ -100,7 +100,7 @@ There's a global program directive to specify the way the compiler
 treats the ZP for the program. The default is to be reasonably restrictive to use the
 part of the ZP that is not used by the C64's kernal routines.
 It's possible to claim the whole ZP as well (by disabling the operating system or kernal).
-If you want, it's also possible to be more restricive and stay clear of the addresses used by BASIC routines too.
+If you want, it's also possible to be more restrictive and stay clear of the addresses used by BASIC routines too.
 This allows the program to exit cleanly back to a BASIC ready prompt - something that is not possible in the other modes.
 
 
@@ -163,5 +163,5 @@ The Commander X16 provides two additional routines that should be used *in your 
 
     cx16.push_vera_context()
     ; ... do your work that uses vera here...
-    cx15.pop_vera_context()
+    cx16.pop_vera_context()
 

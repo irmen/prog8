@@ -45,8 +45,8 @@ sys (part of syslib)
     system when the program is running.
     The following return values are currently defined:
 
-    - 16 = compiled for CommanderX16 with 65C02 CPU
-    - 64 = compiled for Commodore-64 with 6502/6510 CPU
+    - 16 = compiled for Commander X16 with 65C02 CPU
+    - 64 = compiled for Commodore 64 with 6502/6510 CPU
 
 ``exit(returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.
@@ -150,7 +150,7 @@ Provides string manipulation routines.
 ``length(str) -> ubyte length``
     Number of bytes in the string. This value is determined during runtime and counts upto
     the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
-    Don't confuse this with ``len`` and ``sizeof``
+    Don't confuse this with ``len`` and ``sizeof``!
 
 ``left(source, length, target)``
     Copies the left side of the source string of the given length to target string.
@@ -176,8 +176,8 @@ Provides string manipulation routines.
     and the index in the string. Or 0+carry bit clear if the character was not found.
 
 ``compare(string1, string2) -> ubyte result``
-    Returns -1, 0 or 1 depeding on wether string1 sorts before, equal or after string2.
-    Note that you can also directly compare strings and string values with eachother
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use string.compare for you under water automatically).
 
 ``copy(from, to) -> ubyte length``
@@ -283,7 +283,7 @@ Use the ``gfx2`` library if you want full-screen graphics or non-monochrome draw
 
 math
 ----
-Low level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
+Low-level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
 Pseudo-Random number generators (byte and word).
 Various 8-bit integer trig functions that use lookup tables to quickly calculate sine and cosines.
 Usually a custom lookup table is the way to go if your application needs these,
@@ -337,7 +337,7 @@ and allows you to print it anywhere on the screen.
 
 prog8_lib
 ---------
-Low level language support. You should not normally have to bother with this directly.
+Low-level language support. You should not normally have to bother with this directly.
 The compiler needs it for various built-in system routines.
 
 
@@ -356,7 +356,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 palette  (cx16 only)
 --------------------
 Available for the Cx16 target. Various routines to set the display color palette.
-There are also a few better looking Commodore-64 color palettes available here,
+There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C-64.
 

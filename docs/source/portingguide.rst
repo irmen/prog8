@@ -50,7 +50,7 @@ ROM routines
 ------------
 #. provide a list of the core ROM routines on the system, with names, addresses, and call signatures.
 
-Ideally there are at least some routines to manipulate the screen and get some user input(clear, print text, print numbers, input strings from the keyboard)
+Ideally there are at least some routines to manipulate the screen and get some user input (clear, print text, print numbers, input strings from the keyboard)
 Routines to initialize the system to a sane state and to do a warm reset are useful too.
 The more the merrier.
 
@@ -74,7 +74,7 @@ the new target system.
 
 There are several other support libraries that you may want to port (``diskio``, ``graphics`` to name a few).
 
-Also ofcourse if there are unique things available on the new target system, don't hesitate to provide
+Also of course if there are unique things available on the new target system, don't hesitate to provide
 extensions to the ``syslib`` or perhaps a new special custom library altogether.
 
 

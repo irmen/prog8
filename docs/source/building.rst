@@ -68,7 +68,7 @@ It contains all of the program's code and data and has a certain file format tha
 allows it to be loaded directly on the target system.   Prog8 currently has no built-in
 support for programs that exceed 64 Kb of memory, nor for multi-part loaders.
 
-For the Commodore-64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
+For the Commodore 64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
 This way the user can load it as any other program and simply RUN it to start. (This is a regular ".prg" program).
 Prog8 can create those, but it is also possible to output plain binary programs
 that can be loaded into memory anywhere.
@@ -95,7 +95,7 @@ For normal use the compiler can be invoked with the command:
 
 By default, assembly code is generated and written to ``sourcefile.asm``.
 It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
-that creastes the final runnable program.
+that creates the final runnable program.
 
 
 Command line options
@@ -182,7 +182,7 @@ One or more .p8 module files
 ``-esa <address>``
     Override the base address of the evaluation stack. Has to be page-aligned.
     You can specify an integer or hexadecimal address.
-    When not compiling for the CommanderX16 target, the location of the 16 virtual registers cx16.r0..r15
+    When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
 

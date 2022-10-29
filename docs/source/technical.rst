@@ -7,7 +7,7 @@ All variables are static in memory
 
 All variables are allocated statically, there is no concept of dynamic heap or stack frames.
 Essentially all variables are global (but scoped) and can be accessed and modified anywhere,
-but care should be taken ofcourse to avoid unexpected side effects.
+but care should be taken of course to avoid unexpected side effects.
 
 Especially when you're dealing with interrupts or re-entrant routines: don't modify variables
 that you not own or else you will break stuff.
@@ -42,7 +42,7 @@ Calling a subroutine requires three steps:
 
 #. preparing the arguments (if any) and passing them to the routine
 #. calling the routine
-#. preparig the return value (if any) and returning that from the call.
+#. preparing the return value (if any) and returning that from the call.
 
 
 Calling the routine is just a simple JSR instruction, but the other two work like this:
@@ -83,7 +83,7 @@ Some builtin functions have a fully custom implementation.
 
 
 The compiler will warn about routines that are called and that return a value, if you're not
-doing something with that returnvalue. This can be on purpuse if you're simply not interested in it.
+doing something with that returnvalue. This can be on purpose if you're simply not interested in it.
 Use the ``void`` keyword in front of the subroutine call to get rid of the warning in that case.
 
 
@@ -138,7 +138,7 @@ Some notes and references into the compiler's source code modules:
    Most notably, node type information is now baked in. (``codeCore`` module)
 #. An *Intermediate Representation* has been defined that is generated from the intermediate AST. This IR
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
-   prog8 VM will execute if you use the 'virtual' compilaton target and use ``-emu`` to launch the VM.
+   prog8 VM will execute if you use the 'virtual' compilation target and use ``-emu`` to launch the VM.
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
 #. Currently the 6502 ASM code generator still works directly on the *Compiler AST*. A future version
    should replace this by working on the IR code, and should be much smaller and simpler.
