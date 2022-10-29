@@ -201,12 +201,12 @@ Values will usually be part of an expression or assignment statement::
 
 *putting a variable in zeropage:*
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
-when selecting variables to put into zero page (but no guarantees). If there are enough free locations in the zeropage,
+when selecting variables to put into zeropage (but no guarantees). If there are enough free locations in the zeropage,
 it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
 Use ``@requirezp`` tag to *force* the variable into zeropage, but if there is no more free space the compilation will fail.
 It's possible to put strings, arrays and floats into zeropage too, however because Zp space is really scarce
 this is not advised as they will eat up the available space very quickly. It's best to only put byte or word
-variables in Zeropage.
+variables in zeropage.
 
 Example::
 
@@ -261,8 +261,8 @@ Floating point numbers
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
 and currently all floating point operations are specific to the Commodore 64.
-This is because routines in the C-64 BASIC and Kernal ROMs are used for that.
-So floating point operations will only work if the C-64 BASIC ROM (and Kernal ROM)
+This is because routines in the C64 BASIC and Kernal ROMs are used for that.
+So floating point operations will only work if the C64 BASIC ROM (and Kernal ROM)
 are banked in.
 
 Also your code needs to import the ``floats`` library to enable floating point support
@@ -889,7 +889,7 @@ ror2(x)
 sizeof(name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.
-    For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
+    For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
 memory(name, size, alignment)

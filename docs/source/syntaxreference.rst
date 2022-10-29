@@ -54,7 +54,7 @@ Directives
 .. data:: %zeropage <style>
 
     Level: module.
-    Global setting, select ZeroPage handling style. Defaults to ``kernalsafe``.
+    Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
 
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
       and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
@@ -84,7 +84,7 @@ Directives
     16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
     (but not on the same locations). They are relocated automatically by the compiler.
     The other options need those locations for other things so those virtual registers have
-    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zero page
+    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zeropage
     variables or pointers etc. will be a lot slower in those cases!
     On the Commander X16 the registers are always in zeropage. On other targets, for now, they
     are always outside of the zeropage.
@@ -100,8 +100,8 @@ Directives
 
 	Level: module.
 	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
-	default launcher type is a CBM-basic program. But you have to specify this address yourself when
-	you don't use a CBM-basic launcher.
+	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
+	you don't use a CBM-BASIC launcher.
 
 
 .. data:: %import <name>
@@ -295,7 +295,7 @@ Various examples::
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
     word  @zp         zpword = 9999     ; prioritize this when selecting vars for zeropage storage
-    uword @requirezp  zpaddr = $3000    ; we require this variable in Zeropage
+    uword @requirezp  zpaddr = $3000    ; we require this variable in zeropage
     word  @shared asmvar                ; variable is used in assembly code but not elsewhere
 
 

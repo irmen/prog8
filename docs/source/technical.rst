@@ -24,7 +24,7 @@ directly into the target variable, register, or memory location.
 The software stack is implemented as follows:
 
 - 2 pages of memory are allocated for this, exact locations vary per machine target.
-  For the C-64 they are set at $ce00 and $cf00 (so $ce00-$cfff is reserved).
+  For the C64 they are set at $ce00 and $cf00 (so $ce00-$cfff is reserved).
   For the Commander X16 they are set at $0400 and $0500 (so $0400-$05ff are reserved).
   This default location can be overridden using the `-esa` command line option.
 - these are the high and low bytes of the values on the stack (it's a 'split 16 bit word stack')
@@ -73,7 +73,7 @@ regular subroutines
 - the return value is passed back to the caller via cpu register(s):
   Byte values will be put in ``A`` .
   Word values will be put in ``A`` + ``Y`` register pair.
-  Float values will be put in the ``FAC1`` float 'register' (Basic allocated this somewhere in ram).
+  Float values will be put in the ``FAC1`` float 'register' (BASIC allocated this somewhere in ram).
 
 
 Calls to builtin functions are treated in a special way:

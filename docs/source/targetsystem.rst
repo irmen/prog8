@@ -39,7 +39,7 @@ This is a hard limit: there is no built-in support for RAM expansions or bank sw
 ======================  ==================  ========
 memory area             type                note
 ======================  ==================  ========
-``$00``--``$ff``        ZeroPage            contains many sensitive system variables
+``$00``--``$ff``        zeropage            contains many sensitive system variables
 ``$100``--``$1ff``      Hardware stack      used by the CPU, normally not accessed directly
 ``$0200``--``$ffff``    Free RAM or ROM     free to use memory area, often a mix of RAM and ROM
 ======================  ==================  ========
@@ -75,10 +75,10 @@ Prog8 programs can access all of those special memory locations but it will have
 
 .. _zeropage:
 
-ZeroPage ("ZP")
+Zeropage ("ZP")
 ---------------
 
-The ZeroPage memory block ``$02``--``$ff`` can be regarded as 254 CPU 'registers', because
+The zeropage memory block ``$02``--``$ff`` can be regarded as 254 CPU 'registers', because
 they take less clock cycles to access and need fewer instruction bytes than accessing other memory locations outside of the ZP.
 Theoretically they can all be used in a program, with the following limitations:
 
@@ -95,7 +95,7 @@ It will use the free ZP addresses to place its ZP variables in,
 until they're all used up. If instructed to output a program that takes over the entire
 machine, (almost) all of the ZP addresses are suddenly available and will be used.
 
-**ZeroPage handling is configurable:**
+**zeropage handling is configurable:**
 There's a global program directive to specify the way the compiler
 treats the ZP for the program. The default is to be reasonably restrictive to use the
 part of the ZP that is not used by the C64's Kernal routines.
@@ -104,10 +104,10 @@ If you want, it's also possible to be more restrictive and stay clear of the add
 This allows the program to exit cleanly back to a BASIC ready prompt - something that is not possible in the other modes.
 
 
-IRQs and the ZeroPage
+IRQs and the zeropage
 ^^^^^^^^^^^^^^^^^^^^^
 
-The normal IRQ routine in the C-64's Kernal will read and write several addresses in the ZP
+The normal IRQ routine in the C64's Kernal will read and write several addresses in the ZP
 (such as the system's software jiffy clock which sits in ``$a0 - $a2``):
 
 ``$a0 - $a2``; ``$91``; ``$c0``; ``$c5``; ``$cb``; ``$f5 - $f6``
@@ -144,7 +144,7 @@ IRQ Handling
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
-There are a few library routines available to make setting up C-64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
+There are a few library routines available to make setting up C64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
 
 For the C64 these routines are::
 

@@ -105,7 +105,7 @@ sys (part of syslib)
     note: a more accurate way to do this is by using a raster irq handler instead.
 
 ``reset_system()``
-    Soft-reset the system back to initial power-on Basic prompt.
+    Soft-reset the system back to initial power-on BASIC prompt.
     (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
 
 
@@ -358,7 +358,7 @@ palette  (cx16 only)
 Available for the Cx16 target. Various routines to set the display color palette.
 There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
-and are quite different than how they looked on a VIC-II chip in a C-64.
+and are quite different than how they looked on a VIC-II chip in a C64.
 
 
 cx16diskio  (cx16 only)

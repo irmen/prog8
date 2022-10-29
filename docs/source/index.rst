@@ -140,11 +140,11 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     }
 
 
-when compiled an ran on a C-64 you get this:
+when compiled an ran on a C64 you get this:
 
 .. image:: _static/primes_example.png
     :align: center
-    :alt: result when run on C-64
+    :alt: result when run on C64
 
 when the exact same program is compiled for the Commander X16 target, and run on the emulator, you get this:
 
@@ -170,7 +170,7 @@ Required additional tools
 It's very easy to compile yourself.
 A recent precompiled .exe (only for Windows) can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
 *You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
-It's possible to use older versions, but it is very likely that the automatic Vice breakpoints won't work with them.
+It's possible to use older versions, but it is very likely that the automatic VICE breakpoints won't work with them.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK in their packages repository instead.
@@ -178,7 +178,7 @@ For Windows it's possible to get that as well; check out `AdoptOpenJDK <https://
 For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
 
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.
-In C64 mode, the compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
+In C64 mode, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the Commander X16 instead, there's a choice of the official `x16emu <https://github.com/commanderx16/x16-emulator>`_
 and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
 using the ``-emu`` or ``-emu2`` command line options)

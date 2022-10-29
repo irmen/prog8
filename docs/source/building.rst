@@ -138,7 +138,7 @@ One or more .p8 module files
 
 ``-noreinit``
     Don't create code to reinitialize the global (block level) variables on every run of the program.
-    Also means that all such variables are no longer placed in the zero page.
+    Also means that all such variables are no longer placed in the zeropage.
     Sometimes the program will be a lot shorter when using this, but sometimes the opposite happens.
     When using this option, it is no longer be possible to run the program correctly more than once!
     *Experimental feature*: still has some problems!
@@ -210,26 +210,26 @@ the ``srcdirs`` command line option.
 
 .. _debugging:
 
-Debugging (with Vice)
+Debugging (with VICE)
 ---------------------
 
 There's support for using the monitor and debugging capabilities of the rather excellent
-`Vice emulator <http://vice-emu.sourceforge.net/>`_.
+`VICE emulator <http://vice-emu.sourceforge.net/>`_.
 
 The ``%breakpoint`` directive (see :ref:`directives`) in the source code instructs the compiler to put
 a *breakpoint* at that position. Some systems use a BRK instruction for this, but
 this will usually halt the machine altogether instead of just suspending execution.
 Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
 All breakpoints are then written to a file called "programname.vice-mon-list",
-which is meant to be used by the Vice emulator.
-It contains a series of commands for Vice's monitor, including source labels and the breakpoint settings.
+which is meant to be used by the VICE emulator.
+It contains a series of commands for VICE's monitor, including source labels and the breakpoint settings.
 If you use the emulator autostart feature of the compiler, it will take care of this for you.
-If you launch Vice manually, you'll have to use a command line option to load this file:
+If you launch VICE manually, you'll have to use a command line option to load this file:
 
 	``$ x64 -moncommands programname.vice-mon-list``
 
-Vice will then use the label names in memory disassembly, and will activate any breakpoints as well.
-If your running program hits one of the breakpoints, Vice will halt execution and drop you into the monitor.
+VICE will then use the label names in memory disassembly, and will activate any breakpoints as well.
+If your running program hits one of the breakpoints, VICE will halt execution and drop you into the monitor.
 
 
 Troubleshooting
