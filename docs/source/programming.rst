@@ -286,7 +286,7 @@ Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
-    byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
+    ubyte[99] array = 255             ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to uword)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
