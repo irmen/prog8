@@ -20,9 +20,9 @@ Memory Map
 Zero page
 =========
 #. *Absolute requirement:* Provide three times 2 consecutive bytes (i.e. three 16-bit pointers) in the Zero page that are free to use at all times.
-#. Provide list of any additional free Zero page locations for a normal running system (basic + kernal enabled)
+#. Provide list of any additional free Zero page locations for a normal running system (basic + Kernal enabled)
 #. Provide list of any additional free Zero page locations when basic is off, but floating point routines should still work
-#. Provide list of any additional free Zero page locations when only the kernal remains enabled
+#. Provide list of any additional free Zero page locations when only the Kernal remains enabled
 
 Only the three 16-bit pointers are absolutely required to be able to use prog8 on the system.
 But more known available Zero page locations mean smaller and faster programs.

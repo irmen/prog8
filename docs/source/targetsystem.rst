@@ -20,7 +20,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 This chapter explains some relevant system details of the c64 and cx16 machines.
 
 .. hint::
-    If you only use standard kernal and prog8 library routines,
+    If you only use standard Kernal and prog8 library routines,
     it is often possible to compile the *exact same program* for
     different machines (just change the compilation target flag)!
 
@@ -66,7 +66,7 @@ reserved address    in use for
 The actual machine will often have many other special addresses as well,
 For example, the Commodore 64 has:
 
-- ROMs installed in the machine: BASIC, kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
+- ROMs installed in the machine: BASIC, Kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
 - memory-mapped I/O registers, for the video and sound chips, and the CIA's. Occupying ``$d000``--``$dfff``.
 - RAM areas that are used for screen graphics and sprite data:  usually at ``$0400``--``$07ff``.
 
@@ -83,10 +83,10 @@ they take less clock cycles to access and need fewer instruction bytes than acce
 Theoretically they can all be used in a program, with the following limitations:
 
 - several addresses (``$02``, ``$03``, ``$fb - $fc``, ``$fd - $fe``) are reserved for internal use
-- most other addresses will already be in use by the machine's operating system or kernal,
+- most other addresses will already be in use by the machine's operating system or Kernal,
   and overwriting them will probably crash the machine. It is possible to use all of these
-  yourself, but only if the program takes over the entire system (and seizes control from the regular kernal).
-  This means it can no longer use (most) BASIC and kernal routines from ROM.
+  yourself, but only if the program takes over the entire system (and seizes control from the regular Kernal).
+  This means it can no longer use (most) BASIC and Kernal routines from ROM.
 - it's more convenient and safe to let the compiler allocate these addresses for you and just
   use symbolic names in the program code.
 
@@ -98,8 +98,8 @@ machine, (almost) all of the ZP addresses are suddenly available and will be use
 **ZeroPage handling is configurable:**
 There's a global program directive to specify the way the compiler
 treats the ZP for the program. The default is to be reasonably restrictive to use the
-part of the ZP that is not used by the C64's kernal routines.
-It's possible to claim the whole ZP as well (by disabling the operating system or kernal).
+part of the ZP that is not used by the C64's Kernal routines.
+It's possible to claim the whole ZP as well (by disabling the operating system or Kernal).
 If you want, it's also possible to be more restrictive and stay clear of the addresses used by BASIC routines too.
 This allows the program to exit cleanly back to a BASIC ready prompt - something that is not possible in the other modes.
 
@@ -107,7 +107,7 @@ This allows the program to exit cleanly back to a BASIC ready prompt - something
 IRQs and the ZeroPage
 ^^^^^^^^^^^^^^^^^^^^^
 
-The normal IRQ routine in the C-64's kernal will read and write several addresses in the ZP
+The normal IRQ routine in the C-64's Kernal will read and write several addresses in the ZP
 (such as the system's software jiffy clock which sits in ``$a0 - $a2``):
 
 ``$a0 - $a2``; ``$91``; ``$c0``; ``$c5``; ``$cb``; ``$f5 - $f6``
@@ -155,7 +155,7 @@ For the C64 these routines are::
 And for the Commander X16::
 
     cx16.set_irq(uword handler_address, boolean useKernal)          ; vsync irq
-    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables kernal irq handler! sys.wait() won't work anymore
+    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables Kernal irq handler! sys.wait() won't work anymore
     cx16.restore_irq()     ; set everything back to the systems default irq handler
 
 

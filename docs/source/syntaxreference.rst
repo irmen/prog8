@@ -57,19 +57,19 @@ Directives
     Global setting, select ZeroPage handling style. Defaults to ``kernalsafe``.
 
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
-      and don't change anything else.  This allows full use of KERNAL ROM routines (but not BASIC routines),
+      and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
       including default IRQs during normal system operation.
       It's not possible to return cleanly to BASIC when the program exits. The only choice is
       to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
     - style ``floatsafe`` -- like the previous one but also reserves the addresses that
-      are required to perform floating point operations (from the BASIC kernal). No clean exit is possible.
+      are required to perform floating point operations (from the BASIC Kernal). No clean exit is possible.
     - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
-      touch change anything else. This allows full use of BASIC and KERNAL ROM routines including default IRQs
+      touch change anything else. This allows full use of BASIC and Kernal ROM routines including default IRQs
       during normal system operation.
       When the program exits, it simply returns to the BASIC ready prompt.
     - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
       except the few addresses mentioned above that are used by the system's IRQ routine.
-      Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
+      Even though the default IRQ routine is still active, it is impossible to use most BASIC and Kernal ROM routines.
       This includes many floating point operations and several utility routines that do I/O, such as ``print``.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).
@@ -119,7 +119,7 @@ Directives
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Commodore 64 kernal).
+      to deal with floating point numbers (by using various subroutines from the Commodore 64 Kernal).
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include
@@ -580,7 +580,7 @@ Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
-(referencing a routine in kernal ROM) can return more than one return value.
+(referencing a routine in Kernal ROM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
 It is not possible to process the results of a call to these kind of routines
 directly from the language, because only single value assignments are possible.

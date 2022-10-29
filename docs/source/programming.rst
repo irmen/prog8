@@ -261,8 +261,8 @@ Floating point numbers
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
 and currently all floating point operations are specific to the Commodore 64.
-This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
-So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
+This is because routines in the C-64 BASIC and Kernal ROMs are used for that.
+So floating point operations will only work if the C-64 BASIC ROM (and Kernal ROM)
 are banked in.
 
 Also your code needs to import the ``floats`` library to enable floating point support
@@ -935,7 +935,7 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
 syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
     uses this though except, possibly, the experimental code generation target!
-    The regular 6502 based compiler targets just use a subroutine call to asmsub kernal routines at
+    The regular 6502 based compiler targets just use a subroutine call to asmsub Kernal routines at
     specific memory locations. So these builtin function calls are not useful yet except for
     experimentation in new code generation targets.
 

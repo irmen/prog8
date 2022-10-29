@@ -51,7 +51,7 @@ Calling the routine is just a simple JSR instruction, but the other two work lik
 ``asmsub`` routines
 ^^^^^^^^^^^^^^^^^^^
 
-These are usually declarations of kernal (ROM) routines or low-level assembly only routines,
+These are usually declarations of Kernal (ROM) routines or low-level assembly only routines,
 that have their arguments solely passed into specific registers.
 Sometimes even via a processor status flag such as the Carry flag.
 Return values also via designated registers.
@@ -92,7 +92,7 @@ The 6502 CPU's X-register: off-limits
 
 Prog8 uses the cpu's X-register as a pointer in its internal expression evaluation stack.
 When only writing code in Prog8, this is taken care of behind the scenes for you by the compiler.
-However when you are including or linking with assembly routines or kernal/ROM calls that *do*
+However when you are including or linking with assembly routines or Kernal/ROM calls that *do*
 use the X register (either clobbering it internally, or using it as a parameter, or return value register),
 those calls will destroy Prog8's stack pointer and this will result in invalid calculations.
 

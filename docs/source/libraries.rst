@@ -29,7 +29,7 @@ of these library modules automatically as required.
 syslib
 ------
 The "system library" for your target machine. It contains many system-specific definitions such
-as ROM/kernal subroutine definitions, memory location constants, and utility subroutines.
+as ROM/Kernal subroutine definitions, memory location constants, and utility subroutines.
 
 Depending on the compilation target, other routines may also be available in here specific to that target.
 Best is to check the source code of the correct syslib module.
@@ -140,7 +140,7 @@ Provides several routines that deal with disk drive I/O, such as:
 - delete and rename files on the disk
 - send arbitrary CbmDos command to disk drive
 
-On the Commander X16 it tries to use that machine's fast kernal loading routines if possible.
+On the Commander X16 it tries to use that machine's fast Kernal loading routines if possible.
 
 
 string
@@ -210,7 +210,7 @@ Provides string manipulation routines.
 
 floats
 ------
-Provides definitions for the ROM/kernal subroutines and utility routines dealing with floating
+Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating
 point variables.  This includes ``print_f``, the routine used to print floating point numbers,
 ``fabs`` to get the absolute value of a floating point number, and a dozen or so floating point
 math routines.

@@ -74,7 +74,7 @@ Language features
 - Many built-in functions, such as ``sin``, ``cos``, ``abs``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the other machines.
-- If you only use standard kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compilation target flag)!
+- If you only use standard Kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compilation target flag)!
 
 
 Code example
