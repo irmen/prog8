@@ -1,13 +1,11 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.compiler.BuiltinFunctions
 
 internal class StatementReorderer(val program: Program,
                                   val errors: IErrorReporter,
@@ -194,54 +192,6 @@ internal class StatementReorderer(val program: Program,
             && expr.right.constValue(program) == null
             && maySwapOperandOrder(expr))
             return listOf(IAstModification.SwapOperands(expr))
-
-        // when using a simple bit shift and assigning it to a variable of a different type,
-        // try to make the bit shifting 'wide enough' to fall into the variable's type.
-        // with this, for instance, uword x = 1 << 10  will result in 1024 rather than 0 (the ubyte result).
-        if(expr.operator=="<<" || expr.operator==">>") {
-            val leftDt = expr.left.inferType(program)
-            when (parent) {
-                is Assignment -> {
-                    val targetDt = parent.target.inferType(program)
-                    if(leftDt != targetDt) {
-                        val cast = TypecastExpression(expr.left, targetDt.getOr(DataType.UNDEFINED), true, parent.position)
-                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                    }
-                }
-                is VarDecl -> {
-                    if(leftDt isnot parent.datatype) {
-                        val cast = TypecastExpression(expr.left, parent.datatype, true, parent.position)
-                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                    }
-                }
-                is IFunctionCall -> {
-                    val argnum = parent.args.indexOf(expr)
-                    when (val callee = parent.target.targetStatement(program)) {
-                        is Subroutine -> {
-                            val paramType = callee.parameters[argnum].type
-                            if(leftDt isAssignableTo paramType) {
-                                val (replaced, cast) = expr.left.typecastTo(paramType, leftDt.getOr(DataType.UNDEFINED), true)
-                                if(replaced)
-                                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                            }
-                        }
-                        is BuiltinFunctionPlaceholder -> {
-                            val func = BuiltinFunctions.getValue(callee.name)
-                            val paramTypes = func.parameters[argnum].possibleDatatypes
-                            for(type in paramTypes) {
-                                if(leftDt isAssignableTo type) {
-                                    val (replaced, cast) = expr.left.typecastTo(type, leftDt.getOr(DataType.UNDEFINED), true)
-                                    if(replaced)
-                                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
-                                }
-                            }
-                        }
-                        else -> throw FatalAstException("weird callee")
-                    }
-                }
-                else -> return noModifications
-            }
-        }
 
         return noModifications
     }
