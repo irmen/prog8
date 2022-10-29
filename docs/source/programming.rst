@@ -107,10 +107,6 @@ The name of a block must be unique in your entire program.
 Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
-If you omit both the name and address, the entire block is *ignored* by the compiler (and a warning is displayed).
-This is a way to quickly "comment out" a piece of code that is unfinished or may contain errors that you
-want to work on later, because the contents of the ignored block are not fully parsed either.
-
 The address can be used to place a block at a specific location in memory.
 Usually it is omitted, and the compiler will automatically choose the location (usually immediately after
 the previous block in memory).
