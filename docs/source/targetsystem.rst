@@ -20,7 +20,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 This chapter explains some relevant system details of the c64 and cx16 machines.
 
 .. hint::
-    If you only use standard kernal and prog8 library routines,
+    If you only use standard Kernal and prog8 library routines,
     it is often possible to compile the *exact same program* for
     different machines (just change the compilation target flag)!
 
@@ -39,7 +39,7 @@ This is a hard limit: there is no built-in support for RAM expansions or bank sw
 ======================  ==================  ========
 memory area             type                note
 ======================  ==================  ========
-``$00``--``$ff``        ZeroPage            contains many sensitive system variables
+``$00``--``$ff``        zeropage            contains many sensitive system variables
 ``$100``--``$1ff``      Hardware stack      used by the CPU, normally not accessed directly
 ``$0200``--``$ffff``    Free RAM or ROM     free to use memory area, often a mix of RAM and ROM
 ======================  ==================  ========
@@ -64,9 +64,9 @@ reserved address    in use for
 ==================  =======================
 
 The actual machine will often have many other special addresses as well,
-For example, the Commodore-64 has:
+For example, the Commodore 64 has:
 
-- ROMs installed in the machine: BASIC, kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
+- ROMs installed in the machine: BASIC, Kernal and character roms. Occupying ``$a000``--``$bfff`` and ``$e000``--``$ffff``.
 - memory-mapped I/O registers, for the video and sound chips, and the CIA's. Occupying ``$d000``--``$dfff``.
 - RAM areas that are used for screen graphics and sprite data:  usually at ``$0400``--``$07ff``.
 
@@ -75,18 +75,18 @@ Prog8 programs can access all of those special memory locations but it will have
 
 .. _zeropage:
 
-ZeroPage ("ZP")
+Zeropage ("ZP")
 ---------------
 
-The ZeroPage memory block ``$02``--``$ff`` can be regarded as 254 CPU 'registers', because
+The zeropage memory block ``$02``--``$ff`` can be regarded as 254 CPU 'registers', because
 they take less clock cycles to access and need fewer instruction bytes than accessing other memory locations outside of the ZP.
-Theoretically they can all be used in a program, with the follwoing limitations:
+Theoretically they can all be used in a program, with the following limitations:
 
 - several addresses (``$02``, ``$03``, ``$fb - $fc``, ``$fd - $fe``) are reserved for internal use
-- most other addresses will already be in use by the machine's operating system or kernal,
+- most other addresses will already be in use by the machine's operating system or Kernal,
   and overwriting them will probably crash the machine. It is possible to use all of these
-  yourself, but only if the program takes over the entire system (and seizes control from the regular kernal).
-  This means it can no longer use (most) BASIC and kernal routines from ROM.
+  yourself, but only if the program takes over the entire system (and seizes control from the regular Kernal).
+  This means it can no longer use (most) BASIC and Kernal routines from ROM.
 - it's more convenient and safe to let the compiler allocate these addresses for you and just
   use symbolic names in the program code.
 
@@ -95,19 +95,19 @@ It will use the free ZP addresses to place its ZP variables in,
 until they're all used up. If instructed to output a program that takes over the entire
 machine, (almost) all of the ZP addresses are suddenly available and will be used.
 
-**ZeroPage handling is configurable:**
+**zeropage handling is configurable:**
 There's a global program directive to specify the way the compiler
 treats the ZP for the program. The default is to be reasonably restrictive to use the
-part of the ZP that is not used by the C64's kernal routines.
-It's possible to claim the whole ZP as well (by disabling the operating system or kernal).
-If you want, it's also possible to be more restricive and stay clear of the addresses used by BASIC routines too.
+part of the ZP that is not used by the C64's Kernal routines.
+It's possible to claim the whole ZP as well (by disabling the operating system or Kernal).
+If you want, it's also possible to be more restrictive and stay clear of the addresses used by BASIC routines too.
 This allows the program to exit cleanly back to a BASIC ready prompt - something that is not possible in the other modes.
 
 
-IRQs and the ZeroPage
+IRQs and the zeropage
 ^^^^^^^^^^^^^^^^^^^^^
 
-The normal IRQ routine in the C-64's kernal will read and write several addresses in the ZP
+The normal IRQ routine in the C64's Kernal will read and write several addresses in the ZP
 (such as the system's software jiffy clock which sits in ``$a0 - $a2``):
 
 ``$a0 - $a2``; ``$91``; ``$c0``; ``$c5``; ``$cb``; ``$f5 - $f6``
@@ -144,7 +144,7 @@ IRQ Handling
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
-There are a few library routines available to make setting up C-64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
+There are a few library routines available to make setting up C64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
 
 For the C64 these routines are::
 
@@ -155,7 +155,7 @@ For the C64 these routines are::
 And for the Commander X16::
 
     cx16.set_irq(uword handler_address, boolean useKernal)          ; vsync irq
-    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables kernal irq handler! sys.wait() won't work anymore
+    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables Kernal irq handler! sys.wait() won't work anymore
     cx16.restore_irq()     ; set everything back to the systems default irq handler
 
 
@@ -163,5 +163,5 @@ The Commander X16 provides two additional routines that should be used *in your 
 
     cx16.push_vera_context()
     ; ... do your work that uses vera here...
-    cx15.pop_vera_context()
+    cx16.pop_vera_context()
 

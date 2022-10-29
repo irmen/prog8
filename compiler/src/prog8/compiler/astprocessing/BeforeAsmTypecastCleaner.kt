@@ -129,4 +129,18 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         }
         return noModifications
     }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="<<" || expr.operator==">>") {
+            val shifts = expr.right.constValue(program)
+            if(shifts!=null) {
+                val dt = expr.left.inferType(program)
+                if(dt.istype(DataType.UBYTE) && shifts.number>=8.0)
+                    errors.warn("shift always results in 0", expr.position)
+                if(dt.istype(DataType.UWORD) && shifts.number>=16.0)
+                    errors.warn("shift always results in 0", expr.position)
+            }
+        }
+        return noModifications
+    }
 }

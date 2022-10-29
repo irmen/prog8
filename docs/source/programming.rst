@@ -107,10 +107,6 @@ The name of a block must be unique in your entire program.
 Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
-If you omit both the name and address, the entire block is *ignored* by the compiler (and a warning is displayed).
-This is a way to quickly "comment out" a piece of code that is unfinshed or may contain errors that you
-want to work on later, because the contents of the ignored block are not fully parsed either.
-
 The address can be used to place a block at a specific location in memory.
 Usually it is omitted, and the compiler will automatically choose the location (usually immediately after
 the previous block in memory).
@@ -201,12 +197,12 @@ Values will usually be part of an expression or assignment statement::
 
 *putting a variable in zeropage:*
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
-when selecting variables to put into zero page (but no guarantees). If there are enough free locations in the zeropage,
+when selecting variables to put into zeropage (but no guarantees). If there are enough free locations in the zeropage,
 it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
 Use ``@requirezp`` tag to *force* the variable into zeropage, but if there is no more free space the compilation will fail.
 It's possible to put strings, arrays and floats into zeropage too, however because Zp space is really scarce
 this is not advised as they will eat up the available space very quickly. It's best to only put byte or word
-variables in Zeropage.
+variables in zeropage.
 
 Example::
 
@@ -230,7 +226,7 @@ Integers
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation.
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
-which is the Petscii value for that character.
+which is the PETSCII value for that character.
 
 Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
 The signed integers integers are in the range -128..127 for bytes,
@@ -260,9 +256,9 @@ Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
-and currently all floating point operations are specific to the Commodore-64.
-This is because routines in the C-64 BASIC and KERNAL ROMs are used for that.
-So floating point operations will only work if the C-64 BASIC ROM (and KERNAL ROM)
+and currently all floating point operations are specific to the Commodore 64.
+This is because routines in the C64 BASIC and Kernal ROMs are used for that.
+So floating point operations will only work if the C64 BASIC ROM (and Kernal ROM)
 are banked in.
 
 Also your code needs to import the ``floats`` library to enable floating point support
@@ -286,7 +282,7 @@ Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
-    byte[99] array = 255              ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
+    ubyte[99] array = 255             ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to uword)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
@@ -341,7 +337,7 @@ Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) 
 Alternative encodings can be specified with a ``encodingname:`` prefix to the string or character literal.
 The following encodings are currently recognised:
 
-    - ``petscii``  Petscii, the default encoding on CBM machines (c64, c128, cx16)
+    - ``petscii``  PETSCII, the default encoding on CBM machines (c64, c128, cx16)
     - ``sc``  CBM-screencodes aka 'poke' codes (c64, c128, cx16)
     - ``iso``  iso-8859-15 text (supported on cx16)
 
@@ -353,7 +349,7 @@ It can be correctly displayed on the screen only if a iso-8859-15 charset has be
 
 You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
-of the total string still cannot exceed 255 characaters.
+of the total string still cannot exceed 255 characters.
 A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
 And a new string value can be assigned to another string, but no bounds check is done
 so be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
@@ -370,7 +366,7 @@ as newlines, quote characters themselves, and so on. The ones used most often ar
 ``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
 read the syntax reference on strings.
 
-Using the ``in`` operator you can easily check if a characater is present in a string,
+Using the ``in`` operator you can easily check if a character is present in a string,
 example: ``if '@' in email_address {....}`` (however this gives no clue about the location
 in the string where the character is present, if you need that, use the ``string.find()``
 library function instead)
@@ -412,10 +408,10 @@ for the constant itself). This is only valid for the simple numeric types (byte,
 When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,
 rather than being newly allocated. The initial value (mandatory) must be a valid
 memory address.  Reading the variable will read the given data type from the
-address you specified, and setting the varible will directly modify that memory location(s)::
+address you specified, and setting the variable will directly modify that memory location(s)::
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
-	&word  SCREENCOLORS = $d020             ; a 16-bit word at the addres $d020-$d021
+	&word  SCREENCOLORS = $d020             ; a 16-bit word at the address $d020-$d021
 
 .. _pointervars_programming:
 
@@ -452,9 +448,9 @@ Many type conversions are possible by just writing ``as <type>`` at the end of a
     f = 56.777
     ub = f as ubyte             ; ub will be 56
 
-Sometimes it is a straight 'type cast' where the value is simply interpreted as being of the other type,
-sometimes an actual value conversion is done to convert it into the targe type.
-Try to avoid type conversions as much as possible.
+Sometimes it is a straight reinterpretation of the given value as being of the other type,
+sometimes an actual value conversion is done to convert it into the other type.
+Try to avoid those type conversions as much as possible.
 
 
 Initial values across multiple runs of the program
@@ -511,7 +507,7 @@ Conditional Execution
 if statements
 ^^^^^^^^^^^^^
 
-Conditional execution means that the flow of execution changes based on certiain conditions,
+Conditional execution means that the flow of execution changes based on certain conditions,
 rather than having fixed gotos or subroutine calls::
 
     if xx==5 {
@@ -567,7 +563,7 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
 .. caution::
     These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
     that the status register (still) contains the correct status bits.
-    This is not always the case after a fuction call or other operations!
+    This is not always the case after a function call or other operations!
     If in doubt, check the generated assembly code!
 
 .. note::
@@ -643,7 +639,7 @@ If possible, the expression is parsed and evaluated by the compiler itself at co
 Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 Expressions can contain procedure and function calls.
 There are various built-in functions such as sin(), cos() that can be used in expressions (see :ref:`builtinfunctions`).
-You can also reference idendifiers defined elsewhere in your code.
+You can also reference identifiers defined elsewhere in your code.
 
 Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
 
@@ -680,7 +676,7 @@ Logical expressions are expressions that calculate a boolean result: true or fal
 logical expressions will compile more efficiently than when you're using regular integer type operands
 (because these have to be converted to 0 or 1 every time)
 
-You can use parentheses to group parts of an expresion to change the precedence.
+You can use parentheses to group parts of an expression to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions
 within parentheses will be evaluated first. So ``(4 + 8) * 2`` is 24 and not 20,
 and ``(true or false) and false`` is false instead of true.
@@ -845,18 +841,18 @@ pokemon(address, value)
     Doesn't have anything to do with a certain video game.
 
 push(value)
-    pushes a byte value on the CPU hardware stack. Lowlevel function that should normally not be used.
+    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
 
 pushw(value)
-    pushes a 16-bit word value on the CPU hardware stack. Lowlevel function that should normally not be used.
+    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
 
 pop(variable)
     pops a byte value off the CPU hardware stack into the given variable. Only variables can be used.
-    Lowlevel function that should normally not be used.
+    Low-level function that should normally not be used.
 
 popw(value)
     pops a 16-bit word value off the CPU hardware stack into the given variable. Only variables can be used.
-    Lowlevel function that should normally not be used.
+    Low-level function that should normally not be used.
 
 rol(x)
     Rotate the bits in x (byte or word) one position to the left.
@@ -889,7 +885,7 @@ ror2(x)
 sizeof(name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.
-    For an 10 element array of floats, it is 50 (on the C-64, where a float is 5 bytes).
+    For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
 memory(name, size, alignment)
@@ -907,7 +903,7 @@ memory(name, size, alignment)
     You can only treat it as a pointer or use it in inline assembly.
 
 callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another ram-bank on the CommanderX16 (using the ``jsrfar`` routine)
+    Calls an assembly routine in another ram-bank on the Commander X16 (using the ``jsrfar`` routine)
     The banked RAM is located in the address range $A000-$BFFF (8 kilobyte), but you can specify
     any address in system ram (why this can be useful is explained at the end of this paragraph)
     The third argument can be used to designate the memory address
@@ -921,7 +917,7 @@ callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
     This is not very efficient though, so maybe you should write a small piece of inline assembly for this instead.
 
 callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another rom-bank on the CommanderX16
+    Calls an assembly routine in another rom-bank on the Commander X16
     The banked ROM is located in the address range $C000-$FFFF (16 kilobyte).
     There are 32 banks (0 to 31).
     The third argument can be used to designate the memory address
@@ -935,7 +931,7 @@ callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for
 syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
     uses this though except, possibly, the experimental code generation target!
-    The regular 6502 based compiler targets just use a subroutine call to asmsub kernal routines at
+    The regular 6502 based compiler targets just use a subroutine call to asmsub Kernal routines at
     specific memory locations. So these builtin function calls are not useful yet except for
     experimentation in new code generation targets.
 

@@ -78,6 +78,9 @@ It's handy to have an emulator (or a real machine perhaps!) to run the programs 
 of the [Vice emulator](http://vice-emu.sourceforge.net/)  for the C64 target,
 and the [x16emu emulator](https://github.com/commanderx16/x16-emulator) for the CommanderX16 target.
 
+**Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
+Look in the [syntax-files](https://github.com/irmen/prog8/tree/master/syntax-files) directory in the github repository to find them.
+
 
 Example code
 ------------

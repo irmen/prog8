@@ -37,14 +37,19 @@ cx16diskio {
     asmsub vload(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
         ; -- like the basic command VLOAD "filename",device,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file has to have the usual 2 byte header (which will be skipped)
         %asm {{
-            ; -- load a file into video ram
+            clc
+internal_vload:
             phx
             pha
             tya
             tax
-            lda  #1
-            ldy  #0
+            bcc +
+            ldy  #%00000010     ; headerless load mode
+            bne  ++
++           ldy  #0             ; normal load mode
++           lda  #1
             jsr  c64.SETLFS
             lda  cx16.r0
             ldy  cx16.r0+1
@@ -71,6 +76,15 @@ cx16diskio {
         }}
     }
 
+    asmsub vload_raw(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command BVLOAD "filename",device,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file is read fully including the first two bytes.
+        %asm {{
+            sec
+            jmp  vload.internal_vload
+        }}
+    }
 
     ; replacement function that makes use of fast block read capability of the X16
     ; use this in place of regular diskio.f_read()
@@ -97,7 +111,7 @@ cx16diskio {
             size = 255
             if num_bytes<size
                 size = num_bytes
-            size = cx16.macptr(lsb(size), bufferpointer)
+            size = cx16.macptr(lsb(size), bufferpointer, false)
             if_cs
                 goto byte_read_loop     ; macptr block read not supported, do fallback loop
             diskio.list_blocks += size

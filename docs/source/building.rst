@@ -68,7 +68,7 @@ It contains all of the program's code and data and has a certain file format tha
 allows it to be loaded directly on the target system.   Prog8 currently has no built-in
 support for programs that exceed 64 Kb of memory, nor for multi-part loaders.
 
-For the Commodore-64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
+For the Commodore 64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
 This way the user can load it as any other program and simply RUN it to start. (This is a regular ".prg" program).
 Prog8 can create those, but it is also possible to output plain binary programs
 that can be loaded into memory anywhere.
@@ -95,7 +95,7 @@ For normal use the compiler can be invoked with the command:
 
 By default, assembly code is generated and written to ``sourcefile.asm``.
 It is then (automatically) fed to the `64tass <https://sourceforge.net/projects/tass64/>`_ assembler tool
-that creastes the final runnable program.
+that creates the final runnable program.
 
 
 Command line options
@@ -138,7 +138,7 @@ One or more .p8 module files
 
 ``-noreinit``
     Don't create code to reinitialize the global (block level) variables on every run of the program.
-    Also means that all such variables are no longer placed in the zero page.
+    Also means that all such variables are no longer placed in the zeropage.
     Sometimes the program will be a lot shorter when using this, but sometimes the opposite happens.
     When using this option, it is no longer be possible to run the program correctly more than once!
     *Experimental feature*: still has some problems!
@@ -182,7 +182,7 @@ One or more .p8 module files
 ``-esa <address>``
     Override the base address of the evaluation stack. Has to be page-aligned.
     You can specify an integer or hexadecimal address.
-    When not compiling for the CommanderX16 target, the location of the 16 virtual registers cx16.r0..r15
+    When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
 
@@ -210,26 +210,26 @@ the ``srcdirs`` command line option.
 
 .. _debugging:
 
-Debugging (with Vice)
+Debugging (with VICE)
 ---------------------
 
 There's support for using the monitor and debugging capabilities of the rather excellent
-`Vice emulator <http://vice-emu.sourceforge.net/>`_.
+`VICE emulator <http://vice-emu.sourceforge.net/>`_.
 
 The ``%breakpoint`` directive (see :ref:`directives`) in the source code instructs the compiler to put
 a *breakpoint* at that position. Some systems use a BRK instruction for this, but
 this will usually halt the machine altogether instead of just suspending execution.
 Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
 All breakpoints are then written to a file called "programname.vice-mon-list",
-which is meant to be used by the Vice emulator.
-It contains a series of commands for Vice's monitor, including source labels and the breakpoint settings.
+which is meant to be used by the VICE emulator.
+It contains a series of commands for VICE's monitor, including source labels and the breakpoint settings.
 If you use the emulator autostart feature of the compiler, it will take care of this for you.
-If you launch Vice manually, you'll have to use a command line option to load this file:
+If you launch VICE manually, you'll have to use a command line option to load this file:
 
 	``$ x64 -moncommands programname.vice-mon-list``
 
-Vice will then use the label names in memory disassembly, and will activate any breakpoints as well.
-If your running program hits one of the breakpoints, Vice will halt execution and drop you into the monitor.
+VICE will then use the label names in memory disassembly, and will activate any breakpoints as well.
+If your running program hits one of the breakpoints, VICE will halt execution and drop you into the monitor.
 
 
 Troubleshooting

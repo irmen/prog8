@@ -18,9 +18,8 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(parent !is VarDecl) {
-            // TODO move this / remove this, and make the codegen better instead.
-            // If the expression is pointervar[idx] where pointervar is uword and not a real array,
-            // replace it by a @(pointervar+idx) expression.
+            if(options.compTarget.name == VMTarget.NAME)
+                return noModifications  // vm codegen deals correctly with all cases
             // Don't replace the initializer value in a vardecl - this will be moved to a separate
             // assignment statement soon in after(VarDecl)
             return replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression, parent)
@@ -29,15 +28,16 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
     }
 
     private fun replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        if(options.compTarget.name==VMTarget.NAME)
-            return noModifications  // vm codegen deals correctly with all cases
-
+        // note: The CodeDesugarer already does something similar, but that is meant ONLY to take
+        //       into account the case where the index value is a word type.
+        //       The replacement here is to fix missing cases in the 6502 codegen.
+        // TODO make the 6502 codegen better so this work around can be removed
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {
             if(parent is AssignTarget) {
                 val assignment = parent.parent as? Assignment
                 if(assignment?.value is NumericLiteral || assignment?.value is IdentifierReference) {
-                    // ONLY for a constant assignment, or direct variable assignment, the codegen contains correct optimized code.
+                    // the codegen contains correct optimized code ONLY for a constant assignment, or direct variable assignment.
                     return noModifications
                 }
                 // Other cases aren't covered correctly by the 6502 codegen, and there are a LOT of cases.

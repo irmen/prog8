@@ -15,7 +15,7 @@ This is a compiled programming language targeting the 8-bit
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
 `65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
 This CPU is from the late 1970's and early 1980's and was used in many home computers from that era,
-such as the `Commodore-64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
+such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
 You can compile programs for various machines with this CPU:
@@ -69,12 +69,12 @@ Language features
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Floating point math also supported if the target system provides floating point library routines (C64 and Cx16 both do).
-- Strings can contain escaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest petscii equivalents.
+- Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``abs``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the other machines.
-- If you only use standard kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compilation target flag)!
+- If you only use standard Kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compilation target flag)!
 
 
 Code example
@@ -83,6 +83,7 @@ Code example
 Here is a hello world program::
 
     %import textio
+    %zeropage basicsafe
 
     main {
         sub start() {
@@ -139,11 +140,11 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     }
 
 
-when compiled an ran on a C-64 you get this:
+when compiled an ran on a C64 you get this:
 
 .. image:: _static/primes_example.png
     :align: center
-    :alt: result when run on C-64
+    :alt: result when run on C64
 
 when the exact same program is compiled for the Commander X16 target, and run on the emulator, you get this:
 
@@ -169,18 +170,22 @@ Required additional tools
 It's very easy to compile yourself.
 A recent precompiled .exe (only for Windows) can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
 *You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
-It's possible to use older versions, but it is very likely that the automatic Vice breakpoints won't work with them.
+It's possible to use older versions, but it is very likely that the automatic VICE breakpoints won't work with them.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK in their packages repository instead.
 For Windows it's possible to get that as well; check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
 For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
 
-Finally: an **emulator** (or a real machine ofcourse) to test and run your programs on.
-In C64 mode, the compiler assumes the presence of the `Vice emulator <http://vice-emu.sourceforge.net/>`_.
-If you're targeting the CommanderX16 instead, there's a choice of the official `x16emu <https://github.com/commanderx16/x16-emulator>`_
+Finally: an **emulator** (or a real machine of course) to test and run your programs on.
+In C64 mode, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
+If you're targeting the Commander X16 instead, there's a choice of the official `x16emu <https://github.com/commanderx16/x16-emulator>`_
 and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
 using the ``-emu`` or ``-emu2`` command line options)
+
+**Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
+Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.
+
 
 
 .. toctree::

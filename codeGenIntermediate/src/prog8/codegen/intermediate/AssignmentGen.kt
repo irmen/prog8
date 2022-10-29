@@ -242,7 +242,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     } else {
                         val indexReg = codeGen.registers.nextFree()
                         result += loadIndexReg(array, itemsize, indexReg)
-                        result += IRCodeChunk(null, array.position, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = resultRegister, reg2=indexReg, labelSymbol = variable) }
+                        result += IRCodeChunk(null, array.position, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = indexReg, fpReg1 = resultFpRegister, labelSymbol = variable) }
                     }
                 } else {
                     if(fixedIndex!=null) {

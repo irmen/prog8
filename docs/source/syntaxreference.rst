@@ -8,7 +8,7 @@ Module file
 -----------
 
 This is a file with the ``.p8`` suffix, containing *directives* and *code blocks*, described below.
-The file is a text file wich can also contain:
+The file is a text file which can also contain:
 
 Lines, whitespace, indentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,28 +48,28 @@ Directives
 	Global setting, selects the program launcher stub to use.
 	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
 
-	- type ``basic`` : add a tiny C64 BASIC program, whith a SYS statement calling into the machine code
+	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
 	- type ``none`` : no launcher logic is added at all
 
 .. data:: %zeropage <style>
 
     Level: module.
-    Global setting, select ZeroPage handling style. Defaults to ``kernalsafe``.
+    Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
 
     - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
-      and don't change anything else.  This allows full use of KERNAL ROM routines (but not BASIC routines),
+      and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
       including default IRQs during normal system operation.
       It's not possible to return cleanly to BASIC when the program exits. The only choice is
       to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
     - style ``floatsafe`` -- like the previous one but also reserves the addresses that
-      are required to perform floating point operations (from the BASIC kernal). No clean exit is possible.
+      are required to perform floating point operations (from the BASIC Kernal). No clean exit is possible.
     - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
-      touch change anything else. This allows full use of BASIC and KERNAL ROM routines including default IRQs
+      touch change anything else. This allows full use of BASIC and Kernal ROM routines including default IRQs
       during normal system operation.
       When the program exits, it simply returns to the BASIC ready prompt.
     - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
       except the few addresses mentioned above that are used by the system's IRQ routine.
-      Even though the default IRQ routine is still active, it is impossible to use most BASIC and KERNAL ROM routines.
+      Even though the default IRQ routine is still active, it is impossible to use most BASIC and Kernal ROM routines.
       This includes many floating point operations and several utility routines that do I/O, such as ``print``.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).
@@ -84,9 +84,9 @@ Directives
     16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
     (but not on the same locations). They are relocated automatically by the compiler.
     The other options need those locations for other things so those virtual registers have
-    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zero page
+    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zeropage
     variables or pointers etc. will be a lot slower in those cases!
-    On the CommanderX16 the registers are always in zeropage. On other targets, for now, they
+    On the Commander X16 the registers are always in zeropage. On other targets, for now, they
     are always outside of the zeropage.
 
 .. data:: %zpreserved <fromaddress>,<toaddress>
@@ -100,8 +100,8 @@ Directives
 
 	Level: module.
 	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
-	default launcher type is a CBM-basic program. But you have to specify this address yourself when
-	you don't use a CBM-basic launcher.
+	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
+	you don't use a CBM-BASIC launcher.
 
 
 .. data:: %import <name>
@@ -119,7 +119,7 @@ Directives
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Commodore-64 kernal).
+      to deal with floating point numbers (by using various subroutines from the Commodore 64 Kernal).
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include
@@ -150,7 +150,7 @@ Directives
     The assembler will include the file as raw assembly source text at this point,
     prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
     from prog8 code. However they can be referenced from other assembly code if properly prefixed.
-    You can ofcourse use a label in your prog8 code just before the %asminclude directive, and reference
+    You can of course use a label in your prog8 code just before the %asminclude directive, and reference
     that particular label to get to (the start of) the included assembly.
     Be careful: you risk symbol redefinitions or duplications if you include a piece of
     assembly into a prog8 block that already defines symbols itself.
@@ -225,7 +225,7 @@ and after that, a combination of letters, numbers, or underscores. Examples of v
 Code blocks
 -----------
 
-A named block of actual program code. Itefines a *scope* (also known as 'namespace') and
+A named block of actual program code. It defines a *scope* (also known as 'namespace') and
 can only contain *directives*, *variable declarations*, *subroutines* or *inline assembly*::
 
     <blockname> [<address>] {
@@ -270,7 +270,7 @@ Variable declarations
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
-or an expression. If you don't provide an intial value yourself, zero will be used.
+or an expression. If you don't provide an initial value yourself, zero will be used.
 You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
 the variable will be allocated in normal memory elsewhere.
@@ -295,7 +295,7 @@ Various examples::
     byte[5]     values  = 255           ; initialize with five 255 bytes
 
     word  @zp         zpword = 9999     ; prioritize this when selecting vars for zeropage storage
-    uword @requirezp  zpaddr = $3000    ; we require this variable in Zeropage
+    uword @requirezp  zpaddr = $3000    ; we require this variable in zeropage
     word  @shared asmvar                ; variable is used in assembly code but not elsewhere
 
 
@@ -329,7 +329,7 @@ type identifier  type                     storage size       example var declara
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
 ``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``
-``str``          string (petscii)         varies             ``str myvar = "hello."``
+``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
 
@@ -342,7 +342,7 @@ value is given, the array size in the declaration can be omitted.
 Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
 of something with an operand starting with 1 or 0, you'll have to add a space in between.
 
-**character values:** you can use a single character in quotes like this ``'a'`` for the Petscii byte value of that character.
+**character values:** you can use a single character in quotes like this ``'a'`` for the PETSCII byte value of that character.
 
 
 **``byte`` versus ``word`` values:**
@@ -461,7 +461,7 @@ There are several escape sequences available to put special characters into your
 - ``\uHHHH`` - a unicode codepoint \u0000 - \uffff (16-bit hexadecimal)
 - ``\xHH`` - 8-bit hex value that will be copied verbatim *without encoding*
 
-- String literals can contain many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳".
+- String literals can contain many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳".
   Characters like ^, _, \\, {, } and | (that have no direct PETSCII counterpart) are still accepted and converted to the closest PETSCII equivalents. (Make sure you save the source file in UTF-8 encoding if you use this.)
 
 
@@ -505,7 +505,7 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 		the ``bool`` variable type instead, where this conversion doesn't need to occur.
 
 	.. note::
-		Unlike most other programming languages, there is no short-cirquit or McCarthy-evaluation
+		Unlike most other programming languages, there is no short-circuit or McCarthy evaluation
 		for the logical ``and`` and ``or`` operators. This means that prog8 currently always evaluates
 		all operands from these logical expressions, even when one of them already determines the outcome!
 
@@ -580,7 +580,7 @@ Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
-(referencing a routine in kernal ROM) can return more than one return value.
+(referencing a routine in Kernal ROM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
 It is not possible to process the results of a call to these kind of routines
 directly from the language, because only single value assignments are possible.
@@ -662,7 +662,7 @@ flag such as Carry (Pc).
     The 'virtual' 16-bit registers from the Commander X16 can also be specified as ``R0`` .. ``R15`` .
     This means you don't have to set them up manually before calling a subroutine that takes
     one or more parameters in those 'registers'. You can just list the arguments directly.
-    *This also works on the Commodore-64!*  (however they are not as efficient there because they're not in zeropage)
+    *This also works on the Commodore 64!*  (however they are not as efficient there because they're not in zeropage)
     In prog8 and assembly code these 'registers' are directly accessible too via
     ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
     ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),
@@ -765,7 +765,7 @@ Conditional Execution and Jumps
 Unconditional jump: goto
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-To jump to another part of the program, you use a ``goto`` statement with an addres or the name
+To jump to another part of the program, you use a ``goto`` statement with an address or the name
 of a label or subroutine::
 
     goto  $c000     ; address
@@ -806,7 +806,7 @@ However if <statements> is a block of multiple statements, you'll have to enclos
 **Special status register branch form:**
 
 There is a special form of the if-statement that immediately translates into one of the 6502's branching instructions.
-It is almost the same as the regular if-statement but it lacks a contional expression part, because the if-statement
+It is almost the same as the regular if-statement but it lacks a conditional expression part, because the if-statement
 itself defines on what status register bit it should branch on::
 
 	if_XX  <statements>  [else  <statements> ]
@@ -826,7 +826,7 @@ It can also be one of the four aliases that are easier to read: ``if_z``, ``if_n
 .. caution::
     These special ``if_XX`` branching statements are only useful in certain specific situations where you are *certain*
     that the status register (still) contains the correct status bits.
-    This is not always the case after a fuction call or other operations!
+    This is not always the case after a function call or other operations!
     If in doubt, check the generated assembly code!
 
 

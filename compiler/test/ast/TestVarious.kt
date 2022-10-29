@@ -100,7 +100,6 @@ main {
             }
         }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 6
         val name1 = stmts[0] as VarDecl
@@ -113,6 +112,23 @@ main {
         val rept2 = rept2strcopy.args.first() as IdentifierReference
         (name2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xx1xx2"
         (rept2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
+    }
+
+    test("pointervariable indexing allowed with >255") {
+        val src="""
+main {
+    sub start() {
+        uword pointer = ${'$'}2000
+        @(pointer+${'$'}1000) = 123
+        ubyte @shared ub = @(pointer+${'$'}1000)
+        pointer[${'$'}1000] = 99
+        ub = pointer[${'$'}1000]
+        uword index = ${'$'}1000
+        pointer[index] = 55
+        ub = pointer[index]
+    }
+}"""
+        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 })
 

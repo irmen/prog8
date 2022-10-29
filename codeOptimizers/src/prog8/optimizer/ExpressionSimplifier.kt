@@ -20,7 +20,9 @@ import kotlin.math.pow
 
 // TODO add more peephole expression optimizations? Investigate what optimizations binaryen has, also see  https://egorbo.com/peephole-optimizations.html
 
-class ExpressionSimplifier(private val program: Program, private val compTarget: ICompilationTarget) : AstWalker() {
+class ExpressionSimplifier(private val program: Program,
+                           private val errors: IErrorReporter,
+                           private val compTarget: ICompilationTarget) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
@@ -586,11 +588,13 @@ class ExpressionSimplifier(private val program: Program, private val compTarget:
         when (val targetDt = targetIDt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
+                    errors.warn("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
             }
             DataType.UWORD, DataType.WORD -> {
                 if (amount >= 16) {
+                    errors.warn("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
@@ -625,6 +629,7 @@ class ExpressionSimplifier(private val program: Program, private val compTarget:
         when (idt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
+                    errors.warn("shift always results in 0", expr.position)
                     return NumericLiteral.optimalInteger(0, expr.position)
                 }
             }
@@ -636,6 +641,7 @@ class ExpressionSimplifier(private val program: Program, private val compTarget:
             }
             DataType.UWORD -> {
                 if (amount >= 16) {
+                    errors.warn("shift always results in 0", expr.position)
                     return NumericLiteral.optimalInteger(0, expr.position)
                 }
                 else if(amount==8) {

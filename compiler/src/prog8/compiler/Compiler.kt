@@ -361,7 +361,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     remover.applyModifications()
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(compTarget)
+        val optsDone1 = program.simplifyExpressions(errors, compTarget)
         val optsDone2 = program.splitBinaryExpressions(compilerOptions)
         val optsDone3 = program.optimizeStatements(errors, functions, compTarget)
         val optsDone4 = program.inlineSubroutines()

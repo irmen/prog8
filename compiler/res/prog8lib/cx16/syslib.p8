@@ -363,7 +363,7 @@ romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
-romsub $ff44 = macptr(ubyte length @A, uword buffer @XY)  clobbers(A) -> ubyte @Pc, uword @XY
+romsub $ff44 = macptr(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
 romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)  clobbers(A,X,Y)
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()

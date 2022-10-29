@@ -1,6 +1,6 @@
-Prog8 syntax highlighting file for IntelliJ IDEA.
+Prog8 syntax highlighting file for IntelliJ IDEA and Jetbrains Rider.
 
-Copy the file Prog8.xml to your IDEA filetypes folder.
+Copy the file Prog8.xml to your IDEA/Rider filetypes folder.
 If this folder doesn't yet exist, simply create it.
 After installing this file, restart the IDEA.
 
