@@ -97,11 +97,13 @@ class StatementOptimizer(private val program: Program,
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                errors.warn("condition is always true", ifElse.condition.position)
+                if(!ifElse.definingModule.isLibrary)
+                    errors.warn("condition is always true", ifElse.condition.position)
                 listOf(IAstModification.ReplaceNode(ifElse, ifElse.truepart, parent))
             } else {
                 // always false -> keep only else-part
-                errors.warn("condition is always false", ifElse.condition.position)
+                if(!ifElse.definingModule.isLibrary)
+                    errors.warn("condition is always false", ifElse.condition.position)
                 listOf(IAstModification.ReplaceNode(ifElse, ifElse.elsepart, parent))
             }
         }

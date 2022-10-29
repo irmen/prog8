@@ -41,8 +41,7 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    // TODO implement this in 6502 codegen, fix the fpReg1 out of bounds issue in vmcodegen, and re-enable test
-    xtest("array in-place negation (float type) - ignored for now because not implemented in codegen yet") {
+    test("array in-place negation (float type) vm target") {
         val text = """
 %import floats
 
@@ -55,6 +54,21 @@ main {
   }
 }"""
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    // TODO implement this in 6502 codegen and re-enable test
+    xtest("array in-place negation (float type) 6502 target") {
+        val text = """
+%import floats
+
+main {
+  float[10] flt
+
+  sub start() {
+    flt[1] = 42.42
+    flt[1] = -flt[1]
+  }
+}"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 

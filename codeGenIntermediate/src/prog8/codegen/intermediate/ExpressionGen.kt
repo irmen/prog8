@@ -58,7 +58,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtTypeCast -> code += translate(expr, resultRegister, resultFpRegister)
-            is PtPrefix -> code += translate(expr, resultRegister)
+            is PtPrefix -> code += translate(expr, resultRegister, resultFpRegister)
             is PtArrayIndexer -> code += translate(expr, resultRegister, resultFpRegister)
             is PtBinaryExpression -> code += translate(expr, resultRegister, resultFpRegister)
             is PtBuiltinFunctionCall -> code += codeGen.translateBuiltinFunc(expr, resultRegister)
@@ -139,14 +139,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return code
     }
 
-    private fun translate(expr: PtPrefix, resultRegister: Int): IRCodeChunk {
+    private fun translate(expr: PtPrefix, resultRegister: Int, resultFpRegister: Int): IRCodeChunk {
         val code = IRCodeChunk(expr.position)
-        code += translateExpression(expr.value, resultRegister, -1)
+        code += translateExpression(expr.value, resultRegister, resultFpRegister)
         val vmDt = codeGen.irType(expr.type)
         when(expr.operator) {
             "+" -> { }
             "-" -> {
-                code += IRInstruction(Opcode.NEG, vmDt, reg1=resultRegister)
+                if(vmDt==IRDataType.FLOAT)
+                    code += IRInstruction(Opcode.NEG, vmDt, fpReg1 = resultFpRegister)
+                else
+                    code += IRInstruction(Opcode.NEG, vmDt, reg1 = resultRegister)
             }
             "~" -> {
                 val mask = if(vmDt==IRDataType.BYTE) 0x00ff else 0xffff
