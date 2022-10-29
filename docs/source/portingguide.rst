@@ -40,7 +40,7 @@ RAM, ROM, I/O
 
 Character encodings
 -------------------
-#. if not Petscii or CBM screencodes: provide the primary character encoding table that the system uses (i.e. how is text represented in memory)
+#. if not PETSCII or CBM screencodes: provide the primary character encoding table that the system uses (i.e. how is text represented in memory)
 #. provide alternate character encodings (if any)
 #. what are the system's standard character screen dimensions?
 #. is there a screen character matrix directly accessible in Ram? What's it address? Same for color attributes if any.

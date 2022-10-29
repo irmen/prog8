@@ -186,10 +186,10 @@ Provides string manipulation routines.
     but this function is useful if you're dealing with addresses for instance.
 
 ``lower(string)``
-    Lowercases the petscii-string in place.
+    Lowercases the PETSCII-string in place.
 
 ``upper(string)``
-    Uppercases the petscii-string in place.
+    Uppercases the PETSCII-string in place.
 
 ``lowerchar(char)``
     Returns lowercased character.

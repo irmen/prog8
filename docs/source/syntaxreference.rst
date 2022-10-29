@@ -329,7 +329,7 @@ type identifier  type                     storage size       example var declara
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
 ``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``
-``str``          string (petscii)         varies             ``str myvar = "hello."``
+``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
 
@@ -342,7 +342,7 @@ value is given, the array size in the declaration can be omitted.
 Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
 of something with an operand starting with 1 or 0, you'll have to add a space in between.
 
-**character values:** you can use a single character in quotes like this ``'a'`` for the Petscii byte value of that character.
+**character values:** you can use a single character in quotes like this ``'a'`` for the PETSCII byte value of that character.
 
 
 **``byte`` versus ``word`` values:**
@@ -461,7 +461,7 @@ There are several escape sequences available to put special characters into your
 - ``\uHHHH`` - a unicode codepoint \u0000 - \uffff (16-bit hexadecimal)
 - ``\xHH`` - 8-bit hex value that will be copied verbatim *without encoding*
 
-- String literals can contain many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳".
+- String literals can contain many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳".
   Characters like ^, _, \\, {, } and | (that have no direct PETSCII counterpart) are still accepted and converted to the closest PETSCII equivalents. (Make sure you save the source file in UTF-8 encoding if you use this.)
 
 

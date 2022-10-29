@@ -230,7 +230,7 @@ Integers
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation.
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
-which is the Petscii value for that character.
+which is the PETSCII value for that character.
 
 Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
 The signed integers integers are in the range -128..127 for bytes,
@@ -341,7 +341,7 @@ Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) 
 Alternative encodings can be specified with a ``encodingname:`` prefix to the string or character literal.
 The following encodings are currently recognised:
 
-    - ``petscii``  Petscii, the default encoding on CBM machines (c64, c128, cx16)
+    - ``petscii``  PETSCII, the default encoding on CBM machines (c64, c128, cx16)
     - ``sc``  CBM-screencodes aka 'poke' codes (c64, c128, cx16)
     - ``iso``  iso-8859-15 text (supported on cx16)
 
@@ -452,9 +452,9 @@ Many type conversions are possible by just writing ``as <type>`` at the end of a
     f = 56.777
     ub = f as ubyte             ; ub will be 56
 
-Sometimes it is a straight 'type cast' where the value is simply interpreted as being of the other type,
-sometimes an actual value conversion is done to convert it into the targe type.
-Try to avoid type conversions as much as possible.
+Sometimes it is a straight reinterpretation of the given value as being of the other type,
+sometimes an actual value conversion is done to convert it into the other type.
+Try to avoid those type conversions as much as possible.
 
 
 Initial values across multiple runs of the program
