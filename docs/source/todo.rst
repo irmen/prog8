@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - ir: fix unit tests
+- ir: join more codechunks
 - ir: fix removeWeirdBranches in IR optimizer
 - update diagram in technical.rst?
 

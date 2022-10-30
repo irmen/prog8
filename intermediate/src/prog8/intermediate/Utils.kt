@@ -171,7 +171,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
                     operands.clear()
                 }
                 if(operands.isNotEmpty()) {
-                    TODO("placeholder symbol? $operands  rest=$rest'")
+                    TODO("huh even more operands? $operands  rest=$rest'")
                     // operands.clear()
                 }
             }

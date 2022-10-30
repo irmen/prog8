@@ -67,8 +67,12 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        var result = compileText(target, false, src, writeAssembly = true)!!
+        var virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText())
+
+        result = compileText(target, true, src, writeAssembly = true)!!
+        virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
 
@@ -107,7 +111,7 @@ mylabel_inside:
 }"""
 
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }

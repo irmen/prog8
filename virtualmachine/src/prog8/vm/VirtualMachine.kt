@@ -132,10 +132,15 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun branchTo(i: IRInstruction) {
-        if(i.branchTarget==null)
-            TODO("no branchtarget in $i (remove this check)")
-        pcChunk = i.branchTarget!!
-        pcIndex = 0
+        val target = i.branchTarget
+        when (target) {
+            is IRCodeChunk -> {
+                pcChunk = target
+                pcIndex = 0
+            }
+            null -> TODO("no branchtarget in $i (remove this check)")
+            else -> throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
+        }
     }
 
     private fun dispatch(ins: IRInstruction) {

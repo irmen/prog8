@@ -76,24 +76,17 @@ class IRProgram(val name: String,
                 val firstBlock = blocks.firstOrNull()
                 if(firstBlock!=null) {
                     if(firstBlock.inlineAssembly.isNotEmpty()) {
-                        TODO("link to inline assembly block")
-                        // irprog.globalInits.next = firstBlock.inlineAssembly.first()
+                        globalInits.next = firstBlock.inlineAssembly.first()
                     } else if(firstBlock.subroutines.isNotEmpty()) {
                         val firstSub = firstBlock.subroutines.first()
-                        if(firstSub.chunks.isNotEmpty()) {
-                            val firstChunk = firstSub.chunks.first()
-                            when(firstChunk) {
-                                is IRCodeChunk -> globalInits.next = firstChunk
-                                else -> TODO("link to other type of chunk")
-                            }
-                        }
+                        if(firstSub.chunks.isNotEmpty())
+                            globalInits.next = firstSub.chunks.first()
                     }
                 }
             }
         }
 
         blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
-
 
             sub.chunks.withIndex().forEach { (index, chunk) ->
 
@@ -118,10 +111,7 @@ class IRProgram(val name: String,
                         chunk.instructions.forEach {
                             if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null) {
                                 val targetChunk = labeledChunks.getValue(it.labelSymbol)
-                                if(targetChunk is IRCodeChunk)
-                                    it.branchTarget = targetChunk
-                                else
-                                    println("TODO: branchTarget to non-codechunk $targetChunk with label ${targetChunk.label}") // TODO
+                                it.branchTarget = targetChunk
                             }
                             // note: branches with an address value cannot be linked to something...
                         }
@@ -159,10 +149,8 @@ class IRProgram(val name: String,
                     else
                         require(chunk.instructions.isEmpty())
                     chunk.instructions.forEach {
-                        if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch) {
-                            if(it.branchTarget==null) println("TODO: fix branching instruction to label ${it.labelSymbol} should have branchTarget set")  // TODO
-                            // TODO  require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
-                        }
+                        if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch)
+                            require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
                     }
                 }
             }

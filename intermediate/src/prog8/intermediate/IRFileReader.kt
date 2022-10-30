@@ -464,7 +464,7 @@ class IRFileReader {
                     chunk += it
                 },
                 ifRight = {
-                    TODO("PROCESS LABEL $it")
+                    throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
                 }
             )
         }

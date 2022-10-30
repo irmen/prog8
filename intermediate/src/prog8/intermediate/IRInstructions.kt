@@ -620,7 +620,7 @@ data class IRInstruction(
     val fpValue: Float?=null,
     val labelSymbol: String?=null,          // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
     val binaryData: Collection<UByte>?=null,
-    var branchTarget: IRCodeChunk? = null    // will be linked after loading
+    var branchTarget: IRCodeChunkBase? = null    // will be linked after loading
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
@@ -635,7 +635,7 @@ data class IRInstruction(
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
-        if(value!=null) {
+        if(value!=null && labelSymbol==null) {
             when (type) {
                 IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
                 IRDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
