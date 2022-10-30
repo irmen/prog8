@@ -3,7 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- update diagram in technical.rst?
+- ir: asmsub contents remains blank in IR file ?
+- ir: improve dead code elimination by checking chunk linkage. Does this solve the next issue?:
+- ir: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 
 ...
 
@@ -20,9 +22,7 @@ Future Things and Ideas
 Compiler:
 
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
-- ir: Jumps go to a code block rather than a specific address(label) -> also helps future dead code elimination?
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
@@ -53,6 +53,7 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - add modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)?
 - add a flood fill (span fill/scanline fill) routine to gfx2?
+- add a p
 
 
 Expressions:
