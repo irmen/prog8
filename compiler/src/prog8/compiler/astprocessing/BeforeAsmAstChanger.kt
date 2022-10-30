@@ -135,15 +135,20 @@ internal class BeforeAsmAstChanger(val program: Program,
         val mods = mutableListOf<IAstModification>()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
-        // and if an assembly block doesn't contain a rts/rti, and some other situations.
+        // and if an assembly block doesn't contain a rts/rti.
         if (!subroutine.isAsmSubroutine) {
-            if(subroutine.statements.isEmpty() ||
-                (!subroutine.hasRtsInAsm(options.compTarget)
-                        && subroutine.statements.lastOrNull { it !is VarDecl } !is Return
-                        && subroutine.statements.last() !is Subroutine
-                        && subroutine.statements.last() !is Return)) {
+            if(subroutine.isEmpty()) {
                 val returnStmt = Return(null, subroutine.position)
                 mods += IAstModification.InsertLast(returnStmt, subroutine)
+            } else {
+                val last = subroutine.statements.last()
+                if((last !is InlineAssembly || !last.hasReturnOrRts(options.compTarget)) && last !is Return) {
+                    val lastStatement = subroutine.statements.reversed().firstOrNull { it !is Subroutine }
+                    if(lastStatement !is Return) {
+                        val returnStmt = Return(null, subroutine.position)
+                        mods += IAstModification.InsertLast(returnStmt, subroutine)
+                    }
+                }
             }
         }
 
@@ -171,6 +176,14 @@ internal class BeforeAsmAstChanger(val program: Program,
                     IAstModification.InsertLast(InlineAssembly("  return\n", true, Position.DUMMY), subroutine)
                 else
                     IAstModification.InsertLast(InlineAssembly("  rts\n", false, Position.DUMMY), subroutine)
+            }
+        }
+
+        if(subroutine.isNotEmpty() && subroutine.statements.last() is Return) {
+            // maybe the last return can be removed because there is a fall-through prevention above it
+            val lastStatementBefore = subroutine.statements.reversed().drop(1).firstOrNull { it !is Subroutine }
+            if(lastStatementBefore is Return) {
+                mods += IAstModification.Remove(subroutine.statements.last(), subroutine)
             }
         }
 
