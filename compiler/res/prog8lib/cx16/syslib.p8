@@ -393,9 +393,10 @@ asmsub kbdbuf_clear() {
 asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
     ; -- convenience wrapper function that handles the screen resolution for mouse_config() for you
     %asm {{
+        pha                         ; save shape
         sec
         jsr  cx16.screen_mode       ; set current screen mode and res in A, X, Y
-        lda  #1
+        pla                         ; get shape back
         jmp  cx16.mouse_config
     }}
 }

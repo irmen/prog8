@@ -715,7 +715,8 @@ And this is a loop over the values of the array ``fibonacci_numbers``::
 
     uword number
     for number in fibonacci_numbers {
-        ; do something with number
+        ; do something with number...
+        break       ; break out of the loop early
     }
 
 
