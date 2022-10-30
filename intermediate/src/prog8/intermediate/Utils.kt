@@ -206,7 +206,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         throw IRParseException("invalid reg1 for $line")
     if(format.reg2==OperandDirection.UNUSED && reg2!=null)
         throw IRParseException("invalid reg2 for $line")
-    if(value!=null) {
+    if(value!=null && opcode !in OpcodesWithMemoryAddressAsValue) {
         when (type) {
             IRDataType.BYTE -> {
                 if (value < -128 || value > 255)

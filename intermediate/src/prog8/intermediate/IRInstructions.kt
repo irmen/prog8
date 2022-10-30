@@ -393,6 +393,61 @@ val OpcodesForCpuRegisters = setOf(
     Opcode.STOREZCPU
 )
 
+val OpcodesWithMemoryAddressAsValue = setOf(
+    Opcode.LOADM,
+    Opcode.LOADX,
+    Opcode.LOADIX,
+    Opcode.STOREM,
+    Opcode.STOREX,
+    Opcode.STOREIX,
+    Opcode.STOREZM,
+    Opcode.STOREZX,
+    Opcode.JUMP,
+    Opcode.JUMPA,
+    Opcode.CALL,
+    Opcode.BSTCC,
+    Opcode.BSTCS,
+    Opcode.BSTEQ,
+    Opcode.BSTNE,
+    Opcode.BSTNEG,
+    Opcode.BSTPOS,
+    Opcode.BSTVC,
+    Opcode.BSTVS,
+    Opcode.BZ,
+    Opcode.BNZ,
+    Opcode.BEQ,
+    Opcode.BNE,
+    Opcode.BLT,
+    Opcode.BLTS,
+    Opcode.BGT,
+    Opcode.BGTS,
+    Opcode.BLE,
+    Opcode.BLES,
+    Opcode.BGE,
+    Opcode.BGES,
+    Opcode.INCM,
+    Opcode.DECM,
+    Opcode.NEGM,
+    Opcode.ADDM,
+    Opcode.SUBM,
+    Opcode.MULM,
+    Opcode.DIVM,
+    Opcode.DIVSM,
+    Opcode.INVM,
+    Opcode.ORM,
+    Opcode.XORM,
+    Opcode.ANDM,
+    Opcode.ASRM,
+    Opcode.LSRM,
+    Opcode.LSLM,
+    Opcode.LSLNM,
+    Opcode.LSRNM,
+    Opcode.ASRNM,
+    Opcode.ROLM,
+    Opcode.RORM,
+    Opcode.ROXLM,
+    Opcode.ROXRM
+)
 
 enum class IRDataType {
     BYTE,
@@ -635,7 +690,7 @@ data class IRInstruction(
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
-        if(value!=null && labelSymbol==null) {
+        if(value!=null && opcode !in OpcodesWithMemoryAddressAsValue) {
             when (type) {
                 IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
                 IRDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}

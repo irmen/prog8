@@ -186,7 +186,7 @@ main {
         val result = compileText(target, false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 9999  // TODO FIX
+            vm.stepCount shouldBe 49
         }
     }
 })

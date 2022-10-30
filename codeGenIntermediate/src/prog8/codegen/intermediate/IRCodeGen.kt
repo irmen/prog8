@@ -1,6 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.StMemVar
+import prog8.code.StNode
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
@@ -411,7 +412,7 @@ class IRCodeGen(
     }
 
     private fun translate(forLoop: PtForLoop): IRCodeChunks {
-        val loopvar = symbolTable.lookup(forLoop.variable.targetName) as StStaticVariable
+        val loopvar = symbolTable.lookup(forLoop.variable.targetName)!!
         val iterable = forLoop.iterable
         val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
@@ -480,7 +481,7 @@ class IRCodeGen(
         return result
     }
 
-    private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunks {
+    private fun translateForInNonConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val iterable = forLoop.iterable as PtRange
         val step = iterable.step.number.toInt()
         if (step==0)
@@ -488,26 +489,36 @@ class IRCodeGen(
         val indexReg = registers.nextFree()
         val endvalueReg = registers.nextFree()
         val loopvarSymbol = loopvar.scopedName.joinToString(".")
-        val loopvarDt = irType(loopvar.dt)
+        val loopvarDt = when(loopvar) {
+            is StMemVar -> loopvar.dt
+            is StStaticVariable -> loopvar.dt
+            else -> throw AssemblyError("invalid loopvar node type")
+        }
+        val loopvarDtIr = irType(loopvarDt)
         val loopLabel = createLabelName()
         val result = mutableListOf<IRCodeChunkBase>()
 
         result += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
         result += expressionEval.translateExpression(iterable.from, indexReg, -1)
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol), null, forLoop.position)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol), null, forLoop.position)
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        result += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
-        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol), null, forLoop.position)
-        val branchOpcode = if(loopvar.dt in SignedDatatypes) Opcode.BLES else Opcode.BLE
-        addInstr(result, IRInstruction(branchOpcode, loopvarDt, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel), null, forLoop.position)
+        result += addConstMem(loopvarDtIr, null, loopvarSymbol, step, iterable.position)
+        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol), null, forLoop.position)
+        val branchOpcode = if(loopvarDt in SignedDatatypes) Opcode.BLES else Opcode.BLE
+        addInstr(result, IRInstruction(branchOpcode, loopvarDtIr, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel), null, forLoop.position)
         return result
     }
 
-    private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StStaticVariable): IRCodeChunks {
+    private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val loopLabel = createLabelName()
         val loopvarSymbol = loopvar.scopedName.joinToString(".")
         val indexReg = registers.nextFree()
-        val loopvarDt = irType(loopvar.dt)
+        val loopvarDt = when(loopvar) {
+            is StMemVar -> loopvar.dt
+            is StStaticVariable -> loopvar.dt
+            else -> throw AssemblyError("invalid loopvar node type")
+        }
+        val loopvarDtIr = irType(loopvarDt)
         val iterable = forLoop.iterable as PtRange
         val step = iterable.step.number.toInt()
         val rangeStart = (iterable.from as PtNumber).number.toInt()
@@ -516,27 +527,27 @@ class IRCodeGen(
             throw AssemblyError("step 0")
         if(step>0 && rangeEndUntyped<rangeStart || step<0 && rangeEndUntyped>rangeStart)
             throw AssemblyError("empty range")
-        val rangeEndWrapped = if(loopvarDt==IRDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
+        val rangeEndWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
         val endvalueReg: Int
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, forLoop.position, null)
         if(rangeEndWrapped!=0) {
             endvalueReg = registers.nextFree()
-            chunk += IRInstruction(Opcode.LOAD, loopvarDt, reg1 = endvalueReg, value = rangeEndWrapped)
+            chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1 = endvalueReg, value = rangeEndWrapped)
         } else {
             endvalueReg = -1 // not used
         }
-        chunk += IRInstruction(Opcode.LOAD, loopvarDt, reg1=indexReg, value=rangeStart)
-        chunk += IRInstruction(Opcode.STOREM, loopvarDt, reg1=indexReg, labelSymbol=loopvarSymbol)
+        chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, value=rangeStart)
+        chunk += IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol)
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        result += addConstMem(loopvarDt, null, loopvarSymbol, step, iterable.position)
+        result += addConstMem(loopvarDtIr, null, loopvarSymbol, step, iterable.position)
         val chunk2 = IRCodeChunk(null, forLoop.position, null)
-        chunk2 += IRInstruction(Opcode.LOADM, loopvarDt, reg1 = indexReg, labelSymbol = loopvarSymbol)
+        chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
         chunk2 += if(rangeEndWrapped==0) {
-            IRInstruction(Opcode.BNZ, loopvarDt, reg1 = indexReg, labelSymbol = loopLabel)
+            IRInstruction(Opcode.BNZ, loopvarDtIr, reg1 = indexReg, labelSymbol = loopLabel)
         } else {
-            IRInstruction(Opcode.BNE, loopvarDt, reg1 = indexReg, reg2 = endvalueReg, labelSymbol = loopLabel)
+            IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, reg2 = endvalueReg, labelSymbol = loopLabel)
         }
         result += chunk2
         return result
