@@ -84,8 +84,37 @@ main {
         uword i
         uword k
 
-        while k <= 10 {
-            k++
+        repeat {
+mylabel0:
+            goto mylabel0
+        }
+
+        while cx16.r0 {
+mylabel1:
+            goto mylabel1
+        }
+
+        do {
+mylabel2:
+            goto mylabel2
+        } until cx16.r0
+
+; TODO fix this for vm codegen:
+        repeat cx16.r0 {
+mylabel3:
+            goto mylabel3
+        }
+
+; TODO fix this for vm codegen:
+        for cx16.r0L in 0 to 2 {
+mylabel4:
+            goto mylabel4
+        }
+
+; TODO fix this for vm codegen:
+        for cx16.r0L in cx16.r1L to cx16.r2L {
+mylabel5:
+            goto mylabel5
         }
 
 mylabel_outside:        
@@ -112,13 +141,10 @@ mylabel_inside:
 }"""
 
         val target1 = C64Target()
-        val result1 = compileText(target1, false, src, writeAssembly = false)!!
-        result1 shouldNotBe null
+        compileText(target1, false, src, writeAssembly = false) shouldNotBe null
 
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        compileText(target, false, src, writeAssembly = true) shouldNotBe null
     }
 
     test("case sensitive symbols") {

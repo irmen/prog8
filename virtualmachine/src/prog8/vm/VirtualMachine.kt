@@ -110,19 +110,23 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun stepNextChunk() {
-        val nextChunk = pcChunk.next
-        when (nextChunk) {
-            is IRCodeChunk -> {
-                pcChunk = nextChunk
-                pcIndex = 0
+        do {
+            val nextChunk = pcChunk.next
+            when (nextChunk) {
+                is IRCodeChunk -> {
+                    pcChunk = nextChunk
+                    pcIndex = 0
+                }
+
+                null -> {
+                    exit()   // end of program reached
+                }
+
+                else -> {
+                    throw IllegalArgumentException("VM cannot run code from non-code chunk $nextChunk")
+                }
             }
-            null -> {
-                exit()   // end of program reached
-            }
-            else -> {
-                throw IllegalArgumentException("VM cannot run code from non-code chunk $nextChunk")
-            }
-        }
+        } while (pcChunk.isEmpty())
     }
 
     private fun nextPc() {
