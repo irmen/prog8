@@ -100,7 +100,7 @@ class IRProgram(val name: String,
                             // no jump at the end, so link to next chunk (if it exists)
                             val next = nextChunk()
                             if(next!=null) {
-                                if (next is IRCodeChunk)
+                                if (next is IRCodeChunk && chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump)
                                     chunk.next = next
                                 else
                                     throw AssemblyError("code chunk flows into following non-code chunk")
@@ -144,8 +144,16 @@ class IRProgram(val name: String,
                     require(sub.chunks.first().label == sub.name) { "first chunk in subroutine should have sub name as its label" }
                 }
                 sub.chunks.forEach { chunk ->
-                    if (chunk is IRCodeChunk)
-                        require(chunk.instructions.isNotEmpty() || chunk.label!=null)
+                    if (chunk is IRCodeChunk) {
+                        require(chunk.instructions.isNotEmpty() || chunk.label != null)
+                        if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
+                            require(chunk.next == null) { "chunk ending with a jump shouldn't be linked to next" }
+                        else {
+                            // if chunk is NOT the last in the block, it needs to link to next.
+                            val isLast = sub.chunks.last() === chunk
+                            require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
+                        }
+                    }
                     else
                         require(chunk.instructions.isEmpty())
                     chunk.instructions.forEach {

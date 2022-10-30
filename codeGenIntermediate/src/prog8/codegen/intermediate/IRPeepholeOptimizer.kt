@@ -99,8 +99,11 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         val chunks = mutableListOf<IRCodeChunkBase>()
         chunks += sub.chunks[0]
         for(ix in 1 until sub.chunks.size) {
-            if(mayJoin(chunks.last(), sub.chunks[ix]))
-                chunks.last().instructions += sub.chunks[ix].instructions
+            val lastChunk = chunks.last()
+            if(mayJoin(lastChunk, sub.chunks[ix])) {
+                lastChunk.instructions += sub.chunks[ix].instructions
+                lastChunk.next = sub.chunks[ix].next
+            }
             else
                 chunks += sub.chunks[ix]
         }
