@@ -346,8 +346,14 @@ class IRCodeGen(
 
     private fun labelFirstChunk(chunks: IRCodeChunks, label: String): IRCodeChunks {
         require(chunks.isNotEmpty() && label.isNotBlank())
-        val newChunks = chunks.drop(1).toMutableList()
-        val labeledFirstChunk = when(val first=chunks[0]) {
+        val first = chunks[0]
+        if(first.label!=null) {
+            if(first.label==label)
+                return chunks
+            val newFirst = IRCodeChunk(label, first.position, first)
+            return listOf(newFirst) + chunks
+        }
+        val labeledFirstChunk = when(first) {
             is IRCodeChunk -> {
                 val newChunk = IRCodeChunk(label, first.position, first.next)
                 newChunk.instructions += first.instructions
@@ -363,8 +369,7 @@ class IRCodeGen(
                 throw AssemblyError("invalid chunk")
             }
         }
-        newChunks.add(0, labeledFirstChunk)
-        return newChunks
+        return listOf(labeledFirstChunk) + chunks.drop(1)
     }
 
     private fun translate(whenStmt: PtWhen): IRCodeChunks {

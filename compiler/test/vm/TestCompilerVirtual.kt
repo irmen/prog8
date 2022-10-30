@@ -99,19 +99,16 @@ mylabel2:
             goto mylabel2
         } until cx16.r0
 
-; TODO fix this for vm codegen:
         repeat cx16.r0 {
 mylabel3:
             goto mylabel3
         }
 
-; TODO fix this for vm codegen:
         for cx16.r0L in 0 to 2 {
 mylabel4:
             goto mylabel4
         }
 
-; TODO fix this for vm codegen:
         for cx16.r0L in cx16.r1L to cx16.r2L {
 mylabel5:
             goto mylabel5

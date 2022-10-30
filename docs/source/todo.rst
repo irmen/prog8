@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: fix unit tests
 - ir: join more codechunks, before ir is written to file
 - ir: fix removeWeirdBranches in IR optimizer
 - update diagram in technical.rst?
