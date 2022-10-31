@@ -368,12 +368,12 @@ class IRFileReader {
         }
         return IRAsmSubroutine(
             scopedname,
-            parsePosition(pos), if(address=="null") null else address.toUInt(),
+            if(address=="null") null else address.toUInt(),
             clobberRegs.toSet(),
             params,
             returns,
-            asm.isIR,
-            asm.assembly
+            asm,
+            parsePosition(pos)
         )
     }
 

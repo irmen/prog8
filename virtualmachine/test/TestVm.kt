@@ -87,13 +87,12 @@ class TestVm: FunSpec( {
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine(
             "main.asmstart",
-            Position.DUMMY,
             0x2000u,
             emptySet(),
             emptyList(),
             emptyList(),
-            true,
-            "inlined asm here"
+            IRInlineAsmChunk("main.asmstart", "inlined asm here", true, Position.DUMMY, null),
+            Position.DUMMY
         )
         block += startSub
         program.addBlock(block)

@@ -69,7 +69,12 @@ class IRProgram(val name: String,
     }
 
     fun linkChunks() {
-        val labeledChunks = blocks.flatMap { it.subroutines }.flatMap { it.chunks }.associateBy { it.label }
+        fun getLabeledChunks(): Map<String?, IRCodeChunkBase> {
+            return blocks.flatMap { it.subroutines }.flatMap { it.chunks }.associateBy { it.label } +
+                   blocks.flatMap { it.asmSubroutines }.map { it.asmChunk }.associateBy { it.label }
+        }
+
+        val labeledChunks = getLabeledChunks()
 
         if(globalInits.isNotEmpty()) {
             if(globalInits.next==null) {
@@ -109,10 +114,8 @@ class IRProgram(val name: String,
 
                         // link all jump and branching instructions to their target
                         chunk.instructions.forEach {
-                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null) {
-                                val targetChunk = labeledChunks.getValue(it.labelSymbol)
-                                it.branchTarget = targetChunk
-                            }
+                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null)
+                                it.branchTarget = labeledChunks.getValue(it.labelSymbol)
                             // note: branches with an address value cannot be linked to something...
                         }
                     }
@@ -240,22 +243,19 @@ class IRSubroutine(val name: String,
 
 class IRAsmSubroutine(
     val name: String,
-    val position: Position,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
     val returns: List<Pair<DataType, RegisterOrStatusflag>>,
-    val isIR: Boolean,
-    val assembly: String
+    val asmChunk: IRInlineAsmChunk,
+    val position: Position
 ) {
     init {
         require('.' in name) { "subroutine name is not scoped: $name" }
         require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }
-        require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
-        require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
     }
 
-    private val registersUsed by lazy { registersUsedInAssembly(isIR, assembly) }
+    private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }
 
     fun usedRegisters() = registersUsed
 }

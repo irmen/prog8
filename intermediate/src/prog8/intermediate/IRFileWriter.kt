@@ -81,9 +81,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     out.write("${dt.toString().lowercase()} $reg\n")
                 }
                 out.write("</PARAMS>\n")
-                out.write("<INLINEASM IR=${it.isIR} POS=${it.position}>\n")
-                out.write(it.assembly)
-                out.write("\n</INLINEASM>\n</ASMSUB>\n")
+                writeInlineAsm(it.asmChunk)
+                out.write("</ASMSUB>\n")
             }
             out.write("</BLOCK>\n")
         }

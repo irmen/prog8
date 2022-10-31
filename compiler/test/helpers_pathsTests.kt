@@ -57,7 +57,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on existing directory") {
                 shouldThrow<java.lang.AssertionError> {
-                    assumeNotExists("${fixturesDir}")
+                    assumeNotExists("$fixturesDir")
                 }
             }
         }
@@ -157,13 +157,13 @@ class PathsHelpersTests: FunSpec({
         context("WithStringAndStringArgs") {
             test("on non-existing path") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("${fixturesDir}", "i_do_not_exist")
+                    assumeDirectory("$fixturesDir", "i_do_not_exist")
                 }
             }
 
             test("on existing file") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("${fixturesDir}", "ast_simple_main.p8")
+                    assumeDirectory("$fixturesDir", "ast_simple_main.p8")
                 }
             }
 
@@ -178,13 +178,13 @@ class PathsHelpersTests: FunSpec({
         context("WithStringAndPathArgs") {
             test("on non-existing path") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("${fixturesDir}", Path("i_do_not_exist"))
+                    assumeDirectory("$fixturesDir", Path("i_do_not_exist"))
                 }
             }
 
             test("on existing file") {
                 shouldThrow<AssertionError> {
-                    assumeDirectory("${fixturesDir}", Path("ast_simple_main.p8"))
+                    assumeDirectory("$fixturesDir", Path("ast_simple_main.p8"))
                 }
             }
 
@@ -240,7 +240,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on directory") {
                 shouldThrow<AssertionError> {
-                    assumeReadableFile("${fixturesDir}")
+                    assumeReadableFile("$fixturesDir")
                 }
             }
         }
@@ -289,7 +289,7 @@ class PathsHelpersTests: FunSpec({
         context("WithStringAndStringArgs") {
             test("on non-existing path") {
                 shouldThrow<java.lang.AssertionError> {
-                    assumeReadableFile("${fixturesDir}", "i_do_not_exist")
+                    assumeReadableFile("$fixturesDir", "i_do_not_exist")
                 }
             }
 
@@ -301,7 +301,7 @@ class PathsHelpersTests: FunSpec({
 
             test("on directory") {
                 shouldThrow<AssertionError> {
-                    assumeReadableFile("${fixturesDir}", "..")
+                    assumeReadableFile("$fixturesDir", "..")
                 }
             }
         }

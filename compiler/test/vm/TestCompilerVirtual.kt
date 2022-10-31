@@ -1,8 +1,10 @@
 package prog8tests.vm
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.expressions.BuiltinFunctionCall
 import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
@@ -211,5 +213,33 @@ main {
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.stepCount shouldBe 49
         }
+    }
+
+    test("asmsub for virtual target") {
+        val src = """
+main {
+  sub start() {
+    void test(42)
+  }
+
+  asmsub test(ubyte xx @A) -> ubyte @Y {
+    %asm {{
+        lda #99
+        tay
+        rts
+        return
+    }}
+  }
+}"""
+        val othertarget = Cx16Target()
+        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+
+        val target = VMTarget()
+        val result = compileText(target, false, src, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val exc = shouldThrow<Exception> {
+            VmRunner().runProgram(virtfile.readText())
+        }
+        exc.message shouldContain("does not support asmsubs")
     }
 })

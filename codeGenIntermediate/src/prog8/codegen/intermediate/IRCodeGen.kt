@@ -1083,13 +1083,17 @@ class IRCodeGen(
                 }
                 is PtAsmSub -> {
                     val assemblyChild = if(child.children.isEmpty()) null else (child.children.single() as PtInlineAssembly)
+                    val asmChunk = IRInlineAsmChunk(
+                        child.name, assemblyChild?.assembly ?: "", assemblyChild?.isIR==true, child.position, null
+                    )
                     irBlock += IRAsmSubroutine(
-                        child.name, child.position, child.address,
+                        child.name,
+                        child.address,
                         child.clobbers,
                         child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
                         child.returnTypes.zip(child.retvalRegisters),
-                        assemblyChild?.isIR==true,
-                        assemblyChild?.assembly ?: ""
+                        asmChunk,
+                        child.position
                     )
                 }
                 is PtInlineAssembly -> {

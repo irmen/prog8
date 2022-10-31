@@ -87,7 +87,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
 
     test("testFilePathOutsideWorkingDirRelativeTo1stInSourcedirs") {
         val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-        val sourcedirs = listOf("${fixturesDir}")
+        val sourcedirs = listOf("$fixturesDir")
         compileFile(filepath.fileName, sourcedirs) shouldNotBe null
     }
 
