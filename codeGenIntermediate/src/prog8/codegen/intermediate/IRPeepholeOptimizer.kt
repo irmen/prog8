@@ -27,6 +27,8 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             }
             removeEmptyChunks(sub)
         }
+
+        irprog.linkChunks() // re-link
     }
 
     private fun removeEmptyChunks(sub: IRSubroutine) {

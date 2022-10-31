@@ -107,8 +107,10 @@ class IRProgram(val name: String,
                             if(next!=null) {
                                 if (next is IRCodeChunk && chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump)
                                     chunk.next = next
+                                else if(next is IRInlineAsmChunk)
+                                    chunk.next = next
                                 else
-                                    throw AssemblyError("code chunk flows into following non-code chunk")
+                                    throw AssemblyError("code chunk flows into following non-executable chunk")
                             }
                         }
 

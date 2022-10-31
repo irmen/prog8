@@ -56,7 +56,16 @@ class IRCodeGen(
         if(options.optimize) {
             val optimizer = IRPeepholeOptimizer(irProg)
             optimizer.optimize()
-            irProg.linkChunks() // re-link
+
+            // TODO FIX & REENABLE:
+//            val remover = IRUnusedCodeRemover(irProg, errors)
+//            do {
+//                val numRemoved = remover.optimize()
+//            } while(numRemoved>0 && errors.noErrors())
+//
+//            errors.report()
+
+            irProg.linkChunks()  // re-link
         }
 
         irProg.validate()
@@ -249,6 +258,7 @@ class IRCodeGen(
                 sub.retvalRegisters,
                 sub.inline,
                 sub.position)
+            renamedSub.add(sub.children.single())
             parent.children.remove(sub)
             parent.add(renamedSub)
         }
@@ -1082,9 +1092,9 @@ class IRCodeGen(
                     irBlock += sub
                 }
                 is PtAsmSub -> {
-                    val assemblyChild = if(child.children.isEmpty()) null else (child.children.single() as PtInlineAssembly)
+                    val assemblyChild = child.children.single() as PtInlineAssembly
                     val asmChunk = IRInlineAsmChunk(
-                        child.name, assemblyChild?.assembly ?: "", assemblyChild?.isIR==true, child.position, null
+                        child.name, assemblyChild.assembly, assemblyChild.isIR, child.position, null
                     )
                     irBlock += IRAsmSubroutine(
                         child.name,

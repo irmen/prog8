@@ -82,7 +82,7 @@ class TestVm: FunSpec( {
         }
     }
 
-    test("vm asmsub not supported") {
+    test("non-IR asmsub not supported in vm") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine(
@@ -91,14 +91,31 @@ class TestVm: FunSpec( {
             emptySet(),
             emptyList(),
             emptyList(),
-            IRInlineAsmChunk("main.asmstart", "inlined asm here", true, Position.DUMMY, null),
+            IRInlineAsmChunk("main.asmstart", "inlined asm here", false, Position.DUMMY, null),
             Position.DUMMY
         )
         block += startSub
         program.addBlock(block)
-        shouldThrowWithMessage<IRParseException>("vm currently does not support asmsubs: main.asmstart") {
+        shouldThrowWithMessage<IRParseException>("vm currently does not support non-IR asmsubs: main.asmstart") {
             VirtualMachine(program)
         }
+    }
+
+    test("IR asmsub ok in vm") {
+        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val startSub = IRAsmSubroutine(
+            "main.start",
+            0x2000u,
+            emptySet(),
+            emptyList(),
+            emptyList(),
+            IRInlineAsmChunk("main.start", "return", true, Position.DUMMY, null),
+            Position.DUMMY
+        )
+        block += startSub
+        program.addBlock(block)
+        VirtualMachine(program).run()
     }
 
     test("vmrunner") {

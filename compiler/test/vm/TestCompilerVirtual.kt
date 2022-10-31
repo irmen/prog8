@@ -240,6 +240,6 @@ main {
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
         }
-        exc.message shouldContain("does not support asmsubs")
+        exc.message shouldContain("does not support non-IR asmsubs")
     }
 })

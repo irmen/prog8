@@ -40,16 +40,14 @@ class VmProgramLoader {
 
             block.inlineAssembly.forEach {
                 val replacement = addAssemblyToProgram(it, programChunks, variableAddresses)
-                if(replacement!=null)
-                    chunkReplacements += replacement
+                chunkReplacements += replacement
             }
             block.subroutines.forEach {
                 it.chunks.forEach { chunk ->
                     when (chunk) {
                         is IRInlineAsmChunk -> {
                             val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
-                            if(replacement!=null)
-                                chunkReplacements += replacement
+                            chunkReplacements += replacement
                         }
                         is IRInlineBinaryChunk -> TODO("inline binary data not yet supported in the VM")
                         is IRCodeChunk -> programChunks += chunk
@@ -57,8 +55,14 @@ class VmProgramLoader {
                     }
                 }
             }
-            if(block.asmSubroutines.any())
-                throw IRParseException("vm currently does not support asmsubs: ${block.asmSubroutines.first().name}")
+            block.asmSubroutines.forEach {
+                if(!it.asmChunk.isIR)
+                    throw IRParseException("vm currently does not support non-IR asmsubs: ${block.asmSubroutines.first().name}")
+                else {
+                    val replacement = addAssemblyToProgram(it.asmChunk, programChunks, variableAddresses)
+                    chunkReplacements += replacement
+                }
+            }
         }
 
         pass2translateSyscalls(programChunks)
