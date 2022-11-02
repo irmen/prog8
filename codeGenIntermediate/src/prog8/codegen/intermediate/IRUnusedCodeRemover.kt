@@ -2,8 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
 import prog8.code.core.SourceCode.Companion.libraryFilePrefix
-import prog8.intermediate.IRCodeChunkBase
-import prog8.intermediate.IRProgram
+import prog8.intermediate.*
 
 
 internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val errors: IErrorReporter) {
@@ -40,7 +39,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
             val new = mutableSetOf<IRCodeChunkBase>()
             reachable.forEach {
                 it.next?.let { next -> new += next }
-                it.instructions.forEach { it.branchTarget?.let { target -> new += target} }
+                it.instructions.forEach { instr -> instr.branchTarget?.let { target -> new += target} }
             }
             reachable += new
         }
@@ -76,16 +75,24 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
     ): Int {
         var numRemoved = 0
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
-            sub.chunks.reversed().forEach { chunk ->
+            sub.chunks.withIndex().reversed().forEach { (index, chunk) ->
                 if (chunk !in linkedChunks) {
                     if (chunk === sub.chunks[0]) {
-                        if (chunk.instructions.isNotEmpty()) {
-                            // don't remove the first chunk of the sub itself because it has to have the name of the sub as label
-                            chunk.instructions.clear()
-                            numRemoved++
+                        when(chunk) {
+                            is IRCodeChunk -> {
+                                if (chunk.isNotEmpty()) {
+                                    // don't remove the first chunk of the sub itself because it has to have the name of the sub as label
+                                    chunk.instructions.clear()
+                                    numRemoved++
+                                }
+                            }
+                            is IRInlineAsmChunk, is IRInlineBinaryChunk -> {
+                                sub.chunks[index] = IRCodeChunk(chunk.label, chunk.next)
+                                numRemoved++
+                            }
                         }
                     } else {
-                        sub.chunks.remove(chunk)
+                        sub.chunks.removeAt(index)
                         numRemoved++
                     }
                 }
