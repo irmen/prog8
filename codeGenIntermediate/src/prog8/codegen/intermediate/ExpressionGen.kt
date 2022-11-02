@@ -597,7 +597,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 result += translateExpression(binExpr.left, -1, resultFpRegister)
                 val factor = constFactorRight.number.toFloat()
-                result += codeGen.divideByConstFloat(resultFpRegister, factor, binExpr.position)
+                result += codeGen.divideByConstFloat(resultFpRegister, factor)
             } else {
                 val rightResultFpReg = codeGen.registers.nextFreeFloat()
                 result += translateExpression(binExpr.left, -1, resultFpRegister)
@@ -612,7 +612,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 result += translateExpression(binExpr.left, resultRegister, -1)
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.divideByConst(vmDt, resultRegister, factor, signed, binExpr.position)
+                result += codeGen.divideByConst(vmDt, resultRegister, factor, signed)
             } else {
                 val rightResultReg = codeGen.registers.nextFree()
                 if(binExpr.right is PtNumber) {
@@ -642,7 +642,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(vmDt==IRDataType.FLOAT) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toFloat()
-                result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor, operand.position)
+                result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor)
             } else {
                 val operandFpReg = codeGen.registers.nextFreeFloat()
                 result += translateExpression(operand, -1, operandFpReg)
@@ -663,7 +663,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.divideByConstInplace(vmDt, knownAddress, symbol, factor, signed, operand.position)
+                result += codeGen.divideByConstInplace(vmDt, knownAddress, symbol, factor, signed)
             } else {
                 val operandReg = codeGen.registers.nextFree()
                 result += translateExpression(operand, operandReg, -1)
@@ -742,7 +742,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.multiplyByConstInplace(vmDt, knownAddress, symbol, factor, constFactorRight.position)
+                result += codeGen.multiplyByConstInplace(vmDt, knownAddress, symbol, factor)
             } else {
                 val operandReg = codeGen.registers.nextFree()
                 result += translateExpression(operand, operandReg, -1)

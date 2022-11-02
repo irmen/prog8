@@ -1,6 +1,5 @@
 package prog8.codegen.intermediate
 
-import prog8.code.core.Position
 import prog8.intermediate.*
 
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {

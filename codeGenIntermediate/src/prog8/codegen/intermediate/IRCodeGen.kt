@@ -57,13 +57,12 @@ class IRCodeGen(
             val optimizer = IRPeepholeOptimizer(irProg)
             optimizer.optimize()
 
-            // TODO FIX & REENABLE:
-//            val remover = IRUnusedCodeRemover(irProg, errors)
-//            do {
-//                val numRemoved = remover.optimize()
-//            } while(numRemoved>0 && errors.noErrors())
-//
-//            errors.report()
+            val remover = IRUnusedCodeRemover(irProg, errors)
+            do {
+                val numRemoved = remover.optimize()
+            } while(numRemoved>0 && errors.noErrors())
+
+            errors.report()
 
             irProg.linkChunks()  // re-link
         }
@@ -710,7 +709,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun multiplyByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, position: Position): IRCodeChunk {
+    internal fun multiplyByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
@@ -749,7 +748,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConstFloat(fpReg: Int, factor: Float, position: Position): IRCodeChunk {
+    internal fun divideByConstFloat(fpReg: Int, factor: Float): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1f)
             return code
@@ -761,7 +760,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float, position: Position): IRCodeChunk {
+    internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1f)
             return code
@@ -783,7 +782,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConst(dt: IRDataType, reg: Int, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
+    internal fun divideByConst(dt: IRDataType, reg: Int, factor: Int, signed: Boolean): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
@@ -812,7 +811,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, signed: Boolean, position: Position): IRCodeChunk {
+    internal fun divideByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, signed: Boolean): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code

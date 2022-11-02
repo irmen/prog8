@@ -215,6 +215,13 @@ class IRBlock(
     }
     operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
     operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssembly += asm }
+
+    fun isEmpty(): Boolean {
+        val noAsm = inlineAssembly.isEmpty() || inlineAssembly.all { it.isEmpty() }
+        val noSubs = subroutines.isEmpty() || subroutines.all { it.isEmpty() }
+        val noAsmSubs = asmSubroutines.isEmpty() || asmSubroutines.all { it.isEmpty() }
+        return noAsm && noSubs && noAsmSubs
+    }
 }
 
 class IRSubroutine(val name: String,
@@ -241,6 +248,8 @@ class IRSubroutine(val name: String,
         }
         chunks+= chunk
     }
+
+    fun isEmpty(): Boolean = chunks.isEmpty() || chunks.all { it.isEmpty() }
 }
 
 class IRAsmSubroutine(
@@ -260,6 +269,7 @@ class IRAsmSubroutine(
     private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }
 
     fun usedRegisters() = registersUsed
+    fun isEmpty(): Boolean = asmChunk.isEmpty()
 }
 
 sealed class IRCodeChunkBase(val label: String?, var next: IRCodeChunkBase?) {
