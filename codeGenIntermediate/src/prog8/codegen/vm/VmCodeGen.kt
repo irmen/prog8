@@ -1,4 +1,4 @@
-package prog8.vm.codegen
+package prog8.codegen.vm
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram

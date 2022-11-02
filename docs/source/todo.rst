@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- ir: get rid of '_' label prefix?
+- fix expericodegen (ir code gen for regular cx16 target)
+
 ...
 
 

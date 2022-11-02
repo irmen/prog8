@@ -31,6 +31,7 @@ dependencies {
     implementation project(':codeOptimizers')
     implementation project(':compilerAst')
     implementation project(':codeGenCpu6502')
+    implementation project(':codeGenIntermediate')
     implementation project(':codeGenExperimental')
     implementation project(':virtualmachine')
     implementation 'org.antlr:antlr4-runtime:4.10.1'

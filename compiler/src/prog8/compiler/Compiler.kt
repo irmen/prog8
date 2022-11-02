@@ -14,10 +14,10 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.SymbolTable
 import prog8.code.core.*
 import prog8.code.target.*
+import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.optimizer.*
 import prog8.parser.ParseError
-import prog8.vm.codegen.VmCodeGen
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
