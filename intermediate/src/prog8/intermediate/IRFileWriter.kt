@@ -102,7 +102,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
-        out.write("<BYTES LABEL=${chunk.label ?: ""} POS=${chunk.position}>\n")
+        out.write("<BYTES LABEL=${chunk.label ?: ""}>\n")
         chunk.data.withIndex().forEach {(index, byte) ->
             out.write(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)
@@ -112,7 +112,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        out.write("<INLINEASM LABEL=${chunk.label ?: ""} IR=${chunk.isIR} POS=${chunk.position}>\n")
+        out.write("<INLINEASM LABEL=${chunk.label ?: ""} IR=${chunk.isIR}>\n")
         out.write(chunk.assembly)
         out.write("\n</INLINEASM>\n")
     }

@@ -42,7 +42,7 @@ class TestVm: FunSpec( {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
-        val code = IRCodeChunk(startSub.name, Position.DUMMY, null)
+        val code = IRCodeChunk(startSub.name, null)
         code += IRInstruction(Opcode.NOP)
         code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=1, value=12345)
         code += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=1, value=1000)
@@ -70,7 +70,7 @@ class TestVm: FunSpec( {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
-        val code = IRCodeChunk(startSub.name, Position.DUMMY, null)
+        val code = IRCodeChunk(startSub.name, null)
         code += IRInstruction(Opcode.BINARYDATA, binaryData = listOf(1u,2u,3u))
         code += IRInstruction(Opcode.RETURN)
         startSub += code
@@ -91,7 +91,7 @@ class TestVm: FunSpec( {
             emptySet(),
             emptyList(),
             emptyList(),
-            IRInlineAsmChunk("main.asmstart", "inlined asm here", false, Position.DUMMY, null),
+            IRInlineAsmChunk("main.asmstart", "inlined asm here", false, null),
             Position.DUMMY
         )
         block += startSub
@@ -110,7 +110,7 @@ class TestVm: FunSpec( {
             emptySet(),
             emptyList(),
             emptyList(),
-            IRInlineAsmChunk("main.start", "return", true, Position.DUMMY, null),
+            IRInlineAsmChunk("main.start", "return", true, null),
             Position.DUMMY
         )
         block += startSub

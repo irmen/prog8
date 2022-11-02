@@ -1,5 +1,6 @@
 package prog8.codegen.intermediate
 
+import prog8.code.core.Position
 import prog8.intermediate.*
 
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
@@ -72,7 +73,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         }
 
         relabelChunks.forEach { (index, label) ->
-            val chunk = IRCodeChunk(label, sub.chunks[index].position, null)
+            val chunk = IRCodeChunk(label, null)
             chunk.instructions += sub.chunks[index].instructions
             sub.chunks[index] = chunk
         }

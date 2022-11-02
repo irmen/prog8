@@ -1,7 +1,6 @@
 package prog8.vm
 
 import prog8.code.StMemVar
-import prog8.code.core.Position
 import prog8.code.target.virtual.IVirtualMachineRunner
 import prog8.intermediate.*
 import java.awt.Color
@@ -51,7 +50,7 @@ class VirtualMachine(irProgram: IRProgram) {
         program = VmProgramLoader().load(irProgram, memory)
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
         cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
-        pcChunk = program.firstOrNull() ?: IRCodeChunk(null, Position.DUMMY, null)
+        pcChunk = program.firstOrNull() ?: IRCodeChunk(null, null)
     }
 
     fun run() {
@@ -85,7 +84,7 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.reset()
         // memory.reset()
         pcIndex = 0
-        pcChunk = IRCodeChunk(null, Position.DUMMY, null)
+        pcChunk = IRCodeChunk(null, null)
         stepCount = 0
         callStack.clear()
         statusCarry = false

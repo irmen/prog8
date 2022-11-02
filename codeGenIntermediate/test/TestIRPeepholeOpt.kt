@@ -31,7 +31,7 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     fun makeIRProgram(instructions: List<IRInstruction>): IRProgram {
-        val chunk = IRCodeChunk("main.start", Position.DUMMY, null)
+        val chunk = IRCodeChunk("main.start", null)
         instructions.forEach { chunk += it }
         return makeIRProgram(listOf(chunk))
     }
@@ -51,15 +51,15 @@ class TestIRPeepholeOpt: FunSpec({
     }
 
     test("remove jmp to label below") {
-        val c1 = IRCodeChunk("main.start", Position.DUMMY, null)
+        val c1 = IRCodeChunk("main.start", null)
         c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")  // removed, but chunk stays because of label
-        val c2 = IRCodeChunk("label", Position.DUMMY, null)
+        val c2 = IRCodeChunk("label", null)
         c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2") // removed, but chunk stays because of label
         c2 += IRInstruction(Opcode.NOP)  // removed
-        val c3 = IRCodeChunk("label2", Position.DUMMY, null)
+        val c3 = IRCodeChunk("label2", null)
         c3 += IRInstruction(Opcode.JUMP, labelSymbol = "label3")
         c3 += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=1)
-        val c4 = IRCodeChunk("label3", Position.DUMMY, null)
+        val c4 = IRCodeChunk("label3", null)
         val irProg = makeIRProgram(listOf(c1, c2, c3, c4))
 
         irProg.chunks().size shouldBe 4

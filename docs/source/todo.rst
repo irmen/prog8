@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: position of chunk of  text.print("abc") seems to point to the string arg instead of the call
 - fix unused chunk remover that now causes code execution error (IRCodeGen should enable it)
 - ir: improve dead code elimination by checking chunk linkage. Does this solve the next issue?:
 - ir: how to remove all unused subroutines? (the 6502 assembly codegen relies on 64tass solve this for us)

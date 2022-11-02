@@ -52,7 +52,7 @@ class IRProgram(val name: String,
                 val encoding: IStringEncoding) {
 
     val asmSymbols = mutableMapOf<String, String>()
-    val globalInits = IRCodeChunk(null, Position.DUMMY, null)
+    val globalInits = IRCodeChunk(null, null)
     val blocks = mutableListOf<IRBlock>()
 
     fun addGlobalInits(chunk: IRCodeChunk) {
@@ -262,7 +262,7 @@ class IRAsmSubroutine(
     fun usedRegisters() = registersUsed
 }
 
-sealed class IRCodeChunkBase(val label: String?, val position: Position, var next: IRCodeChunkBase?) {
+sealed class IRCodeChunkBase(val label: String?, var next: IRCodeChunkBase?) {
     val instructions = mutableListOf<IRInstruction>()
 
     abstract fun isEmpty(): Boolean
@@ -270,7 +270,7 @@ sealed class IRCodeChunkBase(val label: String?, val position: Position, var nex
     abstract fun usedRegisters(): RegistersUsed
 }
 
-class IRCodeChunk(label: String?, position: Position, next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
+class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
 
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
@@ -295,8 +295,7 @@ class IRCodeChunk(label: String?, position: Position, next: IRCodeChunkBase?): I
 class IRInlineAsmChunk(label: String?,
                        val assembly: String,
                        val isIR: Boolean,
-                       position: Position,
-                       next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
+                       next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
     // note: no instructions, asm is in the property
     override fun isEmpty() = assembly.isBlank()
     override fun isNotEmpty() = assembly.isNotBlank()
@@ -312,8 +311,7 @@ class IRInlineAsmChunk(label: String?,
 
 class IRInlineBinaryChunk(label: String?,
                           val data: Collection<UByte>,
-                          position: Position,
-                          next: IRCodeChunkBase?): IRCodeChunkBase(label, position, next) {
+                          next: IRCodeChunkBase?): IRCodeChunkBase(label, next) {
     // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()

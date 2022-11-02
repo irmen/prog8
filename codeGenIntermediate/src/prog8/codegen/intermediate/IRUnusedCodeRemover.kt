@@ -1,8 +1,8 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
-import prog8.code.core.SourceCode.Companion.libraryFilePrefix
-import prog8.intermediate.*
+import prog8.intermediate.IRCodeChunkBase
+import prog8.intermediate.IRProgram
 
 internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val errors: IErrorReporter) {
     fun optimize(): Int {
@@ -25,8 +25,6 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             sub.chunks.reversed().forEach { chunk ->
                 if(chunk !in linkedChunks) {
-                    if(!chunk.position.file.startsWith(libraryFilePrefix))
-                        errors.warn("unreachable code", chunk.position)
                     sub.chunks.remove(chunk)
                     numRemoved++
                 }

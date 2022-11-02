@@ -2,7 +2,6 @@ package prog8.vm
 
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
-import prog8.code.core.Position
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -25,7 +24,7 @@ class VmProgramLoader {
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
             if(it.subroutines.any { sub -> sub.name=="main.start" }) {
-                val chunk = IRCodeChunk(null, Position.DUMMY, null)
+                val chunk = IRCodeChunk(null, null)
                 placeholders[Pair(chunk, 0)] = "main.start"
                 chunk += IRInstruction(Opcode.JUMP, labelSymbol = "main.start")
                 programChunks += chunk
@@ -276,7 +275,7 @@ class VmProgramLoader {
         symbolAddresses: MutableMap<String, Int>,
     ): Pair<IRCodeChunkBase, IRCodeChunk> {
         if(asmChunk.isIR) {
-            val chunk = IRCodeChunk(asmChunk.label, asmChunk.position, asmChunk.next)
+            val chunk = IRCodeChunk(asmChunk.label, asmChunk.next)
             asmChunk.assembly.lineSequence().forEach {
                 val parsed = parseIRCodeLine(it.trim(), Pair(chunk, chunk.instructions.size), placeholders)
                 parsed.fold(
@@ -287,7 +286,7 @@ class VmProgramLoader {
             chunks += chunk
             return Pair(asmChunk, chunk)
         } else {
-            throw IRParseException("vm currently does not support real inlined assembly (only IR): ${asmChunk.position}")
+            throw IRParseException("vm currently does not support real inlined assembly (only IR): ${asmChunk.label}")
         }
     }
 }
