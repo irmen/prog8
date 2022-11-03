@@ -125,12 +125,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
     var labelSymbol: String? = null
 
     fun parseValueOrPlaceholder(operand: String, location: Pair<IRCodeChunk, Int>?, rest: String, restIndex: Int): Float? {
-        return if(operand.startsWith('_')) {
-            labelSymbol = rest.split(",")[restIndex].trim().drop(1)
-            if(location!=null)
-                placeholders[location] = labelSymbol!!
-            null
-        } else if(operand[0].isLetter()) {
+        return if(operand[0].isLetter()) {
             labelSymbol = rest.split(",")[restIndex].trim()
             if(location!=null)
                 placeholders[location] = labelSymbol!!
@@ -229,8 +224,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         floatValue = value
 
     if(opcode in OpcodesForCpuRegisters) {
-        val regStr = rest.split(',').last().lowercase().trim()
-        val reg = if(regStr.startsWith('_')) regStr.substring(1) else regStr
+        val reg = rest.split(',').last().lowercase().trim()
         if(reg !in setOf(
                 "a", "x", "y",
                 "ax", "ay", "xy",

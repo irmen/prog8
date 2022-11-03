@@ -43,7 +43,7 @@ class TestInstructions: FunSpec({
         ins.reg2 shouldBe null
         ins.value shouldBe null
         ins.labelSymbol shouldBe "a.b.c"
-        ins.toString() shouldBe "bz.w r11,_a.b.c"
+        ins.toString() shouldBe "bz.w r11,a.b.c"
     }
 
     test("with output registers") {

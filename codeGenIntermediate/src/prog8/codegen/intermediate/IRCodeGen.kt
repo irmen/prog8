@@ -257,7 +257,9 @@ class IRCodeGen(
                 sub.retvalRegisters,
                 sub.inline,
                 sub.position)
-            renamedSub.add(sub.children.single())
+
+            if(sub.children.isNotEmpty())
+                renamedSub.add(sub.children.single())
             parent.children.remove(sub)
             parent.add(renamedSub)
         }
@@ -1091,19 +1093,25 @@ class IRCodeGen(
                     irBlock += sub
                 }
                 is PtAsmSub -> {
-                    val assemblyChild = child.children.single() as PtInlineAssembly
-                    val asmChunk = IRInlineAsmChunk(
-                        child.name, assemblyChild.assembly, assemblyChild.isIR, null
-                    )
-                    irBlock += IRAsmSubroutine(
-                        child.name,
-                        child.address,
-                        child.clobbers,
-                        child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
-                        child.returnTypes.zip(child.retvalRegisters),
-                        asmChunk,
-                        child.position
-                    )
+                    if(child.address!=null) {
+                        // romsub. No codegen needed: calls to this are jumping straight to the address.
+                        require(child.children.isEmpty())
+                    } else {
+                        // regular asmsub
+                        val assemblyChild = child.children.single() as PtInlineAssembly
+                        val asmChunk = IRInlineAsmChunk(
+                            child.name, assemblyChild.assembly, assemblyChild.isIR, null
+                        )
+                        irBlock += IRAsmSubroutine(
+                            child.name,
+                            child.address,
+                            child.clobbers,
+                            child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
+                            child.returnTypes.zip(child.retvalRegisters),
+                            asmChunk,
+                            child.position
+                        )
+                    }
                 }
                 is PtInlineAssembly -> {
                     irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, null)

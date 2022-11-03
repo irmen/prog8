@@ -269,7 +269,7 @@ class IRAsmSubroutine(
     private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }
 
     fun usedRegisters() = registersUsed
-    fun isEmpty(): Boolean = asmChunk.isEmpty()
+    fun isEmpty(): Boolean = if(address==null) asmChunk.isEmpty() else false
 }
 
 sealed class IRCodeChunkBase(val label: String?, var next: IRCodeChunkBase?) {

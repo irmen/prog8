@@ -815,10 +815,7 @@ data class IRInstruction(
             result.add(",")
         }
         labelSymbol?.let {
-            if(it.startsWith('&'))
-                result.add(it)    // address-of something
-            else
-                result.add("_$it")
+            result.add(it)
         }
         if(result.last() == ",")
             result.removeLast()
