@@ -294,7 +294,7 @@ class StatementOptimizer(private val program: Program,
         if(bexpr!=null) {
             val rightCv = bexpr.right.constValue(program)?.number
             if(bexpr.operator=="-" && rightCv==null) {
-                if(bexpr.right isSameAs assignment.target) {
+                if(bexpr.right.isSimple && bexpr.right isSameAs assignment.target) {
                     // X = value - X  -->  X = -X ; X += value  (to avoid need of stack-evaluation)
                     val negation = PrefixExpression("-", bexpr.right.copy(), bexpr.position)
                     val addValue = Assignment(assignment.target.copy(), BinaryExpression(bexpr.right, "+", bexpr.left, bexpr.position), AssignmentOrigin.OPTIMIZER, assignment.position)

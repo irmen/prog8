@@ -493,8 +493,12 @@ data class InstructionFormat(val datatype: IRDataType?,
                         ">fr1" -> { fpreg1=OperandDirection.OUTPUT }
                         "<>fr1" -> { fpreg1=OperandDirection.INOUT }
                         "<fr2" -> fpreg2 = OperandDirection.INPUT
-                        "<v" -> valueIn = true
-                        "<fv" -> fpvalueIn = true
+                        "<v" -> {
+                            if('F' in typespec)
+                                fpvalueIn = true
+                            else
+                                valueIn = true
+                        }
                         else -> throw IllegalArgumentException(spec)
                     }
                 }
@@ -521,7 +525,7 @@ data class InstructionFormat(val datatype: IRDataType?,
 @Suppress("BooleanLiteralArgument")
 val instructionFormats = mutableMapOf(
     Opcode.NOP        to InstructionFormat.from("N"),
-    Opcode.LOAD       to InstructionFormat.from("BW,>r1,<v     | F,>fr1,<fv"),
+    Opcode.LOAD       to InstructionFormat.from("BW,>r1,<v     | F,>fr1,<v"),
     Opcode.LOADM      to InstructionFormat.from("BW,>r1,<v     | F,>fr1,<v"),
     Opcode.LOADI      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<r1"),
     Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<v | F,>fr1,<r1,<v"),

@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- check StatementOptimizer "optimize binary expressions a bit": flt[1] = 3.0-flt[1]  beneficial or not? what about integer array?
 - ir: get rid of '_' label prefix?
 - fix expericodegen (ir code gen for regular cx16 target)
 
