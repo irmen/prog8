@@ -972,13 +972,33 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 addInstr(result, IRInstruction(Opcode.CALL, value=callTarget.address.toInt()), null)
                 if(!fcall.void) {
-                    if(callTarget.returns.size!=1)
-                        throw AssemblyError("expect precisely 1 return value")
-                    if(fcall.type==DataType.FLOAT)
-                        throw AssemblyError("doesn't support float register result in asm romsub")
-                    val returns = callTarget.returns.single()
-                    val regStr = if(returns.registerOrPair!=null) returns.registerOrPair.toString() else returns.statusflag.toString()
-                    addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultRegister, labelSymbol = regStr), null)
+                    when(callTarget.returns.size) {
+                        0 -> throw AssemblyError("expect a return value")
+                        1 -> {
+                            if(fcall.type==DataType.FLOAT)
+                                throw AssemblyError("doesn't support float register result in asm romsub")
+                            val returns = callTarget.returns.single()
+                            val regStr = if(returns.registerOrPair!=null) returns.registerOrPair.toString() else returns.statusflag.toString()
+                            addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultRegister, labelSymbol = regStr), null)
+                        }
+                        else -> {
+                            val returnRegister = callTarget.returns.singleOrNull{ it.registerOrPair!=null }
+                            if(returnRegister!=null) {
+                                // we skip the other values returned in the status flags.
+                                val regStr = returnRegister.registerOrPair.toString()
+                                addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultRegister, labelSymbol = regStr), null)
+                            } else {
+                                val firstReturnRegister = callTarget.returns.firstOrNull{ it.registerOrPair!=null }
+                                if(firstReturnRegister!=null) {
+                                    // we just take the first register return value and ignore the rest.
+                                    val regStr = firstReturnRegister.registerOrPair.toString()
+                                    addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultRegister, labelSymbol = regStr), null)
+                                } else {
+                                    throw AssemblyError("invalid number of return values from call")
+                                }
+                            }
+                        }
+                    }
                 }
                 return result
             }

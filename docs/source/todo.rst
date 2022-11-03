@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix expericodegen crashes from missing functions from virtual/prog8_lib.p8
+
 ...
 
 
