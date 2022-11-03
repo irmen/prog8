@@ -324,18 +324,24 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     internal fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment) {
-        // array[x] = -value   ... use a tempvar then store that back into the array.
         require(assign.source.expression is PrefixExpression)
-        val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
-        val assignToTempvar = AsmAssignment(assign.source,
-            AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
-            false, program.memsizer, assign.position)
-        asmgen.translateNormalAssignment(assignToTempvar)
-        when(assign.target.datatype) {
-            in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
-            in WordDatatypes -> assignVariableWord(assign.target, tempvar)
-            DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
-            else -> throw AssemblyError("weird dt")
+        if(assign.source.datatype==DataType.FLOAT) {
+            // floatarray[x] = -value   ... just use FAC1 to calculate the expression into and then store that back into the array.
+            assignExpressionToRegister(assign.source.expression, RegisterOrPair.FAC1, true)
+            assignFAC1float(assign.target)
+        } else {
+            // array[x] = -value   ... use a tempvar then store that back into the array.
+            val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
+            val assignToTempvar = AsmAssignment(assign.source,
+                AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
+                false, program.memsizer, assign.position)
+            asmgen.translateNormalAssignment(assignToTempvar)
+            when(assign.target.datatype) {
+                in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
+                in WordDatatypes -> assignVariableWord(assign.target, tempvar)
+                DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
+                else -> throw AssemblyError("weird dt")
+            }
         }
     }
 

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- check StatementOptimizer "optimize binary expressions a bit": flt[1] = 3.0-flt[1]  beneficial or not? what about integer array?
 - ir: get rid of '_' label prefix?
 - fix expericodegen (ir code gen for regular cx16 target)
 
@@ -53,7 +52,7 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - add modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)?
 - add a flood fill (span fill/scanline fill) routine to gfx2?
-- add a p
+- add a pget() to gfx2 to get the pixel color value
 
 
 Expressions:

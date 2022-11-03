@@ -1965,6 +1965,13 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
             }
             DataType.FLOAT -> {
                 when (target.kind) {
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.NEGOP")
+                            RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.MOVFA |  jsr floats.NEGOP |  jsr  floats.MOVEF")
+                            else -> throw AssemblyError("invalid float register")
+                        }
+                    }
                     TargetStorageKind.VARIABLE -> {
                         // simply flip the sign bit in the float
                         asmgen.out("""
@@ -1975,7 +1982,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                     }
                     TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
                     TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target for float negation")
+                    else -> throw AssemblyError("weird target for in-place float negation")
                 }
             }
             else -> throw AssemblyError("negate of invalid type")
