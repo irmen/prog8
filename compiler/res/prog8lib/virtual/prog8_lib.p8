@@ -1,7 +1,5 @@
 ; Internal library routines - always included by the compiler
 
-%import textio
-
 prog8_lib {
     %option force_output
 
@@ -25,7 +23,7 @@ prog8_lib {
         return false
     }
 
-    sub wordarray_contains(ubyte needle, uword haystack_ptr, ubyte num_elements) -> ubyte {
+    sub wordarray_contains(uword needle, uword haystack_ptr, ubyte num_elements) -> ubyte {
         haystack_ptr += (num_elements-1) * 2
         while num_elements {
             if peekw(haystack_ptr)==needle
