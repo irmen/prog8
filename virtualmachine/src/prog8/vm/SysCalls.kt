@@ -284,7 +284,12 @@ object SysCalls {
                 val first = vm.memory.getString(firstAddr.toInt())
                 val second = vm.memory.getString(secondAddr.toInt())
                 val comparison = first.compareTo(second)
-                vm.registers.setSB(0, comparison.toByte())
+                if(comparison==0)
+                    vm.registers.setSB(0, 0)
+                else if(comparison<0)
+                    vm.registers.setSB(0, -1)
+                else
+                    vm.registers.setSB(0, 1)
             }
             Syscall.RNDFSEED -> {
                 val seed1 = vm.registers.getUB(0)

@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix error when passing boolean expression as ubyte param to a functioncall
 - fix expericodegen crashes from missing functions from virtual/prog8_lib.p8
 
 ...

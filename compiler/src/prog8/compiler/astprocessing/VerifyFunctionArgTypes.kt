@@ -5,6 +5,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.ByteDatatypes
 import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
@@ -82,7 +83,9 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
-                    return if(expected==DataType.BOOL && actual==DataType.UBYTE && call.args[mismatch].constValue(program)?.number in setOf(0.0, 1.0))
+                    return if(actual==DataType.BOOL && expected in ByteDatatypes)
+                        null  // a bool is just 1 or 0.
+                    else if(expected==DataType.BOOL && actual==DataType.UBYTE && call.args[mismatch].constValue(program)?.number in setOf(0.0, 1.0))
                         null  // specifying a 1 or 0 as a BOOL is okay
                     else
                         Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
