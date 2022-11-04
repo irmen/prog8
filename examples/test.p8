@@ -15,10 +15,11 @@ main {
     uword value2 = 3333
     txt.print_ub(value in name1)
     txt.print_ub('c' in name1)
-    txt.print_ub(name1 == name2)
-    txt.print_ub(name1 < name2)
     txt.print_ub(value in arr1)
     txt.print_ub(value2 in arr2)
+    txt.print_ub(name1 == name2)
+    txt.print_ub(name1 < name2)
+    txt.print_ub(name1 >= name2)
 
   }
 }

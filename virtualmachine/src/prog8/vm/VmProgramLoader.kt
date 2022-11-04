@@ -117,6 +117,10 @@ class VmProgramLoader {
                         IMSyscall.REVERSE_BYTES.number -> Syscall.REVERSE_BYTES
                         IMSyscall.REVERSE_WORDS.number -> Syscall.REVERSE_WORDS
                         IMSyscall.REVERSE_FLOATS.number -> Syscall.REVERSE_FLOATS
+                        IMSyscall.COMPARE_STRINGS.number -> Syscall.COMPARE_STRINGS
+                        IMSyscall.STRING_CONTAINS.number -> Syscall.STRING_CONTAINS
+                        IMSyscall.BYTEARRAY_CONTAINS.number -> Syscall.BYTEARRAY_CONTAINS
+                        IMSyscall.WORDARRAY_CONTAINS.number -> Syscall.WORDARRAY_CONTAINS
                         else -> null
                     }
 

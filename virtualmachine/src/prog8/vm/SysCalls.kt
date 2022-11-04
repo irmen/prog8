@@ -77,7 +77,10 @@ enum class Syscall {
     RNDFSEED,
     RND,
     RNDW,
-    RNDF
+    RNDF,
+    STRING_CONTAINS,
+    BYTEARRAY_CONTAINS,
+    WORDARRAY_CONTAINS
 }
 
 object SysCalls {
@@ -310,6 +313,41 @@ object SysCalls {
             }
             Syscall.RNDF -> {
                 vm.registers.setFloat(0, vm.randomGeneratorFloats.nextFloat())
+            }
+            Syscall.STRING_CONTAINS -> {
+                val char = vm.registers.getUB(0).toInt().toChar()
+                val stringAddr = vm.registers.getUW(1)
+                val string = vm.memory.getString(stringAddr.toInt())
+                vm.registers.setUB(0, if(char in string) 1u else 0u)
+            }
+            Syscall.BYTEARRAY_CONTAINS -> {
+                val value = vm.registers.getUB(0)
+                var array = vm.registers.getUW(1).toInt()
+                var length = vm.registers.getUB(2)
+                while(length>0u) {
+                    if(vm.memory.getUB(array)==value) {
+                        vm.registers.setUB(0, 1u)
+                        return
+                    }
+                    array++
+                    length--
+                }
+                vm.registers.setUB(0, 0u)
+            }
+            Syscall.WORDARRAY_CONTAINS -> {
+                // r0.w = value,  r1.w = array,  r2.b = array length
+                val value = vm.registers.getUW(0)
+                var array = vm.registers.getUW(1).toInt()
+                var length = vm.registers.getUB(2)
+                while(length>0u) {
+                    if(vm.memory.getUW(array)==value) {
+                        vm.registers.setUB(0, 1u)
+                        return
+                    }
+                    array += 2
+                    length--
+                }
+                vm.registers.setUB(0, 0u)
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

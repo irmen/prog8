@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix expericodegen crashes from missing functions from virtual/prog8_lib.p8
-
 ...
 
 
@@ -19,6 +17,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- ir/vm: SYSCALL opcode should take args in r65500, r65501 etc instead of r0, r1.  Then also remove excess PUSH/POP of regs to save them.
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
