@@ -71,11 +71,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type")
             }
         val result = mutableListOf<IRCodeChunkBase>()
-        result += exprGen.translateExpression(call.args[0], 0, -1)
+        result += exprGen.translateExpression(call.args[0], SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, value = array.length)
             it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
-            if (resultRegister != 0)
+            if(resultRegister!=0)
                 it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1 = resultRegister, reg2 = 0)
         }
         return result
@@ -94,11 +94,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type")
             }
         val result = mutableListOf<IRCodeChunkBase>()
-        result += exprGen.translateExpression(call.args[0], 0, -1)
+        result += exprGen.translateExpression(call.args[0], SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, value = array.length)
             it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
-            if (resultRegister != 0)
+            if(resultRegister!=0)
                 it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1 = resultRegister, reg2 = 0)
         }
         return result
@@ -213,9 +213,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val result = mutableListOf<IRCodeChunkBase>()
-        result += exprGen.translateExpression(call.args[0], 0, -1)
+        result += exprGen.translateExpression(call.args[0], SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, value = array.length)
             it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
         }
         return result
@@ -235,9 +235,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val result = mutableListOf<IRCodeChunkBase>()
-        result += exprGen.translateExpression(call.args[0], 0, -1)
+        result += exprGen.translateExpression(call.args[0], SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, value = array.length)
             it += IRInstruction(Opcode.SYSCALL, value = syscall.number)
         }
         return result

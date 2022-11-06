@@ -176,8 +176,8 @@ math {
     sub rndseed(uword seed1, uword seed2) {
         ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
         %ir {{
-            loadm.w r0,math.rndseed.seed1
-            loadm.w r1,math.rndseed.seed2
+            loadm.w r65500,math.rndseed.seed1
+            loadm.w r65501,math.rndseed.seed2
             syscall 31
             return
         }}

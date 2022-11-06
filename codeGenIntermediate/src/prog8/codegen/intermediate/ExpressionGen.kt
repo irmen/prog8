@@ -10,7 +10,7 @@ import prog8.intermediate.*
 
 internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
-        require(codeGen.registers.peekNext() > resultRegister)
+        require(codeGen.registers.peekNext() > resultRegister || resultRegister >= SyscallRegisterBase)
 
         return when (expr) {
             is PtMachineRegister -> {
@@ -101,49 +101,33 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val iterable = codeGen.symbolTable.flat.getValue(check.iterable.targetName) as StStaticVariable
         when(iterable.dt) {
             DataType.STR -> {
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                result += push
-                result += translateExpression(check.element, 0, -1)
-                result += translateExpression(check.iterable, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.STRING_CONTAINS.number)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
-                result += syscall
+                result += translateExpression(check.element, SyscallRegisterBase, -1)
+                result += translateExpression(check.iterable, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.STRING_CONTAINS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
+                }
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                push += IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=2)
-                result += push
-                result += translateExpression(check.element, 0, -1)
-                result += translateExpression(check.iterable, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=2, value = iterable.length!!)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.BYTEARRAY_CONTAINS.number)
-                syscall += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=2)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
-                result += syscall
+                result += translateExpression(check.element, SyscallRegisterBase, -1)
+                result += translateExpression(check.iterable, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, value = iterable.length!!)
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.BYTEARRAY_CONTAINS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
+                }
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                push += IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=2)
-                result += push
-                result += translateExpression(check.element, 0, -1)
-                result += translateExpression(check.iterable, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=2, value = iterable.length!!)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.WORDARRAY_CONTAINS.number)
-                syscall += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=2)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
-                result += syscall
+                result += translateExpression(check.element, SyscallRegisterBase, -1)
+                result += translateExpression(check.iterable, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, value = iterable.length!!)
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.WORDARRAY_CONTAINS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultRegister, reg2=0)
+                }
             }
             DataType.ARRAY_F -> throw AssemblyError("containment check in float-array not supported")
             else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.targetName}")
@@ -332,23 +316,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                require(codeGen.registers.peekNext() > 1)
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                result += push
-                result += translateExpression(binExpr.left, 0, -1)
-                result += translateExpression(binExpr.right, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=0)
-                syscall += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=1, value=0)
-                syscall += if(greaterEquals)
-                    IRInstruction(Opcode.SGES, IRDataType.BYTE, reg1=resultRegister, reg2=1)
-                else
-                    IRInstruction(Opcode.SGTS, IRDataType.BYTE, reg1=resultRegister, reg2=1)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                result += syscall
+                result += translateExpression(binExpr.left, SyscallRegisterBase, -1)
+                result += translateExpression(binExpr.right, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, vmDt, reg1 = resultRegister, reg2 = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = 0)
+                    it += if (greaterEquals)
+                        IRInstruction(Opcode.SGES, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
+                    else
+                        IRInstruction(Opcode.SGTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
+                }
             } else {
                 val rightResultReg = codeGen.registers.nextFree()
                 result += translateExpression(binExpr.left, resultRegister, -1)
@@ -388,23 +367,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                require(codeGen.registers.peekNext() > 1)
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                result += push
-                result += translateExpression(binExpr.left, 0, -1)
-                result += translateExpression(binExpr.right, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=0)
-                syscall += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=1, value=0)
-                syscall += if(lessEquals)
-                    IRInstruction(Opcode.SLES, IRDataType.BYTE, reg1=resultRegister, reg2=1)
-                else
-                    IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1=resultRegister, reg2=1)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                result += syscall
+                result += translateExpression(binExpr.left, SyscallRegisterBase, -1)
+                result += translateExpression(binExpr.right, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, vmDt, reg1 = resultRegister, reg2 = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = 1, value = 0)
+                    it += if (lessEquals)
+                        IRInstruction(Opcode.SLES, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
+                    else
+                        IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
+                }
             } else {
                 val rightResultReg = codeGen.registers.nextFree()
                 result += translateExpression(binExpr.left, resultRegister, -1)
@@ -440,21 +414,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                require(codeGen.registers.peekNext() > 1)
-                val push = IRCodeChunk(null, null)
-                push += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=1)
-                result += push
-                result += translateExpression(binExpr.left, 0, -1)
-                result += translateExpression(binExpr.right, 1, -1)
-                val syscall = IRCodeChunk(null, null)
-                syscall += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
-                syscall += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=1)
-                if(resultRegister!=0)
-                    syscall += IRInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=0)
-                if(!notEquals)
-                    syscall += IRInstruction(Opcode.INV, vmDt, reg1=resultRegister)
-                syscall += IRInstruction(Opcode.AND, vmDt, reg1=resultRegister, value=1)
-                result += syscall
+                result += translateExpression(binExpr.left, SyscallRegisterBase, -1)
+                result += translateExpression(binExpr.right, SyscallRegisterBase+1, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
+                    if(resultRegister!=0)
+                        it += IRInstruction(Opcode.LOADR, vmDt, reg1 = resultRegister, reg2 = 0)
+                    if (!notEquals)
+                        it += IRInstruction(Opcode.INV, vmDt, reg1 = resultRegister)
+                    it += IRInstruction(Opcode.AND, vmDt, reg1 = resultRegister, value = 1)
+                }
             } else {
                 val rightResultReg = codeGen.registers.nextFree()
                 result += translateExpression(binExpr.left, resultRegister, -1)

@@ -3,6 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- add a pget() to gfx2 to get the pixel color value
+- ir: write addresses as hex into p8ir file
+
 ...
 
 
@@ -17,14 +20,13 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- ir/vm: SYSCALL opcode should take args in r65500, r65501 etc instead of r0, r1.  Then also remove excess PUSH/POP of regs to save them.
+- ir: register allocation per data type a specific allocation, so we are certain when a reg is used it's just for one specific datatype
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
 - ir peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out!)
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: write addresses as hex into p8ir file
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
@@ -55,7 +57,6 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - add modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)?
 - add a flood fill (span fill/scanline fill) routine to gfx2?
-- add a pget() to gfx2 to get the pixel color value
 
 
 Expressions:

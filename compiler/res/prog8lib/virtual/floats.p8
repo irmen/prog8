@@ -10,7 +10,7 @@ floats {
 sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).
     %ir {{
-        loadm.f fr0,floats.print_f.value
+        loadm.f fr65500,floats.print_f.value
         syscall 25
         return
     }}
@@ -133,9 +133,9 @@ sub rndf() -> float {
 
 sub rndseedf(ubyte s1, ubyte s2, ubyte s3) {
     %ir {{
-        loadm.b  r0,floats.rndseedf.s1
-        loadm.b  r1,floats.rndseedf.s2
-        loadm.b  r2,floats.rndseedf.s3
+        loadm.b  r65500,floats.rndseedf.s1
+        loadm.b  r65501,floats.rndseedf.s2
+        loadm.b  r65502,floats.rndseedf.s3
         syscall 32
     }}
 }

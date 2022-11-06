@@ -92,8 +92,8 @@ class VirtualMachine(irProgram: IRProgram) {
         statusZero = false
     }
 
-    fun exit() {
-        throw ProgramExitException(registers.getUW(0).toInt())
+    fun exit(statuscode: Int) {
+        throw ProgramExitException(statuscode)
     }
 
     fun step(count: Int=1) {
@@ -118,7 +118,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 }
 
                 null -> {
-                    exit()   // end of program reached
+                    exit(0)   // end of program reached
                 }
 
                 else -> {
@@ -574,7 +574,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsRETURN() {
         if(callStack.isEmpty())
-            exit()
+            exit(0)
         else {
             val (chunk, idx) = callStack.pop()
             pcChunk = chunk
@@ -2108,7 +2108,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private var window: GraphicsWindow? = null
 
     fun gfx_enable() {
-        window = when(registers.getUB(0).toInt()) {
+        window = when(registers.getUB(SyscallRegisterBase).toInt()) {
             0 -> GraphicsWindow(320, 240, 3)
             1 -> GraphicsWindow(640, 480, 2)
             else -> throw IllegalArgumentException("invalid screen mode")
@@ -2117,18 +2117,21 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     fun gfx_clear() {
-        window?.clear(registers.getUB(0).toInt())
+        window?.clear(registers.getUB(SyscallRegisterBase).toInt())
     }
 
     fun gfx_plot() {
-        window?.plot(registers.getUW(0).toInt(), registers.getUW(1).toInt(), registers.getUB(2).toInt())
+        window?.plot(registers.getUW(SyscallRegisterBase).toInt(),
+            registers.getUW(SyscallRegisterBase+1).toInt(),
+            registers.getUB(SyscallRegisterBase+2).toInt())
     }
 
     fun gfx_getpixel() {
         if(window==null)
             registers.setUB(0, 0u)
         else {
-            val color = Color(window!!.getpixel(registers.getUW(0).toInt(), registers.getUW(1).toInt()))
+            val color = Color(window!!.getpixel(registers.getUW(SyscallRegisterBase).toInt(),
+                registers.getUW(SyscallRegisterBase+1).toInt()))
             registers.setUB(0, color.green.toUByte())
         }
     }

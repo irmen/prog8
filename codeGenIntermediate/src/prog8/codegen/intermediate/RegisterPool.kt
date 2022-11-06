@@ -1,10 +1,12 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.AssemblyError
+import prog8.intermediate.SyscallRegisterBase
 
 internal class RegisterPool {
-    private var firstFree: Int=3        // integer registers 0,1,2 are reserved
-    private var firstFreeFloat: Int=0
+    // reserve 0,1,2 for return values of subroutine calls and syscalls
+    private var firstFree: Int=3
+    private var firstFreeFloat: Int=3
 
     fun peekNext() = firstFree
     fun peekNextFloat() = firstFreeFloat
@@ -12,7 +14,7 @@ internal class RegisterPool {
     fun nextFree(): Int {
         val result = firstFree
         firstFree++
-        if(firstFree>65535)
+        if(firstFree >= SyscallRegisterBase)
             throw AssemblyError("out of virtual registers (int)")
         return result
     }
@@ -20,7 +22,7 @@ internal class RegisterPool {
     fun nextFreeFloat(): Int {
         val result = firstFreeFloat
         firstFreeFloat++
-        if(firstFreeFloat>65535)
+        if(firstFreeFloat >= SyscallRegisterBase)
             throw AssemblyError("out of virtual registers (fp)")
         return result
     }
