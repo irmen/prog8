@@ -310,7 +310,7 @@ internal class AstChecker(private val program: Program,
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
-                            && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes && param.first.type != DataType.FLOAT)
+                            && param.first.type != DataType.STR && param.first.type !in ArrayDatatypes)
                         err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
@@ -325,7 +325,7 @@ internal class AstChecker(private val program: Program,
                 }
                 else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (pair.first != DataType.UWORD && pair.first != DataType.WORD
-                            && pair.first != DataType.STR && pair.first !in ArrayDatatypes && pair.first != DataType.FLOAT)
+                            && pair.first != DataType.STR && pair.first !in ArrayDatatypes)
                         err("return type #${index + 1} should be (u)word/address")
                 }
                 else if(pair.second.statusflag!=null) {

@@ -58,6 +58,7 @@ romsub $fe4e = ABS() clobbers(A,X,Y)                        ; fac1 = ABS(fac1)
 romsub $fe51 = SIGN() clobbers(X,Y) -> ubyte @ A            ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
 romsub $fe54 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 romsub $fe57 = RND_0() clobbers(A,X,Y)                      ; fac1 = RND(fac1) float random number generator  NOTE: incompatible with C64's RND routine
+romsub $fe57 = RND() clobbers(A,X,Y)                        ; alias for RND_0
 romsub $fe5a = CONUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac2
 romsub $fe5d = ROMUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in current bank in A/Y into fac2
 romsub $fe60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac1  (use MOVFM instead)
@@ -160,20 +161,8 @@ sub rndf() -> float {
     }}
 }
 
-asmsub rndseedf(ubyte s1 @A, ubyte s2 @X, ubyte s3 @Y) clobbers(X) {
-    %asm {{
-        sta  P8ZP_SCRATCH_REG
-        lda  #0
-        php
-        lda  P8ZP_SCRATCH_REG
-        ora  #32    ; not sure why this is needed but without it the seed is not consistent
-        plp         ; Z=N=0
-        jmp  floats.RND_0
-    }}
-}
-
-
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"
+
 
 }

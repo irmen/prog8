@@ -221,4 +221,20 @@ sub ceil(float value) -> float {
     }}
 }
 
+sub rndseedf(float seed) {
+    if seed>0
+        seed = -seed    ; make sure fp seed is always negative
+
+    %asm {{
+        stx  floats_store_reg
+        lda  #<seed
+        ldy  #>seed
+        jsr  MOVFM		; load float into fac1
+        lda  #-1
+        jsr  floats.RND
+        ldx  floats_store_reg
+        rts
+    }}
+}
+
 }

@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- ir: register allocation per data type a specific allocation, so we are certain when a reg is used it's just for one specific datatype
 - ir: write addresses as hex into p8ir file
 
 ...
@@ -19,7 +20,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- ir: register allocation per data type a specific allocation, so we are certain when a reg is used it's just for one specific datatype
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)

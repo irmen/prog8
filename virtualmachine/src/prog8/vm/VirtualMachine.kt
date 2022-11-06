@@ -2148,9 +2148,8 @@ class VirtualMachine(irProgram: IRProgram) {
         randomGenerator = Random(((seed1.toUInt() shl 16) or seed2.toUInt()).toInt())
     }
 
-    fun randomSeedFloat(seed1: UByte, seed2: UByte, seed3: UByte) {
-        val seed = (seed1.toUInt() shl 24) or (seed2.toUInt() shl 16) or (seed3.toUInt())
-        randomGeneratorFloats = Random(seed.toInt())
+    fun randomSeedFloat(seed: Float) {
+        randomGeneratorFloats = Random(seed.toBits())
     }
 }
 

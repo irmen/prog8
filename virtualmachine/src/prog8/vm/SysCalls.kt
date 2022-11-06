@@ -297,10 +297,11 @@ object SysCalls {
                     vm.registers.setSB(0, 1)
             }
             Syscall.RNDFSEED -> {
-                val seed1 = vm.registers.getUB(SyscallRegisterBase)
-                val seed2 = vm.registers.getUB(SyscallRegisterBase+1)
-                val seed3 = vm.registers.getUB(SyscallRegisterBase+2)
-                vm.randomSeedFloat(seed1, seed2, seed3)
+                val seed = vm.registers.getFloat(SyscallRegisterBase)
+                if(seed>0)  // always use negative seed, this mimics the behavior on CBM machines
+                    vm.randomSeedFloat(-seed)
+                else
+                    vm.randomSeedFloat(seed)
             }
             Syscall.RNDSEED -> {
                 val seed1 = vm.registers.getUW(SyscallRegisterBase)

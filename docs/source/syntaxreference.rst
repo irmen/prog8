@@ -648,15 +648,16 @@ the statement body of such a subroutine should consist of just an inline assembl
 
 The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies for the compiler
 what cpu registers should take the routine's arguments.  You can use the regular set of registers
-(A, X, Y), the special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
+(A, X, Y), special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
 flag such as Carry (Pc).
+
+It is not possible to use floating point arguments or return values in an asmsub.
 
 .. note::
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
     directly instead of a call to them. Note that it is literal copy-paste of code that is done,
     so make sure the assembly is actually written to behave like such - which probably means you
     don't want a ``rts`` or ``jmp`` or ``bra`` in it!
-
 
 .. note::
     The 'virtual' 16-bit registers from the Commander X16 can also be specified as ``R0`` .. ``R15`` .

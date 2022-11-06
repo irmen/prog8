@@ -1,28 +1,27 @@
-%import gfx2
 %import textio
+%import floats
 %zeropage basicsafe
 
 main {
     sub start() {
-        gfx2.screen_mode(6)
-        ubyte pix1 = gfx2.pget(162,120)
-        gfx2.plot(162,120,7)
-        ubyte pix2 = gfx2.pget(162,120)
-        gfx2.plot(162,120,231)
-        ubyte pix3 = gfx2.pget(162,120)
-        ubyte pix4 = gfx2.pget(163,120)
-        ubyte pix5 = gfx2.pget(162,121)
-        sys.wait(20)
-        gfx2.screen_mode(0)
-        txt.print_ub(pix1)
+        float f1
+
+        floats.rndseedf(-1.2345)
         txt.spc()
-        txt.print_ub(pix2)
+        floats.print_f(floats.rndf())
         txt.spc()
-        txt.print_ub(pix3)
+        floats.print_f(floats.rndf())
         txt.spc()
-        txt.print_ub(pix4)
+        floats.print_f(floats.rndf())
+        txt.nl()
+
+        floats.rndseedf(1.2345)
         txt.spc()
-        txt.print_ub(pix5)
+        floats.print_f(floats.rndf())
+        txt.spc()
+        floats.print_f(floats.rndf())
+        txt.spc()
+        floats.print_f(floats.rndf())
         txt.nl()
     }
 }

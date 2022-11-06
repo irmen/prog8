@@ -57,6 +57,7 @@ romsub $af4e = ABS() clobbers(A,X,Y)                        ; fac1 = ABS(fac1)
 romsub $af51 = SIGN() clobbers(X,Y) -> ubyte @ A            ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
 romsub $af54 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 romsub $af57 = RND_0() clobbers(A,X,Y)                      ; fac1 = RND(fac1) float random number generator
+romsub $af57 = RND() clobbers(A,X,Y)                        ; alias for RND_0
 romsub $af5a = CONUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory  in A/Y into fac2
 romsub $af5d = ROMUPK(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in current bank in A/Y into fac2
 romsub $af60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value from memory in A/Y into fac1  (use MOVFM instead)
@@ -161,21 +162,6 @@ sub rndf() -> float {
     }}
 }
 
-asmsub rndseedf(ubyte s1 @A, ubyte s2 @X, ubyte s3 @Y) clobbers(X) {
-    %asm {{
-        sta  _tmpseed
-        stx  _tmpseed+1
-        sty  _tmpseed+2
-        stx  _tmpseed+3
-        sty  _tmpseed+4
-        lda  #<_tmpseed
-        ldy  #>_tmpseed
-        jsr  MOVFM
-        lda  #-1
-        jmp  RND_0
-_tmpseed  .byte 0,0,0,0,0
-    }}
-}
 
 %asminclude "library:c128/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

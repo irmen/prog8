@@ -259,12 +259,8 @@ tan(x)
 rndf()
     returns the next random float between 0.0 and 1.0 from the Pseudo RNG sequence.
 
-rndseedf(ubyte s1, ubyte s2, ubyte s3)
-    Sets a new seed for the float pseudo-RNG sequence. The seed consists of a three byte value.
-    Do not use zeros for the seed!
-
-    .. attention::
-        The rndseedf and maybe the rndf routines may change a bit in the future.
+rndseedf(seed)
+    Sets a new seed for the float pseudo-RNG sequence. Use a negative non-zero number as seed value.
 
 
 graphics

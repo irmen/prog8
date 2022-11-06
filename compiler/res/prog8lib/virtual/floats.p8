@@ -131,11 +131,9 @@ sub rndf() -> float {
     }}
 }
 
-sub rndseedf(ubyte s1, ubyte s2, ubyte s3) {
+sub rndseedf(float seed) {
     %ir {{
-        loadm.b  r65500,floats.rndseedf.s1
-        loadm.b  r65501,floats.rndseedf.s2
-        loadm.b  r65502,floats.rndseedf.s3
+        loadm.f  fr65500,floats.rndseedf.seed
         syscall 32
     }}
 }

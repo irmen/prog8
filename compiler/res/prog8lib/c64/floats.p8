@@ -182,17 +182,6 @@ sub rndf() -> float {
     }}
 }
 
-asmsub rndseedf(ubyte s1 @A, ubyte s2 @X, ubyte s3 @Y) clobbers(X) {
-    %asm {{
-        pha
-        tya
-        ora  #128           ; make sure the seed is negative
-        tay
-        pla
-        jsr  FREADS24AXY
-        jmp  RND
-    }}
-}
 
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"
