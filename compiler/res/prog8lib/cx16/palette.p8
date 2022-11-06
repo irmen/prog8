@@ -26,7 +26,7 @@ palette {
     }
 
     sub set_rgb(uword palette_words_ptr, uword num_colors) {
-        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb0r)
+        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)
         vera_palette_ptr = $fa00
         repeat num_colors*2 {
             cx16.vpoke(1, vera_palette_ptr, @(palette_words_ptr))

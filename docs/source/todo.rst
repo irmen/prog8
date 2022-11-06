@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix cx16/kefrenbars.p8
 - ir: write addresses as hex into p8ir file
 
 ...
