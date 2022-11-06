@@ -1,39 +1,28 @@
+%import gfx2
 %import textio
-%import floats
-%import string
 %zeropage basicsafe
 
 main {
-
-    str name1 = "abc"
-    str name2 = "irmen"
-    ubyte[] arr1 = [11,22,0,33]
-    uword[] arr2 = [1111,2222,0,3333]
-
-  sub start() {
-   sys.exit(42)
-    floats.rndseedf(11,22,33)
-    floats.print_f(floats.rndf())
-    txt.nl()
-    floats.print_f(floats.rndf())
-    txt.nl()
-    floats.print_f(floats.rndf())
-    txt.nl()
-
-    ubyte @shared xx
-    ubyte value = 33
-    uword value2 = 3333
-    txt.print_ub(all(arr1))
-    txt.print_ub(any(arr1))
-    reverse(arr1)
-    sort(arr1)
-    txt.print_ub(value in name1)
-    txt.print_ub('c' in name1)
-    txt.print_ub(value in arr1)
-    txt.print_ub(value2 in arr2)
-    txt.print_ub(name1 == name2)
-    txt.print_ub(name1 < name2)
-    txt.print_ub(name1 >= name2)
-
-  }
+    sub start() {
+        gfx2.screen_mode(6)
+        ubyte pix1 = gfx2.pget(162,120)
+        gfx2.plot(162,120,7)
+        ubyte pix2 = gfx2.pget(162,120)
+        gfx2.plot(162,120,231)
+        ubyte pix3 = gfx2.pget(162,120)
+        ubyte pix4 = gfx2.pget(163,120)
+        ubyte pix5 = gfx2.pget(162,121)
+        sys.wait(20)
+        gfx2.screen_mode(0)
+        txt.print_ub(pix1)
+        txt.spc()
+        txt.print_ub(pix2)
+        txt.spc()
+        txt.print_ub(pix3)
+        txt.spc()
+        txt.print_ub(pix4)
+        txt.spc()
+        txt.print_ub(pix5)
+        txt.nl()
+    }
 }

@@ -366,7 +366,7 @@ _done
                 position2(x,y,true)
                 set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
                 color &= 3
-                color <<= gfx2.plot.shift4c[lsb(x) & 3]
+                color <<= gfx2.plot.shift4c[lsb(x) & 3]         ; TODO with lookup table
                 ubyte @shared mask = gfx2.plot.mask4c[lsb(x) & 3]
                 repeat lheight {
                     %asm {{
@@ -561,7 +561,11 @@ _done
                     and  #1
                 }}
                 if_nz {
-                    cx16.r0L = lsb(x) & 7       ; xbits
+                    %asm {{
+                        lda  x
+                        and  #7
+                        pha     ; xbits
+                    }}
                     x /= 8
                     x += y*(320/8)
                     %asm {{
@@ -571,7 +575,7 @@ _done
                         sta  cx16.VERA_ADDR_M
                         lda  x
                         sta  cx16.VERA_ADDR_L
-                        ldy  cx16.r0L       ; xbits
+                        ply         ; xbits
                         lda  bits,y
                         ldy  color
                         beq  +
@@ -608,7 +612,11 @@ _done
                     and  #1
                 }}
                 if_nz {
-                    cx16.r0L = lsb(x) & 7       ; xbits
+                    %asm {{
+                        lda  x
+                        and  #7
+                        pha     ; xbits
+                    }}
                     x /= 8
                     x += y*(640/8)
                     %asm {{
@@ -618,7 +626,7 @@ _done
                         sta  cx16.VERA_ADDR_M
                         lda  x
                         sta  cx16.VERA_ADDR_L
-                        ldy  cx16.r0L           ; xbits
+                        ply     ; xbits
                         lda  bits,y
                         ldy  color
                         beq  +
@@ -635,7 +643,7 @@ _done
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.r2L = lsb(x) & 3       ; xbits
                 color &= 3
-                color <<= shift4c[cx16.r2L]
+                color <<= shift4c[cx16.r2L]     ; TODO with lookup table
                 %asm {{
                     stz  cx16.VERA_CTRL
                     lda  cx16.r1L
@@ -651,6 +659,93 @@ _done
                     sta  cx16.VERA_DATA0
                 }}
             }
+        }
+    }
+
+    sub pget(uword @zp x, uword y) -> ubyte {
+        when active_mode {
+            1 -> {
+                ; lores monochrome
+                %asm {{
+                    lda  x
+                    and  #7
+                    pha     ; xbits
+                }}
+                x /= 8
+                x += y*(320/8)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    stz  cx16.VERA_ADDR_H
+                    lda  x+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  x
+                    sta  cx16.VERA_ADDR_L
+                    ply         ; xbits
+                    lda  plot.bits,y
+                    and  cx16.VERA_DATA0
+                    beq  +
+                    lda  #1
++
+                }}
+            }
+            ; TODO mode 2 and 3
+            4 -> {
+                ; lores 256c
+                void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    lda  cx16.r1
+                    sta  cx16.VERA_ADDR_H
+                    lda  cx16.r0+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  cx16.r0
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_DATA0
+                }}
+            }
+            5 -> {
+                ; hires monochrome
+                %asm {{
+                    lda  x
+                    and  #7
+                    pha     ; xbits
+                }}
+                x /= 8
+                x += y*(640/8)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    stz  cx16.VERA_ADDR_H
+                    lda  x+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  x
+                    sta  cx16.VERA_ADDR_L
+                    ply     ; xbits
+                    lda  plot.bits,y
+                    and  cx16.VERA_DATA0
+                    beq  +
+                    lda  #1
++
+                }}
+            }
+            6 -> {
+                ; hires 4c
+                void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    lda  cx16.r1L
+                    sta  cx16.VERA_ADDR_H
+                    lda  cx16.r0H
+                    sta  cx16.VERA_ADDR_M
+                    lda  cx16.r0L
+                    sta  cx16.VERA_ADDR_L
+                    lda  cx16.VERA_DATA0
+                    sta  cx16.r0L
+                }}
+                cx16.r1L = lsb(x) & 3
+                cx16.r0L >>= gfx2.plot.shift4c[cx16.r1L]        ; TODO with lookup table
+                return cx16.r0L & 3
+            }
+            else -> return 0
         }
     }
 

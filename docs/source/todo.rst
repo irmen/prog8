@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add a pget() to gfx2 to get the pixel color value
+- fix cx16/kefrenbars.p8
 - ir: write addresses as hex into p8ir file
 
 ...
