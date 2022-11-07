@@ -86,7 +86,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
             val existing = subroutine.lookup(listOf(subroutine.name))
             if (existing != null && existing !== subroutine) {
-                if(existing.parent!==existing.parent)
+                if(existing.parent!==existing.parent)       // TODO fix this check
                     nameShadowWarning(subroutine.name, existing.position, subroutine)
                 else
                     nameError(subroutine.name, existing.position, subroutine)
@@ -122,7 +122,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("can't use a cpu opcode name as a symbol: '${label.name}'", label.position)
 
         if(label.name in BuiltinFunctions) {
-            // the builtin functions can't be redefined
             errors.err("builtin function cannot be redefined", label.position)
         } else {
             val existing = (label.definingSubroutine ?: label.definingBlock).getAllLabels(label.name)

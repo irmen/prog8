@@ -4,7 +4,10 @@ import prog8.code.StRomSub
 import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
+import prog8.code.core.PassByValueDatatypes
+import prog8.code.core.SignedDatatypes
 import prog8.intermediate.*
 
 

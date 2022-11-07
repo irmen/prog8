@@ -3,8 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir: register allocation per data type a specific allocation, so we are certain when a reg is used it's just for one specific datatype
-- ir: write addresses as hex into p8ir file
+- AstIdentifiersChecker: fix the subroutine name shadow if-condition (see vardecl check)
+- 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
+  then we can get rid of the instruction lists in the machinedefinitions as well.  This is already no problem at all in the IR codegen.
+- create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 
 ...
 
@@ -20,7 +22,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
+- AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block?
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
@@ -33,20 +35,12 @@ Compiler:
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
 - generate WASM to eventually run prog8 on a browser canvas?
-- make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
-  then we can get rid of the instruction lists in the machinedefinitions as well?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (search/replace when writing the actual asm?)
+  Once new codegen is written that is based on the IR, this point is moot anyway as that will have its own dead code removal.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
-- ast: don't rewrite by-reference parameter type to uword, but keep the original type (str, array)
-  BUT that makes the handling of these types different between the scope they are defined in, and the
-  scope they get passed in by reference...  unless we make str and array types by-reference ALWAYS?
-  BUT that makes simple code accessing them in the declared scope very slow because that then has to always go through
-  the pointer rather than directly referencing the variable symbol in the generated asm....
-  Or maybe make codegen smart to check if it's a subroutine parameter or local declared variable?
-
 
 Libraries:
 

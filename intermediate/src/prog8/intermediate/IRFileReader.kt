@@ -103,7 +103,7 @@ class IRFileReader {
                 "zeropage" -> zeropage = ZeropageType.valueOf(value)
                 "loadAddress" -> loadAddress = value.toUInt()
                 "dontReinitGlobals" -> dontReinitGlobals = value.toBoolean()
-                "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else value.toUInt()
+                "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
                 "zpReserved" -> {
                     val (start, end) = value.split(',')
                     zpReserved.add(UIntRange(start.toUInt(), end.toUInt()))
@@ -161,7 +161,7 @@ class IRFileReader {
                     } else {
                         require(dontReinitGlobals)
                         bss = false
-                        initNumeric = value.toDouble()
+                        initNumeric = parseIRValue(value).toDouble()
                     }
                 }
                 in ArrayDatatypes -> {
@@ -174,7 +174,7 @@ class IRFileReader {
                             if (it.startsWith('&'))
                                 StArrayElement(null, it.drop(1).split('.'))
                             else
-                                StArrayElement(it.toDouble(), null)
+                                StArrayElement(parseIRValue(it).toDouble(), null)
                         }
                     }
                 }
@@ -206,7 +206,7 @@ class IRFileReader {
             val (type, arrayspec, name, address) = match.destructured
             val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
             val dt: DataType = parseDatatype(type, arraysize!=null)
-            memvars.add(StMemVar(name, dt, address.toUInt(), arraysize, Position.DUMMY))
+            memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, Position.DUMMY))
         }
         return memvars
     }
@@ -286,7 +286,7 @@ class IRFileReader {
         return blocks
     }
 
-    private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.+) ALIGN=(.+) POS=(.+)>")
+    private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.*) ALIGN=(.+) POS=(.+)>")
     private val inlineAsmPattern = Regex("<INLINEASM LABEL=(.*) IR=(.+)>")
     private val bytesPattern = Regex("<BYTES LABEL=(.*)>")
     private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
@@ -299,7 +299,7 @@ class IRFileReader {
             throw IRParseException("invalid BLOCK")
         val match = blockPattern.matchEntire(line) ?: throw IRParseException("invalid BLOCK")
         val (name, address, align, position) = match.destructured
-        val addressNum = if(address=="null") null else address.toUInt()
+        val addressNum = if(address=="null") null else parseIRValue(address).toUInt()
         val block = IRBlock(name, addressNum, IRBlock.BlockAlignment.valueOf(align), parsePosition(position))
         while(true) {
             line = lines.next()
@@ -367,7 +367,7 @@ class IRFileReader {
         }
         return IRAsmSubroutine(
             scopedname,
-            if(address=="null") null else address.toUInt(),
+            if(address=="null") null else parseIRValue(address).toUInt(),
             clobberRegs.toSet(),
             params,
             returns,

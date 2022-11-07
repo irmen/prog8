@@ -1,9 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.core.ArrayDatatypes
-import prog8.code.core.DataType
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.NumericDatatypes
+import prog8.code.core.*
 import java.nio.file.Path
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
@@ -47,7 +44,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
-            out.write("\n<BLOCK NAME=${block.name} ADDRESS=${block.address} ALIGN=${block.alignment} POS=${block.position}>\n")
+            out.write("\n<BLOCK NAME=${block.name} ADDRESS=${block.address?.toHex()} ALIGN=${block.alignment} POS=${block.position}>\n")
             block.inlineAssembly.forEach {
                 writeInlineAsm(it)
             }
@@ -73,7 +70,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     if(reg.registerOrPair!=null) "${reg.registerOrPair}:${dt.toString().lowercase()}"
                     else "${reg.statusflag}:${dt.toString().lowercase()}"
                 }.joinToString(",")
-                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address} CLOBBERS=$clobbers RETURNS=$returns POS=${it.position}>\n")
+                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address?.toHex()} CLOBBERS=$clobbers RETURNS=$returns POS=${it.position}>\n")
                 out.write("<PARAMS>\n")
                 it.parameters.forEach { (dt, regOrSf) ->
                     val reg = if(regOrSf.registerOrPair!=null) regOrSf.registerOrPair.toString()
@@ -126,10 +123,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         for(range in irProgram.options.zpReserved) {
             out.write("zpReserved=${range.first},${range.last}\n")
         }
-        out.write("loadAddress=${irProgram.options.loadAddress}\n")
+        out.write("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
         out.write("optimize=${irProgram.options.optimize}\n")
         out.write("dontReinitGlobals=${irProgram.options.dontReinitGlobals}\n")
-        out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress}\n")
+        out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress?.toHex()}\n")
         out.write("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
         // other options not yet useful here?
         out.write("</OPTIONS>\n")
@@ -142,7 +139,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()
-                in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt() ?: "").toString()
+                in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: "").toString()
                 DataType.STR -> {
                     val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue!!.second) + listOf(0u)
                     encoded.joinToString(",") { it.toInt().toString() }
@@ -158,7 +155,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     if(variable.onetimeInitializationArrayValue!==null) {
                         variable.onetimeInitializationArrayValue!!.joinToString(",") {
                             if(it.number!=null)
-                                it.number!!.toInt().toString()
+                                it.number!!.toInt().toHex()
                             else
                                 "&${it.addressOf!!.joinToString(".")}"
                         }
@@ -175,7 +172,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("\n<MEMORYMAPPEDVARIABLES>\n")
         for (variable in irProgram.st.allMemMappedVariables()) {
             val typeStr = getTypeString(variable)
-            out.write("&$typeStr ${variable.name}=${variable.address}\n")
+            out.write("&$typeStr ${variable.name}=${variable.address.toHex()}\n")
         }
         out.write("</MEMORYMAPPEDVARIABLES>\n")
 

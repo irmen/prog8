@@ -30,7 +30,7 @@ class TestInstructions: FunSpec({
         ins.reg2 shouldBe null
         ins.value shouldBe 99
         ins.labelSymbol shouldBe null
-        ins.toString() shouldBe "bz.b r42,99"
+        ins.toString() shouldBe "bz.b r42,$63"
     }
 
     test("with label") {

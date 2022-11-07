@@ -1,5 +1,7 @@
 package prog8.intermediate
 
+import prog8.code.core.toHex
+
 /*
 
 Intermediate Representation instructions for the IR Virtual machine.
@@ -807,7 +809,7 @@ data class IRInstruction(
             result.add(",")
         }
         value?.let {
-            result.add(it.toString())
+            result.add(it.toHex())
             result.add(",")
         }
         fpValue?.let {

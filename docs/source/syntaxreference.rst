@@ -508,6 +508,7 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 		Unlike most other programming languages, there is no short-circuit or McCarthy evaluation
 		for the logical ``and`` and ``or`` operators. This means that prog8 currently always evaluates
 		all operands from these logical expressions, even when one of them already determines the outcome!
+		If you don't want this to happen, you have to split and nest the if-statements yourself.
 
 range creation:  ``to``
 	Creates a range of values from the LHS value to the RHS value, inclusive.
