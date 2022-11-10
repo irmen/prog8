@@ -290,8 +290,9 @@ cx16 {
     &ubyte  d2ier	= via2+14
     &ubyte  d2ora	= via2+15
 
-    &ubyte  ym2151adr	= $9f40
-    &ubyte  ym2151dat	= $9f41
+; YM-2151 sound chip
+    &ubyte  YM_ADDRESS	= $9f40
+    &ubyte  YM_DATA	= $9f41
 
     const uword  extdev	= $9f60
 

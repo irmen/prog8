@@ -86,7 +86,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
             val existing = subroutine.lookup(listOf(subroutine.name))
             if (existing != null && existing !== subroutine) {
-                if(existing.parent!==existing.parent)       // TODO fix this check
+                if(existing.parent!==subroutine.parent && existing is Subroutine)
                     nameShadowWarning(subroutine.name, existing.position, subroutine)
                 else
                     nameError(subroutine.name, existing.position, subroutine)
