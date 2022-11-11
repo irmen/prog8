@@ -33,14 +33,16 @@ class TestIRFileInOut: FunSpec({
         val writer = IRFileWriter(program, null)
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
-        lines.first() shouldBe "<PROGRAM NAME=unittest-irwriter>"
+        lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
     }
 
     test("test IR reader") {
-        val source="""<PROGRAM NAME=test-ir-reader>
+        val source="""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test-ir-reader">
 <OPTIONS>
 compTarget=virtual
 output=PRG
@@ -59,7 +61,7 @@ uword sys.wait.jiffies= zp=DONTCARE
 </VARIABLES>
 
 <MEMORYMAPPEDVARIABLES>
-&uword cx16.r0=65282
+@uword cx16.r0=65282
 </MEMORYMAPPEDVARIABLES>
 
 <MEMORYSLABS>
@@ -71,22 +73,22 @@ load.b r1,42
 </C>
 </INITGLOBALS>
 
-<BLOCK NAME=main ADDRESS=null ALIGN=NONE POS=[examples/test.p8: line 2 col 2-5]>
-<SUB NAME=main.start RETURNTYPE=null POS=[examples/test.p8: line 4 col 6-8]>
+<BLOCK NAME="main" ADDRESS="null" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
+<SUB NAME="main.start" RETURNTYPE="null" POS="[examples/test.p8: line 4 col 6-8]">
 <PARAMS>
 </PARAMS>
-<C LABEL=main.start>
+<C LABEL="main.start">
 return
 </C>
 </SUB>
 </BLOCK>
 
-<BLOCK NAME=sys ADDRESS=null ALIGN=NONE POS=[library:/prog8lib/virtual/syslib.p8: line 3 col 2-4]>
-<SUB NAME=sys.wait RETURNTYPE=null POS=[library:/prog8lib/virtual/syslib.p8: line 15 col 6-8]>
+<BLOCK NAME="sys" ADDRESS="null" ALIGN="NONE" POS="[library:/prog8lib/virtual/syslib.p8: line 3 col 2-4]">
+<SUB NAME="sys.wait" RETURNTYPE="null" POS="[library:/prog8lib/virtual/syslib.p8: line 15 col 6-8]">
 <PARAMS>
 uword sys.wait.jiffies
 </PARAMS>
-<INLINEASM LABEL=sys.wait IR=true POS=[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]>
+<INLINEASM LABEL="sys.wait" IR="true" POS="[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]">
             loadm.w r0,sys.wait.jiffies
             syscall 13
 </INLINEASM>

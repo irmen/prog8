@@ -53,5 +53,5 @@ class VirtualMachineDefinition: IMachineDefinition {
 }
 
 interface IVirtualMachineRunner {
-    fun runProgram(irSource: CharSequence)
+    fun runProgram(irSource: String)
 }

@@ -2155,11 +2155,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
-    override fun runProgram(irSource: CharSequence) {
+    override fun runProgram(irSource: String) {
         runAndTestProgram(irSource) { /* no tests */ }
     }
 
-    fun runAndTestProgram(irSource: CharSequence, test: (VirtualMachine) -> Unit) {
+    fun runAndTestProgram(irSource: String, test: (VirtualMachine) -> Unit) {
         val irProgram = IRFileReader().read(irSource)
         val vm = VirtualMachine(irProgram)
         vm.run()

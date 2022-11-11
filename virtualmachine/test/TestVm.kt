@@ -120,7 +120,8 @@ class TestVm: FunSpec( {
 
     test("vmrunner") {
         val runner = VmRunner()
-        val irSource="""<PROGRAM NAME=test>
+        val irSource="""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test">
 <OPTIONS>
 </OPTIONS>
 
@@ -139,7 +140,7 @@ class TestVm: FunSpec( {
 <INITGLOBALS>
 </INITGLOBALS>
 
-<BLOCK NAME=main ADDRESS=null ALIGN=NONE POS=[unittest: line 42 col 1-9]>
+<BLOCK NAME="main" ADDRESS="null" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
 </BLOCK>
 </PROGRAM>
 """

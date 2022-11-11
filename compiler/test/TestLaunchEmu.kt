@@ -11,7 +11,8 @@ class TestLaunchEmu: FunSpec({
     test("test launch virtualmachine via target") {
         val target = VMTarget()
         val tmpfile = kotlin.io.path.createTempFile(suffix=".p8ir")
-        tmpfile.writeText("""<PROGRAM NAME=test>
+        tmpfile.writeText("""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test">
 <OPTIONS>
 </OPTIONS>
 
@@ -30,7 +31,7 @@ class TestLaunchEmu: FunSpec({
 <INITGLOBALS>
 </INITGLOBALS>
 
-<BLOCK NAME=main ADDRESS=null ALIGN=NONE POS=[unittest: line 42 col 1-9]>
+<BLOCK NAME="main" ADDRESS="null" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
 </BLOCK>
 </PROGRAM>
 """)

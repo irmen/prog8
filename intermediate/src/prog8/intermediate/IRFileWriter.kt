@@ -8,14 +8,15 @@ import kotlin.io.path.div
 
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
-    private val out = outfile.bufferedWriter()
+    private val out = outfile.bufferedWriter(charset=Charsets.UTF_8)
     private var numChunks = 0
     private var numInstr = 0
 
 
     fun write(): Path {
         println("Writing intermediate representation to $outfile")
-        out.write("<PROGRAM NAME=${irProgram.name}>\n")
+        out.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
+        out.write("<PROGRAM NAME=\"${irProgram.name}\">\n")
         writeOptions()
         writeAsmSymbols()
         writeVariableAllocations()
@@ -44,12 +45,12 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
-            out.write("\n<BLOCK NAME=${block.name} ADDRESS=${block.address?.toHex()} ALIGN=${block.alignment} POS=${block.position}>\n")
+            out.write("\n<BLOCK NAME=\"${block.name}\" ADDRESS=\"${block.address?.toHex()}\" ALIGN=\"${block.alignment}\" POS=\"${block.position}\">\n")
             block.inlineAssembly.forEach {
                 writeInlineAsm(it)
             }
             block.subroutines.forEach {
-                out.write("<SUB NAME=${it.name} RETURNTYPE=${it.returnType.toString().lowercase()} POS=${it.position}>\n")
+                out.write("<SUB NAME=\"${it.name}\" RETURNTYPE=\"${it.returnType.toString().lowercase()}\" POS=\"${it.position}\">\n")
                 out.write("<PARAMS>\n")
                 it.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
                 out.write("</PARAMS>\n")
@@ -70,7 +71,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     if(reg.registerOrPair!=null) "${reg.registerOrPair}:${dt.toString().lowercase()}"
                     else "${reg.statusflag}:${dt.toString().lowercase()}"
                 }.joinToString(",")
-                out.write("<ASMSUB NAME=${it.name} ADDRESS=${it.address?.toHex()} CLOBBERS=$clobbers RETURNS=$returns POS=${it.position}>\n")
+                out.write("<ASMSUB NAME=\"${it.name}\" ADDRESS=\"${it.address?.toHex()}\" CLOBBERS=\"$clobbers\" RETURNS=\"$returns\" POS=\"${it.position}\">\n")
                 out.write("<PARAMS>\n")
                 it.parameters.forEach { (dt, regOrSf) ->
                     val reg = if(regOrSf.registerOrPair!=null) regOrSf.registerOrPair.toString()
@@ -87,7 +88,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
         if(chunk.label!=null)
-            out.write("<C LABEL=${chunk.label}>\n")
+            out.write("<C LABEL=\"${chunk.label}\">\n")
         else
             out.write("<C>\n")
         chunk.instructions.forEach { instr ->
@@ -99,7 +100,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
-        out.write("<BYTES LABEL=${chunk.label ?: ""}>\n")
+        out.write("<BYTES LABEL=\"${chunk.label ?: ""}\">\n")
         chunk.data.withIndex().forEach {(index, byte) ->
             out.write(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)
@@ -109,7 +110,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        out.write("<INLINEASM LABEL=${chunk.label ?: ""} IR=${chunk.isIR}>\n")
+        out.write("<INLINEASM LABEL=\"${chunk.label ?: ""}\" IR=\"${chunk.isIR}\">\n")
         out.write(chunk.assembly)
         out.write("\n</INLINEASM>\n")
     }
@@ -157,7 +158,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             if(it.number!=null)
                                 it.number!!.toInt().toHex()
                             else
-                                "&${it.addressOf!!.joinToString(".")}"
+                                "@${it.addressOf!!.joinToString(".")}"
                         }
                     } else {
                         ""     // array will be zero'd out at program start
@@ -172,7 +173,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("\n<MEMORYMAPPEDVARIABLES>\n")
         for (variable in irProgram.st.allMemMappedVariables()) {
             val typeStr = getTypeString(variable)
-            out.write("&$typeStr ${variable.name}=${variable.address.toHex()}\n")
+            out.write("@$typeStr ${variable.name}=${variable.address.toHex()}\n")
         }
         out.write("</MEMORYMAPPEDVARIABLES>\n")
 

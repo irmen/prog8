@@ -521,8 +521,8 @@ data class InstructionFormat(val datatype: IRDataType?,
 /*
   <X  =  X is not modified (input/readonly value)
   >X  =  X is overwritten with output value (output value)
-  <>X =  X is modified (input + output)
-  TODO: also encode if memory is read/written/modified?
+  <>X =  X is modified (read as input + written as output)
+  TODO: also encode if *memory* is read/written/modified?
  */
 @Suppress("BooleanLiteralArgument")
 val instructionFormats = mutableMapOf(

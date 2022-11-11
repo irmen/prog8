@@ -10,19 +10,34 @@ import kotlin.io.path.bufferedReader
 
 class IRFileReader {
 
-    fun read(irSourceCode: CharSequence): IRProgram {
+    fun read(irSourceCode: String): IRProgram {
+        // TODO parse the source via XML parser
+//        val isrc = InputSource(StringReader(irSourceCode))
+//        val xmlDoc: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(isrc)
+//        xmlDoc.normalizeDocument()
+//        println("ROOT NODE: ${xmlDoc.documentElement.nodeName}")    // TODO
+
         return parseProgram(irSourceCode.lineSequence().iterator())
     }
 
     fun read(irSourceFile: Path): IRProgram {
         println("Reading intermediate representation from $irSourceFile")
-        irSourceFile.bufferedReader().use { reader ->
+
+        // TODO parse the source via XML parser
+//        val xmlDoc: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(irSourceFile.toFile())
+//        xmlDoc.normalizeDocument()
+//        println("ROOT NODE: ${xmlDoc.documentElement.nodeName}")    // TODO
+
+        irSourceFile.bufferedReader(charset=Charsets.UTF_8).use { reader ->
             return parseProgram(reader.lineSequence().iterator())
         }
     }
 
     private fun parseProgram(lines: Iterator<String>): IRProgram {
-        val programPattern = Regex("<PROGRAM NAME=(.+)>")
+        val xmlheader = lines.next()
+        if(!xmlheader.startsWith("<?xml version=\"1.0\""))
+            throw IRParseException("missing xml header")
+        val programPattern = Regex("<PROGRAM NAME=\"(.+)\">")
         val line = lines.next()
         val match = programPattern.matchEntire(line) ?: throw IRParseException("invalid PROGRAM")
         val programName = match.groups[1]!!.value
@@ -171,7 +186,7 @@ class IRFileReader {
                     } else {
                         bss = false
                         initArray = value.split(',').map {
-                            if (it.startsWith('&'))
+                            if (it.startsWith('@'))
                                 StArrayElement(null, it.drop(1).split('.'))
                             else
                                 StArrayElement(parseIRValue(it).toDouble(), null)
@@ -194,7 +209,7 @@ class IRFileReader {
         if(line!="<MEMORYMAPPEDVARIABLES>")
             throw IRParseException("invalid MEMORYMAPPEDVARIABLES")
         val memvars = mutableListOf<StMemVar>()
-        val mappedPattern = Regex("&(.+?)(\\[.+?\\])? (.+)=(.+)")
+        val mappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
         while(true) {
             line = lines.next()
             if(line=="</MEMORYMAPPEDVARIABLES>")
@@ -286,11 +301,11 @@ class IRFileReader {
         return blocks
     }
 
-    private val blockPattern = Regex("<BLOCK NAME=(.+) ADDRESS=(.*) ALIGN=(.+) POS=(.+)>")
-    private val inlineAsmPattern = Regex("<INLINEASM LABEL=(.*) IR=(.+)>")
-    private val bytesPattern = Regex("<BYTES LABEL=(.*)>")
-    private val asmsubPattern = Regex("<ASMSUB NAME=(.+) ADDRESS=(.+) CLOBBERS=(.*) RETURNS=(.*) POS=(.+)>")
-    private val subPattern = Regex("<SUB NAME=(.+) RETURNTYPE=(.+) POS=(.+)>")
+    private val blockPattern = Regex("<BLOCK NAME=\"(.+)\" ADDRESS=\"(.*)\" ALIGN=\"(.+)\" POS=\"(.+)\">")
+    private val inlineAsmPattern = Regex("<INLINEASM LABEL=\"(.*)\" IR=\"(.+)\">")
+    private val bytesPattern = Regex("<BYTES LABEL=\"(.*)\">")
+    private val asmsubPattern = Regex("<ASMSUB NAME=\"(.+)\" ADDRESS=\"(.+)\" CLOBBERS=\"(.*)\" RETURNS=\"(.*)\" POS=\"(.+)\">")
+    private val subPattern = Regex("<SUB NAME=\"(.+)\" RETURNTYPE=\"(.+)\" POS=\"(.+)\">")
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
 
     private fun parseBlock(startline: String, lines: Iterator<String>): IRBlock {
@@ -445,8 +460,8 @@ class IRFileReader {
             else
                 throw IRParseException("invalid or empty <C>ODE chunk")
         }
-        val label = if(firstline.startsWith("<C LABEL="))
-            firstline.split('=', limit = 2)[1].dropLast(1)
+        val label = if(firstline.startsWith("<C LABEL=\""))
+            firstline.split('=', limit = 2)[1].dropLast(1).trim('"')
         else
             null
         val chunk = IRCodeChunk(label, null)

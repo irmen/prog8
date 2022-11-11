@@ -1,35 +1,18 @@
 %import textio
-%import psg
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        ubyte @shared variable
+        uword[] @shared ptrs = [&x1, &x2, &start, 4242, 4242]
+        ubyte x1
+        ubyte x2
 
-        sub nested() {
-            ubyte @shared variable2
-
-            variable2 = 33
-            nested()
-
-            sub nested() {
-                ubyte @shared variable3
-
-                variable3 = 33
-            }
-        }
-
-        nested()
-        explosion()
-    }
-
-    sub explosion() {
-        ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
-        psg.silent()
-        psg.voice(0, psg.LEFT, 63, psg.NOISE, 0)
-        psg.voice(1, psg.RIGHT, 63, psg.NOISE, 0)
-        psg.freq(0, 1000)
-        psg.freq(1, 2000)
+        txt.print_uwhex(ptrs[0], true)
+        txt.spc()
+        txt.print_uwhex(ptrs[1], true)
+        txt.spc()
+        txt.print_uwhex(ptrs[2], true)
+        txt.nl()
     }
 }
