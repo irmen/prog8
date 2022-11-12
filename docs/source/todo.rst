@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix IR/VM compiler crash:  subroutine address in array:     uword[] @shared ptrs = [&x1, &x2, &start]   + unit test
 - IRFileReader should parse the p8ir file with xml parser
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well.  This is already no problem at all in the IR codegen.
@@ -29,6 +28,7 @@ Compiler:
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
 - ir peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out!)
 - ir: add more optimizations in IRPeepholeOptimizer
+- vm: somehow be able to load a label address as value? (VmProgramLoader)
 - see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
   this is documented behavior to now loop around but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....

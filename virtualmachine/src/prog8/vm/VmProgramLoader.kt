@@ -48,7 +48,7 @@ class VmProgramLoader {
                             val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
                             chunkReplacements += replacement
                         }
-                        is IRInlineBinaryChunk -> TODO("inline binary data not yet supported in the VM")
+                        is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
                         is IRCodeChunk -> programChunks += chunk
                         else -> throw AssemblyError("weird chunk type")
                     }
@@ -153,11 +153,15 @@ class VmProgramLoader {
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
+                    val opcode = chunk.instructions[line].opcode
                     if(target==null)
                         throw IRParseException("placeholder not found in variables nor labels: $label")
-                    else {
-                        require(chunk.instructions[line].opcode in OpcodesThatBranch)
+                    else if(opcode in OpcodesThatBranch) {
                         chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, value = null)
+                    } else if(opcode in OpcodesWithMemoryAddressAsValue) {
+                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
+                    } else {
+                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
                     }
                 }
             } else {
@@ -244,7 +248,9 @@ class VmProgramLoader {
                         DataType.ARRAY_UW -> {
                             for(elt in it) {
                                 if(elt.addressOf!=null) {
-                                    val symbolAddress = symbolAddresses.getValue(elt.addressOf!!.joinToString("."))
+                                    val name = elt.addressOf!!.joinToString(".")
+                                    val symbolAddress = symbolAddresses[name]
+                                        ?: throw IRParseException("vm cannot yet load a label address as a value: ${name}") // TODO
                                     memory.setUW(addr, symbolAddress.toUShort())
                                 } else {
                                     memory.setUW(addr, elt.number!!.toInt().toUShort())

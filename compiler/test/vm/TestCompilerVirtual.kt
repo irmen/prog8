@@ -242,4 +242,32 @@ main {
         }
         exc.message shouldContain("does not support non-IR asmsubs")
     }
+
+    test("addresses from labels/subroutines not yet supported in VM") {
+        val src = """
+main {
+    sub start() {
+
+mylabel:
+        ubyte variable
+        uword @shared pointer1 = &main.start
+        uword @shared pointer2 = &start
+        uword @shared pointer3 = &main.start.mylabel
+        uword @shared pointer4 = &mylabel
+        uword[] @shared ptrs = [&variable, &start, &main.start, &mylabel, &main.start.mylabel]
+    }
+}
+
+"""
+        val othertarget = Cx16Target()
+        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+
+        val target = VMTarget()
+        val result = compileText(target, false, src, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val exc = shouldThrow<Exception> {
+            VmRunner().runProgram(virtfile.readText())
+        }
+        exc.message shouldContain("cannot yet load a label address as a value")
+    }
 })
