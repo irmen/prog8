@@ -109,8 +109,10 @@ class IRProgram(val name: String,
                                     chunk.next = next
                                 else if(next is IRInlineAsmChunk)
                                     chunk.next = next
+                                else if(next is IRInlineBinaryChunk)
+                                    chunk.next =next
                                 else
-                                    throw AssemblyError("code chunk flows into following non-executable chunk")
+                                    throw AssemblyError("code chunk followed by invalid chunk type $next")
                             }
                         }
 

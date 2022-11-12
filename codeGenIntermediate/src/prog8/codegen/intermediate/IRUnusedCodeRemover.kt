@@ -7,7 +7,15 @@ import prog8.intermediate.*
 
 internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val errors: IErrorReporter) {
     fun optimize(): Int {
-        var numRemoved = removeSimpleUnlinked() + removeUnreachable()
+        val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
+
+        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+            sub.chunks.forEach { chunk ->
+                chunk.label?.let { allLabeledChunks[it] = chunk }
+            }
+        }
+
+        var numRemoved = removeSimpleUnlinked(allLabeledChunks) + removeUnreachable(allLabeledChunks)
 
         // remove empty subs
         irprog.blocks.forEach { block ->
@@ -32,14 +40,19 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         return numRemoved
     }
 
-    private fun removeUnreachable(): Int {
+    private fun removeUnreachable(allLabeledChunks: MutableMap<String, IRCodeChunkBase>): Int {
         val reachable = mutableSetOf(irprog.blocks.single { it.name=="main" }.subroutines.single { it.name=="main.start" }.chunks.first())
 
         fun grow() {
             val new = mutableSetOf<IRCodeChunkBase>()
             reachable.forEach {
                 it.next?.let { next -> new += next }
-                it.instructions.forEach { instr -> instr.branchTarget?.let { target -> new += target} }
+                it.instructions.forEach { instr ->
+                    if (instr.branchTarget == null)
+                        instr.labelSymbol?.let { label -> allLabeledChunks[label]?.let { chunk -> new += chunk } }
+                    else
+                        new += instr.branchTarget!!
+                }
             }
             reachable += new
         }
@@ -55,13 +68,19 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         return removeUnlinkedChunks(reachable)
     }
 
-    private fun removeSimpleUnlinked(): Int {
+    private fun removeSimpleUnlinked(allLabeledChunks: Map<String, IRCodeChunkBase>): Int {
         val linkedChunks = mutableSetOf<IRCodeChunkBase>()
 
         irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
             sub.chunks.forEach { chunk ->
                 chunk.next?.let { next -> linkedChunks += next }
-                chunk.instructions.forEach { it.branchTarget?.let { target -> linkedChunks += target } }
+                chunk.instructions.forEach {
+                    if(it.branchTarget==null) {
+                        it.labelSymbol?.let { label -> allLabeledChunks[label]?.let { cc -> linkedChunks += cc } }
+                    } else {
+                        linkedChunks += it.branchTarget!!
+                    }
+                }
                 if (chunk.label == "main.start")
                     linkedChunks += chunk
             }
