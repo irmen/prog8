@@ -320,6 +320,7 @@ class IRFileReader {
                 "SUB" -> block += parseSubroutine(reader)
                 "ASMSUB" -> block += parseAsmSubroutine(reader)
                 "INLINEASM" -> block += parseInlineAssembly(reader)
+                "BYTES" -> block += parseBinaryBytes(reader)
                 else -> throw IRParseException("invalid line in BLOCK: ${reader.peek()}")
             }
             skipText(reader)

@@ -37,7 +37,7 @@ class VmProgramLoader {
             if(block.address!=null)
                 throw IRParseException("blocks cannot have a load address for vm: ${block.name}")
 
-            block.inlineAssembly.forEach {
+            block.inlineAssemblies.forEach {
                 val replacement = addAssemblyToProgram(it, programChunks, variableAddresses)
                 chunkReplacements += replacement
             }
@@ -61,6 +61,9 @@ class VmProgramLoader {
                     val replacement = addAssemblyToProgram(it.asmChunk, programChunks, variableAddresses)
                     chunkReplacements += replacement
                 }
+            }
+            block.inlineBinaries.forEach {
+                throw IRParseException("inline binary data not yet supported in the VM")  // TODO
             }
         }
 

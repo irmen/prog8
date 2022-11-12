@@ -46,7 +46,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
             out.write("\n<BLOCK NAME=\"${block.name}\" ADDRESS=\"${block.address?.toHex()}\" ALIGN=\"${block.alignment}\" POS=\"${block.position}\">\n")
-            block.inlineAssembly.forEach {
+            block.inlineAssemblies.forEach {
                 writeInlineAsm(it)
             }
             block.subroutines.forEach {
@@ -81,6 +81,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 out.write("</ASMPARAMS>\n")
                 writeInlineAsm(it.asmChunk)
                 out.write("</ASMSUB>\n")
+            }
+            block.inlineBinaries.forEach {
+                writeInlineBytes(it)
             }
             out.write("</BLOCK>\n")
         }

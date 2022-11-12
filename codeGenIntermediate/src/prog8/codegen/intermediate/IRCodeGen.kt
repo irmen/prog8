@@ -75,12 +75,12 @@ class IRCodeGen(
         // make sure that first chunks in Blocks and Subroutines share the name of the block/sub as label.
 
         irProg.blocks.forEach { block ->
-            if(block.inlineAssembly.isNotEmpty()) {
-                val first = block.inlineAssembly.first()
+            if(block.inlineAssemblies.isNotEmpty()) {
+                val first = block.inlineAssemblies.first()
                 if(first.label==null) {
                     val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.next)
-                    block.inlineAssembly.removeAt(0)
-                    block.inlineAssembly.add(0, replacement)
+                    block.inlineAssemblies.removeAt(0)
+                    block.inlineAssemblies.add(0, replacement)
                 } else if(first.label != block.name) {
                     throw AssemblyError("first chunk in block has label that differs from block name")
                 }

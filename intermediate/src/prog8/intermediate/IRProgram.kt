@@ -80,8 +80,9 @@ class IRProgram(val name: String,
             if(globalInits.next==null) {
                 val firstBlock = blocks.firstOrNull()
                 if(firstBlock!=null) {
-                    if(firstBlock.inlineAssembly.isNotEmpty()) {
-                        globalInits.next = firstBlock.inlineAssembly.first()
+                    // TODO what is the first chunk in a block?
+                    if(firstBlock.inlineAssemblies.isNotEmpty()) {
+                        globalInits.next = firstBlock.inlineAssemblies.first()
                     } else if(firstBlock.subroutines.isNotEmpty()) {
                         val firstSub = firstBlock.subroutines.first()
                         if(firstSub.chunks.isNotEmpty())
@@ -140,10 +141,11 @@ class IRProgram(val name: String,
 
     fun validate() {
         blocks.forEach { block ->
-            if(block.inlineAssembly.isNotEmpty()) {
-                require(block.inlineAssembly.first().label == block.name) { "first block chunk should have block name as its label" }
+            // TODO what is the *first* chunk in the block?
+            if(block.inlineAssemblies.isNotEmpty()) {
+                require(block.inlineAssemblies.first().label == block.name) { "first block chunk should have block name as its label" }
             }
-            block.inlineAssembly.forEach { chunk ->
+            block.inlineAssemblies.forEach { chunk ->
                 require(chunk.instructions.isEmpty())
             }
             block.subroutines.forEach { sub ->
@@ -187,7 +189,7 @@ class IRProgram(val name: String,
 
         globalInits.instructions.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
         blocks.forEach {
-            it.inlineAssembly.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+            it.inlineAssemblies.forEach { chunk -> addUsed(chunk.usedRegisters()) }
             it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
             it.asmSubroutines.forEach { asmsub -> addUsed(asmsub.usedRegisters()) }
         }
@@ -202,10 +204,11 @@ class IRBlock(
     val alignment: BlockAlignment,
     val position: Position
 ) {
-    // TODO not separate lists but just a single list of chunks, like IRSubroutine?
-    val inlineAssembly = mutableListOf<IRInlineAsmChunk>()
+    // TODO not separate lists but just a single list of chunks, like IRSubroutine?  (but these are not all chunks...)
+    val inlineAssemblies = mutableListOf<IRInlineAsmChunk>()
     val subroutines = mutableListOf<IRSubroutine>()
     val asmSubroutines = mutableListOf<IRAsmSubroutine>()
+    val inlineBinaries = mutableListOf<IRInlineBinaryChunk>()
 
     enum class BlockAlignment {
         NONE,
@@ -217,14 +220,15 @@ class IRBlock(
         subroutines += sub
     }
     operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
-    operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssembly += asm }
-    operator fun plusAssign(binary: IRInlineBinaryChunk) { TODO("IR BLOCK can't contain inline binary data yet") }
+    operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssemblies += asm }
+    operator fun plusAssign(binary: IRInlineBinaryChunk) { inlineBinaries += binary }
 
     fun isEmpty(): Boolean {
-        val noAsm = inlineAssembly.isEmpty() || inlineAssembly.all { it.isEmpty() }
+        val noAsm = inlineAssemblies.isEmpty() || inlineAssemblies.all { it.isEmpty() }
         val noSubs = subroutines.isEmpty() || subroutines.all { it.isEmpty() }
         val noAsmSubs = asmSubroutines.isEmpty() || asmSubroutines.all { it.isEmpty() }
-        return noAsm && noSubs && noAsmSubs
+        val noBins = inlineBinaries.isEmpty() || inlineBinaries.all { it.isEmpty() }
+        return noAsm && noSubs && noAsmSubs && noBins
     }
 }
 
