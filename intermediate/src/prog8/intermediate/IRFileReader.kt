@@ -3,51 +3,52 @@ package prog8.intermediate
 import prog8.code.*
 import prog8.code.core.*
 import prog8.code.target.*
+import java.io.StringReader
 import java.nio.file.Path
+import javax.xml.stream.XMLEventReader
+import javax.xml.stream.XMLInputFactory
 import kotlin.io.path.Path
-import kotlin.io.path.bufferedReader
+import kotlin.io.path.inputStream
 
 
 class IRFileReader {
 
     fun read(irSourceCode: String): IRProgram {
-        // TODO parse the source via XML parser
-//        val isrc = InputSource(StringReader(irSourceCode))
-//        val xmlDoc: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(isrc)
-//        xmlDoc.normalizeDocument()
-//        println("ROOT NODE: ${xmlDoc.documentElement.nodeName}")    // TODO
-
-        return parseProgram(irSourceCode.lineSequence().iterator())
+        StringReader(irSourceCode).use { stream ->
+            val reader = XMLInputFactory.newInstance().createXMLEventReader(stream)
+            try {
+                return parseProgram(reader)
+            } finally {
+                reader.close()
+            }
+        }
     }
 
     fun read(irSourceFile: Path): IRProgram {
         println("Reading intermediate representation from $irSourceFile")
 
-        // TODO parse the source via XML parser
-//        val xmlDoc: Document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(irSourceFile.toFile())
-//        xmlDoc.normalizeDocument()
-//        println("ROOT NODE: ${xmlDoc.documentElement.nodeName}")    // TODO
-
-        irSourceFile.bufferedReader(charset=Charsets.UTF_8).use { reader ->
-            return parseProgram(reader.lineSequence().iterator())
+        irSourceFile.inputStream().use { stream ->
+            val reader = XMLInputFactory.newInstance().createXMLEventReader(stream)
+            try {
+                return parseProgram(reader)
+            } finally {
+                reader.close()
+            }
         }
     }
 
-    private fun parseProgram(lines: Iterator<String>): IRProgram {
-        val xmlheader = lines.next()
-        if(!xmlheader.startsWith("<?xml version=\"1.0\""))
-            throw IRParseException("missing xml header")
-        val programPattern = Regex("<PROGRAM NAME=\"(.+)\">")
-        val line = lines.next()
-        val match = programPattern.matchEntire(line) ?: throw IRParseException("invalid PROGRAM")
-        val programName = match.groups[1]!!.value
-        val options = parseOptions(lines)
-        val asmsymbols = parseAsmSymbols(lines)
-        val variables = parseVariables(lines, options.dontReinitGlobals)
-        val memorymapped = parseMemMapped(lines)
-        val slabs = parseSlabs(lines)
-        val initGlobals = parseInitGlobals(lines)
-        val blocks = parseBlocksUntilProgramEnd(lines)
+    private fun parseProgram(reader: XMLEventReader): IRProgram {
+        require(reader.nextEvent().isStartDocument)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="PROGRAM") { "missing PROGRAM" }
+        val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
+        val options = parseOptions(reader)
+        val asmsymbols = parseAsmSymbols(reader)
+        val variables = parseVariables(reader, options.dontReinitGlobals)
+        val memorymapped = parseMemMapped(reader)
+        val slabs = parseSlabs(reader)
+        val initGlobals = parseInitGlobals(reader)
+        val blocks = parseBlocksUntilProgramEnd(reader)
 
         val st = IRSymbolTable(null)
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
@@ -65,26 +66,13 @@ class IRFileReader {
         return program
     }
 
-    private fun parseAsmSymbols(lines: Iterator<String>): Map<String, String> {
-        val symbols = mutableMapOf<String, String>()
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
-        if(line!="<ASMSYMBOLS>")
-            throw IRParseException("invalid ASMSYMBOLS")
-        while(true) {
-            line = lines.next()
-            if(line=="</ASMSYMBOLS>")
-                return symbols
-            val (name, value) = line.split('=')
-            symbols[name] = value
-        }
-    }
+    private fun parseOptions(reader: XMLEventReader): CompilationOptions {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="OPTIONS") { "missing OPTIONS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
 
-    private fun parseOptions(lines: Iterator<String>): CompilationOptions {
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
         var target: ICompilationTarget = VMTarget()
         var outputType = OutputType.PRG
         var launcher = CbmPrgLauncherType.NONE
@@ -95,37 +83,35 @@ class IRFileReader {
         var optimize = true
         var evalStackBaseAddress: UInt? = null
         var outputDir = Path("")
-        if(line!="<OPTIONS>")
-            throw IRParseException("invalid OPTIONS")
-        while(true) {
-            line = lines.next()
-            if(line=="</OPTIONS>")
-                break
-            val (name, value) = line.split('=', limit=2)
-            when(name) {
-                "compTarget" -> {
-                    target = when(value) {
-                        VMTarget.NAME -> VMTarget()
-                        C64Target.NAME -> C64Target()
-                        C128Target.NAME -> C128Target()
-                        AtariTarget.NAME -> AtariTarget()
-                        Cx16Target.NAME -> Cx16Target()
-                        else -> throw IRParseException("invalid target $value")
+
+        if(text.isNotBlank()) {
+            text.lineSequence().forEach { line ->
+                val (name, value) = line.split('=', limit=2)
+                when(name) {
+                    "compTarget" -> {
+                        target = when(value) {
+                            VMTarget.NAME -> VMTarget()
+                            C64Target.NAME -> C64Target()
+                            C128Target.NAME -> C128Target()
+                            AtariTarget.NAME -> AtariTarget()
+                            Cx16Target.NAME -> Cx16Target()
+                            else -> throw IRParseException("invalid target $value")
+                        }
                     }
+                    "output" -> outputType = OutputType.valueOf(value)
+                    "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
+                    "zeropage" -> zeropage = ZeropageType.valueOf(value)
+                    "loadAddress" -> loadAddress = value.toUInt()
+                    "dontReinitGlobals" -> dontReinitGlobals = value.toBoolean()
+                    "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
+                    "zpReserved" -> {
+                        val (zpstart, zpend) = value.split(',')
+                        zpReserved.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
+                    }
+                    "outputDir" -> outputDir = Path(value)
+                    "optimize" -> optimize = value.toBoolean()
+                    else -> throw IRParseException("illegal OPTION $name")
                 }
-                "output" -> outputType = OutputType.valueOf(value)
-                "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
-                "zeropage" -> zeropage = ZeropageType.valueOf(value)
-                "loadAddress" -> loadAddress = value.toUInt()
-                "dontReinitGlobals" -> dontReinitGlobals = value.toBoolean()
-                "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
-                "zpReserved" -> {
-                    val (start, end) = value.split(',')
-                    zpReserved.add(UIntRange(start.toUInt(), end.toUInt()))
-                }
-                "outputDir" -> outputDir = Path(value)
-                "optimize" -> optimize = value.toBoolean()
-                else -> throw IRParseException("illegal OPTION $name")
             }
         }
 
@@ -145,85 +131,317 @@ class IRFileReader {
         )
     }
 
-    private fun parseVariables(lines: Iterator<String>, dontReinitGlobals: Boolean): List<StStaticVariable> {
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
-        if(line!="<VARIABLES>")
-            throw IRParseException("invalid VARIABLES")
-        val variables = mutableListOf<StStaticVariable>()
-        val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) (zp=(.+))?")
-        while(true) {
-            line = lines.next()
-            if(line=="</VARIABLES>")
-                break
-            // examples:
-            // uword main.start.qq2=0 zp=REQUIRE_ZP
-            // ubyte[6] main.start.namestring=105,114,109,101,110,0
-            val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
-            val (type, arrayspec, name, value, _, zpwish) = match.destructured
-            val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-            val dt: DataType = parseDatatype(type, arraysize!=null)
-            val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-            val bss: Boolean
-            var initNumeric: Double? = null
-            var initArray: StArray? = null
-            when(dt) {
-                in NumericDatatypes -> {
-                    if(value.isBlank()) {
-                        require(!dontReinitGlobals)
-                        bss = true
-                    } else {
-                        require(dontReinitGlobals)
-                        bss = false
-                        initNumeric = parseIRValue(value).toDouble()
-                    }
-                }
-                in ArrayDatatypes -> {
-                    if(value.isBlank()) {
-                        bss = true
-                        initArray = emptyList()
-                    } else {
-                        bss = false
-                        initArray = value.split(',').map {
-                            if (it.startsWith('@'))
-                                StArrayElement(null, it.drop(1).split('.'))
-                            else
-                                StArrayElement(parseIRValue(it).toDouble(), null)
-                        }
-                    }
-                }
-                DataType.STR -> throw IRParseException("STR should have been converted to byte array")
-                else -> throw IRParseException("weird dt")
-            }
+    private fun parseAsmSymbols(reader: XMLEventReader): Map<String, String> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="ASMSYMBOLS") { "missing ASMSYMBOLS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
 
-            variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
-        }
-        return variables
+        return if(text.isBlank())
+            emptyMap()
+        else
+            text.lineSequence().associate {
+                val (name, value) = it.split('=')
+                name to value
+            }
     }
 
-    private fun parseMemMapped(lines: Iterator<String>): List<StMemVar> {
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
-        if(line!="<MEMORYMAPPEDVARIABLES>")
-            throw IRParseException("invalid MEMORYMAPPEDVARIABLES")
-        val memvars = mutableListOf<StMemVar>()
-        val mappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
-        while(true) {
-            line = lines.next()
-            if(line=="</MEMORYMAPPEDVARIABLES>")
-                break
-            // examples:
-            // &uword main.start.mapped=49152
-            // &ubyte[20] main.start.mappedarray=49408
-            val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPEDVARIABLES $line")
-            val (type, arrayspec, name, address) = match.destructured
-            val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-            val dt: DataType = parseDatatype(type, arraysize!=null)
-            memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, Position.DUMMY))
+    private fun parseVariables(reader: XMLEventReader, dontReinitGlobals: Boolean): List<StStaticVariable> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="VARIABLES") { "missing VARIABLES" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) (zp=(.+))?")
+            val variables = mutableListOf<StStaticVariable>()
+            text.lineSequence().forEach { line ->
+                // examples:
+                // uword main.start.qq2=0 zp=REQUIRE_ZP
+                // ubyte[6] main.start.namestring=105,114,109,101,110,0
+                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
+                val (type, arrayspec, name, value, _, zpwish) = match.destructured
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+                val bss: Boolean
+                var initNumeric: Double? = null
+                var initArray: StArray? = null
+                when(dt) {
+                    in NumericDatatypes -> {
+                        if(value.isBlank()) {
+                            require(!dontReinitGlobals)
+                            bss = true
+                        } else {
+                            require(dontReinitGlobals)
+                            bss = false
+                            initNumeric = parseIRValue(value).toDouble()
+                        }
+                    }
+                    in ArrayDatatypes -> {
+                        if(value.isBlank()) {
+                            bss = true
+                            initArray = emptyList()
+                        } else {
+                            bss = false
+                            initArray = value.split(',').map {
+                                if (it.startsWith('@'))
+                                    StArrayElement(null, it.drop(1).split('.'))
+                                else
+                                    StArrayElement(parseIRValue(it).toDouble(), null)
+                            }
+                        }
+                    }
+                    DataType.STR -> throw IRParseException("STR should have been converted to byte array")
+                    else -> throw IRParseException("weird dt")
+                }
+
+                variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
+            }
+            return variables
         }
-        return memvars
+    }
+
+    private fun parseMemMapped(reader: XMLEventReader): List<StMemVar> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="MEMORYMAPPEDVARIABLES") { "missing MEMORYMAPPEDVARIABLES" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            val memvars = mutableListOf<StMemVar>()
+            val mappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
+            text.lineSequence().forEach { line ->
+                // examples:
+                // @uword main.start.mapped=49152
+                // @ubyte[20] main.start.mappedarray=49408
+                val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPEDVARIABLES $line")
+                val (type, arrayspec, name, address) = match.destructured
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val dt: DataType = parseDatatype(type, arraysize!=null)
+                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, Position.DUMMY))
+            }
+            memvars
+        }
+    }
+
+    private fun parseSlabs(reader: XMLEventReader): List<StMemorySlab> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="MEMORYSLABS") { "missing MEMORYSLABS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            val slabs = mutableListOf<StMemorySlab>()
+            val slabPattern = Regex("SLAB (.+) (.+) (.+)")
+            text.lineSequence().forEach { line ->
+                // example: "SLAB slabname 4096 0"
+                val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
+                val (name, size, align) = match.destructured
+                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), Position.DUMMY))
+            }
+            slabs
+        }
+    }
+
+    private fun parseInitGlobals(reader: XMLEventReader): IRCodeChunk {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="INITGLOBALS") { "missing INITGLOBALS" }
+        skipText(reader)
+        val chunk: IRCodeChunk = if(reader.peek().isStartElement)
+            parseCodeChunk(reader)
+        else
+            IRCodeChunk(null, null)
+        skipText(reader)
+        require(reader.nextEvent().isEndElement)
+        return chunk
+    }
+
+    private fun parseCodeChunk(reader: XMLEventReader): IRCodeChunk {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="C") { "missing C" }
+        val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
+        val text = readText(reader).trim()
+        val chunk = IRCodeChunk(label, null)
+        if(text.isNotBlank()) {
+            text.lineSequence().forEach { line ->
+                if (line.isNotBlank() && !line.startsWith(';')) {
+                    val result = parseIRCodeLine(line, null, mutableMapOf())
+                    result.fold(
+                        ifLeft = {
+                            chunk += it
+                        },
+                        ifRight = {
+                            throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
+                        }
+                    )
+                }
+            }
+        }
+        require(reader.nextEvent().isEndElement)
+        return chunk
+    }
+
+    private fun parseBlocksUntilProgramEnd(reader: XMLEventReader): List<IRBlock> {
+        val blocks = mutableListOf<IRBlock>()
+        skipText(reader)
+        while(reader.peek().isStartElement) {
+            blocks.add(parseBlock(reader))
+            skipText(reader)
+        }
+        return blocks
+    }
+
+    private fun parseBlock(reader: XMLEventReader): IRBlock {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="BLOCK") { "missing BLOCK" }
+        val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
+        val block = IRBlock(
+            attrs.getValue("NAME"),
+            if(attrs.getValue("ADDRESS")=="null") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+            IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN")),
+            parsePosition(attrs.getValue("POS")))
+        skipText(reader)
+        while(reader.peek().isStartElement) {
+            when(reader.peek().asStartElement().name.localPart) {
+                "SUB" -> block += parseSubroutine(reader)
+                "ASMSUB" -> block += parseAsmSubroutine(reader)
+                "INLINEASM" -> block += parseInlineAssembly(reader)
+                else -> throw IRParseException("invalid line in BLOCK: ${reader.peek()}")
+            }
+            skipText(reader)
+        }
+        require(reader.nextEvent().isEndElement)
+        return block
+    }
+
+    private fun parseSubroutine(reader: XMLEventReader): IRSubroutine {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="SUB") { "missing SUB" }
+        val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
+        val returntype = attrs.getValue("RETURNTYPE")
+        skipText(reader)
+        val sub = IRSubroutine(attrs.getValue("NAME"),
+            parseParameters(reader),
+            if(returntype=="null") null else parseDatatype(returntype, false),
+            parsePosition(attrs.getValue("POS")))
+
+        skipText(reader)
+        while(reader.peek().isStartElement) {
+            when(reader.peek().asStartElement().name.localPart) {
+                "C" -> sub += parseCodeChunk(reader)
+                "BYTES" -> sub += parseBinaryBytes(reader)
+                "INLINEASM" -> sub += parseInlineAssembly(reader)
+                else -> throw IRParseException("invalid line in SUB: ${reader.peek()}")
+            }
+            skipText(reader)
+        }
+
+        require(reader.nextEvent().isEndElement)
+        return sub
+    }
+
+    private fun parseParameters(reader: XMLEventReader): List<IRSubroutine.IRParam> {
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="PARAMS") { "missing PARAMS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            text.lines().map { line ->
+                val (datatype, name) = line.split(' ')
+                val dt = parseDatatype(datatype, datatype.contains('['))
+                // val orig = variables.single { it.dt==dt && it.name==name}
+                IRSubroutine.IRParam(name, dt)
+            }
+        }
+    }
+
+    private fun parseBinaryBytes(reader: XMLEventReader): IRInlineBinaryChunk {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="BYTES") { "missing BYTES" }
+        val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
+        val text = readText(reader).replace("\n", "")
+        require(reader.nextEvent().isEndElement)
+
+        val bytes = text.windowed(2, step = 2).map { it.toUByte(16) }
+        return IRInlineBinaryChunk(label, bytes, null)
+    }
+
+    private fun parseAsmSubroutine(reader: XMLEventReader): IRAsmSubroutine {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="ASMSUB") { "missing ASMSUB" }
+        val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
+        val params = parseAsmParameters(reader)
+        val assembly = parseInlineAssembly(reader)
+        skipText(reader)
+        require(reader.nextEvent().isEndElement)
+
+        val clobbers = attrs.getValue("CLOBBERS")
+        val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
+        val returns = attrs.getValue("RETURNS").split(',').map { rs ->
+            val (regstr, dtstr) = rs.split(':')
+            val dt = parseDatatype(dtstr, false)
+            val regsf = parseRegisterOrStatusflag(regstr)
+            IRAsmSubroutine.IRAsmParam(regsf, dt)
+        }
+        return IRAsmSubroutine(
+            attrs.getValue("NAME"),
+            if(attrs.getValue("ADDRESS")=="null") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+            clobberRegs.toSet(),
+            params,
+            returns,
+            assembly,
+            parsePosition(attrs.getValue("POS"))
+        )
+    }
+
+    private fun parseAsmParameters(reader: XMLEventReader): List<IRAsmSubroutine.IRAsmParam> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="ASMPARAMS") { "missing ASMPARAMS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            text.lines().map { line ->
+                val (datatype, regOrSf) = line.split(' ')
+                val dt = parseDatatype(datatype, datatype.contains('['))
+                val regsf = parseRegisterOrStatusflag(regOrSf)
+                IRAsmSubroutine.IRAsmParam(regsf, dt)
+            }
+        }
+    }
+
+    private fun parseInlineAssembly(reader: XMLEventReader): IRInlineAsmChunk {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="INLINEASM") { "missing INLINEASM" }
+        val label = start.attributes.asSequence().single { it.name.localPart == "LABEL" }.value.ifBlank { null }
+        val isIr = start.attributes.asSequence().single { it.name.localPart == "IR" }.value.toBoolean()
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+        return IRInlineAsmChunk(label, text, isIr, null)
     }
 
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
@@ -251,238 +469,6 @@ class IRFileReader {
         }
     }
 
-    private fun parseSlabs(lines: Iterator<String>): List<StMemorySlab> {
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
-        if(line!="<MEMORYSLABS>")
-            throw IRParseException("invalid MEMORYSLABS")
-        val slabs = mutableListOf<StMemorySlab>()
-        val slabPattern = Regex("SLAB (.+) (.+) (.+)")
-        while(true) {
-            line = lines.next()
-            if(line=="</MEMORYSLABS>")
-                break
-            // example: "SLAB slabname 4096 0"
-            val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
-            val (name, size, align) = match.destructured
-            slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), Position.DUMMY))
-        }
-        return slabs
-    }
-
-    private fun parseInitGlobals(lines: Iterator<String>): IRCodeChunk {
-        var line = lines.next()
-        while(line.isBlank())
-            line = lines.next()
-        if(line!="<INITGLOBALS>")
-            throw IRParseException("invalid INITGLOBALS")
-        line = lines.next()
-        var chunk = IRCodeChunk(null, null)
-        if(line=="<C>") {
-            chunk = parseCodeChunk(line, lines)!!
-            line = lines.next()
-        }
-        if(line!="</INITGLOBALS>")
-            throw IRParseException("missing INITGLOBALS close tag")
-        return chunk
-    }
-
-    private fun parseBlocksUntilProgramEnd(lines: Iterator<String>): List<IRBlock> {
-        val blocks = mutableListOf<IRBlock>()
-        while(true) {
-            var line = lines.next()
-            while (line.isBlank())
-                line = lines.next()
-            if (line == "</PROGRAM>")
-                break
-            blocks.add(parseBlock(line, lines))
-        }
-        return blocks
-    }
-
-    private val blockPattern = Regex("<BLOCK NAME=\"(.+)\" ADDRESS=\"(.*)\" ALIGN=\"(.+)\" POS=\"(.+)\">")
-    private val inlineAsmPattern = Regex("<INLINEASM LABEL=\"(.*)\" IR=\"(.+)\">")
-    private val bytesPattern = Regex("<BYTES LABEL=\"(.*)\">")
-    private val asmsubPattern = Regex("<ASMSUB NAME=\"(.+)\" ADDRESS=\"(.+)\" CLOBBERS=\"(.*)\" RETURNS=\"(.*)\" POS=\"(.+)\">")
-    private val subPattern = Regex("<SUB NAME=\"(.+)\" RETURNTYPE=\"(.+)\" POS=\"(.+)\">")
-    private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
-
-    private fun parseBlock(startline: String, lines: Iterator<String>): IRBlock {
-        var line = startline
-        if(!line.startsWith("<BLOCK "))
-            throw IRParseException("invalid BLOCK")
-        val match = blockPattern.matchEntire(line) ?: throw IRParseException("invalid BLOCK")
-        val (name, address, align, position) = match.destructured
-        val addressNum = if(address=="null") null else parseIRValue(address).toUInt()
-        val block = IRBlock(name, addressNum, IRBlock.BlockAlignment.valueOf(align), parsePosition(position))
-        while(true) {
-            line = lines.next()
-            if(line.isBlank())
-                continue
-            if(line=="</BLOCK>")
-                return block
-            if(line.startsWith("<SUB ")) {
-                val sub = parseSubroutine(line, lines)
-                block += sub
-            } else if(line.startsWith("<ASMSUB ")) {
-                val sub = parseAsmSubroutine(line, lines)
-                block += sub
-            } else if(line.startsWith("<INLINEASM ")) {
-                val asm = parseInlineAssembly(line, lines)
-                block += asm
-            } else
-                throw IRParseException("invalid line in BLOCK")
-        }
-    }
-
-    private fun parseInlineAssembly(startline: String, lines: Iterator<String>): IRInlineAsmChunk {
-        // <INLINEASM LABEL=optional-label IR=true>
-        val match = inlineAsmPattern.matchEntire(startline) ?: throw IRParseException("invalid INLINEASM")
-        val label = match.groupValues[1]
-        val isIr = match.groupValues[2].toBoolean()
-        val asmlines = mutableListOf<String>()
-        var line = lines.next()
-        while(line!="</INLINEASM>") {
-            asmlines.add(line)
-            line = lines.next()
-        }
-        return IRInlineAsmChunk(label, asmlines.joinToString("\n"), isIr, null)
-    }
-
-    private fun parseAsmSubroutine(startline: String, lines: Iterator<String>): IRAsmSubroutine {
-        // <ASMSUB NAME=main.testasmsub ADDRESS=null CLOBBERS=A,Y POS=[examples/test.p8: line 14 col 6-11]>
-        val match = asmsubPattern.matchEntire(startline) ?: throw IRParseException("invalid ASMSUB")
-        val (scopedname, address, clobbers, returnSpec, pos) = match.destructured
-        // parse PARAMS
-        var line = lines.next()
-        if(line!="<PARAMS>")
-            throw IRParseException("missing PARAMS")
-        val params = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
-        while(true) {
-            line = lines.next()
-            if(line=="</PARAMS>")
-                break
-            val (datatype, regOrSf) = line.split(' ')
-            val dt = parseDatatype(datatype, datatype.contains('['))
-            val regsf = parseRegisterOrStatusflag(regOrSf)
-            params += Pair(dt, regsf)
-        }
-        line = lines.next()
-        val asm = parseInlineAssembly(line, lines)
-        while(line!="</ASMSUB>")
-            line = lines.next()
-        val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
-        val returns = mutableListOf<Pair<DataType, RegisterOrStatusflag>>()
-        returnSpec.split(',').forEach{ rs ->
-            val (regstr, dtstr) = rs.split(':')
-            val dt = parseDatatype(dtstr, false)
-            val regsf = parseRegisterOrStatusflag(regstr)
-            returns.add(Pair(dt, regsf))
-        }
-        return IRAsmSubroutine(
-            scopedname,
-            if(address=="null") null else parseIRValue(address).toUInt(),
-            clobberRegs.toSet(),
-            params,
-            returns,
-            asm,
-            parsePosition(pos)
-        )
-    }
-
-    private fun parseSubroutine(startline: String, lines: Iterator<String>): IRSubroutine {
-        // <SUB NAME=main.start.nested.nested2 RETURNTYPE=null POS=[examples/test.p8: line 54 col 14-16]>
-        val match = subPattern.matchEntire(startline) ?: throw IRParseException("invalid SUB")
-        val (name, returntype, pos) = match.destructured
-        val sub = IRSubroutine(name,
-            parseParameters(lines),
-            if(returntype=="null") null else parseDatatype(returntype, false),
-            parsePosition(pos))
-        while(true) {
-            val line = lines.next()
-            if(line=="</SUB>")
-                return sub
-            val chunk = if(line.startsWith("<C"))
-                parseCodeChunk(line, lines)
-            else if(line.startsWith("<BYTES "))
-                parseBinaryBytes(line, lines)
-            else if(line.startsWith("<INLINEASM "))
-                parseInlineAssembly(line, lines)
-            else
-                throw IRParseException("invalid sub child node")
-
-            if (chunk == null)
-                break
-            else
-                sub += chunk
-        }
-        val line = lines.next()
-        if(line=="</SUB>")
-            throw IRParseException("missing SUB close tag")
-        return sub
-    }
-
-    private fun parseBinaryBytes(startline: String, lines: Iterator<String>): IRInlineBinaryChunk {
-        val match = bytesPattern.matchEntire(startline) ?: throw IRParseException("invalid BYTES")
-        val label = match.groupValues[1]
-        val bytes = mutableListOf<UByte>()
-        var line = lines.next()
-        while(line!="</BYTES>") {
-            line.trimEnd().windowed(size=2, step=2) {
-                bytes.add(it.toString().toUByte(16))
-            }
-            line = lines.next()
-        }
-        return IRInlineBinaryChunk(label, bytes, null)
-    }
-
-    private fun parseParameters(lines: Iterator<String>): List<IRSubroutine.IRParam> {
-        var line = lines.next()
-        if(line!="<PARAMS>")
-            throw IRParseException("missing PARAMS")
-        val params = mutableListOf<IRSubroutine.IRParam>()
-        while(true) {
-            line = lines.next()
-            if(line=="</PARAMS>")
-                return params
-            val (datatype, name) = line.split(' ')
-            val dt = parseDatatype(datatype, datatype.contains('['))
-            // val orig = variables.single { it.dt==dt && it.name==name}
-            params.add(IRSubroutine.IRParam(name, dt))
-        }
-    }
-
-    private fun parseCodeChunk(firstline: String, lines: Iterator<String>): IRCodeChunk? {
-        if(!firstline.startsWith("<C")) {
-            if(firstline=="</SUB>")
-                return null
-            else
-                throw IRParseException("invalid or empty <C>ODE chunk")
-        }
-        val label = if(firstline.startsWith("<C LABEL=\""))
-            firstline.split('=', limit = 2)[1].dropLast(1).trim('"')
-        else
-            null
-        val chunk = IRCodeChunk(label, null)
-        while(true) {
-            val line = lines.next()
-            if (line == "</C>")
-                return chunk
-            if (line.isBlank() || line.startsWith(';'))
-                continue
-            val result = parseIRCodeLine(line, null, mutableMapOf())
-            result.fold(
-                ifLeft = {
-                    chunk += it
-                },
-                ifRight = {
-                    throw IRParseException("code chunk should not contain a separate label line anymore, this should be the proper label of a new separate chunk")
-                }
-            )
-        }
-    }
-
     private fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {
         var reg: RegisterOrPair? = null
         var sf: Statusflag? = null
@@ -494,6 +480,8 @@ class IRFileReader {
         return RegisterOrStatusflag(reg, sf)
     }
 
+    private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
+
     private fun parsePosition(strpos: String): Position {
         // example: "[library:/prog8lib/virtual/textio.p8: line 5 col 2-4]"
         val match = posPattern.matchEntire(strpos) ?: throw IRParseException("invalid Position")
@@ -501,4 +489,16 @@ class IRFileReader {
         return Position(file, line.toInt(), startCol.toInt(), endCol.toInt())
     }
 
+    private fun readText(reader: XMLEventReader): String {
+        val sb = StringBuilder()
+        while(reader.peek().isCharacters) {
+            sb.append(reader.nextEvent().asCharacters().data)
+        }
+        return sb.toString()
+    }
+
+    private fun skipText(reader: XMLEventReader) {
+        while(reader.peek().isCharacters)
+            reader.nextEvent()
+    }
 }

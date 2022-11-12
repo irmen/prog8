@@ -67,18 +67,18 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             block.asmSubroutines.forEach {
                 val clobbers = it.clobbers.joinToString(",")
-                val returns = it.returns.map { (dt, reg) ->
-                    if(reg.registerOrPair!=null) "${reg.registerOrPair}:${dt.toString().lowercase()}"
-                    else "${reg.statusflag}:${dt.toString().lowercase()}"
+                val returns = it.returns.map { ret ->
+                    if(ret.reg.registerOrPair!=null) "${ret.reg.registerOrPair}:${ret.dt.toString().lowercase()}"
+                    else "${ret.reg.statusflag}:${ret.dt.toString().lowercase()}"
                 }.joinToString(",")
                 out.write("<ASMSUB NAME=\"${it.name}\" ADDRESS=\"${it.address?.toHex()}\" CLOBBERS=\"$clobbers\" RETURNS=\"$returns\" POS=\"${it.position}\">\n")
-                out.write("<PARAMS>\n")
-                it.parameters.forEach { (dt, regOrSf) ->
-                    val reg = if(regOrSf.registerOrPair!=null) regOrSf.registerOrPair.toString()
-                    else regOrSf.statusflag.toString()
-                    out.write("${dt.toString().lowercase()} $reg\n")
+                out.write("<ASMPARAMS>\n")
+                it.parameters.forEach { ret ->
+                    val reg = if(ret.reg.registerOrPair!=null) ret.reg.registerOrPair.toString()
+                    else ret.reg.statusflag.toString()
+                    out.write("${ret.dt.toString().lowercase()} $reg\n")
                 }
-                out.write("</PARAMS>\n")
+                out.write("</ASMPARAMS>\n")
                 writeInlineAsm(it.asmChunk)
                 out.write("</ASMSUB>\n")
             }

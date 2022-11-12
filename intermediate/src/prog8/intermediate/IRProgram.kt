@@ -200,6 +200,7 @@ class IRBlock(
     val alignment: BlockAlignment,
     val position: Position
 ) {
+    // TODO not separate lists but just a single list of chunks, like IRSubroutine?
     val inlineAssembly = mutableListOf<IRInlineAsmChunk>()
     val subroutines = mutableListOf<IRSubroutine>()
     val asmSubroutines = mutableListOf<IRAsmSubroutine>()
@@ -215,6 +216,7 @@ class IRBlock(
     }
     operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
     operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssembly += asm }
+    operator fun plusAssign(binary: IRInlineBinaryChunk) { TODO("IR BLOCK can't contain inline binary data yet") }
 
     fun isEmpty(): Boolean {
         val noAsm = inlineAssembly.isEmpty() || inlineAssembly.all { it.isEmpty() }
@@ -256,11 +258,14 @@ class IRAsmSubroutine(
     val name: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
-    val parameters: List<Pair<DataType, RegisterOrStatusflag>>,
-    val returns: List<Pair<DataType, RegisterOrStatusflag>>,
+    val parameters: List<IRAsmParam>,
+    val returns: List<IRAsmParam>,
     val asmChunk: IRInlineAsmChunk,
     val position: Position
 ) {
+
+    class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataType)
+
     init {
         require('.' in name) { "subroutine name is not scoped: $name" }
         require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }

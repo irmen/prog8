@@ -291,12 +291,7 @@ class IRCodeGen(
             }
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
-            is PtIncludeBinary -> {
-                val data =  node.file.readBytes()
-                    .drop(node.offset?.toInt() ?: 0)
-                    .take(node.length?.toInt() ?: Int.MAX_VALUE)
-                listOf(IRInlineBinaryChunk(null, data.map { it.toUByte() }, null))
-            }
+            is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
             is PtAddressOf,
             is PtContainmentCheck,
             is PtMemoryByte,
@@ -325,6 +320,13 @@ class IRCodeGen(
         }
 
         return chunks
+    }
+
+    private fun readBinaryData(node: PtIncludeBinary): Collection<UByte> {
+        return node.file.readBytes()
+            .drop(node.offset?.toInt() ?: 0)
+            .take(node.length?.toInt() ?: Int.MAX_VALUE)
+            .map { it.toUByte() }
     }
 
     private fun translate(branch: PtConditionalBranch): IRCodeChunks {
@@ -1106,8 +1108,8 @@ class IRCodeGen(
                             child.name,
                             child.address,
                             child.clobbers,
-                            child.parameters.map { Pair(it.first.type, it.second) },        // note: the name of the asmsub param is not used anymore.
-                            child.returnTypes.zip(child.retvalRegisters),
+                            child.parameters.map { IRAsmSubroutine.IRAsmParam(it.second, it.first.type) },        // note: the name of the asmsub param is not used anymore.
+                            child.returnTypes.zip(child.retvalRegisters).map { IRAsmSubroutine.IRAsmParam(it.second, it.first) },
                             asmChunk,
                             child.position
                         )
@@ -1115,6 +1117,9 @@ class IRCodeGen(
                 }
                 is PtInlineAssembly -> {
                     irBlock += IRInlineAsmChunk(null, child.assembly, child.isIR, null)
+                }
+                is PtIncludeBinary -> {
+                    irBlock += IRInlineBinaryChunk(null, readBinaryData(child), null)
                 }
                 else -> TODO("weird child node $child")
             }
