@@ -1082,6 +1082,7 @@ containment_wordarray	.proc
 		iny
 		cmp  (P8ZP_SCRATCH_W2),y
 		beq  _found
+		dey
 +		dey
 		dey
 		cpy  #254
