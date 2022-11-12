@@ -918,7 +918,7 @@ _done
                         y++
                         %asm {{
                             phx
-                            ldx  #1
+                            ldx  color
                             lda  cx16.VERA_DATA1
                             sta  P8ZP_SCRATCH_B1
                             ldy  #8
