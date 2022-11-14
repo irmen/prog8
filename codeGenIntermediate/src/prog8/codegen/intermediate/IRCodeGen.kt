@@ -1121,6 +1121,9 @@ class IRCodeGen(
                 is PtIncludeBinary -> {
                     irBlock += IRInlineBinaryChunk(null, readBinaryData(child), null)
                 }
+                is PtLabel -> {
+                    TODO("allow label inside block scope ${child.name}")
+                }
                 else -> TODO("weird child node $child")
             }
         }
