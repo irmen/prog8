@@ -394,7 +394,7 @@ _end        rts
         c64.SETLFS(14, drivenumber, 1)
         void c64.OPEN()          ; open 14,8,1,"filename"
         if_cc {
-            void c64.CHKOUT(14)        ; use #14 as input channel
+            void c64.CHKOUT(14)        ; use #14 as output channel
             return not c64.READST()
         }
         f_close_w()
@@ -404,7 +404,7 @@ _end        rts
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given umber of bytes to the currently open file
         if num_bytes!=0 {
-            void c64.CHKOUT(14)        ; use #14 as input channel again
+            void c64.CHKOUT(14)        ; use #14 as output channel again
             repeat num_bytes {
                 c64.CHROUT(@(bufferpointer))
                 bufferpointer++
