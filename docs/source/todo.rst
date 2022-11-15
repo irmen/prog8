@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- make it so that uword xx = <byte constant> <op> expr  is treated as  <word constant> <op> <expr> instead (or inverse order)
 - ir/vm: allow label in block scope
 - regression test the various projects
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)

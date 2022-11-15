@@ -202,16 +202,10 @@ internal class ProgramAndVarsGen(
         asmsubs2asm(block.statements)
 
         asmgen.out("")
-        asmgen.out("; subroutines in this block")
 
-        // First translate regular statements, and then put the subroutines at the end.
-        // (regular statements = everything except the initialization assignments;
-        // these will be part of the prog8_init_vars init routine generated below)
         val initializers = blockVariableInitializers.getValue(block)
-        val statements = block.statements.filterNot { it in initializers }
-        val (subroutine, stmts) = statements.partition { it is Subroutine }
-        stmts.forEach { asmgen.translate(it) }
-        subroutine.forEach { asmgen.translate(it) }
+        val notInitializers = block.statements.filterNot { it in initializers }
+        notInitializers.forEach { asmgen.translate(it) }
 
         if(!options.dontReinitGlobals) {
             // generate subroutine to initialize block-level (global) variables

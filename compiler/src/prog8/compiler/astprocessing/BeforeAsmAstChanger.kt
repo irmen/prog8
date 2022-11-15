@@ -37,11 +37,6 @@ internal class BeforeAsmAstChanger(val program: Program,
     }
 
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {
-        // move all subroutines to the bottom of the block
-        val subs = block.statements.filterIsInstance<Subroutine>()
-        block.statements.removeAll(subs)
-        block.statements.addAll(subs)
-
         // adjust global variables initialization
         if(options.dontReinitGlobals) {
             block.statements.asSequence().filterIsInstance<VarDecl>().forEach {

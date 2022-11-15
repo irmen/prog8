@@ -129,35 +129,19 @@ internal fun Program.variousCleanups(errors: IErrorReporter, options: Compilatio
     }
 }
 
-internal fun Program.moveMainAndStartToFirst() {
+internal fun Program.moveMainBlockAsFirst() {
     // The module containing the program entrypoint is moved to the first in the sequence.
-    // the "main" block containing the entrypoint is moved to the top in there,
-    // and finally the entrypoint subroutine "start" itself is moved to the top in that block.
+    // the "main" block containing the entrypoint is moved to the top in there.
 
-    // sortModules()
-    val directives = modules[0].statements.filterIsInstance<Directive>()
-    val start = this.entrypoint
-    val mod = start.definingModule
-    val block = start.definingBlock
-    moveModuleToFront(mod)
-    mod.remove(block)
-    var afterDirective = mod.statements.indexOfFirst { it !is Directive }
+    val module = this.entrypoint.definingModule
+    val block = this.entrypoint.definingBlock
+    moveModuleToFront(module)
+    module.remove(block)
+    val afterDirective = module.statements.indexOfFirst { it !is Directive }
     if(afterDirective<0)
-        mod.statements.add(block)
+        module.statements.add(block)
     else
-        mod.statements.add(afterDirective, block)
-    block.remove(start)
-    afterDirective = block.statements.indexOfFirst { it !is Directive }
-    if(afterDirective<0)
-        block.statements.add(start)
-    else
-        block.statements.add(afterDirective, start)
-
-    // overwrite the directives in the module containing the entrypoint
-    for(directive in directives) {
-        modules[0].statements.removeAll { it is Directive && it.directive == directive.directive }
-        modules[0].statements.add(0, directive)
-    }
+        module.statements.add(afterDirective, block)
 }
 
 internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolean {

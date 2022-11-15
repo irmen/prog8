@@ -222,6 +222,11 @@ class IRBlock(
     operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
     operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssemblies += asm }
     operator fun plusAssign(binary: IRInlineBinaryChunk) { inlineBinaries += binary }
+    operator fun plusAssign(irCodeChunk: IRCodeChunk) {
+        // this is for a separate label in the block scope. (random code statements are not allowed)
+        require(irCodeChunk.isEmpty() && irCodeChunk.label!=null)
+        TODO("allow labels in block scope, ${irCodeChunk.label}")
+    }
 
     fun isEmpty(): Boolean {
         val noAsm = inlineAssemblies.isEmpty() || inlineAssemblies.all { it.isEmpty() }
@@ -230,6 +235,7 @@ class IRBlock(
         val noBins = inlineBinaries.isEmpty() || inlineBinaries.all { it.isEmpty() }
         return noAsm && noSubs && noAsmSubs && noBins
     }
+
 }
 
 class IRSubroutine(val name: String,
