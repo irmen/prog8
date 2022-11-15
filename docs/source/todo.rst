@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix 6502 optimizer hanging on  uword xx = 100 ::  uword yy = xx / 256
 - why is func(x&15) fast, but func(x>>4) using stack eval for the arg?
 - ir/vm: allow label in block scope
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
