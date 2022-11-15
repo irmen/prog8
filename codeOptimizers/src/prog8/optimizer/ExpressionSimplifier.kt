@@ -592,7 +592,7 @@ class ExpressionSimplifier(private val program: Program,
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
             }
-            DataType.UWORD, DataType.WORD -> {
+            DataType.UWORD -> {
                 if (amount >= 16) {
                     errors.warn("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
@@ -607,6 +607,25 @@ class ExpressionSimplifier(private val program: Program,
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
                     return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteral.optimalInteger(0, expr.position)), expr.position)
+                }
+            }
+            DataType.WORD -> {
+                if (amount >= 16) {
+                    errors.warn("shift always results in 0", expr.position)
+                    return NumericLiteral(targetDt, 0.0, expr.position)
+                }
+                else if(amount==8) {
+                    // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
+                    val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(DataType.UBYTE, 0.0, expr.position)), expr.position)
+                    return TypecastExpression(mkword, DataType.WORD, true, expr.position)
+                }
+                else if (amount > 8) {
+                    // same as above but with residual shifts.
+                    val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
+                    val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
+                    val mkword = FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteral.optimalInteger(0, expr.position)), expr.position)
+                    return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
             }
             else -> {
