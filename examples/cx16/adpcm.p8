@@ -23,8 +23,7 @@ main {
                adpcm.decode_nibble(nibble & 15)
                txt.print_w(adpcm.predict as word)
                txt.spc()
-               nibble >>= 4
-               adpcm.decode_nibble(nibble)
+               adpcm.decode_nibble(nibble>>4)
                txt.print_w(adpcm.predict as word)
                txt.spc()
                nibblesptr++

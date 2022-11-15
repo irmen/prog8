@@ -622,6 +622,58 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
         }
+        else if(expr.operator=="<<" || expr.operator==">>") {
+            val shifts = expr.right.constValue(program)?.number?.toInt()
+            if(shifts!=null) {
+                val dt = expr.left.inferType(program)
+                if(dt.isBytes && shifts in 0..7) {
+                    val signed = dt istype DataType.BYTE
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                    if(expr.operator=="<<") {
+                        repeat(shifts) {
+                            asmgen.out("  asl  a")
+                        }
+                    } else {
+                        if(signed && shifts>0) {
+                            asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
+                        } else {
+                            repeat(shifts) {
+                                asmgen.out("  lsr  a")
+                            }
+                        }
+                    }
+                    assignRegisterByte(assign.target, CpuRegister.A)
+                    return true
+                } else if(dt.isWords && shifts in 0..7) {
+                    val signed = dt istype DataType.WORD
+                    assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
+                    if(expr.operator=="<<") {
+                        if(shifts>0) {
+                            asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                            repeat(shifts) {
+                                asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_B1")
+                            }
+                            asmgen.out("  ldy  P8ZP_SCRATCH_B1")
+                        }
+                    } else {
+                        if(signed) {
+                            // TODO("shift AY >> $shifts signed")
+                            return false
+                        } else {
+                            if(shifts>0) {
+                                asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                                repeat(shifts) {
+                                    asmgen.out("  lsr  P8ZP_SCRATCH_B1 |  ror  a")
+                                }
+                                asmgen.out("  ldy  P8ZP_SCRATCH_B1")
+                            }
+                        }
+                    }
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+            }
+        }
         return false
     }
 

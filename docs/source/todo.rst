@@ -3,8 +3,9 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- why is func(x&15) fast, but func(x>>4) using stack eval for the arg?
+- word << 12  is suddenly an uword
 - ir/vm: allow label in block scope
+- regression test the various projects
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well.  This is already no problem at all in the IR codegen.
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
