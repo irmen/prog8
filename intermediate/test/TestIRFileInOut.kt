@@ -68,18 +68,18 @@ uword sys.wait.jiffies= zp=DONTCARE
 </MEMORYSLABS>
 
 <INITGLOBALS>
-<C>
+<CODE>
 load.b r1,42
-</C>
+</CODE>
 </INITGLOBALS>
 
 <BLOCK NAME="main" ADDRESS="null" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
 <SUB NAME="main.start" RETURNTYPE="null" POS="[examples/test.p8: line 4 col 6-8]">
 <PARAMS>
 </PARAMS>
-<C LABEL="main.start">
+<CODE LABEL="main.start">
 return
-</C>
+</CODE>
 </SUB>
 </BLOCK>
 
@@ -92,9 +92,9 @@ uword sys.wait.jiffies
             loadm.w r0,sys.wait.jiffies
             syscall 13
 </INLINEASM>
-<C>
+<CODE>
 return
-</C>
+</CODE>
 </SUB>
 </BLOCK>
 </PROGRAM>

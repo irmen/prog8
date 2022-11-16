@@ -209,6 +209,7 @@ class IRBlock(
     val subroutines = mutableListOf<IRSubroutine>()
     val asmSubroutines = mutableListOf<IRAsmSubroutine>()
     val inlineBinaries = mutableListOf<IRInlineBinaryChunk>()
+    val labels = mutableListOf<IRCodeChunk>()           // empty code chunks having just a label.
 
     enum class BlockAlignment {
         NONE,
@@ -225,7 +226,7 @@ class IRBlock(
     operator fun plusAssign(irCodeChunk: IRCodeChunk) {
         // this is for a separate label in the block scope. (random code statements are not allowed)
         require(irCodeChunk.isEmpty() && irCodeChunk.label!=null)
-        TODO("allow labels in block scope, ${irCodeChunk.label}")
+        labels += irCodeChunk
     }
 
     fun isEmpty(): Boolean {

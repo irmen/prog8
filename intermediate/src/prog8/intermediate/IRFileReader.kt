@@ -271,7 +271,7 @@ class IRFileReader {
     private fun parseCodeChunk(reader: XMLEventReader): IRCodeChunk {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="C") { "missing C" }
+        require(start.name.localPart=="CODE") { "missing CODE" }
         val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
         val text = readText(reader).trim()
         val chunk = IRCodeChunk(label, null)
@@ -321,6 +321,12 @@ class IRFileReader {
                 "ASMSUB" -> block += parseAsmSubroutine(reader)
                 "INLINEASM" -> block += parseInlineAssembly(reader)
                 "BYTES" -> block += parseBinaryBytes(reader)
+                "CODE" -> {
+                    val chunk = parseCodeChunk(reader)
+                    if(chunk.isNotEmpty() || chunk.label==null)
+                        throw IRParseException("code chunk in block should only contain a label name")
+                    block += chunk
+                }
                 else -> throw IRParseException("invalid line in BLOCK: ${reader.peek()}")
             }
             skipText(reader)
@@ -344,7 +350,7 @@ class IRFileReader {
         skipText(reader)
         while(reader.peek().isStartElement) {
             when(reader.peek().asStartElement().name.localPart) {
-                "C" -> sub += parseCodeChunk(reader)
+                "CODE" -> sub += parseCodeChunk(reader)
                 "BYTES" -> sub += parseBinaryBytes(reader)
                 "INLINEASM" -> sub += parseInlineAssembly(reader)
                 else -> throw IRParseException("invalid line in SUB: ${reader.peek()}")

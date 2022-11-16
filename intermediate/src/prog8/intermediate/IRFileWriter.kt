@@ -49,6 +49,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             block.inlineAssemblies.forEach {
                 writeInlineAsm(it)
             }
+            block.labels.forEach {
+                writeCodeChunk(it)      // TODO doing it like this isn't useful, block needs to have a list of nodes rather than a few separate collections
+            }
             block.subroutines.forEach {
                 out.write("<SUB NAME=\"${it.name}\" RETURNTYPE=\"${it.returnType.toString().lowercase()}\" POS=\"${it.position}\">\n")
                 out.write("<PARAMS>\n")
@@ -91,15 +94,15 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
         if(chunk.label!=null)
-            out.write("<C LABEL=\"${chunk.label}\">\n")
+            out.write("<CODE LABEL=\"${chunk.label}\">\n")
         else
-            out.write("<C>\n")
+            out.write("<CODE>\n")
         chunk.instructions.forEach { instr ->
             numInstr++
             out.write(instr.toString())
             out.write("\n")
         }
-        out.write("</C>\n")
+        out.write("</CODE>\n")
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {

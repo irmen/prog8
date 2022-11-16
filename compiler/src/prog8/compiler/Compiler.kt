@@ -95,7 +95,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             processAst(program, args.errors, compilationOptions)
             if (compilationOptions.optimize) {
-//                println("*********** AST RIGHT BEFORE OPTIMIZING *************")
+//                println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
 //                printProgram(program)
 
                 optimizeAst(
@@ -108,7 +108,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             }
             postprocessAst(program, args.errors, compilationOptions)
 
-//            println("*********** AST BEFORE ASSEMBLYGEN *************")
+//            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
 
             determineProgramLoadAddress(program, compilationOptions, args.errors)
@@ -402,7 +402,7 @@ private fun createAssemblyAndAssemble(program: Program,
     //      to help clean up the code that still depends on them.
     // removeAllVardeclsFromAst(program)
 
-//    println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//    println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
     val assembly = asmGeneratorFor(program, errors, symbolTable, compilerOptions).compileToAssembly()

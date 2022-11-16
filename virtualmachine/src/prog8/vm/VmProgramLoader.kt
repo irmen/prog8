@@ -41,6 +41,9 @@ class VmProgramLoader {
                 val replacement = addAssemblyToProgram(it, programChunks, variableAddresses)
                 chunkReplacements += replacement
             }
+            block.labels.forEach {
+                programChunks += it     // TODO doing it like this isn't useful, block needs to have a list of nodes rather than a few separate collections
+            }
             block.subroutines.forEach {
                 it.chunks.forEach { chunk ->
                     when (chunk) {
