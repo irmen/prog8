@@ -3,13 +3,19 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
+import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
+import prog8.ast.statements.Assignment
 import prog8.ast.statements.InlineAssembly
 import prog8.ast.statements.VarDecl
+import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.compiler.printProgram
 import prog8tests.helpers.compileText
 
 class TestVarious: FunSpec({
@@ -128,6 +134,32 @@ main {
     }
 }"""
         compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("bitshift left of const byte converted to word") {
+        val src="""
+main {
+    sub start() {
+        ubyte shift = 10
+        uword value = 1<<shift
+        value++
+        value = 1<<shift
+        value++
+    }
+}"""
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        printProgram(result.program)
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 7
+        val assign1expr = (stmts[3] as Assignment).value as BinaryExpression
+        val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
+        assign1expr.operator shouldBe "<<"
+        val leftval1 = assign1expr.left.constValue(result.program)!!
+        leftval1.type shouldBe DataType.UWORD
+        leftval1.number shouldBe 1.0
+        val leftval2 = assign2expr.left.constValue(result.program)!!
+        leftval2.type shouldBe DataType.UWORD
+        leftval2.number shouldBe 1.0
     }
 })
 

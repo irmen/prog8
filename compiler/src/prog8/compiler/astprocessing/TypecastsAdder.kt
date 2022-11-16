@@ -47,6 +47,36 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val rightCv = expr.right.constValue(program)
 
         if(leftDt.isKnown && rightDt.isKnown) {
+
+            if(expr.operator=="<<" && leftDt.isBytes) {
+                // uword ww = 1 << shift    -->  make the '1' a word constant
+                val leftConst = expr.left.constValue(program)
+                if(leftConst!=null) {
+                    val leftConstAsWord =
+                        if(leftDt.istype(DataType.UBYTE))
+                            NumericLiteral(DataType.UWORD, leftConst.number, leftConst.position)
+                        else
+                            NumericLiteral(DataType.WORD, leftConst.number, leftConst.position)
+                    val modifications = mutableListOf<IAstModification>()
+                    if (parent is Assignment) {
+                        if (parent.target.inferType(program).isWords) {
+                            modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
+                            if(rightDt.isBytes)
+                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+                        }
+                    } else if (parent is TypecastExpression && parent.type == DataType.UWORD && parent.parent is Assignment) {
+                        val assign = parent.parent as Assignment
+                        if (assign.target.inferType(program).isWords) {
+                            modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
+                            if(rightDt.isBytes)
+                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+                        }
+                    }
+                    if(modifications.isNotEmpty())
+                        return modifications
+                }
+            }
+
             if(expr.operator in LogicalOperators && leftDt.isInteger && rightDt.isInteger) {
                 // see if any of the operands needs conversion to bool
                 val modifications = mutableListOf<IAstModification>()
