@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- teach the directory routines in diskio about entry type DIR (directory)
+- make diskio.list_files not use an internal buffer itself but change names_ptr meaning to user supplied buffer.
 - ir/vm: allow label in block scope (correct order of block nodes!)
 - regression test the various projects
 - attempt to fix the expression codegen bug with reused temp vars (github #89)

@@ -84,7 +84,9 @@ gfx2 {
             else -> {
                 ; back to default text mode and colors
                 cx16.VERA_CTRL = %10000000      ; reset VERA and palette
-                c64.CINT()      ; back to text mode
+                c64.IOINIT()
+                c64.RESTOR()
+                c64.CINT()
                 width = 0
                 height = 0
                 bpp = 0
