@@ -109,28 +109,32 @@ io_error:
     bool iteration_in_progress = false
     ubyte @zp first_byte
     bool have_first_byte
+    str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
     sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
-        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested. Returns number of files.
+        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
+        ;    Returns number of files. Skips 'dir' entries (subdirs).
         const uword filenames_buf_size = 800
         uword filenames_buffer = memory("filenames", filenames_buf_size, 0)
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern_ptr) {
             while lf_next_entry() {
-                @(name_ptrs) = lsb(filenames_buffer)
-                name_ptrs++
-                @(name_ptrs) = msb(filenames_buffer)
-                name_ptrs++
-                filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
-                files_found++
-                if filenames_buffer - buffer_start > filenames_buf_size-18
-                    break
-                if files_found == max_names
-                    break
+                if list_filetype!="dir" {
+                    @(name_ptrs) = lsb(filenames_buffer)
+                    name_ptrs++
+                    @(name_ptrs) = msb(filenames_buffer)
+                    name_ptrs++
+                    filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
+                    files_found++
+                    if filenames_buffer - buffer_start > filenames_buf_size-18
+                        break
+                    if files_found == max_names
+                        break
+                }
             }
             lf_end_list()
         }
@@ -170,7 +174,7 @@ io_error:
 
     sub lf_next_entry() -> bool {
         ; -- retrieve the next entry from an iterative file listing session.
-        ;    results will be found in list_blocks and list_filename.
+        ;    results will be found in list_blocks, list_filename, and list_filetype.
         ;    if it returns false though, there are no more entries (or an error occurred).
 
         if not iteration_in_progress
@@ -207,6 +211,12 @@ io_error:
 
             @(nameptr) = 0
 
+            do {
+                cx16.r15L = c64.CHRIN()
+            } until cx16.r15L!=' '      ; skip blanks up to 3 chars entry type
+            list_filetype[0] = cx16.r15L
+            list_filetype[1] = c64.CHRIN()
+            list_filetype[2] = c64.CHRIN()
             while c64.CHRIN() {
                 ; read the rest of the entry until the end
             }
