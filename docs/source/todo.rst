@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add cd/mkdir/rmdir/relabel to cx16diskio
 - make diskio.list_files not use an internal buffer itself but change names_ptr meaning to user supplied buffer.
 - ir/vm: allow label in block scope (correct order of block nodes!)
 - regression test the various projects

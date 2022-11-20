@@ -1,6 +1,7 @@
 ; Cx16 specific disk drive I/O routines.
 
 %import diskio
+%import string
 
 cx16diskio {
 
@@ -183,4 +184,44 @@ m_in_buffer     sta  $ffff
         return total_read
     }
 
+
+    sub chdir(ubyte drivenumber, str path) {
+        ; -- change current directory.
+        diskio.list_filename[0] = 'c'
+        diskio.list_filename[1] = 'd'
+        diskio.list_filename[2] = ':'
+        void string.copy(path, &diskio.list_filename+3)
+        void diskio.send_command(drivenumber, diskio.list_filename)
+    }
+
+    sub mkdir(ubyte drivenumber, str name) {
+        ; -- make a new subdirectory.
+        diskio.list_filename[0] = 'm'
+        diskio.list_filename[1] = 'd'
+        diskio.list_filename[2] = ':'
+        void string.copy(name, &diskio.list_filename+3)
+        void diskio.send_command(drivenumber, diskio.list_filename)
+    }
+
+    sub rmdir(ubyte drivenumber, str name) {
+        ; -- remove a subdirectory.
+        void string.find(name, '*')
+        if_cs
+            return    ; refuse to act on a wildcard *
+        diskio.list_filename[0] = 'r'
+        diskio.list_filename[1] = 'd'
+        diskio.list_filename[2] = ':'
+        void string.copy(name, &diskio.list_filename+3)
+        void diskio.send_command(drivenumber, diskio.list_filename)
+    }
+
+    sub relabel(ubyte drivenumber, str name) {
+        ; -- change the disk label.
+        diskio.list_filename[0] = 'r'
+        diskio.list_filename[1] = '-'
+        diskio.list_filename[2] = 'h'
+        diskio.list_filename[3] = ':'
+        void string.copy(name, &diskio.list_filename+4)
+        void diskio.send_command(drivenumber, diskio.list_filename)
+    }
 }
