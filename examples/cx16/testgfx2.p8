@@ -1,7 +1,9 @@
 %import gfx2
 %import textio
-%import test_stack
 %import math
+
+%option no_sysinit
+%zeropage basicsafe
 
 
 main {
@@ -9,14 +11,12 @@ main {
     sub start() {
         gfx2.screen_mode(5)
 
-;        demo1()
-;        sys.wait(3*60)
+        demo1()
+        sys.wait(2*60)
         demo2()
 
         gfx2.screen_mode(0)
         txt.print("done!\n")
-
-        test_stack.test()
     }
 
     sub demo1() {

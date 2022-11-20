@@ -82,11 +82,10 @@ gfx2 {
                 bpp = 2
             }
             else -> {
-                ; back to default text mode and colors
-                cx16.VERA_CTRL = %10000000      ; reset VERA and palette
-                c64.IOINIT()
-                c64.RESTOR()
+                ; back to default text mode
+                cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
                 c64.CINT()
+                cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
                 width = 0
                 height = 0
                 bpp = 0

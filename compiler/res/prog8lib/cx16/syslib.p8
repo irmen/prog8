@@ -613,12 +613,19 @@ asmsub  init_system()  {
     %asm {{
         sei
         cld
+        lda  VERA_DC_VIDEO
+        and  #%00000111 ; retain chroma + output mode
+        sta  P8ZP_SCRATCH_REG
         lda  #$80
-        sta  VERA_CTRL
+        sta  VERA_CTRL  ; reset vera
         stz  $01        ; select rom bank 0 (enable kernal)
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
+        lda  VERA_DC_VIDEO
+        and  #%11111000
+        ora  P8ZP_SCRATCH_REG
+        sta  VERA_DC_VIDEO  ; keep old output mode
         lda  #$90       ; black
         jsr  c64.CHROUT
         lda  #1         ; swap fg/bg
