@@ -114,30 +114,31 @@ io_error:
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
-    sub list_files(ubyte drivenumber, uword pattern_ptr, uword name_ptrs, ubyte max_names) -> ubyte {
-        ; -- fill the array 'name_ptrs' with (pointers to) the names of the files requested.
-        ;    Returns number of files. Skips 'dir' entries (subdirs).
-        const uword filenames_buf_size = 800
-        uword filenames_buffer = memory("filenames", filenames_buf_size, 0)
+    sub list_filenames(ubyte drivenumber, uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+        ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
+        ;    Files in the buffer are separeted by a 0 byte. You can provide an optional pattern to match against.
+        ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
+        ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
+        ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         if lf_start_list(drivenumber, pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
-                    @(name_ptrs) = lsb(filenames_buffer)
-                    name_ptrs++
-                    @(name_ptrs) = msb(filenames_buffer)
-                    name_ptrs++
                     filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
                     files_found++
-                    if filenames_buffer - buffer_start > filenames_buf_size-18
-                        break
-                    if files_found == max_names
-                        break
+                    if filenames_buffer - buffer_start > filenames_buf_size-20 {
+                        @(filenames_buffer)=0
+                        lf_end_list()
+                        sys.set_carry()
+                        return files_found
+                    }
                 }
             }
             lf_end_list()
         }
+        @(filenames_buffer)=0
+        sys.clear_carry()
         return files_found
     }
 

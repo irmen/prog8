@@ -364,6 +364,7 @@ diskio module, to deal with loading of potentially large files in to banked ram 
 Routines to directly load data into video ram are also present (vload and vload_raw).
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
 to 16 bits, 64Kb)
+Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and to relabel the disk.
 
 
 psg  (cx16 only)
