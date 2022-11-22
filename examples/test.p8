@@ -4,6 +4,14 @@
 main {
 
 alsostart:
+
+    %asm {{
+        ; inline asm in block #1
+        nop
+    }}
+
+    %asmbinary "../gradle.properties"
+
     sub start() {
 
     internalstart:
@@ -30,6 +38,18 @@ alsostart:
     internalend:
     }
 
+    %asm {{
+        ; inline asm in block #2
+        nop
+    }}
+
 startend:
+
+    %asmbinary "../settings.gradle"
+
+    %asm {{
+        ; inline asm in block #3
+        nop
+    }}
 
 }

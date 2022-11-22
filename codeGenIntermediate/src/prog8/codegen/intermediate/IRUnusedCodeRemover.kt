@@ -9,7 +9,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
     fun optimize(): Int {
         val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
 
-        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             sub.chunks.forEach { chunk ->
                 chunk.label?.let { allLabeledChunks[it] = chunk }
             }
@@ -19,11 +19,11 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
 
         // remove empty subs
         irprog.blocks.forEach { block ->
-            block.subroutines.reversed().forEach { sub ->
+            block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
                     if(!sub.position.file.startsWith(libraryFilePrefix))
-                        errors.warn("unused subroutine ${sub.name}", sub.position)
-                    block.subroutines.remove(sub)
+                        errors.warn("unused subroutine ${sub.label}", sub.position)
+                    block.children.remove(sub)
                     numRemoved++
                 }
             }
@@ -41,7 +41,8 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
     }
 
     private fun removeUnreachable(allLabeledChunks: MutableMap<String, IRCodeChunkBase>): Int {
-        val reachable = mutableSetOf(irprog.blocks.single { it.name=="main" }.subroutines.single { it.name=="main.start" }.chunks.first())
+        val entrypointSub = irprog.blocks.single { it.name=="main" }.children.single { it is IRSubroutine && it.label=="main.start" }
+        val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
 
         fun grow() {
             val new = mutableSetOf<IRCodeChunkBase>()
@@ -71,7 +72,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
     private fun removeSimpleUnlinked(allLabeledChunks: Map<String, IRCodeChunkBase>): Int {
         val linkedChunks = mutableSetOf<IRCodeChunkBase>()
 
-        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             sub.chunks.forEach { chunk ->
                 chunk.next?.let { next -> linkedChunks += next }
                 chunk.instructions.forEach {
@@ -93,7 +94,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         linkedChunks: MutableSet<IRCodeChunkBase>
     ): Int {
         var numRemoved = 0
-        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             sub.chunks.withIndex().reversed().forEach { (index, chunk) ->
                 if (chunk !in linkedChunks) {
                     if (chunk === sub.chunks[0]) {

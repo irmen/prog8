@@ -3,12 +3,13 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir/vm: allow label in block scope (correct order of block nodes!)
-- regression test the various projects
+- ir/vm: check weird asm chunks appearing in block?
 - attempt to fix the expression codegen bug with reused temp vars (github #89)
+- AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block? 64tass problem?
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well.  This is already no problem at all in the IR codegen.
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
+- regression test the various projects
 
 ...
 
@@ -24,7 +25,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block?
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)

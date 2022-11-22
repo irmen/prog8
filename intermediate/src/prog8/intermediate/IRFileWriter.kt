@@ -46,47 +46,45 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
             out.write("\n<BLOCK NAME=\"${block.name}\" ADDRESS=\"${block.address?.toHex()}\" ALIGN=\"${block.alignment}\" POS=\"${block.position}\">\n")
-            block.inlineAssemblies.forEach {
-                writeInlineAsm(it)
-            }
-            block.labels.forEach {
-                writeCodeChunk(it)      // TODO doing it like this isn't useful, block needs to have a list of nodes rather than a few separate collections
-            }
-            block.subroutines.forEach {
-                out.write("<SUB NAME=\"${it.name}\" RETURNTYPE=\"${it.returnType.toString().lowercase()}\" POS=\"${it.position}\">\n")
-                out.write("<PARAMS>\n")
-                it.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
-                out.write("</PARAMS>\n")
-                it.chunks.forEach { chunk ->
-                    numChunks++
-                    when (chunk) {
-                        is IRInlineAsmChunk -> writeInlineAsm(chunk)
-                        is IRInlineBinaryChunk -> writeInlineBytes(chunk)
-                        is IRCodeChunk -> writeCodeChunk(chunk)
-                        else -> throw InternalCompilerException("invalid chunk")
+            block.children.forEach { child ->
+                when(child) {
+                    is IRAsmSubroutine -> {
+                        val clobbers = child.clobbers.joinToString(",")
+                        val returns = child.returns.map { ret ->
+                            if(ret.reg.registerOrPair!=null) "${ret.reg.registerOrPair}:${ret.dt.toString().lowercase()}"
+                            else "${ret.reg.statusflag}:${ret.dt.toString().lowercase()}"
+                        }.joinToString(",")
+                        out.write("<ASMSUB NAME=\"${child.label}\" ADDRESS=\"${child.address?.toHex()}\" CLOBBERS=\"$clobbers\" RETURNS=\"$returns\" POS=\"${child.position}\">\n")
+                        out.write("<ASMPARAMS>\n")
+                        child.parameters.forEach { ret ->
+                            val reg = if(ret.reg.registerOrPair!=null) ret.reg.registerOrPair.toString()
+                            else ret.reg.statusflag.toString()
+                            out.write("${ret.dt.toString().lowercase()} $reg\n")
+                        }
+                        out.write("</ASMPARAMS>\n")
+                        writeInlineAsm(child.asmChunk)
+                        out.write("</ASMSUB>\n")
+                    }
+                    is IRCodeChunk -> writeCodeChunk(child)
+                    is IRInlineAsmChunk -> writeInlineAsm(child)
+                    is IRInlineBinaryChunk -> writeInlineBytes(child)
+                    is IRSubroutine -> {
+                        out.write("<SUB NAME=\"${child.label}\" RETURNTYPE=\"${child.returnType.toString().lowercase()}\" POS=\"${child.position}\">\n")
+                        out.write("<PARAMS>\n")
+                        child.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
+                        out.write("</PARAMS>\n")
+                        child.chunks.forEach { chunk ->
+                            numChunks++
+                            when (chunk) {
+                                is IRInlineAsmChunk -> writeInlineAsm(chunk)
+                                is IRInlineBinaryChunk -> writeInlineBytes(chunk)
+                                is IRCodeChunk -> writeCodeChunk(chunk)
+                                else -> throw InternalCompilerException("invalid chunk")
+                            }
+                        }
+                        out.write("</SUB>\n")
                     }
                 }
-                out.write("</SUB>\n")
-            }
-            block.asmSubroutines.forEach {
-                val clobbers = it.clobbers.joinToString(",")
-                val returns = it.returns.map { ret ->
-                    if(ret.reg.registerOrPair!=null) "${ret.reg.registerOrPair}:${ret.dt.toString().lowercase()}"
-                    else "${ret.reg.statusflag}:${ret.dt.toString().lowercase()}"
-                }.joinToString(",")
-                out.write("<ASMSUB NAME=\"${it.name}\" ADDRESS=\"${it.address?.toHex()}\" CLOBBERS=\"$clobbers\" RETURNS=\"$returns\" POS=\"${it.position}\">\n")
-                out.write("<ASMPARAMS>\n")
-                it.parameters.forEach { ret ->
-                    val reg = if(ret.reg.registerOrPair!=null) ret.reg.registerOrPair.toString()
-                    else ret.reg.statusflag.toString()
-                    out.write("${ret.dt.toString().lowercase()} $reg\n")
-                }
-                out.write("</ASMPARAMS>\n")
-                writeInlineAsm(it.asmChunk)
-                out.write("</ASMSUB>\n")
-            }
-            block.inlineBinaries.forEach {
-                writeInlineBytes(it)
             }
             out.write("</BLOCK>\n")
         }

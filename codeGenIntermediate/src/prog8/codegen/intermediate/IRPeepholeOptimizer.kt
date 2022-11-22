@@ -4,7 +4,7 @@ import prog8.intermediate.*
 
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
     fun optimize() {
-        irprog.blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             removeEmptyChunks(sub)
             joinChunks(sub)
             sub.chunks.withIndex().forEach { (index, chunk1) ->

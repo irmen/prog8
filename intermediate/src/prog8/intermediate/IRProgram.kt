@@ -70,30 +70,45 @@ class IRProgram(val name: String,
 
     fun linkChunks() {
         fun getLabeledChunks(): Map<String?, IRCodeChunkBase> {
-            return blocks.flatMap { it.subroutines }.flatMap { it.chunks }.associateBy { it.label } +
-                   blocks.flatMap { it.asmSubroutines }.map { it.asmChunk }.associateBy { it.label }
+            val result = mutableMapOf<String?, IRCodeChunkBase>()
+            blocks.forEach { block ->
+                block.children.forEach { child ->
+                    when(child) {
+                        is IRAsmSubroutine -> result[child.asmChunk.label] = child.asmChunk
+                        is IRCodeChunk -> result[child.label] = child
+                        is IRInlineAsmChunk -> result[child.label] = child
+                        is IRInlineBinaryChunk -> result[child.label] = child
+                        is IRSubroutine -> result.putAll(child.chunks.associateBy { it.label })
+                    }
+                }
+            }
+            return result
         }
 
         val labeledChunks = getLabeledChunks()
 
         if(globalInits.isNotEmpty()) {
             if(globalInits.next==null) {
+                // link globalinits to subsequent chunk
                 val firstBlock = blocks.firstOrNull()
-                if(firstBlock!=null) {
-                    // TODO what is the first chunk in a block?
-                    if(firstBlock.inlineAssemblies.isNotEmpty()) {
-                        globalInits.next = firstBlock.inlineAssemblies.first()
-                    } else if(firstBlock.subroutines.isNotEmpty()) {
-                        val firstSub = firstBlock.subroutines.first()
-                        if(firstSub.chunks.isNotEmpty())
-                            globalInits.next = firstSub.chunks.first()
+                if(firstBlock!=null && firstBlock.isNotEmpty()) {
+                    firstBlock.children.forEach { child ->
+                        when(child) {
+                            is IRAsmSubroutine -> throw AssemblyError("cannot link next to asmsub $child")
+                            is IRCodeChunk -> globalInits.next = child
+                            is IRInlineAsmChunk -> globalInits.next = child
+                            is IRInlineBinaryChunk -> globalInits.next = child
+                            is IRSubroutine -> {
+                                if(child.chunks.isNotEmpty())
+                                    globalInits.next = child.chunks.first()
+                            }
+                        }
                     }
                 }
             }
         }
 
-        blocks.asSequence().flatMap { it.subroutines }.forEach { sub ->
-
+        fun linkSubroutineChunks(sub: IRSubroutine) {
             sub.chunks.withIndex().forEach { (index, chunk) ->
 
                 fun nextChunk(): IRCodeChunkBase? = if(index<sub.chunks.size-1) sub.chunks[index + 1] else null
@@ -137,37 +152,46 @@ class IRProgram(val name: String,
                 }
             }
         }
+
+        blocks.forEach { block ->
+            block.children.forEachIndexed { index, child ->
+                val next = if(index<block.children.size-1) block.children[index+1] as? IRCodeChunkBase else null
+                when (child) {
+                    is IRAsmSubroutine -> child.asmChunk.next = next
+                    is IRCodeChunk -> child.next = next
+                    is IRInlineAsmChunk -> child.next = next
+                    is IRInlineBinaryChunk -> child.next = next
+                    is IRSubroutine -> linkSubroutineChunks(child)
+                }
+            }
+        }
     }
 
     fun validate() {
         blocks.forEach { block ->
-            // TODO what is the *first* chunk in the block?
-            if(block.inlineAssemblies.isNotEmpty()) {
-                require(block.inlineAssemblies.first().label == block.name) { "first block chunk should have block name as its label" }
-            }
-            block.inlineAssemblies.forEach { chunk ->
-                require(chunk.instructions.isEmpty())
-            }
-            block.subroutines.forEach { sub ->
-                if(sub.chunks.isNotEmpty()) {
-                    require(sub.chunks.first().label == sub.name) { "first chunk in subroutine should have sub name as its label" }
-                }
-                sub.chunks.forEach { chunk ->
-                    if (chunk is IRCodeChunk) {
-                        require(chunk.instructions.isNotEmpty() || chunk.label != null)
-                        if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
-                            require(chunk.next == null) { "chunk ending with a jump shouldn't be linked to next" }
-                        else {
-                            // if chunk is NOT the last in the block, it needs to link to next.
-                            val isLast = sub.chunks.last() === chunk
-                            require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
-                        }
+            if(block.isNotEmpty()) {
+                block.children.filterIsInstance<IRInlineAsmChunk>().forEach { chunk -> require(chunk.instructions.isEmpty()) }
+                block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
+                    if(sub.chunks.isNotEmpty()) {
+                        require(sub.chunks.first().label == sub.label) { "first chunk in subroutine should have sub name (label) as its label" }
                     }
-                    else
-                        require(chunk.instructions.isEmpty())
-                    chunk.instructions.forEach {
-                        if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch)
-                            require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                    sub.chunks.forEach { chunk ->
+                        if (chunk is IRCodeChunk) {
+                            require(chunk.instructions.isNotEmpty() || chunk.label != null)
+                            if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
+                                require(chunk.next == null) { "chunk ending with a jump shouldn't be linked to next" }
+                            else {
+                                // if chunk is NOT the last in the block, it needs to link to next.
+                                val isLast = sub.chunks.last() === chunk
+                                require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
+                            }
+                        }
+                        else
+                            require(chunk.instructions.isEmpty())
+                        chunk.instructions.forEach {
+                            if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch)
+                                require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                        }
                     }
                 }
             }
@@ -188,10 +212,16 @@ class IRProgram(val name: String,
         }
 
         globalInits.instructions.forEach { it.addUsedRegistersCounts(inputRegs, outputRegs, inputFpRegs, outputFpRegs) }
-        blocks.forEach {
-            it.inlineAssemblies.forEach { chunk -> addUsed(chunk.usedRegisters()) }
-            it.subroutines.flatMap { sub->sub.chunks }.forEach { chunk -> addUsed(chunk.usedRegisters()) }
-            it.asmSubroutines.forEach { asmsub -> addUsed(asmsub.usedRegisters()) }
+        blocks.forEach {block ->
+            block.children.forEach { child ->
+                when(child) {
+                    is IRAsmSubroutine -> addUsed(child.usedRegisters())
+                    is IRCodeChunk -> addUsed(child.usedRegisters())
+                    is IRInlineAsmChunk -> addUsed(child.usedRegisters())
+                    is IRInlineBinaryChunk -> addUsed(child.usedRegisters())
+                    is IRSubroutine -> child.chunks.forEach { chunk -> addUsed(chunk.usedRegisters()) }
+                }
+            }
         }
 
         return RegistersUsed(inputRegs, outputRegs, inputFpRegs, outputFpRegs)
@@ -205,11 +235,7 @@ class IRBlock(
     val position: Position
 ) {
     // TODO not separate lists but just a single list of chunks, like IRSubroutine?  (but these are not all chunks...)
-    val inlineAssemblies = mutableListOf<IRInlineAsmChunk>()
-    val subroutines = mutableListOf<IRSubroutine>()
-    val asmSubroutines = mutableListOf<IRAsmSubroutine>()
-    val inlineBinaries = mutableListOf<IRInlineBinaryChunk>()
-    val labels = mutableListOf<IRCodeChunk>()           // empty code chunks having just a label.
+    val children = mutableListOf<IIRBlockElement>()
 
     enum class BlockAlignment {
         NONE,
@@ -217,40 +243,41 @@ class IRBlock(
         PAGE
     }
 
-    operator fun plusAssign(sub: IRSubroutine) {
-        subroutines += sub
-    }
-    operator fun plusAssign(sub: IRAsmSubroutine) { asmSubroutines += sub }
-    operator fun plusAssign(asm: IRInlineAsmChunk) { inlineAssemblies += asm }
-    operator fun plusAssign(binary: IRInlineBinaryChunk) { inlineBinaries += binary }
+    operator fun plusAssign(sub: IRSubroutine) { children += sub }
+    operator fun plusAssign(sub: IRAsmSubroutine) { children += sub }
+    operator fun plusAssign(asm: IRInlineAsmChunk) { children += asm }
+    operator fun plusAssign(binary: IRInlineBinaryChunk) { children += binary }
     operator fun plusAssign(irCodeChunk: IRCodeChunk) {
         // this is for a separate label in the block scope. (random code statements are not allowed)
         require(irCodeChunk.isEmpty() && irCodeChunk.label!=null)
-        labels += irCodeChunk
+        children += irCodeChunk
     }
 
-    fun isEmpty(): Boolean {
-        val noAsm = inlineAssemblies.isEmpty() || inlineAssemblies.all { it.isEmpty() }
-        val noSubs = subroutines.isEmpty() || subroutines.all { it.isEmpty() }
-        val noAsmSubs = asmSubroutines.isEmpty() || asmSubroutines.all { it.isEmpty() }
-        val noBins = inlineBinaries.isEmpty() || inlineBinaries.all { it.isEmpty() }
-        return noAsm && noSubs && noAsmSubs && noBins
-    }
-
+    fun isEmpty(): Boolean = children.isEmpty() || children.all { it.isEmpty() }
+    fun isNotEmpty(): Boolean = !isEmpty()
 }
 
-class IRSubroutine(val name: String,
-                   val parameters: List<IRParam>,
-                   val returnType: DataType?,
-                   val position: Position) {
+
+sealed interface IIRBlockElement {
+    val label: String?
+    fun isEmpty(): Boolean
+    fun isNotEmpty(): Boolean
+}
+
+
+class IRSubroutine(
+    override val label: String,
+    val parameters: List<IRParam>,
+    val returnType: DataType?,
+    val position: Position): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
 
     init {
-        require('.' in name) {"subroutine name is not scoped: $name"}
-        require(!name.startsWith("main.main.")) {"subroutine name invalid main prefix: $name"}
+        require('.' in label) {"subroutine name is not scoped: $label"}
+        require(!label.startsWith("main.main.")) {"subroutine name invalid main prefix: $label"}
 
         // params and return value should not be str
         require(parameters.all{ it.dt in NumericDatatypes }) {"non-numeric parameter"}
@@ -264,37 +291,41 @@ class IRSubroutine(val name: String,
         chunks+= chunk
     }
 
-    fun isEmpty(): Boolean = chunks.isEmpty() || chunks.all { it.isEmpty() }
+    override fun isEmpty(): Boolean = chunks.isEmpty() || chunks.all { it.isEmpty() }
+    override fun isNotEmpty(): Boolean  = !isEmpty()
 }
 
+
 class IRAsmSubroutine(
-    val name: String,
+    override val label: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<IRAsmParam>,
     val returns: List<IRAsmParam>,
     val asmChunk: IRInlineAsmChunk,
     val position: Position
-) {
+): IIRBlockElement {
 
     class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataType)
 
     init {
-        require('.' in name) { "subroutine name is not scoped: $name" }
-        require(!name.startsWith("main.main.")) { "subroutine name invalid main prefix: $name" }
+        require('.' in label) { "subroutine name is not scoped: $label" }
+        require(!label.startsWith("main.main.")) { "subroutine name invalid main prefix: $label" }
     }
 
     private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }
 
     fun usedRegisters() = registersUsed
-    fun isEmpty(): Boolean = if(address==null) asmChunk.isEmpty() else false
+    override fun isEmpty(): Boolean = if(address==null) asmChunk.isEmpty() else false
+    override fun isNotEmpty(): Boolean = !isEmpty()
 }
 
-sealed class IRCodeChunkBase(val label: String?, var next: IRCodeChunkBase?) {
+
+sealed class IRCodeChunkBase(override val label: String?, var next: IRCodeChunkBase?): IIRBlockElement {
     val instructions = mutableListOf<IRInstruction>()
 
-    abstract fun isEmpty(): Boolean
-    abstract fun isNotEmpty(): Boolean
+    abstract override fun isEmpty(): Boolean
+    abstract override fun isNotEmpty(): Boolean
     abstract fun usedRegisters(): RegistersUsed
 }
 

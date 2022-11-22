@@ -75,36 +75,36 @@ class IRCodeGen(
         // make sure that first chunks in Blocks and Subroutines share the name of the block/sub as label.
 
         irProg.blocks.forEach { block ->
-            if(block.inlineAssemblies.isNotEmpty()) {
-                val first = block.inlineAssemblies.first()
+            block.children.firstOrNull { it is IRInlineAsmChunk }?.let { first->
+                first as IRInlineAsmChunk
                 if(first.label==null) {
                     val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.next)
-                    block.inlineAssemblies.removeAt(0)
-                    block.inlineAssemblies.add(0, replacement)
+                    block.children.removeAt(0)
+                    block.children.add(0, replacement)
                 } else if(first.label != block.name) {
                     throw AssemblyError("first chunk in block has label that differs from block name")
                 }
             }
 
-            block.subroutines.forEach { sub ->
+            block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
                 if(sub.chunks.isNotEmpty()) {
                     val first = sub.chunks.first()
                     if(first.label==null) {
                         val replacement = when(first) {
                             is IRCodeChunk -> {
-                                val replacement = IRCodeChunk(sub.name, first.next)
+                                val replacement = IRCodeChunk(sub.label, first.next)
                                 replacement.instructions += first.instructions
                                 replacement
                             }
-                            is IRInlineAsmChunk -> IRInlineAsmChunk(sub.name, first.assembly, first.isIR, first.next)
-                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.name, first.data, first.next)
+                            is IRInlineAsmChunk -> IRInlineAsmChunk(sub.label, first.assembly, first.isIR, first.next)
+                            is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.label, first.data, first.next)
                             else -> throw AssemblyError("invalid chunk")
                         }
                         sub.chunks.removeAt(0)
                         sub.chunks.add(0, replacement)
-                    } else if(first.label != sub.name) {
+                    } else if(first.label != sub.label) {
                         val next = if(first is IRCodeChunk) first else null
-                        sub.chunks.add(0, IRCodeChunk(sub.name, next))
+                        sub.chunks.add(0, IRCodeChunk(sub.label, next))
                     }
                 }
             }
@@ -116,7 +116,7 @@ class IRCodeGen(
         // note: we do still export the memory mapped symbols so a code generator can use those
         //       for instance when a piece of inlined assembly references them.
         val replacements = mutableListOf<Triple<IRCodeChunkBase, Int, UInt>>()
-        irProg.blocks.asSequence().flatMap { it.subroutines }.flatMap { it.chunks }.forEach { chunk ->
+        irProg.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.flatMap { it.chunks }.forEach { chunk ->
             chunk.instructions.withIndex().forEach {
                 (idx, instr) ->
                     val symbolExpr = instr.labelSymbol

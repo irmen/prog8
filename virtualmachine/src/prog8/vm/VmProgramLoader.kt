@@ -23,7 +23,7 @@ class VmProgramLoader {
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
-            if(it.subroutines.any { sub -> sub.name=="main.start" }) {
+            if(it.children.any { sub -> sub is IRSubroutine && sub.label=="main.start" }) {
                 val chunk = IRCodeChunk(null, null)
                 placeholders[Pair(chunk, 0)] = "main.start"
                 chunk += IRInstruction(Opcode.JUMP, labelSymbol = "main.start")
@@ -37,36 +37,35 @@ class VmProgramLoader {
             if(block.address!=null)
                 throw IRParseException("blocks cannot have a load address for vm: ${block.name}")
 
-            block.inlineAssemblies.forEach {
-                val replacement = addAssemblyToProgram(it, programChunks, variableAddresses)
-                chunkReplacements += replacement
-            }
-            block.labels.forEach {
-                programChunks += it     // TODO doing it like this isn't useful, block needs to have a list of nodes rather than a few separate collections
-            }
-            block.subroutines.forEach {
-                it.chunks.forEach { chunk ->
-                    when (chunk) {
-                        is IRInlineAsmChunk -> {
-                            val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
+            block.children.forEach { child ->
+                when(child) {
+                    is IRAsmSubroutine -> {
+                        if(!child.asmChunk.isIR)
+                            throw IRParseException("vm currently does not support non-IR asmsubs: ${child.label}")
+                        else {
+                            val replacement = addAssemblyToProgram(child.asmChunk, programChunks, variableAddresses)
                             chunkReplacements += replacement
                         }
-                        is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
-                        is IRCodeChunk -> programChunks += chunk
-                        else -> throw AssemblyError("weird chunk type")
                     }
+                    is IRCodeChunk -> programChunks += child
+                    is IRInlineAsmChunk -> {
+                        val replacement = addAssemblyToProgram(child, programChunks, variableAddresses)
+                        chunkReplacements += replacement
+                    }
+                    is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
+                    is IRSubroutine -> {
+                        child.chunks.forEach { chunk ->
+                            when (chunk) {
+                                is IRInlineAsmChunk -> {
+                                    val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
+                                    chunkReplacements += replacement
+                                }
+                                is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
+                                is IRCodeChunk -> programChunks += chunk
+                                else -> throw AssemblyError("weird chunk type")
+                            }
+                        }                    }
                 }
-            }
-            block.asmSubroutines.forEach {
-                if(!it.asmChunk.isIR)
-                    throw IRParseException("vm currently does not support non-IR asmsubs: ${block.asmSubroutines.first().name}")
-                else {
-                    val replacement = addAssemblyToProgram(it.asmChunk, programChunks, variableAddresses)
-                    chunkReplacements += replacement
-                }
-            }
-            block.inlineBinaries.forEach {
-                throw IRParseException("inline binary data not yet supported in the VM")  // TODO
             }
         }
 
