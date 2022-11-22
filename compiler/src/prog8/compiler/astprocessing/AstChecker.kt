@@ -1028,6 +1028,23 @@ internal class AstChecker(private val program: Program,
         if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
             checkUnusedReturnValues(functionCallStatement, targetStatement, errors)
+
+            if(functionCallStatement.void) {
+                when(targetStatement) {
+                    is BuiltinFunctionPlaceholder -> {
+                        if(!builtinFunctionReturnType(targetStatement.name).isKnown)
+                            errors.warn("redundant void", functionCallStatement.position)
+                    }
+                    is Label -> {
+                        errors.warn("redundant void", functionCallStatement.position)
+                    }
+                    is Subroutine -> {
+                        if(targetStatement.returntypes.isEmpty())
+                            errors.warn("redundant void", functionCallStatement.position)
+                    }
+                    else -> {}
+                }
+            }
         }
 
         val funcName = functionCallStatement.target.nameInSource

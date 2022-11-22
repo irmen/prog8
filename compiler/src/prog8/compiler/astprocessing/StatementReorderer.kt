@@ -328,7 +328,7 @@ internal class StatementReorderer(val program: Program,
                 assign.value as? IdentifierReference ?: assign.value,
                 identifier
             ),
-            true,
+            false,
             assign.position
         )
         return listOf(IAstModification.ReplaceNode(assign, strcopy, assign.parent))
