@@ -14,9 +14,10 @@ cx16logo {
 
     sub logo() {
         uword strptr
-        for strptr in logo_lines
+        for strptr in logo_lines {
             txt.print(strptr)
-        txt.nl()
+            txt.nl()
+        }
     }
 
     str[] logo_lines = [
