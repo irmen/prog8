@@ -35,8 +35,8 @@ cx16diskio {
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
 
-    asmsub vload(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
-        ; -- like the basic command VLOAD "filename",device,bank,address
+    asmsub vload(str name @R0, ubyte drivenumber @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command VLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file has to have the usual 2 byte header (which will be skipped)
         %asm {{
@@ -77,8 +77,8 @@ internal_vload:
         }}
     }
 
-    asmsub vload_raw(str name @R0, ubyte device @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
-        ; -- like the basic command BVLOAD "filename",device,bank,address
+    asmsub vload_raw(str name @R0, ubyte drivenumber @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file is read fully including the first two bytes.
         %asm {{
@@ -104,7 +104,7 @@ internal_vload:
             num_bytes--
         }
 
-        void c64.CHKIN(11)        ; use #11 as input channel again
+        void c64.CHKIN(12)        ; use #12 as input channel again
 
         ; commander X16 supports fast block-read via macptr() kernal call
         uword size
@@ -191,7 +191,7 @@ m_in_buffer     sta  $ffff
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(path, &diskio.list_filename+3)
-        void diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(drivenumber, diskio.list_filename)
     }
 
     sub mkdir(ubyte drivenumber, str name) {
@@ -200,7 +200,7 @@ m_in_buffer     sta  $ffff
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(name, &diskio.list_filename+3)
-        void diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(drivenumber, diskio.list_filename)
     }
 
     sub rmdir(ubyte drivenumber, str name) {
@@ -212,7 +212,7 @@ m_in_buffer     sta  $ffff
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(name, &diskio.list_filename+3)
-        void diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(drivenumber, diskio.list_filename)
     }
 
     sub relabel(ubyte drivenumber, str name) {
@@ -222,6 +222,33 @@ m_in_buffer     sta  $ffff
         diskio.list_filename[2] = 'h'
         diskio.list_filename[3] = ':'
         void string.copy(name, &diskio.list_filename+4)
-        void diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(drivenumber, diskio.list_filename)
     }
+
+    sub f_seek(uword pos_hiword, uword pos_loword) {
+        ; -- seek in the reading file opened with f_open, to the given 32-bits position
+        ubyte[6] command = ['p',0,0,0,0,0]
+        command[1] = 12       ; f_open uses channel 12
+        command[2] = lsb(pos_loword)
+        command[3] = msb(pos_loword)
+        command[4] = lsb(pos_hiword)
+        command[5] = msb(pos_hiword)
+    send_command:
+        c64.SETNAM(sizeof(command), &command)
+        c64.SETLFS(15, diskio.last_drivenumber, 15)
+        void c64.OPEN()
+        c64.CLOSE(15)
+        diskio.have_first_byte = false
+    }
+
+    ; TODO see if we can get this to work as well:
+;    sub f_seek_w(uword pos_hiword, uword pos_loword) {
+;        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
+;        cx16diskio.f_seek.command[1] = 1       ; f_open_w uses secondary channel 1
+;        cx16diskio.f_seek.command[2] = poslo
+;        cx16diskio.f_seek.command[3] = posmidlo
+;        cx16diskio.f_seek.command[4] = posmidhi
+;        cx16diskio.f_seek.command[5] = poshi
+;        goto cx16diskio.f_seek.send_command
+;    }
 }

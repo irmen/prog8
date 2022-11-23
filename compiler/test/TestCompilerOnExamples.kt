@@ -102,6 +102,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "cube3d",
             "datetime",
             "diskspeed",
+            "fileseek",
             "highresbitmap",
             "kefrenbars",
             "keyboardhandler",

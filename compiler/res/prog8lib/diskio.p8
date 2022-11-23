@@ -10,12 +10,12 @@ diskio {
         ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
 
         c64.SETNAM(1, "$")
-        c64.SETLFS(13, drivenumber, 0)
+        c64.SETLFS(12, drivenumber, 0)
         ubyte status = 1
-        void c64.OPEN()          ; open 13,8,0,"$"
+        void c64.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(13)        ; use #13 as input channel
+        void c64.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
@@ -53,7 +53,7 @@ diskio {
 
 io_error:
         c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(13)
+        c64.CLOSE(12)
 
         if status and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
@@ -69,12 +69,12 @@ io_error:
         ; -- Returns pointer to disk name string or 0 if failure.
 
         c64.SETNAM(1, "$")
-        c64.SETLFS(13, drivenumber, 0)
+        c64.SETLFS(12, drivenumber, 0)
         ubyte okay = false
-        void c64.OPEN()          ; open 13,8,0,"$"
+        void c64.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(13)        ; use #13 as input channel
+        void c64.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
@@ -96,7 +96,7 @@ io_error:
 
 io_error:
         c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(13)
+        c64.CLOSE(12)
         if okay
             return &list_filename
         return 0
@@ -109,6 +109,7 @@ io_error:
     bool iteration_in_progress = false
     ubyte @zp first_byte
     bool have_first_byte
+    ubyte last_drivenumber = 8       ; which drive was last used for a f_open operation?
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
 
@@ -249,7 +250,7 @@ close_end:
     }
 
 
-    ; ----- iterative file loader functions (uses io channel 11) -----
+    ; ----- iterative file loader functions (uses io channel 12) -----
 
     sub f_open(ubyte drivenumber, uword filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
@@ -257,13 +258,14 @@ close_end:
         f_close()
 
         c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(11, drivenumber, 0)
-        void c64.OPEN()          ; open 11,8,0,"filename"
+        c64.SETLFS(12, drivenumber, 12)     ; note: has to be 12,x,12 because otherwise f_seek doesn't work
+        last_drivenumber = drivenumber
+        void c64.OPEN()          ; open 12,8,12,"filename"
         if_cc {
             if c64.READST()==0 {
                 iteration_in_progress = true
                 have_first_byte = false
-                void c64.CHKIN(11)        ; use #11 as input channel
+                void c64.CHKIN(12)        ; use #12 as input channel
                 if_cc {
                     first_byte = c64.CHRIN()   ; read first byte to test for file not found
                     if not c64.READST() {
@@ -294,7 +296,7 @@ close_end:
             num_bytes--
         }
 
-        void c64.CHKIN(11)        ; use #11 as input channel again
+        void c64.CHKIN(12)        ; use #12 as input channel again
 
         %asm {{
             lda  bufferpointer
@@ -359,8 +361,8 @@ m_in_buffer     sta  $ffff
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
-            ldx  #11
-            jsr  c64.CHKIN              ; use channel 11 again for input
+            ldx  #12
+            jsr  c64.CHKIN              ; use channel 12 again for input
             ldy  #0
             lda  have_first_byte
             beq  _loop
@@ -389,23 +391,23 @@ _end        rts
         ; -- end an iterative file loading session (close channels).
         if iteration_in_progress {
             c64.CLRCHN()
-            c64.CLOSE(11)
+            c64.CLOSE(12)
             iteration_in_progress = false
         }
     }
 
 
-    ; ----- iterative file saver functions (uses io channel 14) -----
+    ; ----- iterative file writing functions (uses io channel 13) -----
 
     sub f_open_w(ubyte drivenumber, uword filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
         c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(14, drivenumber, 1)
-        void c64.OPEN()          ; open 14,8,1,"filename"
+        c64.SETLFS(13, drivenumber, 1)
+        void c64.OPEN()             ; open 13,8,1,"filename"
         if_cc {
-            void c64.CHKOUT(14)        ; use #14 as output channel
+            c64.CHKOUT(13)          ; use #13 as output channel
             return not c64.READST()
         }
         f_close_w()
@@ -413,9 +415,9 @@ _end        rts
     }
 
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
-        ; -- write the given umber of bytes to the currently open file
+        ; -- write the given number of bytes to the currently open file
         if num_bytes!=0 {
-            void c64.CHKOUT(14)        ; use #14 as output channel again
+            c64.CHKOUT(13)        ; use #13 as output channel again
             repeat num_bytes {
                 c64.CHROUT(@(bufferpointer))
                 bufferpointer++
@@ -428,7 +430,7 @@ _end        rts
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
         c64.CLRCHN()
-        c64.CLOSE(14)
+        c64.CLOSE(13)
     }
 
 
