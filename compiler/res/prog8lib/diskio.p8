@@ -107,8 +107,6 @@ io_error:
     uword list_pattern
     uword list_blocks
     bool iteration_in_progress = false
-    ubyte @zp first_byte
-    bool have_first_byte
     ubyte last_drivenumber = 8       ; which drive was last used for a f_open operation?
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
@@ -264,12 +262,13 @@ close_end:
         if_cc {
             if c64.READST()==0 {
                 iteration_in_progress = true
-                have_first_byte = false
-                void c64.CHKIN(12)        ; use #12 as input channel
+                void c64.CHKIN(12)          ; use #12 as input channel
                 if_cc {
-                    first_byte = c64.CHRIN()   ; read first byte to test for file not found
+                    void c64.CHRIN()        ; read first byte to test for file not found
                     if not c64.READST() {
-                        have_first_byte = true
+                        c64.CLOSE(12)           ; close file because we already consumed first byte
+                        void c64.OPEN()         ; re-open the file
+                        void c64.CHKIN(12)
                         return true
                     }
                 }
@@ -288,14 +287,6 @@ close_end:
             return 0
 
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
-        if have_first_byte {
-            have_first_byte=false
-            @(bufferpointer) = first_byte
-            bufferpointer++
-            list_blocks++
-            num_bytes--
-        }
-
         void c64.CHKIN(12)        ; use #12 as input channel again
 
         %asm {{
@@ -307,7 +298,7 @@ close_end:
         repeat num_bytes {
             %asm {{
                 jsr  c64.CHRIN
-                sta  cx16.r5
+                sta  cx16.r5L
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
@@ -318,13 +309,13 @@ m_in_buffer     sta  $ffff
 +
             }}
 
-            if cx16.r5==$0d {   ; chance on I/o error status?
-                first_byte = c64.READST()
-                if first_byte & $40 {
+            if cx16.r5L==$0d {   ; chance on I/o error status?
+                cx16.r5L = c64.READST()
+                if cx16.r5L & $40 {
                     f_close()       ; end of file, close it
                     list_blocks--   ; don't count that last CHRIN read
                 }
-                if first_byte
+                if cx16.r5L
                     return list_blocks  ; number of bytes read
             }
         }
@@ -337,13 +328,6 @@ m_in_buffer     sta  $ffff
             return 0
 
         uword total_read = 0
-        if have_first_byte {
-            have_first_byte=false
-            @(bufferpointer) = first_byte
-            bufferpointer++
-            total_read = 1
-        }
-
         while not c64.READST() {
             uword size = f_read(bufferpointer, 256)
             total_read += size
@@ -364,13 +348,6 @@ m_in_buffer     sta  $ffff
             ldx  #12
             jsr  c64.CHKIN              ; use channel 12 again for input
             ldy  #0
-            lda  have_first_byte
-            beq  _loop
-            lda  #0
-            sta  have_first_byte
-            lda  first_byte
-            sta  (P8ZP_SCRATCH_W1),y
-            iny
 _loop       jsr  c64.CHRIN
             sta  (P8ZP_SCRATCH_W1),y
             beq  _end
@@ -449,10 +426,10 @@ _end        rts
             goto io_error
 
         while not c64.READST() {
-            first_byte = c64.CHRIN()
-            if first_byte=='\r' or first_byte=='\n'
+            cx16.r5L = c64.CHRIN()
+            if cx16.r5L=='\r' or cx16.r5L=='\n'
                 break
-            @(messageptr) = first_byte
+            @(messageptr) = cx16.r5L
             messageptr++
         }
         @(messageptr) = 0
@@ -471,7 +448,7 @@ io_error:
         c64.SETNAM(string.length(filenameptr), filenameptr)
         c64.SETLFS(1, drivenumber, 0)
         uword @shared end_address = address + size
-        first_byte = 0      ; result var reuse
+        cx16.r0L = 0
 
         %asm {{
             lda  address
@@ -489,12 +466,12 @@ io_error:
         }}
 
         if_cc
-            first_byte = c64.READST()==0
+            cx16.r0L = c64.READST()==0
 
         c64.CLRCHN()
         c64.CLOSE(1)
 
-        return first_byte
+        return cx16.r0L
     }
 
     ; Use kernal LOAD routine to load the given program file in memory.

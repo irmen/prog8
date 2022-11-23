@@ -96,14 +96,6 @@ internal_vload:
             return 0
 
         diskio.list_blocks = 0     ; we reuse this variable for the total number of bytes read
-        if diskio.have_first_byte {
-            diskio.have_first_byte=false
-            @(bufferpointer) = diskio.first_byte
-            bufferpointer++
-            diskio.list_blocks++
-            num_bytes--
-        }
-
         void c64.CHKIN(12)        ; use #12 as input channel again
 
         ; commander X16 supports fast block-read via macptr() kernal call
@@ -137,7 +129,7 @@ byte_read_loop:         ; fallback if macptr() isn't supported on the device
         repeat num_bytes {
             %asm {{
                 jsr  c64.CHRIN
-                sta  cx16.r5
+                sta  cx16.r5L
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
@@ -148,13 +140,13 @@ m_in_buffer     sta  $ffff
 +
             }}
 
-            if cx16.r5==$0d {   ; chance on I/o error status?
-                diskio.first_byte = c64.READST()
-                if diskio.first_byte & $40 {
+            if cx16.r5L==$0d {   ; chance on I/o error status?
+                cx16.r5L = c64.READST()
+                if cx16.r5L & $40 {
                     diskio.f_close()       ; end of file, close it
                     diskio.list_blocks--   ; don't count that last CHRIN read
                 }
-                if diskio.first_byte
+                if cx16.r5L
                     return diskio.list_blocks  ; number of bytes read
             }
         }
@@ -169,13 +161,6 @@ m_in_buffer     sta  $ffff
             return 0
 
         uword total_read = 0
-        if diskio.have_first_byte {
-            diskio.have_first_byte=false
-            @(bufferpointer) = diskio.first_byte
-            bufferpointer++
-            total_read = 1
-        }
-
         while not c64.READST() {
             uword size = cx16diskio.f_read(bufferpointer, 256)
             total_read += size
@@ -238,7 +223,6 @@ m_in_buffer     sta  $ffff
         c64.SETLFS(15, diskio.last_drivenumber, 15)
         void c64.OPEN()
         c64.CLOSE(15)
-        diskio.have_first_byte = false
     }
 
     ; TODO see if we can get this to work as well:
