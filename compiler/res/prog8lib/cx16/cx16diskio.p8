@@ -96,7 +96,6 @@ internal_vload:
             return 0
 
         diskio.list_blocks = 0     ; we reuse this variable for the total number of bytes read
-        void c64.CHKIN(12)        ; use #12 as input channel again
 
         ; commander X16 supports fast block-read via macptr() kernal call
         uword size
@@ -126,29 +125,23 @@ byte_read_loop:         ; fallback if macptr() isn't supported on the device
             lda  bufferpointer+1
             sta  m_in_buffer+2
         }}
-        repeat num_bytes {
+        while num_bytes {
+            if c64.READST() {
+                diskio.f_close()
+                if c64.READST() & $40    ; eof?
+                    return diskio.list_blocks   ; number of bytes read
+                return 0  ; error.
+            }
             %asm {{
                 jsr  c64.CHRIN
-                sta  cx16.r5L
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
                 inc  m_in_buffer+2
-+               inc  diskio.list_blocks
-                bne  +
-                inc  diskio.list_blocks+1
 +
             }}
-
-            if cx16.r5L==$0d {   ; chance on I/o error status?
-                cx16.r5L = c64.READST()
-                if cx16.r5L & $40 {
-                    diskio.f_close()       ; end of file, close it
-                    diskio.list_blocks--   ; don't count that last CHRIN read
-                }
-                if cx16.r5L
-                    return diskio.list_blocks  ; number of bytes read
-            }
+            diskio.list_blocks++
+            num_bytes--
         }
         return diskio.list_blocks  ; number of bytes read
     }
@@ -162,9 +155,9 @@ m_in_buffer     sta  $ffff
 
         uword total_read = 0
         while not c64.READST() {
-            uword size = cx16diskio.f_read(bufferpointer, 256)
-            total_read += size
-            bufferpointer += size
+            cx16.r0 = cx16diskio.f_read(bufferpointer, 256)
+            total_read += cx16.r0
+            bufferpointer += cx16.r0
         }
         return total_read
     }
@@ -228,11 +221,11 @@ m_in_buffer     sta  $ffff
     ; TODO see if we can get this to work as well:
 ;    sub f_seek_w(uword pos_hiword, uword pos_loword) {
 ;        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
-;        cx16diskio.f_seek.command[1] = 1       ; f_open_w uses secondary channel 1
-;        cx16diskio.f_seek.command[2] = poslo
-;        cx16diskio.f_seek.command[3] = posmidlo
-;        cx16diskio.f_seek.command[4] = posmidhi
-;        cx16diskio.f_seek.command[5] = poshi
+;        cx16diskio.f_seek.command[1] = 13       ; f_open_w uses channel 13
+;        cx16diskio.f_seek.command[2] = lsb(pos_loword)
+;        cx16diskio.f_seek.command[3] = msb(pos_loword)
+;        cx16diskio.f_seek.command[4] = lsb(pos_hiword)
+;        cx16diskio.f_seek.command[5] = msb(pos_hiword)
 ;        goto cx16diskio.f_seek.send_command
 ;    }
 }

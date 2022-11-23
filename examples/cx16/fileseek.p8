@@ -8,15 +8,15 @@
 %option no_sysinit
 
 main {
-    str FILENAME = "seektestfile.bin"
+    uword megabuffer = memory("megabuffer", 20000, 256)
 
     sub start() {
+
         txt.print("writing data file...\n")
         uword total=0
-        diskio.delete(8, FILENAME)
-        if diskio.f_open_w(8, FILENAME) {
-            repeat 1000 {
-                str text = "hello world."
+        if diskio.f_open_w(8, "@:seektestfile.bin,p,m") {
+            repeat 100 {
+                str text = "hello world.\n"
                 void diskio.f_write(text, string.length(text))
                 total += string.length(text)
             }
@@ -32,11 +32,9 @@ main {
 
         read_last_bytes()
 
-;        txt.print("\nseeking to 11992 and writing a few bytes...\n")
-;        if diskio.f_open_w(8, FILENAME) {
-;            cx16diskio.f_seek_w(0,0,msb(11992),lsb(11992))
-;            txt.print(diskio.status(8))
-;            txt.nl()
+;        txt.print("\nseeking to 1292 and writing a few bytes...\n")
+;        if diskio.f_open_w(8, "seektestfile.bin,p,m") {
+;            cx16diskio.f_seek_w(0, 1292)
 ;            void diskio.f_write("123", 3)
 ;            diskio.f_close_w()
 ;        } else {
@@ -49,31 +47,44 @@ main {
     }
 
     sub read_last_bytes() {
-        ; read the last 10 bytes of the 12000 bytes file
-        ubyte[256] buffer
+        ; read the last 10 bytes of the 1300 bytes file
         uword total = 0
         uword size
-        txt.print("\nseeking to 11990 and reading...\n")
-        if diskio.f_open(8, FILENAME) {
-            cx16diskio.f_seek(0, 11990)
+        txt.print("\nreading...\n")
+        if diskio.f_open(8, "seektestfile.bin,p,r") {
+            size = diskio.f_read_all(megabuffer)
+            diskio.f_close()
+            txt.print("size read:")
+            txt.print_uw(size)
+            txt.nl()
+        } else {
+            txt.print("error!\n")
+            sys.exit(1)
+        }
+
+        txt.print("\nseeking to 1290 and reading...\n")
+        if diskio.f_open(8, "seektestfile.bin,p,r") {
+            cx16diskio.f_seek(0, 1290)
+            uword ptr = megabuffer
             do {
-                size = diskio.f_read(buffer, sizeof(buffer))
+                size = diskio.f_read(ptr, 255)
                 total += size
+                ptr += size
             } until size==0
             diskio.f_close()
             txt.print("size read=")
             txt.print_uw(total)
             txt.nl()
-            buffer[lsb(total)] = 0
+            megabuffer[lsb(total)] = 0
             txt.print("buffer read=")
             ubyte idx
             for idx in 0 to lsb(total-1) {
-                txt.print_ubhex(buffer[idx], false)
+                txt.print_ubhex(megabuffer[idx], false)
                 txt.spc()
             }
             txt.spc()
             txt.chrout('{')
-            txt.print(buffer)
+            txt.print(megabuffer)
             txt.chrout('}')
             txt.nl()
         } else {

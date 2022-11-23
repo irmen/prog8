@@ -3,10 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- diskio.f_read doesn't signal end of file condition if the requested number of bytes==1 ?
-- diskio.f_read doesn't work if used after seek with buffer too small?
 - ir/vm: check weird asm chunks appearing in block?
 - try to get the cx16 adpcm example to output audio
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything)
+- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - attempt to fix the expression codegen bug with reused temp vars (github #89)
 - AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block? 64tass problem?
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)

@@ -287,7 +287,6 @@ close_end:
             return 0
 
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
-        void c64.CHKIN(12)        ; use #12 as input channel again
 
         %asm {{
             lda  bufferpointer
@@ -295,29 +294,23 @@ close_end:
             lda  bufferpointer+1
             sta  m_in_buffer+2
         }}
-        repeat num_bytes {
+        while num_bytes {
+            if c64.READST() {
+                f_close()
+                if c64.READST() & $40    ; eof?
+                    return list_blocks   ; number of bytes read
+                return 0  ; error.
+            }
             %asm {{
                 jsr  c64.CHRIN
-                sta  cx16.r5L
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
                 inc  m_in_buffer+2
-+               inc  list_blocks
-                bne  +
-                inc  list_blocks+1
 +
             }}
-
-            if cx16.r5L==$0d {   ; chance on I/o error status?
-                cx16.r5L = c64.READST()
-                if cx16.r5L & $40 {
-                    f_close()       ; end of file, close it
-                    list_blocks--   ; don't count that last CHRIN read
-                }
-                if cx16.r5L
-                    return list_blocks  ; number of bytes read
-            }
+            list_blocks++
+            num_bytes--
         }
         return list_blocks  ; number of bytes read
     }
@@ -329,9 +322,9 @@ m_in_buffer     sta  $ffff
 
         uword total_read = 0
         while not c64.READST() {
-            uword size = f_read(bufferpointer, 256)
-            total_read += size
-            bufferpointer += size
+            cx16.r0 = f_read(bufferpointer, 256)
+            total_read += cx16.r0
+            bufferpointer += cx16.r0
         }
         return total_read
     }
