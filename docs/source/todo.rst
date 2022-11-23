@@ -4,6 +4,7 @@ TODO
 For next release
 ^^^^^^^^^^^^^^^^
 - get rid of diskio.have_first_byte.  But detecting invalid filenames should still work.
+- check diskio.status(), fix diskio.f_readline
 - diskio.f_read doesn't signal end of file condition if the requested number of bytes==1 ?
 - diskio.f_read doesn't work if used after seek with buffer too small?
 - ir/vm: check weird asm chunks appearing in block?

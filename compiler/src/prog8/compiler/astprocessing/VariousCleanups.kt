@@ -8,6 +8,8 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.ConditionalBranch
+import prog8.ast.statements.IfElse
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -216,6 +218,23 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return checkString(stringVal)
             }
             else -> {}
+        }
+        return noModifications
+    }
+
+    override fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> {
+        if(branch.truepart.isEmpty() && branch.elsepart.isEmpty()) {
+            errors.warn("removing empty conditional branch", branch.position)
+            return listOf(IAstModification.Remove(branch, parent as IStatementContainer))
+        }
+
+        return noModifications
+    }
+
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty()) {
+            errors.warn("removing empty if-else statement", ifElse.position)
+            return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
         }
         return noModifications
     }

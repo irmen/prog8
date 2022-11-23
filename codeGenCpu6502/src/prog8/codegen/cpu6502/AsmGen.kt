@@ -794,7 +794,7 @@ $repeatLabel    lda  $counterVar
         if(stmt.truepart.isEmpty() && stmt.elsepart.isNotEmpty())
             throw AssemblyError("only else part contains code, shoud have been switched already")
 
-        val jump = stmt.truepart.statements.first() as? Jump
+        val jump = stmt.truepart.statements.firstOrNull() as? Jump
         if(jump!=null) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
@@ -812,11 +812,13 @@ $repeatLabel    lda  $counterVar
             translate(stmt.elsepart)
         } else {
             if(stmt.elsepart.isEmpty()) {
-                val instruction = branchInstruction(stmt.condition, true)
-                val elseLabel = program.makeLabel("branch_else")
-                out("  $instruction  $elseLabel")
-                translate(stmt.truepart)
-                out(elseLabel)
+                if(stmt.truepart.isNotEmpty()) {
+                    val instruction = branchInstruction(stmt.condition, true)
+                    val elseLabel = program.makeLabel("branch_else")
+                    out("  $instruction  $elseLabel")
+                    translate(stmt.truepart)
+                    out(elseLabel)
+                }
             } else {
                 val instruction = branchInstruction(stmt.condition, true)
                 val elseLabel = program.makeLabel("branch_else")

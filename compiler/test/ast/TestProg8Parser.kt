@@ -888,9 +888,11 @@ class TestProg8Parser: FunSpec( {
                     bool bb
                     ubyte cc
                     if cc in [' ', '@', 0] {
+                        cx16.r0L++
                     }
                     
                     if cc in "email" {
+                        cx16.r0L++
                     }
                     
                     bb = 99 in array
