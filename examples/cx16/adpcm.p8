@@ -1,37 +1,102 @@
 %import textio
+%option no_sysinit
+%zeropage basicsafe
 
 main {
 
     sub start() {
+        cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
+        cx16.VERA_AUDIO_RATE = 0                ; halt playback
+        cx16.VERA_IEN &= %11110111   ; disable AFLOW
+        repeat 4096 {
+            cx16.VERA_AUDIO_DATA = 0
+        }
 
-        ; cx16.set_rasterirq(irqhandler, 10)
-        uword adpcm_size = &adpcm_data_end - &adpcm_data
-        uword num_adpcm_blocks = adpcm_size / 256
-        uword nibblesptr = &adpcm_data
+        cx16.VERA_AUDIO_RATE = 16
 
-        num_adpcm_blocks = 1
-        nibblesptr = &nibbles
+        uword pcm_size = &pcm_data_end - &pcm_data
+        uword num_blocks = pcm_size / 1024
+        uword pcm_ptr = &pcm_data
 
-        repeat num_adpcm_blocks {
-            uword @zp sample = peekw(nibblesptr)
-            nibblesptr += 2
-            adpcm.init(sample, @(nibblesptr))
-            nibblesptr += 2
+        txt.print("audio on.\n")
 
-            repeat 252 {
-               ubyte @zp nibble = @(nibblesptr)
-               adpcm.decode_nibble(nibble & 15)
-               txt.print_w(adpcm.predict as word)
-               txt.spc()
-               adpcm.decode_nibble(nibble>>4)
-               txt.print_w(adpcm.predict as word)
-               txt.spc()
-               nibblesptr++
+        repeat num_blocks {
+            ; wait till the fifo is empty (fully empty??)
+            while not (cx16.VERA_AUDIO_CTRL & %01000000) {
+                ; wait
+            }
+
+            ; fill more audio data
+            repeat 512 {
+                cx16.VERA_AUDIO_DATA = @(pcm_ptr)
+                pcm_ptr++
+                cx16.VERA_AUDIO_DATA = @(pcm_ptr)
+                pcm_ptr++
             }
         }
 
-        repeat {
-        }
+        cx16.VERA_AUDIO_CTRL = %00100000
+        cx16.VERA_AUDIO_RATE = 0
+        txt.print("audio off.\n")
+
+
+;        uword adpcm_size = &adpcm_data_end - &adpcm_data
+;        uword num_adpcm_blocks = adpcm_size / 256
+;        uword nibblesptr = &adpcm_data
+;
+;        nibblesptr = &nibbles
+;        repeat num_adpcm_blocks {
+;            ; wait till the fifo is empty (fully empty??)
+;            while not (cx16.VERA_AUDIO_CTRL & %01000000) {
+;                ; wait
+;            }
+;
+;            ; decode another adpcm block
+;            uword @zp sample = peekw(nibblesptr)
+;            nibblesptr += 2
+;            adpcm.init(sample, @(nibblesptr))
+;            nibblesptr += 2
+;
+;            repeat 252 {
+;               ubyte @zp nibble = @(nibblesptr)
+;               adpcm.decode_nibble(nibble & 15)
+;               ; adpcm.predict as word
+;               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+;               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+;               adpcm.decode_nibble(nibble>>4)
+;               ; adpcm.predict as word
+;               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+;               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+;               nibblesptr++
+;            }
+;        }
+
+
+;        cx16.set_rasterirq(irqhandler, 10)
+;        uword adpcm_size = &adpcm_data_end - &adpcm_data
+;        uword num_adpcm_blocks = adpcm_size / 256
+;        uword nibblesptr = &adpcm_data
+;
+;        num_adpcm_blocks = 1
+;        nibblesptr = &nibbles
+;
+;        repeat num_adpcm_blocks {
+;            uword @zp sample = peekw(nibblesptr)
+;            nibblesptr += 2
+;            adpcm.init(sample, @(nibblesptr))
+;            nibblesptr += 2
+;
+;            repeat 252 {
+;               ubyte @zp nibble = @(nibblesptr)
+;               adpcm.decode_nibble(nibble & 15)
+;               txt.print_w(adpcm.predict as word)
+;               txt.spc()
+;               adpcm.decode_nibble(nibble>>4)
+;               txt.print_w(adpcm.predict as word)
+;               txt.spc()
+;               nibblesptr++
+;            }
+;        }
     }
 
 ;    sub irqhandler() {
@@ -41,7 +106,7 @@ main {
 ;        adpcm.init(sample, nibbles[2])
 ;
 ;        ubyte @zp idx = 4
-;        while idx<100 {
+;        while idx<200 {
 ;            ubyte @zp nibble = nibbles[idx]
 ;            adpcm.decode_nibble(nibble & 15)
 ;            sample = adpcm.predict
@@ -54,25 +119,29 @@ main {
 ;        cx16.vpoke(1, $fa00,0)
 ;    }
 
-adpcm_data:
-    %asmbinary "adpcm-mono.bin"
-adpcm_data_end:
+;adpcm_data:
+;    %asmbinary "adpcm-mono.bin"
+;adpcm_data_end:
 
-    ubyte[256] nibbles = [216, 227, 59, 0, 32, 2, 186, 139, 24, 34, 84, 115, 19, 185, 173, 8, 0, 56, 162,
-                          169, 144, 113, 55, 130, 186, 12, 33, 144, 10, 136, 10, 129, 41, 66, 210, 207,
-                          9, 0, 153, 129, 185, 173, 155, 0, 37, 162, 191, 27, 36, 129, 144, 137, 82, 18,
-                          87, 18, 152, 153, 136, 0, 32, 23, 0, 40, 24, 117, 19, 202, 138, 8, 176, 171,
-                          24, 131, 234, 9, 32, 39, 160, 10, 153, 33, 52, 209, 137, 200, 73, 33, 233, 155,
-                          136, 66, 146, 8, 152, 56, 131, 113, 23, 168, 169, 185, 9, 160, 65, 37, 49, 22,
-                          64, 68, 168, 138, 153, 1, 171, 88, 35, 25, 65, 1, 176, 173, 185, 175, 168, 154,
-                          153, 205, 138, 144, 152, 154, 204, 43, 53, 51, 35, 154, 184, 96, 71, 34, 152,
-                          172, 138, 160, 9, 24, 16, 204, 88, 48, 54, 160, 172, 152, 65, 132, 168, 48, 4,
-                          0, 190, 9, 161, 155, 218, 139, 154, 185, 207, 9, 50, 130, 184, 252, 155, 24,
-                          53, 144, 172, 170, 88, 51, 1, 176, 173, 17, 40, 115, 129, 136, 200, 11, 70,
-                          129, 8, 0, 0, 48, 37, 160, 42, 35, 32, 17, 18, 220, 174, 170, 143, 9, 137, 160,
-                          171, 104, 4, 169, 154, 219, 142, 65, 129, 128, 168, 9, 69, 50, 130, 219, 128,
-                          138, 49, 52, 146, 237, 141, 50, 21, 8, 136, 8, 153, 35, 193, 170, 2, 169, 224,
-                          186, 170, 40, 253, 12, 17, 25]
+;    ubyte[256] nibbles = [216, 227, 59, 0, 32, 2, 186, 139, 24, 34, 84, 115, 19, 185, 173, 8, 0, 56, 162,
+;                          169, 144, 113, 55, 130, 186, 12, 33, 144, 10, 136, 10, 129, 41, 66, 210, 207,
+;                          9, 0, 153, 129, 185, 173, 155, 0, 37, 162, 191, 27, 36, 129, 144, 137, 82, 18,
+;                          87, 18, 152, 153, 136, 0, 32, 23, 0, 40, 24, 117, 19, 202, 138, 8, 176, 171,
+;                          24, 131, 234, 9, 32, 39, 160, 10, 153, 33, 52, 209, 137, 200, 73, 33, 233, 155,
+;                          136, 66, 146, 8, 152, 56, 131, 113, 23, 168, 169, 185, 9, 160, 65, 37, 49, 22,
+;                          64, 68, 168, 138, 153, 1, 171, 88, 35, 25, 65, 1, 176, 173, 185, 175, 168, 154,
+;                          153, 205, 138, 144, 152, 154, 204, 43, 53, 51, 35, 154, 184, 96, 71, 34, 152,
+;                          172, 138, 160, 9, 24, 16, 204, 88, 48, 54, 160, 172, 152, 65, 132, 168, 48, 4,
+;                          0, 190, 9, 161, 155, 218, 139, 154, 185, 207, 9, 50, 130, 184, 252, 155, 24,
+;                          53, 144, 172, 170, 88, 51, 1, 176, 173, 17, 40, 115, 129, 136, 200, 11, 70,
+;                          129, 8, 0, 0, 48, 37, 160, 42, 35, 32, 17, 18, 220, 174, 170, 143, 9, 137, 160,
+;                          171, 104, 4, 169, 154, 219, 142, 65, 129, 128, 168, 9, 69, 50, 130, 219, 128,
+;                          138, 49, 52, 146, 237, 141, 50, 21, 8, 136, 8, 153, 35, 193, 170, 2, 169, 224,
+;                          186, 170, 40, 253, 12, 17, 25]
+
+pcm_data:
+    %asmbinary "pcm-mono.bin"
+pcm_data_end:
 
 }
 
