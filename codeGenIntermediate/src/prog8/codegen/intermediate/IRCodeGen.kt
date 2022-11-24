@@ -180,14 +180,12 @@ class IRCodeGen(
     private fun flattenNestedSubroutines() {
         // this moves all nested subroutines up to the block scope.
         // also changes the name to be the fully scoped one, so it becomes unique at the top level.
-        // also moves the start() entrypoint as first subroutine.
         val flattenedSubs = mutableListOf<Pair<PtBlock, PtSub>>()
         val flattenedAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
         val removalsSubs = mutableListOf<Pair<PtSub, PtSub>>()
         val removalsAsmSubs = mutableListOf<Pair<PtSub, PtAsmSub>>()
         val renameSubs = mutableListOf<Pair<PtBlock, PtSub>>()
         val renameAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
-        val entrypoint = program.entrypoint()
 
         fun flattenNestedAsmSub(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
             val flattened = PtAsmSub(asmsub.scopedName.joinToString("."),
@@ -236,17 +234,8 @@ class IRCodeGen(
         renameSubs.forEach { (parent, sub) ->
             val renamedSub = PtSub(sub.scopedName.joinToString("."), sub.parameters, sub.returntype, sub.inline, sub.position)
             sub.children.forEach { renamedSub.add(it) }
-            parent.children.remove(sub)
-            if (sub === entrypoint) {
-                // entrypoint sub must be first sub
-                val firstsub = parent.children.withIndex().firstOrNull() { it.value is PtSub || it.value is PtAsmSub }
-                if(firstsub!=null)
-                    parent.add(firstsub.index, renamedSub)
-                else
-                    parent.add(renamedSub)
-            } else {
-                parent.add(renamedSub)
-            }
+            val subindex = parent.children.indexOf(sub)
+            parent.children[subindex] = renamedSub      // keep the order of nodes the same
         }
         renameAsmSubs.forEach { (parent, sub) ->
             val renamedSub = PtAsmSub(sub.scopedName.joinToString("."),
@@ -260,8 +249,8 @@ class IRCodeGen(
 
             if(sub.children.isNotEmpty())
                 renamedSub.add(sub.children.single())
-            parent.children.remove(sub)
-            parent.add(renamedSub)
+            val subindex = parent.children.indexOf(sub)
+            parent.children[subindex] = renamedSub       // keep the order of nodes the same
         }
     }
 

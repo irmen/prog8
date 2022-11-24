@@ -3,9 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- ir/vm: check weird asm chunks appearing in block?
 - try to get the cx16 adpcm example to output audio
-- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything)
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - attempt to fix the expression codegen bug with reused temp vars (github #89)
 - AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block? 64tass problem?
