@@ -509,7 +509,7 @@ internal class AstChecker(private val program: Program,
                     val sourceDatatype = assignment.value.inferType(program)
                     if (sourceDatatype.isUnknown) {
                         if (assignment.value !is FunctionCallExpression)
-                            errors.err("assignment value is invalid or has no proper datatype, maybe forgot '&' (address-of)", assignment.value.position)
+                            errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                     } else {
                         checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
                                 sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
@@ -843,8 +843,15 @@ internal class AstChecker(private val program: Program,
 
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
-        if(!leftIDt.isKnown || !rightIDt.isKnown)
+        if(!leftIDt.isKnown || !rightIDt.isKnown) {
+            // check if maybe one of the operands is a label, this would need a '&'
+            if (!leftIDt.isKnown && expr.left !is FunctionCallExpression)
+                errors.err("invalid operand, maybe forgot '&' (address-of)", expr.left.position)
+            if (!rightIDt.isKnown && expr.right !is FunctionCallExpression)
+                errors.err("invalid operand, maybe forgot '&' (address-of)", expr.right.position)
+
             return     // hopefully this error will be detected elsewhere
+        }
 
         val leftDt = leftIDt.getOr(DataType.UNDEFINED)
         val rightDt = rightIDt.getOr(DataType.UNDEFINED)

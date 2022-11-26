@@ -52,8 +52,8 @@ class TestAstChecks: FunSpec({
         compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
-        errors.errors[0] shouldContain ":7:28: assignment value is invalid"
-        errors.errors[1] shouldContain ":8:28: assignment value is invalid"
+        errors.errors[0] shouldContain ":7:28: invalid assignment value, maybe forgot '&'"
+        errors.errors[1] shouldContain ":8:28: invalid assignment value, maybe forgot '&'"
     }
 
     test("can't do str or array expression without using address-of") {
