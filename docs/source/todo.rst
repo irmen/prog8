@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- try to get the cx16 adpcm example to output audio
+- fix compiler crash cx16.r0 = (-(cx16.r0 as word) as uword)
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - attempt to fix the expression codegen bug with reused temp vars (github #89)

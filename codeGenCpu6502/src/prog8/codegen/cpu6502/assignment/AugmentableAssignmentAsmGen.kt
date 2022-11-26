@@ -1873,7 +1873,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 
     internal fun inplaceNegate(assign: AsmAssignment) {
         val target = assign.target
-        when (assign.target.datatype) {
+        when (target.datatype) {
             DataType.BYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
