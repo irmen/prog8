@@ -14,7 +14,7 @@ main {
 
         txt.print("writing data file...\n")
         uword total=0
-        if diskio.f_open_w(8, "@:seektestfile.bin,p,m") {
+        if diskio.f_open_w(8, "@:seektestfile.bin") {
             repeat 100 {
                 str text = "hello world.\n"
                 void diskio.f_write(text, string.length(text))
@@ -32,6 +32,7 @@ main {
 
         read_last_bytes()
 
+; NOTE: f_seek_w() doesn't work right now. It requires substantial changes to the diskio library that are not compatible with the C64/C128.
 ;        txt.print("\nseeking to 1292 and writing a few bytes...\n")
 ;        if diskio.f_open_w(8, "seektestfile.bin,p,m") {
 ;            cx16diskio.f_seek_w(0, 1292)
@@ -51,7 +52,7 @@ main {
         uword total = 0
         uword size
         txt.print("\nreading...\n")
-        if diskio.f_open(8, "seektestfile.bin,p,r") {
+        if diskio.f_open(8, "seektestfile.bin") {
             size = diskio.f_read_all(megabuffer)
             diskio.f_close()
             txt.print("size read:")
@@ -63,7 +64,7 @@ main {
         }
 
         txt.print("\nseeking to 1290 and reading...\n")
-        if diskio.f_open(8, "seektestfile.bin,p,r") {
+        if diskio.f_open(8, "seektestfile.bin") {
             cx16diskio.f_seek(0, 1290)
             uword ptr = megabuffer
             do {

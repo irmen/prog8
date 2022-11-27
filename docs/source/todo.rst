@@ -3,10 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
-- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
-- attempt to fix the expression codegen bug with reused temp vars (github #89)
 - AstIdentifiersChecker: can a subroutine really not have the same name as its enclosing block? 64tass problem?
+- attempt to fix the expression codegen bug with reused temp vars (github #89)
 - 6502 codegen: make it possible to use cpu opcodes such as 'nop' as variable names by prefixing all asm vars with something such as ``p8v_``? Or not worth it (most 3 letter opcodes as variables are nonsensical anyway)
   then we can get rid of the instruction lists in the machinedefinitions as well.  This is already no problem at all in the IR codegen.
 - create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
@@ -49,6 +47,8 @@ Compiler:
 
 Libraries:
 
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
+- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - fix the problems in c128 target, and flesh out its libraries.
 - fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
