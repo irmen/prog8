@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- make the adpcm example read wav files directly (so no need anymore to extract the binary frame data from them)
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - attempt to fix the expression codegen bug with reused temp vars (github #89)
@@ -27,6 +26,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- add a mechanism to allocate variables into golden ram ($0400-$07ff on x16, $c000-$.... on c64 , take care of evalstack)
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)

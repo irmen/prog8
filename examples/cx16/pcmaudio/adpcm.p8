@@ -16,24 +16,25 @@
 ; HOW TO CREATE SUCH IMA-ADPCM ENCODED AUDIO? Use sox or ffmpeg:
 ; $ sox --guard source.mp3 -r 8000 -c 1 -e ima-adpcm out.wav trim 01:27.50 00:09
 ; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
-;
-; THEN use a tool to read the raw audio frame data from that resulting out.wav and save it as 'adpcm-mono.bin'.
+; Or use a tool such as https://github.com/dbry/adpcm-xq .
 ;
 
 main {
 
-    ubyte num_adpcm_blocks
     ubyte adpcm_blocks_left
     uword @requirezp nibblesptr
 
     sub start() {
-        uword adpcm_size = &audiodata.adpcm_data_end - &audiodata.adpcm_data
-        num_adpcm_blocks = (adpcm_size / 256) as ubyte      ; NOTE: THE ADPCM DATA NEEDS TO BE ENCODED IN 256-byte BLOCKS !
+        wavfile.parse()
 
-        txt.print_uw(adpcm_size)
+        txt.print_uw(wavfile.adpcm_size)
         txt.print(" adpcm data size = ")
-        txt.print_ub(num_adpcm_blocks)
-        txt.print(" blocks\n(b)enchmark or (p)layback? ")
+        txt.print_ub(wavfile.num_adpcm_blocks)
+        txt.print(" blocks\nsamplerate = ")
+        txt.print_uw(wavfile.sample_rate)
+        txt.print(" vera rate = ")
+        txt.print_uw(wavfile.vera_rate_hz)
+        txt.print("\n(b)enchmark or (p)layback? ")
 
         when c64.CHRIN() {
             'b' -> benchmark()
@@ -42,11 +43,11 @@ main {
     }
 
     sub benchmark() {
-        nibblesptr = &audiodata.adpcm_data
+        nibblesptr = wavfile.adpcm_data_ptr
 
         txt.print("\ndecoding all blocks...\n")
         c64.SETTIM(0,0,0)
-        repeat num_adpcm_blocks {
+        repeat wavfile.num_adpcm_blocks {
             adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
             nibblesptr += 4
             repeat 252 {
@@ -57,14 +58,14 @@ main {
             }
         }
         float duration_secs = (c64.RDTIM16() as float) / 60.0
-        float words_per_second = 505.0 * (num_adpcm_blocks as float) / duration_secs
+        float words_per_second = 505.0 * (wavfile.num_adpcm_blocks as float) / duration_secs
         txt.print_uw(words_per_second as uword)
         txt.print(" words/sec\n")
     }
 
     sub playback() {
-        nibblesptr = &audiodata.adpcm_data
-        adpcm_blocks_left = num_adpcm_blocks
+        nibblesptr = wavfile.adpcm_data_ptr
+        adpcm_blocks_left = wavfile.num_adpcm_blocks
 
         cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
@@ -77,12 +78,9 @@ main {
         cx16.VERA_IEN = %00001000               ; enable AFLOW
         sys.clear_irqd()
 
-        cx16.VERA_AUDIO_RATE = 21               ; start playback at ~8000 hz
+        cx16.VERA_AUDIO_RATE = wavfile.vera_rate        ; start playback
 
-        float rate = (cx16.VERA_AUDIO_RATE as float) * (25e6 / 65536.0)
-        txt.print("\naudio via irq at ")
-        txt.print_uw(rate as uword)
-        txt.print(" hz mono\n")
+        txt.print("\naudio via irq\n")
 
         repeat {
             ; audio will play via the IRQ.
@@ -117,8 +115,8 @@ main {
                 adpcm_blocks_left--
                 if adpcm_blocks_left==0 {
                     ; restart adpcm data from the beginning
-                    nibblesptr = &audiodata.adpcm_data
-                    adpcm_blocks_left = num_adpcm_blocks
+                    nibblesptr = wavfile.adpcm_data_ptr
+                    adpcm_blocks_left = wavfile.num_adpcm_blocks
                 }
             }
 
@@ -195,10 +193,66 @@ adpcm {
 }
 
 
-audiodata {
+wavfile {
+
+    const ubyte WAVE_FORMAT_PCM        =  $1
+    const ubyte WAVE_FORMAT_ADPCM      =  $2
+    const ubyte WAVE_FORMAT_IEEE_FLOAT =  $3
+    const ubyte WAVE_FORMAT_ALAW       =  $6
+    const ubyte WAVE_FORMAT_MULAW      =  $7
+    const ubyte WAVE_FORMAT_DVI_ADPCM  =  $11
+
+    uword sample_rate
+    uword vera_rate_hz
+    ubyte vera_rate
+    uword adpcm_size
+    uword adpcm_data_ptr
+    ubyte num_adpcm_blocks
+
+    sub parse() {
+        ; "RIFF" , filesize (int32) , "WAVE", "fmt ", fmtsize (int32)
+        ; we assume file sizes are <= 64Kb so don't have to worry about the upper 16 bits
+        uword @zp header = &wavdata.wav_data
+        if header[0]!=iso:'R' or header[1]!=iso:'I' or header[2]!=iso:'F' or header[3]!=iso:'F'
+            or header[8]!=iso:'W' or header[9]!=iso:'A' or header[10]!=iso:'V' or header[11]!=iso:'E'
+            or header[12]!=iso:'f' or header[13]!=iso:'m' or header[14]!=iso:'t' or header[15]!=iso:' ' {
+            txt.print("not a valid wav file\n")
+            sys.exit(1)
+        }
+        ; uword filesize = peekw(header+4)
+        uword chunksize = peekw(header+16)
+        uword wavefmt = peekw(header+20)
+        uword nchannels = peekw(header+22)
+        sample_rate = peekw(header+24)    ; we assume sample rate <= 65535 so we can ignore the upper word
+        uword block_align = peekw(header+32)
+
+        if block_align!=256 or nchannels!=1 or wavefmt!=WAVE_FORMAT_DVI_ADPCM {
+            txt.print("invalid wav specs\n")
+            sys.exit(1)
+        }
+
+        ; skip chunks until we reach the 'data' chunk
+        header += chunksize + 20
+        repeat {
+            chunksize = peekw(header+4)        ; assume chunk size never exceeds 64kb so ignore upper word
+            if header[0]==iso:'d' and header[1]==iso:'a' and header[2]==iso:'t' and header[3]==iso:'a'
+                break
+            header += 8 + chunksize
+        }
+        adpcm_data_ptr = header + 8
+        adpcm_size = chunksize
+        num_adpcm_blocks = (chunksize / 256) as ubyte      ; NOTE: THE ADPCM DATA NEEDS TO BE ENCODED IN 256-byte BLOCKS !
+
+        const float vera_freq_factor = 25e6 / 65536.0
+        vera_rate = (sample_rate as float / vera_freq_factor) + 1.0 as ubyte
+        vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword
+    }
+}
+
+wavdata {
     %option align_page
-adpcm_data:
-    %asmbinary "adpcm-mono.bin"
-adpcm_data_end:
+wav_data:
+    %asmbinary "adpcm-mono.wav"
+wav_data_end:
 
 }
