@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash cx16.r0 = (-(cx16.r0 as word) as uword)
+- make the adpcm example read wav files directly (so no need anymore to extract the binary frame data from them)
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - attempt to fix the expression codegen bug with reused temp vars (github #89)

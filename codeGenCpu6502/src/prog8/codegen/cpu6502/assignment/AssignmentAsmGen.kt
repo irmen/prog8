@@ -299,7 +299,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     )
                     when (value.operator) {
                         "+" -> {}
-                        "-" -> augmentableAsmGen.inplaceNegate(assign)
+                        "-" -> augmentableAsmGen.inplaceNegate(assign, true)
                         "~" -> augmentableAsmGen.inplaceInvert(assign)
                         else -> throw AssemblyError("invalid prefix operator")
                     }

@@ -63,5 +63,21 @@ class TestVariables: FunSpec({
         """
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
+    
+    test("negation of unsigned via casts") {
+        val text = """
+            main {
+                sub start() {
+                    cx16.r0L = -(cx16.r0L as byte) as ubyte
+                    cx16.r0 = -(cx16.r0 as word) as uword
+                    ubyte ub
+                    uword uw
+                    ub = -(ub as byte) as ubyte
+                    uw = -(uw as word) as uword
+                }
+            }
+        """
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 
 })

@@ -3,6 +3,23 @@
 %option no_sysinit
 %zeropage basicsafe
 
+;
+; IMA ADPCM decoding and playback example.
+; https://wiki.multimedia.cx/index.php/IMA_ADPCM
+; https://wiki.multimedia.cx/index.php/Microsoft_IMA_ADPCM
+;
+; IMA ADPCM encodes two 16-bit PCM audio samples in 1 byte (1 word per nibble)
+; thus compressing the audio data by a factor of 4.
+; The encoding precision is about 13 bits per sample so it's a lossy compression scheme.
+;
+; NOTE:  this program requires 16 bits MONO audio, and 256 byte encoded block size!
+; HOW TO CREATE SUCH IMA-ADPCM ENCODED AUDIO? Use sox or ffmpeg:
+; $ sox --guard source.mp3 -r 8000 -c 1 -e ima-adpcm out.wav trim 01:27.50 00:09
+; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
+;
+; THEN use a tool to read the raw audio frame data from that resulting out.wav and save it as 'adpcm-mono.bin'.
+;
+
 main {
 
     ubyte num_adpcm_blocks
@@ -179,7 +196,7 @@ adpcm {
 
 
 audiodata {
-    ;; %option align_page
+    %option align_page
 adpcm_data:
     %asmbinary "adpcm-mono.bin"
 adpcm_data_end:

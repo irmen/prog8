@@ -23,7 +23,7 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
                 // A = -A , A = +A, A = ~A, A = not A
                 when (value.operator) {
                     "+" -> {}
-                    "-" -> inplaceNegate(assign)
+                    "-" -> inplaceNegate(assign, false)
                     "~" -> inplaceInvert(assign)
                     else -> throw AssemblyError("invalid prefix operator")
                 }
@@ -1871,9 +1871,16 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
         }
     }
 
-    internal fun inplaceNegate(assign: AsmAssignment) {
+    internal fun inplaceNegate(assign: AsmAssignment, ignoreDatatype: Boolean) {
         val target = assign.target
-        when (target.datatype) {
+        val datatype = if(ignoreDatatype) {
+            when(target.datatype) {
+                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
+                DataType.UWORD, DataType.WORD -> DataType.WORD
+                else -> target.datatype
+            }
+        } else target.datatype
+        when (datatype) {
             DataType.BYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
