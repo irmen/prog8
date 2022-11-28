@@ -20,6 +20,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override var ESTACK_LO = 0u                 // not actually used
     override var ESTACK_HI = 0u                 // not actually used
+    override var GOLDEN = UIntRange.EMPTY       // not actually used
 
     override lateinit var zeropage: Zeropage     // not actually used
 

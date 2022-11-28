@@ -10,6 +10,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
+import prog8.code.target.VMTarget
 import prog8.compiler.BuiltinFunctions
 
 
@@ -107,10 +108,12 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 errors.err("asmsub can only contain inline assembly (%asm)", subroutine.position)
             }
 
-            if(subroutine.name == subroutine.definingBlock.name) {
-                // subroutines cannot have the same name as their enclosing block,
-                // because this causes symbol scoping issues in the resulting assembly source
-                nameError(subroutine.name, subroutine.position, subroutine.definingBlock)
+            if(compTarget.name != VMTarget.NAME) {
+                if (subroutine.name == subroutine.definingBlock.name) {
+                    // subroutines cannot have the same name as their enclosing block,
+                    // because this causes symbol scoping issues in the resulting assembly source
+                    errors.err("name conflict '${subroutine.name}', also defined at ${subroutine.definingBlock.position} (64tass scope nesting limitation)", subroutine.position)
+                }
             }
         }
 

@@ -1,55 +1,23 @@
 %import textio
 %zeropage basicsafe
-
 main {
+  bool[1] expected = [ true ]
 
-alsostart:
+  sub get() -> bool {
+    txt.print("get() called. ")
+    return true
+  }
 
-    %asm {{
-        ; inline asm in block #1
-        nop
-    }}
+  sub start() {
+    if get() == expected[0]
+      txt.print("ok\n")
+    else
+      txt.print("fail\n")
 
-    %asmbinary "../gradle.properties"
-
-    sub start() {
-
-    internalstart:
-        ubyte fact = 10
-        uword ww = 1<<fact
-        txt.print_uw(ww)
-        txt.nl()
-        ww++
-        ww = 1<<fact
-        txt.print_uw(ww)
-        txt.nl()
-        txt.nl()
-
-        txt.print_uwhex(start, true)
-        txt.nl()
-        txt.print_uwhex(alsostart, true)
-        txt.nl()
-        txt.print_uwhex(internalstart, true)
-        txt.nl()
-        txt.print_uwhex(startend, true)
-        txt.nl()
-        txt.print_uwhex(internalend, true)
-        txt.nl()
-    internalend:
-    }
-
-    %asm {{
-        ; inline asm in block #2
-        nop
-    }}
-
-startend:
-
-    %asmbinary "../settings.gradle"
-
-    %asm {{
-        ; inline asm in block #3
-        nop
-    }}
-
+    ; this is working fine:
+    if expected[0] == get()
+      txt.print("ok\n")
+    else
+      txt.print("fail\n")
+  }
 }

@@ -18,6 +18,7 @@ class C64MachineDefinition: IMachineDefinition {
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
     override var ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive
+    override var GOLDEN = 0xc000u until ESTACK_LO
 
     override lateinit var zeropage: Zeropage
 

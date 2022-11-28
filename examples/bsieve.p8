@@ -43,7 +43,7 @@ main {
         txt.print_uw(count)
         txt.print(" primes\n")
 
-        float time = c64.RDTIM16() / 60.0
+        float time = c64.RDTIM16() as float / 60.0
         floats.print_f(time)
         txt.print(" sec total = ")
         floats.print_f(time/ITERS)

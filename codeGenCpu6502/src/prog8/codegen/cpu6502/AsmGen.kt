@@ -1071,7 +1071,7 @@ $repeatLabel    lda  $counterVar
                                 if(saveA)
                                     out("  pha")
                                 assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)       // TODO TMP_REG_ISSUE_89
                                 if(saveA)
                                     out("  pla")
                                 out("  sta  (P8ZP_SCRATCH_W2),y")
@@ -1083,7 +1083,7 @@ $repeatLabel    lda  $counterVar
                             } else {
                                 // copy the pointer var to zp first
                                 assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)       // TODO TMP_REG_ISSUE_89
                                 out("  lda  (P8ZP_SCRATCH_W2),y")
                             }
                         }
@@ -1579,7 +1579,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1614,7 +1614,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1651,7 +1651,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)
+        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -1690,7 +1690,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)
+        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -1730,7 +1730,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1767,7 +1767,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1810,7 +1810,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)
+        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
     }
 
@@ -1854,7 +1854,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)
+        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -1895,7 +1895,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1932,7 +1932,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1977,7 +1977,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)
+        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -2025,7 +2025,7 @@ $repeatLabel    lda  $counterVar
         }
 
         assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)
+        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -2062,7 +2062,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2096,7 +2096,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2132,7 +2132,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)
+        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -2171,7 +2171,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)
+        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -2207,7 +2207,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
     }
 
@@ -2244,7 +2244,7 @@ $repeatLabel    lda  $counterVar
             return
 
         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)
+        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2311,7 +2311,7 @@ $repeatLabel    lda  $counterVar
             }
             else -> {
                 assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                assignExpressionToRegister(left, RegisterOrPair.AY)
+                assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
                 out("""
                     cmp  P8ZP_SCRATCH_W2
                     bne  $jumpIfFalseLabel
@@ -2387,7 +2387,7 @@ $repeatLabel    lda  $counterVar
             }
             else -> {
                 assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                assignExpressionToRegister(left, RegisterOrPair.AY)
+                assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
                 out("""
                     cmp  P8ZP_SCRATCH_W2
                     bne  +

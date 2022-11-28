@@ -255,13 +255,13 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             asmgen.out("  cmp  ${arg2.addressExpression.constValue(program)!!.number.toHex()}")
                         } else {
                             asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
-                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
                             asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                         }
                     }
                     else -> {
                         asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
                         asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                     }
                 }
@@ -289,7 +289,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                     }
                     else -> {
                         asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, (fcall as Node).definingSubroutine)
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
                         asmgen.out("""
                             cpy  P8ZP_SCRATCH_W1+1
                             bne  +

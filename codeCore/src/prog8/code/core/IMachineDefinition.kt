@@ -16,6 +16,7 @@ interface IMachineDefinition {
     var ESTACK_LO: UInt
     var ESTACK_HI: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
+    var GOLDEN: UIntRange
 
     val opcodeNames: Set<String>
     var zeropage: Zeropage
@@ -31,5 +32,7 @@ interface IMachineDefinition {
         require(evalStackBaseAddress and 255u == 0u)
         ESTACK_LO = evalStackBaseAddress
         ESTACK_HI = evalStackBaseAddress + 256u
+        require(ESTACK_LO !in GOLDEN && ESTACK_HI !in GOLDEN) { "user-set ESTACK can't be in GOLDEN ram" }
     }
+
 }

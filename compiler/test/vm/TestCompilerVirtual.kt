@@ -270,4 +270,32 @@ mylabel:
         }
         exc.message shouldContain("cannot yet load a label address as a value")
     }
+
+    test("nesting with overlapping names is ok (doesn't work for 64tass)") {
+        val src="""
+%import textio
+%zeropage basicsafe
+
+main {
+    sub start() {
+        main()
+        main.start.start()
+        main.main()
+
+        sub main() {
+            cx16.r0++
+        }
+        sub start() {
+            cx16.r0++
+        }
+    }
+
+    sub main() {
+        cx16.r0++
+    }
+}"""
+
+        val target = VMTarget()
+        compileText(target, false, src, writeAssembly = true) shouldNotBe null
+    }
 })

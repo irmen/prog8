@@ -17,6 +17,7 @@ class CX16MachineDefinition: IMachineDefinition {
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
     override var ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
+    override var GOLDEN = 0x0600u until 0x0800u
 
     override lateinit var zeropage: Zeropage
 
