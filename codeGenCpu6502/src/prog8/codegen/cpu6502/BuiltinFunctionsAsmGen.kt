@@ -254,15 +254,27 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                             asmgen.out("  cmp  ${arg2.addressExpression.constValue(program)!!.number.toHex()}")
                         } else {
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
-                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
-                            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                            if(arg1.isSimple) {
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
+                                asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                                asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                            } else {
+                                asmgen.pushCpuStack(DataType.UBYTE, arg1)
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
+                                asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
+                            }
                         }
                     }
                     else -> {
-                        asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
-                        asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                        if(arg1.isSimple) {
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                        } else {
+                            asmgen.pushCpuStack(DataType.UBYTE, arg1)
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, (fcall as Node).definingSubroutine)
+                            asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
+                        }
                     }
                 }
             } else
@@ -288,13 +300,25 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
 +""")
                     }
                     else -> {
-                        asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, (fcall as Node).definingSubroutine)
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
-                        asmgen.out("""
-                            cpy  P8ZP_SCRATCH_W1+1
-                            bne  +
-                            cmp  P8ZP_SCRATCH_W1
-+""")
+                        if(arg1.isSimple) {
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, (fcall as Node).definingSubroutine)
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            asmgen.out("""
+                                cpy  P8ZP_SCRATCH_W1+1
+                                bne  +
+                                cmp  P8ZP_SCRATCH_W1
+    +""")
+                        } else {
+                            asmgen.pushCpuStack(DataType.UWORD, arg1)
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, (fcall as Node).definingSubroutine)
+                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                            asmgen.restoreRegisterStack(CpuRegister.A, false)
+                            asmgen.out("""
+                                cpy  P8ZP_SCRATCH_W1+1
+                                bne  +
+                                cmp  P8ZP_SCRATCH_W1
+    +""")
+                        }
                     }
                 }
             } else

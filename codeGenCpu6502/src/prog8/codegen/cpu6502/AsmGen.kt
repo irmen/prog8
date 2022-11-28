@@ -1070,11 +1070,20 @@ $repeatLabel    lda  $counterVar
                                 val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
                                 if(saveA)
                                     out("  pha")
-                                assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)       // TODO TMP_REG_ISSUE_89
-                                if(saveA)
-                                    out("  pla")
-                                out("  sta  (P8ZP_SCRATCH_W2),y")
+                                if(ptrAndIndex.second.isSimple) {
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                    if(saveA)
+                                        out("  pla")
+                                    out("  sta  (P8ZP_SCRATCH_W2),y")
+                                } else {
+                                    pushCpuStack(DataType.UBYTE,  ptrAndIndex.second)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    restoreRegisterStack(CpuRegister.Y, true)
+                                    if(saveA)
+                                        out("  pla")
+                                    out("  sta  (P8ZP_SCRATCH_W2),y")
+                                }
                             }
                         } else {
                             if(pointervar!=null && isZpVar(pointervar)) {
@@ -1082,9 +1091,16 @@ $repeatLabel    lda  $counterVar
                                 out("  lda  (${asmSymbolName(pointervar)}),y")
                             } else {
                                 // copy the pointer var to zp first
-                                assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)       // TODO TMP_REG_ISSUE_89
-                                out("  lda  (P8ZP_SCRATCH_W2),y")
+                                if(ptrAndIndex.second.isSimple) {
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                                    out("  lda  (P8ZP_SCRATCH_W2),y")
+                                } else {
+                                    pushCpuStack(DataType.UBYTE, ptrAndIndex.second)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    restoreRegisterStack(CpuRegister.Y, false)
+                                    out("  lda  (P8ZP_SCRATCH_W2),y")
+                                }
                             }
                         }
                         return true
@@ -1578,8 +1594,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1613,8 +1635,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1650,8 +1678,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.UWORD, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -1689,8 +1724,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.WORD, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -1729,8 +1771,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1766,8 +1814,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.BYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1809,8 +1863,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.UWORD, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
     }
 
@@ -1853,8 +1914,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleLeftOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(right.isSimple) {
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToRegister(right, RegisterOrPair.AY)
+        }  else {
+            pushCpuStack(DataType.WORD, right)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -1894,8 +1962,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1931,8 +2005,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.BYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -1976,8 +2056,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.UWORD, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -2024,8 +2111,15 @@ $repeatLabel    lda  $counterVar
             return code(asmVariableName(left))
         }
 
-        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(right.isSimple) {
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToRegister(right, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.WORD, right)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -2061,8 +2155,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2095,8 +2195,14 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.BYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            out("  pla")
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2131,8 +2237,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(right, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(right.isSimple) {
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToRegister(right, RegisterOrPair.AY)
+        }  else {
+            pushCpuStack(DataType.UWORD, right)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
@@ -2170,8 +2283,15 @@ $repeatLabel    lda  $counterVar
         if(wordJumpForSimpleRightOperands(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-        assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
+            pushCpuStack(DataType.WORD, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            restoreRegisterStack(CpuRegister.Y, false)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
@@ -2206,8 +2326,17 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else if(right.isSimple) {
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(right, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
     }
 
@@ -2243,8 +2372,17 @@ $repeatLabel    lda  $counterVar
         if(byteJumpForSimpleRightOperand(left, right, ::code))
             return
 
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
-        assignExpressionToRegister(left, RegisterOrPair.A)       // TODO TMP_REG_ISSUE_89
+        if(left.isSimple) {
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(left, RegisterOrPair.A)
+        } else if(right.isSimple) {
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToRegister(right, RegisterOrPair.A)
+        } else {
+            pushCpuStack(DataType.UBYTE, left)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            restoreRegisterStack(CpuRegister.A, false)
+        }
         return code("P8ZP_SCRATCH_B1")
     }
 
@@ -2310,8 +2448,20 @@ $repeatLabel    lda  $counterVar
                     """)
             }
             else -> {
-                assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+                if(left.isSimple) {
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToRegister(left, RegisterOrPair.AY)
+                } else if(right.isSimple) {
+                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToRegister(right, RegisterOrPair.AY)
+                } else {
+                    pushCpuStack(DataType.UWORD, left)
+                    assignExpressionToRegister(right, RegisterOrPair.AY)
+                    out("  sta  P8ZP_SCRATCH_REG")
+                    popCpuStack(DataType.UWORD, "P8ZP_SCRATCH_W2")
+                    out("  lda  P8ZP_SCRATCH_REG")
+                    // TODO optimize this path..... CMP_OPT
+                }
                 out("""
                     cmp  P8ZP_SCRATCH_W2
                     bne  $jumpIfFalseLabel
@@ -2386,8 +2536,20 @@ $repeatLabel    lda  $counterVar
 +""")
             }
             else -> {
-                assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
-                assignExpressionToRegister(left, RegisterOrPair.AY)       // TODO TMP_REG_ISSUE_89
+                if(left.isSimple) {
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToRegister(left, RegisterOrPair.AY)
+                } else if (right.isSimple) {
+                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToRegister(right, RegisterOrPair.AY)
+                } else {
+                    pushCpuStack(DataType.UWORD, left)
+                    assignExpressionToRegister(right, RegisterOrPair.AY)
+                    out("  sta  P8ZP_SCRATCH_REG")
+                    popCpuStack(DataType.UWORD, "P8ZP_SCRATCH_W2")
+                    out("  lda  P8ZP_SCRATCH_REG")
+                    // TODO optimize this path..... CMP_OPT
+                }
                 out("""
                     cmp  P8ZP_SCRATCH_W2
                     bne  +
@@ -2868,17 +3030,27 @@ $repeatLabel    lda  $counterVar
         }
     }
 
+    internal fun popCpuStack(dt: DataType, targetAsmVarName: String) {
+        when(dt) {
+            in ByteDatatypes -> out("  pla |  sta  $targetAsmVarName")
+            in WordDatatypes -> out("  pla |  sta  $targetAsmVarName+1 |  pla |  sta  $targetAsmVarName")
+            else -> throw AssemblyError("can't pop $dt")
+        }
+    }
+
     internal fun pushCpuStack(dt: DataType, value: Expression) {
         val signed = value.inferType(program).oneOf(DataType.BYTE, DataType.WORD)
         if(dt in ByteDatatypes) {
             assignExpressionToRegister(value, RegisterOrPair.A, signed)
             out("  pha")
-        } else {
+        } else if(dt in WordDatatypes) {
             assignExpressionToRegister(value, RegisterOrPair.AY, signed)
             if (isTargetCpu(CpuType.CPU65c02))
                 out("  pha |  phy")
             else
                 out("  pha |  tya |  pha")
+        } else {
+            throw AssemblyError("can't push $dt")
         }
     }
 
