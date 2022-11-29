@@ -2456,11 +2456,9 @@ $repeatLabel    lda  $counterVar
                     assignExpressionToRegister(right, RegisterOrPair.AY)
                 } else {
                     pushCpuStack(DataType.UWORD, left)
-                    assignExpressionToRegister(right, RegisterOrPair.AY)
-                    out("  sta  P8ZP_SCRATCH_REG")
-                    popCpuStack(DataType.UWORD, "P8ZP_SCRATCH_W2")
-                    out("  lda  P8ZP_SCRATCH_REG")
-                    // TODO optimize this path..... CMP_OPT
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    restoreRegisterStack(CpuRegister.Y, false)
+                    restoreRegisterStack(CpuRegister.A, false)
                 }
                 out("""
                     cmp  P8ZP_SCRATCH_W2
@@ -2544,11 +2542,9 @@ $repeatLabel    lda  $counterVar
                     assignExpressionToRegister(right, RegisterOrPair.AY)
                 } else {
                     pushCpuStack(DataType.UWORD, left)
-                    assignExpressionToRegister(right, RegisterOrPair.AY)
-                    out("  sta  P8ZP_SCRATCH_REG")
-                    popCpuStack(DataType.UWORD, "P8ZP_SCRATCH_W2")
-                    out("  lda  P8ZP_SCRATCH_REG")
-                    // TODO optimize this path..... CMP_OPT
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    restoreRegisterStack(CpuRegister.Y, false)
+                    restoreRegisterStack(CpuRegister.A, false)
                 }
                 out("""
                     cmp  P8ZP_SCRATCH_W2

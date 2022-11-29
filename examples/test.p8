@@ -1,11 +1,17 @@
 %import textio
 %zeropage dontuse
 
+
+; base level code size: $279
+
+
 main {
   bool[1] expected = [ true ]
   uword[1] expectedw = [4242 ]
 
   sub get() -> bool {
+    ubyte xx
+    xx = 1
     %asm {{
         stz  P8ZP_SCRATCH_W1
         stz  P8ZP_SCRATCH_W1+1
@@ -14,9 +20,11 @@ main {
         stz  P8ZP_SCRATCH_REG
         stz  P8ZP_SCRATCH_B1
     }}
-    return true
+    return xx
   }
   sub same() -> bool {
+    ubyte xx
+    xx = 1
     %asm {{
         stz  P8ZP_SCRATCH_W1
         stz  P8ZP_SCRATCH_W1+1
@@ -25,10 +33,11 @@ main {
         stz  P8ZP_SCRATCH_REG
         stz  P8ZP_SCRATCH_B1
     }}
-    return true
+    return xx
   }
 
   sub getw() -> uword {
+    uword xx=4242
     %asm {{
         stz  P8ZP_SCRATCH_W1
         stz  P8ZP_SCRATCH_W1+1
@@ -37,9 +46,10 @@ main {
         stz  P8ZP_SCRATCH_REG
         stz  P8ZP_SCRATCH_B1
     }}
-    return 4242
+    return xx
   }
   sub samew() -> uword {
+    uword xx=4242
     %asm {{
         stz  P8ZP_SCRATCH_W1
         stz  P8ZP_SCRATCH_W1+1
@@ -48,9 +58,22 @@ main {
         stz  P8ZP_SCRATCH_REG
         stz  P8ZP_SCRATCH_B1
     }}
-    return 4242
+    return xx
+  }
+  sub differentw() -> uword {
+    uword xx=9999
+    %asm {{
+        stz  P8ZP_SCRATCH_W1
+        stz  P8ZP_SCRATCH_W1+1
+        stz  P8ZP_SCRATCH_W2
+        stz  P8ZP_SCRATCH_W2+1
+        stz  P8ZP_SCRATCH_REG
+        stz  P8ZP_SCRATCH_B1
+    }}
+    return xx
   }
   sub one() -> ubyte {
+    ubyte xx=1
     %asm {{
         stz  P8ZP_SCRATCH_W1
         stz  P8ZP_SCRATCH_W1+1
@@ -59,110 +82,50 @@ main {
         stz  P8ZP_SCRATCH_REG
         stz  P8ZP_SCRATCH_B1
     }}
-    return 1
+    return xx
   }
 
   sub start() {
-    if get() == expected[0]
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
-    ; this is working fine:
-    if expected[0] == get()
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
-    if getw() == expectedw[0]
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
-    ; this is working fine:
-    if expectedw[0] == getw()
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
-    ; unquals
-
-    if get() != expected[0]
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
-
-    ; this is working fine:
-    if expected[0] != get()
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
-
-    if getw() != expectedw[0]
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
-
-    ; this is working fine:
-    if expectedw[0] != getw()
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
-
-    ;  now with 2 non-simple operands:
-    if get() == same()
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
-    ; this is working fine:
-    if same() == get()
-      txt.print("ok\n")
-    else
-      txt.print("fail\n")
-
     if getw() == samew()
       txt.print("ok\n")
     else
       txt.print("fail\n")
 
-    ; this is working fine:
     if samew() == getw()
       txt.print("ok\n")
     else
       txt.print("fail\n")
-
-    ; unquals
-
-    if get() != same()
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
-
-    ; this is working fine:
-    if same() != get()
-      txt.print("fail\n")
-    else
-      txt.print("ok\n")
 
     if getw() != samew()
       txt.print("fail\n")
     else
       txt.print("ok\n")
 
-    ; this is working fine:
     if samew() != getw()
       txt.print("fail\n")
     else
       txt.print("ok\n")
 
 
-     ; pointer stuff
-     uword ptr = $4000
-     @(ptr+one()) = 42
-     if @(ptr+one()) == 42
-        txt.print("ok\n")
-     else
-        txt.print("fail\n")
+    if getw() == differentw()
+      txt.print("fail\n")
+    else
+      txt.print("ok\n")
+
+    if differentw() == getw()
+      txt.print("fail\n")
+    else
+      txt.print("ok\n")
+
+    if getw() != differentw()
+      txt.print("ok\n")
+    else
+      txt.print("fail\n")
+
+    if differentw() != getw()
+      txt.print("ok\n")
+    else
+      txt.print("fail\n")
+
   }
 }
