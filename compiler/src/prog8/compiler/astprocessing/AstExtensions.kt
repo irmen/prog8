@@ -12,6 +12,7 @@ import prog8.ast.statements.VarDeclOrigin
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -26,6 +27,21 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     val boolRemover = BoolRemover(this)
     boolRemover.visit(this)
     boolRemover.applyModifications()
+
+    if(compilerOptions.compTarget.name!=VMTarget.NAME) {
+        val finder = AsmInstructionNamesFinder(compilerOptions.compTarget)
+        finder.visit(this)
+        if(finder.foundAny()) {
+            val replacer = AsmInstructionNamesReplacer(
+                finder.blocks,
+                finder.subroutines,
+                finder.variables,
+                finder.labels)
+            replacer.visit(this)
+            replacer.applyModifications()
+        }
+    }
+
     val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while (errors.noErrors() && fixer.applyModifications() > 0) {

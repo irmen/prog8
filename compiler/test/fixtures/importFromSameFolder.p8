@@ -4,6 +4,6 @@ main {
 	str myBar = "main.bar"
 	sub start() {
 	    txt.print(myBar)
-	    txt.print(foo.bar)
+	    txt.print(foobar.barbar)
 	}
 }

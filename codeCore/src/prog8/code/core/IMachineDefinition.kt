@@ -18,7 +18,6 @@ interface IMachineDefinition {
     val PROGRAM_LOAD_ADDRESS : UInt
     var GOLDEN: UIntRange
 
-    val opcodeNames: Set<String>
     var zeropage: Zeropage
     val cpu: CpuType
 

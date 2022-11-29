@@ -1,2 +1,2 @@
-bar	.text "foo.bar",0
+barbar	.text "foo.bar",0
 

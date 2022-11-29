@@ -49,8 +49,6 @@ class VirtualMachineDefinition: IMachineDefinition {
     override fun isIOAddress(address: UInt): Boolean = false
 
     override fun initializeZeropage(compilerOptions: CompilationOptions) {}
-
-    override val opcodeNames = emptySet<String>()
 }
 
 interface IVirtualMachineRunner {

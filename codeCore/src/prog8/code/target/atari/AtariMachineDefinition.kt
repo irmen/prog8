@@ -1,7 +1,6 @@
 package prog8.code.target.atari
 
 import prog8.code.core.*
-import prog8.code.target.c64.normal6502instructions
 import java.nio.file.Path
 
 
@@ -61,6 +60,4 @@ class AtariMachineDefinition: IMachineDefinition {
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = AtariZeropage(compilerOptions)
     }
-
-    override val opcodeNames = normal6502instructions
 }

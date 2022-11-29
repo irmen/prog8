@@ -1,3 +1,3 @@
-foo {
-	str bar = "foo.bar"
+foobar {
+	str barbar = "foo.bar"
 }

@@ -11,6 +11,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.code.target.c64.C64Zeropage
 import prog8.codegen.cpu6502.AsmGen
 import prog8.compiler.astprocessing.SymbolTableMaker
@@ -172,5 +173,49 @@ main {
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)
         result shouldNotBe null
+    }
+
+    "identifiers can have the names of cpu instructions" {
+        val text="""
+%import textio
+
+nop {
+    sub lda(ubyte sec) -> ubyte {
+asl:
+        ubyte brk = sec
+        sec++
+        brk += sec
+        return brk
+    }
+}
+
+main {
+
+    sub ffalse(ubyte arg) -> ubyte {
+        arg++
+        return 0
+    }
+    sub ftrue(ubyte arg) -> ubyte {
+        arg++
+        return 128
+    }
+
+    sub start() {
+        ubyte col = 10
+        ubyte row = 20
+        txt.print_ub(nop.lda(42))
+        txt.nl()
+        txt.print_uw(nop.lda.asl)
+
+        void ffalse(99)
+        void ftrue(99)
+    }
+}
+"""
+        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        result shouldNotBe null
+        val result2 = compileText(VMTarget(), false, text, writeAssembly = true)
+        result2 shouldNotBe null
+
     }
 })

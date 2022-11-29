@@ -1,7 +1,6 @@
 package prog8.code.target.c128
 
 import prog8.code.core.*
-import prog8.code.target.c64.normal6502instructions
 import prog8.code.target.cbm.Mflpt5
 import java.nio.file.Path
 
@@ -51,6 +50,4 @@ class C128MachineDefinition: IMachineDefinition {
     override fun initializeZeropage(compilerOptions: CompilationOptions) {
         zeropage = C128Zeropage(compilerOptions)
     }
-
-    override val opcodeNames = normal6502instructions
 }

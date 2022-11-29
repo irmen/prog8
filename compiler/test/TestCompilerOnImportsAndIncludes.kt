@@ -40,7 +40,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             strLits[0].value shouldBe "main.bar"
             strLits[1].value shouldBe "foo.bar"
             strLits[0].definingScope.name shouldBe "main"
-            strLits[1].definingScope.name shouldBe "foo"
+            strLits[1].definingScope.name shouldBe "foobar"
         }
     }
 

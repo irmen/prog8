@@ -268,6 +268,13 @@ class VarDecl(val type: VarDeclType,
         return copy
     }
 
+    fun renamed(newName: String): VarDecl {
+        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize, newName, value,
+            isArray, sharedWithAsm, subroutineParameter, position)
+        copy.allowInitializeWithZero = this.allowInitializeWithZero
+        return copy
+    }
+
     fun findInitializer(program: Program): Assignment? =
         (parent as IStatementContainer).statements
         .asSequence()

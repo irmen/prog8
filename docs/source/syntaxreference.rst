@@ -195,17 +195,22 @@ Directives
 .. data:: %breakpoint
 
     Level: not at module scope.
-	Defines a debugging breakpoint at this location. See :ref:`debugging`
+    Defines a debugging breakpoint at this location. See :ref:`debugging`
 
 .. data:: %asm {{ ... }}
 
     Level: not at module scope.
-	Declares that a piece of *assembly code* is inside the curly braces.
-	This code will be copied as-is into the generated output assembly source file.
-	The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses (64tass).
-	Note that the start and end markers are both *double curly braces* to minimize the chance
-	that the assembly code itself contains either of those. If it does contain a ``}}``,
- 	it will confuse the parser.
+    Declares that a piece of *assembly code* is inside the curly braces.
+    This code will be copied as-is into the generated output assembly source file.
+    The assembler syntax used should be for the 3rd party cross assembler tool that Prog8 uses (64tass).
+    Note that the start and end markers are both *double curly braces* to minimize the chance
+    that the assembly code itself contains either of those. If it does contain a ``}}``,
+    it will confuse the parser.
+
+    If you use the correct scoping rules you can access symbols from the prog8 program from inside
+    the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
+    is only used in such assembly code. For symbols just consisting of 3 letters, prog8 will
+    add a special prefix to them, read more about this in :ref:`three-letter-prefixing`.
 
 
 Identifiers
