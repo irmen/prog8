@@ -314,9 +314,7 @@ internal class StatementReorderer(val program: Program,
                 AddressOf(sourceIdent, assign.position),
                 AddressOf(identifier, assign.position),
                 NumericLiteral.optimalInteger(numelements*eltsize, assign.position)
-            ),
-            true,
-            assign.position
+            ), false, assign.position
         )
         return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
     }

@@ -55,23 +55,47 @@ class AsmInstructionNamesReplacer(
             noModifications
     }
 
+    private val subsWithParamRefsToFix = mutableListOf<Subroutine>()
+
+    override fun applyModifications(): Int {
+        var count = super.applyModifications()
+        subsWithParamRefsToFix.forEach { subroutine ->
+            subroutine.statements.withIndex().reversed().forEach { (index,stmt) ->
+                if(stmt is VarDecl && stmt.origin==VarDeclOrigin.SUBROUTINEPARAM) {
+                    val param = subroutine.parameters.single { it.name == stmt.name}
+                    val decl = VarDecl.fromParameter(param)
+                    subroutine.statements[index] = decl
+                    decl.linkParents(subroutine)
+                    count++
+                }
+            }
+        }
+        return count
+    }
+
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        val parameters = subroutine.parameters.map {
-            if(it.name.length==3 && it.name.all { it.isLetter() } && !it.definingModule.isLibrary)
-                SubroutineParameter("p8p_${it.name}", it.type, it.position) else it
+        val changedParams = mutableListOf<Pair<Int, SubroutineParameter>>()
+        subroutine.parameters.withIndex().forEach { (index, param) ->
+            if(param.name.length==3 && param.name.all { it.isLetter() } && !param.definingModule.isLibrary) {
+                changedParams.add(index to SubroutineParameter("p8p_${param.name}", param.type, param.position))
+            }
         }
 
-        // TODO for all decls in the subroutine, update their subroutineParameter if something changed
-
+        changedParams.forEach { (index, newParam) -> subroutine.parameters[index] = newParam }
         val newName = if(subroutine in subroutines) "p8p_${subroutine.name}" else subroutine.name
 
-        return if(newName!=subroutine.name || parameters.map{ it.name} != subroutine.parameters.map {it.name})
-            listOf(IAstModification.ReplaceNode(subroutine,
-                Subroutine(newName, parameters.toMutableList(), subroutine.returntypes,
-                    subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers, subroutine.asmAddress, subroutine.isAsmSubroutine,
-                    subroutine.inline, subroutine.statements, subroutine.position), parent))
-        else
+        return if(newName!=subroutine.name || changedParams.isNotEmpty()) {
+            val newSub = Subroutine(newName, subroutine.parameters, subroutine.returntypes,
+                subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers, subroutine.asmAddress, subroutine.isAsmSubroutine,
+                subroutine.inline, subroutine.statements, subroutine.position)
+            if(changedParams.isNotEmpty())
+                subsWithParamRefsToFix += newSub
+            listOf(IAstModification.ReplaceNode(subroutine, newSub, parent))
+        } else {
+            if(changedParams.isNotEmpty())
+                subsWithParamRefsToFix += subroutine
             noModifications
+        }
     }
 
 }

@@ -190,7 +190,7 @@ abstract class AstWalker {
         }
     }
 
-    fun applyModifications(): Int {
+    open fun applyModifications(): Int {
         // check if there are double removes, keep only the last one
         val removals = modifications.filter { it.first is IAstModification.Remove }
         if(removals.isNotEmpty()) {

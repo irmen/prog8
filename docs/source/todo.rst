@@ -3,9 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- AsmInstructionNamesReplacer: fix the TODO about the params
-- create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
-- regression test the various projects
+- regression test the various projects before release
 
 ...
 
@@ -21,6 +19,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - add a mechanism to allocate variables into golden ram (see MachineDefinition.GOLDEN)
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
