@@ -16,9 +16,9 @@ class AtariMachineDefinition: IMachineDefinition {
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0x1a00u     //  $1a00-$1aff inclusive      // TODO
     override var ESTACK_HI = 0x1b00u     //  $1b00-$1bff inclusive      // TODO
-    override var GOLDEN = UIntRange.EMPTY
 
     override lateinit var zeropage: Zeropage
+    override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = TODO("float asm bytes from number")
 
@@ -57,7 +57,8 @@ class AtariMachineDefinition: IMachineDefinition {
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu        // TODO
 
-    override fun initializeZeropage(compilerOptions: CompilationOptions) {
+    override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = AtariZeropage(compilerOptions)
+        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 }

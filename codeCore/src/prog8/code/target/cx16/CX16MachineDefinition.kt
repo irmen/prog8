@@ -17,9 +17,8 @@ class CX16MachineDefinition: IMachineDefinition {
     // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
     override var ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
-    override var GOLDEN = 0x0600u until 0x0800u
-
     override lateinit var zeropage: Zeropage
+    override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
@@ -57,8 +56,9 @@ class CX16MachineDefinition: IMachineDefinition {
 
     override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0x9f00u..0x9fffu
 
-    override fun initializeZeropage(compilerOptions: CompilationOptions) {
+    override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)
+        golden = GoldenRam(compilerOptions, 0x0600u until 0x0800u)
     }
 
 }

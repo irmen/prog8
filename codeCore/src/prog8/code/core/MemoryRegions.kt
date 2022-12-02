@@ -5,21 +5,31 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 
 
-class ZeropageAllocationError(message: String) : Exception(message)
+class MemAllocationError(message: String) : Exception(message)
 
 
-abstract class Zeropage(protected val options: CompilationOptions) {
+abstract class MemoryAllocator(protected val options: CompilationOptions) {
+    data class VarAllocation(val address: UInt, val dt: DataType, val size: Int)
+
+    abstract fun allocate(name: List<String>,
+                          datatype: DataType,
+                          numElements: Int?,
+                          position: Position?,
+                          errors: IErrorReporter): Result<VarAllocation, MemAllocationError>
+}
+
+
+abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     abstract val SCRATCH_B1 : UInt      // temp storage for a single byte
     abstract val SCRATCH_REG : UInt     // temp storage for a register, must be B1+1
     abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 
-    data class ZpAllocation(val address: UInt, val dt: DataType, val size: Int)
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    val allocatedVariables = mutableMapOf<List<String>, ZpAllocation>()
+    val allocatedVariables = mutableMapOf<List<String>, VarAllocation>()
 
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
@@ -41,17 +51,16 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    fun allocate(name: List<String>,
-                 datatype: DataType,
-                 numElements: Int?,
-                 position: Position?,
-                 errors: IErrorReporter
-    ): Result<Pair<UInt, Int>, ZeropageAllocationError> {
+    override fun allocate(name: List<String>,
+                          datatype: DataType,
+                          numElements: Int?,
+                          position: Position?,
+                          errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
 
         require(name.isEmpty() || name !in allocatedVariables) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
-            return Err(ZeropageAllocationError("zero page usage has been disabled"))
+            return Err(MemAllocationError("zero page usage has been disabled"))
 
         val size: Int =
                 when (datatype) {
@@ -72,9 +81,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                             else
                                 errors.warn("$name: allocating a large value in zeropage; float $memsize bytes", Position.DUMMY)
                             memsize
-                        } else return Err(ZeropageAllocationError("floating point option not enabled"))
+                        } else return Err(MemAllocationError("floating point option not enabled"))
                     }
-                    else -> return Err(ZeropageAllocationError("cannot put datatype $datatype in zeropage"))
+                    else -> throw MemAllocationError("weird dt")
                 }
 
         synchronized(this) {
@@ -82,18 +91,18 @@ abstract class Zeropage(protected val options: CompilationOptions) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))
-                            return Ok(Pair(makeAllocation(candidate, 1, datatype, name), 1))
+                            return Ok(VarAllocation(makeAllocation(candidate, 1, datatype, name), datatype,1))
                     }
-                    return Ok(Pair(makeAllocation(free[0], 1, datatype, name), 1))
+                    return Ok(VarAllocation(makeAllocation(free[0], 1, datatype, name), datatype,1))
                 }
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                     if (sequentialFree(candidate, size))
-                        return Ok(Pair(makeAllocation(candidate, size, datatype, name), size))
+                        return Ok(VarAllocation(makeAllocation(candidate, size, datatype, name), datatype, size))
                 }
             }
         }
 
-        return Err(ZeropageAllocationError("no more free space in ZP to allocate $size sequential bytes"))
+        return Err(MemAllocationError("no more free space in ZP to allocate $size sequential bytes"))
     }
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
@@ -103,9 +112,9 @@ abstract class Zeropage(protected val options: CompilationOptions) {
         free.removeAll(address until address+size.toUInt())
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
-                in NumericDatatypes -> ZpAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
-                DataType.STR -> ZpAllocation(address, datatype, size)
-                in ArrayDatatypes -> ZpAllocation(address, datatype, size)
+                in NumericDatatypes -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
+                DataType.STR -> VarAllocation(address, datatype, size)
+                in ArrayDatatypes -> VarAllocation(address, datatype, size)
                 else -> throw AssemblyError("invalid dt")
             }
         }
@@ -119,4 +128,38 @@ abstract class Zeropage(protected val options: CompilationOptions) {
     }
 
     abstract fun allocateCx16VirtualRegisters()
+}
+
+
+class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAllocator(options) {
+    private var nextLocation: UInt = region.first
+
+    override fun allocate(
+        name: List<String>,
+        datatype: DataType,
+        numElements: Int?,
+        position: Position?,
+        errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
+
+        val size: Int =
+            when (datatype) {
+                in IntegerDatatypes -> options.compTarget.memorySize(datatype)
+                DataType.STR, in ArrayDatatypes  -> {
+                    options.compTarget.memorySize(datatype, numElements!!)
+                }
+                DataType.FLOAT -> {
+                    if (options.floats) {
+                        options.compTarget.memorySize(DataType.FLOAT)
+                    } else return Err(MemAllocationError("floating point option not enabled"))
+                }
+                else -> throw MemAllocationError("weird dt")
+            }
+
+        return if(nextLocation<=region.last && (region.last + 1u - nextLocation) >= size.toUInt()) {
+            val result = Ok(VarAllocation(nextLocation, datatype, size))
+            nextLocation += size.toUInt()
+            result
+        } else
+            Err(MemAllocationError("no more free space in Golden RAM to allocate $size sequential bytes"))
+    }
 }

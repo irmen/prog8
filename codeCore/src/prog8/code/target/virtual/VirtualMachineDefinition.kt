@@ -1,9 +1,6 @@
 package prog8.code.target.virtual
 
-import prog8.code.core.CompilationOptions
-import prog8.code.core.CpuType
-import prog8.code.core.IMachineDefinition
-import prog8.code.core.Zeropage
+import prog8.code.core.*
 import java.nio.file.Path
 import kotlin.io.path.isReadable
 import kotlin.io.path.name
@@ -20,9 +17,8 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override var ESTACK_LO = 0u                 // not actually used
     override var ESTACK_HI = 0u                 // not actually used
-    override var GOLDEN = UIntRange.EMPTY       // not actually used
-
-    override lateinit var zeropage: Zeropage     // not actually used
+    override lateinit var zeropage: Zeropage    // not actually used
+    override lateinit var golden: GoldenRam     // not actually used
 
     override fun getFloatAsmBytes(num: Number) = TODO("float asm bytes from number")
 
@@ -48,7 +44,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override fun isIOAddress(address: UInt): Boolean = false
 
-    override fun initializeZeropage(compilerOptions: CompilationOptions) {}
+    override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {}
 }
 
 interface IVirtualMachineRunner {

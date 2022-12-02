@@ -429,13 +429,13 @@ internal class ProgramAndVarsGen(
 
     private class ZpStringWithInitial(
         val name: List<String>,
-        val alloc: Zeropage.ZpAllocation,
+        val alloc: MemoryAllocator.VarAllocation,
         val value: Pair<String, Encoding>
     )
 
     private class ZpArrayWithInitial(
         val name: List<String>,
-        val alloc: Zeropage.ZpAllocation,
+        val alloc: MemoryAllocator.VarAllocation,
         val value: StArray
     )
 

@@ -16,12 +16,12 @@ interface IMachineDefinition {
     var ESTACK_LO: UInt
     var ESTACK_HI: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
-    var GOLDEN: UIntRange
 
-    var zeropage: Zeropage
     val cpu: CpuType
+    var zeropage: Zeropage
+    var golden: GoldenRam
 
-    fun initializeZeropage(compilerOptions: CompilationOptions)
+    fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String
 
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
@@ -31,7 +31,7 @@ interface IMachineDefinition {
         require(evalStackBaseAddress and 255u == 0u)
         ESTACK_LO = evalStackBaseAddress
         ESTACK_HI = evalStackBaseAddress + 256u
-        require(ESTACK_LO !in GOLDEN && ESTACK_HI !in GOLDEN) { "user-set ESTACK can't be in GOLDEN ram" }
+        require(ESTACK_LO !in golden.region && ESTACK_HI !in golden.region) { "user-set ESTACK can't be in GOLDEN ram" }
     }
 
 }

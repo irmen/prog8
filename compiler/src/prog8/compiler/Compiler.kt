@@ -391,7 +391,7 @@ private fun createAssemblyAndAssemble(program: Program,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions
 ): Boolean {
-    compilerOptions.compTarget.machine.initializeZeropage(compilerOptions)
+    compilerOptions.compTarget.machine.initializeMemoryAreas(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
     val symbolTable = SymbolTableMaker().makeFrom(program, compilerOptions)
