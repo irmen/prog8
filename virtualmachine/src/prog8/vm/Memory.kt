@@ -1,10 +1,12 @@
 package prog8.vm
 
+import kotlin.random.Random
+
 /**
- * 64 Kb of random access memory.
+ * 64 Kb of random access memory. Initialized to random values.
  */
 class Memory {
-    private val mem = Array<UByte>(64 * 1024) { 0u }
+    private val mem = Array<UByte>(64 * 1024) { Random.nextInt().toUByte() }
 
     fun reset() {
         mem.fill(0u)

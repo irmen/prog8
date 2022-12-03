@@ -8,10 +8,6 @@ import prog8.code.core.*
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
 class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
-    fun print() = printIndented(0)
-
-    override fun printProperties() { }
-
     /**
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)
@@ -138,29 +134,6 @@ open class StNode(val name: String,
         }
     }
 
-    fun printIndented(indent: Int) {
-        print("    ".repeat(indent))
-        when(type) {
-            StNodeType.GLOBAL -> print("SYMBOL-TABLE:")
-            StNodeType.BLOCK -> print("(B) ")
-            StNodeType.SUBROUTINE -> print("(S) ")
-            StNodeType.LABEL -> print("(L) ")
-            StNodeType.STATICVAR -> print("(V) ")
-            StNodeType.MEMVAR -> print("(M) ")
-            StNodeType.MEMORYSLAB -> print("(MS) ")
-            StNodeType.CONSTANT -> print("(C) ")
-            StNodeType.BUILTINFUNC -> print("(F) ")
-            StNodeType.ROMSUB -> print("(R) ")
-        }
-        printProperties()
-        println()
-        children.forEach { (_, node) -> node.printIndented(indent+1) }
-    }
-
-    open fun printProperties() {
-        print("$name  ")
-    }
-
     fun add(child: StNode) {
         children[child.name] = child
         child.parent = this
@@ -201,18 +174,11 @@ class StStaticVariable(name: String,
             require(length == onetimeInitializationStringValue.first.length+1)
         }
     }
-
-    override fun printProperties() {
-        print("$name  dt=$dt  zpw=$zpwish  bss=$bss")
-    }
 }
 
 
 class StConstant(name: String, val dt: DataType, val value: Double, position: Position) :
     StNode(name, StNodeType.CONSTANT, position) {
-    override fun printProperties() {
-        print("$name  dt=$dt value=$value")
-    }
 }
 
 
@@ -222,9 +188,6 @@ class StMemVar(name: String,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                position: Position) :
     StNode(name, StNodeType.MEMVAR, position) {
-    override fun printProperties() {
-        print("$name  dt=$dt address=${address.toHex()}")
-    }
 }
 
 class StMemorySlab(
@@ -234,16 +197,10 @@ class StMemorySlab(
     position: Position
 ):
     StNode(name, StNodeType.MEMORYSLAB, position) {
-    override fun printProperties() {
-        print("$name  size=$size  align=$align")
-    }
 }
 
 class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, position: Position) :
         StNode(name, StNodeType.SUBROUTINE, position) {
-    override fun printProperties() {
-        print(name)
-    }
 }
 
 
@@ -253,9 +210,6 @@ class StRomSub(name: String,
                val returns: List<RegisterOrStatusflag>,
                position: Position) :
     StNode(name, StNodeType.ROMSUB, position) {
-    override fun printProperties() {
-        print("$name  address=${address.toHex()}")
-    }
 }
 
 

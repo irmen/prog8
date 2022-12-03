@@ -19,7 +19,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("<PROGRAM NAME=\"${irProgram.name}\">\n")
         writeOptions()
         writeAsmSymbols()
-        writeVariableAllocations()
+        writeVariables()
 
         out.write("\n<INITGLOBALS>\n")
         if(!irProgram.options.dontReinitGlobals) {
@@ -137,10 +137,17 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         out.write("</OPTIONS>\n")
     }
 
-    private fun writeVariableAllocations() {
+    private fun writeVariables() {
 
-        out.write("\n<VARIABLES>\n")
-        for (variable in irProgram.st.allVariables()) {
+        out.write("\n<BSS>\n")
+        for (variable in irProgram.st.allVariables().filter { it.bss }) {
+            val typeStr = getTypeString(variable)
+            // bss variables have no initialization value
+            out.write("$typeStr ${variable.name} zp=${variable.zpwish}\n")
+        }
+
+        out.write("</BSS>\n<VARIABLES>\n")
+        for (variable in irProgram.st.allVariables().filter { !it.bss }) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()

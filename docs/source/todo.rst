@@ -3,15 +3,10 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- Think this through/ ask opinions: add a mechanism to allocate variables into golden ram (see GoldenRam class)
-    - block "golden" treated specially: every var in here will be allocated in the Golden ram area
-    - that block can only contain variables.
-    - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-    - just initialize them yourself in start() if you need a non-zero value
-    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
-    - (need separate step in codegen and IR to write the "golden" variables)
-
-
+- add more descriptions to require() calls (at least line number?)
+- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
+  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
+  Note that bss can still contain variables that have @zp tag and those are already dealt with differently
 - regression test the various projects before release
 
 ...
@@ -28,7 +23,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- create BSS section in output program and put StStaticVariables in there with bss=true. Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE! So requires self-modifying code
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
@@ -48,6 +42,14 @@ Compiler:
   Once new codegen is written that is based on the IR, this point is moot anyway as that will have its own dead code removal.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+- Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
+    - block "golden" treated specially: every var in here will be allocated in the Golden ram area
+    - that block can only contain variables.
+    - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
+    - just initialize them yourself in start() if you need a non-zero value
+    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
+    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
+    - (need separate step in codegen and IR to write the "golden" variables)
 
 Libraries:
 

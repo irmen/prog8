@@ -44,6 +44,7 @@ class IRFileReader {
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val options = parseOptions(reader)
         val asmsymbols = parseAsmSymbols(reader)
+        val bss = parseBss(reader)
         val variables = parseVariables(reader, options.dontReinitGlobals)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
@@ -52,6 +53,7 @@ class IRFileReader {
 
         val st = IRSymbolTable(null)
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
+        bss.forEach { st.add(it) }
         variables.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
@@ -147,6 +149,33 @@ class IRFileReader {
             }
     }
 
+    private fun parseBss(reader: XMLEventReader): List<StStaticVariable> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="BSS") { "missing BSS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+) (zp=(.+))?")
+            val bssVariables = mutableListOf<StStaticVariable>()
+            text.lineSequence().forEach { line ->
+                // example:  uword main.start.qq2 zp=DONTCARE
+                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid BSS $line")
+                val (type, arrayspec, name, _, zpwish) = match.destructured
+                if('.' !in name)
+                    throw IRParseException("unscoped varname: $name")
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+                bssVariables.add(StStaticVariable(name, dt, true, null, null, null, arraysize, zp, Position.DUMMY))
+            }
+            return bssVariables
+        }
+    }
+
     private fun parseVariables(reader: XMLEventReader, dontReinitGlobals: Boolean): List<StStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
@@ -165,6 +194,8 @@ class IRFileReader {
                 // ubyte[6] main.start.namestring=105,114,109,101,110,0
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
                 val (type, arrayspec, name, value, _, zpwish) = match.destructured
+                if('.' !in name)
+                    throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
@@ -199,7 +230,7 @@ class IRFileReader {
                     DataType.STR -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
-
+                require(!bss) { "bss var should be in BSS section" }
                 variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
             }
             return variables

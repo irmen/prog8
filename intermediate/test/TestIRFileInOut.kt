@@ -49,15 +49,18 @@ output=PRG
 launcher=BASIC
 zeropage=KERNALSAFE
 loadAddress=0
-dontReinitGlobals=false
+dontReinitGlobals=true
 evalStackBaseAddress=null
 </OPTIONS>
 
 <ASMSYMBOLS>
 </ASMSYMBOLS>
 
+<BSS>
+uword sys.bssvar zp=DONTCARE
+</BSS>
 <VARIABLES>
-uword sys.wait.jiffies= zp=DONTCARE
+uword sys.wait.jiffies=10 zp=DONTCARE
 </VARIABLES>
 
 <MEMORYMAPPEDVARIABLES>
@@ -105,7 +108,10 @@ return
         tempfile.deleteExisting()
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2
-        program.st.allVariables().count() shouldBe 1
-        program.st.lookup("sys.wait.jiffies") shouldBe instanceOf<StStaticVariable>()
+        program.st.allVariables().count() shouldBe 2
+        val var1 = program.st.lookup("sys.wait.jiffies") as StStaticVariable
+        val var2 = program.st.lookup("sys.bssvar") as StStaticVariable
+        var1.bss shouldBe false
+        var2.bss shouldBe true
     }
 })

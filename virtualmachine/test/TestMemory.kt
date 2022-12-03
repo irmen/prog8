@@ -1,6 +1,7 @@
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.vm.Memory
 
 
@@ -46,7 +47,9 @@ class TestMemory: FunSpec({
 
     test("32 bits float access") {
         val mem = Memory()
-        mem.getFloat(1000) shouldBe 0.0
+        mem.getFloat(1000) shouldNotBe 0.0
+        mem.setFloat(1000, 0.0f)
+        mem.getFloat(1000) shouldBe 0.0f
         mem.setFloat(1000, -9.876543f)
         mem.getFloat(1000) shouldBe -9.876543f
     }

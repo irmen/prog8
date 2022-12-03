@@ -2,6 +2,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.intermediate.*
@@ -51,6 +52,7 @@ class TestVm: FunSpec( {
         block += startSub
         program.addBlock(block)
         val vm = VirtualMachine(program)
+        vm.memory.setUW(1000, 0u)
 
         vm.memory.getUW(1000) shouldBe 0u
         vm.callStack.shouldBeEmpty()
@@ -128,6 +130,8 @@ class TestVm: FunSpec( {
 <ASMSYMBOLS>
 </ASMSYMBOLS>
 
+<BSS>
+</BSS>
 <VARIABLES>
 </VARIABLES>
 
