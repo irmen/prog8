@@ -375,7 +375,7 @@ class AsmGen(internal val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(options.compTarget.memorySize(DataType.FLOAT) == 5)
+                    require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
                     out(
                         """
                                 lda  $indexName
@@ -406,7 +406,7 @@ class AsmGen(internal val program: Program,
                     }
                 }
                 DataType.FLOAT -> {
-                    require(options.compTarget.memorySize(DataType.FLOAT) == 5)
+                    require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
                     out(
                         """
                                 lda  $indexName
@@ -605,7 +605,7 @@ class AsmGen(internal val program: Program,
     }
 
     private fun repeatWordCount(count: Int, stmt: RepeatLoop) {
-        require(count in 257..65535)
+        require(count in 257..65535) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = program.makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UWORD, true, stmt)
@@ -667,7 +667,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun repeatByteCount(count: Int, stmt: RepeatLoop) {
-        require(count in 2..256)
+        require(count in 2..256) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = program.makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
@@ -2940,7 +2940,7 @@ $repeatLabel    lda  $counterVar
         val parameter = target.subroutineParameter
         if(parameter!=null) {
             val sub = parameter.definingSubroutine!!
-            require(sub.isAsmSubroutine) { "push/pop arg passing only supported on asmsubs" }
+            require(sub.isAsmSubroutine) { "push/pop arg passing only supported on asmsubs ${sub.position}" }
             val shouldKeepA = sub.asmParameterRegisters.any { it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY }
             val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
             if(reg.statusflag!=null) {

@@ -809,7 +809,7 @@ internal class AssignmentAsmGen(private val program: Program,
         if(variable.origin!=VarDeclOrigin.USERCODE) {
             when(variable.datatype) {
                 DataType.STR -> {
-                    require(elementDt.isBytes)
+                    require(elementDt.isBytes) { "must be byte string ${variable.position}" }
                     val stringVal = variable.value as StringLiteral
                     val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
                     assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
@@ -825,7 +825,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     throw AssemblyError("containment check of floats not supported")
                 }
                 in ArrayDatatypes -> {
-                    require(elementDt.isInteger)
+                    require(elementDt.isInteger) { "must be integer array ${variable.position}" }
                     val arrayVal = variable.value as ArrayLiteral
                     val dt = elementDt.getOr(DataType.UNDEFINED)
                     val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
@@ -2056,7 +2056,7 @@ internal class AssignmentAsmGen(private val program: Program,
         // we make an exception in the type check for assigning something to a register pair AX, AY or XY
         // these will be correctly typecasted from a byte to a word value here
         if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-            require(target.datatype in ByteDatatypes)
+            require(target.datatype in ByteDatatypes) { "assign target must be byte type ${target.origAstTarget?.position ?: ""}"}
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -2145,7 +2145,9 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in NumericDatatypes || target.datatype in PassByReferenceDatatypes)
+        require(target.datatype in NumericDatatypes || target.datatype in PassByReferenceDatatypes) {
+            "assign target must be word type ${target.origAstTarget?.position ?: ""}"
+        }
         if(target.datatype==DataType.FLOAT)
             throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")
 

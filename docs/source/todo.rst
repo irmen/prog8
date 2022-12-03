@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- add more descriptions to require() calls (at least line number?)
 - 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
   Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
   Note that bss can still contain variables that have @zp tag and those are already dealt with differently

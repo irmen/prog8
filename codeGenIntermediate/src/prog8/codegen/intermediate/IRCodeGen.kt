@@ -1086,7 +1086,9 @@ class IRCodeGen(
                 is PtAsmSub -> {
                     if(child.address!=null) {
                         // romsub. No codegen needed: calls to this are jumping straight to the address.
-                        require(child.children.isEmpty())
+                        require(child.children.isEmpty()) {
+                            "romsub should be empty at ${child.position}"
+                        }
                     } else {
                         // regular asmsub
                         val assemblyChild = child.children.single() as PtInlineAssembly

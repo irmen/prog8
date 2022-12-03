@@ -29,7 +29,7 @@ romsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 romsub $fe06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
 ; romsub $fe09 = VAL_1() clobbers(A,X,Y)                      ; convert ASCII string to floating point [not yet implemented!!!]
 
-; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
+; GETADR: fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
 romsub $fe0c = GETADR() clobbers(X) -> ubyte @ Y, ubyte @ A
 romsub $fe0f = FLOATC() clobbers(A,X,Y)                     ; convert address to floating point
@@ -68,18 +68,19 @@ romsub $fe69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
 romsub $fe6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded)
 
 ; X16 additions
-romsub $fe81 = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
-romsub $fe84 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
-romsub $fe87 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1 (?)
-romsub $fe8a = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (juse use NEGOP() instead!)
-romsub $fe8d = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
-romsub $fe90 = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
-romsub $fe93 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
-romsub $fe96 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-romsub $fe99 = FLOAT() clobbers(A,X,Y)                      ; FAC = (u8).A
-romsub $fe9c = FLOATS() clobbers(A,X,Y)                     ; FAC = (s16)facho+1:facho
-romsub $fe9f = QINT() clobbers(A,X,Y)                       ; facho:facho+1:facho+2:facho+3 = u32(FAC)
-romsub $fea2 = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
+romsub $fe6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
+romsub $fe72 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
+romsub $fe75 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1 (?)
+romsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (juse use NEGOP() instead!)
+romsub $fe7b = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
+romsub $fe7e = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
+romsub $fe81 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
+romsub $fe84 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
+romsub $fe87 = FLOAT() clobbers(A,X,Y)                      ; FAC = (u8).A
+romsub $fe8a = FLOATS() clobbers(A,X,Y)                     ; FAC = (s16)facho+1:facho
+romsub $fe8d = QINT() clobbers(A,X,Y)                       ; facho:facho+1:facho+2:facho+3 = u32(FAC)
+romsub $fe90 = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
+
 
 
 asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {

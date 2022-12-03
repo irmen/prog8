@@ -124,7 +124,7 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
 
-        require(callee.isAsmSubroutine)
+        require(callee.isAsmSubroutine) { "register args only for asm subroutine ${callee.position}" }
         if(callee.parameters.isEmpty())
             return
 

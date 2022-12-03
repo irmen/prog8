@@ -13,7 +13,9 @@ import prog8.intermediate.*
 
 internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
-        require(codeGen.registers.peekNext() > resultRegister || resultRegister >= SyscallRegisterBase)
+        require(codeGen.registers.peekNext() > resultRegister || resultRegister >= SyscallRegisterBase) {
+            "no more registers for expression ${expr.position}"
+        }
 
         return when (expr) {
             is PtMachineRegister -> {
@@ -589,7 +591,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: IRDataType, resultRegister: Int): IRCodeChunks {
-        require(vmDt!=IRDataType.FLOAT) {"floating-point modulo not supported"}
+        require(vmDt!=IRDataType.FLOAT) {"floating-point modulo not supported ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
         val rightResultReg = codeGen.registers.nextFree()
         if(binExpr.right is PtNumber) {

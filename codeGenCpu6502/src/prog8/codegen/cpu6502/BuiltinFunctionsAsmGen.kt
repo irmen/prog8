@@ -330,7 +330,7 @@ internal class BuiltinFunctionsAsmGen(private val program: Program,
         if(discardResult || fcall !is BuiltinFunctionCall)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as StringLiteral).value
-        require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
+        require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
         val slabname = IdentifierReference(listOf("prog8_slabs", "prog8_memoryslab_$name"), fcall.position)
         slabname.linkParents(fcall)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = AddressOf(slabname, fcall.position))

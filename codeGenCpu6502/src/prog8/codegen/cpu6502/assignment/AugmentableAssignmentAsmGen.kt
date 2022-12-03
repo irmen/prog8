@@ -16,7 +16,9 @@ internal class AugmentableAssignmentAsmGen(private val program: Program,
 ) {
     fun translate(assign: AsmAssignment) {
         require(assign.isAugmentable)
-        require(assign.source.kind== SourceStorageKind.EXPRESSION)
+        require(assign.source.kind == SourceStorageKind.EXPRESSION) {
+            "non-expression assign value should be handled elsewhere ${assign.position}"
+        }
 
         when (val value = assign.source.expression!!) {
             is PrefixExpression -> {

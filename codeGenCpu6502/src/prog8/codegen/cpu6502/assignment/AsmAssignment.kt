@@ -207,7 +207,7 @@ internal class AsmAssignment(val source: AsmAssignSource,
 
     init {
         if(target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
-            require(source.datatype != DataType.UNDEFINED) { "must not be placeholder/undefined datatype" }
+            require(source.datatype != DataType.UNDEFINED) { "must not be placeholder/undefined datatype at $position" }
             require(memsizer.memorySize(source.datatype) <= memsizer.memorySize(target.datatype)) {
                 "source dt size must be less or equal to target dt size at $position"
             }

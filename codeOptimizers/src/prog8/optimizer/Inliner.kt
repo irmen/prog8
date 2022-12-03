@@ -174,7 +174,9 @@ class Inliner(val program: Program): AstWalker() {
 
     private fun possibleInlineFcallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
         if(sub.inline && sub.parameters.isEmpty()) {
-            require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1])))
+            require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
+                "invalid inline sub at ${sub.position}"
+            }
             return if(sub.isAsmSubroutine) {
                 // simply insert the asm for the argument-less routine
                 listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
@@ -208,7 +210,9 @@ class Inliner(val program: Program): AstWalker() {
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val sub = functionCallExpr.target.targetStatement(program) as? Subroutine
         if(sub!=null && sub.inline && sub.parameters.isEmpty()) {
-            require(sub.statements.size==1 || (sub.statements.size==2 && isEmptyReturn(sub.statements[1])))
+            require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
+                "invalid inline sub at ${sub.position}"
+            }
             return if(sub.isAsmSubroutine) {
                 // cannot inline assembly directly in the Ast here as an Asm node is not an expression....
                 noModifications

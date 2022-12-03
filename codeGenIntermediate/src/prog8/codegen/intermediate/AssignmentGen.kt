@@ -258,7 +258,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(memory!=null) {
-            require(vmDt== IRDataType.BYTE)
+            require(vmDt== IRDataType.BYTE) { "must be byte type ${memory.position}"}
             if(zero) {
                 if(memory.address is PtNumber) {
                     val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, vmDt, value=(memory.address as PtNumber).number.toInt()) }
