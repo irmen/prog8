@@ -14,6 +14,7 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -933,5 +934,35 @@ main  {
                 }
             }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("various floating point casts don't crash the compiler") {
+        val text="""
+            %import floats
+            
+            main {
+                sub score() -> ubyte {
+                    cx16.r15++
+                    return 5
+                }
+            
+                sub start() {
+                    float @shared total = 0
+                    ubyte bb = 5
+            
+                    cx16.r0 = 5
+                    total += cx16.r0 as float
+                    total += score() as float
+                    uword ww = 5
+                    total += ww as float
+                    total += bb as float
+                    float result = score() as float
+                    total += result
+                }
+            }"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
     }
 })

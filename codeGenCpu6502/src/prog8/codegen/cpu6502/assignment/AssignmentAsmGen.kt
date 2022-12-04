@@ -27,13 +27,6 @@ internal class AssignmentAsmGen(private val program: Program,
             translateNormalAssignment(assign)
     }
 
-    internal fun virtualRegsToVariables(origtarget: AsmAssignTarget): AsmAssignTarget {
-        return if(origtarget.kind==TargetStorageKind.REGISTER && origtarget.register in Cx16VirtualRegisters) {
-            AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, origtarget.datatype, origtarget.scope,
-                variableAsmName = "cx16.${origtarget.register!!.name.lowercase()}", origAstTarget = origtarget.origAstTarget)
-        } else origtarget
-    }
-
     fun translateNormalAssignment(assign: AsmAssignment) {
         if(assign.isAugmentable) {
             augmentableAsmGen.translate(assign)
@@ -940,11 +933,9 @@ internal class AssignmentAsmGen(private val program: Program,
                         is NumericLiteral -> {
                             val address = (value.addressExpression as NumericLiteral).number.toUInt()
                             assignMemoryByteIntoWord(target, address, null)
-                            return
                         }
                         is IdentifierReference -> {
                             assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
-                            return
                         }
                         is BinaryExpression -> {
                             if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
@@ -958,6 +949,7 @@ internal class AssignmentAsmGen(private val program: Program,
                             assignViaExprEval(value.addressExpression)
                         }
                     }
+                    return
                 }
             }
             is NumericLiteral -> throw AssemblyError("a cast of a literal value should have been const-folded away")
@@ -966,7 +958,7 @@ internal class AssignmentAsmGen(private val program: Program,
 
 
         // special case optimizations
-        if(target.kind== TargetStorageKind.VARIABLE) {
+        if(target.kind == TargetStorageKind.VARIABLE) {
             if(value is IdentifierReference && valueDt != DataType.UNDEFINED)
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
@@ -1044,11 +1036,12 @@ internal class AssignmentAsmGen(private val program: Program,
                 assignExpressionToRegister(value, RegisterOrPair.FAC1, target.datatype in SignedDatatypes)
                 assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", target.datatype)
                 assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes)
+                return
             } else {
                 if(!(valueDt isAssignableTo targetDt)) {
-                    if(valueDt in WordDatatypes && targetDt in ByteDatatypes) {
+                    return if(valueDt in WordDatatypes && targetDt in ByteDatatypes) {
                         // word to byte, just take the lsb
-                        return assignCastViaLsbFunc(value, target)
+                        assignCastViaLsbFunc(value, target)
                     } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
                         // word to word, just assign
                         assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
@@ -1058,43 +1051,85 @@ internal class AssignmentAsmGen(private val program: Program,
                     } else if(valueDt in ByteDatatypes && targetDt in WordDatatypes) {
                         // byte to word, just assign
                         assignExpressionToRegister(value, target.register!!, targetDt==DataType.WORD)
-                    }
-                    else
+                    } else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
                 }
-                assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
             }
-            return
+        }
+
+        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypes && valueDt.isAssignableTo(targetDt)) {
+            require(targetDt in WordDatatypes && valueDt in ByteDatatypes) { "should be byte to word assignment ${origTypeCastExpression.position}"}
+            when(target.kind) {
+//                TargetStorageKind.VARIABLE -> {
+//                    This has been handled already earlier on line 961.
+//                    // byte to word, just assign to registers first, then assign to variable
+//                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
+//                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, targetDt)
+//                    return
+//                }
+                TargetStorageKind.ARRAY -> {
+                    // byte to word, just assign to registers first, then assign into array
+                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
+                    assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return
+                }
+                TargetStorageKind.REGISTER -> {
+                    // byte to word, just assign to registers
+                    assignExpressionToRegister(value, target.register!!, targetDt==DataType.WORD)
+                    return
+                }
+                TargetStorageKind.STACK -> {
+                    // byte to word, just assign to registers first, then push onto stack
+                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
+                    asmgen.out("""
+                        sta  P8ESTACK_LO,x
+                        tya
+                        sta  P8ESTACK_HI,x
+                        dex""")
+                    return
+                }
+                else -> throw AssemblyError("weird target")
+            }
         }
 
         if(targetDt==DataType.FLOAT && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
             when(valueDt) {
                 DataType.UBYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.Y, false)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
                     asmgen.out("  jsr  floats.FREADUY")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.BYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, true)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
                     asmgen.out("  jsr  floats.FREADSA")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.UWORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, false)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
                     asmgen.out("  jsr  floats.GIVUAYFAY")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.WORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
                     asmgen.out("  jsr  floats.GIVAYFAY")
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 else -> throw AssemblyError("invalid dt")
             }
             if(target.register==RegisterOrPair.FAC2) {
                 asmgen.out("  jsr floats.MOVEF")
             }
+            return
         } else {
             // No more special optmized cases yet. Do the rest via more complex evaluation
             // note: cannot use assignTypeCastedValue because that is ourselves :P
             // NOTE: THIS MAY TURN INTO A STACK OVERFLOW ERROR IF IT CAN'T SIMPLIFY THE TYPECAST..... :-/
             asmgen.assignExpressionTo(origTypeCastExpression, target)
+            return
         }
     }
 
@@ -1251,14 +1286,10 @@ internal class AssignmentAsmGen(private val program: Program,
                     DataType.UWORD, DataType.WORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out(
-                                "  st${
-                                    regs.toString().lowercase()
-                                }  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                                "  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out(
-                                "  st${
-                                    regs.toString().lowercase()
-                                }  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                                "  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
                     DataType.FLOAT -> {
                         when(regs) {
