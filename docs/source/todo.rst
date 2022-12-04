@@ -3,11 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash when compiling %import test_stack  on virtual target.
-- bss in IR: with -noreinit, variables that have init value 0 should still be bss.
-- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
-  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
-  Note that bss can still contain variables that have @zp tag and those are already dealt with differently
 - regression test the various projects before release
 
 ...
@@ -24,6 +19,10 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
+  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
+  Note that bss can still contain variables that have @zp tag and those are already dealt with differently
+- bss: subroutine parameters don't have to be set to 0.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)

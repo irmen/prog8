@@ -435,7 +435,8 @@ class IRFileReader {
 
         val clobbers = attrs.getValue("CLOBBERS")
         val clobberRegs = if(clobbers.isBlank()) emptyList() else clobbers.split(',').map { CpuRegister.valueOf(it) }
-        val returns = attrs.getValue("RETURNS").split(',').map { rs ->
+        val returnsSpec = attrs.getValue("RETURNS")
+        val returns = if(returnsSpec.isNullOrBlank()) emptyList() else returnsSpec.split(',').map { rs ->
             val (regstr, dtstr) = rs.split(':')
             val dt = parseDatatype(dtstr, false)
             val regsf = parseRegisterOrStatusflag(regstr)

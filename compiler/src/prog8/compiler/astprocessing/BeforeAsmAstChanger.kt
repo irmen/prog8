@@ -137,7 +137,7 @@ internal class BeforeAsmAstChanger(val program: Program,
                 mods += IAstModification.InsertLast(returnStmt, subroutine)
             } else {
                 val last = subroutine.statements.last()
-                if((last !is InlineAssembly || !last.hasReturnOrRts(options.compTarget)) && last !is Return) {
+                if((last !is InlineAssembly || !last.hasReturnOrRts()) && last !is Return) {
                     val lastStatement = subroutine.statements.reversed().firstOrNull { it !is Subroutine }
                     if(lastStatement !is Return) {
                         val returnStmt = Return(null, subroutine.position)
@@ -164,7 +164,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         if (!subroutine.inline || !options.optimize) {
-            if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && !subroutine.hasRtsInAsm(options.compTarget)) {
+            if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && !subroutine.hasRtsInAsm()) {
                 // make sure the NOT INLINED asm subroutine actually has a rts at the end
                 // (non-asm routines get a Return statement as needed, above)
                 mods += if(options.compTarget.name==VMTarget.NAME)

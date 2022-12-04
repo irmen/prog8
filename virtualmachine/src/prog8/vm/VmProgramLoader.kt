@@ -1,8 +1,6 @@
 package prog8.vm
 
-import prog8.code.core.ArrayDatatypes
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
+import prog8.code.core.*
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -185,24 +183,34 @@ class VmProgramLoader {
         program.st.allVariables().forEach { variable ->
             var addr = allocations.allocations.getValue(variable.name)
 
-            if(variable.bss && variable.dt in ArrayDatatypes) {
-                // zero out the array bss variable.
-                // non-array variables are reset using explicit assignment instructions.
-                repeat(variable.length!!) {
-                    when(variable.dt) {
-                        DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
-                            memory.setUB(addr, 0u)
-                            addr++
+            // zero out BSS variables.
+            if(variable.bss) {
+                if(variable.dt in ArrayDatatypes) {
+                    repeat(variable.length!!) {
+                        when(variable.dt) {
+                            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
+                                memory.setUB(addr, 0u)
+                                addr++
+                            }
+                            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                                memory.setUW(addr, 0u)
+                                addr += 2
+                            }
+                            DataType.ARRAY_F -> {
+                                memory.setFloat(addr, 0.0f)
+                                addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                            }
+                            else -> throw IRParseException("invalid dt")
                         }
-                        DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                            memory.setUW(addr, 0u)
-                            addr += 2
+                    }
+                } else {
+                    if(program.options.dontReinitGlobals) {
+                        when(variable.dt) {
+                            in ByteDatatypes -> memory.setUB(addr, 0u)
+                            in WordDatatypes -> memory.setUW(addr, 0u)
+                            DataType.FLOAT -> memory.setFloat(addr, 0.0f)
+                            else -> throw IRParseException("invalid dt")
                         }
-                        DataType.ARRAY_F -> {
-                            memory.setFloat(addr, 0.0f)
-                            addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
-                        }
-                        else -> throw IRParseException("invalid dt")
                     }
                 }
             }

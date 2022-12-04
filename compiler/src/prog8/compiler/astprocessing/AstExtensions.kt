@@ -168,9 +168,9 @@ internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolea
     return false
 }
 
-internal fun Subroutine.hasRtsInAsm(compTarget: ICompilationTarget): Boolean {
+internal fun Subroutine.hasRtsInAsm(): Boolean {
     return statements
         .asSequence()
         .filterIsInstance<InlineAssembly>()
-        .any { it.hasReturnOrRts(compTarget) }
+        .any { it.hasReturnOrRts() }
 }

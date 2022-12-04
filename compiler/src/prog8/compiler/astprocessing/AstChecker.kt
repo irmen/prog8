@@ -251,7 +251,7 @@ internal class AstChecker(private val program: Program,
             }
 
             override fun visit(inlineAssembly: InlineAssembly) {
-                if(inlineAssembly.hasReturnOrRts(compilerOptions.compTarget))
+                if(inlineAssembly.hasReturnOrRts())
                     count++
             }
         }

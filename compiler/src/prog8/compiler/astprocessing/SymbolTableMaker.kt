@@ -62,6 +62,8 @@ internal class SymbolTableMaker: IAstVisitor {
             when(decl.type) {
                 VarDeclType.VAR -> {
                     var initialNumeric = (decl.value as? NumericLiteral)?.number
+                    if(initialNumeric==0.0)
+                        initialNumeric=null     // variable will go into BSS and this will be set to 0
                     val initialStringLit = decl.value as? StringLiteral
                     val initialString = if(initialStringLit==null) null else Pair(initialStringLit.value, initialStringLit.encoding)
                     val initialArrayLit = decl.value as? ArrayLiteral
@@ -79,10 +81,8 @@ internal class SymbolTableMaker: IAstVisitor {
                         false
                     else if(decl.isArray)
                         initialArray.isNullOrEmpty()
-                    else {
-                        if(dontReinitGlobals) initialNumeric = initialNumeric ?: 0.0
+                    else
                         initialNumeric == null
-                    }
                     StStaticVariable(decl.name, decl.datatype, bss, initialNumeric, initialString, initialArray, numElements, decl.zeropage, decl.position)
                 }
                 VarDeclType.CONST -> StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, decl.position)
