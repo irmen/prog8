@@ -11,9 +11,36 @@ c64 {
 
         &ubyte  COLOR           = $0286     ; cursor color
         &ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)
+
+        &uword  IERROR          = $0300
+        &uword  IMAIN           = $0302
+        &uword  ICRNCH          = $0304
+        &uword  IQPLOP          = $0306
+        &uword  IGONE           = $0308
+        &uword  IEVAL           = $030a
+        &ubyte  SAREG           = $030c     ; register storage for A for SYS calls
+        &ubyte  SXREG           = $030d     ; register storage for X for SYS calls
+        &ubyte  SYREG           = $030e     ; register storage for Y for SYS calls
+        &ubyte  SPREG           = $030f     ; register storage for P (status register) for SYS calls
+        &uword  USRADD          = $0311     ; vector for the USR() basic command
+        ; $0313 is unused.
         &uword  CINV            = $0314     ; IRQ vector (in ram)
         &uword  CBINV           = $0316     ; BRK vector (in ram)
         &uword  NMINV           = $0318     ; NMI vector (in ram)
+        &uword  IOPEN           = $031a
+        &uword  ICLOSE          = $031c
+        &uword  ICHKIN          = $031e
+        &uword  ICKOUT          = $0320
+        &uword  ICLRCH          = $0322
+        &uword  IBASIN          = $0324
+        &uword  IBSOUT          = $0326
+        &uword  ISTOP           = $0328
+        &uword  IGETIN          = $032a
+        &uword  ICLALL          = $032c
+        &uword  USERCMD         = $032e
+        &uword  ILOAD           = $0330
+        &uword  ISAVE           = $0332
+
         &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in

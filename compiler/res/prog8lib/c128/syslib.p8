@@ -12,9 +12,34 @@ c64 {
 
         &ubyte  COLOR           = $00f1     ; cursor color
         ;;&ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)        // TODO c128 ??
+
+        &uword  IERROR          = $0300
+        &uword  IMAIN           = $0302
+        &uword  ICRNCH          = $0304
+        &uword  IQPLOP          = $0306
+        &uword  IGONE           = $0308
+        &uword  IEVAL           = $030a
+        &uword  ICRNCH2         = $030c
+        &uword  IQPLOP2         = $030e
+        &uword  IGONE2          = $0310
+        ; $0312 and $0313 are unused.
         &uword  CINV            = $0314     ; IRQ vector (in ram)
         &uword  CBINV           = $0316     ; BRK vector (in ram)
         &uword  NMINV           = $0318     ; NMI vector (in ram)
+        &uword  IOPEN           = $031a
+        &uword  ICLOSE          = $031c
+        &uword  ICHKIN          = $031e
+        &uword  ICKOUT          = $0320
+        &uword  ICLRCH          = $0322
+        &uword  IBASIN          = $0324
+        &uword  IBSOUT          = $0326
+        &uword  ISTOP           = $0328
+        &uword  IGETIN          = $032a
+        &uword  ICLALL          = $032c
+        &uword  IEXMON          = $032e
+        &uword  ILOAD           = $0330
+        &uword  ISAVE           = $0332
+
         &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in

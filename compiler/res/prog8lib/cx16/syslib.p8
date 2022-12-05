@@ -85,6 +85,18 @@ asmsub RDTIM16() -> uword @AY {
 cx16 {
 
 ; irq, system and hardware vectors:
+    &uword  IERROR          = $0300
+    &uword  IMAIN           = $0302
+    &uword  ICRNCH          = $0304
+    &uword  IQPLOP          = $0306
+    &uword  IGONE           = $0308
+    &uword  IEVAL           = $030a
+    &ubyte  SAREG           = $030c     ; register storage for A for SYS calls
+    &ubyte  SXREG           = $030d     ; register storage for X for SYS calls
+    &ubyte  SYREG           = $030e     ; register storage for Y for SYS calls
+    &ubyte  SPREG           = $030f     ; register storage for P (status register) for SYS calls
+    &uword  USRADD          = $0311     ; vector for the USR() basic command
+    ; $0313 is unused.
     &uword  CINV            = $0314     ; IRQ vector (in ram)
     &uword  CBINV           = $0316     ; BRK vector (in ram)
     &uword  NMINV           = $0318     ; NMI vector (in ram)
