@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- why slow stack eval for "if c64.READST() & $40"  ?
 - regression test the various projects before release
 
 ...
