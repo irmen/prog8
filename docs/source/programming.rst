@@ -400,9 +400,9 @@ library function instead)
 Special types: const and memory-mapped
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using ``const``, the value of the 'variable' can no longer be changed.
+When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
 You'll have to specify the initial value expression. This value is then used
-by the compiler everywhere you refer to the constant (and no storage is allocated
+by the compiler everywhere you refer to the constant (and no memory is allocated
 for the constant itself). This is only valid for the simple numeric types (byte, word, float).
 
 When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,

@@ -70,7 +70,7 @@ Language features
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Floating point math also supported if the target system provides floating point library routines (C64 and Cx16 both do).
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
-- High-level code optimizations, such as const-folding, expression and statement simplifications/rewriting.
+- High-level code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``abs``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the other machines.
