@@ -50,7 +50,7 @@ main {
     }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
@@ -162,7 +162,7 @@ skipLABEL:
     }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
@@ -205,7 +205,7 @@ main {
     }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
@@ -232,7 +232,7 @@ main {
   }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
@@ -260,7 +260,7 @@ mylabel:
 
 """
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true, keepIR=true) shouldNotBe null
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!

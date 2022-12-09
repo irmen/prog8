@@ -41,7 +41,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
-    val keepIR by cli.option(ArgType.Boolean, fullName = "keepIR", description = "keep the IR code file (for targets that use it)")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
     val dontReinitGlobals by cli.option(ArgType.Boolean, fullName = "noreinit", description = "don't create code to reinitialize globals on multiple runs of the program (experimental)")
@@ -127,7 +126,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
-                    keepIR == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,
@@ -192,7 +190,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
-                    keepIR == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,

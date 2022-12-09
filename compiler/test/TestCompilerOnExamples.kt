@@ -33,7 +33,6 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         quietAssembler = true,
         asmListfile = false,
         experimentalCodegen = false,
-        keepIR = false,
         compilationTarget = target.name,
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),
@@ -189,8 +188,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
         val (displayName, filepath) = prepareTestFiles(it, false, target)
         test(displayName) {
             val src = filepath.readText()
-            compileText(target, false, src, writeAssembly = true, keepIR=false) shouldNotBe null
-            compileText(target, false, src, writeAssembly = true, keepIR=true) shouldNotBe null
+            compileText(target, false, src, writeAssembly = true) shouldNotBe null
+            compileText(target, false, src, writeAssembly = true) shouldNotBe null
         }
     }
 })

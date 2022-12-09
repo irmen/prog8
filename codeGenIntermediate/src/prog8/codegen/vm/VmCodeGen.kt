@@ -20,7 +20,6 @@ class VmCodeGen(private val program: PtProgram,
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
 
-        // no need to check options.keepIR, as the VM file format *is* the IR file.
         return VmAssemblyProgram(irProgram.name, irProgram)
     }
 }
