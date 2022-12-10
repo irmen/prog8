@@ -44,7 +44,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods= optimizeJsrRts(linesByFour)
+    mods= optimizeJsrRtsAndOtherCombinations(linesByFour)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
@@ -486,8 +486,11 @@ private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<
     return mods
 }
 
-private fun optimizeJsrRts(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
     // jsr Sub + rts -> jmp Sub
+    // rts + jmp -> remove jmp
+    // rts + bxx -> remove bxx
+
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
         val first = lines[0].value
@@ -495,6 +498,28 @@ private fun optimizeJsrRts(linesByFour: List<List<IndexedValue<String>>>): List<
         if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
             mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
             mods += Modification(lines[1].index, true, null)
+        }
+        else if (" rts" in first || "\trts" in first) {
+            if (" jmp" in second || "\tjmp" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bra" in second || "\tbra" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bcc" in second || "\tbcc" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bcs" in second || "\tbcs" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" beq" in second || "\tbeq" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bne" in second || "\tbne" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bmi" in second || "\tbmi" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bpl" in second || "\tbpl" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bvs" in second || "\tbvs" in second)
+                mods += Modification(lines[1].index, true, null)
+            else if (" bvc" in second || "\tbvc" in second)
+                mods += Modification(lines[1].index, true, null)
         }
     }
     return mods
