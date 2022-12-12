@@ -193,10 +193,14 @@ class ExpressionSimplifier(private val program: Program,
             return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral.optimalInteger(0, expr.right.position), expr))
         }
 
-        if(expr.operator == ">=" && rightVal?.number == 0.0) {
-            if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
+        if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
+            if(expr.operator == ">=" && rightVal?.number == 0.0) {
                 // unsigned >= 0 --> true
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(true, expr.position), parent))
+            }
+            else if(expr.operator == ">" && rightVal?.number == 0.0) {
+                // unsigned > 0 --> unsigned != 0
+                return listOf(IAstModification.SetExpression({expr.operator="!="}, expr, parent))
             }
         }
 
@@ -206,10 +210,14 @@ class ExpressionSimplifier(private val program: Program,
             return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral.optimalInteger(0, expr.right.position), expr))
         }
 
-        if(expr.operator == "<" && rightVal?.number == 0.0) {
-            if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
+        if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
+            if(expr.operator == "<" && rightVal?.number == 0.0) {
                 // unsigned < 0 --> false
                 return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
+            }
+            else if(expr.operator == "<=" && rightVal?.number == 0.0) {
+                // unsigned <= 0 --> unsigned==0
+                return listOf(IAstModification.SetExpression({expr.operator="=="}, expr, parent))
             }
         }
 

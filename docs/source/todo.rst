@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- "until not bytearray[index]" creates some pretty silly assembly code. what about while? if?
 - regression test the various projects before release
 
 ...
