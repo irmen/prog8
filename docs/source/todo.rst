@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- if epxr goto somewhere creates inefficient code on virt
 - regression test the various projects before release
 
 ...

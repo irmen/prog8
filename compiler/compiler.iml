@@ -23,5 +23,6 @@
     <orderEntry type="module" module-name="codeGenExperimental" />
     <orderEntry type="module" module-name="codeGenIntermediate" />
     <orderEntry type="module" module-name="virtualmachine" />
+    <orderEntry type="module" module-name="intermediate" scope="TEST" />
   </component>
 </module>

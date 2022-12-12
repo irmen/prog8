@@ -320,6 +320,41 @@ class IRCodeGen(
 
     private fun translate(branch: PtConditionalBranch): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
+
+        val goto = branch.trueScope.children.firstOrNull() as? PtJump
+        if(goto is PtJump && branch.falseScope.children.isEmpty()) {
+            // special case the form:   if_cc <condition> goto <place>
+            val address = goto.address?.toInt()
+            if(address!=null) {
+                val branchIns = when(branch.condition) {
+                    BranchCondition.CS -> IRInstruction(Opcode.BSTCS, value = address)
+                    BranchCondition.CC -> IRInstruction(Opcode.BSTCC, value = address)
+                    BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, value = address)
+                    BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, value = address)
+                    BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, value = address)
+                    BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, value = address)
+                    BranchCondition.VC -> IRInstruction(Opcode.BSTVC, value = address)
+                    BranchCondition.VS -> IRInstruction(Opcode.BSTVS, value = address)
+                }
+                addInstr(result, branchIns, null)
+            } else {
+                val label = if(goto.generatedLabel!=null) goto.generatedLabel else goto.identifier!!.targetName.joinToString(".")
+                val branchIns = when(branch.condition) {
+                    BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
+                    BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
+                    BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
+                    BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
+                    BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
+                    BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
+                    BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
+                    BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
+                }
+                addInstr(result, branchIns, null)
+            }
+            return result
+        }
+
+
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
         val branchIns = when(branch.condition) {
@@ -329,8 +364,8 @@ class IRCodeGen(
             BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, labelSymbol = elseLabel)
             BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, labelSymbol = elseLabel)
             BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, labelSymbol = elseLabel)
-            BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = elseLabel)
-            BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = elseLabel)
+            BranchCondition.VC -> IRInstruction(Opcode.BSTVS, labelSymbol = elseLabel)
+            BranchCondition.VS -> IRInstruction(Opcode.BSTVC, labelSymbol = elseLabel)
         }
         addInstr(result, branchIns, null)
         result += translateNode(branch.trueScope)
@@ -867,6 +902,32 @@ class IRCodeGen(
 
         val signed = ifElse.condition.left.type in arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
         val irDt = irType(ifElse.condition.left.type)
+
+        val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
+        if(goto!=null && ifElse.elseScope.children.isEmpty()) {
+            // special case the form:   if <condition> goto <place>
+            val result = mutableListOf<IRCodeChunkBase>()
+            val leftReg = registers.nextFree()
+            val rightReg = registers.nextFree()
+            result += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
+            result += expressionEval.translateExpression(ifElse.condition.right, rightReg, -1)
+            val opcode = when(ifElse.condition.operator) {
+                "==" -> Opcode.BEQ
+                "!=" -> Opcode.BNE
+                "<" -> Opcode.BLT
+                ">" -> Opcode.BGT
+                "<=" -> Opcode.BLE
+                ">=" -> Opcode.BGE
+                else -> throw AssemblyError("invalid comparison operator")
+            }
+            if(goto.address!=null)
+                addInstr(result, IRInstruction(opcode, irDt, reg1=leftReg, reg2=rightReg, value = goto.address?.toInt()), null)
+            else if(goto.generatedLabel!=null)
+                addInstr(result, IRInstruction(opcode, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = goto.generatedLabel), null)
+            else
+                addInstr(result, IRInstruction(opcode, irDt, reg1=leftReg, reg2=rightReg, labelSymbol = goto.identifier!!.targetName.joinToString(".")), null)
+            return result
+        }
 
         fun translateNonZeroComparison(): IRCodeChunks {
             val result = mutableListOf<IRCodeChunkBase>()

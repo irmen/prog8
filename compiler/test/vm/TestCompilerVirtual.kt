@@ -10,6 +10,9 @@ import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
+import prog8.intermediate.IRFileReader
+import prog8.intermediate.IRSubroutine
+import prog8.intermediate.Opcode
 import prog8.vm.VmRunner
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
@@ -297,5 +300,31 @@ main {
 
         val target = VMTarget()
         compileText(target, false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("compile virtual: short code for if-goto") {
+        val src = """
+main {
+    sub start() {
+        if_cc
+            goto ending
+        if_cs
+            goto ending
+        if cx16.r0 goto ending
+        if cx16.r0==0 goto ending
+        if cx16.r0!=0 goto ending
+        if cx16.r0s>0 goto ending
+        if cx16.r0s<0 goto ending
+    ending:
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        result.program.entrypoint.statements.size shouldBe 9
+        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+        instructions.size shouldBe 18
+        instructions.last().opcode shouldBe Opcode.RETURN
     }
 })
