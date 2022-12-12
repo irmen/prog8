@@ -45,6 +45,21 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator == "not") {
+
+            // first check if we're already part of a "boolean" expresion (i.e. comparing against 0)
+            // if so, simplify THAT whole expression rather than making it more complicated
+            if(parent is BinaryExpression && parent.right.constValue(program)?.number==0.0) {
+                if(parent.operator=="==") {
+                    // (NOT X)==0 --> X!=0
+                    val replacement = BinaryExpression(expr.expression, "!=", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                    return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                } else if(parent.operator=="!=") {
+                    // (NOT X)!=0 --> X==0
+                    val replacement = BinaryExpression(expr.expression, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                    return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                }
+            }
+
             // not(not(x)) -> x
             if((expr.expression as? PrefixExpression)?.operator=="not")
                 return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))

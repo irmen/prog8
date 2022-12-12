@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- "until not bytearray[index]" creates some pretty silly assembly code. what about while? if?
+- if epxr goto somewhere creates inefficient code on virt
 - regression test the various projects before release
 
 ...
