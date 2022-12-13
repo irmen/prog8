@@ -21,12 +21,13 @@ sub home() {
     txt.chrout(19)
 }
 
-sub fix_autostart_square() {
+asmsub fix_autostart_square() {
     ; Here's a possible work around for weird issue that prints a black character after first call to c64.PLOT()
     ; if you're also using c64.CINT() yourself. The default prog8 program initialization (which calls CINT) already performs this workaround.
     ; The problem occurs when a program is autostarded in the emulator with -run -prg test.prg,
     ; or when the program is saved as AUTOBOOT.X16 and loaded on boot like that.
     %asm {{
+        phx
         sec
         jsr  c64.PLOT
         clc
@@ -34,7 +35,9 @@ sub fix_autostart_square() {
         lda  #' '
         jsr  c64.CHROUT     ; overwrite the black square
         clc
-        jmp  c64.PLOT       ; cursor back to original position
+        jsr  c64.PLOT       ; cursor back to original position
+        plx
+        rts
     }}
 }
 
