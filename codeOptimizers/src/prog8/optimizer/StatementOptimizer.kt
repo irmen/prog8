@@ -374,31 +374,4 @@ class StatementOptimizer(private val program: Program,
 
         return noModifications
     }
-
-    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
-
-        if(compTarget.name==VMTarget.NAME)
-            return noModifications
-
-        val returnvalue = returnStmt.value
-        if (returnvalue!=null) {
-            val dt = returnvalue.inferType(program).getOr(DataType.UNDEFINED)
-            if(dt!=DataType.UNDEFINED) {
-                if (returnvalue is BinaryExpression || (returnvalue is TypecastExpression && !returnvalue.expression.isSimple)) {
-                    // first assign to intermediary variable, then return that
-                    val (returnVarName, _) = program.getTempVar(dt)
-                    val returnValueIntermediary = IdentifierReference(returnVarName, returnStmt.position)
-                    val tgt = AssignTarget(returnValueIntermediary, null, null, returnStmt.position)
-                    val assign = Assignment(tgt, returnvalue, AssignmentOrigin.OPTIMIZER, returnStmt.position)
-                    val returnReplacement = Return(returnValueIntermediary.copy(), returnStmt.position)
-                    return listOf(
-                        IAstModification.InsertBefore(returnStmt, assign, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(returnStmt, returnReplacement, parent)
-                    )
-                }
-            }
-        }
-
-        return noModifications
-    }
 }
