@@ -120,16 +120,19 @@ class AstPreprocessor(val program: Program,
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
                 } else {
+                    val declToInsert: VarDecl
                     if(decl.value!=null && decl.datatype in NumericDatatypes) {
                         val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
                         val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                         replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
                         decl.value = null
                         decl.allowInitializeWithZero = false
+                        declToInsert = decl.copy()
                     } else {
                         replacements.add(IAstModification.Remove(decl, scope))
+                        declToInsert = decl
                     }
-                    movements.add(IAstModification.InsertFirst(decl, parentscope))
+                    movements.add(IAstModification.InsertFirst(declToInsert, parentscope))
                 }
             }
             return movements + replacements
@@ -138,12 +141,10 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        // this has to be done here becuse otherwise the string / range literal values will have been replaced by variables
         if(expr.operator=="in") {
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
-
         return noModifications
     }
 

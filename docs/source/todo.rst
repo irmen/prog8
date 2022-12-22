@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix compiler crash on :  bool bb = gfx2.pget(pilex1, flakes1_yy[idx]+1) in PILED_SNOW_COLORS
 - bool bb = not bb -> larger code than bool bb ^= 1
 - bool xx = ~xx -> larger code than xx ^= 1
 - ubyte xx = not xx  -> much larger code than xx ^= 1

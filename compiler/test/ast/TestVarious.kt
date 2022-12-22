@@ -3,11 +3,9 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.InlineAssembly
@@ -15,7 +13,6 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.compileText
 
 class TestVarious: FunSpec({
@@ -148,7 +145,6 @@ main {
     }
 }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 7
         val assign1expr = (stmts[3] as Assignment).value as BinaryExpression
@@ -160,6 +156,28 @@ main {
         val leftval2 = assign2expr.left.constValue(result.program)!!
         leftval2.type shouldBe DataType.UWORD
         leftval2.number shouldBe 1.0
+    }
+
+    test("hoisting vars with complex initializer expressions to outer scope") {
+        val src="""
+main {
+    sub pget(uword @zp x, uword y) -> ubyte {
+        return lsb(x+y)
+    }
+
+    sub start() {
+        uword[128] YY
+        ubyte[] ARRAY = [1, 5, 2]
+        repeat {
+            ubyte pixel_side1 = pget(2, YY[2]+1) in ARRAY
+            ubyte pixel_side2 = pget(2, 2) in ARRAY
+            ubyte[] array2 = [1,2,3]
+        }
+    }
+}"""
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 9
     }
 })
 

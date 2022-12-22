@@ -163,4 +163,12 @@ _after:
         }
         return noModifications
     }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="in") {
+            val containment = ContainmentCheck(expr.left, expr.right, expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, containment, parent))
+        }
+        return noModifications
+    }
 }
