@@ -3,6 +3,13 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix compiler crash on :  bool bb = gfx2.pget(pilex1, flakes1_yy[idx]+1) in PILED_SNOW_COLORS
+- bool bb = not bb -> larger code than bool bb ^= 1
+- bool xx = ~xx -> larger code than xx ^= 1
+- ubyte xx = not xx  -> much larger code than xx ^= 1
+- try to support "not (xx in array)"  or maybe even  "xx not in array"
+- astchecker: "containment check is currently not supported inside complex expressions" fix this?
+  or at least disable this check for virtual target?
 
 ...
 

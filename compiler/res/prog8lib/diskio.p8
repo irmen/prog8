@@ -23,7 +23,7 @@ diskio {
             void c64.CHRIN()     ; skip the 4 prologue bytes
         }
 
-        ; while not key pressed / EOF encountered, read data.
+        ; while not stop key pressed / EOF encountered, read data.
         status = c64.READST()
         if status!=0 {
             status = 1
@@ -84,7 +84,6 @@ io_error:
         if c64.READST()!=0
             goto io_error
 
-        ; while not key pressed / EOF encountered, read data.
         cx16.r0 = &list_filename
         repeat {
             @(cx16.r0) = c64.CHRIN()
