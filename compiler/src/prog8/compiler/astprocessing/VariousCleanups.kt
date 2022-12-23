@@ -6,10 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
-import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.ConditionalBranch
-import prog8.ast.statements.IfElse
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -175,6 +172,19 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return noModifications
         }
 
+        fun checkArray(variable: VarDecl): Iterable<IAstModification> {
+            return if(variable.value==null) {
+                val arraySpec = variable.arraysize!!
+                val size = arraySpec.indexExpr.constValue(program)?.number?.toInt() ?: throw FatalAstException("no array size")
+                return if(size==0)
+                    replaceWithFalse()
+                else
+                    noModifications
+            }
+            else
+                checkArray((variable.value as ArrayLiteral).value)
+        }
+
         fun checkString(stringVal: StringLiteral): Iterable<IAstModification> {
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
@@ -198,8 +208,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         return checkString(stringVal)
                     }
                     in ArrayDatatypes -> {
-                        val array = (variable.value as ArrayLiteral).value
-                        return checkArray(array)
+                        return checkArray(variable)
                     }
                     else -> {}
                 }

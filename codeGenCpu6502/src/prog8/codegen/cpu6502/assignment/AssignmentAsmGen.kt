@@ -873,20 +873,20 @@ internal class AssignmentAsmGen(private val program: Program,
                 throw AssemblyError("containment check of floats not supported")
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                val arrayVal = variable.value as ArrayLiteral
+                val numElements = variable.arraysize!!.constIndex()!!
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
                 asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
-                asmgen.out("  ldy  #${arrayVal.value.size}")
+                asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val arrayVal = variable.value as ArrayLiteral
+                val numElements = variable.arraysize!!.constIndex()!!
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
-                asmgen.out("  ldy  #${arrayVal.value.size}")
+                asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
                 return
             }
@@ -1005,7 +1005,7 @@ internal class AssignmentAsmGen(private val program: Program,
             }
         }
 
-        if(valueDt==DataType.UBYTE) {
+        if(valueDt==DataType.UBYTE || valueDt==DataType.BOOL) {
             when(target.register) {
                 RegisterOrPair.A,
                 RegisterOrPair.X,
@@ -1069,8 +1069,10 @@ internal class AssignmentAsmGen(private val program: Program,
             }
         }
 
-        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypes && valueDt.isAssignableTo(targetDt)) {
-            require(targetDt in WordDatatypes && valueDt in ByteDatatypes) { "should be byte to word assignment ${origTypeCastExpression.position}"}
+        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypes && valueDt!=targetDt && valueDt.isAssignableTo(targetDt)) {
+            require(targetDt in WordDatatypes && valueDt in ByteDatatypes) {
+                "should be byte to word assignment ${origTypeCastExpression.position}"
+            }
             when(target.kind) {
 //                TargetStorageKind.VARIABLE -> {
 //                    This has been handled already earlier on line 961.
@@ -1136,13 +1138,12 @@ internal class AssignmentAsmGen(private val program: Program,
                 asmgen.out("  jsr floats.MOVEF")
             }
             return
-        } else {
-            // No more special optmized cases yet. Do the rest via more complex evaluation
-            // note: cannot use assignTypeCastedValue because that is ourselves :P
-            // NOTE: THIS MAY TURN INTO A STACK OVERFLOW ERROR IF IT CAN'T SIMPLIFY THE TYPECAST..... :-/
-            asmgen.assignExpressionTo(origTypeCastExpression, target)
-            return
         }
+
+        // No more special optmized cases yet. Do the rest via more complex evaluation
+        // note: cannot use assignTypeCastedValue because that is ourselves :P
+        // NOTE: THIS MAY TURN INTO A STACK OVERFLOW ERROR IF IT CAN'T SIMPLIFY THE TYPECAST..... :-/
+        asmgen.assignExpressionTo(origTypeCastExpression, target)
     }
 
     private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {

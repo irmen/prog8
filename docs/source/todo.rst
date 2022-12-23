@@ -3,12 +3,12 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- bool bb = not bb -> larger code than bool bb ^= 1
-- bool xx = ~xx -> larger code than xx ^= 1
-- ubyte xx = not xx  -> much larger code than xx ^= 1
-- try to support "not (xx in array)"  or maybe even  "xx not in array"
-- astchecker: "containment check is currently not supported inside complex expressions" fix this?
-  or at least disable this check for virtual target?
+- allow "xx not in array" and rewrite it into "not xx in array"
+- make sure bool value is always 0 or 1 (all casts should convert), then:
+    - rewrite bool=bool^1 into bool=not bool
+    - should solve: bool bb = not bb -> larger code than bool bb ^= 1
+    - should solve: bool xx = ~xx -> larger code than xx ^= 1
+
 
 ...
 
