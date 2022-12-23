@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- allow "xx not in array" and rewrite it into "not xx in array"
 - make sure bool value is always 0 or 1 (all casts should convert), then:
     - rewrite bool=bool^1 into bool=not bool
     - should solve: bool bb = not bb -> larger code than bool bb ^= 1

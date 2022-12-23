@@ -145,6 +145,11 @@ class AstPreprocessor(val program: Program,
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
+        if(expr.operator=="not in") {
+            val containment = ContainmentCheck(expr.left, expr.right, expr.position)
+            val notContainment = PrefixExpression("not", containment, expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, notContainment, parent))
+        }
         return noModifications
     }
 

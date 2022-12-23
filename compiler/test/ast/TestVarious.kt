@@ -3,10 +3,9 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.StringLiteral
+import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.InlineAssembly
 import prog8.ast.statements.VarDecl
@@ -178,6 +177,29 @@ main {
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 9
+    }
+
+    test("alternative notation for negative containment check") {
+        val src="""
+main {
+    sub start() {
+        ubyte[] array=[1,2,3]
+        cx16.r0L = not (3 in array)
+        cx16.r1L = 3 not in array
+    }
+}
+"""
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 3
+        val value1 = (stmts[1] as Assignment).value as BinaryExpression
+        val value2 = (stmts[2] as Assignment).value as BinaryExpression
+        value1.operator shouldBe "=="
+        value1.left shouldBe instanceOf<ContainmentCheck>()
+        (value1.right as NumericLiteral).number shouldBe 0.0
+        value2.operator shouldBe "=="
+        value2.left shouldBe instanceOf<ContainmentCheck>()
+        (value2.right as NumericLiteral).number shouldBe 0.0
     }
 })
 
