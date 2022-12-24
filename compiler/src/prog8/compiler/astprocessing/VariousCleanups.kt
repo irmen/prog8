@@ -62,10 +62,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
-        val nextAssign = assignment.nextSibling() as? Assignment
-        if(nextAssign!=null && nextAssign.target.isSameAs(assignment.target, program)) {
-            if(!nextAssign.isAugmentable && nextAssign.value isSameAs assignment.value && assignment.value !is IFunctionCall)    // don't remove function calls even when they're duplicates
-                return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+        // remove duplicated assignments, but not if it's a memory mapped IO register
+        val isIO = try {
+            assignment.target.isIOAddress(options.compTarget.machine)
+        } catch (_: FatalAstException) {
+            false
+        }
+        if(!isIO) {
+            val nextAssign = assignment.nextSibling() as? Assignment
+            if (nextAssign != null && nextAssign.target.isSameAs(assignment.target, program)) {
+                if (!nextAssign.isAugmentable && nextAssign.value isSameAs assignment.value && assignment.value !is IFunctionCall)    // don't remove function calls even when they're duplicates
+                    return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+            }
         }
 
         return noModifications

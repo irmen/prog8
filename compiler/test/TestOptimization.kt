@@ -15,6 +15,7 @@ import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.compiler.printProgram
 import prog8tests.helpers.*
 
@@ -735,5 +736,61 @@ class TestOptimization: FunSpec({
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 3
+    }
+
+    test("repeated assignments to IO register should remain") {
+        val srcX16="""
+main {
+    sub start() {
+        ubyte @shared xx
+        xx = 42
+        xx = 42  ; removed
+        xx = 42  ; removed
+        cx16.VERA_DATA0 = 0
+        cx16.VERA_DATA0 = 0
+        cx16.VERA_DATA0 = 0
+        @($9fff) = 0
+        @($9fff) = 0
+        @($9fff) = 0
+        return
+    }
+}"""
+        var result = compileText(Cx16Target(), true, srcX16, writeAssembly = true)!!
+        var statements = result.program.entrypoint.statements
+        statements.size shouldBe 9
+        (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
+        (statements[2] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
+        (statements[3] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
+        (statements[4] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
+        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
+        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
+        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
+
+        val srcC64="""
+main {
+    sub start() {
+        ubyte @shared xx
+        xx = 42
+        xx = 42  ;removed
+        xx = 42  ;removed
+        c64.EXTCOL = 0
+        c64.EXTCOL = 0
+        c64.EXTCOL = 0
+        @(53281) = 0
+        @(53281) = 0
+        @(53281) = 0
+        return
+    }
+}"""
+        result = compileText(C64Target(), true, srcC64, writeAssembly = true)!!
+        statements = result.program.entrypoint.statements
+        statements.size shouldBe 9
+        (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
+        (statements[2] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
+        (statements[3] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
+        (statements[4] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
+        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
+        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
+        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
     }
 })
