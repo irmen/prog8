@@ -178,12 +178,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BNZ -> InsBNZ(ins)
             Opcode.BEQ -> InsBEQ(ins)
             Opcode.BNE -> InsBNE(ins)
-            Opcode.BLT -> InsBLTU(ins)
-            Opcode.BLTS -> InsBLTS(ins)
             Opcode.BGT -> InsBGTU(ins)
             Opcode.BGTS -> InsBGTS(ins)
-            Opcode.BLE -> InsBLEU(ins)
-            Opcode.BLES -> InsBLES(ins)
             Opcode.BGE -> InsBGEU(ins)
             Opcode.BGES -> InsBGES(ins)
             Opcode.SEQ -> InsSEQ(ins)
@@ -676,22 +672,6 @@ class VirtualMachine(irProgram: IRProgram) {
             nextPc()
     }
 
-    private fun InsBLTU(i: IRInstruction) {
-        val (left: UInt, right: UInt) = getBranchOperandsU(i)
-        if(left<right)
-            branchTo(i)
-        else
-            nextPc()
-    }
-
-    private fun InsBLTS(i: IRInstruction) {
-        val (left: Int, right: Int) = getBranchOperands(i)
-        if(left<right)
-            branchTo(i)
-        else
-            nextPc()
-    }
-
     private fun InsBGTU(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left>right)
@@ -704,23 +684,6 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsBGTS(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left>right)
-            branchTo(i)
-        else
-            nextPc()
-    }
-
-    private fun InsBLEU(i: IRInstruction) {
-        val (left: UInt, right: UInt) = getBranchOperandsU(i)
-        if(left<=right)
-            branchTo(i)
-        else
-            nextPc()
-
-    }
-
-    private fun InsBLES(i: IRInstruction) {
-        val (left: Int, right: Int) = getBranchOperands(i)
-        if(left<=right)
             branchTo(i)
         else
             nextPc()

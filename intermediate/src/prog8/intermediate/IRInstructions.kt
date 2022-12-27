@@ -76,20 +76,17 @@ bz          reg1,             address   - branch to location if reg1 is zero
 bnz         reg1,             address   - branch to location if reg1 is not zero
 beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
 bne         reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
-blt         reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned)    TODO REMOVE
-blts        reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed)      TODO REMOVE
-ble         reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned)   TODO REMOVE
-bles        reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed)     TODO REMOVE
 bgt         reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
 bgts        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
 bge         reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
 bges        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
+( NOTE: there are no blt/ble instructions because these are equivalent to bgt/bge with the operands swapped around.)
 seq         reg1, reg2                  - set reg=1 if reg1 == reg2,  otherwise set reg1=0
 sne         reg1, reg2                  - set reg=1 if reg1 != reg2,  otherwise set reg1=0
-slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0        TODO REMOVE
-slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0          TODO REMOVE
-sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0       TODO REMOVE
-sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0         TODO REMOVE
+slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
+slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0
+sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
+sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
 sgt         reg1, reg2                  - set reg=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
 sgts        reg1, reg2                  - set reg=1 if reg1 > reg2 (signed),  otherwise set reg1=0
 sge         reg1, reg2                  - set reg=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
@@ -244,22 +241,18 @@ enum class Opcode {
     BNZ,
     BEQ,
     BNE,
-    BLT,        // TODO REMOVE
-    BLTS,       // TODO REMOVE
     BGT,
     BGTS,
-    BLE,        // TODO REMOVE
-    BLES,       // TODO REMOVE
     BGE,
     BGES,
     SEQ,
     SNE,
-    SLT,        // TODO REMOVE ?
-    SLTS,       // TODO REMOVE ?
+    SLT,
+    SLTS,
     SGT,
     SGTS,
-    SLE,        // TODO REMOVE ?
-    SLES,       // TODO REMOVE ?
+    SLE,
+    SLES,
     SGE,
     SGES,
 
@@ -379,12 +372,8 @@ val OpcodesThatBranch = setOf(
     Opcode.BNZ,
     Opcode.BEQ,
     Opcode.BNE,
-    Opcode.BLT,
-    Opcode.BLTS,
     Opcode.BGT,
     Opcode.BGTS,
-    Opcode.BLE,
-    Opcode.BLES,
     Opcode.BGE,
     Opcode.BGES
 )
@@ -419,12 +408,8 @@ val OpcodesWithMemoryAddressAsValue = setOf(
     Opcode.BNZ,
     Opcode.BEQ,
     Opcode.BNE,
-    Opcode.BLT,
-    Opcode.BLTS,
     Opcode.BGT,
     Opcode.BGTS,
-    Opcode.BLE,
-    Opcode.BLES,
     Opcode.BGE,
     Opcode.BGES,
     Opcode.INCM,
@@ -560,12 +545,8 @@ val instructionFormats = mutableMapOf(
     Opcode.BNZ        to InstructionFormat.from("BW,<r1,<v"),
     Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BNE        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BLT        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BLTS       to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGT        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGTS       to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BLE        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BLES       to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGE        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGES       to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2"),
@@ -734,8 +715,8 @@ data class IRInstruction(
         fpReg1direction = format.fpReg1
         fpReg2direction = format.fpReg2
 
-        if(opcode in setOf(Opcode.BEQ, Opcode.BNE, Opcode.BLT, Opcode.BLTS,
-                Opcode.BGT, Opcode.BGTS, Opcode.BLE, Opcode.BLES,
+        if(opcode in setOf(Opcode.BEQ, Opcode.BNE,
+                Opcode.BGT, Opcode.BGTS,
                 Opcode.BGE, Opcode.BGES,
                 Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
                 Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
