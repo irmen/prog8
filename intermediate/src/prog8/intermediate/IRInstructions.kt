@@ -76,20 +76,20 @@ bz          reg1,             address   - branch to location if reg1 is zero
 bnz         reg1,             address   - branch to location if reg1 is not zero
 beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
 bne         reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
-blt         reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned)
-blts        reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed)
-ble         reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned)
-bles        reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed)
+blt         reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned)    TODO REMOVE
+blts        reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed)      TODO REMOVE
+ble         reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned)   TODO REMOVE
+bles        reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed)     TODO REMOVE
 bgt         reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
 bgts        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
 bge         reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
 bges        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 seq         reg1, reg2                  - set reg=1 if reg1 == reg2,  otherwise set reg1=0
 sne         reg1, reg2                  - set reg=1 if reg1 != reg2,  otherwise set reg1=0
-slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
-slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0
-sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
-sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
+slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0        TODO REMOVE
+slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0          TODO REMOVE
+sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0       TODO REMOVE
+sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0         TODO REMOVE
 sgt         reg1, reg2                  - set reg=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
 sgts        reg1, reg2                  - set reg=1 if reg1 > reg2 (signed),  otherwise set reg1=0
 sge         reg1, reg2                  - set reg=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
@@ -244,22 +244,22 @@ enum class Opcode {
     BNZ,
     BEQ,
     BNE,
-    BLT,
-    BLTS,
+    BLT,        // TODO REMOVE
+    BLTS,       // TODO REMOVE
     BGT,
     BGTS,
-    BLE,
-    BLES,
+    BLE,        // TODO REMOVE
+    BLES,       // TODO REMOVE
     BGE,
     BGES,
     SEQ,
     SNE,
-    SLT,
-    SLTS,
+    SLT,        // TODO REMOVE ?
+    SLTS,       // TODO REMOVE ?
     SGT,
     SGTS,
-    SLE,
-    SLES,
+    SLE,        // TODO REMOVE ?
+    SLES,       // TODO REMOVE ?
     SGE,
     SGES,
 

@@ -542,12 +542,19 @@ class IRCodeGen(
 
         result += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
         result += expressionEval.translateExpression(iterable.from, indexReg, -1)
+
+        val labelAfterFor = createLabelName()
+        val greaterOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGTS else Opcode.BGT
+        addInstr(result, IRInstruction(greaterOpcode, loopvarDtIr, indexReg, endvalueReg, labelSymbol=labelAfterFor), null)
+
         addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol), null)
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
         addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol), null)
         val branchOpcode = if(loopvarDt in SignedDatatypes) Opcode.BLES else Opcode.BLE
         addInstr(result, IRInstruction(branchOpcode, loopvarDtIr, reg1=indexReg, reg2=endvalueReg, labelSymbol=loopLabel), null)
+
+        result += IRCodeChunk(labelAfterFor, null)
         return result
     }
 

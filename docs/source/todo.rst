@@ -3,6 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- remove redundant branch opcodes in IR: BLT(S), BLE(S). Replace by swapped BGT(S), BGE(S).
 - make sure bool value is always 0 or 1 (all casts should convert), then:
     - rewrite bool=bool^1 into bool=not bool
     - should solve: bool bb = not bb -> larger code than bool bb ^= 1
@@ -33,10 +34,10 @@ Compiler:
 - ir peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - vm: somehow be able to load a label address as value? (VmProgramLoader)
-- see if we can let for loops skip the loop if end<start, like other programming languages. Without adding a lot of code size/duplicating the loop condition.
-  this is documented behavior to now loop around but it's too easy to forget about!
-  Lot of work because of so many special cases in ForLoopsAsmgen.....
-  How is it for the vm target? -> just 2 special cases in CodeGen.
+- 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
+  It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
+  Lot of work because of so many special cases in ForLoopsAsmgen.....  (vm codegen already behaves like this)
+- ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
 - createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
   but probably better to rewrite the 6502 codegen on top of the new Ast.
 - generate WASM to eventually run prog8 on a browser canvas?
