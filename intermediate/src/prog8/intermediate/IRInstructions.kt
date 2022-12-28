@@ -74,6 +74,10 @@ bstvc                         address   - branch to location if Status bit Overf
 bstvs                         address   - branch to location if Status bit Overflow is not set
 bz          reg1,             address   - branch to location if reg1 is zero
 bnz         reg1,             address   - branch to location if reg1 is not zero
+bgzs        reg1,             address   - branch to location if reg1 > 0 (signed)
+bgezs       reg1,             address   - branch to location if reg1 >= 0 (signed)
+blzs        reg1,             address   - branch to location if reg1 < 0 (signed)
+blezs       reg1,             address   - branch to location if reg1 <= 0 (signed)
 beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
 bne         reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
 bgt         reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
@@ -239,6 +243,10 @@ enum class Opcode {
     BSTVS,
     BZ,
     BNZ,
+    BGZS,
+    BGEZS,
+    BLZS,
+    BLEZS,
     BEQ,
     BNE,
     BGT,
@@ -370,6 +378,10 @@ val OpcodesThatBranch = setOf(
     Opcode.BSTVS,
     Opcode.BZ,
     Opcode.BNZ,
+    Opcode.BGZS,
+    Opcode.BGEZS,
+    Opcode.BLZS,
+    Opcode.BLEZS,
     Opcode.BEQ,
     Opcode.BNE,
     Opcode.BGT,
@@ -406,6 +418,10 @@ val OpcodesWithMemoryAddressAsValue = setOf(
     Opcode.BSTVS,
     Opcode.BZ,
     Opcode.BNZ,
+    Opcode.BGZS,
+    Opcode.BGEZS,
+    Opcode.BLZS,
+    Opcode.BLEZS,
     Opcode.BEQ,
     Opcode.BNE,
     Opcode.BGT,
@@ -543,6 +559,10 @@ val instructionFormats = mutableMapOf(
     Opcode.BSTVS      to InstructionFormat.from("N,<v"),
     Opcode.BZ         to InstructionFormat.from("BW,<r1,<v"),
     Opcode.BNZ        to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.BGZS       to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.BGEZS      to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.BLZS       to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.BLEZS      to InstructionFormat.from("BW,<r1,<v"),
     Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BNE        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGT        to InstructionFormat.from("BW,<r1,<r2,<v"),

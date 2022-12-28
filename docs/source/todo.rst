@@ -3,7 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- try to optimize IR for branching on signed <0, >0, <=0, >=0 by using new branch instructions like we have BNZ.  To avoid explicit compares. See translateZeroComparison()
 - make sure bool value is always 0 or 1 (all casts should convert), then:
     - rewrite bool=bool^1 into bool=not bool
     - should solve: bool bb = not bb -> larger code than bool bb ^= 1

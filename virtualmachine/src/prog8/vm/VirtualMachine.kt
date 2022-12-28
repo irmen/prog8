@@ -176,6 +176,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BSTVC, Opcode.BSTVS -> TODO("overflow status flag not yet supported in VM (BSTVC,BSTVS)")
             Opcode.BZ -> InsBZ(ins)
             Opcode.BNZ -> InsBNZ(ins)
+            Opcode.BGZS -> InsBGZS(ins)
+            Opcode.BGEZS -> InsBGEZS(ins)
+            Opcode.BLZS -> InsBLZS(ins)
+            Opcode.BLEZS -> InsBLEZS(ins)
             Opcode.BEQ -> InsBEQ(ins)
             Opcode.BNE -> InsBNE(ins)
             Opcode.BGT -> InsBGTU(ins)
@@ -648,6 +652,78 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             IRDataType.WORD -> {
                 if(registers.getUW(i.reg1!!)!=0.toUShort())
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+    }
+
+    private fun InsBGZS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                if(registers.getSB(i.reg1!!)>0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.WORD -> {
+                if(registers.getSW(i.reg1!!)>0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+    }
+
+    private fun InsBGEZS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                if(registers.getSB(i.reg1!!)>=0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.WORD -> {
+                if(registers.getSW(i.reg1!!)>=0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+    }
+
+    private fun InsBLZS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                if(registers.getSB(i.reg1!!)<0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.WORD -> {
+                if(registers.getSW(i.reg1!!)<0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+    }
+
+    private fun InsBLEZS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                if(registers.getSB(i.reg1!!)<=0)
+                    branchTo(i)
+                else
+                    nextPc()
+            }
+            IRDataType.WORD -> {
+                if(registers.getSW(i.reg1!!)<=0)
                     branchTo(i)
                 else
                     nextPc()

@@ -1058,19 +1058,13 @@ class IRCodeGen(
             }
 
             return when (ifElse.condition.operator) {
-                "==" -> {
-                    // if X==0 ...   so we just branch on left expr is Not-zero.
-                    equalOrNotEqualZero(Opcode.BNZ)
-                }
-                "!=" -> {
-                    // if X!=0 ...   so we just branch on left expr is Zero.
-                    equalOrNotEqualZero(Opcode.BZ)
-                }
-                else -> {
-                    // another comparison against 0, just use regular codegen for this.
-                    // TODO optimize this
-                    translateNonZeroComparison()
-                }
+                "==" -> equalOrNotEqualZero(Opcode.BNZ)
+                "!=" -> equalOrNotEqualZero(Opcode.BZ)
+                "<" -> if(signed) equalOrNotEqualZero(Opcode.BGEZS) else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
+                ">" -> if(signed) equalOrNotEqualZero(Opcode.BLEZS) else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
+                "<=" -> if(signed) equalOrNotEqualZero(Opcode.BGZS) else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
+                ">=" -> if(signed) equalOrNotEqualZero(Opcode.BLZS) else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
+                else -> throw AssemblyError("weird operator")
             }
         }
 
