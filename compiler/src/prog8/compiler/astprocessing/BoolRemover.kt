@@ -2,6 +2,7 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.SubroutineParameter
@@ -14,7 +15,8 @@ internal class BoolRemover(val program: Program) : AstWalker() {
 
     override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         if(typecast.type == DataType.BOOL) {
-            val notZero = BinaryExpression(typecast.expression, "!=", NumericLiteral(DataType.UBYTE, 0.0, typecast.position), typecast.position)
+            val valueDt = typecast.expression.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+            val notZero = BinaryExpression(typecast.expression, "!=", NumericLiteral(valueDt, 0.0, typecast.position), typecast.position)
             return listOf(IAstModification.ReplaceNode(typecast, notZero, parent))
         }
         return noModifications
