@@ -85,16 +85,18 @@ bgts        reg1, reg2,       address   - jump to location in program given by l
 bge         reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
 bges        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 ( NOTE: there are no blt/ble instructions because these are equivalent to bgt/bge with the operands swapped around.)
-seq         reg1, reg2                  - set reg=1 if reg1 == reg2,  otherwise set reg1=0
-sne         reg1, reg2                  - set reg=1 if reg1 != reg2,  otherwise set reg1=0
-slt         reg1, reg2                  - set reg=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
-slts        reg1, reg2                  - set reg=1 if reg1 < reg2 (signed),  otherwise set reg1=0
-sle         reg1, reg2                  - set reg=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
-sles        reg1, reg2                  - set reg=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
-sgt         reg1, reg2                  - set reg=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
-sgts        reg1, reg2                  - set reg=1 if reg1 > reg2 (signed),  otherwise set reg1=0
-sge         reg1, reg2                  - set reg=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
-sges        reg1, reg2                  - set reg=1 if reg1 >= reg2 (signed),  otherwise set reg1=0
+sz          reg1, reg2                  - set reg1=1 if reg2==0,  otherwise set reg1=0
+snz         reg1, reg2                  - set reg1=1 if reg2!=0,  otherwise set reg1=0
+seq         reg1, reg2                  - set reg1=1 if reg1 == reg2,  otherwise set reg1=0
+sne         reg1, reg2                  - set reg1=1 if reg1 != reg2,  otherwise set reg1=0
+slt         reg1, reg2                  - set reg1=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
+slts        reg1, reg2                  - set reg1=1 if reg1 < reg2 (signed),  otherwise set reg1=0
+sle         reg1, reg2                  - set reg1=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
+sles        reg1, reg2                  - set reg1=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
+sgt         reg1, reg2                  - set reg1=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
+sgts        reg1, reg2                  - set reg1=1 if reg1 > reg2 (signed),  otherwise set reg1=0
+sge         reg1, reg2                  - set reg1=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
+sges        reg1, reg2                  - set reg1=1 if reg1 >= reg2 (signed),  otherwise set reg1=0
 
 
 ARITHMETIC
@@ -253,6 +255,8 @@ enum class Opcode {
     BGTS,
     BGE,
     BGES,
+    SZ,
+    SNZ,
     SEQ,
     SNE,
     SLT,
@@ -569,6 +573,8 @@ val instructionFormats = mutableMapOf(
     Opcode.BGTS       to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGE        to InstructionFormat.from("BW,<r1,<r2,<v"),
     Opcode.BGES       to InstructionFormat.from("BW,<r1,<r2,<v"),
+    Opcode.SZ         to InstructionFormat.from("BW,>r1,<r2"),
+    Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.SNE        to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.SLT        to InstructionFormat.from("BW,<>r1,<r2"),

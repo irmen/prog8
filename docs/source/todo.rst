@@ -6,7 +6,6 @@ For next release
 - make sure bool value is always 0 or 1 (all casts should convert), then:
     - rewrite bool=bool^1 into bool=not bool
     - should solve: bool bb = not bb -> larger code than bool bb ^= 1
-    - should solve: bool xx = ~xx -> larger code than xx ^= 1
 
 
 ...

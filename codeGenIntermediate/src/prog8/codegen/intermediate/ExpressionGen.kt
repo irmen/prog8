@@ -72,27 +72,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 result
             }
-            is PtTypeCast -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
-            is PtPrefix -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
-            is PtArrayIndexer -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
-            is PtBinaryExpression -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
-            is PtBuiltinFunctionCall -> {
-                codeGen.translateBuiltinFunc(expr, resultRegister)
-            }
-            is PtFunctionCall -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
-            is PtContainmentCheck -> {
-                translate(expr, resultRegister, resultFpRegister)
-            }
+            is PtTypeCast -> translate(expr, resultRegister, resultFpRegister)
+            is PtPrefix -> translate(expr, resultRegister, resultFpRegister)
+            is PtArrayIndexer -> translate(expr, resultRegister, resultFpRegister)
+            is PtBinaryExpression -> translate(expr, resultRegister, resultFpRegister)
+            is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr, resultRegister)
+            is PtFunctionCall -> translate(expr, resultRegister, resultFpRegister)
+            is PtContainmentCheck -> translate(expr, resultRegister, resultFpRegister)
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
@@ -430,11 +416,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     it += IRInstruction(Opcode.AND, vmDt, reg1 = resultRegister, value = 1)
                 }
             } else {
-                val rightResultReg = codeGen.registers.nextFree()
-                result += translateExpression(binExpr.left, resultRegister, -1)
-                result += translateExpression(binExpr.right, rightResultReg, -1)
-                val opcode = if (notEquals) Opcode.SNE else Opcode.SEQ
-                addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                if(constValue(binExpr.right)==0.0) {
+                    result += translateExpression(binExpr.left, resultRegister, -1)
+                    val opcode = if (notEquals) Opcode.SNZ else Opcode.SZ
+                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = resultRegister), null)
+                } else {
+                    val rightResultReg = codeGen.registers.nextFree()
+                    result += translateExpression(binExpr.left, resultRegister, -1)
+                    result += translateExpression(binExpr.right, rightResultReg, -1)
+                    val opcode = if (notEquals) Opcode.SNE else Opcode.SEQ
+                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                }
             }
         }
         return result

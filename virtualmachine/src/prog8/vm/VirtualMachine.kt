@@ -186,6 +186,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BGTS -> InsBGTS(ins)
             Opcode.BGE -> InsBGEU(ins)
             Opcode.BGES -> InsBGES(ins)
+            Opcode.SZ -> InsSZ(ins)
+            Opcode.SNZ -> InsSNZ(ins)
             Opcode.SEQ -> InsSEQ(ins)
             Opcode.SNE -> InsSNE(ins)
             Opcode.SLT -> InsSLT(ins)
@@ -780,6 +782,20 @@ class VirtualMachine(irProgram: IRProgram) {
             branchTo(i)
         else
             nextPc()
+    }
+
+    private fun InsSZ(i: IRInstruction) {
+        val (_: Int, right: Int) = getSetOnConditionOperands(i)
+        val value = if(right==0) 1 else 0
+        setResultReg(i.reg1!!, value, i.type!!)
+        nextPc()
+    }
+
+    private fun InsSNZ(i: IRInstruction) {
+        val (_: Int, right: Int) = getSetOnConditionOperands(i)
+        val value = if(right!=0) 1 else 0
+        setResultReg(i.reg1!!, value, i.type!!)
+        nextPc()
     }
 
     private fun InsSEQ(i: IRInstruction) {

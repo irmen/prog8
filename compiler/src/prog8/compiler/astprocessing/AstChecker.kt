@@ -835,6 +835,8 @@ internal class AstChecker(private val program: Program,
         else if(expr.operator == "~") {
             if(dt !in IntegerDatatypes)
                 errors.err("can only use bitwise invert on integer types", expr.position)
+            if(dt==DataType.BOOL)
+                errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
         }
         super.visit(expr)
     }
