@@ -231,6 +231,18 @@ class ExpressionSimplifier(private val program: Program,
             }
         }
 
+        if(leftDt==DataType.BOOL) {
+            // optimize boolean constant comparisons
+//            if(expr.operator=="==" && rightVal?.number==0.0)
+//                return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+//            if(expr.operator=="!=" && rightVal?.number==1.0)
+//                return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+            if(expr.operator=="==" && rightVal?.number==1.0)
+                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+            if(expr.operator=="!=" && rightVal?.number==0.0)
+                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+        }
+
         // simplify when a term is constant and directly determines the outcome
         val constFalse = NumericLiteral.fromBoolean(false, expr.position)
         val newExpr: Expression? = when (expr.operator) {

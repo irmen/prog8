@@ -40,6 +40,13 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 }
             }
         }
+
+        if(expr.operator=="^" && expr.left.inferType(program) istype DataType.BOOL && expr.right.constValue(program)?.number == 1.0) {
+            // boolean ^ 1 --> not boolean
+            val notExpr = PrefixExpression("not", expr.left, expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+        }
+
         return noModifications
     }
 

@@ -3,12 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- make sure bool value is always 0 or 1 (all casts should convert, or actually, bool!=0 comparison should return 0 or 1), then:
-    - ast rewrite bool=bool^1 into bool=not bool
-    - should solve: bool bb = not bb -> larger code than bool bb ^= 1
-
-- check that bool==0 / bool==1 / bool!=0 / bool != 1  are optimized away
-
 ...
 
 

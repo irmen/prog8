@@ -368,16 +368,16 @@ main  {
         txt.print("const inv 255: ")
         txt.print_ub(~ 0)
         txt.nl()
-        bvalue = 129
-        txt.print("bitwise inv 126: ")
-        bvalue = ~ bvalue
-        txt.print_ub(bvalue)
-        txt.nl()
-        bvalue = 0
-        txt.print("bitwise inv 255: ")
-        bvalue = ~ bvalue
-        txt.print_ub(bvalue)
-        txt.nl()
+        ; bvalue = 129
+        ; txt.print("bitwise inv 126: ")
+        ; bvalue = ~ bvalue
+        ; txt.print_ub(bvalue)
+        ; txt.nl()
+        ; bvalue = 0
+        ; txt.print("bitwise inv 255: ")
+        ; bvalue = ~ bvalue
+        ; txt.print_ub(bvalue)
+        ; txt.nl()
 
         txt.print("bitwise or  14: ")
         txt.print_ub(ub1 | ub2 | ub3 | ub4)
@@ -397,12 +397,12 @@ main  {
         txt.print("bitwise xor  6: ")
         txt.print_ub(ub1 ^ ub2 ^ ub3 ^ 8)
         txt.nl()
-        txt.print("bitwise not 247: ")
-        txt.print_ub(~ub3)
-        txt.nl()
-        txt.print("bitwise not 255: ")
-        txt.print_ub(~ub4)
-        txt.nl()
+        ;txt.print("bitwise not 247: ")
+        ;txt.print_ub(~ub3)
+        ;txt.nl()
+        ;txt.print("bitwise not 255: ")
+        ;txt.print_ub(~ub4)
+        ;txt.nl()
 
         txt.print("not 0: ")
         bvalue = 3 * (ub4 | not (ub3 | ub3 | ub3))

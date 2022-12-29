@@ -294,6 +294,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         "+" -> {}
                         "-" -> augmentableAsmGen.inplaceNegate(assign, true)
                         "~" -> augmentableAsmGen.inplaceInvert(assign)
+                        "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
                         else -> throw AssemblyError("invalid prefix operator")
                     }
                 } else {
