@@ -30,41 +30,41 @@ class TestSymbolTable: FunSpec({
 
     test("symboltable global lookups") {
         val st = makeSt()
-        st.lookup("undefined") shouldBe null
+        st.lookupUnqualified("undefined") shouldBe null
         st.lookup(listOf("undefined")) shouldBe null
-        var default = st.lookupOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        var default = st.lookupUnqualifiedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
-        default = st.lookupOrElse(listOf("undefined")) { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        default = st.lookupUnqualifiedOrElse(listOf("undefined")) { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
 
-        val msbFunc = st.lookupOrElse("msb") { fail("msb must be found") }
+        val msbFunc = st.lookupUnqualifiedOrElse("msb") { fail("msb must be found") }
         msbFunc.type shouldBe StNodeType.BUILTINFUNC
 
-        val variable = st.lookupOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
+        val variable = st.lookupUnqualifiedOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
         variable.type shouldBe StNodeType.STATICVAR
     }
 
     test("symboltable nested lookups") {
         val st = makeSt()
 
-        val sub1 = st.lookupOrElse(listOf("block1", "sub1")) { fail("should find sub1") }
+        val sub1 = st.lookupUnqualifiedOrElse(listOf("block1", "sub1")) { fail("should find sub1") }
         sub1.name shouldBe "sub1"
         sub1.scopedName shouldBe listOf("block1", "sub1")
         sub1.type shouldBe StNodeType.SUBROUTINE
         sub1.children.size shouldBe 2
 
-        val v1 = sub1.lookupOrElse("v1") { fail("v1 must be found") } as StStaticVariable
+        val v1 = sub1.lookupUnqualifiedOrElse("v1") { fail("v1 must be found") } as StStaticVariable
         v1.type shouldBe StNodeType.STATICVAR
         v1.name shouldBe "v1"
         v1.dt shouldBe DataType.BYTE
 
-        val blockc = sub1.lookupOrElse("blockc") { fail("blockc") } as StConstant
+        val blockc = sub1.lookupUnqualifiedOrElse("blockc") { fail("blockc") } as StConstant
         blockc.type shouldBe StNodeType.CONSTANT
         blockc.value shouldBe 999.0
 
-        val subsub = st.lookupOrElse(listOf("block2", "sub2", "subsub")) { fail("should find subsub") }
-        subsub.lookup("blockc") shouldBe null
-        subsub.lookup("label") shouldNotBe null
+        val subsub = st.lookupUnqualifiedOrElse(listOf("block2", "sub2", "subsub")) { fail("should find subsub") }
+        subsub.lookupUnqualified("blockc") shouldBe null
+        subsub.lookupUnqualified("label") shouldNotBe null
     }
 })
 

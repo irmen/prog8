@@ -60,7 +60,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcAny(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val array = codeGen.symbolTable.flat.getValue(arrayName.name.split('.')) as StStaticVariable
         val syscall =
             when (array.dt) {
                 DataType.ARRAY_UB,
@@ -83,7 +83,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcAll(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val array = codeGen.symbolTable.flat.getValue(arrayName.name.split('.')) as StStaticVariable
         val syscall =
             when(array.dt) {
                 DataType.ARRAY_UB,
@@ -204,7 +204,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcReverse(call: PtBuiltinFunctionCall): IRCodeChunks {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val array = codeGen.symbolTable.flat.getValue(arrayName.name.split('.')) as StStaticVariable
         val syscall =
             when(array.dt) {
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
@@ -223,7 +223,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcSort(call: PtBuiltinFunctionCall): IRCodeChunks {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.flat.getValue(arrayName.targetName) as StStaticVariable
+        val array = codeGen.symbolTable.flat.getValue(arrayName.name.split('.')) as StStaticVariable
         val syscall =
             when(array.dt) {
                 DataType.ARRAY_UB -> IMSyscall.SORT_UBYTE

@@ -1,6 +1,8 @@
 package prog8.code.ast
 
-import prog8.code.core.*
+import prog8.code.core.IMemSizer
+import prog8.code.core.IStringEncoding
+import prog8.code.core.Position
 import java.nio.file.Path
 
 // New simplified AST for the code generator.
@@ -43,14 +45,14 @@ class PtNodeGroup : PtNode(Position.DUMMY) {
 
 
 sealed class PtNamedNode(val name: String, position: Position): PtNode(position) {
-    val scopedName: List<String> by lazy {
+    val scopedName: String by lazy {
         var namedParent: PtNode = this.parent
         if(namedParent is PtProgram)
-            listOf(name)
+            name
         else {
             while (namedParent !is PtNamedNode)
                 namedParent = namedParent.parent
-            namedParent.scopedName + name
+            namedParent.scopedName + "." + name
         }
     }
 }

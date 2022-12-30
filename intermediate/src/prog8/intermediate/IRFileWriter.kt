@@ -169,7 +169,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             if(it.number!=null)
                                 it.number!!.toInt().toHex()
                             else
-                                "@${it.addressOf!!.joinToString(".")}"
+                                "@${it.addressOfSymbol}"
                         }
                     } else {
                         ""     // array will be zero'd out at program start

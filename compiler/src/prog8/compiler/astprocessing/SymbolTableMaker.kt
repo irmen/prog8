@@ -104,8 +104,8 @@ internal class SymbolTableMaker: IAstVisitor {
             return null
         return arrayLit.value.map {
             when(it){
-                is AddressOf -> StArrayElement(null, it.identifier.nameInSource)
-                is IdentifierReference -> StArrayElement(null, it.nameInSource)
+                is AddressOf -> StArrayElement(null, it.identifier.nameInSource.joinToString("."))
+                is IdentifierReference -> StArrayElement(null, it.nameInSource.joinToString("."))
                 is NumericLiteral -> StArrayElement(it.number, null)
                 else -> throw FatalAstException("weird element dt in array literal")
             }

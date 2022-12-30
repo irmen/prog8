@@ -170,7 +170,7 @@ class IRCodeGen(
         flattenRecurse(program)
 
         renameLabels.forEach { (parent, label) ->
-            val renamedLabel = PtLabel(label.scopedName.joinToString("."), label.position)
+            val renamedLabel = PtLabel(label.scopedName, label.position)
             val idx = parent.children.indexOf(label)
             parent.children.removeAt(idx)
             parent.children.add(idx, renamedLabel)
@@ -188,7 +188,7 @@ class IRCodeGen(
         val renameAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
 
         fun flattenNestedAsmSub(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
-            val flattened = PtAsmSub(asmsub.scopedName.joinToString("."),
+            val flattened = PtAsmSub(asmsub.scopedName,
                 asmsub.address,
                 asmsub.clobbers,
                 asmsub.parameters,
@@ -204,7 +204,7 @@ class IRCodeGen(
         fun flattenNestedSub(block: PtBlock, parentSub: PtSub, sub: PtSub) {
             sub.children.filterIsInstance<PtSub>().forEach { subsub->flattenNestedSub(block, sub, subsub) }
             sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsmSub(block, sub, asmsubsub) }
-            val flattened = PtSub(sub.scopedName.joinToString("."),
+            val flattened = PtSub(sub.scopedName,
                 sub.parameters,
                 sub.returntype,
                 sub.inline,
@@ -232,13 +232,13 @@ class IRCodeGen(
         flattenedSubs.forEach { (block, sub) -> block.add(sub) }
         flattenedAsmSubs.forEach { (block, asmsub) -> block.add(asmsub) }
         renameSubs.forEach { (parent, sub) ->
-            val renamedSub = PtSub(sub.scopedName.joinToString("."), sub.parameters, sub.returntype, sub.inline, sub.position)
+            val renamedSub = PtSub(sub.scopedName, sub.parameters, sub.returntype, sub.inline, sub.position)
             sub.children.forEach { renamedSub.add(it) }
             val subindex = parent.children.indexOf(sub)
             parent.children[subindex] = renamedSub      // keep the order of nodes the same
         }
         renameAsmSubs.forEach { (parent, sub) ->
-            val renamedSub = PtAsmSub(sub.scopedName.joinToString("."),
+            val renamedSub = PtAsmSub(sub.scopedName,
                 sub.address,
                 sub.clobbers,
                 sub.parameters,
@@ -338,7 +338,7 @@ class IRCodeGen(
                 }
                 addInstr(result, branchIns, null)
             } else {
-                val label = if(goto.generatedLabel!=null) goto.generatedLabel else goto.identifier!!.targetName.joinToString(".")
+                val label = if(goto.generatedLabel!=null) goto.generatedLabel else goto.identifier!!.name
                 val branchIns = when(branch.condition) {
                     BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
                     BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
@@ -454,7 +454,7 @@ class IRCodeGen(
     }
 
     private fun translate(forLoop: PtForLoop): IRCodeChunks {
-        val loopvar = symbolTable.lookup(forLoop.variable.targetName)!!
+        val loopvar = symbolTable.lookup(forLoop.variable.name.split('.'))!!
         val iterable = forLoop.iterable
         val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
@@ -465,8 +465,7 @@ class IRCodeGen(
                     result += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
-                val symbol = iterable.targetName.joinToString(".")
-                val iterableVar = symbolTable.lookup(iterable.targetName) as StStaticVariable
+                val iterableVar = symbolTable.lookup(iterable.name.split('.')) as StStaticVariable
                 val loopvarSymbol = loopvar.scopedName.joinToString(".")
                 val indexReg = registers.nextFree()
                 val tmpReg = registers.nextFree()
@@ -476,7 +475,7 @@ class IRCodeGen(
                     // iterate over a zero-terminated string
                     addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0), null)
                     val chunk = IRCodeChunk(loopLabel, null)
-                    chunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = symbol)
+                    chunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = iterable.name)
                     chunk += IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=tmpReg, labelSymbol = endLabel)
                     chunk += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=tmpReg, labelSymbol = loopvarSymbol)
                     result += chunk
@@ -498,7 +497,7 @@ class IRCodeGen(
                         chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, value=lengthBytes)
                         result += chunk
                         val chunk2 = IRCodeChunk(loopLabel, null)
-                        chunk2 += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
+                        chunk2 += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
                         chunk2 += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         result += chunk2
                         result += translateNode(forLoop.statements)
@@ -507,7 +506,7 @@ class IRCodeGen(
                     } else if(lengthBytes==256) {
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, value=0), null)
                         val chunk = IRCodeChunk(loopLabel, null)
-                        chunk += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=symbol)
+                        chunk += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
                         chunk += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         result += chunk
                         result += translateNode(forLoop.statements)
@@ -962,7 +961,7 @@ class IRCodeGen(
             else if(goto.generatedLabel!=null)
                 addInstr(result, IRInstruction(opcode, irDt, reg1=firstReg, reg2=secondReg, labelSymbol = goto.generatedLabel), null)
             else
-                addInstr(result, IRInstruction(opcode, irDt, reg1=firstReg, reg2=secondReg, labelSymbol = goto.identifier!!.targetName.joinToString(".")), null)
+                addInstr(result, IRInstruction(opcode, irDt, reg1=firstReg, reg2=secondReg, labelSymbol = goto.identifier!!.name), null)
             return result
         }
 
@@ -1094,7 +1093,7 @@ class IRCodeGen(
         val irDt = irType(postIncrDecr.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
         if(ident!=null) {
-            addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.targetName.joinToString(".")), null)
+            addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.name), null)
         } else if(memory!=null) {
             if(memory.address is PtNumber) {
                 val address = (memory.address as PtNumber).number.toInt()
@@ -1110,7 +1109,7 @@ class IRCodeGen(
                 result += chunk
             }
         } else if (array!=null) {
-            val variable = array.variable.targetName.joinToString(".")
+            val variable = array.variable.name
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
             if(fixedIndex!=null) {
@@ -1166,7 +1165,7 @@ class IRCodeGen(
             if (jump.generatedLabel != null)
                 IRInstruction(Opcode.JUMP, labelSymbol = jump.generatedLabel!!)
             else if (jump.identifier != null)
-                IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.targetName.joinToString("."))
+                IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
             else
                 throw AssemblyError("weird jump")
         }
@@ -1248,9 +1247,9 @@ class IRCodeGen(
 
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
-            val flattenedName = (it.definingSub()!!.scopedName + it.name)
-            val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
-            IRSubroutine.IRParam(flattenedName.joinToString("."), orig.dt)
+            val flattenedName = it.definingSub()!!.scopedName + "." + it.name
+            val orig = symbolTable.flat.getValue(flattenedName.split('.')) as StStaticVariable
+            IRSubroutine.IRParam(flattenedName, orig.dt)
         }
 
     private fun translate(alignment: PtBlock.BlockAlignment): IRBlock.BlockAlignment {

@@ -24,7 +24,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val array = assignment.target.array
 
         return if(ident!=null) {
-            assignSelfInMemory(ident.targetName.joinToString("."), assignment.value, assignment)
+            assignSelfInMemory(ident.name, assignment.value, assignment)
         } else if(memory != null) {
             if(memory.address is PtNumber)
                 assignSelfInMemoryKnownAddress((memory.address as PtNumber).number.toInt(), assignment.value, assignment)
@@ -186,20 +186,19 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
         }
         if(ident!=null) {
-            val symbol = ident.targetName.joinToString(".")
             val instruction = if(zero) {
-                IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = symbol)
+                IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = ident.name)
             } else {
                 if (vmDt == IRDataType.FLOAT)
-                    IRInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = symbol)
+                    IRInstruction(Opcode.STOREM, vmDt, fpReg1 = resultFpRegister, labelSymbol = ident.name)
                 else
-                    IRInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    IRInstruction(Opcode.STOREM, vmDt, reg1 = resultRegister, labelSymbol = ident.name)
             }
             result += IRCodeChunk(null, null).also { it += instruction }
             return result
         }
         else if(array!=null) {
-            val variable = array.variable.targetName.joinToString(".")
+            val variable = array.variable.name
             val itemsize = codeGen.program.memsizer.memorySize(array.type)
 
             if(array.variable.type==DataType.UWORD) {

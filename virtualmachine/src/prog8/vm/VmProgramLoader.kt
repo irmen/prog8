@@ -284,10 +284,10 @@ class VmProgramLoader {
                         }
                         DataType.ARRAY_UW -> {
                             for(elt in it) {
-                                if(elt.addressOf!=null) {
-                                    val name = elt.addressOf!!.joinToString(".")
+                                if(elt.addressOfSymbol!=null) {
+                                    val name = elt.addressOfSymbol!!
                                     val symbolAddress = symbolAddresses[name]
-                                        ?: throw IRParseException("vm cannot yet load a label address as a value: ${name}") // TODO
+                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
                                     memory.setUW(addr, symbolAddress.toUShort())
                                 } else {
                                     memory.setUW(addr, elt.number!!.toInt().toUShort())

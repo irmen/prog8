@@ -66,7 +66,7 @@ class PtAssignment(position: Position) : PtNode(position) {
                 }
                 false
             }
-            is PtIdentifier -> target is PtIdentifier && target.type==source.type && target.targetName==source.targetName
+            is PtIdentifier -> target is PtIdentifier && target.type==source.type && target.name==source.name
             is PtMachineRegister -> target is PtMachineRegister && target.register==source.register
             is PtMemoryByte -> target is PtMemoryByte && target.address isSameAs source.address
             is PtNumber -> target is PtNumber && target.type == source.type && target.number==source.number
@@ -74,7 +74,7 @@ class PtAssignment(position: Position) : PtNode(position) {
             is PtPrefix -> {
                 (target is PtPrefix && target.operator==source.operator && target.value isSameAs source.value)
                         ||
-                (target is PtIdentifier && (source.value as? PtIdentifier)?.targetName==target.targetName)
+                (target is PtIdentifier && (source.value as? PtIdentifier)?.name==target.name)
             }
             is PtTypeCast -> target is PtTypeCast && target.type==source.type && target.value isSameAs source.value
             is PtBinaryExpression ->

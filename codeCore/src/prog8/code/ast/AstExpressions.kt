@@ -33,7 +33,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
             is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
-            is PtIdentifier -> other is PtIdentifier && other.type==type && other.targetName==targetName
+            is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
             is PtMemoryByte -> other is PtMemoryByte && other.address isSameAs address
             is PtNumber -> other is PtNumber && other.type==type && other.number==number
@@ -108,7 +108,7 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, posit
 }
 
 
-class PtFunctionCall(val functionName: List<String>,
+class PtFunctionCall(val name: String,
                      val void: Boolean,
                      type: DataType,
                      position: Position) : PtExpression(type, position) {
@@ -120,14 +120,14 @@ class PtFunctionCall(val functionName: List<String>,
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
     override fun printProperties() {
-        print("${functionName.joinToString(".")} void=$void")
+        print("$name void=$void")
     }
 }
 
 
-class PtIdentifier(val ref: List<String>, val targetName: List<String>, type: DataType, position: Position) : PtExpression(type, position) {
+class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {
     override fun printProperties() {
-        print("$ref --> $targetName  $type")
+        print("$name  $type")
     }
 }
 

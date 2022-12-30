@@ -111,19 +111,19 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
         return target
     }
 
-    private fun targetOf(identifier: IdentifierReference): Pair<List<String>, DataType> {
+    private fun targetOf(identifier: IdentifierReference): Pair<String, DataType> {
         val target=identifier.targetStatement(program)!! as INamedStatement
-        val targetname = if(target.name in program.builtinFunctions.names)
-            listOf("<builtin>", target.name)
+        val targetname: String = if(target.name in program.builtinFunctions.names)
+            "<builtin>.${target.name}"
         else
-            target.scopedName
+            target.scopedName.joinToString(".")
         val type = identifier.inferType(program).getOr(DataType.UNDEFINED)
         return Pair(targetname, type)
     }
 
     private fun transform(identifier: IdentifierReference): PtIdentifier {
         val (target, type) = targetOf(identifier)
-        return PtIdentifier(identifier.nameInSource, target, type, identifier.position)
+        return PtIdentifier(target, type, identifier.position)
     }
 
     private fun transform(srcBlock: Block): PtBlock {

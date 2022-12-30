@@ -12,6 +12,9 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)
      */
+
+    // TODO key as dotted string instead of list
+
     val flat: Map<List<String>, StNode> by lazy {
         val result = mutableMapOf<List<String>, StNode>()
         fun flatten(node: StNode) {
@@ -88,13 +91,13 @@ open class StNode(val name: String,
             parent.scopedName + name
     }
 
-    fun lookup(name: String) =
-        lookupUnqualified(name)
     open fun lookup(scopedName: List<String>) =
         if(scopedName.size>1) lookupQualified(scopedName) else lookupUnqualified(scopedName[0])
-    fun lookupOrElse(name: String, default: () -> StNode) =
+
+    fun lookupUnqualifiedOrElse(name: String, default: () -> StNode) =
         lookupUnqualified(name) ?: default()
-    fun lookupOrElse(scopedName: List<String>, default: () -> StNode) =
+
+    fun lookupUnqualifiedOrElse(scopedName: List<String>, default: () -> StNode) =
         lookup(scopedName) ?: default()
 
     private fun lookupQualified(scopedName: List<String>): StNode? {
@@ -112,7 +115,7 @@ open class StNode(val name: String,
         return node
     }
 
-    private fun lookupUnqualified(name: String): StNode? {
+    fun lookupUnqualified(name: String): StNode? {
         // first consider the builtin functions
         var globalscope = this
         while(globalscope.type!= StNodeType.GLOBAL)
@@ -215,7 +218,7 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOf: List<String>?)
+class StArrayElement(val number: Double?, val addressOfSymbol: String?)
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>

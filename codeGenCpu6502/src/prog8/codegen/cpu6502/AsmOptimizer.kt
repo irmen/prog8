@@ -450,7 +450,7 @@ private fun getAddressArg(line: String, program: Program): UInt? {
             val identMatch = identifierRegex.find(loadArg)
             if(identMatch!=null) {
                 val identifier = identMatch.value
-                val decl = program.toplevelModule.lookup(identifier.split(".")) as? VarDecl
+                val decl = program.toplevelModule.lookup(identifier.split('.')) as? VarDecl
                 if(decl!=null) {
                     when(decl.type){
                         VarDeclType.VAR -> null

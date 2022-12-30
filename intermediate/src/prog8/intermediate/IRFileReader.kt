@@ -221,7 +221,7 @@ class IRFileReader {
                             bss = false
                             initArray = value.split(',').map {
                                 if (it.startsWith('@'))
-                                    StArrayElement(null, it.drop(1).split('.'))
+                                    StArrayElement(null, it.drop(1))
                                 else
                                     StArrayElement(parseIRValue(it).toDouble(), null)
                             }

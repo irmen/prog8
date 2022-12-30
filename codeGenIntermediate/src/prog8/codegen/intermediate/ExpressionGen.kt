@@ -39,22 +39,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is PtIdentifier -> {
                 val vmDt = codeGen.irType(expr.type)
-                val symbol = expr.targetName.joinToString(".")
                 val code = IRCodeChunk(null, null)
                 code += if (expr.type in PassByValueDatatypes) {
                     if(vmDt==IRDataType.FLOAT)
-                        IRInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = symbol)
+                        IRInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = expr.name)
                     else
-                        IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                        IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
                 } else {
                     // for strings and arrays etc., load the *address* of the value instead
-                    IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
                 }
                 listOf(code)
             }
             is PtAddressOf -> {
                 val vmDt = codeGen.irType(expr.type)
-                val symbol = expr.identifier.targetName.joinToString(".")
+                val symbol = expr.identifier.name
                 // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
                 val code = IRCodeChunk(null, null)
                 code += IRInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, labelSymbol = symbol)
@@ -89,7 +88,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun translate(check: PtContainmentCheck, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         result += translateExpression(check.element, resultRegister, -1)   // load the element to check in resultRegister
-        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.targetName) as StStaticVariable
+        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.name.split('.')) as StStaticVariable
         when(iterable.dt) {
             DataType.STR -> {
                 result += translateExpression(check.element, SyscallRegisterBase, -1)
@@ -121,7 +120,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             DataType.ARRAY_F -> throw AssemblyError("containment check in float-array not supported")
-            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.targetName}")
+            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.name}")
         }
         return result
     }
@@ -131,7 +130,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val vmDt = codeGen.irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val idxReg = codeGen.registers.nextFree()
-        val arrayVarSymbol = arrayIx.variable.targetName.joinToString(".")
+        val arrayVarSymbol = arrayIx.variable.name
 
         if(arrayIx.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
@@ -932,12 +931,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     fun translate(fcall: PtFunctionCall, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
-        when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.functionName)) {
+        when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.name.split('.'))) {
             is StSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
                     val paramDt = codeGen.irType(parameter.type)
-                    val symbol = (fcall.functionName + parameter.name).joinToString(".")
+                    val symbol = "${fcall.name}.${parameter.name}"
                     if(codeGen.isZero(arg)) {
                         addInstr(result, IRInstruction(Opcode.STOREZM, paramDt, labelSymbol = symbol), null)
                     } else {
@@ -952,7 +951,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         }
                     }
                 }
-                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol=fcall.functionName.joinToString(".")), null)
+                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol=fcall.name), null)
                 if(fcall.type==DataType.FLOAT) {
                     if (!fcall.void && resultFpRegister != 0) {
                         // Call convention: result value is in fr0, so put it in the required register instead.

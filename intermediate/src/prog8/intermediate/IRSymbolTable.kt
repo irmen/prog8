@@ -27,9 +27,9 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             allVariables().forEach {variable ->
                 variable.onetimeInitializationArrayValue?.let {
                     it.forEach { arrayElt ->
-                        if(arrayElt.addressOf!=null) {
-                            require(arrayElt.addressOf!!.size > 1) {
-                                "pointer var in array should be properly scoped: ${arrayElt.addressOf!!} in ${variable.name}"
+                        if(arrayElt.addressOfSymbol!=null) {
+                            require(arrayElt.addressOfSymbol!!.contains('.')) {
+                                "pointer var in array should be properly scoped: ${arrayElt.addressOfSymbol} in ${variable.name}"
                             }
                         }
                     }
@@ -61,9 +61,9 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                     return null
                 val newArray = mutableListOf<StArrayElement>()
                 array.forEach {
-                    if(it.addressOf!=null) {
-                        val target = variable.lookup(it.addressOf!!)!!
-                        newArray.add(StArrayElement(null, target.scopedName))
+                    if(it.addressOfSymbol!=null) {
+                        val target = variable.lookup(it.addressOfSymbol!!.split('.'))!!
+                        newArray.add(StArrayElement(null, target.scopedName.joinToString(".")))
                     } else {
                         newArray.add(it)
                     }

@@ -223,7 +223,7 @@ internal class ProgramAndVarsGen(
         scope.children.filter { it.value.type in arrayOf(StNodeType.STATICVAR, StNodeType.CONSTANT, StNodeType.MEMVAR) }
 
     private fun createBlockVariables(block: Block) {
-        val scope = symboltable.lookupOrElse(block.name) { throw AssemblyError("lookup") }
+        val scope = symboltable.lookupUnqualifiedOrElse(block.name) { throw AssemblyError("lookup") }
         require(scope.type==StNodeType.BLOCK)
         val varsInBlock = getVars(scope)
 
@@ -286,7 +286,7 @@ internal class ProgramAndVarsGen(
             // regular subroutine
             asmgen.out("${sub.name}\t$asmStartScope")
 
-            val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+            val scope = symboltable.lookupUnqualifiedOrElse(sub.scopedName) { throw AssemblyError("lookup") }
             require(scope.type==StNodeType.SUBROUTINE)
             val varsInSubroutine = getVars(scope)
 
@@ -620,8 +620,8 @@ internal class ProgramAndVarsGen(
                 if(it.number!=null) {
                     "$" + it.number!!.toInt().toString(16).padStart(4, '0')
                 }
-                else if(it.addressOf!=null) {
-                    asmgen.asmSymbolName(it.addressOf!!)
+                else if(it.addressOfSymbol!=null) {
+                    asmgen.asmSymbolName(it.addressOfSymbol!!)
                 }
                 else
                     throw AssemblyError("weird array elt")

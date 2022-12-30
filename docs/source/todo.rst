@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- optimize scoped symbols: .split('.') / .joinToString(".")
+
 ...
 
 
