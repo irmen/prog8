@@ -914,6 +914,16 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
     fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
 
+    fun targetNameAndType(program: Program): Pair<String, DataType> {
+        val target=targetStatement(program)!! as INamedStatement
+        val targetname: String = if(target.name in program.builtinFunctions.names)
+            "<builtin>.${target.name}"
+        else
+            target.scopedName.joinToString(".")
+        val type = inferType(program).getOr(DataType.UNDEFINED)
+        return Pair(targetname, type)
+    }
+
     override fun linkParents(parent: Node) {
         this.parent = parent
     }

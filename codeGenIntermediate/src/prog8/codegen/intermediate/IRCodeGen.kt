@@ -454,7 +454,7 @@ class IRCodeGen(
     }
 
     private fun translate(forLoop: PtForLoop): IRCodeChunks {
-        val loopvar = symbolTable.lookup(forLoop.variable.name.split('.'))!!
+        val loopvar = symbolTable.lookup(forLoop.variable.name)!!
         val iterable = forLoop.iterable
         val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
@@ -465,8 +465,8 @@ class IRCodeGen(
                     result += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
-                val iterableVar = symbolTable.lookup(iterable.name.split('.')) as StStaticVariable
-                val loopvarSymbol = loopvar.scopedName.joinToString(".")
+                val iterableVar = symbolTable.lookup(iterable.name) as StStaticVariable
+                val loopvarSymbol = loopvar.scopedName
                 val indexReg = registers.nextFree()
                 val tmpReg = registers.nextFree()
                 val loopLabel = createLabelName()
@@ -529,7 +529,7 @@ class IRCodeGen(
             throw AssemblyError("step 0")
         val indexReg = registers.nextFree()
         val endvalueReg = registers.nextFree()
-        val loopvarSymbol = loopvar.scopedName.joinToString(".")
+        val loopvarSymbol = loopvar.scopedName
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt
             is StStaticVariable -> loopvar.dt
@@ -560,7 +560,7 @@ class IRCodeGen(
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val loopLabel = createLabelName()
-        val loopvarSymbol = loopvar.scopedName.joinToString(".")
+        val loopvarSymbol = loopvar.scopedName
         val indexReg = registers.nextFree()
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt

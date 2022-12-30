@@ -12,13 +12,13 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import java.util.*
 
-internal class SymbolTableMaker: IAstVisitor {
+internal class SymbolTableMaker(private val program: Program, private val options: CompilationOptions): IAstVisitor {
 
     private val st = SymbolTable()
     private val scopestack = Stack<StNode>()
     private var dontReinitGlobals = false
 
-    fun makeFrom(program: Program, options: CompilationOptions): SymbolTable {
+    fun make(): SymbolTable {
         scopestack.clear()
         st.children.clear()
         dontReinitGlobals = options.dontReinitGlobals
@@ -104,8 +104,14 @@ internal class SymbolTableMaker: IAstVisitor {
             return null
         return arrayLit.value.map {
             when(it){
-                is AddressOf -> StArrayElement(null, it.identifier.nameInSource.joinToString("."))
-                is IdentifierReference -> StArrayElement(null, it.nameInSource.joinToString("."))
+                is AddressOf -> {
+                    val scopedName = it.identifier.targetNameAndType(program).first
+                    StArrayElement(null, scopedName)
+                }
+                is IdentifierReference -> {
+                    val scopedName = it.targetNameAndType(program).first
+                    StArrayElement(null, scopedName)
+                }
                 is NumericLiteral -> StArrayElement(it.number, null)
                 else -> throw FatalAstException("weird element dt in array literal")
             }

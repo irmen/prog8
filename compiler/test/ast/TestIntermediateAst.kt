@@ -38,7 +38,7 @@ class TestIntermediateAst: FunSpec({
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         )
         val result = compileText(target, false, text, writeAssembly = false)!!
-        val st = SymbolTableMaker().makeFrom(result.program, options)
+        val st = SymbolTableMaker(result.program, options).make()
         val ast = IntermediateAstMaker(result.program, st, options).transform()
         ast.name shouldBe result.program.name
         ast.allBlocks().any() shouldBe true

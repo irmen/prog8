@@ -12,7 +12,7 @@ import prog8.code.core.ZeropageWish
 class TestSymbolTable: FunSpec({
     test("empty symboltable") {
         val st = SymbolTable()
-        st.scopedName shouldBe emptyList()
+        st.scopedName shouldBe ""
         st.name shouldBe ""
         st.type shouldBe StNodeType.GLOBAL
         st.children shouldBe mutableMapOf()
@@ -31,25 +31,25 @@ class TestSymbolTable: FunSpec({
     test("symboltable global lookups") {
         val st = makeSt()
         st.lookupUnqualified("undefined") shouldBe null
-        st.lookup(listOf("undefined")) shouldBe null
+        st.lookup("undefined") shouldBe null
         var default = st.lookupUnqualifiedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
-        default = st.lookupUnqualifiedOrElse(listOf("undefined")) { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        default = st.lookupUnqualifiedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
 
         val msbFunc = st.lookupUnqualifiedOrElse("msb") { fail("msb must be found") }
         msbFunc.type shouldBe StNodeType.BUILTINFUNC
 
-        val variable = st.lookupUnqualifiedOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
+        val variable = st.lookupQualifiedOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
         variable.type shouldBe StNodeType.STATICVAR
     }
 
     test("symboltable nested lookups") {
         val st = makeSt()
 
-        val sub1 = st.lookupUnqualifiedOrElse(listOf("block1", "sub1")) { fail("should find sub1") }
+        val sub1 = st.lookupQualifiedOrElse(listOf("block1", "sub1")) { fail("should find sub1") }
         sub1.name shouldBe "sub1"
-        sub1.scopedName shouldBe listOf("block1", "sub1")
+        sub1.scopedName shouldBe "block1.sub1"
         sub1.type shouldBe StNodeType.SUBROUTINE
         sub1.children.size shouldBe 2
 
@@ -62,7 +62,7 @@ class TestSymbolTable: FunSpec({
         blockc.type shouldBe StNodeType.CONSTANT
         blockc.value shouldBe 999.0
 
-        val subsub = st.lookupUnqualifiedOrElse(listOf("block2", "sub2", "subsub")) { fail("should find subsub") }
+        val subsub = st.lookupQualifiedOrElse(listOf("block2", "sub2", "subsub")) { fail("should find subsub") }
         subsub.lookupUnqualified("blockc") shouldBe null
         subsub.lookupUnqualified("label") shouldNotBe null
     }

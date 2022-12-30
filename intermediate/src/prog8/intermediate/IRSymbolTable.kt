@@ -62,15 +62,15 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                 val newArray = mutableListOf<StArrayElement>()
                 array.forEach {
                     if(it.addressOfSymbol!=null) {
-                        val target = variable.lookup(it.addressOfSymbol!!.split('.'))!!
-                        newArray.add(StArrayElement(null, target.scopedName.joinToString(".")))
+                        val target = variable.lookup(it.addressOfSymbol!!)!!
+                        newArray.add(StArrayElement(null, target.scopedName))
                     } else {
                         newArray.add(it)
                     }
                 }
                 return newArray
             }
-            scopedName = variable.scopedName.joinToString(".")
+            scopedName = variable.scopedName
             varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
@@ -91,7 +91,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             scopedName = variable.name
             varToadd = variable
         } else {
-            scopedName = variable.scopedName.joinToString(".")
+            scopedName = variable.scopedName
             varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, variable.position)
         }
         table[scopedName] = varToadd

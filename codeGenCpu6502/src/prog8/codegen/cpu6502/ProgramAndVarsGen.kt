@@ -286,7 +286,7 @@ internal class ProgramAndVarsGen(
             // regular subroutine
             asmgen.out("${sub.name}\t$asmStartScope")
 
-            val scope = symboltable.lookupUnqualifiedOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+            val scope = symboltable.lookupQualifiedOrElse(sub.scopedName) { throw AssemblyError("lookup") }
             require(scope.type==StNodeType.SUBROUTINE)
             val varsInSubroutine = getVars(scope)
 
@@ -461,8 +461,9 @@ internal class ProgramAndVarsGen(
         return result
     }
 
-    private fun zeropagevars2asm(varNames: Set<List<String>>) {
-        val zpVariables = allocator.zeropageVars.filter { it.key in varNames }
+    private fun zeropagevars2asm(varNames2: Set<String>) {
+        val varNamesAsList = varNames2.map { it.split('.') }    // TODO use dotted string
+        val zpVariables = allocator.zeropageVars.filter { it.key in varNamesAsList }
         for ((scopedName, zpvar) in zpVariables) {
             if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped

@@ -18,7 +18,7 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
     val flat: Map<List<String>, StNode> by lazy {
         val result = mutableMapOf<List<String>, StNode>()
         fun flatten(node: StNode) {
-            result[node.scopedName] = node
+            result[node.scopedName.split('.')] = node
             node.children.values.forEach { flatten(it) }
         }
         children.values.forEach { flatten(it) }
@@ -57,7 +57,7 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         children.mapNotNull { if (it.value.type == StNodeType.MEMORYSLAB) it.value as StMemorySlab else null }
     }
 
-    override fun lookup(scopedName: List<String>) = flat[scopedName]
+    override fun lookup(scopedName: String) = flat[scopedName.split('.')]      // TODO dotted string as keys
 }
 
 
@@ -84,23 +84,27 @@ open class StNode(val name: String,
 
     lateinit var parent: StNode
 
-    val scopedName: List<String> by lazy {
-        if(type== StNodeType.GLOBAL)
-            emptyList()
-        else
-            parent.scopedName + name
+    val scopedName: String by lazy {
+        scopedNameList.joinToString(".")
     }
 
-    open fun lookup(scopedName: List<String>) =
-        if(scopedName.size>1) lookupQualified(scopedName) else lookupUnqualified(scopedName[0])
+    open fun lookup(scopedName: String) =
+        lookup(scopedName.split('.'))
 
     fun lookupUnqualifiedOrElse(name: String, default: () -> StNode) =
         lookupUnqualified(name) ?: default()
 
-    fun lookupUnqualifiedOrElse(scopedName: List<String>, default: () -> StNode) =
+    fun lookupQualifiedOrElse(scopedName: List<String>, default: () -> StNode) =
         lookup(scopedName) ?: default()
 
-    private fun lookupQualified(scopedName: List<String>): StNode? {
+    private val scopedNameList: List<String> by lazy {
+        if(type== StNodeType.GLOBAL)
+            emptyList()
+        else
+            parent.scopedNameList + name
+    }
+
+    private fun lookup(scopedName: List<String>): StNode? {
         // a scoped name refers to a name in another namespace, and always stars from the root.
         var node = this
         while(node.type!= StNodeType.GLOBAL)
@@ -218,7 +222,11 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?)
+class StArrayElement(val number: Double?, val addressOfSymbol: String?) {
+    init {
+        require(addressOfSymbol==null || addressOfSymbol.contains('.'))
+    }
+}
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>

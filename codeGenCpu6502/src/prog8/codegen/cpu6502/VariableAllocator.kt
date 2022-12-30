@@ -22,7 +22,8 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         allocateZeropageVariables()
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropage.allocatedVariables      // TODO remove, use dotted string
+    internal fun isZpVar(scopedName: String) = scopedName.split('.') in zeropage.allocatedVariables
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
@@ -56,7 +57,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
         varsRequiringZp.forEach { variable ->
             val result = zeropage.allocate(
-                variable.scopedName,
+                variable.scopedName.split('.'),     // TODO use dotted name
                 variable.dt,
                 variable.length,
                 variable.position,
@@ -75,7 +76,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
                 val result = zeropage.allocate(
-                    variable.scopedName,
+                    variable.scopedName.split('.'),     // TODO use dotted name
                     variable.dt,
                     variable.length,
                     variable.position,
@@ -88,13 +89,13 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             // try to allocate any other interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
-                for (variable in varsDontCare.sortedBy { it.scopedName.size }) {
+                for (variable in varsDontCare.sortedBy { it.scopedName.length }) {
                     if(variable.dt in IntegerDatatypes) {
                         if(zeropage.free.isEmpty()) {
                             break
                         } else {
                             val result = zeropage.allocate(
-                                variable.scopedName,
+                                variable.scopedName.split('.'),     // TODO use dotted name,
                                 variable.dt,
                                 variable.length,
                                 variable.position,

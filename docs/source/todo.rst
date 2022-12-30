@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- optimize scoped symbols: .split('.') / .joinToString(".")
+- optimize scoped symbols: .split('.') / .joinToString(".") / 'dotted string' comments
 
 ...
 

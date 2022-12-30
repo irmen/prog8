@@ -111,18 +111,8 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
         return target
     }
 
-    private fun targetOf(identifier: IdentifierReference): Pair<String, DataType> {
-        val target=identifier.targetStatement(program)!! as INamedStatement
-        val targetname: String = if(target.name in program.builtinFunctions.names)
-            "<builtin>.${target.name}"
-        else
-            target.scopedName.joinToString(".")
-        val type = identifier.inferType(program).getOr(DataType.UNDEFINED)
-        return Pair(targetname, type)
-    }
-
     private fun transform(identifier: IdentifierReference): PtIdentifier {
-        val (target, type) = targetOf(identifier)
+        val (target, type) = identifier.targetNameAndType(program)
         return PtIdentifier(target, type, identifier.position)
     }
 
@@ -220,7 +210,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     }
 
     private fun transform(srcCall: FunctionCallStatement): PtFunctionCall {
-        val (target, type) = targetOf(srcCall.target)
+        val (target, type) = srcCall.target.targetNameAndType(program)
         val call = PtFunctionCall(target,true, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
@@ -228,7 +218,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     }
 
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
-        val (target, _) = targetOf(srcCall.target)
+        val (target, _) = srcCall.target.targetNameAndType(program)
         val type = srcCall.inferType(program).getOrElse {
             throw FatalAstException("unknown dt $srcCall")
         }
