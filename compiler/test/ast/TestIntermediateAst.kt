@@ -5,9 +5,10 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.ast.*
-import prog8.code.core.DataType
+import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.IntermediateAstMaker
+import prog8.compiler.astprocessing.SymbolTableMaker
 import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({
@@ -25,8 +26,20 @@ class TestIntermediateAst: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
-        val ast = IntermediateAstMaker(result.program).transform()
+        val target = C64Target()
+        val options = CompilationOptions(
+            OutputType.RAW,
+            CbmPrgLauncherType.NONE,
+            ZeropageType.DONTUSE,
+            emptyList(),
+            floats = false,
+            noSysInit = true,
+            compTarget = target,
+            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
+        )
+        val result = compileText(target, false, text, writeAssembly = false)!!
+        val st = SymbolTableMaker().makeFrom(result.program, options)
+        val ast = IntermediateAstMaker(result.program, st, options).transform()
         ast.name shouldBe result.program.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")

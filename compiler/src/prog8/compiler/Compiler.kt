@@ -446,14 +446,14 @@ internal fun asmGeneratorFor(program: Program,
                              options: CompilationOptions): IAssemblyGenerator
 {
     if(options.experimentalCodegen) {
-        val intermediateAst = IntermediateAstMaker(program).transform()
+        val intermediateAst = IntermediateAstMaker(program, symbolTable, options).transform()
         return prog8.codegen.experimental.CodeGen(intermediateAst, symbolTable, options, errors)
     } else {
         if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
             // TODO rewrite 6502 codegen on new Intermediary Ast or on new Intermediate Representation
             return prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
         if (options.compTarget.name == VMTarget.NAME) {
-            val intermediateAst = IntermediateAstMaker(program).transform()
+            val intermediateAst = IntermediateAstMaker(program, symbolTable, options).transform()
             return VmCodeGen(intermediateAst, symbolTable, options, errors)
         }
     }

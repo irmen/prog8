@@ -27,6 +27,7 @@ internal class SymbolTableMaker: IAstVisitor {
             val node = StNode(it, StNodeType.BUILTINFUNC, Position.DUMMY)
             st.add(node)
         }
+        require(scopestack.isEmpty())
         return st
     }
 

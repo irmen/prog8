@@ -8,7 +8,9 @@ import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.SymbolTable
 import prog8.code.ast.*
+import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
@@ -22,7 +24,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(val program: Program) {
+class IntermediateAstMaker(private val program: Program, private val symbolTable: SymbolTable, private val options: CompilationOptions) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
