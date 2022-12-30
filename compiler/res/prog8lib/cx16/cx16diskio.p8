@@ -5,6 +5,7 @@
 
 cx16diskio {
 
+    ; Same as diskio.load() but with additional bank parameter to select the Ram bank to load into.
     ; Use kernal LOAD routine to load the given program file in memory.
     ; This is similar to Basic's  LOAD "filename",drive  /  LOAD "filename",drive,1
     ; If you don't give an address_override, the location in memory is taken from the 2-byte file header.
@@ -14,9 +15,10 @@ cx16diskio {
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
     sub load(ubyte drivenumber, uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
-        return diskio.load(drivenumber, filenameptr, address_override)
+        return diskio.internal_load_routine(drivenumber, filenameptr, address_override, false)
     }
 
+    ; Same as diskio.load_raw() but with additional bank parameter to select the Ram bank to load into.
     ; Use kernal LOAD routine to load the given file in memory.
     ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
     ; The load address is mandatory. Returns the number of bytes loaded.
@@ -24,9 +26,9 @@ cx16diskio {
     ; or alternatively make sure to reset the correct ram bank yourself after the load!
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
-    sub load_raw(ubyte drivenumber, uword filenameptr, ubyte bank, uword address) -> uword {
+    sub load_raw(ubyte drivenumber, uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
-        return diskio.load_headerless_cx16(drivenumber, filenameptr, address, true)
+        return diskio.internal_load_routine(drivenumber, filenameptr, address_override, true)
     }
 
     ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
@@ -87,8 +89,9 @@ internal_vload:
         }}
     }
 
-    ; replacement function that makes use of fast block read capability of the X16
-    ; use this in place of regular diskio.f_read()
+    ; Replacement function that makes use of fast block read capability of the X16,
+    ; and can wrap over multiple ram banks while reading.
+    ; Use this in place of regular diskio.f_read() on X16.
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
@@ -147,7 +150,7 @@ m_in_buffer     sta  $ffff
     }
 
     ; replacement function that makes use of fast block read capability of the X16
-    ; use this in place of regular diskio.f_read_all()
+    ; use this in place of regular diskio.f_read_all() on X16
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
         if not diskio.iteration_in_progress

@@ -282,6 +282,7 @@ close_end:
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         ;    NOTE: on systems with banked ram (such as Commander X16) this routine DOES NOT
         ;          automatically load into subsequent banks if it reaches a bank boundary!
+        ;          Consider using cx16diskio.f_read() on X16.
         if not iteration_in_progress or not num_bytes
             return 0
 
@@ -316,6 +317,7 @@ m_in_buffer     sta  $ffff
 
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
+        ;    Note: Consider using cx16diskio.f_read_all() on X16!
         if not iteration_in_progress
             return 0
 
@@ -475,9 +477,9 @@ io_error:
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
-    ;       Consider using cx16diskio.load() instead.
+    ;       Also consider using cx16diskio.load() instead  on the Commander X16.
     sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
-        return load_headerless_cx16(drivenumber, filenameptr, address_override, false)
+        return internal_load_routine(drivenumber, filenameptr, address_override, false)
     }
 
     ; Use kernal LOAD routine to load the given file in memory.
@@ -488,10 +490,10 @@ io_error:
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
-    ;       Consider using cx16diskio.load_raw() instead on the Commander X16.
+    ;       Also consider using cx16diskio.load_raw() instead on the Commander X16.
     sub load_raw(ubyte drivenumber, uword filenameptr, uword address) -> uword {
         if sys.target==16   ; are we on commander X16?
-            return load_headerless_cx16(drivenumber, filenameptr, address, true)
+            return internal_load_routine(drivenumber, filenameptr, address, true)
         ; fallback to reading the 2 header bytes separately
         if not f_open(drivenumber, filenameptr)
             return 0
@@ -506,7 +508,8 @@ io_error:
 
     ; Internal routine, only to be used on Commander X16 platform if headerless=true,
     ; because this routine uses kernal support for that to load headerless files.
-    sub load_headerless_cx16(ubyte drivenumber, uword filenameptr, uword address_override, bool headerless) -> uword {
+    ; On C64 it will always be called with headerless=false.
+    sub internal_load_routine(ubyte drivenumber, uword filenameptr, uword address_override, bool headerless) -> uword {
         c64.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0

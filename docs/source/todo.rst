@@ -3,6 +3,8 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
+- fix the X16 zsound examples that are broken since 8.8
+
 ...
 
 
