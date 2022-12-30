@@ -123,7 +123,7 @@ One or more .p8 module files
     Auto-starts target system emulator after successful compilation.
     emu2 starts the alternative emulator if available.
     The compiled program and the symbol and breakpoint lists
-    (for the machine code monitor) are immediately loaded into the emulator..
+    (for the machine code monitor) are immediately loaded into the emulator (if it supports them)
 
 ``-out <directory>``
     sets directory location for output files instead of current directory
@@ -207,8 +207,8 @@ the ``srcdirs`` command line option.
 
 .. _debugging:
 
-Debugging (with VICE)
----------------------
+Debugging (with VICE or Box16)
+------------------------------
 
 There's support for using the monitor and debugging capabilities of the rather excellent
 `VICE emulator <http://vice-emu.sourceforge.net/>`_.
@@ -218,7 +218,7 @@ a *breakpoint* at that position. Some systems use a BRK instruction for this, bu
 this will usually halt the machine altogether instead of just suspending execution.
 Prog8 issues a NOP instruction instead and creates a 'virtual' breakpoint at this position.
 All breakpoints are then written to a file called "programname.vice-mon-list",
-which is meant to be used by the VICE emulator.
+which is meant to be used by the VICE and Box16 emulators.
 It contains a series of commands for VICE's monitor, including source labels and the breakpoint settings.
 If you use the emulator autostart feature of the compiler, it will take care of this for you.
 If you launch VICE manually, you'll have to use a command line option to load this file:
@@ -227,6 +227,9 @@ If you launch VICE manually, you'll have to use a command line option to load th
 
 VICE will then use the label names in memory disassembly, and will activate any breakpoints as well.
 If your running program hits one of the breakpoints, VICE will halt execution and drop you into the monitor.
+
+Box16 is the alternative emulator for the Commander X16 and it also includes debugging facilities
+that support these symbol and breakpoint lists.
 
 
 Troubleshooting

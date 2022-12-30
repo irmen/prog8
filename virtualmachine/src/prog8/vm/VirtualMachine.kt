@@ -36,6 +36,7 @@ class VirtualMachine(irProgram: IRProgram) {
     val registers = Registers()
     val callStack = Stack<Pair<IRCodeChunk, Int>>()
     val valueStack = Stack<UByte>()       // max 128 entries
+    var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
     var pcChunk: IRCodeChunk
     var pcIndex = 0
     var stepCount = 0
@@ -348,7 +349,10 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsBREAKPOINT() {
         nextPc()
-        throw BreakpointException(pcChunk, pcIndex)
+        if(breakpointHandler!=null)
+            breakpointHandler?.invoke(pcChunk, pcIndex)
+        else
+            throw BreakpointException(pcChunk, pcIndex)
     }
 
     private fun InsLOADCPU(i: IRInstruction) {
@@ -2217,6 +2221,10 @@ class VmRunner: IVirtualMachineRunner {
     fun runAndTestProgram(irSource: String, test: (VirtualMachine) -> Unit) {
         val irProgram = IRFileReader().read(irSource)
         val vm = VirtualMachine(irProgram)
+//        vm.breakpointHandler = { pcChunk, pcIndex ->
+//            println("UNHANDLED BREAKPOINT")
+//            println("  IN CHUNK: $pcChunk(${pcChunk.label})  INDEX: $pcIndex = INSTR ${pcChunk.instructions[pcIndex]}")
+//        }
         vm.run()
         test(vm)
     }
