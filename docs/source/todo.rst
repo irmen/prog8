@@ -3,8 +3,6 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- fix the X16 zsound examples that are broken since 8.8
-
 ...
 
 
@@ -26,7 +24,7 @@ Compiler:
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
-- ir peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out!)
+- ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - vm: somehow be able to load a label address as value? (VmProgramLoader)
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.

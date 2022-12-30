@@ -127,15 +127,6 @@ internal class StatementReorderer(val program: Program,
     }
 
     override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        if(subroutine.name=="start" && parent is Block) {
-            if(parent.statements.asSequence().filterIsInstance<Subroutine>().first().name!="start") {
-                return listOf(
-                        IAstModification.Remove(subroutine, parent),
-                        IAstModification.InsertFirst(subroutine, parent)
-                )
-            }
-        }
-
         val modifications = mutableListOf<IAstModification>()
 
         val subs = subroutine.statements.filterIsInstance<Subroutine>()
