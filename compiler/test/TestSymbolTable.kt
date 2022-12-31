@@ -21,50 +21,51 @@ class TestSymbolTable: FunSpec({
 
     test("symboltable flatten") {
         val st = makeSt()
-        st.flat[listOf("zzzzz")] shouldBe null
-        st.flat.getValue(listOf("msb")).type shouldBe StNodeType.BUILTINFUNC
-        st.flat.getValue(listOf("block2")).type shouldBe StNodeType.BLOCK
-        st.flat.getValue(listOf("block2", "sub2", "subsub", "label")).type shouldBe StNodeType.LABEL
-        st.flat[listOf("block2", "sub2", "subsub", "label", "zzzz")] shouldBe null
+        st.flat["zzzzz"] shouldBe null
+        st.flat.getValue("msb").type shouldBe StNodeType.BUILTINFUNC
+        st.flat.getValue("block2").type shouldBe StNodeType.BLOCK
+        st.flat.getValue("block2.sub2.subsub.label").type shouldBe StNodeType.LABEL
+        st.flat["block2.sub2.subsub.label.zzzz"] shouldBe null
     }
 
     test("symboltable global lookups") {
         val st = makeSt()
-        st.lookupUnqualified("undefined") shouldBe null
+        st.lookupUnscoped("undefined") shouldBe null
         st.lookup("undefined") shouldBe null
-        var default = st.lookupUnqualifiedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        st.lookup("undefined.undefined") shouldBe null
+        var default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
-        default = st.lookupUnqualifiedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
         default.name shouldBe "default"
 
-        val msbFunc = st.lookupUnqualifiedOrElse("msb") { fail("msb must be found") }
+        val msbFunc = st.lookupUnscopedOrElse("msb") { fail("msb must be found") }
         msbFunc.type shouldBe StNodeType.BUILTINFUNC
 
-        val variable = st.lookupQualifiedOrElse(listOf("block1", "sub2", "v2")) { fail("v2 must be found") }
+        val variable = st.lookupOrElse("block1.sub2.v2") { fail("v2 must be found") }
         variable.type shouldBe StNodeType.STATICVAR
     }
 
     test("symboltable nested lookups") {
         val st = makeSt()
 
-        val sub1 = st.lookupQualifiedOrElse(listOf("block1", "sub1")) { fail("should find sub1") }
+        val sub1 = st.lookupOrElse("block1.sub1") { fail("should find sub1") }
         sub1.name shouldBe "sub1"
         sub1.scopedName shouldBe "block1.sub1"
         sub1.type shouldBe StNodeType.SUBROUTINE
         sub1.children.size shouldBe 2
 
-        val v1 = sub1.lookupUnqualifiedOrElse("v1") { fail("v1 must be found") } as StStaticVariable
+        val v1 = sub1.lookupUnscopedOrElse("v1") { fail("v1 must be found") } as StStaticVariable
         v1.type shouldBe StNodeType.STATICVAR
         v1.name shouldBe "v1"
         v1.dt shouldBe DataType.BYTE
 
-        val blockc = sub1.lookupUnqualifiedOrElse("blockc") { fail("blockc") } as StConstant
+        val blockc = sub1.lookupUnscopedOrElse("blockc") { fail("blockc") } as StConstant
         blockc.type shouldBe StNodeType.CONSTANT
         blockc.value shouldBe 999.0
 
-        val subsub = st.lookupQualifiedOrElse(listOf("block2", "sub2", "subsub")) { fail("should find subsub") }
-        subsub.lookupUnqualified("blockc") shouldBe null
-        subsub.lookupUnqualified("label") shouldNotBe null
+        val subsub = st.lookupOrElse("block2.sub2.subsub") { fail("should find subsub") }
+        subsub.lookupUnscoped("blockc") shouldBe null
+        subsub.lookupUnscoped("label") shouldNotBe null
     }
 })
 

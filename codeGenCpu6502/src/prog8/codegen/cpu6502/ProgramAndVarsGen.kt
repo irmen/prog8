@@ -223,7 +223,7 @@ internal class ProgramAndVarsGen(
         scope.children.filter { it.value.type in arrayOf(StNodeType.STATICVAR, StNodeType.CONSTANT, StNodeType.MEMVAR) }
 
     private fun createBlockVariables(block: Block) {
-        val scope = symboltable.lookupUnqualifiedOrElse(block.name) { throw AssemblyError("lookup") }
+        val scope = symboltable.lookupUnscopedOrElse(block.name) { throw AssemblyError("lookup") }
         require(scope.type==StNodeType.BLOCK)
         val varsInBlock = getVars(scope)
 
@@ -286,7 +286,7 @@ internal class ProgramAndVarsGen(
             // regular subroutine
             asmgen.out("${sub.name}\t$asmStartScope")
 
-            val scope = symboltable.lookupQualifiedOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+            val scope = symboltable.lookupOrElse(sub.scopedName.joinToString(".")) { throw AssemblyError("lookup") }
             require(scope.type==StNodeType.SUBROUTINE)
             val varsInSubroutine = getVars(scope)
 
@@ -428,13 +428,13 @@ internal class ProgramAndVarsGen(
     }
 
     private class ZpStringWithInitial(
-        val name: List<String>,
+        val name: String,
         val alloc: MemoryAllocator.VarAllocation,
         val value: Pair<String, Encoding>
     )
 
     private class ZpArrayWithInitial(
-        val name: List<String>,
+        val name: String,
         val alloc: MemoryAllocator.VarAllocation,
         val value: StArray
     )
@@ -443,9 +443,9 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpStringWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key.split('.')) as StStaticVariable
+            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
             if(svar.onetimeInitializationStringValue!=null)
-                result.add(ZpStringWithInitial(variable.key.split('.'), variable.value, svar.onetimeInitializationStringValue!!))
+                result.add(ZpStringWithInitial(variable.key, variable.value, svar.onetimeInitializationStringValue!!))
         }
         return result
     }
@@ -454,9 +454,9 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpArrayWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key.split('.')) as StStaticVariable
+            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
             if(svar.onetimeInitializationArrayValue!=null)
-                result.add(ZpArrayWithInitial(variable.key.split('.'), variable.value, svar.onetimeInitializationArrayValue!!))
+                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.onetimeInitializationArrayValue!!))
         }
         return result
     }

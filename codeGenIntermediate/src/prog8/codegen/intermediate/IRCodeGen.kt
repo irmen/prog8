@@ -131,7 +131,7 @@ class IRCodeGen(
                             symbol = symbolExpr
                             index = 0u
                         }
-                        val target = symbolTable.flat[symbol.split('.')]
+                        val target = symbolTable.flat[symbol]
                         if (target is StMemVar) {
                             replacements.add(Triple(chunk, idx, target.address+index))
                         }
@@ -1248,7 +1248,7 @@ class IRCodeGen(
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
             val flattenedName = it.definingSub()!!.scopedName + "." + it.name
-            val orig = symbolTable.flat.getValue(flattenedName.split('.')) as StStaticVariable
+            val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }
 

@@ -88,7 +88,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun translate(check: PtContainmentCheck, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         result += translateExpression(check.element, resultRegister, -1)   // load the element to check in resultRegister
-        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.name.split('.')) as StStaticVariable
+        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.name) as StStaticVariable
         when(iterable.dt) {
             DataType.STR -> {
                 result += translateExpression(check.element, SyscallRegisterBase, -1)
@@ -931,7 +931,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     fun translate(fcall: PtFunctionCall, resultRegister: Int, resultFpRegister: Int): IRCodeChunks {
-        when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.name.split('.'))) {
+        when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)) {
             is StSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {

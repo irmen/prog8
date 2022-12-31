@@ -13,12 +13,10 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
      * This gives the fastest lookup possible (no need to traverse tree nodes)
      */
 
-    // TODO key as dotted string instead of list
-
-    val flat: Map<List<String>, StNode> by lazy {
-        val result = mutableMapOf<List<String>, StNode>()
+    val flat: Map<String, StNode> by lazy {
+        val result = mutableMapOf<String, StNode>()
         fun flatten(node: StNode) {
-            result[node.scopedName.split('.')] = node
+            result[node.scopedName] = node
             node.children.values.forEach { flatten(it) }
         }
         children.values.forEach { flatten(it) }
@@ -57,7 +55,7 @@ class SymbolTable : StNode("", StNodeType.GLOBAL, Position.DUMMY) {
         children.mapNotNull { if (it.value.type == StNodeType.MEMORYSLAB) it.value as StMemorySlab else null }
     }
 
-    override fun lookup(scopedName: String) = flat[scopedName.split('.')]      // TODO dotted string as keys
+    override fun lookup(scopedName: String) = flat[scopedName]
 }
 
 
@@ -84,42 +82,18 @@ open class StNode(val name: String,
 
     lateinit var parent: StNode
 
-    val scopedName: String by lazy {
-        scopedNameList.joinToString(".")
-    }
+    val scopedName: String by lazy { scopedNameList.joinToString(".") }
 
     open fun lookup(scopedName: String) =
         lookup(scopedName.split('.'))
 
-    fun lookupUnqualifiedOrElse(name: String, default: () -> StNode) =
-        lookupUnqualified(name) ?: default()
+    fun lookupUnscopedOrElse(name: String, default: () -> StNode) =
+        lookupUnscoped(name) ?: default()
 
-    fun lookupQualifiedOrElse(scopedName: List<String>, default: () -> StNode) =
-        lookup(scopedName) ?: default()
+    fun lookupOrElse(scopedName: String, default: () -> StNode): StNode =
+        lookup(scopedName.split('.')) ?: default()
 
-    private val scopedNameList: List<String> by lazy {
-        if(type== StNodeType.GLOBAL)
-            emptyList()
-        else
-            parent.scopedNameList + name
-    }
-
-    private fun lookup(scopedName: List<String>): StNode? {
-        // a scoped name refers to a name in another namespace, and always stars from the root.
-        var node = this
-        while(node.type!= StNodeType.GLOBAL)
-            node = node.parent
-
-        for(name in scopedName) {
-            if(name in node.children)
-                node = node.children.getValue(name)
-            else
-                return null
-        }
-        return node
-    }
-
-    fun lookupUnqualified(name: String): StNode? {
+    fun lookupUnscoped(name: String): StNode? {
         // first consider the builtin functions
         var globalscope = this
         while(globalscope.type!= StNodeType.GLOBAL)
@@ -144,6 +118,28 @@ open class StNode(val name: String,
     fun add(child: StNode) {
         children[child.name] = child
         child.parent = this
+    }
+
+    private val scopedNameList: List<String> by lazy {
+        if(type== StNodeType.GLOBAL)
+            emptyList()
+        else
+            parent.scopedNameList + name
+    }
+
+    private fun lookup(scopedName: List<String>): StNode? {
+        // a scoped name refers to a name in another namespace, and always stars from the root.
+        var node = this
+        while(node.type!= StNodeType.GLOBAL)
+            node = node.parent
+
+        for(name in scopedName) {
+            if(name in node.children)
+                node = node.children.getValue(name)
+            else
+                return null
+        }
+        return node
     }
 }
 
@@ -222,11 +218,7 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?) {
-    init {
-        require(addressOfSymbol==null || addressOfSymbol.contains('.'))
-    }
-}
+class StArrayElement(val number: Double?, val addressOfSymbol: String?)
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>
