@@ -123,7 +123,7 @@ class AsmGen(internal val program: Program,
             is VarDecl -> {
                 val sourceName = asmVariableName(pointervar)
                 if (isTargetCpu(CpuType.CPU65c02)) {
-                    return if (allocator.isZpVar(target.scopedName)) {
+                    return if (allocator.isZpVar(target.scopedName.joinToString("."))) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
                         sourceName
@@ -137,7 +137,7 @@ class AsmGen(internal val program: Program,
                         "P8ZP_SCRATCH_W1"
                     }
                 } else {
-                    return if (allocator.isZpVar(target.scopedName)) {
+                    return if (allocator.isZpVar(target.scopedName.joinToString("."))) {
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
                         sourceName
@@ -161,7 +161,7 @@ class AsmGen(internal val program: Program,
         val sourceName = asmVariableName(pointervar)
         val vardecl = pointervar.targetVarDecl(program)!!
         if (isTargetCpu(CpuType.CPU65c02)) {
-            if (allocator.isZpVar(vardecl.scopedName)) {
+            if (allocator.isZpVar(vardecl.scopedName.joinToString("."))) {
                 // pointervar is already in the zero page, no need to copy
                 out("  sta  ($sourceName)")
             } else {
@@ -173,7 +173,7 @@ class AsmGen(internal val program: Program,
                     sta  (P8ZP_SCRATCH_W2)""")
             }
         } else {
-            if (allocator.isZpVar(vardecl.scopedName)) {
+            if (allocator.isZpVar(vardecl.scopedName.joinToString("."))) {
                 // pointervar is already in the zero page, no need to copy
                 out(" ldy  #0 |  sta  ($sourceName),y")
             } else {
@@ -726,7 +726,7 @@ $repeatLabel    lda  $counterVar
         val counterVar = program.makeLabel("counter")
         when(dt) {
             DataType.UBYTE, DataType.UWORD -> {
-                val result = zeropage.allocate(listOf(counterVar), dt, null, stmt.position, errors)
+                val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
                 result.fold(
                     success = { (address, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
@@ -988,7 +988,7 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun isZpVar(variable: IdentifierReference): Boolean =
-        allocator.isZpVar(variable.targetVarDecl(program)!!.scopedName)
+        allocator.isZpVar(variable.targetVarDecl(program)!!.scopedName.joinToString("."))
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false) {
         if(indirect) {

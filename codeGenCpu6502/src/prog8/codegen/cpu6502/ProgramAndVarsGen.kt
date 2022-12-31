@@ -443,9 +443,9 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpStringWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
+            val svar = symboltable.flat.getValue(variable.key.split('.')) as StStaticVariable
             if(svar.onetimeInitializationStringValue!=null)
-                result.add(ZpStringWithInitial(variable.key, variable.value, svar.onetimeInitializationStringValue!!))
+                result.add(ZpStringWithInitial(variable.key.split('.'), variable.value, svar.onetimeInitializationStringValue!!))
         }
         return result
     }
@@ -454,20 +454,20 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpArrayWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
+            val svar = symboltable.flat.getValue(variable.key.split('.')) as StStaticVariable
             if(svar.onetimeInitializationArrayValue!=null)
-                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.onetimeInitializationArrayValue!!))
+                result.add(ZpArrayWithInitial(variable.key.split('.'), variable.value, svar.onetimeInitializationArrayValue!!))
         }
         return result
     }
 
-    private fun zeropagevars2asm(varNames2: Set<String>) {
-        val varNamesAsList = varNames2.map { it.split('.') }    // TODO use dotted string
-        val zpVariables = allocator.zeropageVars.filter { it.key in varNamesAsList }
+    private fun zeropagevars2asm(varNames: Set<String>) {
+        val zpVariables = allocator.zeropageVars.filter { it.key in varNames }
         for ((scopedName, zpvar) in zpVariables) {
-            if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
+            val parts = scopedName.split('.')
+            if (parts.size == 2 && parts[0] == "cx16" && parts[1][0] == 'r' && parts[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
-            asmgen.out("${scopedName.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
+            asmgen.out("${parts.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
         }
     }
 
