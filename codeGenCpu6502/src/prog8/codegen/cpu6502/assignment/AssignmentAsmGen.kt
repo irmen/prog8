@@ -325,7 +325,7 @@ internal class AssignmentAsmGen(private val program: Program,
             assignFAC1float(assign.target)
         } else {
             // array[x] = -value   ... use a tempvar then store that back into the array.
-            val tempvar = asmgen.getTempVarName(assign.target.datatype).joinToString(".")
+            val tempvar = asmgen.getTempVarName(assign.target.datatype)
             val assignToTempvar = AsmAssignment(assign.source,
                 AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
                 false, program.memsizer, assign.position)

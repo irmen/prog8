@@ -11,7 +11,7 @@ class MemAllocationError(message: String) : Exception(message)
 abstract class MemoryAllocator(protected val options: CompilationOptions) {
     data class VarAllocation(val address: UInt, val dt: DataType, val size: Int)
 
-    abstract fun allocate(name: String,
+    abstract fun allocate(name: List<String>,
                           datatype: DataType,
                           numElements: Int?,
                           position: Position?,
@@ -29,7 +29,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     // the variables allocated into Zeropage.
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    val allocatedVariables = mutableMapOf<String, VarAllocation>()
+    val allocatedVariables = mutableMapOf<List<String>, VarAllocation>()
 
     val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
@@ -51,7 +51,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         return free.windowed(2).any { it[0] == it[1] - 1u }
     }
 
-    override fun allocate(name: String,
+    override fun allocate(name: List<String>,
                           datatype: DataType,
                           numElements: Int?,
                           position: Position?,
@@ -107,7 +107,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
 
-    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: String): UInt {
+    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: List<String>): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
         if(name.isNotEmpty()) {
@@ -135,7 +135,7 @@ class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAlloc
     private var nextLocation: UInt = region.first
 
     override fun allocate(
-        name: String,
+        name: List<String>,
         datatype: DataType,
         numElements: Int?,
         position: Position?,

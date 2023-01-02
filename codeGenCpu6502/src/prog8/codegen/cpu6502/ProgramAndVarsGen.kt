@@ -242,7 +242,7 @@ internal class ProgramAndVarsGen(
 
         // normal statically allocated variables
         val variables = varsInBlock
-            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName.split('.')) }
             .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
     }
@@ -357,7 +357,7 @@ internal class ProgramAndVarsGen(
 
             // normal statically allocated variables
             val variables = varsInSubroutine
-                .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+                .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName.split('.')) }
                 .map { it.value as StStaticVariable }
             nonZpVariables2asm(variables)
 
@@ -443,9 +443,10 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpStringWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
+            val scopedName = variable.key.joinToString(".")
+            val svar = symboltable.flat.getValue(scopedName) as StStaticVariable
             if(svar.onetimeInitializationStringValue!=null)
-                result.add(ZpStringWithInitial(variable.key, variable.value, svar.onetimeInitializationStringValue!!))
+                result.add(ZpStringWithInitial(scopedName, variable.value, svar.onetimeInitializationStringValue!!))
         }
         return result
     }
@@ -454,20 +455,21 @@ internal class ProgramAndVarsGen(
         val result = mutableListOf<ZpArrayWithInitial>()
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
-            val svar = symboltable.flat.getValue(variable.key) as StStaticVariable
+            val scopedName = variable.key.joinToString(".")
+            val svar = symboltable.flat.getValue(scopedName) as StStaticVariable
             if(svar.onetimeInitializationArrayValue!=null)
-                result.add(ZpArrayWithInitial(variable.key, variable.value, svar.onetimeInitializationArrayValue!!))
+                result.add(ZpArrayWithInitial(scopedName, variable.value, svar.onetimeInitializationArrayValue!!))
         }
         return result
     }
 
     private fun zeropagevars2asm(varNames: Set<String>) {
-        val zpVariables = allocator.zeropageVars.filter { it.key in varNames }
+        val namesLists = varNames.map { it.split('.') }.toSet()
+        val zpVariables = allocator.zeropageVars.filter { it.key in namesLists }
         for ((scopedName, zpvar) in zpVariables) {
-            val parts = scopedName.split('.')
-            if (parts.size == 2 && parts[0] == "cx16" && parts[1][0] == 'r' && parts[1][1].isDigit())
+            if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
-            asmgen.out("${parts.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
+            asmgen.out("${scopedName.last()} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
         }
     }
 

@@ -16,13 +16,13 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
     private val zeropage = options.compTarget.machine.zeropage
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
-    internal val zeropageVars: Map<String, MemoryAllocator.VarAllocation> = zeropage.allocatedVariables
+    internal val zeropageVars: Map<List<String>, MemoryAllocator.VarAllocation> = zeropage.allocatedVariables
 
     init {
         allocateZeropageVariables()
     }
 
-    internal fun isZpVar(scopedName: String) = scopedName in zeropageVars
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
@@ -56,7 +56,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
         varsRequiringZp.forEach { variable ->
             val result = zeropage.allocate(
-                variable.scopedName,
+                variable.scopedName.split('.'),
                 variable.dt,
                 variable.length,
                 variable.position,
@@ -75,7 +75,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
                 val result = zeropage.allocate(
-                    variable.scopedName,
+                    variable.scopedName.split('.'),
                     variable.dt,
                     variable.length,
                     variable.position,
@@ -94,7 +94,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                             break
                         } else {
                             val result = zeropage.allocate(
-                                variable.scopedName,
+                                variable.scopedName.split('.'),
                                 variable.dt,
                                 variable.length,
                                 variable.position,

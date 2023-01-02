@@ -3,7 +3,7 @@ TODO
 
 For next release
 ^^^^^^^^^^^^^^^^
-- optimize scoped symbols: .split('.') / .joinToString(".")
+- optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
 
 ...
 
@@ -28,6 +28,7 @@ Compiler:
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
 - ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
+- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer?
 - vm: somehow be able to load a label address as value? (VmProgramLoader)
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
