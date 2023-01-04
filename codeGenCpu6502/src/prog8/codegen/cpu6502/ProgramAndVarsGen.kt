@@ -1,12 +1,10 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.Program
-import prog8.ast.statements.*
 import prog8.code.*
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
-import prog8.compiler.CallGraph
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.math.absoluteValue
@@ -20,7 +18,7 @@ import kotlin.math.absoluteValue
  *  - all variables (note: VarDecl ast nodes are *NOT* used anymore for this! now uses IVariablesAndConsts data tables!)
  */
 internal class ProgramAndVarsGen(
-    val program: Program,
+    val program: PtProgram,
     val options: CompilationOptions,
     val errors: IErrorReporter,
     private val symboltable: SymbolTable,
@@ -30,20 +28,19 @@ internal class ProgramAndVarsGen(
     private val zeropage: Zeropage
 ) {
     private val compTarget = options.compTarget
-    private val callGraph = CallGraph(program, true)
-    private val blockVariableInitializers = program.allBlocks.associateWith { it.statements.filterIsInstance<Assignment>() }
+    // TODO ???? private val callGraph = CallGraph(program, true)
+    private val blockVariableInitializers = program.allBlocks().associateWith { it.children.filterIsInstance<PtAssignment>() }
 
     internal fun generate() {
         val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
-        require(allInitializers.all { it.origin==AssignmentOrigin.VARINIT }) {"all block-level assignments must be a variable initializer"}
 
         header()
-        val allBlocks = program.allBlocks
+        val allBlocks = program.allBlocks()
         if(allBlocks.first().name != "main")
             throw AssemblyError("first block should be 'main'")
 
         if(errors.noErrors())  {
-            program.allBlocks.forEach { block2asm(it) }
+            program.allBlocks().forEach { block2asm(it) }
 
             // the global list of all floating point constants for the whole program
             asmgen.out("; global float constants")
@@ -100,7 +97,7 @@ internal class ProgramAndVarsGen(
                 when(options.launcher) {
                     CbmPrgLauncherType.BASIC -> {
                         if (options.loadAddress != options.compTarget.machine.PROGRAM_LOAD_ADDRESS) {
-                            errors.err("BASIC output must have load address ${options.compTarget.machine.PROGRAM_LOAD_ADDRESS.toHex()}", program.toplevelModule.position)
+                            errors.err("BASIC output must have load address ${options.compTarget.machine.PROGRAM_LOAD_ADDRESS.toHex()}", program.position)
                         }
                         asmgen.out("; ---- basic program with sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
@@ -183,28 +180,28 @@ internal class ProgramAndVarsGen(
         asmgen.out("prog8_program_end\t; end of program label for progend()")
     }
 
-    private fun block2asm(block: Block) {
+    private fun block2asm(block: PtBlock) {
         asmgen.out("")
         asmgen.out("; ---- block: '${block.name}' ----")
         if(block.address!=null)
             asmgen.out("* = ${block.address!!.toHex()}")
         else {
-            if("align_word" in block.options())
+            if(block.alignment==PtBlock.BlockAlignment.WORD)
                 asmgen.out("\t.align 2")
-            else if("align_page" in block.options())
+            else if(block.alignment==PtBlock.BlockAlignment.PAGE)
                 asmgen.out("\t.align $100")
         }
 
-        asmgen.out("${block.name}\t" + (if("force_output" in block.options()) ".block\n" else ".proc\n"))
+        asmgen.out("${block.name}\t" + (if(block.forceOutput) ".block\n" else ".proc\n"))
         asmgen.outputSourceLine(block)
 
         createBlockVariables(block)
-        asmsubs2asm(block.statements)
+        asmsubs2asm(block.children)
 
         asmgen.out("")
 
         val initializers = blockVariableInitializers.getValue(block)
-        val notInitializers = block.statements.filterNot { it in initializers }
+        val notInitializers = block.children.filterNot { it in initializers }
         notInitializers.forEach { asmgen.translate(it) }
 
         if(!options.dontReinitGlobals) {
@@ -216,13 +213,13 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        asmgen.out(if("force_output" in block.options()) "\n\t.bend\n" else "\n\t.pend\n")
+        asmgen.out(if(block.forceOutput) "\n\t.bend\n" else "\n\t.pend\n")
     }
 
     private fun getVars(scope: StNode): Map<String, StNode> =
         scope.children.filter { it.value.type in arrayOf(StNodeType.STATICVAR, StNodeType.CONSTANT, StNodeType.MEMVAR) }
 
-    private fun createBlockVariables(block: Block) {
+    private fun createBlockVariables(block: PtBlock) {
         val scope = symboltable.lookupUnscopedOrElse(block.name) { throw AssemblyError("lookup") }
         require(scope.type==StNodeType.BLOCK)
         val varsInBlock = getVars(scope)
@@ -247,12 +244,41 @@ internal class ProgramAndVarsGen(
         nonZpVariables2asm(variables)
     }
 
-    internal fun translateSubroutine(sub: Subroutine) {
+    internal fun translateAsmSubroutine(sub: PtAsmSub) {
+        if(sub.inline) {
+            if(options.optimize) {
+                return
+            }
+        }
+
+        asmgen.out("")
+
+        val asmStartScope: String
+        val asmEndScope: String
+        if(sub.definingBlock()!!.forceOutput) {
+            asmStartScope = ".block"
+            asmEndScope = ".bend"
+        } else {
+            asmStartScope = ".proc"
+            asmEndScope = ".pend"
+        }
+
+        if(sub.address!=null)
+            return  // already done at the memvars section
+
+        // asmsub with most likely just an inline asm in it
+        asmgen.out("${sub.name}\t$asmStartScope")
+        sub.children.forEach { asmgen.translate(it) }
+        asmgen.out("  $asmEndScope\n")
+    }
+
+
+    internal fun translateSubroutine(sub: PtSub) {
         var onlyVariables = false
 
         if(sub.inline) {
             if(options.optimize) {
-                if(sub.isAsmSubroutine || callGraph.unused(sub))
+                if(callGraph.unused(sub))
                     return
 
                 // from an inlined subroutine only the local variables are generated,
@@ -266,7 +292,7 @@ internal class ProgramAndVarsGen(
 
         val asmStartScope: String
         val asmEndScope: String
-        if(sub.definingBlock.options().contains("force_output")) {
+        if(sub.definingBlock()!!.forceOutput) {
             asmStartScope = ".block"
             asmEndScope = ".bend"
         } else {
@@ -274,95 +300,84 @@ internal class ProgramAndVarsGen(
             asmEndScope = ".pend"
         }
 
-        if(sub.isAsmSubroutine) {
-            if(sub.asmAddress!=null)
-                return  // already done at the memvars section
+        asmgen.out("${sub.name}\t$asmStartScope")
 
-            // asmsub with most likely just an inline asm in it
-            asmgen.out("${sub.name}\t$asmStartScope")
-            sub.statements.forEach { asmgen.translate(it) }
-            asmgen.out("  $asmEndScope\n")
-        } else {
-            // regular subroutine
-            asmgen.out("${sub.name}\t$asmStartScope")
+        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+        require(scope.type==StNodeType.SUBROUTINE)
+        val varsInSubroutine = getVars(scope)
 
-            val scope = symboltable.lookupOrElse(sub.scopedName.joinToString(".")) { throw AssemblyError("lookup") }
-            require(scope.type==StNodeType.SUBROUTINE)
-            val varsInSubroutine = getVars(scope)
+        // Zeropage Variables
+        val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
+        zeropagevars2asm(varnames)
 
-            // Zeropage Variables
-            val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
-            zeropagevars2asm(varnames)
+        // MemDefs and Consts
+        val mvs = varsInSubroutine
+            .filter { it.value.type==StNodeType.MEMVAR }
+            .map { it.value as StMemVar }
+        val consts = varsInSubroutine
+            .filter { it.value.type==StNodeType.CONSTANT }
+            .map { it.value as StConstant }
+        memdefsAndConsts2asm(mvs, consts)
 
-            // MemDefs and Consts
-            val mvs = varsInSubroutine
-                .filter { it.value.type==StNodeType.MEMVAR }
-                .map { it.value as StMemVar }
-            val consts = varsInSubroutine
-                .filter { it.value.type==StNodeType.CONSTANT }
-                .map { it.value as StConstant }
-            memdefsAndConsts2asm(mvs, consts)
+        asmsubs2asm(sub.children)
 
-            asmsubs2asm(sub.statements)
+        // the main.start subroutine is the program's entrypoint and should perform some initialization logic
+        if(sub.name=="start" && sub.definingBlock()!!.name=="main")
+            entrypointInitialization()
 
-            // the main.start subroutine is the program's entrypoint and should perform some initialization logic
-            if(sub.name=="start" && sub.definingBlock.name=="main")
-                entrypointInitialization()
-
-            if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
-                asmgen.out("; simple int arg(s) passed via register(s)")
-                if(sub.parameters.size==1) {
-                    val dt = sub.parameters[0].type
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, variableAsmName = sub.parameters[0].name)
-                    if(dt in ByteDatatypes)
-                        asmgen.assignRegister(RegisterOrPair.A, target)
-                    else
-                        asmgen.assignRegister(RegisterOrPair.AY, target)
-                } else {
-                    require(sub.parameters.size==2)
-                    // 2 simple byte args, first in A, second in Y
-                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[0].type, sub, variableAsmName = sub.parameters[0].name)
-                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[1].type, sub, variableAsmName = sub.parameters[1].name)
-                    asmgen.assignRegister(RegisterOrPair.A, target1)
-                    asmgen.assignRegister(RegisterOrPair.Y, target2)
-                }
+        if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
+            asmgen.out("; simple int arg(s) passed via register(s)")
+            if(sub.parameters.size==1) {
+                val dt = sub.parameters[0].type
+                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, variableAsmName = sub.parameters[0].name)
+                if(dt in ByteDatatypes)
+                    asmgen.assignRegister(RegisterOrPair.A, target)
+                else
+                    asmgen.assignRegister(RegisterOrPair.AY, target)
+            } else {
+                require(sub.parameters.size==2)
+                // 2 simple byte args, first in A, second in Y
+                val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[0].type, sub, variableAsmName = sub.parameters[0].name)
+                val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[1].type, sub, variableAsmName = sub.parameters[1].name)
+                asmgen.assignRegister(RegisterOrPair.A, target1)
+                asmgen.assignRegister(RegisterOrPair.Y, target2)
             }
-
-            if(!onlyVariables) {
-                asmgen.out("; statements")
-                sub.statements.forEach { asmgen.translate(it) }
-            }
-
-            asmgen.out("; variables")
-            val asmGenInfo = asmgen.subroutineExtra(sub)
-            for((dt, name, addr) in asmGenInfo.extraVars) {
-                if(addr!=null)
-                    asmgen.out("$name = $addr")
-                else when(dt) {
-                    DataType.UBYTE -> asmgen.out("$name    .byte  0")
-                    DataType.UWORD -> asmgen.out("$name    .word  0")
-                    else -> throw AssemblyError("weird dt")
-                }
-            }
-            if(asmGenInfo.usedRegsaveA)      // will probably never occur
-                asmgen.out("prog8_regsaveA     .byte  0")
-            if(asmGenInfo.usedRegsaveX)
-                asmgen.out("prog8_regsaveX     .byte  0")
-            if(asmGenInfo.usedRegsaveY)
-                asmgen.out("prog8_regsaveY     .byte  0")
-            if(asmGenInfo.usedFloatEvalResultVar1)
-                asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
-            if(asmGenInfo.usedFloatEvalResultVar2)
-                asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
-
-            // normal statically allocated variables
-            val variables = varsInSubroutine
-                .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName.split('.')) }
-                .map { it.value as StStaticVariable }
-            nonZpVariables2asm(variables)
-
-            asmgen.out("  $asmEndScope\n")
         }
+
+        if(!onlyVariables) {
+            asmgen.out("; statements")
+            sub.children.forEach { asmgen.translate(it) }
+        }
+
+        asmgen.out("; variables")
+        val asmGenInfo = asmgen.subroutineExtra(sub)
+        for((dt, name, addr) in asmGenInfo.extraVars) {
+            if(addr!=null)
+                asmgen.out("$name = $addr")
+            else when(dt) {
+                DataType.UBYTE -> asmgen.out("$name    .byte  0")
+                DataType.UWORD -> asmgen.out("$name    .word  0")
+                else -> throw AssemblyError("weird dt")
+            }
+        }
+        if(asmGenInfo.usedRegsaveA)      // will probably never occur
+            asmgen.out("prog8_regsaveA     .byte  0")
+        if(asmGenInfo.usedRegsaveX)
+            asmgen.out("prog8_regsaveX     .byte  0")
+        if(asmGenInfo.usedRegsaveY)
+            asmgen.out("prog8_regsaveY     .byte  0")
+        if(asmGenInfo.usedFloatEvalResultVar1)
+            asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
+        if(asmGenInfo.usedFloatEvalResultVar2)
+            asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
+
+        // normal statically allocated variables
+        val variables = varsInSubroutine
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName.split('.')) }
+            .map { it.value as StStaticVariable }
+        nonZpVariables2asm(variables)
+
+        asmgen.out("  $asmEndScope\n")
     }
 
     private fun entrypointInitialization() {
@@ -593,12 +608,12 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun asmsubs2asm(statements: List<Statement>) {
+    private fun asmsubs2asm(statements: List<PtNode>) {
         statements
-            .filter { it is Subroutine && it.isAsmSubroutine && it.asmAddress!=null }
+            .filter { it is PtAsmSub && it.address!=null }
             .forEach { asmsub ->
-                asmsub as Subroutine
-                asmgen.out("  ${asmsub.name} = ${asmsub.asmAddress!!.toHex()}")
+                asmsub as PtAsmSub
+                asmgen.out("  ${asmsub.name} = ${asmsub.address!!.toHex()}")
             }
     }
 

@@ -1,16 +1,15 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.Program
-import prog8.ast.expressions.*
+import prog8.code.ast.*
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
-internal class ExpressionsAsmGen(private val program: Program,
+internal class ExpressionsAsmGen(private val program: PtProgram,
                                  private val asmgen: AsmGen,
                                  private val allocator: VariableAllocator) {
 
     @Deprecated("avoid calling this as it generates slow evalstack based code")
-    internal fun translateExpression(expression:Expression) {
+    internal fun translateExpression(expression: PtExpression) {
         if (this.asmgen.options.slowCodegenWarnings) {
             asmgen.errors.warn("slow stack evaluation used for expression $expression", expression.position)
         }
@@ -21,31 +20,31 @@ internal class ExpressionsAsmGen(private val program: Program,
     // the rest of the methods are all PRIVATE
 
 
-    private fun translateExpressionInternal(expression: Expression) {
+    private fun translateExpressionInternal(expression: PtExpression) {
 
         when(expression) {
-            is PrefixExpression -> translateExpression(expression)
-            is BinaryExpression -> translateExpression(expression)
-            is ArrayIndexedExpression -> translateExpression(expression)
-            is TypecastExpression -> translateExpression(expression)
-            is AddressOf -> translateExpression(expression)
-            is DirectMemoryRead -> asmgen.translateDirectMemReadExpressionToRegAorStack(expression, true)
-            is NumericLiteral -> translateExpression(expression)
-            is IdentifierReference -> translateExpression(expression)
-            is FunctionCallExpression -> translateFunctionCallResultOntoStack(expression)
-            is BuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
-            is ContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
-            is ArrayLiteral, is StringLiteral -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
-            is RangeExpression -> throw AssemblyError("range expression should have been changed into array values")
-            is CharLiteral -> throw AssemblyError("charliteral should have been replaced by ubyte using certain encoding")
+            is PtPrefix -> translateExpression(expression)
+            is PtBinaryExpression -> translateExpression(expression)
+            is PtArrayIndexer -> translateExpression(expression)
+            is PtTypeCast -> translateExpression(expression)
+            is PtAddressOf -> translateExpression(expression)
+            is PtMemoryByte -> asmgen.translateDirectMemReadExpressionToRegAorStack(expression, true)
+            is PtNumber -> translateExpression(expression)
+            is PtIdentifier -> translateExpression(expression)
+            is PtFunctionCall -> translateFunctionCallResultOntoStack(expression)
+            is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
+            is PtContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
+            is PtArray, is PtString -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
+            is PtRange -> throw AssemblyError("range expression should have been changed into array values")
+            is PtMachineRegister -> TODO("machine register expression node")
             else -> TODO("missing expression asmgen for $expression")
         }
     }
 
-    private fun translateFunctionCallResultOntoStack(call: FunctionCallExpression) {
+    private fun translateFunctionCallResultOntoStack(call: PtFunctionCall) {
         // only for use in nested expression evaluation
 
-        val sub = call.target.targetSubroutine(program)!!
+        val sub = call.targetSubroutine(program)!!
         asmgen.saveXbeforeCall(call)
         asmgen.translateFunctionCall(call, true)
         if(sub.regXasResult()) {
@@ -54,7 +53,8 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
         asmgen.restoreXafterCall(call)
 
-        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)
+        sub.
+        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)     // TODO does regular sub also have asmReturnvaluesRegisters set?
         for ((_, reg) in returns) {
             // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
             if (reg.registerOrPair != null) {
@@ -133,9 +133,9 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateExpression(typecast: TypecastExpression) {
-        translateExpressionInternal(typecast.expression)
-        when(typecast.expression.inferType(program).getOr(DataType.UNDEFINED)) {
+    private fun translateExpression(typecast: PtTypeCast) {
+        translateExpressionInternal(typecast.value)
+        when(typecast.value.type) {
             DataType.UBYTE, DataType.BOOL -> {
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
@@ -197,12 +197,12 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateExpression(expr: AddressOf) {
+    private fun translateExpression(expr: PtAddressOf) {
         val name = asmgen.asmVariableName(expr.identifier)
         asmgen.out("  lda  #<$name |  sta  P8ESTACK_LO,x |  lda  #>$name  |  sta  P8ESTACK_HI,x  | dex")
     }
 
-    private fun translateExpression(expr: NumericLiteral) {
+    private fun translateExpression(expr: PtNumber) {
         when(expr.type) {
             DataType.UBYTE, DataType.BYTE -> asmgen.out(" lda  #${expr.number.toHex()}  | sta  P8ESTACK_LO,x  | dex")
             DataType.UWORD, DataType.WORD -> asmgen.out("""
@@ -220,9 +220,9 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateExpression(expr: IdentifierReference) {
+    private fun translateExpression(expr: PtIdentifier) {
         val varname = asmgen.asmVariableName(expr)
-        when(expr.inferType(program).getOr(DataType.UNDEFINED)) {
+        when(expr.type) {
             DataType.UBYTE, DataType.BYTE -> {
                 asmgen.out("  lda  $varname  |  sta  P8ESTACK_LO,x  |  dex")
             }
@@ -239,22 +239,17 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateExpression(expr: BinaryExpression) {
+    private fun translateExpression(expr: PtBinaryExpression) {
         // Uses evalstack to evaluate the given expression.
         // TODO we're slowly reducing the number of places where this is called and instead replace that by more efficient assignment-form code (using temp var or register for instance).
-        val leftIDt = expr.left.inferType(program)
-        val rightIDt = expr.right.inferType(program)
-        if(!leftIDt.isKnown || !rightIDt.isKnown)
-            throw AssemblyError("can't infer type of both expression operands")
-
-        val leftDt = leftIDt.getOrElse { throw AssemblyError("unknown dt") }
-        val rightDt = rightIDt.getOrElse { throw AssemblyError("unknown dt") }
+        val leftDt = expr.left.type
+        val rightDt = expr.right.type
         // see if we can apply some optimized routines
         when(expr.operator) {
             "+" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val leftVal = expr.left.constValue(program)?.number?.toInt()
-                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    val leftVal = expr.left.asConstInteger()
+                    val rightVal = expr.right.asConstInteger()
                     if (leftVal!=null && leftVal in -4..4) {
                         translateExpressionInternal(expr.right)
                         if(rightDt in ByteDatatypes) {
@@ -318,7 +313,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "-" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    val rightVal = expr.right.asConstInteger()
                     if (rightVal!=null && rightVal in -4..4)
                     {
                         translateExpressionInternal(expr.left)
@@ -352,7 +347,7 @@ internal class ExpressionsAsmGen(private val program: Program,
                 }
             }
             ">>" -> {
-                val amount = expr.right.constValue(program)?.number?.toInt()
+                val amount = expr.right.asConstInteger()
                 if(amount!=null) {
                     translateExpressionInternal(expr.left)
                     when (leftDt) {
@@ -423,7 +418,7 @@ internal class ExpressionsAsmGen(private val program: Program,
                 }
             }
             "<<" -> {
-                val amount = expr.right.constValue(program)?.number?.toInt()
+                val amount = expr.right.asConstInteger()
                 if(amount!=null) {
                     translateExpressionInternal(expr.left)
                     if (leftDt in ByteDatatypes) {
@@ -450,13 +445,13 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "*" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val leftVar = expr.left as? IdentifierReference
-                    val rightVar = expr.right as? IdentifierReference
+                    val leftVar = expr.left as? PtIdentifier
+                    val rightVar = expr.right as? PtIdentifier
                     if(leftVar!=null && rightVar!=null && leftVar==rightVar)
                         return translateSquared(leftVar, leftDt)
                 }
 
-                val value = expr.right.constValue(program)
+                val value = expr.right as? PtNumber
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
                         val amount = value.number.toInt()
@@ -516,7 +511,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "/" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val rightVal = expr.right.constValue(program)?.number?.toInt()
+                    val rightVal = expr.right.asConstInteger()
                     if(rightVal!=null && rightVal==2) {
                         translateExpressionInternal(expr.left)
                         when (leftDt) {
@@ -557,8 +552,8 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             in ComparisonOperators -> {
                 if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
-                    val rightVal = expr.right.constValue(program)?.number
-                    if(rightVal==0.0)
+                    val rightVal = expr.right.asConstInteger()
+                    if(rightVal==0)
                         return translateComparisonWithZero(expr.left, leftDt, expr.operator)
                 }
             }
@@ -584,8 +579,8 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateComparisonWithZero(expr: Expression, dt: DataType, operator: String) {
-        if(expr.isSimple) {
+    private fun translateComparisonWithZero(expr: PtExpression, dt: DataType, operator: String) {
+        if(expr.isSimple()) {
             if(operator=="!=") {
                 when (dt) {
                     in ByteDatatypes -> {
@@ -641,7 +636,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             "<" -> {
                 if(dt==DataType.UBYTE || dt==DataType.UWORD)
-                    return translateExpressionInternal(NumericLiteral.fromBoolean(false, expr.position))
+                    return translateExpressionInternal(PtNumber.fromBoolean(false, expr.position))
                 when(dt) {
                     DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lesszero_b")
                     DataType.WORD -> asmgen.out("  jsr  prog8_lib.lesszero_w")
@@ -671,7 +666,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             }
             ">=" -> {
                 if(dt==DataType.UBYTE || dt==DataType.UWORD)
-                    return translateExpressionInternal(NumericLiteral.fromBoolean(true, expr.position))
+                    return translateExpressionInternal(PtNumber.fromBoolean(true, expr.position))
                 when(dt) {
                     DataType.BYTE -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sb")
                     DataType.WORD -> asmgen.out("  jsr  prog8_lib.greaterequalzero_sw")
@@ -683,7 +678,7 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateSquared(variable: IdentifierReference, dt: DataType) {
+    private fun translateSquared(variable: PtIdentifier, dt: DataType) {
         val asmVar = asmgen.asmVariableName(variable)
         when(dt) {
             DataType.BYTE, DataType.UBYTE -> {
@@ -699,14 +694,12 @@ internal class ExpressionsAsmGen(private val program: Program,
         asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
     }
 
-    private fun translateExpression(expr: PrefixExpression) {
-        translateExpressionInternal(expr.expression)
-        val itype = expr.inferType(program)
-        val type = itype.getOrElse { throw AssemblyError("unknown dt") }
+    private fun translateExpression(expr: PtPrefix) {
+        translateExpressionInternal(expr.value)
         when(expr.operator) {
             "+" -> {}
             "-" -> {
-                when(type) {
+                when(expr.type) {
                     in ByteDatatypes -> asmgen.out("  jsr  prog8_lib.neg_b")
                     in WordDatatypes -> asmgen.out("  jsr  prog8_lib.neg_w")
                     DataType.FLOAT -> asmgen.out("  jsr  floats.neg_f")
@@ -714,7 +707,7 @@ internal class ExpressionsAsmGen(private val program: Program,
                 }
             }
             "~" -> {
-                when(type) {
+                when(expr.type) {
                     in ByteDatatypes ->
                         asmgen.out("""
                             lda  P8ESTACK_LO+1,x
@@ -729,22 +722,18 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateExpression(arrayExpr: ArrayIndexedExpression) {
-        val elementIDt = arrayExpr.inferType(program)
-        if(!elementIDt.isKnown)
-            throw AssemblyError("unknown dt")
-        val elementDt = elementIDt.getOr(DataType.UNDEFINED)
-        val arrayVarName = asmgen.asmVariableName(arrayExpr.arrayvar)
+    private fun translateExpression(arrayExpr: PtArrayIndexer) {
+        val elementDt = arrayExpr.type
+        val arrayVarName = asmgen.asmVariableName(arrayExpr.variable)
 
-        val arrayVarDecl = arrayExpr.arrayvar.targetVarDecl(program)!!
-        if(arrayVarDecl.datatype==DataType.UWORD) {
+        if(arrayExpr.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
             if(elementDt !in ByteDatatypes)
                 throw AssemblyError("non-array var indexing requires bytes dt")
-            if(arrayExpr.inferType(program) isnot DataType.UBYTE)
+            if(arrayExpr.index.type != DataType.UBYTE)
                 throw AssemblyError("non-array var indexing requires bytes index")
             asmgen.loadScaledArrayIndexIntoRegister(arrayExpr, elementDt, CpuRegister.Y)
-            if(asmgen.isZpVar(arrayExpr.arrayvar)) {
+            if(asmgen.isZpVar(arrayExpr.variable)) {
                 asmgen.out("  lda  ($arrayVarName),y")
             } else {
                 asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
@@ -754,7 +743,7 @@ internal class ExpressionsAsmGen(private val program: Program,
             return
         }
 
-        val constIndexNum = arrayExpr.indexer.constIndex()
+        val constIndexNum = arrayExpr.index.asConstInteger()
         if(constIndexNum!=null) {
             val indexValue = constIndexNum * program.memsizer.memorySize(elementDt)
             when(elementDt) {
@@ -881,7 +870,7 @@ internal class ExpressionsAsmGen(private val program: Program,
         }
     }
 
-    private fun translateCompareStrings(s1: Expression, operator: String, s2: Expression) {
+    private fun translateCompareStrings(s1: PtExpression, operator: String, s2: PtExpression) {
         asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD, null)
         asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD, null)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A

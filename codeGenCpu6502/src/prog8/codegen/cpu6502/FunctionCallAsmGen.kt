@@ -1,16 +1,6 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.Expression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.FunctionCallStatement
-import prog8.ast.statements.InlineAssembly
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.SubroutineParameter
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
@@ -18,51 +8,57 @@ import prog8.codegen.cpu6502.assignment.AsmAssignment
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
 
-internal class FunctionCallAsmGen(private val program: Program, private val asmgen: AsmGen) {
+internal class FunctionCallAsmGen(private val program: PtProgram, private val asmgen: AsmGen) {
 
-    internal fun translateFunctionCallStatement(stmt: FunctionCallStatement) {
+    internal fun translateFunctionCallStatement(stmt: PtFunctionCall) {
         saveXbeforeCall(stmt)
         translateFunctionCall(stmt, false)
         restoreXafterCall(stmt)
         // just ignore any result values from the function call.
     }
 
-    internal fun saveXbeforeCall(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+    internal fun saveXbeforeCall(stmt: PtFunctionCall) {
+        val sub = stmt.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.name}")
         if(sub.shouldSaveX()) {
-            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            if(regSaveOnStack)
-                asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
-            else
-                asmgen.saveRegisterLocal(CpuRegister.X, (stmt as Node).definingSubroutine!!)
+            if(sub is PtAsmSub) {
+                val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
+                if (regSaveOnStack)
+                    asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
+                else
+                    asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingSub()!!)
+            } else
+                asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingSub()!!)
         }
     }
 
-    internal fun restoreXafterCall(stmt: IFunctionCall) {
-        val sub = stmt.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.target}")
+    internal fun restoreXafterCall(stmt: PtFunctionCall) {
+        val sub = stmt.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.name}")
         if(sub.shouldSaveX()) {
-            val regSaveOnStack = sub.asmAddress==null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-            if(regSaveOnStack)
-                asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
-            else
+            if(sub is PtAsmSub) {
+                val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
+                if (regSaveOnStack)
+                    asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
+                else
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+            } else
                 asmgen.restoreRegisterLocal(CpuRegister.X)
         }
     }
 
-    internal fun optimizeIntArgsViaRegisters(sub: Subroutine) =
+    internal fun optimizeIntArgsViaRegisters(sub: PtSub) =
         (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes)
                 || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypes && sub.parameters[1].type in ByteDatatypes)
 
-    internal fun translateFunctionCall(call: IFunctionCall, isExpression: Boolean) {            // TODO remove isExpression unused parameter
+    internal fun translateFunctionCall(call: PtFunctionCall, isExpression: Boolean) {            // TODO remove isExpression unused parameter
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val sub = call.target.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.target}")
-        val subAsmName = asmgen.asmSymbolName(call.target)
+        val sub: IPtSubroutine = call.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.name}")
+        val subAsmName = asmgen.asmSymbolName(call.name)
 
-        if(sub.isAsmSubroutine) {
+        if(sub is PtAsmSub) {
             argumentsViaRegisters(sub, call)
             if (sub.inline && asmgen.options.optimize) {
                 // inline the subroutine.
@@ -70,13 +66,13 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                 // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
                 // (this condition has been enforced by an ast check earlier)
                 asmgen.out("  \t; inlined routine follows: ${sub.name}")
-                sub.statements.forEach { asmgen.translate(it as InlineAssembly) }
+                sub.children.forEach { asmgen.translate(it as PtInlineAssembly) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
                 asmgen.out("  jsr  $subAsmName")
             }
         }
-        else {
+        else if(sub is PtSub) {
             if(sub.inline)
                 throw AssemblyError("can only reliably inline asmsub routines at this time")
 
@@ -100,84 +96,80 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
             }
             asmgen.out("  jsr  $subAsmName")
         }
+        else throw AssemblyError("invalid sub type")
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
     }
 
-    private fun argumentsViaRegisters(sub: Subroutine, call: IFunctionCall) {
+    private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
         if(sub.parameters.size==1) {
-            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single()), call.args[0])
+            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().first), call.args[0])
         } else {
-            if(asmsub6502ArgsHaveRegisterClobberRisk(call.args, sub.asmParameterRegisters)) {
+            if(asmsub6502ArgsHaveRegisterClobberRisk(call.args, sub.parameters)) {
                 registerArgsViaCpuStackEvaluation(call, sub)
             } else {
                 asmsub6502ArgsEvalOrder(sub).forEach {
                     val param = sub.parameters[it]
                     val arg = call.args[it]
-                    argumentViaRegister(sub, IndexedValue(it, param), arg)
+                    argumentViaRegister(sub, IndexedValue(it, param.first), arg)
                 }
             }
         }
     }
 
-    private fun registerArgsViaCpuStackEvaluation(call: IFunctionCall, callee: Subroutine) {
+    private fun registerArgsViaCpuStackEvaluation(call: PtFunctionCall, callee: PtAsmSub) {
         // this is called when one or more of the arguments are 'complex' and
         // cannot be assigned to a register easily or risk clobbering other registers.
 
-        require(callee.isAsmSubroutine) { "register args only for asm subroutine ${callee.position}" }
         if(callee.parameters.isEmpty())
             return
 
         // use the cpu hardware stack as intermediate storage for the arguments.
         val argOrder = asmsub6502ArgsEvalOrder(callee)
         argOrder.reversed().forEach {
-            asmgen.pushCpuStack(callee.parameters[it].type, call.args[it])
+            asmgen.pushCpuStack(callee.parameters[it].first.type, call.args[it])
         }
         argOrder.forEach {
-            val param = callee.parameters[it]
+            val param = callee.parameters[it].first
             val targetVar = callee.searchParameter(param.name)!!
-            asmgen.popCpuStack(param.type, targetVar, (call as Node).definingSubroutine)
+            asmgen.popCpuStack(param.type, targetVar, call.definingSub())
         }
     }
 
-    private fun argumentViaVariable(sub: Subroutine, parameter: SubroutineParameter, value: Expression) {
+    private fun argumentViaVariable(sub: PtSub, parameter: PtSubroutineParameter, value: PtExpression) {
         // pass parameter via a regular variable (not via registers)
-        val valueIDt = value.inferType(program)
-        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
-        if(!isArgumentTypeCompatible(valueDt, parameter.type))
+        if(!isArgumentTypeCompatible(value.type, parameter.type))
             throw AssemblyError("argument type incompatible")
 
         val varName = asmgen.asmVariableName(sub.scopedName + parameter.name)
         asmgen.assignExpressionToVariable(value, varName, parameter.type, sub)
     }
 
-    private fun argumentViaRegister(sub: Subroutine, parameter: IndexedValue<SubroutineParameter>, value: Expression, registerOverride: RegisterOrPair? = null) {
+    private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null) {
         // pass argument via a register parameter
-        val valueIDt = value.inferType(program)
-        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
-        if(!isArgumentTypeCompatible(valueDt, parameter.value.type))
+        if(!isArgumentTypeCompatible(value.type, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
-        val paramRegister = if(registerOverride==null) sub.asmParameterRegisters[parameter.index] else RegisterOrStatusflag(registerOverride, null)
+        val paramRegister = if(registerOverride==null) sub.parameters[parameter.index].second else RegisterOrStatusflag(registerOverride, null)
         val statusflag = paramRegister.statusflag
         val register = paramRegister.registerOrPair
         val requiredDt = parameter.value.type
-        if(requiredDt!=valueDt) {
-            if(valueDt largerThan requiredDt)
+        if(requiredDt!=value.type) {
+            if(value.type largerThan requiredDt)
                 throw AssemblyError("can only convert byte values to word param types")
         }
         if (statusflag!=null) {
-            if(requiredDt!=valueDt)
+            if(requiredDt!=value.type)
                 throw AssemblyError("for statusflag, byte value is required")
             if (statusflag == Statusflag.Pc) {
                 // this param needs to be set last, right before the jsr
                 // for now, this is already enforced on the subroutine definition by the Ast Checker
                 when(value) {
-                    is NumericLiteral -> {
+                    is PtNumber -> {
                         val carrySet = value.number.toInt() != 0
                         asmgen.out(if(carrySet) "  sec" else "  clc")
                     }
-                    is IdentifierReference -> {
+                    is PtIdentifier -> {
                         val sourceName = asmgen.asmVariableName(value)
                         asmgen.out("""
                             pha
@@ -202,10 +194,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
         else {
             // via register or register pair
             register!!
-            if(requiredDt largerThan valueDt) {
+            if(requiredDt largerThan value.type) {
                 // we need to sign extend the source, do this via temporary word variable
                 asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
-                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", valueDt)
+                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register)
             } else {
                 val target: AsmAssignTarget =
@@ -215,9 +207,10 @@ internal class FunctionCallAsmGen(private val program: Program, private val asmg
                         val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
                         AsmAssignTarget.fromRegisters(register, signed, sub, asmgen)
                     }
-                val src = if(valueDt in PassByReferenceDatatypes) {
-                    if(value is IdentifierReference) {
-                        val addr = AddressOf(value, Position.DUMMY)
+                val src = if(value.type in PassByReferenceDatatypes) {
+                    if(value is PtIdentifier) {
+                        val addr = PtAddressOf(Position.DUMMY)
+                        addr.add(value)
                         AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
                     } else {
                         AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)

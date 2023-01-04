@@ -1,24 +1,20 @@
 package prog8.codegen.cpu6502.assignment
 
-import prog8.ast.Program
-import prog8.ast.expressions.*
-import prog8.ast.statements.*
+import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.codegen.cpu6502.AsmGen
-import prog8.codegen.cpu6502.VariableAllocator
-import prog8.compiler.builtinFunctionReturnType
+import prog8.codegen.cpu6502.*
 
 
-internal class AssignmentAsmGen(private val program: Program, 
+internal class AssignmentAsmGen(private val program: PtProgram,
                                 private val asmgen: AsmGen, 
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
-    fun translate(assignment: Assignment) {
+    fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
 
-        val assign = AsmAssignment(source, target, assignment.isAugmentable, program.memsizer, assignment.position)
+        val assign = AsmAssignment(source, target, assignment.isInplaceAssign, program.memsizer, assignment.position)
         target.origAssign = assign
 
         if(assign.isAugmentable)
@@ -64,17 +60,16 @@ internal class AssignmentAsmGen(private val program: Program,
             SourceStorageKind.ARRAY -> {
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
-                val arrayVarName = asmgen.asmVariableName(value.arrayvar)
+                val arrayVarName = asmgen.asmVariableName(value.variable)
 
-                val arrayVarDecl = value.arrayvar.targetVarDecl(program)!!
-                if(arrayVarDecl.datatype==DataType.UWORD) {
+                if(value.variable.type==DataType.UWORD) {
                     // indexing a pointer var instead of a real array or string
                     if(elementDt !in ByteDatatypes)
                         throw AssemblyError("non-array var indexing requires bytes dt")
-                    if(value.inferType(program) isnot DataType.UBYTE)
+                    if(value.type != DataType.UBYTE)
                         throw AssemblyError("non-array var indexing requires bytes index")
                     asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                    if(asmgen.isZpVar(value.arrayvar)) {
+                    if(asmgen.isZpVar(value.variable)) {
                         asmgen.out("  lda  ($arrayVarName),y")
                     } else {
                         asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
@@ -84,7 +79,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     return
                 }
 
-                val constIndex = value.indexer.constIndex()
+                val constIndex = value.index.asConstInteger()
                 if (constIndex!=null) {
                     // constant array index value
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)
@@ -133,29 +128,29 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             SourceStorageKind.MEMORY -> {
-                fun assignViaExprEval(expression: Expression) {
+                fun assignViaExprEval(expression: PtExpression) {
                     assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD, assign.target.scope)
                     asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                     assignRegisterByte(assign.target, CpuRegister.A)
                 }
 
                 val value = assign.source.memory!!
-                when (value.addressExpression) {
-                    is NumericLiteral -> {
-                        val address = (value.addressExpression as NumericLiteral).number.toUInt()
+                when (value.address) {
+                    is PtNumber -> {
+                        val address = (value.address as PtNumber).number.toUInt()
                         assignMemoryByte(assign.target, address, null)
                     }
-                    is IdentifierReference -> {
-                        assignMemoryByte(assign.target, null, value.addressExpression as IdentifierReference)
+                    is PtIdentifier -> {
+                        assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
-                    is BinaryExpression -> {
-                        if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
+                    is PtBinaryExpression -> {
+                        if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
                         } else {
-                            assignViaExprEval(value.addressExpression)
+                            assignViaExprEval(value.address)
                         }
                     }
-                    else -> assignViaExprEval(value.addressExpression)
+                    else -> assignViaExprEval(value.address)
                 }
             }
             SourceStorageKind.EXPRESSION -> {
@@ -173,17 +168,17 @@ internal class AssignmentAsmGen(private val program: Program,
 
     private fun assignExpression(assign: AsmAssignment) {
         when(val value = assign.source.expression!!) {
-            is AddressOf -> {
+            is PtAddressOf -> {
                 val sourceName = asmgen.asmSymbolName(value.identifier)
                 assignAddressOf(assign.target, sourceName)
             }
-            is NumericLiteral -> throw AssemblyError("source kind should have been literalnumber")
-            is IdentifierReference -> throw AssemblyError("source kind should have been variable")
-            is ArrayIndexedExpression -> throw AssemblyError("source kind should have been array")
-            is DirectMemoryRead -> throw AssemblyError("source kind should have been memory")
-            is TypecastExpression -> assignTypeCastedValue(assign.target, value.type, value.expression, value)
-            is FunctionCallExpression -> {
-                val sub = value.target.targetSubroutine(program)!!
+            is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
+            is PtIdentifier -> throw AssemblyError("source kind should have been variable")
+            is PtArrayIndexer -> throw AssemblyError("source kind should have been array")
+            is PtMemoryByte -> throw AssemblyError("source kind should have been memory")
+            is PtTypeCast -> assignTypeCastedValue(assign.target, value.type, value.value, value)
+            is PtFunctionCall -> {
+                val sub = value.targetSubroutine(program)!!
                 asmgen.saveXbeforeCall(value)
                 asmgen.translateFunctionCall(value, true)
                 val returnValue = sub.returntypes.zip(sub.asmReturnvaluesRegisters).singleOrNull { it.second.registerOrPair!=null } ?:
@@ -245,14 +240,11 @@ internal class AssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            is BuiltinFunctionCall -> {
+            is PtBuiltinFunctionCall -> {
                 asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
-                    val returntype = builtinFunctionReturnType(value.name)
-                    if(!returntype.isKnown)
-                        throw AssemblyError("unknown dt")
-                    when(returntype.getOr(DataType.UNDEFINED)) {
+                    when(builtinFunctionReturnType(value.name)) {
                         in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
                         in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                         DataType.STR -> {
@@ -279,13 +271,13 @@ internal class AssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            is PrefixExpression -> {
+            is PtPrefix -> {
                 if(assign.target.array==null) {
                     // First assign the value to the target then apply the operator in place on the target.
                     // This saves a temporary variable
                     translateNormalAssignment(
                         AsmAssignment(
-                            AsmAssignSource.fromAstSource(value.expression, program, asmgen),
+                            AsmAssignSource.fromAstSource(value.value, program, asmgen),
                             assign.target,
                             false, program.memsizer, assign.position
                         )
@@ -301,11 +293,11 @@ internal class AssignmentAsmGen(private val program: Program,
                     assignPrefixedExpressionToArrayElt(assign)
                 }
             }
-            is ContainmentCheck -> {
+            is PtContainmentCheck -> {
                 containmentCheckIntoA(value)
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
-            is BinaryExpression -> {
+            is PtBinaryExpression -> {
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
@@ -318,7 +310,7 @@ internal class AssignmentAsmGen(private val program: Program,
     }
 
     internal fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment) {
-        require(assign.source.expression is PrefixExpression)
+        require(assign.source.expression is PtPrefix)
         if(assign.source.datatype==DataType.FLOAT) {
             // floatarray[x] = -value   ... just use FAC1 to calculate the expression into and then store that back into the array.
             assignExpressionToRegister(assign.source.expression, RegisterOrPair.FAC1, true)
@@ -350,9 +342,9 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun attemptAssignOptimizedBinexpr(expr: BinaryExpression, assign: AsmAssignment): Boolean {
+    private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         if(expr.operator in ComparisonOperators) {
-            if(expr.right.constValue(program)?.number == 0.0) {
+            if(expr.right.asConstInteger() == 0) {
                 if(expr.operator == "==" || expr.operator=="!=") {
                     when(assign.target.datatype) {
                         in ByteDatatypes -> if(attemptAssignToByteCompareZero(expr, assign)) return true
@@ -365,30 +357,36 @@ internal class AssignmentAsmGen(private val program: Program,
             val origTarget = assign.target.origAstTarget
             if(origTarget!=null) {
                 assignConstantByte(assign.target, 0)
-                val assignTrue = AnonymousScope(mutableListOf(
-                    Assignment(origTarget, NumericLiteral.fromBoolean(true, assign.position), AssignmentOrigin.ASMGEN, assign.position)
-                ), assign.position)
-                val assignFalse = AnonymousScope(mutableListOf(), assign.position)
-                val ifelse = IfElse(expr.copy(), assignTrue, assignFalse, assign.position)
-                ifelse.linkParents(expr)
+                val assignTrue = PtNodeGroup()
+                val assignment = PtAssignment(assign.position)
+                assignment.add(origTarget)
+                assignment.add(PtNumber.fromBoolean(true, assign.position))
+                assignTrue.add(assignment)
+                val assignFalse = PtNodeGroup()
+                val ifelse = PtIfElse(assign.position)
+                val exprClone = arrayOf(expr).clone()[0]
+                require(exprClone !== expr) // TODO remove check if it works
+                ifelse.add(expr)
+                ifelse.add(assignTrue)
+                ifelse.add(assignFalse)
                 asmgen.translate(ifelse)
                 return true
             }
         }
 
-        if(!expr.inferType(program).isInteger)
+        if(expr.type !in IntegerDatatypes)
             return false
 
         fun simpleLogicalBytesExpr() {
             // both left and right expression operands are simple.
-            if (expr.right is NumericLiteral || expr.right is IdentifierReference)
+            if (expr.right is PtNumber || expr.right is PtIdentifier)
                 assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is NumericLiteral || expr.left is IdentifierReference)
+            else if (expr.left is PtNumber || expr.left is PtIdentifier)
                 assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
             else {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSubroutine)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSub())
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 when (expr.operator) {
                     "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
@@ -402,15 +400,15 @@ internal class AssignmentAsmGen(private val program: Program,
 
         fun simpleLogicalWordsExpr() {
             // both left and right expression operands are simple.
-            if (expr.right is NumericLiteral || expr.right is IdentifierReference)
+            if (expr.right is PtNumber || expr.right is PtIdentifier)
                 assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is NumericLiteral || expr.left is IdentifierReference)
+            else if (expr.left is PtNumber || expr.left is PtIdentifier)
                 assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
             else {
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSubroutine)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSub())
                 when (expr.operator) {
                     "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
                     "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
@@ -422,14 +420,14 @@ internal class AssignmentAsmGen(private val program: Program,
         }
 
         if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
-            if (expr.left.inferType(program).isBytes && expr.right.inferType(program).isBytes) {
-                if (expr.right.isSimple) {
+            if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+                if (expr.right.isSimple()) {
                     simpleLogicalBytesExpr()
                     return true
                 }
             }
-            if (expr.left.inferType(program).isWords && expr.right.inferType(program).isWords) {
-                if (expr.right.isSimple) {
+            if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if (expr.right.isSimple()) {
                     simpleLogicalWordsExpr()
                     return true
                 }
@@ -439,11 +437,11 @@ internal class AssignmentAsmGen(private val program: Program,
 
         if(expr.operator == "==" || expr.operator == "!=") {
             // expression datatype is BOOL (ubyte) but operands can be anything
-            if(expr.left.inferType(program).isBytes && expr.right.inferType(program).isBytes &&
-                    expr.left.isSimple && expr.right.isSimple) {
+            if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes &&
+                    expr.left.isSimple() && expr.right.isSimple()) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSubroutine)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingSub())
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 if(expr.operator=="==") {
                     asmgen.out("""
@@ -464,12 +462,12 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
                 assignRegisterByte(assign.target, CpuRegister.A)
                 return true
-            } else if(expr.left.inferType(program).isWords && expr.right.inferType(program).isWords &&
-                    expr.left.isSimple && expr.right.isSimple) {
+            } else if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes &&
+                    expr.left.isSimple() && expr.right.isSimple()) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSubroutine)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingSub())
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 if(expr.operator=="==") {
@@ -499,12 +497,12 @@ internal class AssignmentAsmGen(private val program: Program,
             return false
         }
         else if(expr.operator=="+" || expr.operator=="-") {
-            val dt = expr.inferType(program).getOrElse { throw AssemblyError("invalid dt") }
+            val dt = expr.type
             val left = expr.left
             val right = expr.right
             if(dt in ByteDatatypes) {
                 when (right) {
-                    is IdentifierReference -> {
+                    is PtIdentifier -> {
                         assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
                         val symname = asmgen.asmVariableName(right)
                         if(expr.operator=="+")
@@ -514,7 +512,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         assignRegisterByte(assign.target, CpuRegister.A)
                         return true
                     }
-                    is NumericLiteral -> {
+                    is PtNumber -> {
                         assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
                         if(expr.operator=="+")
                             asmgen.out("  clc |  adc  #${right.number.toHex()}")
@@ -527,7 +525,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             } else if(dt in WordDatatypes) {
                 when (right) {
-                    is AddressOf -> {
+                    is PtAddressOf -> {
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                         val symbol = asmgen.asmVariableName(right.identifier)
                         if(expr.operator=="+")
@@ -551,7 +549,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }
-                    is IdentifierReference -> {
+                    is PtIdentifier -> {
                         val symname = asmgen.asmVariableName(right)
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                         if(expr.operator=="+")
@@ -575,7 +573,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }
-                    is NumericLiteral -> {
+                    is PtNumber -> {
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                         if(expr.operator=="+") {
                             asmgen.out("""
@@ -599,10 +597,10 @@ internal class AssignmentAsmGen(private val program: Program,
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }
-                    is TypecastExpression -> {
-                        val castedValue = right.expression
-                        if(right.type in WordDatatypes && castedValue.inferType(program).isBytes) {
-                            if(castedValue is IdentifierReference) {
+                    is PtTypeCast -> {
+                        val castedValue = right.value
+                        if(right.type in WordDatatypes && castedValue.type in ByteDatatypes) {
+                            if(castedValue is PtIdentifier) {
                                 val castedSymname = asmgen.asmVariableName(castedValue)
                                 assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                                 if(expr.operator=="+")
@@ -629,11 +627,11 @@ internal class AssignmentAsmGen(private val program: Program,
             }
         }
         else if(expr.operator=="<<" || expr.operator==">>") {
-            val shifts = expr.right.constValue(program)?.number?.toInt()
+            val shifts = expr.right.asConstInteger()
             if(shifts!=null) {
-                val dt = expr.left.inferType(program)
-                if(dt.isBytes && shifts in 0..7) {
-                    val signed = dt istype DataType.BYTE
+                val dt = expr.left.type
+                if(dt in ByteDatatypes && shifts in 0..7) {
+                    val signed = dt == DataType.BYTE
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                     if(expr.operator=="<<") {
                         repeat(shifts) {
@@ -650,8 +648,8 @@ internal class AssignmentAsmGen(private val program: Program,
                     }
                     assignRegisterByte(assign.target, CpuRegister.A)
                     return true
-                } else if(dt.isWords && shifts in 0..7) {
-                    val signed = dt istype DataType.WORD
+                } else if(dt in WordDatatypes && shifts in 0..7) {
+                    val signed = dt == DataType.WORD
                     assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
                     if(expr.operator=="<<") {
                         if(shifts>0) {
@@ -683,11 +681,11 @@ internal class AssignmentAsmGen(private val program: Program,
         return false
     }
 
-    private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: Expression, operator: String, right: Expression) {
+    private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         assignExpressionToRegister(left, RegisterOrPair.A, false)
         val operand = when(right) {
-            is NumericLiteral -> "#${right.number.toHex()}"
-            is IdentifierReference -> asmgen.asmSymbolName(right)
+            is PtNumber -> "#${right.number.toHex()}"
+            is PtIdentifier -> asmgen.asmSymbolName(right)
             else -> throw AssemblyError("wrong right operand type")
         }
         when (operator) {
@@ -699,10 +697,10 @@ internal class AssignmentAsmGen(private val program: Program,
         assignRegisterByte(target, CpuRegister.A)
     }
 
-    private fun assignLogicalWithSimpleRightOperandWord(target: AsmAssignTarget, left: Expression, operator: String, right: Expression) {
+    private fun assignLogicalWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         assignExpressionToRegister(left, RegisterOrPair.AY, false)
         when(right) {
-            is NumericLiteral -> {
+            is PtNumber -> {
                 val number = right.number.toHex()
                 when (operator) {
                     "&", "and" -> asmgen.out("  and  #<$number |  pha |  tya |  and  #>$number |  tay |  pla")
@@ -711,7 +709,7 @@ internal class AssignmentAsmGen(private val program: Program,
                     else -> throw AssemblyError("invalid operator")
                 }
             }
-            is IdentifierReference -> {
+            is PtIdentifier -> {
                 val name = asmgen.asmSymbolName(right)
                 when (operator) {
                     "&", "and" -> asmgen.out("  and  $name |  pha |  tya |  and  $name+1 |  tay |  pla")
@@ -725,10 +723,10 @@ internal class AssignmentAsmGen(private val program: Program,
         assignRegisterpairWord(target, RegisterOrPair.AY)
     }
 
-    private fun attemptAssignToByteCompareZero(expr: BinaryExpression, assign: AsmAssignment): Boolean {
+    private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when (expr.operator) {
             "==" -> {
-                when(val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("invalid dt") }) {
+                when(val dt = expr.left.type) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("""
@@ -765,7 +763,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
             }
             "!=" -> {
-                when(val dt = expr.left.inferType(program).getOrElse { throw AssemblyError("invalid dt") }) {
+                when(val dt = expr.left.type) {
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("  beq  + |  lda  #1")
@@ -807,65 +805,20 @@ internal class AssignmentAsmGen(private val program: Program,
             assignStackValue(assign.target)
     }
 
-    private fun containmentCheckIntoA(containment: ContainmentCheck) {
-        val elementDt = containment.element.inferType(program)
-        val variable = (containment.iterable as? IdentifierReference)?.targetVarDecl(program)
+    private fun containmentCheckIntoA(containment: PtContainmentCheck) {
+        val elementDt = containment.element.type
+        val variable = (containment.iterable as? PtIdentifier)?.targetVarDecl(program)
             ?: throw AssemblyError("invalid containment iterable type")
 
-        if(variable.origin!=VarDeclOrigin.USERCODE) {
-            when(variable.datatype) {
-                DataType.STR -> {
-                    require(elementDt.isBytes) { "must be byte string ${variable.position}" }
-                    val stringVal = variable.value as StringLiteral
-                    val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-                    assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                    asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
-                    asmgen.restoreRegisterLocal(CpuRegister.A)
-                    asmgen.out("  ldy  #${stringVal.value.length}")
-                    asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                    return
-                }
-                DataType.ARRAY_F -> {
-                    // require(elementDt istype DataType.FLOAT)
-                    throw AssemblyError("containment check of floats not supported")
-                }
-                in ArrayDatatypes -> {
-                    require(elementDt.isInteger) { "must be integer array ${variable.position}" }
-                    val arrayVal = variable.value as ArrayLiteral
-                    val dt = elementDt.getOr(DataType.UNDEFINED)
-                    val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-                    when(dt) {
-                        in ByteDatatypes -> {
-                            assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                            asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
-                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
-                            asmgen.restoreRegisterLocal(CpuRegister.A)
-                            asmgen.out("  ldy  #${arrayVal.value.size}")
-                            asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                        }
-                        in WordDatatypes -> {
-                            assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
-                            assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
-                            asmgen.out("  ldy  #${arrayVal.value.size}")
-                            asmgen.out("  jsr  prog8_lib.containment_wordarray")
-                        }
-                        else -> throw AssemblyError("invalid dt")
-                    }
-                    return
-                }
-                else -> throw AssemblyError("invalid dt")
-            }
-        }
-        val varname = asmgen.asmVariableName(containment.iterable as IdentifierReference)
-        when(variable.datatype) {
+        val varname = asmgen.asmVariableName(containment.iterable)
+        when(variable.type) {
             DataType.STR -> {
                 // use subroutine
-                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
+                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSub()!!)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSub(), "P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
-                val stringVal = variable.value as StringLiteral
+                val stringVal = variable.value as PtString
                 asmgen.out("  ldy  #${stringVal.value.length}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
@@ -874,19 +827,19 @@ internal class AssignmentAsmGen(private val program: Program,
                 throw AssemblyError("containment check of floats not supported")
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                val numElements = variable.arraysize!!.constIndex()!!
-                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt istype DataType.BYTE)
-                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSubroutine!!)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W1"), varname)
+                val numElements = variable.arraySize!!
+                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
+                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingSub()!!)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSub(), "P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val numElements = variable.arraysize!!.constIndex()!!
-                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt.getOr(DataType.UNDEFINED), containment.definingSubroutine)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSubroutine, "P8ZP_SCRATCH_W2"), varname)
+                val numElements = variable.arraySize!!
+                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt, containment.definingSub())
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingSub(), "P8ZP_SCRATCH_W2"), varname)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
                 return
@@ -913,14 +866,13 @@ internal class AssignmentAsmGen(private val program: Program,
         assignRegisterByte(target, CpuRegister.A)
     }
 
-    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: Expression, origTypeCastExpression: TypecastExpression) {
-        val valueIDt = value.inferType(program)
-        val valueDt = valueIDt.getOrElse { throw AssemblyError("unknown dt") }
+    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: PtExpression, origTypeCastExpression: PtTypeCast) {
+        val valueDt = value.type
         if(valueDt==targetDt)
             throw AssemblyError("type cast to identical dt should have been removed")
 
         when(value) {
-            is IdentifierReference -> {
+            is PtIdentifier -> {
                 if(targetDt in WordDatatypes) {
                     if(valueDt==DataType.UBYTE) {
                         assignVariableUByteIntoWord(target, value)
@@ -932,47 +884,47 @@ internal class AssignmentAsmGen(private val program: Program,
                     }
                 }
             }
-            is DirectMemoryRead -> {
+            is PtMemoryByte -> {
                 if(targetDt in WordDatatypes) {
 
-                    fun assignViaExprEval(addressExpression: Expression) {
+                    fun assignViaExprEval(addressExpression: PtExpression) {
                         asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                     }
 
-                    when (value.addressExpression) {
-                        is NumericLiteral -> {
-                            val address = (value.addressExpression as NumericLiteral).number.toUInt()
+                    when (value.address) {
+                        is PtNumber -> {
+                            val address = (value.address as PtNumber).number.toUInt()
                             assignMemoryByteIntoWord(target, address, null)
                         }
-                        is IdentifierReference -> {
-                            assignMemoryByteIntoWord(target, null, value.addressExpression as IdentifierReference)
+                        is PtIdentifier -> {
+                            assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
                         }
-                        is BinaryExpression -> {
-                            if(asmgen.tryOptimizedPointerAccessWithA(value.addressExpression as BinaryExpression, false)) {
+                        is PtBinaryExpression -> {
+                            if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
-                                assignViaExprEval(value.addressExpression)
+                                assignViaExprEval(value.address)
                             }
                         }
                         else -> {
-                            assignViaExprEval(value.addressExpression)
+                            assignViaExprEval(value.address)
                         }
                     }
                     return
                 }
             }
-            is NumericLiteral -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            is PtNumber -> throw AssemblyError("a cast of a literal value should have been const-folded away")
             else -> {}
         }
 
 
         // special case optimizations
         if(target.kind == TargetStorageKind.VARIABLE) {
-            if(value is IdentifierReference && valueDt != DataType.UNDEFINED)
+            if(value is PtIdentifier && valueDt != DataType.UNDEFINED)
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {
@@ -998,7 +950,7 @@ internal class AssignmentAsmGen(private val program: Program,
         }
 
         if(valueDt in WordDatatypes && origTypeCastExpression.type == DataType.UBYTE) {
-            val parentTc = origTypeCastExpression.parent as? TypecastExpression
+            val parentTc = origTypeCastExpression.parent as? PtTypeCast
             if(parentTc!=null && parentTc.type==DataType.UWORD) {
                 // typecast a word value to ubyte and directly back to uword
                 // generate code for lsb(value) here instead of the ubyte typecast
@@ -1111,25 +1063,25 @@ internal class AssignmentAsmGen(private val program: Program,
             when(valueDt) {
                 DataType.UBYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.Y, false)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSub()!!)
                     asmgen.out("  jsr  floats.FREADUY")
                     asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.BYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, true)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSub()!!)
                     asmgen.out("  jsr  floats.FREADSA")
                     asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.UWORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, false)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSub()!!)
                     asmgen.out("  jsr  floats.GIVUAYFAY")
                     asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.WORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSubroutine!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingSub()!!)
                     asmgen.out("  jsr  floats.GIVAYFAY")
                     asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
@@ -1147,9 +1099,9 @@ internal class AssignmentAsmGen(private val program: Program,
         asmgen.assignExpressionTo(origTypeCastExpression, target)
     }
 
-    private fun assignCastViaLsbFunc(value: Expression, target: AsmAssignTarget) {
-        val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), value.position), mutableListOf(value), value.position)
-        lsb.linkParents(value.parent)
+    private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
+        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
+        lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, target, false, program.memsizer, value.position)
         translateNormalAssignment(assign)
@@ -1175,7 +1127,7 @@ internal class AssignmentAsmGen(private val program: Program,
         if(sourceDt == targetDt)
             throw AssemblyError("typecast to identical type")
 
-        // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
+        // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
             DataType.UBYTE -> {
                 when(targetDt) {
@@ -1290,7 +1242,7 @@ internal class AssignmentAsmGen(private val program: Program,
         if(sourceDt == targetDt)
             throw AssemblyError("typecast to identical type")
 
-        // also see: ExpressionAsmGen,   fun translateExpression(typecast: TypecastExpression)
+        // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
             DataType.UBYTE -> {
                 when(targetDt) {
@@ -1793,11 +1745,11 @@ internal class AssignmentAsmGen(private val program: Program,
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1""")
-                val constIndex = target.array!!.indexer.constIndex()
+                val constIndex = target.array!!.index.asConstInteger()
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out("  jsr  floats.set_array_float_from_fac1")
@@ -1829,11 +1781,11 @@ internal class AssignmentAsmGen(private val program: Program,
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
                     sty  P8ZP_SCRATCH_W2+1""")
-                val constIndex = target.array!!.indexer.constIndex()
+                val constIndex = target.array!!.index.asConstInteger()
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -1872,11 +1824,11 @@ internal class AssignmentAsmGen(private val program: Program,
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
                     sty  P8ZP_SCRATCH_W2+1""")
-                val constIndex = target.array!!.indexer.constIndex()
+                val constIndex = target.array!!.index.asConstInteger()
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -1906,14 +1858,14 @@ internal class AssignmentAsmGen(private val program: Program,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
                     // assigning an indexed pointer var
                     if (target.constArrayIndexValue==0u) {
                         asmgen.out("  lda  $sourceName")
-                        asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                        asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                        if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                        if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
                             asmgen.out("  lda  $sourceName |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -1961,7 +1913,7 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun assignVariableByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference) {
+    private fun assignVariableByteIntoWord(wordtarget: AsmAssignTarget, bytevar: PtIdentifier) {
         val sourceName = asmgen.asmVariableName(bytevar)
         when (wordtarget.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -2042,7 +1994,7 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun assignVariableUByteIntoWord(wordtarget: AsmAssignTarget, bytevar: IdentifierReference) {
+    private fun assignVariableUByteIntoWord(wordtarget: AsmAssignTarget, bytevar: PtIdentifier) {
         val sourceName = asmgen.asmVariableName(bytevar)
         when(wordtarget.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -2129,7 +2081,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         CpuRegister.X -> asmgen.out(" txa")
                         CpuRegister.Y -> asmgen.out(" tya")
                     }
-                    val indexVar = target.array!!.indexer.indexExpr as IdentifierReference
+                    val indexVar = target.array!!.index as PtIdentifier
                     asmgen.out(" ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
                 }
             }
@@ -2448,14 +2400,14 @@ internal class AssignmentAsmGen(private val program: Program,
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                    if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
                         // assigning an indexed pointer var
                         if (target.constArrayIndexValue==0u) {
                             asmgen.out("  lda  #0")
-                            asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                            asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
                         } else {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                            if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                            if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
                                 asmgen.out("  lda  #0 |  sta  (${target.asmVarname}),y")
                             } else {
                                 asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -2504,14 +2456,14 @@ internal class AssignmentAsmGen(private val program: Program,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.origAstTarget?.arrayindexed?.arrayvar?.targetVarDecl(program)?.datatype==DataType.UWORD) {
+                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
                     // assigning an indexed pointer var
                     if (target.constArrayIndexValue==0u) {
                         asmgen.out("  lda  #${byte.toHex()}")
-                        asmgen.storeAIntoPointerVar(target.origAstTarget.arrayindexed!!.arrayvar)
+                        asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                        if (asmgen.isZpVar(target.origAstTarget.arrayindexed!!.arrayvar)) {
+                        if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
                             asmgen.out("  lda  #${byte.toHex()} |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -2585,7 +2537,7 @@ internal class AssignmentAsmGen(private val program: Program,
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
-                    val constIndex = target.array!!.indexer.constIndex()
+                    val constIndex = target.array!!.index.asConstInteger()
                     if (constIndex!=null) {
                         val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -2606,7 +2558,7 @@ internal class AssignmentAsmGen(private val program: Program,
                                 sta  ${target.asmVarname}+$indexValue+4
                             """)
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
+                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
@@ -2647,7 +2599,7 @@ internal class AssignmentAsmGen(private val program: Program,
                 }
                 TargetStorageKind.ARRAY -> {
                     val arrayVarName = target.asmVarname
-                    val constIndex = target.array!!.indexer.constIndex()
+                    val constIndex = target.array!!.index.asConstInteger()
                     if (constIndex!=null) {
                         val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
                         asmgen.out("""
@@ -2659,7 +2611,7 @@ internal class AssignmentAsmGen(private val program: Program,
                             ldy  #>($arrayVarName+$indexValue)
                             jsr  floats.copy_float""")
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.indexer.indexExpr as IdentifierReference)
+                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  P8ZP_SCRATCH_W1
@@ -2691,7 +2643,7 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun assignMemoryByte(target: AsmAssignTarget, address: UInt?, identifier: IdentifierReference?) {
+    private fun assignMemoryByte(target: AsmAssignTarget, address: UInt?, identifier: PtIdentifier?) {
         if (address != null) {
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -2775,7 +2727,7 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun assignMemoryByteIntoWord(wordtarget: AsmAssignTarget, address: UInt?, identifier: IdentifierReference?) {
+    private fun assignMemoryByteIntoWord(wordtarget: AsmAssignTarget, address: UInt?, identifier: PtIdentifier?) {
         if (address != null) {
             when(wordtarget.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -2838,13 +2790,13 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    private fun storeRegisterAInMemoryAddress(memoryAddress: DirectMemoryWrite) {
-        val addressExpr = memoryAddress.addressExpression
-        val addressLv = addressExpr as? NumericLiteral
+    private fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte) {
+        val addressExpr = memoryAddress.address
+        val addressLv = addressExpr as? PtNumber
 
         fun storeViaExprEval() {
             when(addressExpr) {
-                is NumericLiteral, is IdentifierReference -> {
+                is PtNumber, is PtIdentifier -> {
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
                     asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }
@@ -2862,10 +2814,10 @@ internal class AssignmentAsmGen(private val program: Program,
             addressLv != null -> {
                 asmgen.out("  sta  ${addressLv.number.toHex()}")
             }
-            addressExpr is IdentifierReference -> {
+            addressExpr is PtIdentifier -> {
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
-            addressExpr is BinaryExpression -> {
+            addressExpr is PtBinaryExpression -> {
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }
@@ -2873,15 +2825,15 @@ internal class AssignmentAsmGen(private val program: Program,
         }
     }
 
-    internal fun assignExpressionToRegister(expr: Expression, register: RegisterOrPair, signed: Boolean) {
+    internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, signed, null, asmgen)
         val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
-    internal fun assignExpressionToVariable(expr: Expression, asmVarName: String, dt: DataType, scope: Subroutine?) {
-        if(expr.inferType(program) istype DataType.FLOAT && dt!=DataType.FLOAT) {
+    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType, scope: IPtSubroutine?) {
+        if(expr.type==DataType.FLOAT && dt!=DataType.FLOAT) {
             throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)

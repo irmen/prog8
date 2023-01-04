@@ -22,7 +22,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         allocateZeropageVariables()
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars // TODO as dotted string instead of list?
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]

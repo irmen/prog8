@@ -741,23 +741,6 @@ class Subroutine(override val name: String,
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
 
-    fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun shouldSaveX() = CpuRegister.X in asmClobbers || regXasResult() || regXasParam()
-
-    class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)
-
-    fun shouldKeepA(): KeepAresult {
-        // determine if A's value should be kept when preparing for calling the subroutine, and when returning from it
-        if(!isAsmSubroutine)
-            return KeepAresult(saveOnEntry = false, saveOnReturn = false)
-
-        // it seems that we never have to save A when calling? will be loaded correctly after setup.
-        // but on return it depends on wether the routine returns something in A.
-        val saveAonReturn = asmReturnvaluesRegisters.any { it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.AX }
-        return KeepAresult(false, saveAonReturn)
-    }
-
     // code to provide the ability to reference asmsub parameters via qualified name:
     private val asmParamsDecls = mutableMapOf<String, VarDecl>()
 

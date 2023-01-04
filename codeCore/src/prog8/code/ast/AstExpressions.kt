@@ -43,6 +43,10 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             else -> false
         }
     }
+
+    infix fun isSameAs(target: PtAssignTarget): Boolean {
+        TODO()
+    }
 }
 
 class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
@@ -66,6 +70,8 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
             return false
         return type==other.type && children == other.children
     }
+
+    val size: Int = children.size
 }
 
 
@@ -140,6 +146,11 @@ class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) 
 
 
 class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
+
+    companion object {
+        fun fromBoolean(bool: Boolean, position: Position): PtNumber =
+            PtNumber(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
+    }
 
     init {
         if(type==DataType.BOOL)

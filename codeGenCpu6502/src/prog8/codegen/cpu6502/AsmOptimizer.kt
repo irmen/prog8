@@ -1,16 +1,13 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.Program
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.VarDecl
-import prog8.ast.statements.VarDeclType
+import prog8.code.ast.PtProgram
 import prog8.code.core.IMachineDefinition
 
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
-internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, program: Program): Int {
+internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, program: PtProgram): Int {
 
     var numberOfOptimizations = 0
 
@@ -129,7 +126,7 @@ private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<S
     return mods
 }
 
-private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: PtProgram): List<Modification> {
 
     // Optimize sequential assignments of the same value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
@@ -327,7 +324,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
     return mods
 }
 
-private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: PtProgram): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -369,7 +366,7 @@ private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<
     return mods
 }
 
-private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: PtProgram): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
@@ -439,7 +436,7 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>,
 
 private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_\.$]*)""")
 
-private fun getAddressArg(line: String, program: Program): UInt? {
+private fun getAddressArg(line: String, program: PtProgram): UInt? {
     val loadArg = line.trimStart().substring(3).trim()
     return when {
         loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
@@ -450,15 +447,7 @@ private fun getAddressArg(line: String, program: Program): UInt? {
             val identMatch = identifierRegex.find(loadArg)
             if(identMatch!=null) {
                 val identifier = identMatch.value
-                val decl = program.toplevelModule.lookup(identifier.split('.')) as? VarDecl
-                if(decl!=null) {
-                    when(decl.type){
-                        VarDeclType.VAR -> null
-                        VarDeclType.CONST,
-                        VarDeclType.MEMORY -> (decl.value as NumericLiteral).number.toUInt()
-                    }
-                }
-                else null
+                TODO("lookup symbol's value $identifier")
             } else null
         }
         else -> loadArg.substring(1).toUIntOrNull()

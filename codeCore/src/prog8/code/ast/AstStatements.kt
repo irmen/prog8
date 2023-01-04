@@ -3,6 +3,8 @@ package prog8.code.ast
 import prog8.code.core.*
 
 
+interface IPtSubroutine
+
 class PtAsmSub(
     name: String,
     val address: UInt?,
@@ -12,7 +14,7 @@ class PtAsmSub(
     val retvalRegisters: List<RegisterOrStatusflag>,
     val inline: Boolean,
     position: Position
-) : PtNamedNode(name, position) {
+) : PtNamedNode(name, position), IPtSubroutine {
     override fun printProperties() {
         print("$name  inline=$inline")
     }
@@ -25,7 +27,7 @@ class PtSub(
     val returntype: DataType?,
     val inline: Boolean,
     position: Position
-) : PtNamedNode(name, position) {
+) : PtNamedNode(name, position), IPtSubroutine {
     override fun printProperties() {
         print(name)
     }

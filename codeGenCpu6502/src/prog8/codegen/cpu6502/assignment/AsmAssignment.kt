@@ -1,13 +1,11 @@
 package prog8.codegen.cpu6502.assignment
 
-import prog8.ast.Program
-import prog8.ast.expressions.*
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.DirectMemoryWrite
-import prog8.ast.statements.Subroutine
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.asConstInteger
+import prog8.codegen.cpu6502.targetSubroutine
+import prog8.codegen.cpu6502.targetVarDecl
 
 
 internal enum class TargetStorageKind {
@@ -31,20 +29,20 @@ internal enum class SourceStorageKind {
 internal class AsmAssignTarget(val kind: TargetStorageKind,
                                private val asmgen: AsmGen,
                                val datatype: DataType,
-                               val scope: Subroutine?,
+                               val scope: IPtSubroutine?,
                                private val variableAsmName: String? = null,
-                               val array: ArrayIndexedExpression? = null,
-                               val memory: DirectMemoryWrite? = null,
+                               val array: PtArrayIndexer? = null,
+                               val memory: PtMemoryByte? = null,
                                val register: RegisterOrPair? = null,
-                               val origAstTarget: AssignTarget? = null
+                               val origAstTarget: PtAssignTarget? = null
                                )
 {
-    val constArrayIndexValue by lazy { array?.indexer?.constIndex()?.toUInt() }
+    val constArrayIndexValue by lazy { array?.index?.asConstInteger()?.toUInt() }
     val asmVarname: String by lazy {
         if (array == null)
             variableAsmName!!
         else
-            asmgen.asmVariableName(array.arrayvar)
+            asmgen.asmVariableName(array.variable)
     }
 
     lateinit var origAssign: AsmAssignment
@@ -55,10 +53,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
-        fun fromAstAssignment(assign: Assignment, program: Program, asmgen: AsmGen): AsmAssignTarget {
+        fun fromAstAssignment(assign: PtAssignment, program: PtProgram, asmgen: AsmGen): AsmAssignTarget {
             with(assign.target) {
-                val idt = inferType(program)
-                val dt = idt.getOrElse { throw AssemblyError("unknown dt") }
                 when {
                     identifier != null -> {
                         val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
@@ -69,19 +65,19 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                 if(reg.statusflag!=null)
                                     throw AssemblyError("can't assign value to processor statusflag directly")
                                 else
-                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, assign.definingSubroutine, register=reg.registerOrPair, origAstTarget = this)
+                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, assign.definingSub(), register=reg.registerOrPair, origAstTarget = this)
                             }
                         }
-                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, assign.definingSubroutine, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, assign.definingSub(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                     }
-                    arrayindexed != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, dt, assign.definingSubroutine, array = arrayindexed, origAstTarget =  this)
-                    memoryAddress != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, dt, assign.definingSubroutine, memory =  memoryAddress, origAstTarget =  this)
+                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, assign.definingSub(), array = array, origAstTarget =  this)
+                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, assign.definingSub(), memory =  memory, origAstTarget =  this)
                     else -> throw AssemblyError("weird target")
                 }
             }
         }
 
-        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: Subroutine?, asmgen: AsmGen): AsmAssignTarget =
+        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: IPtSubroutine?, asmgen: AsmGen): AsmAssignTarget =
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
@@ -112,69 +108,65 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 }
 
 internal class AsmAssignSource(val kind: SourceStorageKind,
-                               private val program: Program,
+                               private val program: PtProgram,
                                private val asmgen: AsmGen,
                                val datatype: DataType,
                                private val variableAsmName: String? = null,
-                               val array: ArrayIndexedExpression? = null,
-                               val memory: DirectMemoryRead? = null,
+                               val array: PtArrayIndexer? = null,
+                               val memory: PtMemoryByte? = null,
                                val register: RegisterOrPair? = null,
-                               val number: NumericLiteral? = null,
-                               val expression: Expression? = null
+                               val number: PtNumber? = null,
+                               val expression: PtExpression? = null
 )
 {
     val asmVarname: String
         get() = if(array==null)
             variableAsmName!!
         else
-            asmgen.asmVariableName(array.arrayvar)
+            asmgen.asmVariableName(array.variable)
 
     companion object {
-        fun fromAstSource(value: Expression, program: Program, asmgen: AsmGen): AsmAssignSource {
-            val cv = value.constValue(program)
+        fun fromAstSource(value: PtExpression, program: PtProgram, asmgen: AsmGen): AsmAssignSource {
+            val cv = value as? PtNumber
             if(cv!=null)
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
 
             return when(value) {
-                is NumericLiteral -> throw AssemblyError("should have been constant value")
-                is StringLiteral -> throw AssemblyError("string literal value should not occur anymore for asm generation")
-                is ArrayLiteral -> throw AssemblyError("array literal value should not occur anymore for asm generation")
-                is IdentifierReference -> {
+                is PtNumber -> throw AssemblyError("should have been constant value")
+                is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
+                is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
+                is PtIdentifier -> {
                     val parameter = value.targetVarDecl(program)?.subroutineParameter
                     if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
-                    val dt = value.inferType(program).getOr(DataType.UNDEFINED)
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
-                    if(dt == DataType.UWORD && varName.lowercase().startsWith("cx16.r")) {
+                    if(value.type == DataType.UWORD && varName.lowercase().startsWith("cx16.r")) {
                         val regStr = varName.lowercase().substring(5)
                         val reg = RegisterOrPair.valueOf(regStr.uppercase())
-                        AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, dt, register = reg)
+                        AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, value.type, register = reg)
                     } else {
-                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, dt, variableAsmName = varName)
+                        AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = varName)
                     }
                 }
-                is DirectMemoryRead -> {
+                is PtMemoryByte -> {
                     AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
                 }
-                is ArrayIndexedExpression -> {
-                    val dt = value.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
-                    AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, dt, array = value)
+                is PtArrayIndexer -> {
+                    AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
                 }
-                is BuiltinFunctionCall -> {
-                    val returnType = value.inferType(program)
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
+                is PtBuiltinFunctionCall -> {
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                 }
-                is FunctionCallExpression -> {
-                    val sub = value.target.targetSubroutine(program)!!
+                is PtFunctionCall -> {
+                    val sub = value.targetSubroutine(program)!!
                     val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
                 }
                 else -> {
-                    val returnType = value.inferType(program)
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType.getOrElse { throw AssemblyError("unknown dt") }, expression = value)
+                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                 }
             }
         }
