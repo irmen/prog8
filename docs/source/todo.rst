@@ -1,11 +1,24 @@
 TODO
 ====
 
-For next release
-^^^^^^^^^^^^^^^^
-- optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
-
+For next minor release
+^^^^^^^^^^^^^^^^^^^^^^
 ...
+
+For 9.0 major changes
+^^^^^^^^^^^^^^^^^^^^^
+- SEGMENTS.
+    - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
+    - block "golden" treated specially: every var in here will be allocated in the Golden ram area
+    - that block can only contain variables.
+    - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
+    - just initialize them yourself in start() if you need a non-zero value
+    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
+    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
+    - (need separate step in codegen and IR to write the "golden" variables)
+
+- rewrite 6502 codegen on Pt* ast and symboltable, instead of CompilerAst nodes. (work in codegen-on-new-ast branch)
+    - optimize "dotted string" comments again.
 
 
 Need help with
