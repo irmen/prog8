@@ -1244,7 +1244,7 @@ class IRCodeGen(
 
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
-            val flattenedName = it.definingSub()!!.scopedName + "." + it.name
+            val flattenedName = it.definingISub()!!.name + "." + it.name
             val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }

@@ -1,8 +1,7 @@
 package prog8.codegen.cpu6502
 
 import prog8.code.ast.*
-import prog8.code.core.CpuRegister
-import prog8.code.core.RegisterOrPair
+import prog8.code.core.*
 import kotlin.math.abs
 
 // TODO include this in the node class directly?
@@ -88,4 +87,26 @@ internal fun PtAsmSub.shouldKeepA(): KeepAresult {
 
 internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine? {
     TODO()
+}
+
+internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrStatusflag>> {
+    when(this) {
+        is PtAsmSub -> {
+            return returnTypes.zip(this.retvalRegisters)
+        }
+        is PtSub -> {
+            // for non-asm subroutines, determine the return registers based on the type of the return value
+            return if(returntype==null)
+                emptyList()
+            else {
+                val register = when (returntype!!) {
+                    in ByteDatatypes -> RegisterOrStatusflag(RegisterOrPair.A, null)
+                    in WordDatatypes -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                    DataType.FLOAT -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+                    else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                }
+                listOf(Pair(returntype!!, register))
+            }
+        }
+    }
 }

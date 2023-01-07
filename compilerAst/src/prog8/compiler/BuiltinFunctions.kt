@@ -14,75 +14,13 @@ import kotlin.math.sqrt
 
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
-class ReturnConvention(val dt: DataType?, val reg: RegisterOrPair?, val floatFac1: Boolean)
-class ParamConvention(val dt: DataType, val reg: RegisterOrPair?, val variable: Boolean)
-class CallConvention(val params: List<ParamConvention>, val returns: ReturnConvention) {
-    override fun toString(): String {
-        val paramConvs =  params.mapIndexed { index, it ->
-            when {
-                it.reg!=null -> "$index:${it.reg}"
-                it.variable -> "$index:variable"
-                else -> "$index:???"
-            }
-        }
-        val returnConv =
-            when {
-                returns.reg!=null -> returns.reg.toString()
-                returns.floatFac1 -> "floatFAC1"
-                else -> "<no returnvalue>"
-            }
-        return "CallConvention[" + paramConvs.joinToString() + " ; returns: $returnConv]"
-    }
-}
-
 class FParam(val name: String, val possibleDatatypes: Array<DataType>)
 
 class FSignature(val name: String,
                  val pure: Boolean,      // does it have side effects?
                  val parameters: List<FParam>,
                  val returnType: DataType?,
-                 val constExpressionFunc: ConstExpressionCaller? = null) {
-
-    fun callConvention(actualParamTypes: List<DataType>): CallConvention {
-        val returns: ReturnConvention = when (returnType) {
-            DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A, false)
-            DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY, false)
-            DataType.FLOAT -> ReturnConvention(returnType, null, true)
-            in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY, false)
-            null -> ReturnConvention(null, null, false)
-            else -> {
-                // return type depends on arg type
-                when (val paramType = actualParamTypes.first()) {
-                    DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
-                    DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ReturnConvention(paramType, null, true)
-                    in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                    else -> ReturnConvention(paramType, null, false)
-                }
-            }
-        }
-
-        return when {
-            actualParamTypes.isEmpty() -> CallConvention(emptyList(), returns)
-            actualParamTypes.size==1 -> {
-                // one parameter goes via register/registerpair
-                val paramConv = when(val paramType = actualParamTypes[0]) {
-                    DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
-                    DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    in PassByReferenceDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    else -> ParamConvention(paramType, null, false)
-                }
-                CallConvention(listOf(paramConv), returns)
-            }
-            else -> {
-                // multiple parameters go via variables
-                val paramConvs = actualParamTypes.map { ParamConvention(it, null, true) }
-                CallConvention(paramConvs, returns)
-            }
-        }
-    }
-}
+                 val constExpressionFunc: ConstExpressionCaller? = null)
 
 
 private val functionSignatures: List<FSignature> = listOf(

@@ -29,7 +29,7 @@ internal object DummyStringEncoder : IStringEncoding {
         return emptyList()
     }
 
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {
         return ""
     }
 }
@@ -37,7 +37,7 @@ internal object DummyStringEncoder : IStringEncoding {
 internal object AsciiStringEncoder : IStringEncoding {
     override fun encodeString(str: String, encoding: Encoding): List<UByte> = str.map { it.code.toUByte() }
 
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {
         return bytes.joinToString()
     }
 }
@@ -53,7 +53,7 @@ internal object DummyCompilationTarget : ICompilationTarget {
         throw NotImplementedError("dummy")
     }
 
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {
         throw NotImplementedError("dummy")
     }
 

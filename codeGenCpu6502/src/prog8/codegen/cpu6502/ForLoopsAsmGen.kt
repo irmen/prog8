@@ -591,5 +591,5 @@ $loopLabel""")
             range.from,
             asmgen.asmVariableName(stmt.variable),
             stmt.variable.type,
-            stmt.definingSub())
+            stmt.definingISub())
 }

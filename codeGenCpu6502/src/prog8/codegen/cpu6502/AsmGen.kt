@@ -13,10 +13,11 @@ internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
 
-class AsmGen(internal val program: PtProgram,
-             internal val symbolTable: SymbolTable,
-             internal val options: CompilationOptions,
-             internal val errors: IErrorReporter
+class AsmGen(
+    val program: PtProgram,
+    internal val symbolTable: SymbolTable,
+    internal val options: CompilationOptions,
+    internal val errors: IErrorReporter
 ): IAssemblyGenerator {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -197,7 +198,7 @@ class AsmGen(internal val program: PtProgram,
         return name2.replace("prog8_lib.P8ZP_SCRATCH_", "P8ZP_SCRATCH_")    // take care of the 'hooks' to the temp vars -> reference zp symbols directly
     }
 
-    internal fun saveRegisterLocal(register: CpuRegister, scope: PtSub) {
+    internal fun saveRegisterLocal(register: CpuRegister, scope: IPtSubroutine) {
         if (isTargetCpu(CpuType.CPU65c02)) {
             // just use the cpu's stack for all registers, shorter code
             when (register) {
@@ -317,6 +318,7 @@ class AsmGen(internal val program: PtProgram,
             is PtIncludeBinary -> TODO()
             is PtBreakpoint -> TODO()
             is PtVariable -> { /* do nothing; variables are handled elsewhere */ }
+            is PtScopeVarsDecls -> { /* do nothing; variables are handled elsewhere */ }  // TODO translate PtScopeVarsDecls ? or ignore?
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
             is PtNodeGroup -> TODO()
             is PtNop -> {}
@@ -420,7 +422,7 @@ class AsmGen(internal val program: PtProgram,
     internal fun translateExpression(expression: PtExpression) =
             expressionsAsmGen.translateExpression(expression)
 
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) =
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall, isExpression: Boolean) =
@@ -689,7 +691,7 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: PtRepeatLoop): String {
-        val scope = stmt.definingSub()!!
+        val scope = stmt.definingISub()!!
         val asmInfo = subroutineExtra(scope)
         var parent = stmt.parent
         while(parent !is PtProgram) {
@@ -969,7 +971,7 @@ $repeatLabel    lda  $counterVar
                 when(pointervar?.targetStatement(program)) {
                     is PtLabel -> {
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        out("  lda  ${asmSymbolName(pointervar!!)},y")
+                        out("  lda  ${asmSymbolName(pointervar)},y")
                         return true
                     }
                     is PtVariable, null -> {
@@ -2852,14 +2854,14 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun popCpuStack(dt: DataType, target: PtVariable, scope: PtSub?) {
+    /* TODO remove?:
+    internal fun popCpuStack(dt: DataType, target: PtVariable, scope: IPtSubroutine?) {
         // note: because A is pushed first so popped last, saving A is often not required here.
-        val parameter = target.subroutineParameter
+        val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to") // target.subroutineParameter
         if(parameter!=null) {
-            val sub = parameter.definingSub()!!
-            require(sub.isAsmSubroutine) { "push/pop arg passing only supported on asmsubs ${sub.position}" }
+            val sub = parameter.definingAsmSub()!!  // TODO or also regular PtSub?
             val shouldKeepA = sub.asmParameterRegisters.any { it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY }
-            val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
+            val reg: RegisterOrStatusflag = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
             if(reg.statusflag!=null) {
                 if(shouldKeepA)
                     out("  sta  P8ZP_SCRATCH_REG")
@@ -2950,6 +2952,7 @@ $repeatLabel    lda  $counterVar
             else -> throw AssemblyError("can't pop $dt")
         }
     }
+    */
 
     internal fun pushCpuStack(dt: DataType, value: PtExpression) {
         val signed = value.type.oneOf(DataType.BYTE, DataType.WORD)

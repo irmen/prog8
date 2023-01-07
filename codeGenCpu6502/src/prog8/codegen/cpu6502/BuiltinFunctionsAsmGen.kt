@@ -9,22 +9,22 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                       private val asmgen: AsmGen,
                                       private val assignAsmGen: AssignmentAsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        translateFunctioncall(fcall, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
+    internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? {
+        return translateFunctioncall(fcall, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
     }
 
     internal fun translateFunctioncallStatement(fcall: PtBuiltinFunctionCall) {
         translateFunctioncall(fcall, discardResult = true, resultToStack = false, resultRegister = null)
     }
 
-    private fun translateFunctioncall(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+    private fun translateFunctioncall(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? {
         if (discardResult && fcall.hasNoSideEffects)
-            return  // can just ignore the whole function call altogether
+            return null  // can just ignore the whole function call altogether
 
         if(discardResult && resultToStack)
             throw AssemblyError("cannot both discard the result AND put it onto stack")
 
-        val sscope = fcall.definingSub()!!
+        val sscope = fcall.definingISub()!!
 
         when (fcall.name) {
             "msb" -> funcMsb(fcall, resultToStack, resultRegister)
@@ -52,13 +52,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                asmgen.popCpuStack(DataType.UBYTE, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingSub())
+                TODO("pop cpu stack byte into ${fcall.args[0]}")
+                // asmgen.popCpuStack(DataType.UBYTE, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingISub())
             }
             "popw" -> {
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                asmgen.popCpuStack(DataType.UWORD, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingSub())
+                TODO("pop cpu stack word into ${fcall.args[0]}")
+                // asmgen.popCpuStack(DataType.UWORD, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingISub())
             }
             "rsave" -> funcRsave()
             "rsavex" -> funcRsaveX()
@@ -69,6 +71,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
+        TODO("return correct function result type")
     }
 
     private fun funcRsave() {
@@ -243,24 +246,24 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             asmgen.out("  cmp  ${arg2.address.asConstInteger()!!.toHex()}")
                         } else {
                             if(arg1.isSimple()) {
-                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingSub())
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
                                 asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                                 asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                             } else {
                                 asmgen.pushCpuStack(DataType.UBYTE, arg1)
-                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingSub())
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
                                 asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
                             }
                         }
                     }
                     else -> {
                         if(arg1.isSimple()) {
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingSub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                             asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                         } else {
                             asmgen.pushCpuStack(DataType.UBYTE, arg1)
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingSub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
                             asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
                         }
                     }
@@ -289,7 +292,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(arg1.isSimple()) {
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingSub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingISub())
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                             asmgen.out("""
                                 cpy  P8ZP_SCRATCH_W1+1
@@ -298,7 +301,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     +""")
                         } else {
                             asmgen.pushCpuStack(DataType.UWORD, arg1)
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingSub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingISub())
                             asmgen.restoreRegisterStack(CpuRegister.Y, false)
                             asmgen.restoreRegisterStack(CpuRegister.A, false)
                             asmgen.out("""
@@ -332,8 +335,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.translateNormalAssignment(assign)
     }
 
-    private fun funcSqrt16(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: PtSub?) {
-        translateArguments(fcall.args, func, scope)
+    private fun funcSqrt16(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
+        translateArguments(fcall, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
         else {
@@ -471,9 +474,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.restoreRegisterLocal(CpuRegister.X)
                                 asmgen.out("""
@@ -572,9 +575,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.restoreRegisterLocal(CpuRegister.X)
                                 asmgen.out("""
@@ -628,8 +631,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
     }
 
-    private fun funcSgn(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: PtSub?) {
-        translateArguments(fcall.args, func, scope)
+    private fun funcSgn(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
+        translateArguments(fcall, scope)
         val dt = fcall.args.single().type
         if(resultToStack) {
             when (dt) {
@@ -653,7 +656,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: PtSub?) {
+    private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().type
         if(resultToStack) {
@@ -674,8 +677,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun funcAbs(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: PtSub?) {
-        translateArguments(fcall.args, func, scope)
+    private fun funcAbs(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
+        translateArguments(fcall, scope)
         val dt = fcall.args.single().type
         if(resultToStack) {
             when (dt) {
@@ -709,7 +712,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
-                    asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
                     if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         asmgen.out("""
@@ -734,7 +737,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
                     if(asmgen.isZpVar(addrExpr.left as PtIdentifier)) {
                         // pointervar is already in the zero page, no need to copy
-                        asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingSub()!!)
+                        asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                         asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
                         val index = (addrExpr.right as PtNumber).number.toHex()
                         asmgen.out("""
@@ -1017,8 +1020,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     """)
     }
 
-    private fun translateArguments(args: MutableList<PtExpression>, signature: FSignature, scope: PtSub?) {
-        val callConv = signature.callConvention(args.map { it.type})
+    private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {
+        val signature = BuiltinFunctions.getValue(call.name)
+        val callConv = signature.callConvention(call.args.map { it.type})
 
         fun getSourceForFloat(value: PtExpression): AsmAssignSource {
             return when (value) {
@@ -1044,7 +1048,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
         }
 
-        args.zip(callConv.params).zip(signature.parameters).forEach {
+        call.args.zip(callConv.params).zip(signature.parameters).forEach {
             val paramName = it.second.name
             val conv = it.first.second
             val value = it.first.first

@@ -25,9 +25,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 if (regSaveOnStack)
                     asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
                 else
-                    asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingSub()!!)
+                    asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingISub()!!)
             } else
-                asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingSub()!!)
+                asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingISub()!!)
         }
     }
 
@@ -130,9 +130,10 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             asmgen.pushCpuStack(callee.parameters[it].first.type, call.args[it])
         }
         argOrder.forEach {
-            val param = callee.parameters[it].first
-            val targetVar = callee.searchParameter(param.name)!!
-            asmgen.popCpuStack(param.type, targetVar, call.definingSub())
+            val param = callee.parameters[it]
+            TODO("pop cpu stack into asmsub param ${param.first.name} ${param.second}")
+            // val targetVar = callee.searchParameter(param.name)!!
+            // asmgen.popCpuStack(param.type, targetVar, call.definingISub())
         }
     }
 
@@ -150,7 +151,10 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(!isArgumentTypeCompatible(value.type, parameter.value.type))
             throw AssemblyError("argument type incompatible")
 
-        val paramRegister = if(registerOverride==null) sub.parameters[parameter.index].second else RegisterOrStatusflag(registerOverride, null)
+        val paramRegister: RegisterOrStatusflag = when(sub) {
+            is PtAsmSub -> if(registerOverride==null) sub.parameters[parameter.index].second else RegisterOrStatusflag(registerOverride, null)
+            is PtSub -> RegisterOrStatusflag(registerOverride!!, null)
+        }
         val statusflag = paramRegister.statusflag
         val register = paramRegister.registerOrPair
         val requiredDt = parameter.value.type

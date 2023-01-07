@@ -280,12 +280,19 @@ private fun Prog8ANTLRParser.LabeldefContext.toAst(): Statement =
 private fun Prog8ANTLRParser.SubroutineContext.toAst() : Subroutine {
     // non-asm subroutine
     val returntype = sub_return_part()?.datatype()?.toAst()
-    return Subroutine(identifier().text,
-            sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-            if(returntype==null) emptyList() else listOf(returntype),
-            statement_block()?.toAst() ?: mutableListOf(),
-            false,
-            toPosition())
+    return Subroutine(
+        identifier().text,
+        sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
+        if (returntype == null) emptyList() else listOf(returntype),
+        emptyList(),
+        emptyList(),
+        emptySet(),
+        asmAddress = null,
+        isAsmSubroutine = false,
+        inline = false,
+        statements = statement_block()?.toAst() ?: mutableListOf(),
+        position = toPosition()
+    )
 }
 
 private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter> =

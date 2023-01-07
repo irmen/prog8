@@ -32,7 +32,7 @@ internal class ProgramAndVarsGen(
     private val blockVariableInitializers = program.allBlocks().associateWith { it.children.filterIsInstance<PtAssignment>() }
 
     internal fun generate() {
-        val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }
+        val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }   // TODO unused?
 
         header()
         val allBlocks = program.allBlocks()
@@ -278,8 +278,9 @@ internal class ProgramAndVarsGen(
 
         if(sub.inline) {
             if(options.optimize) {
-                if(callGraph.unused(sub))
-                    return
+                TODO("check if sub is unused")
+//                if(callGraph.unused(sub))
+//                    return
 
                 // from an inlined subroutine only the local variables are generated,
                 // all other code statements are omitted in the subroutine itself

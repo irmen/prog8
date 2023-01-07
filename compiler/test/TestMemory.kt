@@ -28,7 +28,7 @@ class TestMemory: FunSpec({
 
     fun wrapWithProgram(statements: List<Statement>): Program {
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
-        val subroutine = Subroutine("test", mutableListOf(), emptyList(), statements.toMutableList(), false, Position.DUMMY)
+        val subroutine = Subroutine("test", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, statements.toMutableList(), Position.DUMMY)
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         program.addModule(module)
         return program

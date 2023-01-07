@@ -36,6 +36,7 @@ sealed class PtNode(val position: Position) {
     fun definingBlock() = findParentNode<PtBlock>(this)
     fun definingSub() = findParentNode<PtSub>(this)
     fun definingAsmSub() = findParentNode<PtAsmSub>(this)
+    fun definingISub() = findParentNode<IPtSubroutine>(this)        // TODO null assert here?
 }
 
 

@@ -14,7 +14,7 @@ internal object DummyStringEncoder : IStringEncoding {
         return emptyList()
     }
 
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {
         return ""
     }
 }

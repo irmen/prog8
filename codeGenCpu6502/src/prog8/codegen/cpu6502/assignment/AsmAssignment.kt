@@ -4,8 +4,8 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.asConstInteger
+import prog8.codegen.cpu6502.returnsWhatWhere
 import prog8.codegen.cpu6502.targetSubroutine
-import prog8.codegen.cpu6502.targetVarDecl
 
 
 internal enum class TargetStorageKind {
@@ -57,21 +57,21 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             with(assign.target) {
                 when {
                     identifier != null -> {
-                        val parameter = identifier!!.targetVarDecl(program)?.subroutineParameter
+                        val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to ${assign.target.identifier!!.name}") // identifier!!.targetVarDecl(program)?.subroutineParameter
                         if (parameter!=null) {
-                            val sub = parameter.definingSubroutine!!
-                            if (sub.isAsmSubroutine) {
-                                val reg = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
+                            val sub = parameter.definingAsmSub()
+                            if (sub!=null) {
+                                val reg = sub.parameters.single { it.first===parameter }.second
                                 if(reg.statusflag!=null)
                                     throw AssemblyError("can't assign value to processor statusflag directly")
                                 else
-                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, assign.definingSub(), register=reg.registerOrPair, origAstTarget = this)
+                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, assign.definingISub(), register=reg.registerOrPair, origAstTarget = this)
                             }
                         }
-                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, assign.definingSub(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, assign.definingISub(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                     }
-                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, assign.definingSub(), array = array, origAstTarget =  this)
-                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, assign.definingSub(), memory =  memory, origAstTarget =  this)
+                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, assign.definingISub(), array = array, origAstTarget =  this)
+                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, assign.definingISub(), memory =  memory, origAstTarget =  this)
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -136,8 +136,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is PtIdentifier -> {
-                    val parameter = value.targetVarDecl(program)?.subroutineParameter
-                    if(parameter!=null && parameter.definingSubroutine!!.isAsmSubroutine)
+                    val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to ${value.name}") // value.targetVarDecl(program)?.subroutineParameter
+                    if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
@@ -160,7 +160,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 }
                 is PtFunctionCall -> {
                     val sub = value.targetSubroutine(program)!!
-                    val returnType = sub.returntypes.zip(sub.asmReturnvaluesRegisters).firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
+                    val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)

@@ -27,7 +27,7 @@ object IsoEncoding {
         }
     }
 
-    fun decode(bytes: List<UByte>): Result<String, CharConversionException> {
+    fun decode(bytes: Iterable<UByte>): Result<String, CharConversionException> {
         return try {
             Ok(String(bytes.map { it.toByte() }.toByteArray(), charset))
         } catch (ce: CharConversionException) {

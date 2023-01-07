@@ -695,22 +695,6 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
-    constructor(name: String, parameters: MutableList<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, inline: Boolean, position: Position)
-            : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, inline, statements, position)
-
-    companion object {
-        private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
-            // for non-asm subroutines, determine the return registers based on the type of the return value
-            return when(returntypes.singleOrNull()) {
-                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null))
-                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
-                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.FAC1, null))
-                null -> emptyList()
-                else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
-            }
-        }
-    }
-
     override lateinit var parent: Node
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")
 

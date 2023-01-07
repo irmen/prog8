@@ -3,14 +3,16 @@ package prog8.code.ast
 import prog8.code.core.*
 
 
-interface IPtSubroutine
+sealed interface IPtSubroutine {
+    val name: String
+}
 
 class PtAsmSub(
     name: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>,
-    val returnTypes: List<DataType>,    // TODO join with register as Pairs ?
+    val returnTypes: List<DataType>,    // TODO join with registers below, as Pairs ?
     val retvalRegisters: List<RegisterOrStatusflag>,
     val inline: Boolean,
     position: Position
@@ -105,6 +107,8 @@ class PtAssignTarget(position: Position) : PtNode(position) {
         }
 
     override fun printProperties() {}
+
+    infix fun isSameAs(expression: PtExpression): Boolean = expression.isSameAs(this)
 }
 
 

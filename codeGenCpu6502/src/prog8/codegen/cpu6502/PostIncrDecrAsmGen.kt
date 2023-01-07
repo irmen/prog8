@@ -13,7 +13,7 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         val targetIdent = stmt.target.identifier
         val targetMemory = stmt.target.memory
         val targetArrayIdx = stmt.target.array
-        val scope = stmt.definingSub()
+        val scope = stmt.definingISub()
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)

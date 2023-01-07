@@ -53,8 +53,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         }
         asmgen.restoreXafterCall(call)
 
-        sub.
-        val returns = sub.returntypes.zip(sub.asmReturnvaluesRegisters)     // TODO does regular sub also have asmReturnvaluesRegisters set?
+        val returns: List<Pair<DataType, RegisterOrStatusflag>> = sub.returnsWhatWhere()
         for ((_, reg) in returns) {
             // result value is in cpu or status registers, put it on the stack instead (as we're evaluating an expression tree)
             if (reg.registerOrPair != null) {

@@ -232,7 +232,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         // TODO use some other evaluation here; don't use the estack to transfer the address to read/write from
-                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingSub()))
+                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub()))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
@@ -1573,7 +1573,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: PtExpression, scope: PtSub) {
+    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: PtExpression, scope: IPtSubroutine) {
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
@@ -1615,7 +1615,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
-    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: PtIdentifier, scope: PtSub) {
+    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, ident: PtIdentifier, scope: IPtSubroutine) {
         val valueDt = ident.type
         if(valueDt != DataType.FLOAT)
             throw AssemblyError("float variable expected")
@@ -1674,7 +1674,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
-    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: PtSub) {
+    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: IPtSubroutine) {
         val constValueName = allocator.getFloatAsmConst(value)
         asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
