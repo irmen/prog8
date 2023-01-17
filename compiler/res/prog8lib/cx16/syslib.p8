@@ -638,9 +638,6 @@ asmsub  init_system()  {
         and  #%11111000
         ora  P8ZP_SCRATCH_REG
         sta  VERA_DC_VIDEO  ; keep old output mode
-        ldy  #0
-        clc
-        jsr  c64.PLOT   ; force a call to PLOT to avoid autostart black square issue, also see textio.fix_autostart_square()
         lda  #$90       ; black
         jsr  c64.CHROUT
         lda  #1         ; swap fg/bg

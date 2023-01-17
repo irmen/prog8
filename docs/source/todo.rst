@@ -20,6 +20,8 @@ For 9.0 major changes
 - rewrite 6502 codegen on Pt* ast and symboltable, instead of CompilerAst nodes. (work in codegen-on-new-ast branch)
     - optimize "dotted string" comments again.
 
+- update to kotlin 1.8.0 once it is available in IDEA
+
 
 Need help with
 ^^^^^^^^^^^^^^
