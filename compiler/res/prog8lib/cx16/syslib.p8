@@ -908,17 +908,29 @@ sys {
 
     asmsub wait(uword jiffies @AY) {
         ; --- wait approximately the given number of jiffies (1/60th seconds) (N or N+1)
-        ;     note: regular system vsync irq handler must be running, and no nother irqs
+        ;     note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
         %asm {{
--           wai             ; wait for irq (assume it was vsync)
-            cmp  #0
+            phx
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+
+_loop       lda  P8ZP_SCRATCH_W1
+            ora  P8ZP_SCRATCH_W1+1
             bne  +
-            dey
-+           dec  a
-            bne  -
-            cpy  #0
-            bne  -
+            plx
             rts
+
++           jsr  c64.RDTIM
+            sta  P8ZP_SCRATCH_B1
+-           jsr  c64.RDTIM
+            cmp  P8ZP_SCRATCH_B1
+            beq  -
+
+            lda  P8ZP_SCRATCH_W1
+            bne  +
+            dec  P8ZP_SCRATCH_W1+1
++           dec  P8ZP_SCRATCH_W1
+            bra  _loop
         }}
     }
 

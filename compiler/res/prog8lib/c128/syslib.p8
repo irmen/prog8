@@ -561,15 +561,32 @@ sys {
         }}
     }
 
-    sub wait(uword jiffies) {
-        ; --- wait approximately the given number of jiffies (1/60th seconds)
+    asmsub wait(uword jiffies @AY) {
+        ; --- wait approximately the given number of jiffies (1/60th seconds) (N or N+1)
         ;     note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
-        repeat jiffies {
-            ubyte jiff = lsb(c64.RDTIM16())
-            while jiff==lsb(c64.RDTIM16()) {
-                ; wait until 1 jiffy has passed
-            }
-        }
+        %asm {{
+            stx  P8ZP_SCRATCH_B1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+
+_loop       lda  P8ZP_SCRATCH_W1
+            ora  P8ZP_SCRATCH_W1+1
+            bne  +
+            ldx  P8ZP_SCRATCH_B1
+            rts
+
++           lda  c64.TIME_LO
+            sta  P8ZP_SCRATCH_B1
+-           lda  c64.TIME_LO
+            cmp  P8ZP_SCRATCH_B1
+            beq  -
+
+            lda  P8ZP_SCRATCH_W1
+            bne  +
+            dec  P8ZP_SCRATCH_W1+1
++           dec  P8ZP_SCRATCH_W1
+            jmp  _loop
+        }}
     }
 
     asmsub waitvsync() clobbers(A) {

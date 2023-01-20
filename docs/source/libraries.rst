@@ -91,13 +91,15 @@ sys (part of syslib)
 
 ``wait(uword jiffies)``
     wait approximately the given number of jiffies (1/60th seconds)
-    note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
+    Note: the regular system irq handler has run for this to work as it depends on the system jiffy clock.
+    If this is is not possible (for instance because your program is running its own irq handler logic *and* no longer calls
+    the kernal's handler routine), you'll have to write your own wait routine instead.
 
 ``waitvsync()``
     busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
     can be used to avoid screen flicker/tearing when updating screen contents.
     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
-    note for cx16: the system irq handler has to be active for this to work (this is not required on c64)
+    note for cx16: the regular system irq handler has to run for this to work (this is not required on C64 and C128)
 
 ``waitrastborder()`` (c64/c128 targets only)
     busy wait till the raster position has reached the bottom screen border (approximately)

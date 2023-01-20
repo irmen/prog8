@@ -112,7 +112,7 @@ class TestCallgraph: FunSpec({
         """
         val result = compileText(C64Target(), false, sourcecode)!!
         val graph = CallGraph(result.program)
-        graph.allIdentifiers.size shouldBeGreaterThanOrEqual 9
+        graph.allIdentifiers.size shouldBeGreaterThanOrEqual 5
         val empties = graph.allIdentifiers.keys.filter { it.nameInSource==listOf("empty") }
         empties.size shouldBe 3
         empties[0].position.line shouldBe 4

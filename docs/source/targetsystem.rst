@@ -165,3 +165,11 @@ The Commander X16 provides two additional routines that should be used *in your 
     ; ... do your work that uses vera here...
     cx16.pop_vera_context()
 
+.. caution::
+    It is advised to not use floating point calculations inside IRQ handler routines.
+    Beside them being very slow, there are intricate requirements such as having the
+    correct ROM bank enabled to be able to successfully call them (and making sure the correct
+    ROM bank is reset at the end of the handler), and the possibility
+    of corrupting variables and floating point calculations that are being executed
+    in the interrupted main program. These memory locations should be backed up
+    and restored at the end of the handler, further increasing its execution time...
