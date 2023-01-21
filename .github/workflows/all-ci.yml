@@ -12,6 +12,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install 64tass
+        run: sudo apt-get update -y && sudo apt-get install -y 64tass
+
       - name: Set up JDK
         uses: actions/setup-java@v2
         with:
