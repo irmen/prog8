@@ -1,0 +1,24 @@
+name: Build and Test the Prog8 compiler
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+
+      - name: Build and test with Gradle
+        run: ./gradlew build
+
+      - name: Run installDist and installShadowDist tasks
+        run: ./gradlew installDist installShadowDist
