@@ -170,11 +170,12 @@ Required additional tools
 It's very easy to compile yourself.
 A recent precompiled .exe (only for Windows) can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
 *You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
-It's possible to use older versions, but it is very likely that the automatic VICE breakpoints won't work with them.
+If you are on a Debian based Linux, there's a "64tass" package in the repositories. It's a bit old but seems to work.
+It's possible to use these older versions of 64tass, but it is likely that the automatic VICE breakpoints won't work with them though.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
-If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK in their packages repository instead.
-For Windows it's possible to get that as well; check out `AdoptOpenJDK <https://adoptopenjdk.net/>`_ .
+If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK or similar in their packages repository instead.
+For Windows it's possible to get that as well; check out `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
 For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
 
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.

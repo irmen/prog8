@@ -22,17 +22,13 @@ jobs:
           distribution: adopt
 
       - name: Build and test with Gradle
-        run: ./gradlew build
-        env:
-          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: ./gradlew build --no-daemon
 
       - name: Create shadowJar
-        run: ./gradlew shadowJar
-        env:
-          GRADLE_OPTS: -Dorg.gradle.daemon=false
+        run: ./gradlew shadowJar --no-daemon
 
       - name: Create compiler shadowJar artifact
         uses: actions/upload-artifact@v3
         with:
-          name: shadowJar
+          name: prog8-compiler-jar-zipped
           path: compiler/build/libs/*-all.jar
