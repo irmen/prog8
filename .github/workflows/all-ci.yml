@@ -24,13 +24,15 @@ jobs:
       - name: Build and test with Gradle
         run: ./gradlew build
         env:
-           GRADLE_OPTS: -Dorg.gradle.daemon=false
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
 
       - name: Create shadowJar
         run: ./gradlew shadowJar
+        env:
+          GRADLE_OPTS: -Dorg.gradle.daemon=false
 
-      - name: Create shadowJar artifact
+      - name: Create compiler shadowJar artifact
         uses: actions/upload-artifact@v3
         with:
           name: shadowJar
-          path: build/libs/*-all.jar
+          path: compiler/build/libs/*-all.jar
