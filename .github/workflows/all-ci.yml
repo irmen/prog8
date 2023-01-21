@@ -23,6 +23,14 @@ jobs:
 
       - name: Build and test with Gradle
         run: ./gradlew build
+        env:
+           GRADLE_OPTS: -Dorg.gradle.daemon=false
 
-      - name: Run installDist and installShadowDist tasks
-        run: ./gradlew installDist installShadowDist
+      - name: Create shadowJar
+        run: ./gradlew shadowJar
+
+      - name: Create shadowJar artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: shadowJar
+          path: build/libs/*-all.jar
