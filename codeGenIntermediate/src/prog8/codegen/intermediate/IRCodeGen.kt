@@ -27,6 +27,8 @@ class IRCodeGen(
         flattenLabelNames()
         flattenNestedSubroutines()
 
+        // TODO: validateNames(program)
+
         val irProg = IRProgram(program.name, IRSymbolTable(symbolTable), options, program.encoding)
 
         if(options.evalStackBaseAddress!=null)
@@ -69,6 +71,25 @@ class IRCodeGen(
 
         irProg.validate()
         return irProg
+    }
+
+    private fun validateNames(node: PtNode) {
+        when(node) {
+            is PtBuiltinFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtAsmSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtBlock -> require('.' !in node.name) { "block name should not be scoped: ${node.name}"}
+            is PtConstant -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtLabel -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtMemMapped -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtVariable -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}"}
+            is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
+            else -> { /* node has no name */ }
+        }
+        node.children.forEach{ validateNames(it) }
     }
 
     private fun ensureFirstChunkLabels(irProg: IRProgram) {
@@ -169,12 +190,7 @@ class IRCodeGen(
 
         flattenRecurse(program)
 
-        renameLabels.forEach { (parent, label) ->
-            val renamedLabel = PtLabel(label.scopedName, label.position)
-            val idx = parent.children.indexOf(label)
-            parent.children.removeAt(idx)
-            parent.children.add(idx, renamedLabel)
-        }
+        renameLabels.forEach { (_, label) -> label.name = label.scopedName }
     }
 
     private fun flattenNestedSubroutines() {
@@ -231,27 +247,8 @@ class IRCodeGen(
         removalsAsmSubs.forEach { (parent, asmsub) -> parent.children.remove(asmsub) }
         flattenedSubs.forEach { (block, sub) -> block.add(sub) }
         flattenedAsmSubs.forEach { (block, asmsub) -> block.add(asmsub) }
-        renameSubs.forEach { (parent, sub) ->
-            val renamedSub = PtSub(sub.scopedName, sub.parameters, sub.returntype, sub.inline, sub.position)
-            sub.children.forEach { renamedSub.add(it) }
-            val subindex = parent.children.indexOf(sub)
-            parent.children[subindex] = renamedSub      // keep the order of nodes the same
-        }
-        renameAsmSubs.forEach { (parent, sub) ->
-            val renamedSub = PtAsmSub(sub.scopedName,
-                sub.address,
-                sub.clobbers,
-                sub.parameters,
-                sub.returnTypes,
-                sub.retvalRegisters,
-                sub.inline,
-                sub.position)
-
-            if(sub.children.isNotEmpty())
-                renamedSub.add(sub.children.single())
-            val subindex = parent.children.indexOf(sub)
-            parent.children[subindex] = renamedSub       // keep the order of nodes the same
-        }
+        renameSubs.forEach { (_, sub) -> sub.name = sub.scopedName }
+        renameAsmSubs.forEach { (_, sub) -> sub.name = sub.scopedName }
     }
 
     internal fun translateNode(node: PtNode): IRCodeChunks {

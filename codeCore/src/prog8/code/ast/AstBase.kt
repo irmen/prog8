@@ -44,7 +44,9 @@ class PtNodeGroup : PtNode(Position.DUMMY) {
 }
 
 
-sealed class PtNamedNode(val name: String, position: Position): PtNode(position) {
+sealed class PtNamedNode(var name: String, position: Position): PtNode(position) {
+    // Note that as an exception, the 'name' is not read-only
+    // but a var. This is to allow for cheap node renames.
     val scopedName: String by lazy {
         var namedParent: PtNode = this.parent
         if(namedParent is PtProgram)
