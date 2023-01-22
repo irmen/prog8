@@ -24,10 +24,9 @@ class IRCodeGen(
     internal val registers = RegisterPool()
 
     fun generate(): IRProgram {
-        flattenLabelNames()
-        flattenNestedSubroutines()
-
-        // TODO: validateNames(program)
+        makeAllNodenamesScoped()
+        moveAllNestedSubroutinesToBlockScope()
+        verifyNameScoping(program, symbolTable)
 
         val irProg = IRProgram(program.name, IRSymbolTable(symbolTable), options, program.encoding)
 
@@ -73,23 +72,37 @@ class IRCodeGen(
         return irProg
     }
 
-    private fun validateNames(node: PtNode) {
-        when(node) {
-            is PtBuiltinFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtAsmSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtBlock -> require('.' !in node.name) { "block name should not be scoped: ${node.name}"}
-            is PtConstant -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtLabel -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtMemMapped -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtVariable -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}"}
-            is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}"}
-            else -> { /* node has no name */ }
+    private fun verifyNameScoping(program: PtProgram, symbolTable: SymbolTable) {
+        fun verifyPtNode(node: PtNode) {
+            when (node) {
+                is PtBuiltinFunctionCall -> require('.' !in node.name) { "builtin function call name should not be scoped: ${node.name}" }
+                is PtFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtAsmSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtBlock -> require('.' !in node.name) { "block name should not be scoped: ${node.name}" }
+                is PtConstant -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtLabel -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtMemMapped -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtVariable -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}" }
+                is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                else -> { /* node has no name */
+                }
+            }
+            node.children.forEach { verifyPtNode(it) }
         }
-        node.children.forEach{ validateNames(it) }
+
+        fun verifyStNode(node: StNode) {
+            require('.' !in node.name) { "st node name should not be scoped: ${node.name}"}
+            node.children.forEach {
+                require(it.key==it.value.name)
+                verifyStNode(it.value)
+            }
+        }
+
+        verifyPtNode(program)
+        verifyStNode(symbolTable)
     }
 
     private fun ensureFirstChunkLabels(irProg: IRProgram) {
@@ -176,79 +189,47 @@ class IRCodeGen(
         }
     }
 
-    private fun flattenLabelNames() {
-        val renameLabels = mutableListOf<Pair<PtNode, PtLabel>>()
-
-        fun flattenRecurse(node: PtNode) {
+    private fun makeAllNodenamesScoped() {
+        val renames = mutableListOf<Pair<PtNamedNode, String>>()
+        fun recurse(node: PtNode) {
             node.children.forEach {
-                if (it is PtLabel)
-                    renameLabels += Pair(it.parent, it)
-                else
-                    flattenRecurse(it)
+                if(it is PtNamedNode)
+                    renames.add(it to it.scopedName)
+                recurse(it)
             }
         }
-
-        flattenRecurse(program)
-
-        renameLabels.forEach { (_, label) -> label.name = label.scopedName }
+        recurse(program)
+        renames.forEach { it.first.name = it.second }
     }
 
-    private fun flattenNestedSubroutines() {
-        // this moves all nested subroutines up to the block scope.
-        // also changes the name to be the fully scoped one, so it becomes unique at the top level.
-        val flattenedSubs = mutableListOf<Pair<PtBlock, PtSub>>()
-        val flattenedAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
-        val removalsSubs = mutableListOf<Pair<PtSub, PtSub>>()
-        val removalsAsmSubs = mutableListOf<Pair<PtSub, PtAsmSub>>()
-        val renameSubs = mutableListOf<Pair<PtBlock, PtSub>>()
-        val renameAsmSubs = mutableListOf<Pair<PtBlock, PtAsmSub>>()
+    private fun moveAllNestedSubroutinesToBlockScope() {
+        val movedSubs = mutableListOf<Pair<PtBlock, PtSub>>()
+        val removedSubs = mutableListOf<Pair<PtSub, PtSub>>()
 
-        fun flattenNestedAsmSub(block: PtBlock, parentSub: PtSub, asmsub: PtAsmSub) {
-            val flattened = PtAsmSub(asmsub.scopedName,
-                asmsub.address,
-                asmsub.clobbers,
-                asmsub.parameters,
-                asmsub.returnTypes,
-                asmsub.retvalRegisters,
-                asmsub.inline,
-                asmsub.position)
-            asmsub.children.forEach { flattened.add(it) }
-            flattenedAsmSubs += Pair(block, flattened)
-            removalsAsmSubs += Pair(parentSub, asmsub)
+        fun moveToBlock(block: PtBlock, parent: PtSub, asmsub: PtAsmSub) {
+            block.add(asmsub)
+            parent.children.remove(asmsub)
         }
 
-        fun flattenNestedSub(block: PtBlock, parentSub: PtSub, sub: PtSub) {
-            sub.children.filterIsInstance<PtSub>().forEach { subsub->flattenNestedSub(block, sub, subsub) }
-            sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsmSub(block, sub, asmsubsub) }
-            val flattened = PtSub(sub.scopedName,
-                sub.parameters,
-                sub.returntype,
-                sub.inline,
-                sub.position)
-            sub.children.forEach { if(it !is PtSub) flattened.add(it) }
-            flattenedSubs += Pair(block, flattened)
-            removalsSubs += Pair(parentSub, sub)
+        fun moveToBlock(block: PtBlock, parent: PtSub, sub: PtSub) {
+            sub.children.filterIsInstance<PtSub>().forEach { subsub -> moveToBlock(block, sub, subsub) }
+            sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub -> moveToBlock(block, sub, asmsubsub) }
+            movedSubs += Pair(block, sub)
+            removedSubs += Pair(parent, sub)
         }
 
         program.allBlocks().forEach { block ->
             block.children.forEach {
-                if(it is PtSub) {
+                if (it is PtSub) {
                     // Only regular subroutines can have nested subroutines.
-                    it.children.filterIsInstance<PtSub>().forEach { subsub->flattenNestedSub(block, it, subsub)}
-                    it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub->flattenNestedAsmSub(block, it, asmsubsub)}
-                    renameSubs += Pair(block, it)
+                    it.children.filterIsInstance<PtSub>().forEach { subsub -> moveToBlock(block, it, subsub) }
+                    it.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub -> moveToBlock(block, it, asmsubsub) }
                 }
-                if(it is PtAsmSub)
-                    renameAsmSubs += Pair(block, it)
             }
         }
 
-        removalsSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
-        removalsAsmSubs.forEach { (parent, asmsub) -> parent.children.remove(asmsub) }
-        flattenedSubs.forEach { (block, sub) -> block.add(sub) }
-        flattenedAsmSubs.forEach { (block, asmsub) -> block.add(asmsub) }
-        renameSubs.forEach { (_, sub) -> sub.name = sub.scopedName }
-        renameAsmSubs.forEach { (_, sub) -> sub.name = sub.scopedName }
+        removedSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
+        movedSubs.forEach { (block, sub) -> block.add(sub) }
     }
 
     internal fun translateNode(node: PtNode): IRCodeChunks {
@@ -463,7 +444,8 @@ class IRCodeGen(
             }
             is PtIdentifier -> {
                 val iterableVar = symbolTable.lookup(iterable.name) as StStaticVariable
-                val loopvarSymbol = loopvar.scopedName
+                require(forLoop.variable.name == loopvar.scopedName)
+                val loopvarSymbol = forLoop.variable.name
                 val indexReg = registers.nextFree()
                 val tmpReg = registers.nextFree()
                 val loopLabel = createLabelName()
@@ -526,7 +508,8 @@ class IRCodeGen(
             throw AssemblyError("step 0")
         val indexReg = registers.nextFree()
         val endvalueReg = registers.nextFree()
-        val loopvarSymbol = loopvar.scopedName
+        require(forLoop.variable.name == loopvar.scopedName)
+        val loopvarSymbol = forLoop.variable.name
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt
             is StStaticVariable -> loopvar.dt
@@ -557,7 +540,8 @@ class IRCodeGen(
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val loopLabel = createLabelName()
-        val loopvarSymbol = loopvar.scopedName
+        require(forLoop.variable.name == loopvar.scopedName)
+        val loopvarSymbol = forLoop.variable.name
         val indexReg = registers.nextFree()
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt
@@ -1244,7 +1228,7 @@ class IRCodeGen(
 
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
-            val flattenedName = it.definingSub()!!.scopedName + "." + it.name
+            val flattenedName = it.definingSub()!!.name + "." + it.name
             val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }

@@ -12,6 +12,11 @@ main {
     str name="irmen"
 
     sub start() {
+
+            for cx16.r0 in 0 to 10 {
+                cx16.r1++
+            }
+
         txt.print("= 10 ")
         txt.print_ub(zpvar)
         txt.nl()
