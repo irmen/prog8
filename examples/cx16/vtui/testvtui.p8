@@ -110,10 +110,10 @@ char_loop:
 
 vtui $1000 {
 
-    %asmbinary "VTUI0.9.BIN", 2     ; skip the 2 dummy load address bytes
+    %asmbinary "VTUI1.0.BIN", 2     ; skip the 2 dummy load address bytes
 
     ; NOTE: base address $1000 here must be the same as the block's memory address, for obvious reasons!
-    ; The routines below are for VTUI 0.8
+    ; The routines below are for VTUI 1.0
     romsub $1000  =  initialize() clobbers(A, X, Y)
     romsub $1002  =  screen_set(ubyte mode @A) clobbers(A, X, Y)
     romsub $1005  =  set_bank(ubyte bank @Pc) clobbers(A)
@@ -133,6 +133,9 @@ vtui $1000 {
     romsub $102f  =  save_rect(ubyte ramtype @A, ubyte vbank @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
     romsub $1032  =  rest_rect(ubyte ramtype @A, ubyte vbank @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
     romsub $1035  =  input_str(uword buffer @R0, ubyte buflen @Y, ubyte colors @X) clobbers (A) -> ubyte @Y
+    romsub $1038  =  get_bank() clobbers (A) -> ubyte @Pc
+    romsub $103b  =  get_stride() -> ubyte @A
+    romsub $103e  =  get_decr() clobbers (A) -> ubyte @Pc
 
     ; -- helper function to do string length counting for you internally, and turn the convertchars flag into a boolean again
     asmsub print_str2(str txtstring @R0, ubyte colors @X, ubyte convertchars @Pc) clobbers(A, Y) {
