@@ -208,7 +208,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? {
         val func = BuiltinFunctions[funcName]
         if(func!=null) {
-            val exprfunc = func.constExpressionFunc
+            val exprfunc = constEvaluatorsForBuiltinFuncs[funcName]
             if(exprfunc!=null) {
                 return try {
                     exprfunc(args, position, program)

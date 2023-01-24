@@ -1,7 +1,10 @@
 package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.statements.Assignment
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
 
@@ -18,6 +21,32 @@ class TestBuiltinFunctions: FunSpec({
                 }
             }"""
         compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("certain builtin functions should be compile time evaluated") {
+        val src="""
+main {
+    sub start() {
+
+        uword[] array = [1,2,3]
+        str name = "hello"
+        cx16.r0L = len(array)
+        cx16.r0L = len(name)
+        cx16.r0L = sizeof(array)
+        cx16.r0 = mkword(200,100)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, writeAssembly = false)
+        val statements = result!!.program.entrypoint.statements
+        statements.size shouldBe 6
+        val a1 = statements[2] as Assignment
+        val a2 = statements[3] as Assignment
+        val a3 = statements[4] as Assignment
+        val a4 = statements[5] as Assignment
+        (a1.value as NumericLiteral).number shouldBe 3.0
+        (a2.value as NumericLiteral).number shouldBe 5.0
+        (a3.value as NumericLiteral).number shouldBe 6.0
+        (a4.value as NumericLiteral).number shouldBe 200*256+100
     }
 })
 

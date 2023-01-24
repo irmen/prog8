@@ -10,7 +10,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.compiler.BuiltinFunctions
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor

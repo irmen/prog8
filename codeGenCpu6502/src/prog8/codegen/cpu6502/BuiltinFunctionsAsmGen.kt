@@ -318,7 +318,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcMemory(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        if(discardResult || fcall !is PtBuiltinFunctionCall)
+        if(discardResult || fcall !is PtBuiltinFunctionCall)        // TODO huh, is always this class??
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as PtString).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
@@ -1054,7 +1054,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             val value = it.first.first
             when {
                 conv.variable -> {
-                    val varname = "prog8_lib.func_${signature.name}._arg_${paramName}"
+                    val varname = "prog8_lib.func_${call.name}._arg_${paramName}"
                     val src = when (conv.dt) {
                         DataType.FLOAT -> getSourceForFloat(value)
                         in PassByReferenceDatatypes -> {

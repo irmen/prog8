@@ -19,4 +19,5 @@ main {
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
+
 })

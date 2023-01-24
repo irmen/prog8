@@ -2,16 +2,15 @@ package prog8tests.codegencpu6502
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.DataType
 import prog8.code.core.NumericDatatypesNoBool
 import prog8.code.core.RegisterOrPair
-import prog8.codegen.cpu6502.BuiltinFunctions
 
 class TestBuiltinFunctions: FunSpec({
 
     test("pure func with fixed type") {
         val func = BuiltinFunctions.getValue("sgn")
-        func.name shouldBe "sgn"
         func.parameters.size shouldBe 1
         func.parameters[0].name shouldBe "value"
         func.parameters[0].possibleDatatypes shouldBe NumericDatatypesNoBool
@@ -30,7 +29,6 @@ class TestBuiltinFunctions: FunSpec({
 
     test("not-pure func with varying result value type") {
         val func = BuiltinFunctions.getValue("cmp")
-        func.name shouldBe "cmp"
         func.parameters.size shouldBe 2
         func.pure shouldBe false
         func.returnType shouldBe null
@@ -44,7 +42,6 @@ class TestBuiltinFunctions: FunSpec({
 
     test("func without return type") {
         val func = BuiltinFunctions.getValue("poke")
-        func.name shouldBe "poke"
         func.parameters.size shouldBe 2
         func.parameters[0].name shouldBe "address"
         func.parameters[0].possibleDatatypes shouldBe arrayOf(DataType.UWORD)

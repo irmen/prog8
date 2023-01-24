@@ -14,74 +14,38 @@ import kotlin.math.sqrt
 
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
-class FParam(val name: String, val possibleDatatypes: Array<DataType>)
-
-class FSignature(val name: String,
-                 val pure: Boolean,      // does it have side effects?
-                 val parameters: List<FParam>,
-                 val returnType: DataType?,
-                 val constExpressionFunc: ConstExpressionCaller? = null)
-
-
-private val functionSignatures: List<FSignature> = listOf(
-    // this set of function have no return value and operate in-place:
-    FSignature("rol"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("ror"         , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("rol2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("ror2"        , false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
-    FSignature("sort"        , false, listOf(FParam("array", ArrayDatatypes)), null),
-    FSignature("reverse"     , false, listOf(FParam("array", ArrayDatatypes)), null),
-    // cmp returns a status in the carry flag, but not a proper return value
-    FSignature("cmp"         , false, listOf(FParam("value1", IntegerDatatypesNoBool), FParam("value2", NumericDatatypesNoBool)), null),
-    FSignature("abs"         , true, listOf(FParam("value", IntegerDatatypesNoBool)), DataType.UWORD, ::builtinAbs),
-    FSignature("len"         , true, listOf(FParam("values", IterableDatatypes)), DataType.UWORD, ::builtinLen),
-    // normal functions follow:
-    FSignature("sizeof"      , true, listOf(FParam("object", DataType.values())), DataType.UBYTE, ::builtinSizeof),
-    FSignature("sgn"         , true, listOf(FParam("value", NumericDatatypesNoBool)), DataType.BYTE, ::builtinSgn ),
-    FSignature("sqrt16"      , true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
-    FSignature("any"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
-    FSignature("all"         , true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE) { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
-    FSignature("lsb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
-    FSignature("msb"         , true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE) { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
-    FSignature("mkword"      , true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD, ::builtinMkword),
-    FSignature("peek"        , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UBYTE),
-    FSignature("peekw"       , true, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
-    FSignature("poke"        , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
-    FSignature("pokemon"     , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UBYTE))), null),
-    FSignature("pokew"       , false, listOf(FParam("address", arrayOf(DataType.UWORD)), FParam("value", arrayOf(DataType.UWORD))), null),
-    FSignature("pop"         , false, listOf(FParam("target", ByteDatatypes)), null),
-    FSignature("popw"        , false, listOf(FParam("target", WordDatatypes)), null),
-    FSignature("push"        , false, listOf(FParam("value", ByteDatatypes)), null),
-    FSignature("pushw"       , false, listOf(FParam("value", WordDatatypes)), null),
-    FSignature("rsave"       , false, emptyList(), null),
-    FSignature("rsavex"      , false, emptyList(), null),
-    FSignature("rrestore"    , false, emptyList(), null),
-    FSignature("rrestorex"   , false, emptyList(), null),
-    FSignature("memory"      , true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), DataType.UWORD),
-    FSignature("callfar"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
-    FSignature("callrom"     , false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), null),
+internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> = mapOf(
+    "abs" to ::builtinAbs,
+    "len" to ::builtinLen,
+    "sizeof" to ::builtinSizeof,
+    "sgn" to ::builtinSgn,
+    "sqrt16" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "any" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
+    "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
+    "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
+    "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
+    "mkword" to ::builtinMkword
 )
-
-val BuiltinFunctions = functionSignatures.associateBy { it.name }
-val InplaceModifyingBuiltinFunctions = setOf("rol", "ror", "rol2", "ror2", "sort", "reverse")
 
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
 
 private fun builtinAll(array: List<Double>): Double = if(array.all { it!=0.0 }) 1.0 else 0.0
 
-fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
+internal fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
     if(function in arrayOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
         return InferredTypes.InferredType.void()
 
     val func = BuiltinFunctions.getValue(function)
-    if(func.returnType==null)
-        return InferredTypes.InferredType.void()
-    return InferredTypes.knownFor(func.returnType)
+    val returnType = func.returnType
+    return if(returnType==null)
+        InferredTypes.InferredType.void()
+    else
+        InferredTypes.knownFor(returnType)
 }
 
 
-class NotConstArgumentException: AstException("not a const argument to a built-in function")
-class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
+internal class NotConstArgumentException: AstException("not a const argument to a built-in function")
+internal class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
 
 
 private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, function: (arg: Int)->Double): NumericLiteral {
