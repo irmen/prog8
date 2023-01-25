@@ -2,10 +2,7 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.codegen.cpu6502.AsmGen
-import prog8.codegen.cpu6502.asConstInteger
-import prog8.codegen.cpu6502.returnsWhatWhere
-import prog8.codegen.cpu6502.targetSubroutine
+import prog8.codegen.cpu6502.*
 
 
 internal enum class TargetStorageKind {
@@ -57,7 +54,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             with(assign.target) {
                 when {
                     identifier != null -> {
-                        val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to ${assign.target.identifier!!.name}") // identifier!!.targetVarDecl(program)?.subroutineParameter
+                        val paramName = identifier!!.targetVarDecl(program)?.name
+                        val parameter = identifier!!.targetStatement(program)?.definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                        println("assign to ${identifier!!.name}   param=$parameter")        // TODO WEG
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
                             if (sub!=null) {

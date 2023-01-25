@@ -59,7 +59,12 @@ fun PtExpression.isSimple(): Boolean {
 }
 
 internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode? {
-    TODO("Not yet implemented")
+    TODO("Not yet implemented target stmt for ${this.name}")
+//    if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
+//        BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
+//    else
+//        definingScope.lookup(nameInSource)
+//
 }
 
 internal fun PtIdentifier.targetVarDecl(program: PtProgram): PtVariable? =

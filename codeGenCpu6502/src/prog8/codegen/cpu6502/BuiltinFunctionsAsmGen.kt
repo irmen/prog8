@@ -71,7 +71,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
-        TODO("return correct function result type")
+
+        return BuiltinFunctions.getValue(fcall.name).returnType
     }
 
     private fun funcRsave() {

@@ -5,8 +5,13 @@
 main {
 
     sub start() {
-        ubyte @shared ub = asmfoo(42)
-        ub = normalfoo(42)
+        rsavex()
+
+        ubyte @shared ub
+        void  asmfoo(42)
+        main.asmfoo.arg = 42
+        main.normalfoo.arg=99
+        ; normalfoo(42)
 somelabel:
         ub++
         txt.print_ub(ub)
