@@ -159,7 +159,9 @@ And for the Commander X16::
     cx16.restore_irq()     ; set everything back to the systems default irq handler
 
 
-The Commander X16 provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers::
+The Commander X16 syslib provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
+They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
+will corrupt any Vera operations that were going on in the main program. The routines are::
 
     cx16.push_vera_context()
     ; ... do your work that uses vera here...

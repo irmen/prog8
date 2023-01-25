@@ -638,7 +638,7 @@ In most places where a number or other value is expected, you can use just the n
 If possible, the expression is parsed and evaluated by the compiler itself at compile time, and the (constant) resulting value is used in its place.
 Expressions that cannot be compile-time evaluated will result in code that calculates them at runtime.
 Expressions can contain procedure and function calls.
-There are various built-in functions such as sin(), cos() that can be used in expressions (see :ref:`builtinfunctions`).
+There are various built-in functions that can be used in expressions (see :ref:`builtinfunctions`).
 You can also reference identifiers defined elsewhere in your code.
 
 Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.

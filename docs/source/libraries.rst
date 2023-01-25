@@ -31,11 +31,13 @@ syslib
 The "system library" for your target machine. It contains many system-specific definitions such
 as ROM/Kernal subroutine definitions, memory location constants, and utility subroutines.
 
-Depending on the compilation target, other routines may also be available in here specific to that target.
-Best is to check the source code of the correct syslib module.
 
 Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
 to write programs that work on both targets without modifications.
+
+This module is usually imported automatically and can provide definitions in the ``sys``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
+depending on the chosen compilation target. Read the `syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
+
 
 sys (part of syslib)
 --------------------
