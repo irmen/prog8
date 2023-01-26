@@ -38,14 +38,7 @@ class VmProgramLoader {
 
             block.children.forEach { child ->
                 when(child) {
-                    is IRAsmSubroutine -> {
-                        if(!child.asmChunk.isIR)
-                            throw IRParseException("vm currently does not support non-IR asmsubs: ${child.label}")
-                        else {
-                            val replacement = addAssemblyToProgram(child.asmChunk, programChunks, variableAddresses)
-                            chunkReplacements += replacement
-                        }
-                    }
+                    is IRAsmSubroutine -> throw IRParseException("vm does not support asmsubs (use normal sub): ${child.label}")
                     is IRCodeChunk -> programChunks += child
                     is IRInlineAsmChunk -> {
                         val replacement = addAssemblyToProgram(child, programChunks, variableAddresses)

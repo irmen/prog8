@@ -2,7 +2,6 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.intermediate.*
@@ -84,7 +83,7 @@ class TestVm: FunSpec( {
         }
     }
 
-    test("non-IR asmsub not supported in vm") {
+    test("asmsub not supported in vm even with IR") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
         val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine(
@@ -93,31 +92,14 @@ class TestVm: FunSpec( {
             emptySet(),
             emptyList(),
             emptyList(),
-            IRInlineAsmChunk("main.asmstart", "inlined asm here", false, null),
+            IRInlineAsmChunk("main.asmstart", "return", false, null),
             Position.DUMMY
         )
         block += startSub
         program.addBlock(block)
-        shouldThrowWithMessage<IRParseException>("vm currently does not support non-IR asmsubs: main.asmstart") {
+        shouldThrowWithMessage<IRParseException>("vm does not support asmsubs (use normal sub): main.asmstart") {
             VirtualMachine(program)
         }
-    }
-
-    test("IR asmsub ok in vm") {
-        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
-        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
-        val startSub = IRAsmSubroutine(
-            "main.start",
-            0x2000u,
-            emptySet(),
-            emptyList(),
-            emptyList(),
-            IRInlineAsmChunk("main.start", "return", true, null),
-            Position.DUMMY
-        )
-        block += startSub
-        program.addBlock(block)
-        VirtualMachine(program).run()
     }
 
     test("vmrunner") {
