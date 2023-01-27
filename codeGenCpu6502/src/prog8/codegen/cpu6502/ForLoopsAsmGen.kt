@@ -8,7 +8,9 @@ import prog8.code.ast.PtRange
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
-internal class ForLoopsAsmGen(private val program: PtProgram, private val asmgen: AsmGen, private val zeropage: Zeropage) {
+internal class ForLoopsAsmGen(private val program: PtProgram,
+                              private val asmgen: AsmGen,
+                              private val zeropage: Zeropage) {
 
     internal fun translate(stmt: PtForLoop) {
         val iterableDt = stmt.iterable.type

@@ -135,7 +135,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is PtIdentifier -> {
-                    val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to ${value.name}") // value.targetVarDecl(program)?.subroutineParameter
+                    val paramName = value.targetVarDecl(program)?.name
+                    val parameter = value.targetStatement(program)?.definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                    println("assign to ${value.name}   param=$parameter")        // TODO WEG
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)

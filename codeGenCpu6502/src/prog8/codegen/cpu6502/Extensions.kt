@@ -58,13 +58,49 @@ fun PtExpression.isSimple(): Boolean {
     }
 }
 
-internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode? {
-    TODO("Not yet implemented target stmt for ${this.name}")
-//    if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
-//        BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
-//    else
-//        definingScope.lookup(nameInSource)
-//
+internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode {
+    return if(name in BuiltinFunctions)
+        this     // just reuse the node itself to refer to the builtin function
+    else
+        program.lookup(name)
+}
+
+internal fun PtProgram.lookup(name: String): PtNode {
+    val remainder = name.split('.').toMutableList()
+
+    fun recurse(node: PtNode): PtNode {
+        when(node) {
+            is PtProgram -> {
+                val blockName = remainder.removeFirst()
+                return recurse(allBlocks().single { it.name==blockName })
+            }
+            is PtAsmSub -> {
+                require(remainder.isEmpty())
+                return node
+            }
+            is PtSub -> {
+                if(remainder.isEmpty())
+                    return node
+                if(remainder.size==1) {
+                    // look to see if there is a block of vardecls
+                    val scopevars = node.children.firstOrNull() as? PtScopeVarsDecls
+                    if(scopevars!=null)
+                        return recurse(scopevars)
+                }
+                val childName = remainder.removeFirst()
+                return recurse(node.children.filterIsInstance<PtNamedNode>().single { it.name==childName})
+            }
+            is PtBlock, is PtScopeVarsDecls, is PtNamedNode -> {
+                if(remainder.isEmpty())
+                    return node
+                val childName = remainder.removeFirst()
+                return recurse(node.children.filterIsInstance<PtNamedNode>().single { it.name==childName})
+            }
+            else -> throw IllegalArgumentException("invalid name $name in parent $node")
+        }
+    }
+
+    return recurse(this)
 }
 
 internal fun PtIdentifier.targetVarDecl(program: PtProgram): PtVariable? =
@@ -90,8 +126,14 @@ internal fun PtAsmSub.shouldKeepA(): KeepAresult {
     return KeepAresult(false, saveAonReturn)
 }
 
-internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine? {
-    TODO()
+internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine? =
+    this.targetStatement(program) as? IPtSubroutine
+
+internal fun PtFunctionCall.targetStatement(program: PtProgram): PtNode {
+    return if(name in BuiltinFunctions)
+        this     // just reuse the node itself to refer to the builtin function
+    else
+        program.lookup(name)
 }
 
 internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrStatusflag>> {
