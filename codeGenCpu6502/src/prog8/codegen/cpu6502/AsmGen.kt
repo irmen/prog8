@@ -48,7 +48,7 @@ class AsmGen(
             if(options.optimize) {
                 val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
                 assemblyLines.clear()
-                while(optimizeAssembly(separateLines, options.compTarget.machine, program)>0) {
+                while(optimizeAssembly(separateLines, options.compTarget.machine, symbolTable)>0) {
                     // optimize the assembly source code
                 }
                 output.writeLines(separateLines)

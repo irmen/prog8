@@ -28,6 +28,15 @@ internal class SymbolTableMaker(private val program: Program, private val option
             st.add(node)
         }
         require(scopestack.isEmpty())
+
+        // add the hardcoded temporary zeropage variables
+        st.add(StMemVar("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY))
+        st.add(StMemVar("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY))
+        st.add(StMemVar("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY))
+        st.add(StMemVar("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY))
+        st.add(StMemVar("P8ESTACK_LO", DataType.UBYTE, options.compTarget.machine.ESTACK_LO, null, Position.DUMMY))
+        st.add(StMemVar("P8ESTACK_HI", DataType.UBYTE, options.compTarget.machine.ESTACK_HI, null, Position.DUMMY))
+
         return st
     }
 
