@@ -10,7 +10,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.SymbolTable
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
+import prog8.code.core.SourceCode
+import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
@@ -128,16 +131,16 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
         }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, srcBlock.position)
-        if(vardecls.isNotEmpty()) block.add(makeScopeVarsDecls(vardecls, srcBlock.position))
+        makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))
         return block
     }
 
-    private fun makeScopeVarsDecls(vardecls: List<Statement>, position: Position): PtNode {
-        val decls = PtScopeVarsDecls(position)
+    private fun makeScopeVarsDecls(vardecls: Iterable<Statement>): Iterable<PtNamedNode> {
+        val decls = mutableListOf<PtNamedNode>()
         vardecls.forEach {
-            decls.add(transformStatement(it as VarDecl))
+            decls.add(transformStatement(it as VarDecl) as PtNamedNode)
         }
         return decls
     }
@@ -332,8 +335,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
             srcSub.inline,
             srcSub.position)
         sub.parameters.forEach { it.parent=sub }
-
-        if(vardecls.isNotEmpty()) sub.add(makeScopeVarsDecls(vardecls, sub.position))
+        makeScopeVarsDecls(vardecls).forEach { sub.add(it) }
         for (statement in statements)
             sub.add(transformStatement(statement))
 

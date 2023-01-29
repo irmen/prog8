@@ -234,7 +234,6 @@ class IRCodeGen(
 
     internal fun translateNode(node: PtNode): IRCodeChunks {
         val chunks = when(node) {
-            is PtScopeVarsDecls -> emptyList() // vars should be looked up via symbol table
             is PtVariable -> emptyList() // var should be looked up via symbol table
             is PtMemMapped -> emptyList() // memmapped var should be looked up via symbol table
             is PtConstant -> emptyList() // constants have all been folded into the code
@@ -1180,7 +1179,7 @@ class IRCodeGen(
             when(child) {
                 is PtNop -> { /* nothing */ }
                 is PtAssignment -> { /* global variable initialization is done elsewhere */ }
-                is PtScopeVarsDecls -> { /* vars should be looked up via symbol table */ }
+                is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
                     for (subchild in child.children) {
