@@ -39,22 +39,22 @@ internal fun PtRange.toConstantIntegerRange(): IntProgression? {
 
 
 fun PtExpression.isSimple(): Boolean {
-    when(this) {
-        is PtAddressOf -> TODO()
-        is PtArray -> TODO()
-        is PtArrayIndexer -> TODO()
-        is PtBinaryExpression -> TODO()
-        is PtBuiltinFunctionCall -> TODO()
-        is PtContainmentCheck -> TODO()
-        is PtFunctionCall -> TODO()
-        is PtIdentifier -> TODO()
+    return when(this) {
+        is PtAddressOf -> true
+        is PtArray -> true
+        is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
+        is PtBinaryExpression -> false
+        is PtBuiltinFunctionCall -> name in arrayOf("msb", "lsb", "peek", "peekw", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
+        is PtContainmentCheck -> false
+        is PtFunctionCall -> false
+        is PtIdentifier -> true
         is PtMachineRegister -> TODO()
-        is PtMemoryByte -> TODO()
-        is PtNumber -> TODO()
-        is PtPrefix -> TODO()
-        is PtRange -> TODO()
-        is PtString -> TODO()
-        is PtTypeCast -> TODO()
+        is PtMemoryByte -> address is PtNumber || address is PtIdentifier
+        is PtNumber -> true
+        is PtPrefix -> value.isSimple()
+        is PtRange -> true
+        is PtString -> true
+        is PtTypeCast -> value.isSimple()
     }
 }
 
@@ -78,19 +78,7 @@ internal fun PtProgram.lookup(name: String): PtNode {
                 require(remainder.isEmpty())
                 return node
             }
-            is PtSub -> {
-                if(remainder.isEmpty())
-                    return node
-                if(remainder.size==1) {
-                    // look to see if there is a block of vardecls
-                    val scopevars = node.children.firstOrNull() as? PtScopeVarsDecls
-                    if(scopevars!=null)
-                        return recurse(scopevars)
-                }
-                val childName = remainder.removeFirst()
-                return recurse(node.children.filterIsInstance<PtNamedNode>().single { it.name==childName})
-            }
-            is PtBlock, is PtScopeVarsDecls, is PtNamedNode -> {
+            is PtBlock, is PtSub, is PtNamedNode -> {
                 if(remainder.isEmpty())
                     return node
                 val childName = remainder.removeFirst()

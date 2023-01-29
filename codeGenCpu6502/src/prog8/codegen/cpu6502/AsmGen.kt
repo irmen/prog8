@@ -317,10 +317,9 @@ class AsmGen(
             is PtWhen -> translate(stmt)
             is PtIncludeBinary -> TODO()
             is PtBreakpoint -> TODO()
-            is PtVariable -> { /* do nothing; variables are handled elsewhere */ }
-            is PtScopeVarsDecls -> { /* do nothing; variables are handled elsewhere */ }  // TODO translate PtScopeVarsDecls ? or ignore?
+            is PtVariable, is PtConstant, is PtMemMapped -> { /* do nothing; variables are handled elsewhere */ }
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
-            is PtNodeGroup -> TODO()
+            is PtNodeGroup -> stmt.children.forEach { translate(it) }
             is PtNop -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }

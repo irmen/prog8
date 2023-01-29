@@ -10,10 +10,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.SymbolTable
 import prog8.code.ast.*
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.SourceCode
-import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
