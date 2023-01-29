@@ -43,7 +43,7 @@ class TestIntermediateAst: FunSpec({
         ast.name shouldBe result.program.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")
-        entry.children.size shouldBe 4
+        entry.children.size shouldBe 5
         entry.name shouldBe "start"
         entry.scopedName shouldBe "main.start"
         val blocks = ast.allBlocks().toList()
@@ -51,24 +51,23 @@ class TestIntermediateAst: FunSpec({
         blocks[0].name shouldBe "main"
         blocks[0].scopedName shouldBe "main"
 
-        val vars = entry.children[0] as PtScopeVarsDecls
-        val ccInit = entry.children[1] as PtAssignment
+        val ccInit = entry.children[2] as PtAssignment
         ccInit.target.identifier?.name shouldBe "main.start.cc"
         (ccInit.value as PtNumber).number shouldBe 0.0
 
-        val ccdecl = vars.children[0] as PtVariable
+        val ccdecl = entry.children[0] as PtVariable
         ccdecl.name shouldBe "cc"
         ccdecl.scopedName shouldBe "main.start.cc"
         ccdecl.type shouldBe DataType.UBYTE
-        val arraydecl = vars.children[1] as PtVariable
+        val arraydecl = entry.children[1] as PtVariable
         arraydecl.name shouldBe "array"
         arraydecl.type shouldBe DataType.ARRAY_UB
 
-        val containmentCast = (entry.children[2] as PtAssignment).value as PtTypeCast
+        val containmentCast = (entry.children[3] as PtAssignment).value as PtTypeCast
         containmentCast.type shouldBe DataType.UBYTE
         val containment = containmentCast.value as PtContainmentCheck
         (containment.element as PtNumber).number shouldBe 11.0
-        val fcall = (entry.children[3] as PtAssignment).value as PtFunctionCall
+        val fcall = (entry.children[4] as PtAssignment).value as PtFunctionCall
         fcall.void shouldBe false
         fcall.type shouldBe DataType.UBYTE
         ast.print()

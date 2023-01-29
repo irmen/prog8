@@ -134,12 +134,6 @@ class PtNop(position: Position): PtNode(position) {
 }
 
 
-class PtScopeVarsDecls(position: Position): PtNode(position) {
-    override fun printProperties() {}
-}
-
-
-
 // find the parent node of a specific type or interface
 // (useful to figure out in what namespace/block something is defined, etc.)
 inline fun <reified T> findParentNode(node: PtNode): T? {
