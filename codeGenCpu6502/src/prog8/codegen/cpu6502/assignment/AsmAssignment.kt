@@ -55,7 +55,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 when {
                     identifier != null -> {
                         val paramName = identifier!!.targetVarDecl(program)?.name
-                        val parameter = identifier!!.targetStatement(program)?.definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                        val parameter = identifier!!.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
                         println("assign to ${identifier!!.name}   param=$parameter")        // TODO WEG
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
@@ -131,12 +131,12 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
 
             return when(value) {
-                is PtNumber -> throw AssemblyError("should have been constant value")
+                // checked above:   is PtNumber -> throw AssemblyError("should have been constant value")
                 is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is PtIdentifier -> {
                     val paramName = value.targetVarDecl(program)?.name
-                    val parameter = value.targetStatement(program)?.definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                    val parameter = value.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
                     println("assign to ${value.name}   param=$parameter")        // TODO WEG
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")

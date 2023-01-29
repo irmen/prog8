@@ -66,7 +66,7 @@ internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode {
 }
 
 internal fun PtProgram.lookup(name: String): PtNode {
-    val remainder = name.split('.').toMutableList()
+    val remainder = name.split('.').toMutableList()     // TODO optimize split to not use memory allocations
 
     fun recurse(node: PtNode): PtNode {
         when(node) {

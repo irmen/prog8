@@ -44,9 +44,24 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override fun isIOAddress(address: UInt): Boolean = false
 
-    override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {}
+    override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
+        zeropage = VirtualZeropage(compilerOptions)
+    }
 }
 
 interface IVirtualMachineRunner {
     fun runProgram(irSource: String)
+}
+
+private class VirtualZeropage(options: CompilationOptions): Zeropage(options) {
+    override val SCRATCH_B1: UInt
+        get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
+    override val SCRATCH_REG: UInt
+        get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
+    override val SCRATCH_W1: UInt
+        get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
+    override val SCRATCH_W2: UInt
+        get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
+
+    override fun allocateCx16VirtualRegisters() { /* there is no actual zero page in this target to allocate thing in */ }
 }

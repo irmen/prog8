@@ -10,6 +10,7 @@ import prog8.code.core.ArrayDatatypes
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.target.VMTarget
 import java.util.*
 
 internal class SymbolTableMaker(private val program: Program, private val options: CompilationOptions): IAstVisitor {
@@ -29,13 +30,15 @@ internal class SymbolTableMaker(private val program: Program, private val option
         }
         require(scopestack.isEmpty())
 
-        // add the hardcoded temporary zeropage variables
-        st.add(StMemVar("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY))
-        st.add(StMemVar("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY))
-        st.add(StMemVar("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY))
-        st.add(StMemVar("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY))
-        st.add(StMemVar("P8ESTACK_LO", DataType.UBYTE, options.compTarget.machine.ESTACK_LO, null, Position.DUMMY))
-        st.add(StMemVar("P8ESTACK_HI", DataType.UBYTE, options.compTarget.machine.ESTACK_HI, null, Position.DUMMY))
+        if(options.compTarget.name!=VMTarget.NAME) {
+            // add the hardcoded temporary zeropage variables for targets that use them
+            st.add(StMemVar("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY))
+            st.add(StMemVar("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY))
+            st.add(StMemVar("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY))
+            st.add(StMemVar("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY))
+            st.add(StMemVar("P8ESTACK_LO", DataType.UBYTE, options.compTarget.machine.ESTACK_LO, null, Position.DUMMY))
+            st.add(StMemVar("P8ESTACK_HI", DataType.UBYTE, options.compTarget.machine.ESTACK_HI, null, Position.DUMMY))
+        }
 
         return st
     }
