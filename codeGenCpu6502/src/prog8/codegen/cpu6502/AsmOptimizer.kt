@@ -3,7 +3,6 @@ package prog8.codegen.cpu6502
 import prog8.code.StConstant
 import prog8.code.StMemVar
 import prog8.code.SymbolTable
-import prog8.code.core.AssemblyError
 import prog8.code.core.IMachineDefinition
 
 
@@ -448,6 +447,7 @@ private fun optimizeStoreLoadSame(
 private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_\.$]*)""")
 
 private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
+    // try to get the constant value address, could return null if it's a symbol instead
     val loadArg = line.trimStart().substring(3).trim()
     return when {
         loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
@@ -461,8 +461,7 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
                 when (val symbol = symbolTable.flat[identifier]) {
                     is StConstant -> symbol.value.toUInt()
                     is StMemVar -> symbol.address
-                    null -> null
-                    else -> throw AssemblyError("expected constant or memvar for address $line")
+                    else -> null
                 }
             } else null
         }

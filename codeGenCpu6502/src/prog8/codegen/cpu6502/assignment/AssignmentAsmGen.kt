@@ -1100,6 +1100,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
         val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
+        lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, target, false, program.memsizer, value.position)

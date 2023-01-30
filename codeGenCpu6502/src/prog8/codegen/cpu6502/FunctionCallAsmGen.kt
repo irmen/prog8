@@ -142,7 +142,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(!isArgumentTypeCompatible(value.type, parameter.type))
             throw AssemblyError("argument type incompatible")
 
-        val varName = asmgen.asmVariableName(sub.scopedName + parameter.name)
+        val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
         asmgen.assignExpressionToVariable(value, varName, parameter.type, sub)
     }
 

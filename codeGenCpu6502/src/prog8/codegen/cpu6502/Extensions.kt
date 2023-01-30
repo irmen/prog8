@@ -66,29 +66,46 @@ internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode {
 }
 
 internal fun PtProgram.lookup(name: String): PtNode {
-    val remainder = name.split('.').toMutableList()     // TODO optimize split to not use memory allocations
-
-    fun recurse(node: PtNode): PtNode {
+    fun searchLocalSymbol(node: PtNode, namePart: String): PtNode? {
         when(node) {
             is PtProgram -> {
-                val blockName = remainder.removeFirst()
-                return recurse(allBlocks().single { it.name==blockName })
+                return node.allBlocks().single { it.name==namePart }
             }
-            is PtAsmSub -> {
-                require(remainder.isEmpty())
-                return node
-            }
-            is PtBlock, is PtSub, is PtNamedNode -> {
-                if(remainder.isEmpty())
+            is PtNamedNode -> {
+                if(node.name==namePart)
                     return node
-                val childName = remainder.removeFirst()
-                return recurse(node.children.filterIsInstance<PtNamedNode>().single { it.name==childName})
             }
-            else -> throw IllegalArgumentException("invalid name $name in parent $node")
+            is PtNodeGroup -> {
+                node.children.forEach {
+                    val found = searchLocalSymbol(it, namePart)
+                    if(found!=null)
+                        return found
+                }
+            }
+            is PtIdentifier -> {
+                if(node.name==namePart)
+                    return node
+            }
+            is PtSubroutineParameter -> {
+                if(node.name==namePart)
+                    return node
+            }
+            else -> {
+                // NOTE: when other nodes containing scopes are introduced,
+                //       these should be added here as well to look into!
+            }
         }
+
+        node.children.forEach {
+            val found = searchLocalSymbol(it, namePart)
+            if(found!=null)
+                return found
+        }
+        return null
     }
 
-    return recurse(this)
+    val remainder = name.splitToSequence('.')
+    return remainder.fold(this as PtNode) { acc, namePart -> searchLocalSymbol(acc, namePart)!! }
 }
 
 internal fun PtIdentifier.targetVarDecl(program: PtProgram): PtVariable? =

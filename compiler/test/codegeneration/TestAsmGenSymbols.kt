@@ -15,7 +15,6 @@ import prog8.code.ast.PtIdentifier
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8.code.target.c64.C64Zeropage
 import prog8.codegen.cpu6502.AsmGen
 import prog8.compiler.astprocessing.IntermediateAstMaker
 import prog8.compiler.astprocessing.SymbolTableMaker
@@ -75,7 +74,6 @@ class TestAsmGenSymbols: StringSpec({
     fun createTestAsmGen(program: Program): AsmGen {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target(), 999u)
-        options.compTarget.machine.zeropage = C64Zeropage(options)
         val st = SymbolTableMaker(program, options).make()
         val ptProgram = IntermediateAstMaker(program, st, options).transform()
         return AsmGen(ptProgram, st, options, errors)

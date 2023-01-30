@@ -5,6 +5,7 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.code.core.*
+import prog8.code.target.virtual.VirtualMachineDefinition
 
 
 internal object DummyFunctions : IBuiltinFunctions {
@@ -44,8 +45,7 @@ internal object AsciiStringEncoder : IStringEncoding {
 
 internal object DummyCompilationTarget : ICompilationTarget {
     override val name: String = "dummy"
-    override val machine: IMachineDefinition
-        get() = throw NotImplementedError("dummy")
+    override val machine: IMachineDefinition = VirtualMachineDefinition()  // not really true but I don't want to implement a full dummy machinedef
     override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES, Encoding.ISO)
     override val defaultEncoding = Encoding.PETSCII
 
