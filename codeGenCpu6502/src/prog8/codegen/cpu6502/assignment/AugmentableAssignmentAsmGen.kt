@@ -149,6 +149,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         val value = if(program.memsizer.memorySize(origValue.type) > program.memsizer.memorySize(target.datatype)) {
             val typecast = PtTypeCast(target.datatype, origValue.position)
             typecast.add(origValue)
+            require(typecast.type!=origValue.type)
             typecast
         }
         else {
@@ -1783,6 +1784,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             val castDt = if (outerCastDt largerThan innerCastDt) innerCastDt else outerCastDt
             val resultingCast = PtTypeCast(castDt, position)
             resultingCast.add((cast.value as PtTypeCast).value)
+            require(castDt!=resultingCast.value.type)
             inplaceCast(target, resultingCast, position)
         }
     }

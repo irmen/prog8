@@ -40,7 +40,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type)
+        if(sourceDt istype typecast.type || (sourceDt istype DataType.BOOL && typecast.type==DataType.UBYTE))
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {

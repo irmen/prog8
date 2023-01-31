@@ -11,7 +11,8 @@ class TestVarious: FunSpec({
 main {
     sub start() {
         ubyte[3] values
-        func(33 + (22 in values))
+        func(22 in values)
+        ubyte @shared qq = 22 in values
     }
     sub func(ubyte arg) {
         arg++

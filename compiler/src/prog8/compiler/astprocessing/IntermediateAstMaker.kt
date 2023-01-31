@@ -464,6 +464,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
         val cast = PtTypeCast(srcCast.type, srcCast.position)
         cast.add(transformExpression(srcCast.expression))
+        require(cast.type!=cast.value.type)
         return cast
     }
 
