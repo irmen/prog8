@@ -130,7 +130,8 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
             }
         }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
-        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, srcBlock.position)
+        val src = srcBlock.definingModule.source
+        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, src, srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))

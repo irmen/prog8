@@ -52,15 +52,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                TODO("pop cpu stack byte into ${fcall.args[0]}")
-                // asmgen.popCpuStack(DataType.UBYTE, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingISub())
+                val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
+                val target2 = (fcall.args[0] as PtIdentifier).targetStatement(program)
+                if(target2==null)
+                    TODO("huh1")
+                if(target==null)
+                    TODO("huh2")
+                asmgen.popCpuStack(DataType.UBYTE, target!!, fcall.definingISub())
             }
             "popw" -> {
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                TODO("pop cpu stack word into ${fcall.args[0]}")
-                // asmgen.popCpuStack(DataType.UWORD, (fcall.args[0] as PtIdentifier).targetVarDecl(program)!!, fcall.definingISub())
+                val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
+                val target2 = (fcall.args[0] as PtIdentifier).targetStatement(program)
+                if(target2==null)
+                    TODO("huh1")
+                if(target==null)
+                    TODO("huh2")
+                asmgen.popCpuStack(DataType.UWORD, target!!, fcall.definingISub())
             }
             "rsave" -> funcRsave()
             "rsavex" -> funcRsaveX()
@@ -319,7 +329,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcMemory(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
-        if(discardResult || fcall !is PtBuiltinFunctionCall)        // TODO huh, is always this class??
+        if(discardResult)
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as PtString).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}

@@ -56,7 +56,6 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     identifier != null -> {
                         val paramName = identifier!!.targetVarDecl(program)?.name
                         val parameter = identifier!!.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
-                        println("assign to ${identifier!!.name}   param=$parameter")        // TODO WEG
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
                             if (sub!=null) {
@@ -137,7 +136,6 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtIdentifier -> {
                     val paramName = value.targetVarDecl(program)?.name
                     val parameter = value.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
-                    println("assign to ${value.name}   param=$parameter")        // TODO WEG
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)

@@ -6,6 +6,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 import java.util.*
+import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 
 
@@ -315,8 +316,8 @@ class AsmGen(
             is PtForLoop -> forloopsAsmGen.translate(stmt)
             is PtRepeatLoop -> translate(stmt)
             is PtWhen -> translate(stmt)
-            is PtIncludeBinary -> TODO()
-            is PtBreakpoint -> TODO()
+            is PtIncludeBinary -> translate(stmt)
+            is PtBreakpoint -> translate(stmt)
             is PtVariable, is PtConstant, is PtMemMapped -> { /* do nothing; variables are handled elsewhere */ }
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
@@ -854,6 +855,27 @@ $repeatLabel    lda  $counterVar
 
     private fun translate(asm: PtInlineAssembly) {
         assemblyLines.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
+    }
+
+    private fun translate(incbin: PtIncludeBinary) {
+        val offset = if(incbin.offset!=null) ", ${incbin.offset}" else ""
+        val length = if(incbin.length!=null) ", ${incbin.length}" else ""
+        if(incbin.definingBlock()!!.source is SourceCode.Generated)
+            throw AssemblyError("%asmbinary inside non-library/non-filesystem module not yet supported")
+        val sourcePath = Path(incbin.definingBlock()!!.source.origin)
+        val includedPath = sourcePath.resolveSibling(incbin.file)
+        val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*
+            .toAbsolutePath()
+            .relativize(includedPath.toAbsolutePath())
+            .normalize() // avoid assembler warnings (-Wportable; only some, not all)
+            .toString().replace('\\', '/')
+        out("  .binary \"$pathForAssembler\" $offset $length")
+    }
+
+    private fun translate(brk: PtBreakpoint) {
+        val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
+        breakpointLabels.add(label)
+        out(label)
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {
@@ -2853,14 +2875,13 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    /* TODO remove?:
     internal fun popCpuStack(dt: DataType, target: PtVariable, scope: IPtSubroutine?) {
         // note: because A is pushed first so popped last, saving A is often not required here.
-        val parameter: PtSubroutineParameter = TODO("search subroutine parameter that it may refer to") // target.subroutineParameter
+        val parameter = target.definingSub()?.parameters?.singleOrNull { it.name===target.name }
         if(parameter!=null) {
-            val sub = parameter.definingAsmSub()!!  // TODO or also regular PtSub?
-            val shouldKeepA = sub.asmParameterRegisters.any { it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY }
-            val reg: RegisterOrStatusflag = sub.asmParameterRegisters[sub.parameters.indexOf(parameter)]
+            val sub = parameter.definingAsmSub() ?: throw AssemblyError("push/pop arg passing only supported on asmsubs ${target.position}")
+            val shouldKeepA = sub.parameters.any { it.second.registerOrPair==RegisterOrPair.AX || it.second.registerOrPair==RegisterOrPair.AY}
+            val reg = sub.parameters.single { it.first === parameter }.second
             if(reg.statusflag!=null) {
                 if(shouldKeepA)
                     out("  sta  P8ZP_SCRATCH_REG")
@@ -2951,7 +2972,6 @@ $repeatLabel    lda  $counterVar
             else -> throw AssemblyError("can't pop $dt")
         }
     }
-    */
 
     internal fun pushCpuStack(dt: DataType, value: PtExpression) {
         val signed = value.type.oneOf(DataType.BYTE, DataType.WORD)

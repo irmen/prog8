@@ -98,15 +98,15 @@ class TestAsmGenSymbols: StringSpec({
         val sub = asmgen.program.entrypoint()!!
 
         val localvarIdent = sub.children.asSequence().filterIsInstance<PtAssignment>().first { it.value is PtIdentifier }.value as PtIdentifier
-        asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
-        asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
+        asmgen.asmSymbolName(localvarIdent) shouldBe "main.start.localvar"
+        asmgen.asmVariableName(localvarIdent) shouldBe "main.start.localvar"
         val localvarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.localvar" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(localvarIdentScoped) shouldBe "main.start.localvar"
         asmgen.asmVariableName(localvarIdentScoped) shouldBe "main.start.localvar"
 
-        val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="var_outside" }.value as PtAddressOf).identifier
-        asmgen.asmSymbolName(scopedVarIdent) shouldBe "var_outside"
-        asmgen.asmVariableName(scopedVarIdent) shouldBe "var_outside"
+        val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
+        asmgen.asmVariableName(scopedVarIdent) shouldBe "main.var_outside"
         val scopedVarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
@@ -117,16 +117,16 @@ class TestAsmGenSymbols: StringSpec({
         val asmgen = createTestAsmGen(program)
         val sub = asmgen.program.entrypoint()!!
 
-        val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="locallabel" }.value as PtAddressOf).identifier
-        asmgen.asmSymbolName(localLabelIdent) shouldBe "locallabel"
-        asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
+        val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(localLabelIdent) shouldBe "main.start.locallabel"
+        asmgen.asmVariableName(localLabelIdent) shouldBe "main.start.locallabel"
         val localLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start.locallabel"
         asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
 
-        val scopedLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="label_outside" }.value as PtAddressOf).identifier
-        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "label_outside"
-        asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
+        val scopedLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main.label_outside"
+        asmgen.asmVariableName(scopedLabelIdent) shouldBe "main.label_outside"
         val scopedLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main.label_outside"
         asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"

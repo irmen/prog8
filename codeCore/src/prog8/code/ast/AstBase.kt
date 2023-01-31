@@ -3,6 +3,7 @@ package prog8.code.ast
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
+import prog8.code.core.SourceCode
 import java.nio.file.Path
 
 // New simplified AST for the code generator.
@@ -87,6 +88,7 @@ class PtBlock(name: String,
               val library: Boolean,
               val forceOutput: Boolean,
               val alignment: BlockAlignment,
+              val source: SourceCode,       // taken from the module the block is defined in.
               position: Position
 ) : PtNamedNode(name, position) {
     override fun printProperties() {
