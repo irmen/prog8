@@ -806,9 +806,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {
         val elementDt = containment.element.type
-        val variable = (containment.iterable as? PtIdentifier)?.targetVarDecl(program)
-            ?: throw AssemblyError("invalid containment iterable type")
-
+        val variable = (containment.iterable as? PtIdentifier)?.targetVarDecl(program) as PtVariable
         val varname = asmgen.asmVariableName(containment.iterable)
         when(variable.type) {
             DataType.STR -> {

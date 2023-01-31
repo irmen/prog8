@@ -108,8 +108,8 @@ internal fun PtProgram.lookup(name: String): PtNode {
     return remainder.fold(this as PtNode) { acc, namePart -> searchLocalSymbol(acc, namePart)!! }
 }
 
-internal fun PtIdentifier.targetVarDecl(program: PtProgram): PtVariable? =
-    this.targetStatement(program) as? PtVariable
+internal fun PtIdentifier.targetVarDecl(program: PtProgram): IPtVariable? =
+    this.targetStatement(program) as? IPtVariable
 
 internal fun IPtSubroutine.regXasResult(): Boolean =
     (this is PtAsmSub) && this.retvalRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }

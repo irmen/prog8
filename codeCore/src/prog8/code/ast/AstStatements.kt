@@ -194,21 +194,27 @@ class PtReturn(position: Position) : PtNode(position) {
 }
 
 
-class PtVariable(name: String, val type: DataType, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
+sealed interface IPtVariable {
+    val name: String
+    val type: DataType
+}
+
+
+class PtVariable(name: String, override val type: DataType, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     override fun printProperties() {
         print("$type  $name")
     }
 }
 
 
-class PtConstant(name: String, val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position) {
+class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable {
     override fun printProperties() {
         print("$type $name = $value")
     }
 }
 
 
-class PtMemMapped(name: String, val type: DataType, val address: UInt, position: Position) : PtNamedNode(name, position) {
+class PtMemMapped(name: String, override val type: DataType, val address: UInt, position: Position) : PtNamedNode(name, position), IPtVariable {
     override fun printProperties() {
         print("&$type $name = ${address.toHex()}")
     }

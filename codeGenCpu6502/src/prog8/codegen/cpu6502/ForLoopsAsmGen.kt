@@ -1,10 +1,7 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.code.ast.PtForLoop
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtProgram
-import prog8.code.ast.PtRange
+import prog8.code.ast.*
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
@@ -242,7 +239,7 @@ $endLabel""")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
-        val decl = ident.targetVarDecl(program)!!
+        val decl = ident.targetVarDecl(program)!! as PtVariable
         when(iterableDt) {
             DataType.STR -> {
                 asmgen.out("""

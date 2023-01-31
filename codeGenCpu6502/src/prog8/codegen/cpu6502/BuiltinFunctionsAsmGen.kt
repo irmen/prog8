@@ -24,7 +24,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         if(discardResult && resultToStack)
             throw AssemblyError("cannot both discard the result AND put it onto stack")
 
-        val sscope = fcall.definingISub()!!
+        val sscope = fcall.definingISub()
 
         when (fcall.name) {
             "msb" -> funcMsb(fcall, resultToStack, resultRegister)
@@ -53,11 +53,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
                 val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
-                val target2 = (fcall.args[0] as PtIdentifier).targetStatement(program)
-                if(target2==null)
-                    TODO("huh1")
-                if(target==null)
-                    TODO("huh2")
                 asmgen.popCpuStack(DataType.UBYTE, target!!, fcall.definingISub())
             }
             "popw" -> {
@@ -65,11 +60,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
                 val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
-                val target2 = (fcall.args[0] as PtIdentifier).targetStatement(program)
-                if(target2==null)
-                    TODO("huh1")
-                if(target==null)
-                    TODO("huh2")
                 asmgen.popCpuStack(DataType.UWORD, target!!, fcall.definingISub())
             }
             "rsave" -> funcRsave()
@@ -359,7 +349,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcReverse(fcall: PtBuiltinFunctionCall) {
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
-            val decl = variable.targetVarDecl(program)!!
+            val decl = variable.targetVarDecl(program) as PtVariable
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraySize!!
             when (decl.type) {
@@ -398,7 +388,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcSort(fcall: PtBuiltinFunctionCall) {
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
-            val decl = variable.targetVarDecl(program)!!
+            val decl = variable.targetVarDecl(program) as PtVariable
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraySize!!
             when (decl.type) {
@@ -1017,7 +1007,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun outputAddressAndLenghtOfArray(arg: PtExpression) {
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as PtIdentifier
-        val arrayVar = arg.targetVarDecl(program)!!
+        val arrayVar = arg.targetVarDecl(program)!! as PtVariable
         if(arrayVar.arraySize==null)
             throw AssemblyError("length of non-array requested")
         val size = arrayVar.arraySize!!
