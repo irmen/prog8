@@ -162,3 +162,27 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrSta
         }
     }
 }
+
+internal fun PtExpression.clone(): PtExpression {
+    fun withClonedChildrenFrom(orig: PtExpression, clone: PtExpression): PtExpression {
+        orig.children.forEach { clone.add((it as PtExpression).clone()) }
+        return clone
+    }
+    when(this) {
+        is PtAddressOf -> return withClonedChildrenFrom(this, PtAddressOf(position))
+        is PtArray -> return withClonedChildrenFrom(this, PtArray(type, position))
+        is PtArrayIndexer -> return withClonedChildrenFrom(this, PtArrayIndexer(type, position))
+        is PtBinaryExpression -> return withClonedChildrenFrom(this, PtBinaryExpression(operator, type, position))
+        is PtBuiltinFunctionCall -> return withClonedChildrenFrom(this, PtBuiltinFunctionCall(name, void, hasNoSideEffects, type, position))
+        is PtContainmentCheck -> return withClonedChildrenFrom(this, PtContainmentCheck(position))
+        is PtFunctionCall -> return withClonedChildrenFrom(this, PtFunctionCall(name, void, type, position))
+        is PtIdentifier -> return withClonedChildrenFrom(this, PtIdentifier(name, type, position))
+        is PtMachineRegister -> return withClonedChildrenFrom(this, PtMachineRegister(register, type, position))
+        is PtMemoryByte -> return withClonedChildrenFrom(this, PtMemoryByte(position))
+        is PtNumber -> return withClonedChildrenFrom(this, PtNumber(type, number, position))
+        is PtPrefix -> return withClonedChildrenFrom(this, PtPrefix(operator, type, position))
+        is PtRange -> return withClonedChildrenFrom(this, PtRange(type, position))
+        is PtString -> return withClonedChildrenFrom(this, PtString(value, encoding, position))
+        is PtTypeCast -> return withClonedChildrenFrom(this, PtTypeCast(type, position))
+    }
+}

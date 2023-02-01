@@ -363,11 +363,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignTrue.add(assignment)
                 val assignFalse = PtNodeGroup()
                 val ifelse = PtIfElse(assign.position)
-                val exprClone = arrayOf(expr).clone()[0]
-                require(exprClone !== expr) // TODO remove check if it works
-                ifelse.add(expr)
+                val exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
+                expr.children.forEach { exprClone.children.add(it) }        // doesn't seem to need a deep clone
+                ifelse.add(exprClone)
                 ifelse.add(assignTrue)
                 ifelse.add(assignFalse)
+                ifelse.parent = expr.parent
                 asmgen.translate(ifelse)
                 return true
             }

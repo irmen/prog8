@@ -113,10 +113,10 @@ class AsmGen(
                 out("  lda  $sourceName")
                 return sourceName
             }
-            is PtVariable -> {
+            is PtVariable, is PtMemMapped -> {
                 val sourceName = asmVariableName(pointervar)
                 if (isTargetCpu(CpuType.CPU65c02)) {
-                    return if (allocator.isZpVar(target.scopedName.split('.'))) {       // TODO dotted string
+                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {       // TODO dotted string
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
                         sourceName
@@ -130,7 +130,7 @@ class AsmGen(
                         "P8ZP_SCRATCH_W1"
                     }
                 } else {
-                    return if (allocator.isZpVar(target.scopedName.split('.'))) {       // TODO dotted string
+                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {       // TODO dotted string
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
                         sourceName
@@ -146,7 +146,7 @@ class AsmGen(
                     }
                 }
             }
-            else -> throw AssemblyError("invalid pointervar")
+            else -> throw AssemblyError("invalid pointervar $target")
         }
     }
 
@@ -995,7 +995,7 @@ $repeatLabel    lda  $counterVar
                         out("  lda  ${asmSymbolName(pointervar)},y")
                         return true
                     }
-                    is PtVariable, null -> {
+                    is IPtVariable, null -> {
                         if(write) {
                             if(pointervar!=null && isZpVar(pointervar)) {
                                 val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
@@ -1045,7 +1045,7 @@ $repeatLabel    lda  $counterVar
                         }
                         return true
                     }
-                    else -> throw AssemblyError("invalid pointervar")
+                    else -> throw AssemblyError("invalid pointervar $pointervar")
                 }
             }
         }

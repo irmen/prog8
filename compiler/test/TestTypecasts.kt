@@ -120,6 +120,42 @@ main {
         right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
     }
 
+    test("simple logical with bool no typecast") {
+        val text="""
+main  {
+    bool bb
+
+    sub start() {
+        bb = bb and 123
+    }
+}"""
+        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 2
+        val assignValue = (stmts[0] as Assignment).value as BinaryExpression
+        assignValue.left shouldBe instanceOf<IdentifierReference>()
+        assignValue.operator shouldBe "&"
+        (assignValue.right as NumericLiteral).number shouldBe 1.0
+    }
+
+    test("simple logical with byte instead of bool ok with typecasting") {
+        val text="""
+main  {
+    ubyte ubb
+
+    sub start() {
+        ubb = ubb and 123
+    }
+}"""
+        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val stmts = result.program.entrypoint.statements
+        stmts.size shouldBe 2
+        val assignValue = (stmts[0] as Assignment).value as BinaryExpression
+        assignValue.left shouldBe instanceOf<BinaryExpression>()        // as a result of the cast to boolean
+        assignValue.operator shouldBe "&"
+        (assignValue.right as NumericLiteral).number shouldBe 1.0
+    }
+
     test("logical with byte instead of bool") {
         val text="""
 %import textio
