@@ -2875,99 +2875,102 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun popCpuStack(dt: DataType, target: IPtVariable, scope: IPtSubroutine?) {
-        // note: because A is pushed first so popped last, saving A is often not required here.
-        val parameter = (target as PtNode).definingSub()?.parameters?.singleOrNull { it.name===target.name }
-        if(parameter!=null) {
-            val sub = parameter.definingAsmSub() ?: throw AssemblyError("push/pop arg passing only supported on asmsubs ${target.position}")
-            val shouldKeepA = sub.parameters.any { it.second.registerOrPair==RegisterOrPair.AX || it.second.registerOrPair==RegisterOrPair.AY}
-            val reg = sub.parameters.single { it.first === parameter }.second
-            if(reg.statusflag!=null) {
-                if(shouldKeepA)
-                    out("  sta  P8ZP_SCRATCH_REG")
-                out("""
+    internal fun popCpuStack(asmsub: PtAsmSub, parameter: PtSubroutineParameter, reg: RegisterOrStatusflag) {
+        val shouldKeepA = asmsub.parameters.any { it.second.registerOrPair==RegisterOrPair.AX || it.second.registerOrPair==RegisterOrPair.AY}
+        if(reg.statusflag!=null) {
+            if(shouldKeepA)
+                out("  sta  P8ZP_SCRATCH_REG")
+            out("""
                     clc
                     pla
                     beq  +
                     sec
 +""")
-                if(shouldKeepA)
-                    out("  lda  P8ZP_SCRATCH_REG")
-            }
-            else {
-                if (dt in ByteDatatypes) {
-                    if (isTargetCpu(CpuType.CPU65c02)) {
-                        when (reg.registerOrPair) {
-                            RegisterOrPair.A -> out("  pla")
-                            RegisterOrPair.X -> out("  plx")
-                            RegisterOrPair.Y -> out("  ply")
-                            in Cx16VirtualRegisters -> out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
-                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
-                        }
-                    } else {
-                        when (reg.registerOrPair) {
-                            RegisterOrPair.A -> out("  pla")
-                            RegisterOrPair.X -> {
-                                if(shouldKeepA)
-                                    out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
-                                else
-                                    out("  pla |  tax")
-                            }
-                            RegisterOrPair.Y -> {
-                                if(shouldKeepA)
-                                    out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
-                                else
-                                    out("  pla |  tay")
-                            }
-                            in Cx16VirtualRegisters -> out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
-                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
-                        }
+            if(shouldKeepA)
+                out("  lda  P8ZP_SCRATCH_REG")
+        }
+        else {
+            if (parameter.type in ByteDatatypes) {
+                if (isTargetCpu(CpuType.CPU65c02)) {
+                    when (reg.registerOrPair) {
+                        RegisterOrPair.A -> out("  pla")
+                        RegisterOrPair.X -> out("  plx")
+                        RegisterOrPair.Y -> out("  ply")
+                        in Cx16VirtualRegisters -> out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
+                        else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
                     }
                 } else {
-                    // word pop
-                    if (isTargetCpu(CpuType.CPU65c02))
-                        when (reg.registerOrPair) {
-                            RegisterOrPair.AX -> out("  plx |  pla")
-                            RegisterOrPair.AY -> out("  ply |  pla")
-                            RegisterOrPair.XY -> out("  ply |  plx")
-                            in Cx16VirtualRegisters -> {
-                                val regname = reg.registerOrPair!!.name.lowercase()
-                                out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
-                            }
-                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                    when (reg.registerOrPair) {
+                        RegisterOrPair.A -> out("  pla")
+                        RegisterOrPair.X -> {
+                            if(shouldKeepA)
+                                out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
+                            else
+                                out("  pla |  tax")
                         }
-                    else {
-                        when (reg.registerOrPair) {
-                            RegisterOrPair.AX -> out("  pla |  tax |  pla")
-                            RegisterOrPair.AY -> out("  pla |  tay |  pla")
-                            RegisterOrPair.XY -> out("  pla |  tay |  pla |  tax")
-                            in Cx16VirtualRegisters -> {
-                                val regname = reg.registerOrPair!!.name.lowercase()
-                                out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
-                            }
-                            else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                        RegisterOrPair.Y -> {
+                            if(shouldKeepA)
+                                out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
+                            else
+                                out("  pla |  tay")
                         }
+                        in Cx16VirtualRegisters -> out("  pla |  sta  cx16.${reg.registerOrPair!!.name.lowercase()}")
+                        else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                    }
+                }
+            } else {
+                // word pop
+                if (isTargetCpu(CpuType.CPU65c02))
+                    when (reg.registerOrPair) {
+                        RegisterOrPair.AX -> out("  plx |  pla")
+                        RegisterOrPair.AY -> out("  ply |  pla")
+                        RegisterOrPair.XY -> out("  ply |  plx")
+                        in Cx16VirtualRegisters -> {
+                            val regname = reg.registerOrPair!!.name.lowercase()
+                            out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
+                        }
+                        else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
+                    }
+                else {
+                    when (reg.registerOrPair) {
+                        RegisterOrPair.AX -> out("  pla |  tax |  pla")
+                        RegisterOrPair.AY -> out("  pla |  tay |  pla")
+                        RegisterOrPair.XY -> out("  pla |  tay |  pla |  tax")
+                        in Cx16VirtualRegisters -> {
+                            val regname = reg.registerOrPair!!.name.lowercase()
+                            out("  pla |  sta  cx16.$regname+1 |  pla |  sta  cx16.$regname")
+                        }
+                        else -> throw AssemblyError("invalid target register ${reg.registerOrPair}")
                     }
                 }
             }
+        }
+    }
+
+    internal fun popCpuStack(dt: DataType, target: IPtVariable, scope: IPtSubroutine?) {
+        // note: because A is pushed first so popped last, saving A is often not required here.
+        val targetAsmSub = (target as PtNode).definingAsmSub()
+        if(targetAsmSub != null) {
+            val parameter = targetAsmSub.parameters.first { it.first.name==target.name }
+            popCpuStack(targetAsmSub, parameter.first, parameter.second)
+            return
+        }
+        val scopedName = when(target) {
+            is PtConstant -> target.scopedName
+            is PtMemMapped -> target.scopedName
+            is PtVariable -> target.scopedName
+            else -> throw AssemblyError("weird target var")
+        }
+        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.type, scope, variableAsmName = asmVariableName(scopedName))
+        if (dt in ByteDatatypes) {
+            out("  pla")
+            assignRegister(RegisterOrPair.A, tgt)
         } else {
-            val scopedName = when(target) {
-                is PtConstant -> target.scopedName
-                is PtMemMapped -> target.scopedName
-                is PtVariable -> target.scopedName
-                else -> throw AssemblyError("weird target var")
-            }
-            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.type, scope, variableAsmName = asmVariableName(scopedName))
-            if (dt in ByteDatatypes) {
-                out("  pla")
-                assignRegister(RegisterOrPair.A, tgt)
-            } else {
-                if (isTargetCpu(CpuType.CPU65c02))
-                    out("  ply |  pla")
-                else
-                    out("  pla |  tay |  pla")
-                assignRegister(RegisterOrPair.AY, tgt)
-            }
+            if (isTargetCpu(CpuType.CPU65c02))
+                out("  ply |  pla")
+            else
+                out("  pla |  tay |  pla")
+            assignRegister(RegisterOrPair.AY, tgt)
         }
     }
 

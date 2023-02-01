@@ -36,12 +36,12 @@ fun asmsub6502ArgsEvalOrder(sub: PtAsmSub): List<Int> {
 
 fun asmsub6502ArgsHaveRegisterClobberRisk(
     args: List<PtExpression>,
-    paramRegisters: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>
+    params: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>
 ): Boolean {
     fun isClobberRisk(expr: PtExpression): Boolean {
         when (expr) {
             is PtArrayIndexer -> {
-                return paramRegisters.any {
+                return params.any {
                     it.second.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
                 }
             }

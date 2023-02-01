@@ -131,9 +131,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         }
         argOrder.forEach {
             val param = callee.parameters[it]
-            TODO("pop cpu stack into asmsub param ${param.first.name} ${param.second}")
-            // val targetVar = callee.searchParameter(param.name)!!
-            // asmgen.popCpuStack(param.first.type, targetVar, call.definingISub())
+            asmgen.popCpuStack(callee, param.first, param.second)
         }
     }
 
