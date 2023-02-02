@@ -66,6 +66,7 @@ internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode {
 }
 
 internal fun PtProgram.lookup(name: String): PtNode {
+    // TODO should be cached?
     fun searchLocalSymbol(node: PtNode, namePart: String): PtNode? {
         when(node) {
             is PtProgram -> {
@@ -131,8 +132,8 @@ internal fun PtAsmSub.shouldKeepA(): KeepAresult {
     return KeepAresult(false, saveAonReturn)
 }
 
-internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine? =
-    this.targetStatement(program) as? IPtSubroutine
+internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine =
+    this.targetStatement(program) as IPtSubroutine
 
 internal fun PtFunctionCall.targetStatement(program: PtProgram): PtNode {
     return if(name in BuiltinFunctions)
@@ -184,5 +185,15 @@ internal fun PtExpression.clone(): PtExpression {
         is PtRange -> return withClonedChildrenFrom(this, PtRange(type, position))
         is PtString -> return withClonedChildrenFrom(this, PtString(value, encoding, position))
         is PtTypeCast -> return withClonedChildrenFrom(this, PtTypeCast(type, position))
+    }
+}
+
+internal fun PtSub.returnRegister(): RegisterOrStatusflag? {
+    return when(returntype) {
+        in ByteDatatypes -> RegisterOrStatusflag(RegisterOrPair.A, null)
+        in WordDatatypes -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+        DataType.FLOAT -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+        null -> null
+        else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
     }
 }

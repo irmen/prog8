@@ -44,7 +44,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     private fun translateFunctionCallResultOntoStack(call: PtFunctionCall) {
         // only for use in nested expression evaluation
 
-        val sub = call.targetSubroutine(program)!!
+        val sub = call.targetSubroutine(program)
         asmgen.saveXbeforeCall(call)
         asmgen.translateFunctionCall(call, true)
         if(sub.regXasResult()) {

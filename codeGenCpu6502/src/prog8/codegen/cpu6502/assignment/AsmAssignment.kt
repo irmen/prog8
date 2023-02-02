@@ -158,7 +158,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                 }
                 is PtFunctionCall -> {
-                    val sub = value.targetSubroutine(program)!!
+                    val sub = value.targetSubroutine(program)
                     val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 

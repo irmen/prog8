@@ -178,7 +178,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtMemoryByte -> throw AssemblyError("source kind should have been memory")
             is PtTypeCast -> assignTypeCastedValue(assign.target, value.type, value.value, value)
             is PtFunctionCall -> {
-                val sub = value.targetSubroutine(program)!!
+                val sub = value.targetSubroutine(program)
                 asmgen.saveXbeforeCall(value)
                 asmgen.translateFunctionCall(value, true)
                 val returnValue = sub.returnsWhatWhere().singleOrNull() { it.second.registerOrPair!=null } ?: sub.returnsWhatWhere().single() { it.second.statusflag!=null }

@@ -1,22 +1,23 @@
-%import textio
-%option no_sysinit
-%zeropage basicsafe
-
 main {
 
     sub start() {
-        rsavex()
+        testscope.duplicate()
+        cx16.r0L = testscope.duplicate2()
+    }
+}
 
-        ubyte @shared ub
-        main.normalfoo.arg=99
-        void normalfoo(42)
-somelabel:
-        ub++
-        txt.print_ub(ub)
+testscope {
+
+    sub sub1() {
+        ubyte @shared duplicate
+        ubyte @shared duplicate2
     }
 
-    sub normalfoo(ubyte arg) -> ubyte {
-        arg++
-        return 42
+    sub duplicate() {
+        ; do nothing
+    }
+
+    sub duplicate2() -> ubyte {
+        return cx16.r0L
     }
 }

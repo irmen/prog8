@@ -18,7 +18,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     internal fun saveXbeforeCall(stmt: PtFunctionCall) {
-        val sub = stmt.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.name}")
+        val sub = stmt.targetSubroutine(program)
         if(sub.shouldSaveX()) {
             if(sub is PtAsmSub) {
                 val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
@@ -32,7 +32,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     internal fun restoreXafterCall(stmt: PtFunctionCall) {
-        val sub = stmt.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${stmt.name}")
+        val sub = stmt.targetSubroutine(program)
         if(sub.shouldSaveX()) {
             if(sub is PtAsmSub) {
                 val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
@@ -55,7 +55,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val sub: IPtSubroutine = call.targetSubroutine(program) ?: throw AssemblyError("undefined subroutine ${call.name}")
+        val sub: IPtSubroutine = call.targetSubroutine(program)
         val subAsmName = asmgen.asmSymbolName(call.name)
 
         if(sub is PtAsmSub) {

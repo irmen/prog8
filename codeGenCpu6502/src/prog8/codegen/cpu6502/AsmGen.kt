@@ -835,7 +835,7 @@ $repeatLabel    lda  $counterVar
     private fun translate(ret: PtReturn, withRts: Boolean=true) {
         ret.value?.let { returnvalue ->
             val sub = ret.definingSub()!!
-            val returnReg = RegisterOrStatusflag(RegisterOrPair.A, null) //  TODO("what is returnReg of the sub?")
+            val returnReg = sub.returnRegister()!!
             when (sub.returntype) {
                 in NumericDatatypes -> {
                     assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
