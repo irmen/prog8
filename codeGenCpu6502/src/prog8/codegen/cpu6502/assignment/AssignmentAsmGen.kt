@@ -13,7 +13,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
-
         val assign = AsmAssignment(source, target, assignment.isInplaceAssign, program.memsizer, assignment.position)
         target.origAssign = assign
 
@@ -178,7 +177,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtMemoryByte -> throw AssemblyError("source kind should have been memory")
             is PtTypeCast -> assignTypeCastedValue(assign.target, value.type, value.value, value)
             is PtFunctionCall -> {
-                val sub = value.targetSubroutine(program)
+                val symbol = asmgen.symbolTable.lookup(value.name)
+                val sub = symbol!!.astNode as IPtSubroutine
                 asmgen.saveXbeforeCall(value)
                 asmgen.translateFunctionCall(value, true)
                 val returnValue = sub.returnsWhatWhere().singleOrNull() { it.second.registerOrPair!=null } ?: sub.returnsWhatWhere().single() { it.second.statusflag!=null }
@@ -807,7 +807,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {
         val elementDt = containment.element.type
-        val variable = (containment.iterable as? PtIdentifier)?.targetVarDecl(program) as PtVariable
+        val symbol = asmgen.symbolTable.lookup(containment.iterable.name)
+        val variable = symbol!!.astNode as PtVariable
         val varname = asmgen.asmVariableName(containment.iterable)
         when(variable.type) {
             DataType.STR -> {

@@ -9,6 +9,7 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
+import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtAddressOf
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtIdentifier
@@ -17,7 +18,6 @@ import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen
 import prog8.compiler.astprocessing.IntermediateAstMaker
-import prog8.compiler.astprocessing.SymbolTableMaker
 import prog8tests.helpers.*
 
 class TestAsmGenSymbols: StringSpec({
@@ -74,8 +74,8 @@ class TestAsmGenSymbols: StringSpec({
     fun createTestAsmGen(program: Program): AsmGen {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target(), 999u)
-        val st = SymbolTableMaker(program, options).make()
-        val ptProgram = IntermediateAstMaker(program, st, options).transform()
+        val ptProgram = IntermediateAstMaker(program, options).transform()
+        val st = SymbolTableMaker(ptProgram, options).make()
         return AsmGen(ptProgram, st, options, errors)
     }
 

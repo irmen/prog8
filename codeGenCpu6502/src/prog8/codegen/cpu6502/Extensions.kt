@@ -58,60 +58,6 @@ fun PtExpression.isSimple(): Boolean {
     }
 }
 
-internal fun PtIdentifier.targetStatement(program: PtProgram): PtNode {
-    return if(name in BuiltinFunctions)
-        this     // just reuse the node itself to refer to the builtin function
-    else
-        program.lookup(name)
-}
-
-internal fun PtProgram.lookup(name: String): PtNode {
-    // TODO should be cached?
-    fun searchLocalSymbol(node: PtNode, namePart: String): PtNode? {
-        when(node) {
-            is PtProgram -> {
-                return node.allBlocks().single { it.name==namePart }
-            }
-            is PtNamedNode -> {
-                if(node.name==namePart)
-                    return node
-            }
-            is PtNodeGroup -> {
-                node.children.forEach {
-                    val found = searchLocalSymbol(it, namePart)
-                    if(found!=null)
-                        return found
-                }
-            }
-            is PtIdentifier -> {
-                if(node.name==namePart)
-                    return node
-            }
-            is PtSubroutineParameter -> {
-                if(node.name==namePart)
-                    return node
-            }
-            else -> {
-                // NOTE: when other nodes containing scopes are introduced,
-                //       these should be added here as well to look into!
-            }
-        }
-
-        node.children.forEach {
-            val found = searchLocalSymbol(it, namePart)
-            if(found!=null)
-                return found
-        }
-        return null
-    }
-
-    val remainder = name.splitToSequence('.')
-    return remainder.fold(this as PtNode) { acc, namePart -> searchLocalSymbol(acc, namePart)!! }
-}
-
-internal fun PtIdentifier.targetVarDecl(program: PtProgram): IPtVariable? =
-    this.targetStatement(program) as? IPtVariable
-
 internal fun IPtSubroutine.regXasResult(): Boolean =
     (this is PtAsmSub) && this.retvalRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
 
@@ -130,16 +76,6 @@ internal fun PtAsmSub.shouldKeepA(): KeepAresult {
     // but on return it depends on wether the routine returns something in A.
     val saveAonReturn = retvalRegisters.any { it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.AX }
     return KeepAresult(false, saveAonReturn)
-}
-
-internal fun PtFunctionCall.targetSubroutine(program: PtProgram): IPtSubroutine =
-    this.targetStatement(program) as IPtSubroutine
-
-internal fun PtFunctionCall.targetStatement(program: PtProgram): PtNode {
-    return if(name in BuiltinFunctions)
-        this     // just reuse the node itself to refer to the builtin function
-    else
-        program.lookup(name)
 }
 
 internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrStatusflag>> {
@@ -196,4 +132,12 @@ internal fun PtSub.returnRegister(): RegisterOrStatusflag? {
         null -> null
         else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
     }
+}
+
+// TODO move into AsmGen:
+internal fun findSubroutineParameter(name: String, asmgen: AsmGen): PtSubroutineParameter? {
+    val node = asmgen.symbolTable.lookup(name)!!.astNode
+    if(node is PtSubroutineParameter)
+        return node
+    return node.definingSub()?.parameters?.singleOrNull { it.name===name }
 }

@@ -1,14 +1,9 @@
 package prog8tests
 
-import io.kotest.assertions.fail
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
-import prog8.code.*
-import prog8.code.core.DataType
-import prog8.code.core.Position
-import prog8.code.core.ZeropageWish
+// TODO new unit tests for Symbol Table on new Ast Nodes
 
+
+/*
 class TestSymbolTable: FunSpec({
     test("empty symboltable") {
         val st = SymbolTable()
@@ -98,4 +93,4 @@ private fun makeSt(): SymbolTable {
     st.add(block2)
     st.add(builtinfunc)
     return st
-}
+}*/

@@ -1,6 +1,8 @@
 package prog8.intermediate
 
 import prog8.code.*
+import prog8.code.ast.PtVariable
+import prog8.code.core.DataType
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -71,12 +73,14 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                 return newArray
             }
             scopedName = variable.scopedName
+            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.position)
             varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
                 variable.length,
                 variable.zpwish,
+                dummyNode,
                 variable.position
             )
         }
@@ -92,7 +96,8 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             varToadd = variable
         } else {
             scopedName = variable.scopedName
-            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, variable.position)
+            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.position)
+            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, dummyNode, variable.position)
         }
         table[scopedName] = varToadd
     }
@@ -100,8 +105,10 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
     fun add(variable: StMemorySlab) {
         val varToadd = if('.' in variable.name)
             variable
-        else
-            StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, variable.position)
+        else {
+            val dummyNode = PtVariable(variable.name, DataType.ARRAY_UB, null, null, variable.position)
+            StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, dummyNode, variable.position)
+        }
         table[varToadd.name] = varToadd
     }
 

@@ -2,7 +2,10 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.codegen.cpu6502.*
+import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.asConstInteger
+import prog8.codegen.cpu6502.findSubroutineParameter
+import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal enum class TargetStorageKind {
@@ -54,8 +57,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             with(assign.target) {
                 when {
                     identifier != null -> {
-                        val paramName = identifier!!.targetVarDecl(program)?.name
-                        val parameter = identifier!!.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                        val parameter = findSubroutineParameter(identifier!!.name, asmgen)
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
                             if (sub!=null) {
@@ -134,8 +136,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is PtIdentifier -> {
-                    val paramName = value.targetVarDecl(program)?.name
-                    val parameter = value.targetStatement(program).definingSub()?.parameters?.singleOrNull { it.name===paramName }
+                    val parameter = findSubroutineParameter(value.name, asmgen)
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)
@@ -158,7 +159,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                 }
                 is PtFunctionCall -> {
-                    val sub = value.targetSubroutine(program)
+                    val symbol = asmgen.symbolTable.lookup(value.name)
+                    val sub = symbol!!.astNode as IPtSubroutine
                     val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 

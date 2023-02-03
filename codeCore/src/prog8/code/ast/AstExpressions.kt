@@ -1,8 +1,6 @@
 package prog8.code.ast
 
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.Position
+import prog8.code.core.*
 import java.util.*
 import kotlin.math.round
 
@@ -66,11 +64,15 @@ class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
 }
 
 
-class PtArrayIndexer(type: DataType, position: Position): PtExpression(type, position) {
+class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
     val variable: PtIdentifier
         get() = children[0] as PtIdentifier
     val index: PtExpression
         get() = children[1] as PtExpression
+
+    init {
+        require(elementType in NumericDatatypes)
+    }
 }
 
 
@@ -82,7 +84,8 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
         return type==other.type && children == other.children
     }
 
-    val size: Int = children.size
+    val size: Int
+        get() = children.size
 }
 
 

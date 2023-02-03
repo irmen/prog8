@@ -107,7 +107,8 @@ class AsmGen(
     internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier): String {
         // returns the source name of the zero page pointervar if it's already in the ZP,
         // otherwise returns "P8ZP_SCRATCH_W1" which is the intermediary
-        when (val target = pointervar.targetStatement(program)) {
+        val symbol = symbolTable.lookup(pointervar.name)
+        when (val target = symbol!!.astNode) {
             is PtLabel -> {
                 val sourceName = asmSymbolName(pointervar)
                 out("  lda  $sourceName")
@@ -559,7 +560,8 @@ class AsmGen(
                 }
             }
             is PtIdentifier -> {
-                val vardecl = (stmt.count as PtIdentifier).targetStatement(program) as PtVariable
+                val symbol = symbolTable.lookup((stmt.count as PtIdentifier).name)
+                val vardecl = symbol!!.astNode as PtVariable
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when(vardecl.type) {
                     DataType.UBYTE, DataType.BYTE -> {
@@ -820,8 +822,8 @@ $repeatLabel    lda  $counterVar
         return when {
             ident!=null -> {
                 // can be a label, or a pointer variable
-                val target = ident.targetVarDecl(program)
-                if(target!=null)
+                val symbol = symbolTable.lookup(ident.name)
+                if(symbol!=null)
                     Pair(asmSymbolName(ident), true)        // indirect
                 else
                     Pair(asmSymbolName(ident), false)
@@ -989,10 +991,11 @@ $repeatLabel    lda  $counterVar
             val ptrAndIndex = pointerViaIndexRegisterPossible(expr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? PtIdentifier
-                when(pointervar?.targetStatement(program)) {
+                val target = if(pointervar==null) null else symbolTable.lookup(pointervar.name)!!.astNode
+                when(target) {
                     is PtLabel -> {
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        out("  lda  ${asmSymbolName(pointervar)},y")
+                        out("  lda  ${asmSymbolName(pointervar!!)},y")
                         return true
                     }
                     is IPtVariable, null -> {

@@ -11,7 +11,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
-import prog8.code.SymbolTable
+import prog8.code.SymbolTableMaker
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -392,7 +392,6 @@ private fun createAssemblyAndAssemble(program: Program,
     compilerOptions.compTarget.machine.initializeMemoryAreas(compilerOptions)
     program.processAstBeforeAsmGeneration(compilerOptions, errors)
     errors.report()
-    val symbolTable = SymbolTableMaker(program, compilerOptions).make()
 
     // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
     //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.
@@ -403,7 +402,7 @@ private fun createAssemblyAndAssemble(program: Program,
 //    println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
-    val assembly = asmGeneratorFor(program, errors, symbolTable, compilerOptions).compileToAssembly()
+    val assembly = asmGeneratorFor(program, errors, compilerOptions).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -442,10 +441,13 @@ fun printProgram(program: Program) {
 
 internal fun asmGeneratorFor(program: Program,
                              errors: IErrorReporter,
-                             symbolTable: SymbolTable,
                              options: CompilationOptions): IAssemblyGenerator
 {
-    val intermediateAst = IntermediateAstMaker(program, symbolTable, options).transform()
+    val intermediateAst = IntermediateAstMaker(program, options).transform()
+
+    val stMaker = SymbolTableMaker(intermediateAst, options)
+    val symbolTable = stMaker.make()
+
     if(options.experimentalCodegen)
         return prog8.codegen.experimental.CodeGen(intermediateAst, symbolTable, options, errors)
     else if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))

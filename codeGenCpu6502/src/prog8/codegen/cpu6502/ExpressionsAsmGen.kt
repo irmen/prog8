@@ -44,7 +44,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     private fun translateFunctionCallResultOntoStack(call: PtFunctionCall) {
         // only for use in nested expression evaluation
 
-        val sub = call.targetSubroutine(program)
+        val symbol = asmgen.symbolTable.lookup(call.name)
+        val sub = symbol!!.astNode as IPtSubroutine
         asmgen.saveXbeforeCall(call)
         asmgen.translateFunctionCall(call, true)
         if(sub.regXasResult()) {
@@ -725,7 +726,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         val elementDt = arrayExpr.type
         val arrayVarName = asmgen.asmVariableName(arrayExpr.variable)
 
-        if(arrayExpr.type==DataType.UWORD) {
+        if(arrayExpr.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
             if(elementDt !in ByteDatatypes)
                 throw AssemblyError("non-array var indexing requires bytes dt")

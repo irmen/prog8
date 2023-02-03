@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.*
+import prog8.code.ast.PtVariable
 import prog8.code.core.*
 import prog8.code.target.*
 import java.io.StringReader
@@ -170,7 +171,9 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                bssVariables.add(StStaticVariable(name, dt, true, null, null, null, arraysize, zp, Position.DUMMY))
+                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                val newVar = StStaticVariable(name, dt, true, null, null, null, arraysize, zp, dummyNode, Position.DUMMY)
+                bssVariables.add(newVar)
             }
             return bssVariables
         }
@@ -231,7 +234,8 @@ class IRFileReader {
                     else -> throw IRParseException("weird dt")
                 }
                 require(!bss) { "bss var should be in BSS section" }
-                variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, Position.DUMMY))
+                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, dummyNode, Position.DUMMY))
             }
             return variables
         }
@@ -257,7 +261,8 @@ class IRFileReader {
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
-                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, Position.DUMMY))
+                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, dummyNode, Position.DUMMY))
             }
             memvars
         }
@@ -279,7 +284,8 @@ class IRFileReader {
                 // example: "SLAB slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
                 val (name, size, align) = match.destructured
-                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), Position.DUMMY))
+                val dummyNode = PtVariable(name, DataType.ARRAY_UB, null, null, Position.DUMMY)
+                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode, Position.DUMMY))
             }
             slabs
         }

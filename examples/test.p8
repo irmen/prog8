@@ -1,6 +1,9 @@
 main {
 
+
     sub start() {
+        cx16.r0 = memory("slab", $c000, 0)
+        cx16.r1 = memory("slab", $c000, 0)
         testscope.duplicate()
         cx16.r0L = testscope.duplicate2()
     }

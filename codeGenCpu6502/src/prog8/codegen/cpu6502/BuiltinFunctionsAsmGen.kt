@@ -52,15 +52,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
-                asmgen.popCpuStack(DataType.UBYTE, target!!, fcall.definingISub())
+                val symbol = asmgen.symbolTable.lookup((fcall.args[0] as PtIdentifier).name)
+                val target = symbol!!.astNode as IPtVariable
+                asmgen.popCpuStack(DataType.UBYTE, target, fcall.definingISub())
             }
             "popw" -> {
                 require(fcall.args[0] is PtIdentifier) {
                     "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
                 }
-                val target = (fcall.args[0] as PtIdentifier).targetVarDecl(program)
-                asmgen.popCpuStack(DataType.UWORD, target!!, fcall.definingISub())
+                val symbol = asmgen.symbolTable.lookup((fcall.args[0] as PtIdentifier).name)
+                val target = symbol!!.astNode as IPtVariable
+                asmgen.popCpuStack(DataType.UWORD, target, fcall.definingISub())
             }
             "rsave" -> funcRsave()
             "rsavex" -> funcRsaveX()
@@ -349,7 +351,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcReverse(fcall: PtBuiltinFunctionCall) {
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
-            val decl = variable.targetVarDecl(program) as PtVariable
+            val symbol = asmgen.symbolTable.lookup(variable.name)
+            val decl = symbol!!.astNode as PtVariable
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraySize!!
             when (decl.type) {
@@ -388,7 +391,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcSort(fcall: PtBuiltinFunctionCall) {
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
-            val decl = variable.targetVarDecl(program) as PtVariable
+            val symbol = asmgen.symbolTable.lookup(variable.name)
+            val decl = symbol!!.astNode as PtVariable
             val varName = asmgen.asmVariableName(variable)
             val numElements = decl.arraySize!!
             when (decl.type) {
@@ -1007,7 +1011,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun outputAddressAndLenghtOfArray(arg: PtExpression) {
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as PtIdentifier
-        val arrayVar = arg.targetVarDecl(program)!! as PtVariable
+        val symbol = asmgen.symbolTable.lookup(arg.name)
+        val arrayVar = symbol!!.astNode as PtVariable
         if(arrayVar.arraySize==null)
             throw AssemblyError("length of non-array requested")
         val size = arrayVar.arraySize!!

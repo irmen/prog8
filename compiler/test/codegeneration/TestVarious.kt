@@ -21,4 +21,41 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
+    test("nested scoping") {
+        val text="""
+main {
+    sub start() {
+        testscope.duplicate()
+        cx16.r0L = testscope.duplicate2()
+    }
+}
+
+testscope {
+
+    sub sub1() {
+        ubyte @shared duplicate
+        ubyte @shared duplicate2
+    }
+
+    sub duplicate() {
+        ; do nothing
+    }
+
+    sub duplicate2() -> ubyte {
+        return cx16.r0L
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("word array indexing") {
+        val text="""
+main {
+    sub start() {
+        uword[3] seed
+        cx16.r0 = seed[0] + seed[1] + seed[2]
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })

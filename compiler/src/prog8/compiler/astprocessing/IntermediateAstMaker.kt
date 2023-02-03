@@ -8,7 +8,6 @@ import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.BuiltinFunctions
 import prog8.code.core.CompilationOptions
@@ -23,7 +22,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(private val program: Program, private val symbolTable: SymbolTable, private val options: CompilationOptions) {
+class IntermediateAstMaker(private val program: Program, private val options: CompilationOptions) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -386,8 +385,8 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val type = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val array = PtArrayIndexer(type, srcArr.position)
+        val arrayVarType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val array = PtArrayIndexer(arrayVarType, srcArr.position)
         array.add(transform(srcArr.arrayvar))
         array.add(transformExpression(srcArr.indexer.indexExpr))
         return array
