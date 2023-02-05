@@ -14,7 +14,6 @@ import prog8.code.core.Position
 import prog8.code.core.toHex
 import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
-import prog8.compiler.printProgram
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -201,7 +200,6 @@ class TestNumbers: FunSpec({
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
         val statements = result.program.entrypoint.statements
         statements.size shouldBe 8
-        printProgram(result.program)
         (statements[1] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 32768.0, Position.DUMMY)
         (statements[3] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65535.0, Position.DUMMY)
         (statements[5] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)

@@ -16,7 +16,6 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.*
 
 
@@ -265,7 +264,6 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = true)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 8
 
@@ -401,7 +399,6 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         /* expected:
         ubyte z1
         z1 = 10
@@ -638,7 +635,6 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         /*
         expected result:
         ubyte[] auto_heap_var = [1,4,99,3]
@@ -679,7 +675,6 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
@@ -698,7 +693,6 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         val stmts = result.program.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse

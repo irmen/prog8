@@ -1,7 +1,6 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.onFailure
-import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.IStatementContainer
 import prog8.ast.Program
@@ -12,6 +11,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.VarDecl
 import prog8.ast.walk.IAstVisitor
 import prog8.code.SymbolTableMaker
+import prog8.code.ast.PtProgram
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -402,7 +402,8 @@ private fun createAssemblyAndAssemble(program: Program,
 //    println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //    printProgram(program)
 
-    val assembly = asmGeneratorFor(program, errors, compilerOptions).compileToAssembly()
+    val intermediateAst = IntermediateAstMaker(program, compilerOptions).transform()
+    val assembly = asmGeneratorFor(intermediateAst, compilerOptions, errors).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -432,28 +433,19 @@ private fun removeAllVardeclsFromAst(program: Program) {
     SearchAndRemove()
 }
 
-fun printProgram(program: Program) {
-    println()
-    val printer = AstToSourceTextConverter(::print, program)
-    printer.visit(program)
-    println()
-}
-
-internal fun asmGeneratorFor(program: Program,
-                             errors: IErrorReporter,
-                             options: CompilationOptions): IAssemblyGenerator
+internal fun asmGeneratorFor(program: PtProgram,
+                             options: CompilationOptions,
+                             errors: IErrorReporter): IAssemblyGenerator
 {
-    val intermediateAst = IntermediateAstMaker(program, options).transform()
-
-    val stMaker = SymbolTableMaker(intermediateAst, options)
+    val stMaker = SymbolTableMaker(program, options)
     val symbolTable = stMaker.make()
 
-    if(options.experimentalCodegen)
-        return prog8.codegen.experimental.CodeGen(intermediateAst, symbolTable, options, errors)
+    return if(options.experimentalCodegen)
+        prog8.codegen.experimental.CodeGen(program, symbolTable, options, errors)
     else if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-        return prog8.codegen.cpu6502.AsmGen(intermediateAst, symbolTable, options, errors)
+        prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
     else if (options.compTarget.name == VMTarget.NAME)
-        return VmCodeGen(intermediateAst, symbolTable, options, errors)
+        VmCodeGen(program, symbolTable, options, errors)
     else
         throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")
 }

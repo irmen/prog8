@@ -15,7 +15,6 @@ import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.ZeropageWish
 import prog8.code.target.C64Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
@@ -147,7 +146,6 @@ class TestMemory: FunSpec({
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        printProgram(target.definingModule.program)
         target.isIOAddress(c64target.machine) shouldBe true
     }
 
