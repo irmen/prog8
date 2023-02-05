@@ -214,8 +214,7 @@ class PtConstant(name: String, override val type: DataType, val value: Double, p
 }
 
 
-// TODO what about memory mapped arrays that have a length? missing property!
-class PtMemMapped(name: String, override val type: DataType, val address: UInt, position: Position) : PtNamedNode(name, position), IPtVariable {
+class PtMemMapped(name: String, val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("&$type $name = ${address.toHex()}")
     }
