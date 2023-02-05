@@ -22,12 +22,12 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 
         if(options.compTarget.name != VMTarget.NAME) {
             listOf(
-                PtMemMapped("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, Position.DUMMY),
-                PtMemMapped("P8ESTACK_LO", DataType.UBYTE, options.compTarget.machine.ESTACK_LO, Position.DUMMY),
-                PtMemMapped("P8ESTACK_HI", DataType.UBYTE, options.compTarget.machine.ESTACK_HI, Position.DUMMY)
+                PtMemMapped("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY),
+                PtMemMapped("P8ESTACK_LO", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_LO, 256u, Position.DUMMY),
+                PtMemMapped("P8ESTACK_HI", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_HI, 256u, Position.DUMMY)
             ).forEach {
                 st.add(StMemVar(it.name, it.type, it.address, null, it, Position.DUMMY))
             }
