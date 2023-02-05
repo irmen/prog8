@@ -202,7 +202,7 @@ class PtConstant(name: String, val type: DataType, val value: Double, position: 
 }
 
 
-class PtMemMapped(name: String, val type: DataType, val address: UInt, position: Position) : PtNamedNode(name, position) {
+class PtMemMapped(name: String, val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
     override fun printProperties() {
         print("&$type $name = ${address.toHex()}")
     }

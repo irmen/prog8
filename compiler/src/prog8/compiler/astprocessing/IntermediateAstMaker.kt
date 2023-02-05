@@ -349,7 +349,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
                 PtVariable(srcVar.name, srcVar.datatype, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
             }
             VarDeclType.CONST -> PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
-            VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.position)
+            VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
         }
     }
 
