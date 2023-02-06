@@ -202,7 +202,9 @@ You can create multiple source files yourself to modularize your large programs 
 multiple module files. You can also create "library" modules this way with handy routines,
 that can be shared among programs. By importing those module files, you can use them in other modules.
 It is possible to tell the compiler where it should look for these files, by using
-the ``srcdirs`` command line option.
+the ``srcdirs`` command line option. This can also be a lo-fi way to use different source files
+for different compilation targets if you wish. Which is useful as currently the compiler
+doesn't have conditional compilation like #ifdef/#endif in C.
 
 
 .. _debugging:

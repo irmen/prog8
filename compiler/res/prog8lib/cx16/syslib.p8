@@ -462,6 +462,8 @@ inline asmsub getrambank() -> ubyte @A {
 
 asmsub numbanks() -> ubyte @A {
     ; -- uses MEMTOP's cx16 extension to query the number of available RAM banks. (each is 8 Kb)
+    ;    Note: when 0 is returned, it doesn't mean 'zero banks', instead it means 256 banks (=2Mb banked RAM),
+    ;    as there is no X16 without at least 1 page of banked RAM.
     %asm {{
         phx
         sec
