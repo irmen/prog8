@@ -49,7 +49,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 4
         val expr = (stmts[3] as Assignment).value as BinaryExpression
         expr.operator shouldBe "and"
@@ -57,7 +57,7 @@ class TestTypecasts: FunSpec({
         (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
 
         val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts2 = result2.program.entrypoint.statements
+        val stmts2 = result2.compilerAst.entrypoint.statements
         stmts2.size shouldBe 6
         val expr2 = (stmts2[4] as Assignment).value as BinaryExpression
         expr2.operator shouldBe "&"
@@ -86,7 +86,7 @@ main {
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         /*
         ubyte ub1
         ub1 = 1
@@ -130,7 +130,7 @@ main  {
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 2
         val assignValue = (stmts[0] as Assignment).value as BinaryExpression
         assignValue.left shouldBe instanceOf<IdentifierReference>()
@@ -148,7 +148,7 @@ main  {
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 2
         val assignValue = (stmts[0] as Assignment).value as BinaryExpression
         assignValue.left shouldBe instanceOf<BinaryExpression>()        // as a result of the cast to boolean
@@ -365,7 +365,7 @@ main  {
 }
         """
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBeGreaterThan 10
     }
 
@@ -578,7 +578,7 @@ main  {
 }
         """
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBeGreaterThan 10
     }
 
@@ -597,7 +597,7 @@ main  {
                  }
              }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val arraydecl = stmts[0] as VarDecl
         arraydecl.datatype shouldBe DataType.ARRAY_BOOL
@@ -631,7 +631,7 @@ main  {
                  }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
         val fcall1 = ((stmts[6] as Assignment).value as IFunctionCall)
         fcall1.args[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
@@ -664,7 +664,7 @@ main  {
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBeGreaterThan 10
     }
 
@@ -683,7 +683,7 @@ main  {
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
     }
 
@@ -706,7 +706,7 @@ main  {
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 8
         val arg1 = (stmts[2] as IFunctionCall).args.single()
         val arg2 = (stmts[3] as IFunctionCall).args.single()
@@ -743,7 +743,7 @@ main  {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        result.program.entrypoint.statements.size shouldBe 15
+        result.compilerAst.entrypoint.statements.size shouldBe 15
     }
 
     test("invalid typecasts of numbers") {
@@ -863,7 +863,7 @@ main  {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBeGreaterThan 10
     }
 
@@ -890,7 +890,7 @@ main  {
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBeGreaterThan 10
     }
 

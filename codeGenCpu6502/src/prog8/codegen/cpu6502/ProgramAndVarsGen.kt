@@ -28,12 +28,9 @@ internal class ProgramAndVarsGen(
     private val zeropage: Zeropage
 ) {
     private val compTarget = options.compTarget
-    // TODO ???? private val callGraph = CallGraph(program, true)
     private val blockVariableInitializers = program.allBlocks().associateWith { it.children.filterIsInstance<PtAssignment>() }
 
     internal fun generate() {
-        val allInitializers = blockVariableInitializers.asSequence().flatMap { it.value }   // TODO unused?
-
         header()
         val allBlocks = program.allBlocks()
         if(allBlocks.first().name != "main")
@@ -278,7 +275,7 @@ internal class ProgramAndVarsGen(
 
         if(sub.inline) {
             if(options.optimize) {
-                TODO("check if sub is unused")
+                TODO("check if sub is unused, is this even still reached?")
 //                if(callGraph.unused(sub))
 //                    return
 

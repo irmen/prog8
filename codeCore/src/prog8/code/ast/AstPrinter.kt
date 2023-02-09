@@ -135,6 +135,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
                     output("    ".repeat(depth) + txt(node))
             }
         }
+        println()
     } else {
         walkAst(root) { node, depth ->
             val txt = txt(node)

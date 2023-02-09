@@ -36,8 +36,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return st
     }
 
-    // TODO INITIAL VALUES / BSS
-
     private fun addToSt(node: PtNode, scope: Stack<StNode>) {
         val stNode = when(node) {
             is PtAsmSub -> {
@@ -59,7 +57,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StNode(node.name, StNodeType.LABEL, node.position, node)
             }
             is PtMemMapped -> {
-                StMemVar(node.name, node.type, node.address, null, node, node.position)  // TODO missing node.length
+                StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node, node.position)
             }
             is PtSub -> {
                 val params = node.parameters.map {StSubroutineParameter(it.name, it.type) }

@@ -12,7 +12,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
     internal fun translateFunctionCallStatement(stmt: PtFunctionCall) {
         saveXbeforeCall(stmt)
-        translateFunctionCall(stmt, false)
+        translateFunctionCall(stmt)
         restoreXafterCall(stmt)
         // just ignore any result values from the function call.
     }
@@ -51,7 +51,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes)
                 || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypes && sub.parameters[1].type in ByteDatatypes)
 
-    internal fun translateFunctionCall(call: PtFunctionCall, isExpression: Boolean) {            // TODO remove isExpression unused parameter
+    internal fun translateFunctionCall(call: PtFunctionCall) {
         // Output only the code to set up the parameters and perform the actual call
         // NOTE: does NOT output the code to deal with the result values!
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!

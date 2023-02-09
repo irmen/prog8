@@ -33,7 +33,7 @@ class TestCompilerOnCharLit: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -57,7 +57,7 @@ class TestCompilerOnCharLit: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 
@@ -92,7 +92,7 @@ class TestCompilerOnCharLit: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val funCall = startSub.statements.filterIsInstance<IFunctionCall>()[0]
 

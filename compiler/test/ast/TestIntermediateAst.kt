@@ -37,8 +37,8 @@ class TestIntermediateAst: FunSpec({
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         )
         val result = compileText(target, false, text, writeAssembly = false)!!
-        val ast = IntermediateAstMaker(result.program, options).transform()
-        ast.name shouldBe result.program.name
+        val ast = IntermediateAstMaker(result.compilerAst, options).transform()
+        ast.name shouldBe result.compilerAst.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")
         entry.children.size shouldBe 5

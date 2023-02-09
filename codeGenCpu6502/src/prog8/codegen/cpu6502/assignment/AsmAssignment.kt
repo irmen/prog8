@@ -4,7 +4,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen
 import prog8.codegen.cpu6502.asConstInteger
-import prog8.codegen.cpu6502.findSubroutineParameter
 import prog8.codegen.cpu6502.returnsWhatWhere
 
 
@@ -53,11 +52,11 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
-        fun fromAstAssignment(assign: PtAssignment, program: PtProgram, asmgen: AsmGen): AsmAssignTarget {
+        fun fromAstAssignment(assign: PtAssignment, asmgen: AsmGen): AsmAssignTarget {
             with(assign.target) {
                 when {
                     identifier != null -> {
-                        val parameter = findSubroutineParameter(identifier!!.name, asmgen)
+                        val parameter = asmgen.findSubroutineParameter(identifier!!.name, asmgen)
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
                             if (sub!=null) {
@@ -136,7 +135,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtString -> throw AssemblyError("string literal value should not occur anymore for asm generation")
                 is PtArray -> throw AssemblyError("array literal value should not occur anymore for asm generation")
                 is PtIdentifier -> {
-                    val parameter = findSubroutineParameter(value.name, asmgen)
+                    val parameter = asmgen.findSubroutineParameter(value.name, asmgen)
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)

@@ -30,7 +30,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val platform = Cx16Target()
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
-            val program = result.program
+            val program = result.compilerAst
             val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
@@ -52,7 +52,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val platform = Cx16Target()
             val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
 
-            val program = result.program
+            val program = result.compilerAst
             val startSub = program.entrypoint
             val args = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()

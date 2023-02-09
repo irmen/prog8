@@ -426,8 +426,8 @@ class AsmGen(
     internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
 
-    internal fun translateFunctionCall(functionCallExpr: PtFunctionCall, isExpression: Boolean) =
-            functioncallAsmGen.translateFunctionCall(functionCallExpr, isExpression)
+    internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
+            functioncallAsmGen.translateFunctionCall(functionCallExpr)
 
     internal fun saveXbeforeCall(functionCall: PtFunctionCall)  =
             functioncallAsmGen.saveXbeforeCall(functionCall)
@@ -930,7 +930,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name.split('.'))     // TODO as dotted string
+    internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name.split('.'))     // TODO dotted string
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false) {
         if(indirect) {
@@ -1053,6 +1053,13 @@ $repeatLabel    lda  $counterVar
             }
         }
         return false
+    }
+
+    internal fun findSubroutineParameter(name: String, asmgen: AsmGen): PtSubroutineParameter? {
+        val node = asmgen.symbolTable.lookup(name)!!.astNode
+        if(node is PtSubroutineParameter)
+            return node
+        return node.definingSub()?.parameters?.singleOrNull { it.name===name }
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
@@ -2974,14 +2981,6 @@ $repeatLabel    lda  $counterVar
             else
                 out("  pla |  tay |  pla")
             assignRegister(RegisterOrPair.AY, tgt)
-        }
-    }
-
-    internal fun popCpuStack(dt: DataType, targetAsmVarName: String) {
-        when(dt) {
-            in ByteDatatypes -> out("  pla |  sta  $targetAsmVarName")
-            in WordDatatypes -> out("  pla |  sta  $targetAsmVarName+1 |  pla |  sta  $targetAsmVarName")
-            else -> throw AssemblyError("can't pop $dt")
         }
     }
 

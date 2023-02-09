@@ -136,7 +136,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
 internal fun Program.variousCleanups(errors: IErrorReporter, options: CompilationOptions) {
     val process = VariousCleanups(this, errors, options)
     process.visit(this)
-    while(errors.noErrors() && process.applyModifications()>0) {        // TODO limit the number of cycles here?
+    while(errors.noErrors() && process.applyModifications()>0) {
         process.visit(this)
     }
 }

@@ -729,6 +729,7 @@ class Subroutine(override val name: String,
     private val asmParamsDecls = mutableMapOf<String, VarDecl>()
 
     fun searchParameter(name: String): VarDecl? {
+        // TODO can we get rid of this routine? it makes temporary vardecls...
         val existingDecl = asmParamsDecls[name]
         if(existingDecl!=null)
             return existingDecl

@@ -198,7 +198,7 @@ class TestNumbers: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 8
         (statements[1] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 32768.0, Position.DUMMY)
         (statements[3] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65535.0, Position.DUMMY)

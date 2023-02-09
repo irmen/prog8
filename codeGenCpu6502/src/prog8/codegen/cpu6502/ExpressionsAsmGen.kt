@@ -36,7 +36,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             is PtContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
             is PtArray, is PtString -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
             is PtRange -> throw AssemblyError("range expression should have been changed into array values")
-            is PtMachineRegister -> TODO("machine register expression node")
+            is PtMachineRegister -> throw AssemblyError("machine register ast node should not occur in 6502 codegen it is for IR code")
             else -> TODO("missing expression asmgen for $expression")
         }
     }
@@ -47,7 +47,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         val symbol = asmgen.symbolTable.lookup(call.name)
         val sub = symbol!!.astNode as IPtSubroutine
         asmgen.saveXbeforeCall(call)
-        asmgen.translateFunctionCall(call, true)
+        asmgen.translateFunctionCall(call)
         if(sub.regXasResult()) {
             // store the return value in X somewhere that we can access again below
             asmgen.out("  stx  P8ZP_SCRATCH_REG")

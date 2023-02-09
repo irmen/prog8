@@ -60,7 +60,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -116,7 +116,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -178,7 +178,7 @@ class TestSubroutines: FunSpec({
         """
 
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -284,7 +284,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
 
         stmts.last() shouldBe instanceOf<Subroutine>()
         stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough

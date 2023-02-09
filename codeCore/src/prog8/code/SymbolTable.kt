@@ -78,7 +78,7 @@ enum class StNodeType {
 open class StNode(val name: String,
                   val type: StNodeType,
                   val position: Position,
-                  val astNode: PtNode,       // TODO keep reference to the node in the AST
+                  val astNode: PtNode,
                   val children: MutableMap<String, StNode> = mutableMapOf()
 ) {
 
@@ -151,8 +151,8 @@ class StStaticVariable(name: String,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: StString?,
                        val onetimeInitializationArrayValue: StArray?,
-                       val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
-                       val zpwish: ZeropageWish,
+                       val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                       val zpwish: ZeropageWish,    // used in the variable allocator
                        astNode: PtNode,
                        position: Position) : StNode(name, StNodeType.STATICVAR, position, astNode = astNode) {
 

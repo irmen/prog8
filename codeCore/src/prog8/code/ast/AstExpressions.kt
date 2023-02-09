@@ -239,7 +239,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 }
 
 
-// special node that isn't created from compiling user code, but used internally
+// special node that isn't created from compiling user code, but used internally in the Intermediate Code
 class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position) {
     override fun printProperties() {
         print("reg=$register  $type")

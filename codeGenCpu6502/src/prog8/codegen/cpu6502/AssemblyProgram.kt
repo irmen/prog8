@@ -62,7 +62,7 @@ internal class AssemblyProgram(
             "atari" -> {
                 // Atari800XL .xex generation.
 
-                // TODO are these options okay?
+                // TODO are these options okay for atari?
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                     "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
                     "--no-monitor"

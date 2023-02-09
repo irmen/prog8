@@ -2,14 +2,11 @@ package prog8.compiler
 
 import com.github.michaelbull.result.onFailure
 import prog8.ast.IBuiltinFunctions
-import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
-import prog8.ast.statements.VarDecl
-import prog8.ast.walk.IAstVisitor
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
 import prog8.code.core.*
@@ -25,7 +22,8 @@ import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
 
-class CompilationResult(val program: Program,
+class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAst instead
+                        val codegenAst: PtProgram?,
                         val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>)
 
@@ -63,6 +61,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
 
     var compilationOptions: CompilationOptions
+    var ast: PtProgram? = null
 
     try {
         val totalTime = measureTimeMillis {
@@ -113,10 +112,22 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             args.errors.report()
 
             if (args.writeAssembly) {
-                if(!createAssemblyAndAssemble(program, args.errors, compilationOptions)) {
+
+                compilationOptions.compTarget.machine.initializeMemoryAreas(compilationOptions)
+                program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
+                args.errors.report()
+
+                val intermediateAst = IntermediateAstMaker(program, compilationOptions).transform()
+//                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
+//                printProgram(program)
+//                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//                printAst(intermediateAst, ::println)
+
+                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
                     return null
                 }
+                ast = intermediateAst
             }
         }
 
@@ -124,7 +135,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         System.err.flush()
         val seconds = totalTime/1000.0
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
-        return CompilationResult(program, compilationOptions, importedFiles)
+        return CompilationResult(program, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
@@ -385,25 +396,11 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     errors.report()
 }
 
-private fun createAssemblyAndAssemble(program: Program,
+private fun createAssemblyAndAssemble(program: PtProgram,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions
 ): Boolean {
-    compilerOptions.compTarget.machine.initializeMemoryAreas(compilerOptions)
-    program.processAstBeforeAsmGeneration(compilerOptions, errors)
-    errors.report()
-
-    // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
-    //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.
-    //      Note: we don't actually *need* to remove the VarDecl nodes, but it is nice as a temporary measure
-    //      to help clean up the code that still depends on them.
-    // removeAllVardeclsFromAst(program)
-
-//    println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
-//    printProgram(program)
-
-    val intermediateAst = IntermediateAstMaker(program, compilerOptions).transform()
-    val assembly = asmGeneratorFor(intermediateAst, compilerOptions, errors).compileToAssembly()
+    val assembly = asmGeneratorFor(program, compilerOptions, errors).compileToAssembly()
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -411,26 +408,6 @@ private fun createAssemblyAndAssemble(program: Program,
     } else {
         false
     }
-}
-
-private fun removeAllVardeclsFromAst(program: Program) {
-    // remove all VarDecl nodes from the AST.
-    // code generation doesn't require them anymore, it operates only on the 'variables' collection.
-
-    class SearchAndRemove: IAstVisitor {
-        private val allVars = mutableListOf<VarDecl>()
-        init {
-            visit(program)
-            for (it in allVars) {
-                require((it.parent as IStatementContainer).statements.remove(it))
-            }
-        }
-        override fun visit(decl: VarDecl) {
-            allVars.add(decl)
-        }
-    }
-
-    SearchAndRemove()
 }
 
 internal fun asmGeneratorFor(program: PtProgram,

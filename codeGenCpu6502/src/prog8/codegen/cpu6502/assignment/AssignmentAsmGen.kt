@@ -11,7 +11,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
     fun translate(assignment: PtAssignment) {
-        val target = AsmAssignTarget.fromAstAssignment(assignment, program, asmgen)
+        val target = AsmAssignTarget.fromAstAssignment(assignment, asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
         val assign = AsmAssignment(source, target, assignment.isInplaceAssign, program.memsizer, assignment.position)
         target.origAssign = assign
@@ -180,7 +180,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val symbol = asmgen.symbolTable.lookup(value.name)
                 val sub = symbol!!.astNode as IPtSubroutine
                 asmgen.saveXbeforeCall(value)
-                asmgen.translateFunctionCall(value, true)
+                asmgen.translateFunctionCall(value)
                 val returnValue = sub.returnsWhatWhere().singleOrNull() { it.second.registerOrPair!=null } ?: sub.returnsWhatWhere().single() { it.second.statusflag!=null }
                 when (returnValue.first) {
                     DataType.STR -> {

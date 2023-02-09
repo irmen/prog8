@@ -27,11 +27,11 @@ class TestCallgraph: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, sourcecode)!!
-        val graph = CallGraph(result.program)
+        val graph = CallGraph(result.compilerAst)
 
         graph.imports.size shouldBe 1
         graph.importedBy.size shouldBe 1
-        val toplevelModule = result.program.toplevelModule
+        val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         importedModule.name shouldBe "string"
         val importedBy = graph.importedBy.getValue(importedModule).single()
@@ -46,7 +46,7 @@ class TestCallgraph: FunSpec({
             graph.calls shouldNotContainKey sub
             graph.calledBy shouldNotContainKey sub
 
-            if(sub === result.program.entrypoint)
+            if(sub === result.compilerAst.entrypoint)
                 withClue("start() should always be marked as used to avoid having it removed") {
                     graph.unused(sub) shouldBe false
                 }
@@ -68,11 +68,11 @@ class TestCallgraph: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, sourcecode)!!
-        val graph = CallGraph(result.program)
+        val graph = CallGraph(result.compilerAst)
 
         graph.imports.size shouldBe 1
         graph.importedBy.size shouldBe 1
-        val toplevelModule = result.program.toplevelModule
+        val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         importedModule.name shouldBe "string"
         val importedBy = graph.importedBy.getValue(importedModule).single()
@@ -111,7 +111,7 @@ class TestCallgraph: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, sourcecode)!!
-        val graph = CallGraph(result.program)
+        val graph = CallGraph(result.compilerAst)
         graph.allIdentifiers.size shouldBeGreaterThanOrEqual 5
         val empties = graph.allIdentifiers.keys.filter { it.nameInSource==listOf("empty") }
         empties.size shouldBe 3

@@ -48,7 +48,7 @@ fun PtExpression.isSimple(): Boolean {
         is PtContainmentCheck -> false
         is PtFunctionCall -> false
         is PtIdentifier -> true
-        is PtMachineRegister -> TODO()
+        is PtMachineRegister -> true
         is PtMemoryByte -> address is PtNumber || address is PtIdentifier
         is PtNumber -> true
         is PtPrefix -> value.isSimple()
@@ -132,12 +132,4 @@ internal fun PtSub.returnRegister(): RegisterOrStatusflag? {
         null -> null
         else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
     }
-}
-
-// TODO move into AsmGen:
-internal fun findSubroutineParameter(name: String, asmgen: AsmGen): PtSubroutineParameter? {
-    val node = asmgen.symbolTable.lookup(name)!!.astNode
-    if(node is PtSubroutineParameter)
-        return node
-    return node.definingSub()?.parameters?.singleOrNull { it.name===name }
 }

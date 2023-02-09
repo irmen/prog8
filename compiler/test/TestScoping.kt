@@ -27,9 +27,9 @@ class TestScoping: FunSpec({
         """
 
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         module.parent shouldBe instanceOf<GlobalNamespace>()
-        module.program shouldBeSameInstanceAs result.program
+        module.program shouldBeSameInstanceAs result.compilerAst
         module.parent.parent shouldBe instanceOf<ParentSentinel>()
     }
 
@@ -46,7 +46,7 @@ class TestScoping: FunSpec({
         """
 
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = start.statements.filterIsInstance<RepeatLoop>().single().body
@@ -120,7 +120,7 @@ class TestScoping: FunSpec({
         """
 
         val result = compileText(C64Target(), false, src, writeAssembly = true)!!
-        val module = result.program.toplevelModule
+        val module = result.compilerAst.toplevelModule
         val mainBlock = module.statements.single() as Block
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
