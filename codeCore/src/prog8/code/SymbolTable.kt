@@ -1,6 +1,7 @@
 package prog8.code
 
 import prog8.code.ast.PtNode
+import prog8.code.ast.PtProgram
 import prog8.code.core.*
 
 
@@ -8,7 +9,7 @@ import prog8.code.core.*
  * Tree structure containing all symbol definitions in the program
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
-class SymbolTable(astNode: PtNode) : StNode("", StNodeType.GLOBAL, Position.DUMMY, astNode) {
+class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
     /**
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)
@@ -77,7 +78,6 @@ enum class StNodeType {
 
 open class StNode(val name: String,
                   val type: StNodeType,
-                  val position: Position,
                   val astNode: PtNode,
                   val children: MutableMap<String, StNode> = mutableMapOf()
 ) {
@@ -153,8 +153,7 @@ class StStaticVariable(name: String,
                        val onetimeInitializationArrayValue: StArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       astNode: PtNode,
-                       position: Position) : StNode(name, StNodeType.STATICVAR, position, astNode = astNode) {
+                       astNode: PtNode) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     init {
         if(bss) {
@@ -183,8 +182,8 @@ class StStaticVariable(name: String,
 }
 
 
-class StConstant(name: String, val dt: DataType, val value: Double, astNode: PtNode, position: Position) :
-    StNode(name, StNodeType.CONSTANT, position, astNode) {
+class StConstant(name: String, val dt: DataType, val value: Double, astNode: PtNode) :
+    StNode(name, StNodeType.CONSTANT, astNode) {
 }
 
 
@@ -192,23 +191,21 @@ class StMemVar(name: String,
                val dt: DataType,
                val address: UInt,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
-               astNode: PtNode,
-               position: Position) :
-    StNode(name, StNodeType.MEMVAR, position, astNode) {
+               astNode: PtNode) :
+    StNode(name, StNodeType.MEMVAR, astNode) {
 }
 
 class StMemorySlab(
     name: String,
     val size: UInt,
     val align: UInt,
-    astNode: PtNode,
-    position: Position
+    astNode: PtNode
 ):
-    StNode(name, StNodeType.MEMORYSLAB, position, astNode) {
+    StNode(name, StNodeType.MEMORYSLAB, astNode) {
 }
 
-class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode, position: Position) :
-        StNode(name, StNodeType.SUBROUTINE, position, astNode) {
+class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode) :
+        StNode(name, StNodeType.SUBROUTINE, astNode) {
 }
 
 
@@ -216,9 +213,8 @@ class StRomSub(name: String,
                val address: UInt,
                val parameters: List<StRomSubParameter>,
                val returns: List<StRomSubParameter>,
-               astNode: PtNode,
-               position: Position) :
-    StNode(name, StNodeType.ROMSUB, position, astNode)
+               astNode: PtNode) :
+    StNode(name, StNodeType.ROMSUB, astNode)
 
 
 

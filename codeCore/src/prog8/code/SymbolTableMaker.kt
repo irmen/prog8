@@ -10,7 +10,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         val st = SymbolTable(program)
 
         BuiltinFunctions.forEach {
-            st.add(StNode(it.key, StNodeType.BUILTINFUNC, Position.DUMMY, PtIdentifier(it.key, it.value.returnType ?: DataType.UNDEFINED, Position.DUMMY)))
+            st.add(StNode(it.key, StNodeType.BUILTINFUNC, PtIdentifier(it.key, it.value.returnType ?: DataType.UNDEFINED, Position.DUMMY)))
         }
 
         val scopestack = Stack<StNode>()
@@ -29,7 +29,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ESTACK_LO", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_LO, 256u, Position.DUMMY),
                 PtMemMapped("P8ESTACK_HI", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_HI, 256u, Position.DUMMY)
             ).forEach {
-                st.add(StMemVar(it.name, it.type, it.address, null, it, Position.DUMMY))
+                st.add(StMemVar(it.name, it.type, it.address, null, it))
             }
         }
 
@@ -41,28 +41,28 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             is PtAsmSub -> {
                 if(node.address==null) {
                     val params = node.parameters.map { StSubroutineParameter(it.second.name, it.second.type) }
-                    StSub(node.name, params, node.returns.singleOrNull()?.second, node, node.position)
+                    StSub(node.name, params, node.returns.singleOrNull()?.second, node)
                 } else {
                     val parameters = node.parameters.map { StRomSubParameter(it.first, it.second.type) }
                     val returns = node.returns.map { StRomSubParameter(it.first, it.second) }
-                    StRomSub(node.name, node.address, parameters, returns, node, node.position)
+                    StRomSub(node.name, node.address, parameters, returns, node)
                 }
             }
             is PtBlock -> {
-                StNode(node.name, StNodeType.BLOCK, node.position, node)
+                StNode(node.name, StNodeType.BLOCK, node)
             }
             is PtConstant -> {
-                StConstant(node.name, node.type, node.value, node, node.position)
+                StConstant(node.name, node.type, node.value, node)
             }
             is PtLabel -> {
-                StNode(node.name, StNodeType.LABEL, node.position, node)
+                StNode(node.name, StNodeType.LABEL, node)
             }
             is PtMemMapped -> {
-                StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node, node.position)
+                StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node)
             }
             is PtSub -> {
                 val params = node.parameters.map {StSubroutineParameter(it.name, it.type) }
-                StSub(node.name, params, node.returntype, node, node.position)
+                StSub(node.name, params, node.returntype, node)
             }
             is PtVariable -> {
                 val bss = when (node.type) {
@@ -103,7 +103,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     numElements = node.arraySize?.toInt()
                 }
                 val zeropage = ZeropageWish.DONTCARE // TODO how, can this be removed from the ST perhaps? Or is it required in the variable allocator later
-                StStaticVariable(node.name, node.type, bss, initialNumeric, initialString, initialArray, numElements, zeropage, node, node.position)
+                StStaticVariable(node.name, node.type, bss, initialNumeric, initialString, initialArray, numElements, zeropage, node)
             }
             is PtBuiltinFunctionCall -> {
                 if(node.name=="memory") {
@@ -113,7 +113,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     val size = (node.args[1] as PtNumber).number.toUInt()
                     val align = (node.args[2] as PtNumber).number.toUInt()
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
-                    scope.firstElement().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node, node.position))
+                    scope.firstElement().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
                 }
                 null
             }

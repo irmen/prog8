@@ -73,15 +73,14 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                 return newArray
             }
             scopedName = variable.scopedName
-            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.position)
+            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.astNode.position)
             varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
                 variable.length,
                 variable.zpwish,
-                dummyNode,
-                variable.position
+                dummyNode
             )
         }
         table[scopedName] = varToadd
@@ -96,8 +95,8 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             varToadd = variable
         } else {
             scopedName = variable.scopedName
-            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.position)
-            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, dummyNode, variable.position)
+            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.astNode.position)
+            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, dummyNode)
         }
         table[scopedName] = varToadd
     }
@@ -106,8 +105,8 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
         val varToadd = if('.' in variable.name)
             variable
         else {
-            val dummyNode = PtVariable(variable.name, DataType.ARRAY_UB, null, null, variable.position)
-            StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, dummyNode, variable.position)
+            val dummyNode = PtVariable(variable.name, DataType.ARRAY_UB, null, null, variable.astNode.position)
+            StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, dummyNode)
         }
         table[varToadd.name] = varToadd
     }
