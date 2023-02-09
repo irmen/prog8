@@ -26,7 +26,6 @@ class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
     val returntype: DataType?,
-    val inline: Boolean,
     position: Position
 ) : PtNamedNode(name, position), IPtSubroutine {
     override fun printProperties() {

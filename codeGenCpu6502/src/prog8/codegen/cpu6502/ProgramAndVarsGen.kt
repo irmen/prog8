@@ -271,21 +271,6 @@ internal class ProgramAndVarsGen(
 
 
     internal fun translateSubroutine(sub: PtSub) {
-        var onlyVariables = false
-
-        if(sub.inline) {
-            if(options.optimize) {
-                TODO("check if sub is unused, is this even still reached?")
-//                if(callGraph.unused(sub))
-//                    return
-
-                // from an inlined subroutine only the local variables are generated,
-                // all other code statements are omitted in the subroutine itself
-                // (they've been inlined at the call site, remember?)
-                onlyVariables = true
-            }
-        }
-
         asmgen.out("")
 
         val asmStartScope: String
@@ -342,10 +327,8 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        if(!onlyVariables) {
-            asmgen.out("; statements")
-            sub.children.forEach { asmgen.translate(it) }
-        }
+        asmgen.out("; statements")
+        sub.children.forEach { asmgen.translate(it) }
 
         asmgen.out("; variables")
         val asmGenInfo = asmgen.subroutineExtra(sub)

@@ -86,8 +86,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
             }
             is PtSub -> {
                 val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
-                var str = if(node.inline) "inline " else ""
-                str += "sub ${node.name}($params) "
+                var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
                     str += "-> ${node.returntype.name.lowercase()}"
                 str

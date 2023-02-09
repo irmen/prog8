@@ -76,9 +76,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             }
         }
         else if(sub is PtSub) {
-            if(sub.inline)
-                throw AssemblyError("can only reliably inline asmsub routines at this time")
-
             if(optimizeIntArgsViaRegisters(sub)) {
                 if(sub.parameters.size==1) {
                     val register = if (sub.parameters[0].type in ByteDatatypes) RegisterOrPair.A else RegisterOrPair.AY

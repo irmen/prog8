@@ -662,8 +662,12 @@ internal class AstChecker(private val program: Program,
                     err("string var must be initialized with a string literal")
             }
 
-            if(decl.value !is StringLiteral)
-                err("string var must be initialized with a string literal")
+            if(decl.value !is StringLiteral) {
+                if(decl.type==VarDeclType.MEMORY)
+                    err("strings can't be memory mapped")
+                else
+                    err("string var must be initialized with a string literal")
+            }
         }
 
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
