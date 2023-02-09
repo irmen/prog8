@@ -10,6 +10,10 @@ main {
     const ubyte REPEATS = 2
 
     sub print_speed(uword jiffies) {
+        if jiffies==0 {
+            txt.print("\n 0 jiffies measured, speed is extremely high\n")
+            return
+        }
         float speed = 65536.0 * REPEATS / (jiffies as float / 60.0)
         txt.nl()
         txt.print_uw(jiffies)

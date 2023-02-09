@@ -460,13 +460,23 @@ inline asmsub getrambank() -> ubyte @A {
     }}
 }
 
-asmsub numbanks() -> ubyte @A {
+asmsub numbanks() -> uword @AY {
     ; -- uses MEMTOP's cx16 extension to query the number of available RAM banks. (each is 8 Kb)
+    ;    Note that the number of such banks can be bigger than 255 so a word is returned, but mostly
+    ;    the A register could suffice as the lsb.
+    ;    The maximum number of banks is 256 = 2 Megabytes of banked Ram aka Hiram. (Y=1 and A=0 in this case).
+    ;    MEMTOP itself reports 0 in this case which we change into 256 for convenience.
+    ;    It reporting 0 doesn't mean 'zero banks', instead it means 256 banks (=2Mb banked RAM),
+    ;    as there is no X16 without at least 1 page of banked RAM.
     %asm {{
         phx
         sec
         jsr  c64.MEMTOP
-        plx
+        ldy  #0
+        cmp  #0
+        bne  +
+        iny
++       plx
         rts
     }}
 }
