@@ -60,7 +60,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                         if (parameter!=null) {
                             val sub = parameter.definingAsmSub()
                             if (sub!=null) {
-                                val reg = sub.parameters.single { it.first===parameter }.second
+                                val reg = sub.parameters.single { it.second===parameter }.first
                                 if(reg.statusflag!=null)
                                     throw AssemblyError("can't assign value to processor statusflag directly")
                                 else
@@ -160,7 +160,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtFunctionCall -> {
                     val symbol = asmgen.symbolTable.lookup(value.name)
                     val sub = symbol!!.astNode as IPtSubroutine
-                    val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.second.registerOrPair != null || rr.second.statusflag!=null }?.first
+                    val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)

@@ -2886,7 +2886,7 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun popCpuStack(asmsub: PtAsmSub, parameter: PtSubroutineParameter, reg: RegisterOrStatusflag) {
-        val shouldKeepA = asmsub.parameters.any { it.second.registerOrPair==RegisterOrPair.AX || it.second.registerOrPair==RegisterOrPair.AY}
+        val shouldKeepA = asmsub.parameters.any { it.first.registerOrPair==RegisterOrPair.AX || it.first.registerOrPair==RegisterOrPair.AY}
         if(reg.statusflag!=null) {
             if(shouldKeepA)
                 out("  sta  P8ZP_SCRATCH_REG")
@@ -2961,8 +2961,8 @@ $repeatLabel    lda  $counterVar
         // note: because A is pushed first so popped last, saving A is often not required here.
         val targetAsmSub = (target as PtNode).definingAsmSub()
         if(targetAsmSub != null) {
-            val parameter = targetAsmSub.parameters.first { it.first.name==target.name }
-            popCpuStack(targetAsmSub, parameter.first, parameter.second)
+            val parameter = targetAsmSub.parameters.first { it.second.name==target.name }
+            popCpuStack(targetAsmSub, parameter.second, parameter.first)
             return
         }
         val scopedName = when(target) {

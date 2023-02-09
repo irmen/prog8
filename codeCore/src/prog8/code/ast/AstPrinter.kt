@@ -57,7 +57,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
             is PtAsmSub -> {
                 val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
                 val clobbers = if (node.clobbers.isEmpty()) "" else "clobbers ${node.clobbers}"
-                val returns = if (node.returnTypes.isEmpty()) "" else (if (node.returnTypes.size == 1) "-> ${node.returnTypes[0].name.lowercase()}" else "-> ${node.returnTypes.map { it.name.lowercase() }}")
+                val returns = if (node.returns.isEmpty()) "" else (if (node.returns.size == 1) "-> ${node.returns[0].second.name.lowercase()}" else "-> ${node.returns.map { it.second.name.lowercase() }}")
                 val str = if (node.inline) "inline " else ""
                 if(node.address==null) {
                     str + "asmsub ${node.name}($params) $clobbers $returns"

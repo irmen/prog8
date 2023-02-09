@@ -15,19 +15,19 @@ fun asmsub6502ArgsEvalOrder(sub: PtAsmSub): List<Int> {
     //  4) CPU Carry status flag
     //  5) the A register itself last   (so everything before it can use the accumulator without having to save its value)
     val args = sub.parameters.withIndex()
-    val (cx16regs, args2) = args.partition { it.value.second.registerOrPair in Cx16VirtualRegisters }
+    val (cx16regs, args2) = args.partition { it.value.first.registerOrPair in Cx16VirtualRegisters }
     val pairedRegisters = arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)
-    val (pairedRegs , args3) = args2.partition { it.value.second.registerOrPair in pairedRegisters }
-    val (regsWithoutA, args4) = args3.partition { it.value.second.registerOrPair != RegisterOrPair.A }
-    val (regA, rest) = args4.partition { it.value.second.registerOrPair != null }
+    val (pairedRegs , args3) = args2.partition { it.value.first.registerOrPair in pairedRegisters }
+    val (regsWithoutA, args4) = args3.partition { it.value.first.registerOrPair != RegisterOrPair.A }
+    val (regA, rest) = args4.partition { it.value.first.registerOrPair != null }
 
     cx16regs.forEach { order += it.index }
     pairedRegs.forEach { order += it.index }
     regsWithoutA.forEach {
-        if(it.value.second.registerOrPair != RegisterOrPair.X)
+        if(it.value.first.registerOrPair != RegisterOrPair.X)
             order += it.index
     }
-    regsWithoutA.firstOrNull { it.value.second.registerOrPair==RegisterOrPair.X } ?.let { order += it.index}
+    regsWithoutA.firstOrNull { it.value.first.registerOrPair==RegisterOrPair.X } ?.let { order += it.index}
     rest.forEach { order += it.index }
     regA.forEach { order += it.index }
     require(order.size==sub.parameters.size)
@@ -36,13 +36,13 @@ fun asmsub6502ArgsEvalOrder(sub: PtAsmSub): List<Int> {
 
 fun asmsub6502ArgsHaveRegisterClobberRisk(
     args: List<PtExpression>,
-    params: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>
+    params: List<Pair<RegisterOrStatusflag, PtSubroutineParameter>>
 ): Boolean {
     fun isClobberRisk(expr: PtExpression): Boolean {
         when (expr) {
             is PtArrayIndexer -> {
                 return params.any {
-                    it.second.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
+                    it.first.registerOrPair in listOf(RegisterOrPair.Y, RegisterOrPair.AY, RegisterOrPair.XY)
                 }
             }
             is PtBuiltinFunctionCall -> {

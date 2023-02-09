@@ -181,8 +181,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val sub = symbol!!.astNode as IPtSubroutine
                 asmgen.saveXbeforeCall(value)
                 asmgen.translateFunctionCall(value)
-                val returnValue = sub.returnsWhatWhere().singleOrNull() { it.second.registerOrPair!=null } ?: sub.returnsWhatWhere().single() { it.second.statusflag!=null }
-                when (returnValue.first) {
+                val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
+                when (returnValue.second) {
                     DataType.STR -> {
                         asmgen.restoreXafterCall(value)
                         when(assign.target.datatype) {
@@ -203,7 +203,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         // do NOT restore X register before assigning the result values first
-                        when (returnValue.second.registerOrPair) {
+                        when (returnValue.first.registerOrPair) {
                             RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
                             RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
                             RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
@@ -227,7 +227,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             RegisterOrPair.R14 -> assignVirtualRegister(assign.target, RegisterOrPair.R14)
                             RegisterOrPair.R15 -> assignVirtualRegister(assign.target, RegisterOrPair.R15)
                             else -> {
-                                val sflag = returnValue.second.statusflag
+                                val sflag = returnValue.first.statusflag
                                 if(sflag!=null)
                                     assignStatusFlagByte(assign.target, sflag)
                                 else

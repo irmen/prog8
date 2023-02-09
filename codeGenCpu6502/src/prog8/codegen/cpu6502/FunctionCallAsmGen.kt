@@ -106,7 +106,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
     private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
         if(sub.parameters.size==1) {
-            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().first), call.args[0])
+            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().second), call.args[0])
         } else {
             if(asmsub6502ArgsHaveRegisterClobberRisk(call.args, sub.parameters)) {
                 registerArgsViaCpuStackEvaluation(call, sub)
@@ -114,7 +114,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 asmsub6502ArgsEvalOrder(sub).forEach {
                     val param = sub.parameters[it]
                     val arg = call.args[it]
-                    argumentViaRegister(sub, IndexedValue(it, param.first), arg)
+                    argumentViaRegister(sub, IndexedValue(it, param.second), arg)
                 }
             }
         }
@@ -130,11 +130,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // use the cpu hardware stack as intermediate storage for the arguments.
         val argOrder = asmsub6502ArgsEvalOrder(callee)
         argOrder.reversed().forEach {
-            asmgen.pushCpuStack(callee.parameters[it].first.type, call.args[it])
+            asmgen.pushCpuStack(callee.parameters[it].second.type, call.args[it])
         }
         argOrder.forEach {
             val param = callee.parameters[it]
-            asmgen.popCpuStack(callee, param.first, param.second)
+            asmgen.popCpuStack(callee, param.second, param.first)
         }
     }
 
@@ -153,7 +153,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             throw AssemblyError("argument type incompatible")
 
         val paramRegister: RegisterOrStatusflag = when(sub) {
-            is PtAsmSub -> if(registerOverride==null) sub.parameters[parameter.index].second else RegisterOrStatusflag(registerOverride, null)
+            is PtAsmSub -> if(registerOverride==null) sub.parameters[parameter.index].first else RegisterOrStatusflag(registerOverride, null)
             is PtSub -> RegisterOrStatusflag(registerOverride!!, null)
         }
         val statusflag = paramRegister.statusflag

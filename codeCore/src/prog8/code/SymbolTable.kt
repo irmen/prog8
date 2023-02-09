@@ -215,7 +215,7 @@ class StSub(name: String, val parameters: List<StSubroutineParameter>, val retur
 class StRomSub(name: String,
                val address: UInt,
                val parameters: List<StRomSubParameter>,
-               val returns: List<RegisterOrStatusflag>,
+               val returns: List<StRomSubParameter>,
                astNode: PtNode,
                position: Position) :
     StNode(name, StNodeType.ROMSUB, position, astNode)

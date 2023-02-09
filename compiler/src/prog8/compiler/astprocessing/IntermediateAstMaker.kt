@@ -285,18 +285,15 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
     }
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
-        val params = srcSub.parameters
-            .map { PtSubroutineParameter(it.name, it.type, it.position) }
-            .zip(srcSub.asmParameterRegisters)
+        val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
         val sub = PtAsmSub(srcSub.name,
             srcSub.asmAddress,
             srcSub.asmClobbers,
             params,
-            srcSub.returntypes,
-            srcSub.asmReturnvaluesRegisters,
+            srcSub.asmReturnvaluesRegisters.zip(srcSub.returntypes),
             srcSub.inline,
             srcSub.position)
-        sub.parameters.forEach { it.first.parent=sub }
+        sub.parameters.forEach { it.second.parent=sub }
 
         if(srcSub.asmAddress==null) {
             var combinedTrueAsm = ""

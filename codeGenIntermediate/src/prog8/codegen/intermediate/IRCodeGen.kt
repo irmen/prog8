@@ -1203,8 +1203,8 @@ class IRCodeGen(
                             child.name,
                             child.address,
                             child.clobbers,
-                            child.parameters.map { IRAsmSubroutine.IRAsmParam(it.second, it.first.type) },        // note: the name of the asmsub param is not used anymore.
-                            child.returnTypes.zip(child.retvalRegisters).map { IRAsmSubroutine.IRAsmParam(it.second, it.first) },
+                            child.parameters.map { IRAsmSubroutine.IRAsmParam(it.first, it.second.type) },        // note: the name of the asmsub param is not used here anymore
+                            child.returns.map { IRAsmSubroutine.IRAsmParam(it.first, it.second)},
                             asmChunk,
                             child.position
                         )

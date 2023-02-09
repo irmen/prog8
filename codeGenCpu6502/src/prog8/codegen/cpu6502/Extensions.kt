@@ -59,13 +59,13 @@ fun PtExpression.isSimple(): Boolean {
 }
 
 internal fun IPtSubroutine.regXasResult(): Boolean =
-    (this is PtAsmSub) && this.retvalRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+    (this is PtAsmSub) && this.returns.any { it.first.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
 
 internal fun IPtSubroutine.shouldSaveX(): Boolean =
     this.regXasResult() || (this is PtAsmSub && (CpuRegister.X in this.clobbers || regXasParam()))
 
 internal fun PtAsmSub.regXasParam(): Boolean =
-    parameters.any { it.second.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
+    parameters.any { it.first.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
 
 internal class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)
 
@@ -74,14 +74,14 @@ internal fun PtAsmSub.shouldKeepA(): KeepAresult {
 
     // it seems that we never have to save A when calling? will be loaded correctly after setup.
     // but on return it depends on wether the routine returns something in A.
-    val saveAonReturn = retvalRegisters.any { it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.AX }
+    val saveAonReturn = returns.any { it.first.registerOrPair==RegisterOrPair.A || it.first.registerOrPair==RegisterOrPair.AY || it.first.registerOrPair==RegisterOrPair.AX }
     return KeepAresult(false, saveAonReturn)
 }
 
-internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrStatusflag>> {
+internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
     when(this) {
         is PtAsmSub -> {
-            return returnTypes.zip(this.retvalRegisters)
+            return returns
         }
         is PtSub -> {
             // for non-asm subroutines, determine the return registers based on the type of the return value
@@ -94,7 +94,7 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<DataType, RegisterOrSta
                     DataType.FLOAT -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
                     else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
                 }
-                listOf(Pair(returntype!!, register))
+                listOf(Pair(register, returntype!!))
             }
         }
     }

@@ -40,11 +40,12 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         val stNode = when(node) {
             is PtAsmSub -> {
                 if(node.address==null) {
-                    val params = node.parameters.map { StSubroutineParameter(it.first.name, it.first.type) }
-                    StSub(node.name, params, node.returnTypes.singleOrNull(), node, node.position)
+                    val params = node.parameters.map { StSubroutineParameter(it.second.name, it.second.type) }
+                    StSub(node.name, params, node.returns.singleOrNull()?.second, node, node.position)
                 } else {
-                    val parameters = node.parameters.map { StRomSubParameter(it.second, it.first.type) }
-                    StRomSub(node.name, node.address, parameters, node.retvalRegisters, node, node.position)
+                    val parameters = node.parameters.map { StRomSubParameter(it.first, it.second.type) }
+                    val returns = node.returns.map { StRomSubParameter(it.first, it.second) }
+                    StRomSub(node.name, node.address, parameters, returns, node, node.position)
                 }
             }
             is PtBlock -> {
