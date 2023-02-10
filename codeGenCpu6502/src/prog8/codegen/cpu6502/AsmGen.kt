@@ -1,6 +1,7 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
+import prog8.code.StNodeType
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -823,8 +824,8 @@ $repeatLabel    lda  $counterVar
             ident!=null -> {
                 // can be a label, or a pointer variable
                 val symbol = symbolTable.lookup(ident.name)
-                if(symbol!=null)
-                    Pair(asmSymbolName(ident), true)        // indirect
+                if(symbol?.type in arrayOf(StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT))
+                    Pair(asmSymbolName(ident), true)        // indirect jump if the jump symbol is a variable
                 else
                     Pair(asmSymbolName(ident), false)
             }

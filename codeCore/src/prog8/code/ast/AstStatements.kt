@@ -42,7 +42,7 @@ class PtSub(
 }
 
 
-class PtSubroutineParameter(val name: String, val type: DataType, position: Position): PtNode(position) {
+class PtSubroutineParameter(name: String, val type: DataType, position: Position): PtNamedNode(name, position) {
     override fun printProperties() {
         print("$type $name")
     }
