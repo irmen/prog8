@@ -171,7 +171,7 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
                 val newVar = StStaticVariable(name, dt, true, null, null, null, arraysize, zp, dummyNode)
                 bssVariables.add(newVar)
             }
@@ -234,7 +234,7 @@ class IRFileReader {
                     else -> throw IRParseException("weird dt")
                 }
                 require(!bss) { "bss var should be in BSS section" }
-                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
                 variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, dummyNode))
             }
             return variables
@@ -261,7 +261,7 @@ class IRFileReader {
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
-                val dummyNode = PtVariable(name, dt, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, dt, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, dummyNode))
             }
             memvars
@@ -284,7 +284,7 @@ class IRFileReader {
                 // example: "SLAB slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
                 val (name, size, align) = match.destructured
-                val dummyNode = PtVariable(name, DataType.ARRAY_UB, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, DataType.ARRAY_UB, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
             }
             slabs

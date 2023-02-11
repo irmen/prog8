@@ -3,6 +3,7 @@ package prog8.intermediate
 import prog8.code.*
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
+import prog8.code.core.ZeropageWish
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -73,7 +74,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
                 return newArray
             }
             scopedName = variable.scopedName
-            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.astNode.position)
+            val dummyNode = PtVariable(scopedName, variable.dt, variable.zpwish, null, null, variable.astNode.position)
             varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
@@ -95,7 +96,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             varToadd = variable
         } else {
             scopedName = variable.scopedName
-            val dummyNode = PtVariable(scopedName, variable.dt, null, null, variable.astNode.position)
+            val dummyNode = PtVariable(scopedName, variable.dt, ZeropageWish.NOT_IN_ZEROPAGE, null, null, variable.astNode.position)
             varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, dummyNode)
         }
         table[scopedName] = varToadd
@@ -105,7 +106,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
         val varToadd = if('.' in variable.name)
             variable
         else {
-            val dummyNode = PtVariable(variable.name, DataType.ARRAY_UB, null, null, variable.astNode.position)
+            val dummyNode = PtVariable(variable.name, DataType.ARRAY_UB, ZeropageWish.NOT_IN_ZEROPAGE, null, null, variable.astNode.position)
             StMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align, dummyNode)
         }
         table[varToadd.name] = varToadd

@@ -102,8 +102,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     initialString = null
                     numElements = node.arraySize?.toInt()
                 }
-                val zeropage = ZeropageWish.DONTCARE // TODO how, can this be removed from the ST perhaps? Or is it required in the variable allocator later
-                StStaticVariable(node.name, node.type, bss, initialNumeric, initialString, initialArray, numElements, zeropage, node)
+                StStaticVariable(node.name, node.type, bss, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
             }
             is PtBuiltinFunctionCall -> {
                 if(node.name=="memory") {
