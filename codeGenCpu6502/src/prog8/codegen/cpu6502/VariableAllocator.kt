@@ -88,7 +88,8 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             // try to allocate any other interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
-                for (variable in varsDontCare.sortedBy { it.scopedName.count { chr -> chr=='.'}}) {
+                val sortedList = varsDontCare.sortedWith(compareBy<StStaticVariable> { it.scopedName.count { chr -> chr=='.'}}.thenBy { it.scopedName })
+                for (variable in sortedList) {
                     if(variable.dt in IntegerDatatypes) {
                         if(zeropage.free.isEmpty()) {
                             break
@@ -124,6 +125,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
         }
         collect(st)
-        return vars
+        return vars.sortedWith(compareBy<StStaticVariable> { it.scopedName }.thenBy { it.dt })
     }
 }

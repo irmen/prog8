@@ -461,7 +461,7 @@ internal class ProgramAndVarsGen(
 
     private fun zeropagevars2asm(varNames: Set<String>) {
         val namesLists = varNames.map { it.split('.') }.toSet()
-        val zpVariables = allocator.zeropageVars.filter { it.key in namesLists }
+        val zpVariables = allocator.zeropageVars.filter { it.key in namesLists }.toList().sortedBy { it.second.address }
         for ((scopedName, zpvar) in zpVariables) {
             if (scopedName.size == 2 && scopedName[0] == "cx16" && scopedName[1][0] == 'r' && scopedName[1][1].isDigit())
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
@@ -472,7 +472,7 @@ internal class ProgramAndVarsGen(
     private fun nonZpVariables2asm(variables: List<StStaticVariable>) {
         asmgen.out("")
         asmgen.out("; non-zeropage variables")
-        val (stringvars, othervars) = variables.partition { it.dt==DataType.STR }
+        val (stringvars, othervars) = variables.sortedBy { it.name }.partition { it.dt==DataType.STR }
         stringvars.forEach {
             outputStringvar(it.name, it.onetimeInitializationStringValue!!.second, it.onetimeInitializationStringValue!!.first)
         }
@@ -578,10 +578,10 @@ internal class ProgramAndVarsGen(
     }
 
     private fun memdefsAndConsts2asm(memvars: Collection<StMemVar>, consts: Collection<StConstant>) {
-        memvars.forEach {
+        memvars.sortedBy { it.address }.forEach {
             asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
-        consts.forEach {
+        consts.sortedBy { it.name }.forEach {
             if(it.dt==DataType.FLOAT)
                 asmgen.out("  ${it.name} = ${it.value}")
             else
