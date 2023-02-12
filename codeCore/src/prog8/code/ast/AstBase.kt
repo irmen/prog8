@@ -14,16 +14,6 @@ sealed class PtNode(val position: Position) {
     val children = mutableListOf<PtNode>()
     lateinit var parent: PtNode
 
-    fun printIndented(indent: Int) {
-        print("    ".repeat(indent))
-        print("${this.javaClass.simpleName}  ")
-        printProperties()
-        println()
-        children.forEach { it.printIndented(indent+1) }
-    }
-
-    abstract fun printProperties()
-
     fun add(child: PtNode) {
         children.add(child)
         child.parent = this
@@ -41,9 +31,7 @@ sealed class PtNode(val position: Position) {
 }
 
 
-class PtNodeGroup : PtNode(Position.DUMMY) {
-    override fun printProperties() {}
-}
+class PtNodeGroup : PtNode(Position.DUMMY)
 
 
 sealed class PtNamedNode(var name: String, position: Position): PtNode(position) {
@@ -67,10 +55,6 @@ class PtProgram(
     val memsizer: IMemSizer,
     val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {
-    fun print() = printIndented(0)
-    override fun printProperties() {
-        print("'$name'")
-    }
 
 //    fun allModuleDirectives(): Sequence<PtDirective> =
 //        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
@@ -91,10 +75,6 @@ class PtBlock(name: String,
               val source: SourceCode,       // taken from the module the block is defined in.
               position: Position
 ) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("$name  addr=$address  library=$library  forceOutput=$forceOutput  alignment=$alignment")
-    }
-
     enum class BlockAlignment {
         NONE,
         WORD,
@@ -104,8 +84,6 @@ class PtBlock(name: String,
 
 
 class PtInlineAssembly(val assembly: String, val isIR: Boolean, position: Position) : PtNode(position) {
-    override fun printProperties() {}
-
     init {
         require(!assembly.startsWith('\n') && !assembly.startsWith('\r')) { "inline assembly should be trimmed" }
         require(!assembly.endsWith('\n') && !assembly.endsWith('\r')) { "inline assembly should be trimmed" }
@@ -113,28 +91,16 @@ class PtInlineAssembly(val assembly: String, val isIR: Boolean, position: Positi
 }
 
 
-class PtLabel(name: String, position: Position) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print(name)
-    }
-}
+class PtLabel(name: String, position: Position) : PtNamedNode(name, position)
 
 
-class PtBreakpoint(position: Position): PtNode(position) {
-    override fun printProperties() {}
-}
+class PtBreakpoint(position: Position): PtNode(position)
 
 
-class PtIncludeBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position) {
-    override fun printProperties() {
-        print("filename=$file  offset=$offset  length=$length")
-    }
-}
+class PtIncludeBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position)
 
 
-class PtNop(position: Position): PtNode(position) {
-    override fun printProperties() {}
-}
+class PtNop(position: Position): PtNode(position)
 
 
 // find the parent node of a specific type or interface

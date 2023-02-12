@@ -21,10 +21,6 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    override fun printProperties() {
-        print(type)
-    }
-
     infix fun isSameAs(other: PtExpression): Boolean {
         return when(this) {
             is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
@@ -101,9 +97,6 @@ class PtBuiltinFunctionCall(val name: String,
 
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
-    override fun printProperties() {
-        print("$name void=$void noSideFx=$hasNoSideEffects")
-    }
 }
 
 
@@ -113,10 +106,6 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
         get() = children[0] as PtExpression
     val right: PtExpression
         get() = children[1] as PtExpression
-
-    override fun printProperties() {
-        print("$operator -> $type")
-    }
 }
 
 
@@ -139,23 +128,15 @@ class PtFunctionCall(val name: String,
 
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
-    override fun printProperties() {
-        print("$name void=$void")
-    }
 }
 
 
-class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {
-    override fun printProperties() {
-        print("$name  $type")
-    }
-}
+class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position)
 
 
 class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
     val address: PtExpression
         get() = children.single() as PtExpression
-    override fun printProperties() {}
 }
 
 
@@ -174,10 +155,6 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
             if (rounded != number)
                 throw IllegalArgumentException("refused rounding of float to avoid loss of precision @$position")
         }
-    }
-
-    override fun printProperties() {
-        print("$number ($type)")
     }
 
     override fun hashCode(): Int = Objects.hash(type, number)
@@ -200,10 +177,6 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
         // note: the "not" operator may no longer occur in the ast; not x should have been replaced with x==0
         require(operator in setOf("+", "-", "~")) { "invalid prefix operator: $operator" }
     }
-
-    override fun printProperties() {
-        print(operator)
-    }
 }
 
 
@@ -214,16 +187,10 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
         get() = children[1] as PtExpression
     val step: PtNumber
         get() = children[2] as PtNumber
-
-    override fun printProperties() {}
 }
 
 
 class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
-    override fun printProperties() {
-        print("$encoding:\"$value\"")
-    }
-
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtString)
@@ -240,11 +207,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
-class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position) {
-    override fun printProperties() {
-        print("reg=$register  $type")
-    }
-}
+class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
 
 
 fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else null
