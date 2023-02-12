@@ -353,9 +353,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
             val symbol = asmgen.symbolTable.lookup(variable.name)
-            val decl = symbol!!.astNode as PtVariable
+            val decl = symbol!!.astNode as IPtVariable
+            val numElements = when(decl) {
+                is PtConstant -> throw AssemblyError("cannot reverse a constant")
+                is PtMemMapped -> decl.arraySize
+                is PtVariable -> decl.arraySize
+            }
             val varName = asmgen.asmVariableName(variable)
-            val numElements = decl.arraySize!!
             when (decl.type) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
                     asmgen.out("""
@@ -393,9 +397,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val variable = fcall.args.single()
         if (variable is PtIdentifier) {
             val symbol = asmgen.symbolTable.lookup(variable.name)
-            val decl = symbol!!.astNode as PtVariable
+            val decl = symbol!!.astNode as IPtVariable
             val varName = asmgen.asmVariableName(variable)
-            val numElements = decl.arraySize!!
+            val numElements = when(decl) {
+                is PtConstant -> throw AssemblyError("cannot sort a constant")
+                is PtMemMapped -> decl.arraySize
+                is PtVariable -> decl.arraySize
+            }
             when (decl.type) {
                 DataType.ARRAY_UB, DataType.ARRAY_B -> {
                     asmgen.out("""
@@ -1014,17 +1022,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as PtIdentifier
         val symbol = asmgen.symbolTable.lookup(arg.name)
-        val arrayVar = symbol!!.astNode as PtVariable
-        if(arrayVar.arraySize==null)
-            throw AssemblyError("length of non-array requested")
-        val size = arrayVar.arraySize!!
+        val arrayVar = symbol!!.astNode as IPtVariable
+        val numElements = when(arrayVar) {
+            is PtConstant -> null
+            is PtMemMapped -> arrayVar.arraySize
+            is PtVariable -> arrayVar.arraySize
+        } ?: throw AssemblyError("length of non-array requested")
         val identifierName = asmgen.asmVariableName(arg)
         asmgen.out("""
                     lda  #<$identifierName
                     ldy  #>$identifierName
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
-                    lda  #$size
+                    lda  #$numElements
                     """)
     }
 

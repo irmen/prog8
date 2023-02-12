@@ -103,7 +103,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
                 else
                     "${node.type.name.lowercase()} ${node.name}"
                 if(node.value!=null)
-                    str + " = " + txt(node.value!!)
+                    str + " = " + txt(node.value)
                 else
                     str
             }

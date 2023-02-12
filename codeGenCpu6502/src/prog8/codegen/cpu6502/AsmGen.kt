@@ -581,7 +581,7 @@ class AsmGen(
             }
             is PtIdentifier -> {
                 val symbol = symbolTable.lookup((stmt.count as PtIdentifier).name)
-                val vardecl = symbol!!.astNode as PtVariable
+                val vardecl = symbol!!.astNode as IPtVariable
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when(vardecl.type) {
                     DataType.UBYTE, DataType.BYTE -> {

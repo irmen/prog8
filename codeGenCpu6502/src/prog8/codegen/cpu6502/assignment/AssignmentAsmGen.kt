@@ -808,8 +808,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {
         val elementDt = containment.element.type
         val symbol = asmgen.symbolTable.lookup(containment.iterable.name)
-        val variable = symbol!!.astNode as PtVariable
+        val variable = symbol!!.astNode as IPtVariable
         val varname = asmgen.asmVariableName(containment.iterable)
+        val numElements = when(variable) {
+            is PtConstant -> null
+            is PtMemMapped -> variable.arraySize
+            is PtVariable -> variable.arraySize
+        }
         when(variable.type) {
             DataType.STR -> {
                 // use subroutine
@@ -817,7 +822,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
-                val stringVal = variable.value as PtString
+                val stringVal = (variable as PtVariable).value as PtString
                 asmgen.out("  ldy  #${stringVal.value.length}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
@@ -826,7 +831,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("containment check of floats not supported")
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                val numElements = variable.arraySize!!
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W1"), varname)
@@ -836,7 +840,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val numElements = variable.arraySize!!
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt, containment.definingISub())
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W2"), varname)
                 asmgen.out("  ldy  #$numElements")

@@ -203,7 +203,7 @@ sealed interface IPtVariable {
 }
 
 
-class PtVariable(name: String, override val type: DataType, val zeropage: ZeropageWish, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
+class PtVariable(name: String, override val type: DataType, val zeropage: ZeropageWish, val value: PtExpression?, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     override fun printProperties() {
         print("$type  $name")
     }

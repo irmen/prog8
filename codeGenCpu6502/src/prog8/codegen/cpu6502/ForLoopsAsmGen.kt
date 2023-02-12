@@ -240,7 +240,12 @@ $endLabel""")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
         val symbol = asmgen.symbolTable.lookup(ident.name)
-        val decl = symbol!!.astNode as PtVariable
+        val decl = symbol!!.astNode as IPtVariable
+        val numElements = when(decl) {
+            is PtConstant -> throw AssemblyError("length of non-array requested")
+            is PtMemMapped -> decl.arraySize
+            is PtVariable -> decl.arraySize
+        }
         when(iterableDt) {
             DataType.STR -> {
                 asmgen.out("""
@@ -260,7 +265,6 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                val length = decl.arraySize!!
                 val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
@@ -268,11 +272,11 @@ $loopLabel          sty  $indexVar
                     lda  $iterableName,y
                     sta  ${asmgen.asmVariableName(stmt.variable)}""")
                 asmgen.translate(stmt.statements)
-                if(length<=255u) {
+                if(numElements!!<=255u) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
-                        cpy  #$length
+                        cpy  #$numElements
                         beq  $endLabel
                         bne  $loopLabel""")
                 } else {
@@ -283,7 +287,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16u) {
+                if(numElements>=16u) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
@@ -296,7 +300,7 @@ $loopLabel          sty  $indexVar
                 asmgen.out(endLabel)
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val length = decl.arraySize!! * 2u
+                val length = numElements!! * 2u
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""

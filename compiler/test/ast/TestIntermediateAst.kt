@@ -57,7 +57,7 @@ class TestIntermediateAst: FunSpec({
         ccdecl.name shouldBe "cc"
         ccdecl.scopedName shouldBe "main.start.cc"
         ccdecl.type shouldBe DataType.UBYTE
-        val arraydecl = entry.children[1] as PtVariable
+        val arraydecl = entry.children[1] as IPtVariable
         arraydecl.name shouldBe "array"
         arraydecl.type shouldBe DataType.ARRAY_UB
 
