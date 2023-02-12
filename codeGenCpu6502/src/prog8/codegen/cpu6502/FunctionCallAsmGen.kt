@@ -213,6 +213,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     if(value is PtIdentifier) {
                         val addr = PtAddressOf(Position.DUMMY)
                         addr.add(value)
+                        addr.parent = sub as PtNode
                         AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
                     } else {
                         AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)

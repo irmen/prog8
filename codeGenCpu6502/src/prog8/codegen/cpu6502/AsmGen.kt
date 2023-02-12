@@ -91,8 +91,27 @@ class AsmGen(
     fun asmVariableName(name: String) = fixNameSymbols(name)
     fun asmSymbolName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
     fun asmVariableName(name: Iterable<String>) = fixNameSymbols(name.joinToString("."))
-    fun asmSymbolName(identifier: PtIdentifier) = asmSymbolName(identifier.name)
-    fun asmVariableName(identifier: PtIdentifier) = asmVariableName(identifier.name)
+    fun asmSymbolName(identifier: PtIdentifier): String {
+        val name = asmSymbolName(identifier.name)
+
+        // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
+        val subName = identifier.definingSub()?.scopedName
+        return if (subName != null && name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
+            name.drop(subName.length + 1)
+        else
+            name
+    }
+
+    fun asmVariableName(identifier: PtIdentifier): String {
+        val name = asmVariableName(identifier.name)
+
+        // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
+        val subName = identifier.definingSub()?.scopedName
+        return if (subName != null && name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
+            name.drop(subName.length+1)
+        else
+            name
+    }
 
     internal fun getTempVarName(dt: DataType): String {
         return when(dt) {
@@ -847,6 +866,7 @@ $repeatLabel    lda  $counterVar
                     // all else take its address and assign that also to AY register pair
                     val addrofValue = PtAddressOf(returnvalue.position)
                     addrofValue.add(returnvalue as PtIdentifier)
+                    addrofValue.parent = ret.parent
                     assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
                 }
             }

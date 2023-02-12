@@ -38,6 +38,7 @@ class PtSub(
             throw AssemblyError("non-numeric parameter")
         if(returntype!=null && returntype !in NumericDatatypes)
             throw AssemblyError("non-numeric returntype $returntype")
+        parameters.forEach { it.parent=this }
     }
 }
 
@@ -155,6 +156,10 @@ class PtJump(val identifier: PtIdentifier?,
         if(address!=null) print(address.toHex())
         if(generatedLabel!=null) print(generatedLabel)
     }
+
+    init {
+        identifier?.let {it.parent = this }
+    }
 }
 
 
@@ -201,6 +206,9 @@ sealed interface IPtVariable {
 class PtVariable(name: String, override val type: DataType, val zeropage: ZeropageWish, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     override fun printProperties() {
         print("$type  $name")
+    }
+    init {
+        value?.let {it.parent=this}
     }
 }
 

@@ -328,6 +328,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.UWORD, fcall.position)
         val addressOf = PtAddressOf(fcall.position)
         addressOf.add(slabname)
+        addressOf.parent = fcall
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = addressOf)
         val target =
             if(resultToStack)
@@ -631,6 +632,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             val addressOf = PtAddressOf(arrayvar.position)
             addressOf.add(arrayvar)
+            addressOf.parent = arrayvar.parent.parent
             asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
         }
         asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
@@ -1035,6 +1037,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 is PtIdentifier -> {
                     val addr = PtAddressOf(value.position)
                     addr.add(value)
+                    addr.parent = call
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
                 is PtNumber -> {
@@ -1048,6 +1051,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val variable = PtIdentifier(subroutineFloatEvalResultVar2, DataType.FLOAT, value.position)
                     val addr = PtAddressOf(value.position)
                     addr.add(variable)
+                    addr.parent = call
                     asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT, scope)
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
@@ -1067,6 +1071,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             // put the address of the argument in AY
                             val addr = PtAddressOf(value.position)
                             addr.add(value)
+                            addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)
                         }
                         else -> {
@@ -1084,6 +1089,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             // put the address of the argument in AY
                             val addr = PtAddressOf(value.position)
                             addr.add(value)
+                            addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)
                         }
                         else -> {

@@ -29,6 +29,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ESTACK_LO", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_LO, 256u, Position.DUMMY),
                 PtMemMapped("P8ESTACK_HI", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_HI, 256u, Position.DUMMY)
             ).forEach {
+                it.parent = program
                 st.add(StMemVar(it.name, it.type, it.address, null, it))
             }
         }
