@@ -8,7 +8,7 @@ import prog8.codegen.cpu6502.assignment.AsmAssignment
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
 
-internal class FunctionCallAsmGen(private val program: PtProgram, private val asmgen: AsmGen) {
+internal class FunctionCallAsmGen(private val program: PtProgram, private val asmgen: AsmGen6502Internal) {
 
     internal fun translateFunctionCallStatement(stmt: PtFunctionCall) {
         saveXbeforeCall(stmt)

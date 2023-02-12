@@ -5,7 +5,7 @@ import prog8.code.core.*
 import kotlin.math.absoluteValue
 
 internal class ExpressionsAsmGen(private val program: PtProgram,
-                                 private val asmgen: AsmGen,
+                                 private val asmgen: AsmGen6502Internal,
                                  private val allocator: VariableAllocator) {
 
     @Deprecated("avoid calling this as it generates slow evalstack based code")

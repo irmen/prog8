@@ -17,7 +17,7 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.compiler.astprocessing.IntermediateAstMaker
 import prog8tests.helpers.*
 
@@ -72,17 +72,17 @@ class TestAsmGenSymbols: StringSpec({
         return program
     }
 
-    fun createTestAsmGen(program: Program): AsmGen {
+    fun createTestAsmGen6502(program: Program): AsmGen6502Internal {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target(), 999u)
         val ptProgram = IntermediateAstMaker(program, options).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
-        return AsmGen(ptProgram, st, options, errors)
+        return AsmGen6502Internal(ptProgram, st, options, errors)
     }
 
     "symbol and variable names from strings" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("<name>") shouldBe "prog8_name"
@@ -95,7 +95,7 @@ class TestAsmGenSymbols: StringSpec({
 
     "symbol and variable names from variable identifiers" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         val sub = asmgen.program.entrypoint()!!
 
         val localvarIdent = sub.children.asSequence().filterIsInstance<PtAssignment>().first { it.value is PtIdentifier }.value as PtIdentifier
@@ -115,7 +115,7 @@ class TestAsmGenSymbols: StringSpec({
 
     "symbol and variable names from label identifiers" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         val sub = asmgen.program.entrypoint()!!
 
         val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
@@ -144,7 +144,7 @@ main {
         prog8_lib.P8ZP_SCRATCH_W2 = 1
          */
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_REG") shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_W2") shouldBe "P8ZP_SCRATCH_W2"
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_REG")) shouldBe "P8ZP_SCRATCH_REG"

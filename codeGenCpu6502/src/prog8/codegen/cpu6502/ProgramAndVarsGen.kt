@@ -23,7 +23,7 @@ internal class ProgramAndVarsGen(
     val errors: IErrorReporter,
     private val symboltable: SymbolTable,
     private val functioncallAsmGen: FunctionCallAsmGen,
-    private val asmgen: AsmGen,
+    private val asmgen: AsmGen6502Internal,
     private val allocator: VariableAllocator,
     private val zeropage: Zeropage
 ) {

@@ -7,7 +7,7 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.*
 
 
-internal class PostIncrDecrAsmGen(private val program: PtProgram, private val asmgen: AsmGen) {
+internal class PostIncrDecrAsmGen(private val program: PtProgram, private val asmgen: AsmGen6502Internal) {
     internal fun translate(stmt: PtPostIncrDecr) {
         val incr = stmt.operator=="++"
         val targetIdent = stmt.target.identifier

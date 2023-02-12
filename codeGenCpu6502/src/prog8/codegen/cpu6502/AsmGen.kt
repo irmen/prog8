@@ -14,13 +14,24 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
+class AsmGen6502: ICodeGeneratorBackend {
+    override fun generate(
+        program: PtProgram,
+        symbolTable: SymbolTable,
+        options: CompilationOptions,
+        errors: IErrorReporter
+    ): IAssemblyProgram? {
+        val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
+        return asmgen.compileToAssembly()
+    }
+}
 
-class AsmGen(
+class AsmGen6502Internal (
     val program: PtProgram,
     internal val symbolTable: SymbolTable,
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter
-): IAssemblyGenerator {
+) {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
@@ -37,7 +48,7 @@ class AsmGen(
     private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
 
-    override fun compileToAssembly(): IAssemblyProgram? {
+    fun compileToAssembly(): IAssemblyProgram? {
 
         assemblyLines.clear()
         loopEndLabels.clear()
@@ -1076,7 +1087,7 @@ $repeatLabel    lda  $counterVar
         return false
     }
 
-    internal fun findSubroutineParameter(name: String, asmgen: AsmGen): PtSubroutineParameter? {
+    internal fun findSubroutineParameter(name: String, asmgen: AsmGen6502Internal): PtSubroutineParameter? {
         val node = asmgen.symbolTable.lookup(name)!!.astNode
         if(node is PtSubroutineParameter)
             return node

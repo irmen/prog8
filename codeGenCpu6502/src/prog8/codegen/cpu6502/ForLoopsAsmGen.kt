@@ -6,7 +6,7 @@ import prog8.code.core.*
 import kotlin.math.absoluteValue
 
 internal class ForLoopsAsmGen(private val program: PtProgram,
-                              private val asmgen: AsmGen,
+                              private val asmgen: AsmGen6502Internal,
                               private val zeropage: Zeropage) {
 
     internal fun translate(stmt: PtForLoop) {

@@ -6,7 +6,7 @@ import prog8.codegen.cpu6502.*
 
 
 internal class AssignmentAsmGen(private val program: PtProgram,
-                                private val asmgen: AsmGen, 
+                                private val asmgen: AsmGen6502Internal,
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 

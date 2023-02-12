@@ -2,13 +2,13 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.codegen.cpu6502.AsmGen
+import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
 
 
 internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                            private val assignmentAsmGen: AssignmentAsmGen,
-                                           private val asmgen: AsmGen,
+                                           private val asmgen: AsmGen6502Internal,
                                            private val allocator: VariableAllocator
 ) {
     fun translate(assign: AsmAssignment) {

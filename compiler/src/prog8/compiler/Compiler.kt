@@ -400,7 +400,19 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions
 ): Boolean {
-    val assembly = asmGeneratorFor(program, compilerOptions, errors).compileToAssembly()
+
+    val asmgen = if(compilerOptions.experimentalCodegen)
+        prog8.codegen.experimental.ExperiCodeGen()
+    else if (compilerOptions.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+        prog8.codegen.cpu6502.AsmGen6502()
+    else if (compilerOptions.compTarget.name == VMTarget.NAME)
+        VmCodeGen()
+    else
+        throw NotImplementedError("no asm generator for cpu ${compilerOptions.compTarget.machine.cpu}")
+
+    val stMaker = SymbolTableMaker(program, compilerOptions)
+    val symbolTable = stMaker.make()
+    val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -408,21 +420,4 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     } else {
         false
     }
-}
-
-internal fun asmGeneratorFor(program: PtProgram,
-                             options: CompilationOptions,
-                             errors: IErrorReporter): IAssemblyGenerator
-{
-    val stMaker = SymbolTableMaker(program, options)
-    val symbolTable = stMaker.make()
-
-    return if(options.experimentalCodegen)
-        prog8.codegen.experimental.CodeGen(program, symbolTable, options, errors)
-    else if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-        prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
-    else if (options.compTarget.name == VMTarget.NAME)
-        VmCodeGen(program, symbolTable, options, errors)
-    else
-        throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")
 }

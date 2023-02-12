@@ -6,7 +6,7 @@ import prog8.codegen.cpu6502.assignment.*
 
 
 internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
-                                      private val asmgen: AsmGen,
+                                      private val asmgen: AsmGen6502Internal,
                                       private val assignAsmGen: AssignmentAsmGen) {
 
     internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? {
