@@ -60,10 +60,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
-        val targetParam = identifier.targetVarDecl(program)?.subroutineParameter
-        if(targetParam!=null) {
-            if((targetParam.parent as Subroutine).isAsmSubroutine)
-                errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+        val target = identifier.targetVarDecl(program)
+        if(target != null && target.origin==VarDeclOrigin.SUBROUTINEPARAM) {
+            if(target.definingSubroutine!!.isAsmSubroutine) {
+                if(target.definingSubroutine!!.parameters.any { it.name == identifier.nameInSource.last() })
+                    errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+            }
         }
     }
 

@@ -178,7 +178,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             leftAssignment = Assignment(
                 AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
                 expr.left.copy(),
-                AssignmentOrigin.BEFOREASMGEN, expr.position
+                AssignmentOrigin.ASMGEN, expr.position
             )
         }
         if(separateRightExpr) {
@@ -187,7 +187,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             rightAssignment = Assignment(
                 AssignTarget(IdentifierReference(tempVarName, expr.position), null, null, expr.position),
                 expr.right.copy(),
-                AssignmentOrigin.BEFOREASMGEN, expr.position
+                AssignmentOrigin.ASMGEN, expr.position
             )
         }
         return CondExprSimplificationResult(

@@ -190,7 +190,6 @@ class VarDecl(val type: VarDeclType,
               var value: Expression?,
               val isArray: Boolean,
               val sharedWithAsm: Boolean,
-              val subroutineParameter: SubroutineParameter?,
               override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -204,7 +203,6 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, null,
                 isArray = false,
                 sharedWithAsm = false,
-                subroutineParameter = param,
                 position = param.position
             )
         }
@@ -215,7 +213,7 @@ class VarDecl(val type: VarDeclType,
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
-                    isArray = true, sharedWithAsm = false, subroutineParameter = null, position = array.position)
+                    isArray = true, sharedWithAsm = false, position = array.position)
         }
     }
 
@@ -262,14 +260,14 @@ class VarDecl(val type: VarDeclType,
 
     override fun copy(): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, value?.copy(),
-            isArray, sharedWithAsm, subroutineParameter, position)
+            isArray, sharedWithAsm, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
 
     fun renamed(newName: String): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize, newName, value,
-            isArray, sharedWithAsm, subroutineParameter, position)
+            isArray, sharedWithAsm, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -316,10 +314,8 @@ class ArrayIndex(var indexExpr: Expression,
 enum class AssignmentOrigin {
     USERCODE,
     VARINIT,
-    PARAMETERASSIGN,
     OPTIMIZER,
-    BEFOREASMGEN,
-    ASMGEN,
+    ASMGEN
 }
 
 class Assignment(var target: AssignTarget, var value: Expression, var origin: AssignmentOrigin, override val position: Position) : Statement() {

@@ -607,7 +607,6 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expr
             value,
             ARRAYSIG() != null || arrayindex() != null,
             shared,
-            null,
             toPosition()
     )
 }

@@ -92,7 +92,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
                 val symbol = subroutine.searchSymbol(name)
-                if(symbol!=null && (symbol as? VarDecl)?.subroutineParameter==null)
+                if(symbol!=null && (symbol as? VarDecl)?.origin!=VarDeclOrigin.SUBROUTINEPARAM)
                     nameError(name, symbol.position, subroutine)
             }
 
