@@ -118,9 +118,11 @@ class Inliner(val program: Program): AstWalker() {
         }
 
         private fun makeFullyScoped(identifier: IdentifierReference) {
-            val scoped = (identifier.targetStatement(program)!! as INamedStatement).scopedName
-            val scopedIdent = IdentifierReference(scoped, identifier.position)
-            modifications += IAstModification.ReplaceNode(identifier, scopedIdent, identifier.parent)
+            identifier.targetStatement(program)?.let { target ->
+                val scoped = (target as INamedStatement).scopedName
+                val scopedIdent = IdentifierReference(scoped, identifier.position)
+                modifications += IAstModification.ReplaceNode(identifier, scopedIdent, identifier.parent)
+            }
         }
 
         private fun makeFullyScoped(call: BuiltinFunctionCallStatement) {
@@ -130,27 +132,30 @@ class Inliner(val program: Program): AstWalker() {
         }
 
         private fun makeFullyScoped(call: FunctionCallStatement) {
-            val sub = call.target.targetSubroutine(program)!!
-            val scopedName = IdentifierReference(sub.scopedName, call.target.position)
-            val scopedArgs = makeScopedArgs(call.args)
-            val scopedCall = FunctionCallStatement(scopedName, scopedArgs.toMutableList(), call.void, call.position)
-            modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            call.target.targetSubroutine(program)?.let { sub ->
+                val scopedName = IdentifierReference(sub.scopedName, call.target.position)
+                val scopedArgs = makeScopedArgs(call.args)
+                val scopedCall = FunctionCallStatement(scopedName, scopedArgs.toMutableList(), call.void, call.position)
+                modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            }
         }
 
         private fun makeFullyScoped(call: BuiltinFunctionCall) {
-            val sub = call.target.targetSubroutine(program)!!
-            val scopedName = IdentifierReference(sub.scopedName, call.target.position)
-            val scopedArgs = makeScopedArgs(call.args)
-            val scopedCall = BuiltinFunctionCall(scopedName, scopedArgs.toMutableList(), call.position)
-            modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            call.target.targetSubroutine(program)?.let { sub ->
+                val scopedName = IdentifierReference(sub.scopedName, call.target.position)
+                val scopedArgs = makeScopedArgs(call.args)
+                val scopedCall = BuiltinFunctionCall(scopedName, scopedArgs.toMutableList(), call.position)
+                modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            }
         }
 
         private fun makeFullyScoped(call: FunctionCallExpression) {
-            val sub = call.target.targetSubroutine(program)!!
-            val scopedName = IdentifierReference(sub.scopedName, call.target.position)
-            val scopedArgs = makeScopedArgs(call.args)
-            val scopedCall = FunctionCallExpression(scopedName, scopedArgs.toMutableList(), call.position)
-            modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            call.target.targetSubroutine(program)?.let { sub ->
+                val scopedName = IdentifierReference(sub.scopedName, call.target.position)
+                val scopedArgs = makeScopedArgs(call.args)
+                val scopedCall = FunctionCallExpression(scopedName, scopedArgs.toMutableList(), call.position)
+                modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+            }
         }
 
         private fun makeScopedArgs(args: List<Expression>): List<Expression> {
