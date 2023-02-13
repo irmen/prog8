@@ -14,7 +14,7 @@
     <keywords keywords="&amp;;-&gt;;@;\$;and;as;asmsub;break;clobbers;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%import;%ir;%launcher;%option;%output;%zeropage;%zpreserved;iso:;petscii:;sc:" />
     <keywords3 keywords="@requirezp;@shared;@zp;bool;byte;const;float;str;ubyte;uword;void;word" />
-    <keywords4 keywords="abs;all;any;avg;callfar;callrom;cmp;len;lsb;memory;mkword;msb;peek;peekw;poke;pokew;pop;popw;push;pushw;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;sgn;sizeof;sort;sqrt16;swap;|&gt;" />
+    <keywords4 keywords="abs;all;any;callfar;callrom;cmp;len;lsb;memory;mkword;msb;peek;peekw;poke;pokew;pop;popw;push;pushw;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;sgn;sizeof;sort;sqrt16;swap;|&gt;" />
   </highlighting>
   <extensionMap>
     <mapping ext="p8" />
