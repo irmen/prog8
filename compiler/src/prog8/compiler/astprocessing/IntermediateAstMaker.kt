@@ -326,8 +326,8 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
         var returntype = srcSub.returntypes.singleOrNull()
         if(returntype==DataType.STR)
             returntype=DataType.UWORD   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
-        if(srcSub.inline)
-            throw FatalAstException("non-asm subs cannot be inline")
+
+        // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
             returntype,

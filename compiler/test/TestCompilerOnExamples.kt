@@ -188,8 +188,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
         val (displayName, filepath) = prepareTestFiles(it, false, target)
         test(displayName) {
             val src = filepath.readText()
-            compileText(target, false, src, writeAssembly = true) shouldNotBe null
-            compileText(target, false, src, writeAssembly = true) shouldNotBe null
+            compileText(target, true, src, writeAssembly = true) shouldNotBe null
+            compileText(target, true, src, writeAssembly = true) shouldNotBe null
         }
     }
 })
