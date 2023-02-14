@@ -28,9 +28,9 @@ main {
     }
 }
 """)!!
-        result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
+        result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
 
-        val moduleNames = result.program.modules.map { it.name }
+        val moduleNames = result.compilerAst.modules.map { it.name }
         withClue("main module must be first") {
             moduleNames[0] shouldStartWith "on_the_fly_test"
         }
@@ -46,7 +46,7 @@ main {
                 "prog8_lib"
             )
         }
-        result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
+        result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
     }
 
     test("testCompilationOptionsCorrectFromMain") {
@@ -63,8 +63,8 @@ main {
     }
 }
 """)!!
-        result.program.toplevelModule.name shouldStartWith "on_the_fly_test"
-        val options = determineCompilationOptions(result.program, C64Target())
+        result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
+        val options = determineCompilationOptions(result.compilerAst, C64Target())
         options.floats shouldBe true
         options.zeropage shouldBe ZeropageType.DONTUSE
         options.noSysInit shouldBe true

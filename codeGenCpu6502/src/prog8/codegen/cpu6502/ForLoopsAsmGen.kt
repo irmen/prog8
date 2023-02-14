@@ -1,46 +1,43 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.ast.Program
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.RangeExpression
-import prog8.ast.statements.ForLoop
+import prog8.code.ast.*
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
-internal class ForLoopsAsmGen(private val program: Program, private val asmgen: AsmGen, private val zeropage: Zeropage) {
+internal class ForLoopsAsmGen(private val program: PtProgram,
+                              private val asmgen: AsmGen6502Internal,
+                              private val zeropage: Zeropage) {
 
-    internal fun translate(stmt: ForLoop) {
-        val iterableDt = stmt.iterable.inferType(program)
-        if(!iterableDt.isKnown)
-            throw AssemblyError("unknown dt")
+    internal fun translate(stmt: PtForLoop) {
+        val iterableDt = stmt.iterable.type
         when(stmt.iterable) {
-            is RangeExpression -> {
-                val range = (stmt.iterable as RangeExpression).toConstantIntegerRange()
+            is PtRange -> {
+                val range = (stmt.iterable as PtRange).toConstantIntegerRange()
                 if(range==null) {
-                    translateForOverNonconstRange(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, stmt.iterable as RangeExpression)
+                    translateForOverNonconstRange(stmt, iterableDt, stmt.iterable as PtRange)
                 } else {
-                    translateForOverConstRange(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, range)
+                    translateForOverConstRange(stmt, iterableDt, range)
                 }
             }
-            is IdentifierReference -> {
-                translateForOverIterableVar(stmt, iterableDt.getOrElse { throw AssemblyError("unknown dt") }, stmt.iterable as IdentifierReference)
+            is PtIdentifier -> {
+                translateForOverIterableVar(stmt, iterableDt, stmt.iterable as PtIdentifier)
             }
             else -> throw AssemblyError("can't iterate over ${stmt.iterable.javaClass} - should have been replaced by a variable")
         }
     }
 
-    private fun translateForOverNonconstRange(stmt: ForLoop, iterableDt: DataType, range: RangeExpression) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
-        val modifiedLabel = program.makeLabel("for_modified")
-        val modifiedLabel2 = program.makeLabel("for_modifiedb")
+    private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        val modifiedLabel = asmgen.makeLabel("for_modified")
+        val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
         asmgen.loopEndLabels.push(endLabel)
-        val stepsize=range.step.constValue(program)!!.number.toInt()
+        val stepsize=range.step.asConstInteger()!!
 
         if(stepsize < -1) {
-            val limit = range.to.constValue(program)?.number
-            if(limit==0.0)
+            val limit = range.to.asConstInteger()
+            if(limit==0)
                 throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
         }
 
@@ -52,11 +49,11 @@ internal class ForLoopsAsmGen(private val program: Program, private val asmgen: 
 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmVariableName(stmt.loopVar)
+                    val varname = asmgen.asmVariableName(stmt.variable)
                     asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.out(loopLabel)
-                    asmgen.translate(stmt.body)
+                    asmgen.translate(stmt.statements)
                     asmgen.out("""
                         lda  $varname
 $modifiedLabel          cmp  #0         ; modified 
@@ -70,11 +67,11 @@ $modifiedLabel          cmp  #0         ; modified
                     // bytes, step >= 2 or <= -2
 
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmVariableName(stmt.loopVar)
+                    val varname = asmgen.asmVariableName(stmt.variable)
                     asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
                     asmgen.out(loopLabel)
-                    asmgen.translate(stmt.body)
+                    asmgen.translate(stmt.statements)
                     if(stepsize>0) {
                         asmgen.out("""
                             lda  $varname
@@ -102,14 +99,14 @@ $modifiedLabel              cmp  #0     ; modified
                     // words, step 1 or -1
 
                     stepsize == 1 || stepsize == -1 -> {
-                        val varname = asmgen.asmVariableName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.body)
+                        asmgen.translate(stmt.statements)
                         asmgen.out("""
                 lda  $varname+1
 $modifiedLabel  cmp  #0    ; modified 
@@ -136,14 +133,14 @@ $modifiedLabel2 cmp  #0    ; modified
                     stepsize > 0 -> {
 
                         // (u)words, step >= 2
-                        val varname = asmgen.asmVariableName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.body)
+                        asmgen.translate(stmt.statements)
 
                         if (iterableDt == DataType.ARRAY_UW) {
                             asmgen.out("""
@@ -184,14 +181,14 @@ $endLabel""")
                     else -> {
 
                         // (u)words, step <= -2
-                        val varname = asmgen.asmVariableName(stmt.loopVar)
+                        val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.body)
+                        asmgen.translate(stmt.statements)
 
                         if(iterableDt==DataType.ARRAY_UW) {
                             asmgen.out("""
@@ -237,12 +234,18 @@ $endLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForOverIterableVar(stmt: ForLoop, iterableDt: DataType, ident: IdentifierReference) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+    private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataType, ident: PtIdentifier) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
-        val decl = ident.targetVarDecl(program)!!
+        val symbol = asmgen.symbolTable.lookup(ident.name)
+        val decl = symbol!!.astNode as IPtVariable
+        val numElements = when(decl) {
+            is PtConstant -> throw AssemblyError("length of non-array requested")
+            is PtMemMapped -> decl.arraySize
+            is PtVariable -> decl.arraySize
+        }
         when(iterableDt) {
             DataType.STR -> {
                 asmgen.out("""
@@ -252,8 +255,8 @@ $endLabel""")
                     sty  $loopLabel+2
 $loopLabel          lda  ${65535.toHex()}       ; modified
                     beq  $endLabel
-                    sta  ${asmgen.asmVariableName(stmt.loopVar)}""")
-                asmgen.translate(stmt.body)
+                    sta  ${asmgen.asmVariableName(stmt.variable)}""")
+                asmgen.translate(stmt.statements)
                 asmgen.out("""
                     inc  $loopLabel+1
                     bne  $loopLabel
@@ -262,19 +265,18 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
 $endLabel""")
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                val length = decl.arraysize!!.constIndex()!!
-                val indexVar = program.makeLabel("for_index")
+                val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
                     lda  $iterableName,y
-                    sta  ${asmgen.asmVariableName(stmt.loopVar)}""")
-                asmgen.translate(stmt.body)
-                if(length<=255) {
+                    sta  ${asmgen.asmVariableName(stmt.variable)}""")
+                asmgen.translate(stmt.statements)
+                if(numElements!!<=255u) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
-                        cpy  #$length
+                        cpy  #$numElements
                         beq  $endLabel
                         bne  $loopLabel""")
                 } else {
@@ -285,7 +287,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16) {
+                if(numElements>=16u) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
@@ -298,9 +300,9 @@ $loopLabel          sty  $indexVar
                 asmgen.out(endLabel)
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val length = decl.arraysize!!.constIndex()!! * 2
-                val indexVar = program.makeLabel("for_index")
-                val loopvarName = asmgen.asmVariableName(stmt.loopVar)
+                val length = numElements!! * 2u
+                val indexVar = asmgen.makeLabel("for_index")
+                val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
@@ -308,8 +310,8 @@ $loopLabel          sty  $indexVar
                     sta  $loopvarName
                     lda  $iterableName+1,y
                     sta  $loopvarName+1""")
-                asmgen.translate(stmt.body)
-                if(length<=127) {
+                asmgen.translate(stmt.statements)
+                if(length<=127u) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -326,7 +328,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16) {
+                if(length>=16u) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(listOf(indexVar), DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
@@ -346,7 +348,7 @@ $loopLabel          sty  $indexVar
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForOverConstRange(stmt: ForLoop, iterableDt: DataType, range: IntProgression) {
+    private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataType, range: IntProgression) {
         if (range.isEmpty() || range.step==0)
             throw AssemblyError("empty range or step 0")
         if(iterableDt==DataType.ARRAY_B || iterableDt==DataType.ARRAY_UB) {
@@ -359,18 +361,18 @@ $loopLabel          sty  $indexVar
         }
 
         // not one of the easy cases, generate more complex code...
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 // loop over byte range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmVariableName(stmt.loopVar)
+                val varname = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
                             lda  #${range.first}
                             sta  $varname
 $loopLabel""")
-                asmgen.translate(stmt.body)
+                asmgen.translate(stmt.statements)
                 when (range.step) {
                     0, 1, -1 -> {
                         throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
@@ -430,7 +432,7 @@ $loopLabel""")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 // loop over word range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmVariableName(stmt.loopVar)
+                val varname = asmgen.asmVariableName(stmt.variable)
                 when (range.step) {
                     0, 1, -1 -> {
                         throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
@@ -444,7 +446,7 @@ $loopLabel""")
                             sta  $varname
                             sty  $varname+1
 $loopLabel""")
-                        asmgen.translate(stmt.body)
+                        asmgen.translate(stmt.statements)
                         asmgen.out("""
                             lda  $varname
                             cmp  #<${range.last}
@@ -470,16 +472,16 @@ $loopLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForSimpleByteRangeAsc(stmt: ForLoop, range: IntProgression) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+    private fun translateForSimpleByteRangeAsc(stmt: PtForLoop, range: IntProgression) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmVariableName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
                 lda  #${range.first}
                 sta  $varname
 $loopLabel""")
-        asmgen.translate(stmt.body)
+        asmgen.translate(stmt.statements)
         if (range.last == 255) {
             asmgen.out("""
                 inc  $varname
@@ -496,16 +498,16 @@ $endLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForSimpleByteRangeDesc(stmt: ForLoop, range: IntProgression) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+    private fun translateForSimpleByteRangeDesc(stmt: PtForLoop, range: IntProgression) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmVariableName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
                     lda  #${range.first}
                     sta  $varname
 $loopLabel""")
-        asmgen.translate(stmt.body)
+        asmgen.translate(stmt.statements)
         when (range.last) {
             0 -> {
                 asmgen.out("""
@@ -533,18 +535,18 @@ $endLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForSimpleWordRangeAsc(stmt: ForLoop, range: IntProgression) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+    private fun translateForSimpleWordRangeAsc(stmt: PtForLoop, range: IntProgression) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmVariableName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
             lda  #<${range.first}
             ldy  #>${range.first}
             sta  $varname
             sty  $varname+1
 $loopLabel""")
-        asmgen.translate(stmt.body)
+        asmgen.translate(stmt.statements)
         asmgen.out("""
             lda  $varname
             cmp  #<${range.last}
@@ -560,18 +562,18 @@ $loopLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun translateForSimpleWordRangeDesc(stmt: ForLoop, range: IntProgression) {
-        val loopLabel = program.makeLabel("for_loop")
-        val endLabel = program.makeLabel("for_end")
+    private fun translateForSimpleWordRangeDesc(stmt: PtForLoop, range: IntProgression) {
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
-        val varname = asmgen.asmVariableName(stmt.loopVar)
+        val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
             lda  #<${range.first}
             ldy  #>${range.first}
             sta  $varname
             sty  $varname+1
 $loopLabel""")
-        asmgen.translate(stmt.body)
+        asmgen.translate(stmt.statements)
         asmgen.out("""
             lda  $varname
             cmp  #<${range.last}
@@ -588,10 +590,10 @@ $loopLabel""")
         asmgen.loopEndLabels.pop()
     }
 
-    private fun assignLoopvar(stmt: ForLoop, range: RangeExpression) =
+    private fun assignLoopvar(stmt: PtForLoop, range: PtRange) =
         asmgen.assignExpressionToVariable(
             range.from,
-            asmgen.asmVariableName(stmt.loopVar),
-            stmt.loopVarDt(program).getOrElse { throw AssemblyError("unknown dt") },
-            stmt.definingSubroutine)
+            asmgen.asmVariableName(stmt.variable),
+            stmt.variable.type,
+            stmt.definingISub())
 }

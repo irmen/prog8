@@ -40,7 +40,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type)
+        if(sourceDt istype typecast.type || (sourceDt istype DataType.BOOL && typecast.type==DataType.UBYTE))
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
@@ -62,6 +62,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        if(assignment.target isSameAs assignment.value) {
+            // remove assignment to self
+            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+        }
+
         // remove duplicated assignments, but not if it's a memory mapped IO register
         val isIO = try {
             assignment.target.isIOAddress(options.compTarget.machine)

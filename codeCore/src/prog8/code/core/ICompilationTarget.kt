@@ -7,5 +7,5 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val defaultEncoding: Encoding
 
     override fun encodeString(str: String, encoding: Encoding): List<UByte>
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String
 }

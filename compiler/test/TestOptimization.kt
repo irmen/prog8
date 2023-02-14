@@ -16,7 +16,6 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.compiler.printProgram
 import prog8tests.helpers.*
 
 
@@ -32,10 +31,10 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), true, sourcecode)!!
-        val toplevelModule = result.program.toplevelModule
+        val toplevelModule = result.compilerAst.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements.single() as Subroutine
-        result.program.entrypoint shouldBeSameInstanceAs startSub
+        result.compilerAst.entrypoint shouldBeSameInstanceAs startSub
         withClue("only start sub should remain") {
             startSub.name shouldBe "start"
         }
@@ -57,11 +56,11 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), true, sourcecode)!!
-        val toplevelModule = result.program.toplevelModule
+        val toplevelModule = result.compilerAst.toplevelModule
         val mainBlock = toplevelModule.statements.single() as Block
         val startSub = mainBlock.statements[0] as Subroutine
         val emptySub = mainBlock.statements[1] as Subroutine
-        result.program.entrypoint shouldBeSameInstanceAs startSub
+        result.compilerAst.entrypoint shouldBeSameInstanceAs startSub
         startSub.name shouldBe "start"
         emptySub.name shouldBe "empty"
         withClue("compiler has inserted return in empty subroutines") {
@@ -131,7 +130,7 @@ class TestOptimization: FunSpec({
 //        cx16.r5s -= 1899
 //        cx16.r7s = llw
 //        cx16.r7s += 99
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 14
 
         val addR0value = (stmts[5] as Assignment).value
@@ -183,7 +182,7 @@ class TestOptimization: FunSpec({
 //        cx16.r4s = llw
 //        cx16.r4s *= 90
 //        cx16.r4s /= 5
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 13
 
         val mulR0Value = (stmts[3] as Assignment).value
@@ -225,7 +224,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, sourcecode)!!
-        val mainsub = result.program.entrypoint
+        val mainsub = result.compilerAst.entrypoint
         mainsub.statements.size shouldBe 10
         val declTest = mainsub.statements[0] as VarDecl
         val declX1 = mainsub.statements[1] as VarDecl
@@ -265,8 +264,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, src, writeAssembly = true)!!
-        printProgram(result.program)
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 8
 
         val value1 = (stmts[4] as Assignment).value as BinaryExpression
@@ -298,7 +296,7 @@ class TestOptimization: FunSpec({
         bb = prog8_lib.retval_interm_b
         return
          */
-        val st = result.program.entrypoint.statements
+        val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         st.last() shouldBe instanceOf<Return>()
         var assign = st[3] as Assignment
@@ -324,7 +322,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), optimize=false, src, writeAssembly = false)!!
-        val assignFF = result.program.entrypoint.statements.last() as Assignment
+        val assignFF = result.compilerAst.entrypoint.statements.last() as Assignment
         assignFF.isAugmentable shouldBe true
         assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
         val value = assignFF.value as BinaryExpression
@@ -350,8 +348,8 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        result.program.entrypoint.statements.size shouldBe 7
-        val alldecls = result.program.entrypoint.allDefinedSymbols.toList()
+        result.compilerAst.entrypoint.statements.size shouldBe 7
+        val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
 
@@ -373,11 +371,11 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        result.program.entrypoint.statements.size shouldBe 3
-        val ifstmt = result.program.entrypoint.statements[0] as IfElse
+        result.compilerAst.entrypoint.statements.size shouldBe 3
+        val ifstmt = result.compilerAst.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1
         (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
-        val func2 = result.program.entrypoint.statements[2] as Subroutine
+        val func2 = result.compilerAst.entrypoint.statements[2] as Subroutine
         func2.statements.size shouldBe 1
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
@@ -401,7 +399,6 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         /* expected:
         ubyte z1
         z1 = 10
@@ -418,7 +415,7 @@ class TestOptimization: FunSpec({
         z6 = z1
         z6 -= 5
         */
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 14
         val z1decl = statements[0] as VarDecl
         val z1init = statements[1] as Assignment
@@ -469,7 +466,7 @@ class TestOptimization: FunSpec({
         """
 
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val assign=stmts.last() as Assignment
         (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
@@ -486,7 +483,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val assign=stmts.last() as Assignment
         (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
@@ -505,7 +502,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 10
         stmts.filterIsInstance<VarDecl>().size shouldBe 5
         stmts.filterIsInstance<Assignment>().size shouldBe 5
@@ -554,8 +551,8 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        result.program.entrypoint.statements.size shouldBe 11
-        result.program.entrypoint.statements.last() shouldBe instanceOf<Return>()
+        result.compilerAst.entrypoint.statements.size shouldBe 11
+        result.compilerAst.entrypoint.statements.last() shouldBe instanceOf<Return>()
     }
 
     test("keep the value initializer assignment if the next one depends on it") {
@@ -582,7 +579,7 @@ class TestOptimization: FunSpec({
         xx = abs(xx)
         xx += 6
          */
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 8
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
         stmts.filterIsInstance<Assignment>().size shouldBe 5
@@ -611,7 +608,7 @@ class TestOptimization: FunSpec({
         yy = 0
         xx += 10
          */
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 2
         stmts.filterIsInstance<Assignment>().size shouldBe 5
@@ -638,7 +635,6 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
         /*
         expected result:
         ubyte[] auto_heap_var = [1,4,99,3]
@@ -649,7 +645,7 @@ class TestOptimization: FunSpec({
         if source in auto_heap_var
             thingy++
          */
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val ifStmt = stmts[5] as IfElse
         val containment = ifStmt.condition as ContainmentCheck
@@ -679,8 +675,7 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
@@ -698,8 +693,7 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        printProgram(result.program)
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
@@ -717,7 +711,7 @@ class TestOptimization: FunSpec({
             }
         }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
@@ -734,7 +728,7 @@ class TestOptimization: FunSpec({
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
     }
 
@@ -756,15 +750,15 @@ main {
     }
 }"""
         var result = compileText(Cx16Target(), true, srcX16, writeAssembly = true)!!
-        var statements = result.program.entrypoint.statements
+        var statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 9
         (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
         (statements[2] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
         (statements[3] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
         (statements[4] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "VERA_DATA0")
-        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
-        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
-        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 0x9fff
+        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 0x9fff
+        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 0x9fff
+        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 0x9fff
 
         val srcC64="""
 main {
@@ -783,15 +777,15 @@ main {
     }
 }"""
         result = compileText(C64Target(), true, srcC64, writeAssembly = true)!!
-        statements = result.program.entrypoint.statements
+        statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 9
         (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
         (statements[2] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
         (statements[3] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
         (statements[4] as Assignment).target.identifier!!.nameInSource shouldBe listOf("c64", "EXTCOL")
-        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
-        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
-        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.program)!!.number shouldBe 53281.0
+        (statements[5] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 53281.0
+        (statements[6] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 53281.0
+        (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 53281.0
     }
 
     test("no crash on sorting unused array") {

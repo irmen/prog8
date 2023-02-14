@@ -4,19 +4,26 @@ import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.code.*
+import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.core.SourceCode
 import prog8.code.core.ZeropageWish
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+
 
 class TestSymbolTable: FunSpec({
     test("empty symboltable") {
-        val st = SymbolTable()
-        st.scopedName shouldBe ""
-        st.name shouldBe ""
+        val astNode = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val st = SymbolTable(astNode)
+        st.name shouldBe "test"
         st.type shouldBe StNodeType.GLOBAL
         st.children shouldBe mutableMapOf()
-        st.position shouldBe Position.DUMMY
+        st.astNode shouldBeSameInstanceAs astNode
+        st.astNode.position shouldBe Position.DUMMY
     }
 
     test("symboltable flatten") {
@@ -33,9 +40,9 @@ class TestSymbolTable: FunSpec({
         st.lookupUnscoped("undefined") shouldBe null
         st.lookup("undefined") shouldBe null
         st.lookup("undefined.undefined") shouldBe null
-        var default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        var default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, PtIdentifier("default", DataType.BYTE, Position.DUMMY)) }
         default.name shouldBe "default"
-        default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, Position.DUMMY) }
+        default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, PtIdentifier("default", DataType.BYTE, Position.DUMMY)) }
         default.name shouldBe "default"
 
         val msbFunc = st.lookupUnscopedOrElse("msb") { fail("msb must be found") }
@@ -67,33 +74,71 @@ class TestSymbolTable: FunSpec({
         subsub.lookupUnscoped("blockc") shouldBe null
         subsub.lookupUnscoped("label") shouldNotBe null
     }
+
+    // TODO add more SymbolTable tests
+    
 })
 
 
 private fun makeSt(): SymbolTable {
-    val st = SymbolTable()
-    val block1 = StNode("block1", StNodeType.BLOCK, Position.DUMMY)
-    val sub11 = StNode("sub1", StNodeType.SUBROUTINE, Position.DUMMY)
-    val sub12 = StNode("sub2", StNodeType.SUBROUTINE, Position.DUMMY)
+
+    // first build the AST
+    val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+    val astBlock1 = PtBlock("block1", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("block1"), Position.DUMMY)
+    val astConstant1 = PtConstant("c1", DataType.UWORD, 12345.0, Position.DUMMY)
+    val astConstant2 = PtConstant("blockc", DataType.UWORD, 999.0, Position.DUMMY)
+    astBlock1.add(astConstant1)
+    astBlock1.add(astConstant2)
+    val astSub1 = PtSub("sub1", emptyList(), null, Position.DUMMY)
+    val astSub2 = PtSub("sub2", emptyList(), null, Position.DUMMY)
+    val astSub1v1 = PtVariable("v1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY)
+    val astSub1v2 = PtVariable("v2", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
+    val astSub2v1 = PtVariable("v1", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
+    val astSub2v2 = PtVariable("v2", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
+    astSub1.add(astSub1v1)
+    astSub1.add(astSub1v2)
+    astSub2.add(astSub2v2)
+    astSub2.add(astSub2v2)
+    astBlock1.add(astSub1)
+    astBlock1.add(astSub2)
+    val astBfunc = PtIdentifier("msb", DataType.UBYTE, Position.DUMMY)
+    astBlock1.add(astBfunc)
+    val astBlock2 = PtBlock("block2", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("block2"), Position.DUMMY)
+    val astSub21 = PtSub("sub1", emptyList(), null, Position.DUMMY)
+    val astSub22 = PtSub("sub2", emptyList(), null, Position.DUMMY)
+    val astSub221 = PtSub("subsub", emptyList(), null, Position.DUMMY)
+    val astLabel = PtLabel("label", Position.DUMMY)
+    astSub221.add(astLabel)
+    astSub22.add(astSub221)
+    astBlock2.add(astSub21)
+    astBlock2.add(astSub22)
+    astProgram.add(astBlock1)
+    astProgram.add(astBlock2)
+
+    // now hook up the SymbolTable on that AST
+    val st = SymbolTable(astProgram)
+    val block1 = StNode("block1", StNodeType.BLOCK, astBlock1)
+    val sub11 = StNode("sub1", StNodeType.SUBROUTINE, astSub1)
+    val sub12 = StNode("sub2", StNodeType.SUBROUTINE, astSub2)
     block1.add(sub11)
     block1.add(sub12)
-    block1.add(StConstant("c1", DataType.UWORD, 12345.0, Position.DUMMY))
-    block1.add(StConstant("blockc", DataType.UWORD, 999.0, Position.DUMMY))
-    sub11.add(StStaticVariable("v1", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub11.add(StStaticVariable("v2", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub12.add(StStaticVariable("v1", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
-    sub12.add(StStaticVariable("v2", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, Position.DUMMY))
+    block1.add(StConstant("c1", DataType.UWORD, 12345.0, astConstant1))
+    block1.add(StConstant("blockc", DataType.UWORD, 999.0, astConstant2))
+    sub11.add(StStaticVariable("v1", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, astSub1v1))
+    sub11.add(StStaticVariable("v2", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, astSub1v2))
+    sub12.add(StStaticVariable("v1", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, astSub2v1))
+    sub12.add(StStaticVariable("v2", DataType.BYTE, true, null, null, null, null, ZeropageWish.DONTCARE, astSub2v2))
 
-    val block2 = StNode("block2", StNodeType.BLOCK, Position.DUMMY)
-    val sub21 = StNode("sub1", StNodeType.SUBROUTINE, Position.DUMMY)
-    val sub22 = StNode("sub2", StNodeType.SUBROUTINE, Position.DUMMY)
+    val block2 = StNode("block2", StNodeType.BLOCK, astBlock2)
+    val sub21 = StNode("sub1", StNodeType.SUBROUTINE, astSub21)
+    val sub22 = StNode("sub2", StNodeType.SUBROUTINE, astSub22)
     block2.add(sub21)
     block2.add(sub22)
-    val sub221 = StNode("subsub", StNodeType.SUBROUTINE, Position.DUMMY)
-    sub221.add(StNode("label", StNodeType.LABEL, Position.DUMMY))
+    val sub221 = StNode("subsub", StNodeType.SUBROUTINE, astSub221)
+    sub221.add(StNode("label", StNodeType.LABEL, astLabel))
     sub22.add(sub221)
 
-    val builtinfunc = StNode("msb", StNodeType.BUILTINFUNC, Position.DUMMY)
+    val builtinfunc = StNode("msb", StNodeType.BUILTINFUNC, astBfunc)
     st.add(block1)
     st.add(block2)
     st.add(builtinfunc)

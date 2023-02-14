@@ -153,7 +153,7 @@ internal class StatementReorderer(val program: Program,
                     subroutine.statements
                         .asSequence()
                         .filterIsInstance<VarDecl>()
-                        .filter { it.subroutineParameter!=null && it.name in stringParamsByNames }
+                        .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames }
                         .map {
                             val newvar = VarDecl(it.type, it.origin, DataType.UWORD,
                                 it.zeropage,
@@ -162,7 +162,6 @@ internal class StatementReorderer(val program: Program,
                                 null,
                                 false,
                                 it.sharedWithAsm,
-                                stringParamsByNames.getValue(it.name),
                                 it.position
                             )
                             IAstModification.ReplaceNode(it, newvar, subroutine)

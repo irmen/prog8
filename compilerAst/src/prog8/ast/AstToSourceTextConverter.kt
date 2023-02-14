@@ -6,6 +6,14 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 
 
+fun printProgram(program: Program) {
+    println()
+    val printer = AstToSourceTextConverter(::print, program)
+    printer.visit(program)
+    println()
+}
+
+
 /**
  * Produces Prog8 source text from a [Program] (AST node),
  * passing it as a String to the specified receiver function.

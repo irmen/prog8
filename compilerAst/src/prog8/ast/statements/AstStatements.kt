@@ -190,7 +190,6 @@ class VarDecl(val type: VarDeclType,
               var value: Expression?,
               val isArray: Boolean,
               val sharedWithAsm: Boolean,
-              val subroutineParameter: SubroutineParameter?,
               override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -204,7 +203,6 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, null,
                 isArray = false,
                 sharedWithAsm = false,
-                subroutineParameter = param,
                 position = param.position
             )
         }
@@ -215,7 +213,7 @@ class VarDecl(val type: VarDeclType,
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
-                    isArray = true, sharedWithAsm = false, subroutineParameter = null, position = array.position)
+                    isArray = true, sharedWithAsm = false, position = array.position)
         }
     }
 
@@ -262,14 +260,14 @@ class VarDecl(val type: VarDeclType,
 
     override fun copy(): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, value?.copy(),
-            isArray, sharedWithAsm, subroutineParameter, position)
+            isArray, sharedWithAsm, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
 
     fun renamed(newName: String): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize, newName, value,
-            isArray, sharedWithAsm, subroutineParameter, position)
+            isArray, sharedWithAsm, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -316,10 +314,8 @@ class ArrayIndex(var indexExpr: Expression,
 enum class AssignmentOrigin {
     USERCODE,
     VARINIT,
-    PARAMETERASSIGN,
     OPTIMIZER,
-    BEFOREASMGEN,
-    ASMGEN,
+    ASMGEN
 }
 
 class Assignment(var target: AssignTarget, var value: Expression, var origin: AssignmentOrigin, override val position: Position) : Statement() {
@@ -695,22 +691,6 @@ class Subroutine(override val name: String,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
-    constructor(name: String, parameters: MutableList<SubroutineParameter>, returntypes: List<DataType>, statements: MutableList<Statement>, inline: Boolean, position: Position)
-            : this(name, parameters, returntypes, emptyList(), determineReturnRegisters(returntypes), emptySet(), null, false, inline, statements, position)
-
-    companion object {
-        private fun determineReturnRegisters(returntypes: List<DataType>): List<RegisterOrStatusflag> {
-            // for non-asm subroutines, determine the return registers based on the type of the return value
-            return when(returntypes.singleOrNull()) {
-                in ByteDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.A, null))
-                in WordDatatypes -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
-                DataType.FLOAT -> listOf(RegisterOrStatusflag(RegisterOrPair.FAC1, null))
-                null -> emptyList()
-                else -> listOf(RegisterOrStatusflag(RegisterOrPair.AY, null))
-            }
-        }
-    }
-
     override lateinit var parent: Node
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")
 
@@ -741,27 +721,11 @@ class Subroutine(override val name: String,
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
 
-    fun regXasResult() = asmReturnvaluesRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun regXasParam() = asmParameterRegisters.any { it.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-    fun shouldSaveX() = CpuRegister.X in asmClobbers || regXasResult() || regXasParam()
-
-    class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)
-
-    fun shouldKeepA(): KeepAresult {
-        // determine if A's value should be kept when preparing for calling the subroutine, and when returning from it
-        if(!isAsmSubroutine)
-            return KeepAresult(saveOnEntry = false, saveOnReturn = false)
-
-        // it seems that we never have to save A when calling? will be loaded correctly after setup.
-        // but on return it depends on wether the routine returns something in A.
-        val saveAonReturn = asmReturnvaluesRegisters.any { it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.AX }
-        return KeepAresult(false, saveAonReturn)
-    }
-
     // code to provide the ability to reference asmsub parameters via qualified name:
     private val asmParamsDecls = mutableMapOf<String, VarDecl>()
 
     fun searchParameter(name: String): VarDecl? {
+        // TODO can we get rid of this routine? it makes temporary vardecls...
         val existingDecl = asmParamsDecls[name]
         if(existingDecl!=null)
             return existingDecl

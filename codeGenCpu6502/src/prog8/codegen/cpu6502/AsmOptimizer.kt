@@ -1,16 +1,15 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.Program
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.VarDecl
-import prog8.ast.statements.VarDeclType
+import prog8.code.StConstant
+import prog8.code.StMemVar
+import prog8.code.SymbolTable
 import prog8.code.core.IMachineDefinition
 
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
-internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, program: Program): Int {
+internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, symbolTable: SymbolTable): Int {
 
     var numberOfOptimizations = 0
 
@@ -37,7 +36,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods = optimizeStoreLoadSame(linesByFour, machine, program)
+    mods = optimizeStoreLoadSame(linesByFour, machine, symbolTable)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
@@ -52,14 +51,14 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
     }
 
     var linesByFourteen = getLinesBy(lines, 14)
-    mods = optimizeSameAssignments(linesByFourteen, machine, program)
+    mods = optimizeSameAssignments(linesByFourteen, machine, symbolTable)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
         numberOfOptimizations++
     }
 
-    mods = optimizeSamePointerIndexing(linesByFourteen, machine, program)
+    mods = optimizeSamePointerIndexing(linesByFourteen)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
@@ -129,7 +128,11 @@ private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<S
     return mods
 }
 
-private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeSameAssignments(
+    linesByFourteen: List<List<IndexedValue<String>>>,
+    machine: IMachineDefinition,
+    symbolTable: SymbolTable
+): List<Modification> {
 
     // Optimize sequential assignments of the same value to various targets (bytes, words, floats)
     // the float one is the one that requires 2*7=14 lines of code to check...
@@ -154,8 +157,8 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val fourthvalue = sixth.substring(4)
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
                 // lda/ldy   sta/sty   twice the same word -->  remove second lda/ldy pair (fifth and sixth lines)
-                val address1 = getAddressArg(first, program)
-                val address2 = getAddressArg(second, program)
+                val address1 = getAddressArg(first, symbolTable)
+                val address2 = getAddressArg(second, symbolTable)
                 if(address1==null || address2==null || (!machine.isIOAddress(address1) && !machine.isIOAddress(address2))) {
                     mods.add(Modification(lines[4].index, true, null))
                     mods.add(Modification(lines[5].index, true, null))
@@ -168,7 +171,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val secondvalue = third.substring(4)
             if(firstvalue==secondvalue) {
                 // lda value / sta ? / lda same-value / sta ?  -> remove second lda (third line)
-                val address = getAddressArg(first, program)
+                val address = getAddressArg(first, symbolTable)
                 if(address==null || !machine.isIOAddress(address))
                     mods.add(Modification(lines[2].index, true, null))
             }
@@ -251,7 +254,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 val thirdvalue = third.substring(4)
                 val fourthvalue = fourth.substring(4)
                 if(firstvalue==thirdvalue && secondvalue == fourthvalue) {
-                    val address = getAddressArg(first, program)
+                    val address = getAddressArg(first, symbolTable)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
@@ -275,7 +278,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 val firstvalue = first.substring(4)
                 val thirdvalue = third.substring(4)
                 if(firstvalue==thirdvalue) {
-                    val address = getAddressArg(first, program)
+                    val address = getAddressArg(first, symbolTable)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
@@ -295,7 +298,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
             val secondvalue = second.substring(4)
             val thirdvalue = third.substring(4)
             if(firstvalue==secondvalue && firstvalue==thirdvalue) {
-                val address = getAddressArg(first, program)
+                val address = getAddressArg(first, symbolTable)
                 if(address==null || !machine.isIOAddress(address)) {
                     overlappingMods = true
                     val reg2 = second[2]
@@ -314,7 +317,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
                 val firstvalue = first.substring(4)
                 val secondvalue = second.substring(4)
                 if(firstvalue==secondvalue) {
-                    val address = getAddressArg(first, program)
+                    val address = getAddressArg(first, symbolTable)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
                         mods.add(Modification(lines[0].index, true, null))
@@ -327,7 +330,7 @@ private fun optimizeSameAssignments(linesByFourteen: List<List<IndexedValue<Stri
     return mods
 }
 
-private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -369,7 +372,11 @@ private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<
     return mods
 }
 
-private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>, machine: IMachineDefinition, program: Program): List<Modification> {
+private fun optimizeStoreLoadSame(
+    linesByFour: List<List<IndexedValue<String>>>,
+    machine: IMachineDefinition,
+    symbolTable: SymbolTable
+): List<Modification> {
     // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
@@ -397,7 +404,7 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>,
                 }
                 else {
                     // no branch instruction follows, we can remove the load instruction
-                    val address = getAddressArg(lines[2].value, program)
+                    val address = getAddressArg(lines[2].value, symbolTable)
                     address==null || !machine.isIOAddress(address)
                 }
 
@@ -439,7 +446,8 @@ private fun optimizeStoreLoadSame(linesByFour: List<List<IndexedValue<String>>>,
 
 private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_\.$]*)""")
 
-private fun getAddressArg(line: String, program: Program): UInt? {
+private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
+    // try to get the constant value address, could return null if it's a symbol instead
     val loadArg = line.trimStart().substring(3).trim()
     return when {
         loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
@@ -450,15 +458,11 @@ private fun getAddressArg(line: String, program: Program): UInt? {
             val identMatch = identifierRegex.find(loadArg)
             if(identMatch!=null) {
                 val identifier = identMatch.value
-                val decl = program.toplevelModule.lookup(identifier.split('.')) as? VarDecl
-                if(decl!=null) {
-                    when(decl.type){
-                        VarDeclType.VAR -> null
-                        VarDeclType.CONST,
-                        VarDeclType.MEMORY -> (decl.value as NumericLiteral).number.toUInt()
-                    }
+                when (val symbol = symbolTable.flat[identifier]) {
+                    is StConstant -> symbol.value.toUInt()
+                    is StMemVar -> symbol.address
+                    else -> null
                 }
-                else null
             } else null
         }
         else -> loadArg.substring(1).toUIntOrNull()

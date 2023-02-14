@@ -8,12 +8,11 @@ import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.SymbolTable
 import prog8.code.ast.*
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.CompilationOptions
 import prog8.code.core.DataType
 import prog8.code.core.SourceCode
-import prog8.compiler.BuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
@@ -23,7 +22,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(private val program: Program, private val symbolTable: SymbolTable, private val options: CompilationOptions) {
+class IntermediateAstMaker(private val program: Program, private val options: CompilationOptions) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -130,7 +129,8 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
             }
         }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
-        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, srcBlock.position)
+        val src = srcBlock.definingModule.source
+        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, src, srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))
@@ -285,18 +285,15 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     }
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
-        val params = srcSub.parameters
-            .map { PtSubroutineParameter(it.name, it.type, it.position) }
-            .zip(srcSub.asmParameterRegisters)
+        val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
         val sub = PtAsmSub(srcSub.name,
             srcSub.asmAddress,
             srcSub.asmClobbers,
             params,
-            srcSub.returntypes,
-            srcSub.asmReturnvaluesRegisters,
+            srcSub.asmReturnvaluesRegisters.zip(srcSub.returntypes),
             srcSub.inline,
             srcSub.position)
-        sub.parameters.forEach { it.first.parent=sub }
+        sub.parameters.forEach { it.second.parent=sub }
 
         if(srcSub.asmAddress==null) {
             var combinedTrueAsm = ""
@@ -329,10 +326,11 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
         var returntype = srcSub.returntypes.singleOrNull()
         if(returntype==DataType.STR)
             returntype=DataType.UWORD   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
+
+        // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
             returntype,
-            srcSub.inline,
             srcSub.position)
         sub.parameters.forEach { it.parent=sub }
         makeScopeVarsDecls(vardecls).forEach { sub.add(it) }
@@ -346,7 +344,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
         return when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                PtVariable(srcVar.name, srcVar.datatype, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+                PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
             }
             VarDeclType.CONST -> PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
             VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
@@ -385,8 +383,8 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val type = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val array = PtArrayIndexer(type, srcArr.position)
+        val arrayVarType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val array = PtArrayIndexer(arrayVarType, srcArr.position)
         array.add(transform(srcArr.arrayvar))
         array.add(transformExpression(srcArr.indexer.indexExpr))
         return array
@@ -464,6 +462,7 @@ class IntermediateAstMaker(private val program: Program, private val symbolTable
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
         val cast = PtTypeCast(srcCast.type, srcCast.position)
         cast.add(transformExpression(srcCast.expression))
+        require(cast.type!=cast.value.type)
         return cast
     }
 

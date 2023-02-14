@@ -862,7 +862,7 @@ class TestProg8Parser: FunSpec( {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val start = result.program.entrypoint
+        val start = result.compilerAst.entrypoint
         val string = (start.statements[0] as VarDecl).value as StringLiteral
         withClue("x-escapes are hacked to range 0x8000-0x80ff") {
             string.value[0].code shouldBe 0x8000
@@ -901,7 +901,7 @@ class TestProg8Parser: FunSpec( {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val start = result.program.entrypoint
+        val start = result.compilerAst.entrypoint
         val containmentChecks = start.statements.takeLast(4)
         (containmentChecks[0] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
         (containmentChecks[1] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
@@ -942,7 +942,7 @@ class TestProg8Parser: FunSpec( {
             }
         """
         val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
-        val stmt = result.program.entrypoint.statements
+        val stmt = result.compilerAst.entrypoint.statements
         stmt.size shouldBe 12
         val var1 = stmt[0] as VarDecl
         var1.sharedWithAsm shouldBe true

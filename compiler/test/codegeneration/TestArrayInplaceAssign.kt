@@ -56,8 +56,7 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    // TODO implement this in 6502 codegen and re-enable test
-    xtest("array in-place negation (float type) 6502 target") {
+    test("array in-place negation (float type) 6502 target") {
         val text = """
 %import floats
 

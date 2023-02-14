@@ -9,12 +9,16 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
+import prog8.code.SymbolTableMaker
+import prog8.code.ast.PtAddressOf
+import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtIdentifier
+import prog8.code.ast.PtProgram
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8.code.target.c64.C64Zeropage
-import prog8.codegen.cpu6502.AsmGen
-import prog8.compiler.astprocessing.SymbolTableMaker
+import prog8.codegen.cpu6502.AsmGen6502Internal
+import prog8.compiler.astprocessing.IntermediateAstMaker
 import prog8tests.helpers.*
 
 class TestAsmGenSymbols: StringSpec({
@@ -42,8 +46,8 @@ class TestAsmGenSymbols: StringSpec({
     }
 
          */
-        val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteral.optimalInteger(1234, Position.DUMMY), false, false, null, Position.DUMMY)
-        val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, null, Position.DUMMY)
+        val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "localvar", NumericLiteral.optimalInteger(1234, Position.DUMMY), false, false, Position.DUMMY)
+        val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", null, false, false, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
 
         val tgt = AssignTarget(IdentifierReference(listOf("tgt"), Position.DUMMY), null, null, Position.DUMMY)
@@ -59,7 +63,7 @@ class TestAsmGenSymbols: StringSpec({
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
         val subroutine = Subroutine("start", mutableListOf(), emptyList(), emptyList(), emptyList(), emptySet(), null, false, false, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
-        val varInBlock = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, null, Position.DUMMY)
+        val varInBlock = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "var_outside", null, false, false, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))
@@ -68,17 +72,17 @@ class TestAsmGenSymbols: StringSpec({
         return program
     }
 
-    fun createTestAsmGen(program: Program): AsmGen {
+    fun createTestAsmGen6502(program: Program): AsmGen6502Internal {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target(), 999u)
-        options.compTarget.machine.zeropage = C64Zeropage(options)
-        val st = SymbolTableMaker(program, options).make()
-        return AsmGen(program, st, options, errors)
+        val ptProgram = IntermediateAstMaker(program, options).transform()
+        val st = SymbolTableMaker(ptProgram, options).make()
+        return AsmGen6502Internal(ptProgram, st, options, errors)
     }
 
     "symbol and variable names from strings" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("name") shouldBe "name"
         asmgen.asmSymbolName("<name>") shouldBe "prog8_name"
@@ -91,40 +95,40 @@ class TestAsmGenSymbols: StringSpec({
 
     "symbol and variable names from variable identifiers" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
-        val sub = program.entrypoint
+        val asmgen = createTestAsmGen6502(program)
+        val sub = asmgen.program.entrypoint()!!
 
-        val localvarIdent = sub.statements.asSequence().filterIsInstance<Assignment>().first { it.value is IdentifierReference }.value as IdentifierReference
+        val localvarIdent = sub.children.asSequence().filterIsInstance<PtAssignment>().first { it.value is PtIdentifier }.value as PtIdentifier
         asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
-        val localvarIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "start", "localvar") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(localvarIdentScoped) shouldBe "main.start.localvar"
-        asmgen.asmVariableName(localvarIdentScoped) shouldBe "main.start.localvar"
+        val localvarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.localvar" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(localvarIdentScoped) shouldBe "localvar"
+        asmgen.asmVariableName(localvarIdentScoped) shouldBe "localvar"
 
-        val scopedVarIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("var_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedVarIdent) shouldBe "var_outside"
-        asmgen.asmVariableName(scopedVarIdent) shouldBe "var_outside"
-        val scopedVarIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main", "var_outside") }.value as AddressOf).identifier
+        val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
+        asmgen.asmVariableName(scopedVarIdent) shouldBe "main.var_outside"
+        val scopedVarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
     }
 
     "symbol and variable names from label identifiers" {
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
-        val sub = program.entrypoint
+        val asmgen = createTestAsmGen6502(program)
+        val sub = asmgen.program.entrypoint()!!
 
-        val localLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("locallabel") }.value as AddressOf).identifier
+        val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(localLabelIdent) shouldBe "locallabel"
         asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
-        val localLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","start","locallabel") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "main.start.locallabel"
-        asmgen.asmVariableName(localLabelIdentScoped) shouldBe "main.start.locallabel"
+        val localLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "locallabel"
+        asmgen.asmVariableName(localLabelIdentScoped) shouldBe "locallabel"
 
-        val scopedLabelIdent = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("label_outside") }.value as AddressOf).identifier
-        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "label_outside"
-        asmgen.asmVariableName(scopedLabelIdent) shouldBe "label_outside"
-        val scopedLabelIdentScoped = (sub.statements.asSequence().filterIsInstance<Assignment>().first { (it.value as? AddressOf)?.identifier?.nameInSource==listOf("main","label_outside") }.value as AddressOf).identifier
+        val scopedLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
+        asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main.label_outside"
+        asmgen.asmVariableName(scopedLabelIdent) shouldBe "main.label_outside"
+        val scopedLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main.label_outside"
         asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
     }
@@ -140,15 +144,15 @@ main {
         prog8_lib.P8ZP_SCRATCH_W2 = 1
          */
         val program = createTestProgram()
-        val asmgen = createTestAsmGen(program)
+        val asmgen = createTestAsmGen6502(program)
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_REG") shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName("prog8_lib.P8ZP_SCRATCH_W2") shouldBe "P8ZP_SCRATCH_W2"
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_REG")) shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName(listOf("prog8_lib","P8ZP_SCRATCH_W2")) shouldBe "P8ZP_SCRATCH_W2"
-        val id1 = IdentifierReference(listOf("prog8_lib","P8ZP_SCRATCH_REG"), Position.DUMMY)
-        id1.linkParents(program.toplevelModule)
-        val id2 = IdentifierReference(listOf("prog8_lib","P8ZP_SCRATCH_W2"), Position.DUMMY)
-        id2.linkParents(program.toplevelModule)
+        val id1 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_REG", DataType.UBYTE, Position.DUMMY)
+        val id2 = PtIdentifier("prog8_lib.P8ZP_SCRATCH_W2", DataType.UWORD, Position.DUMMY)
+        id1.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        id2.parent = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         asmgen.asmSymbolName(id1) shouldBe "P8ZP_SCRATCH_REG"
         asmgen.asmSymbolName(id2) shouldBe "P8ZP_SCRATCH_W2"
     }

@@ -3,23 +3,22 @@ package prog8.codegen.vm
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
 import prog8.code.core.CompilationOptions
-import prog8.code.core.IAssemblyGenerator
 import prog8.code.core.IAssemblyProgram
+import prog8.code.core.ICodeGeneratorBackend
 import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
 
-class VmCodeGen(private val program: PtProgram,
-                private val symbolTable: SymbolTable,
-                private val options: CompilationOptions,
-                private val errors: IErrorReporter
-): IAssemblyGenerator {
-    override fun compileToAssembly(): IAssemblyProgram? {
-
+class VmCodeGen: ICodeGeneratorBackend {
+    override fun generate(
+        program: PtProgram,
+        symbolTable: SymbolTable,
+        options: CompilationOptions,
+        errors: IErrorReporter
+    ): IAssemblyProgram? {
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
-
         return VmAssemblyProgram(irProgram.name, irProgram)
     }
 }

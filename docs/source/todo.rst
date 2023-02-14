@@ -17,7 +17,7 @@ For 9.0 major changes
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
-- rewrite 6502 codegen on Pt* ast and symboltable, instead of CompilerAst nodes. (work in codegen-on-new-ast branch)
+- rewrite 6502 codegen on Pt* ast and symboltable, instead of CompilerAst nodes.
     - optimize "dotted string" comments again.
 
 
@@ -42,7 +42,7 @@ Compiler:
 - ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer?
-- vm: somehow be able to load a label address as value? (VmProgramLoader)
+- vm: somehow be able to load a label address as value? (VmProgramLoader) this may require storing the program in actual memory bytes though...
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....  (vm codegen already behaves like this)
@@ -56,14 +56,7 @@ Compiler:
   Once new codegen is written that is based on the IR, this point is moot anyway as that will have its own dead code removal.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
-- Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
-    - block "golden" treated specially: every var in here will be allocated in the Golden ram area
-    - that block can only contain variables.
-    - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-    - just initialize them yourself in start() if you need a non-zero value
-    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
-    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
-    - (need separate step in codegen and IR to write the "golden" variables)
+
 
 Libraries:
 
@@ -94,6 +87,7 @@ Optimizations:
 - when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 - optimize function argument expressions better (use temporary variables to replace non-simple expressions?)
+- 6502 codegen optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
 
 
 STRUCTS again?

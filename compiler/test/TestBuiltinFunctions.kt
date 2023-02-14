@@ -3,31 +3,19 @@ package prog8tests
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.statements.Assignment
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.DataType
 import prog8.code.core.NumericDatatypesNoBool
 import prog8.code.core.RegisterOrPair
 import prog8.code.target.Cx16Target
-import prog8.compiler.BuiltinFunctions
 import prog8tests.helpers.compileText
 
 class TestBuiltinFunctions: FunSpec({
 
-    test("push pop") {
-        val src="""
-            main  {
-                sub start () { 
-                    pushw(cx16.r0)
-                    push(cx16.r1L)
-                    pop(cx16.r1L)
-                    popw(cx16.r0)
-                }
-            }"""
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
-    }
-
     test("pure func with fixed type") {
         val func = BuiltinFunctions.getValue("sgn")
-        func.name shouldBe "sgn"
         func.parameters.size shouldBe 1
         func.parameters[0].name shouldBe "value"
         func.parameters[0].possibleDatatypes shouldBe NumericDatatypesNoBool
@@ -46,7 +34,6 @@ class TestBuiltinFunctions: FunSpec({
 
     test("not-pure func with varying result value type") {
         val func = BuiltinFunctions.getValue("cmp")
-        func.name shouldBe "cmp"
         func.parameters.size shouldBe 2
         func.pure shouldBe false
         func.returnType shouldBe null
@@ -60,7 +47,6 @@ class TestBuiltinFunctions: FunSpec({
 
     test("func without return type") {
         val func = BuiltinFunctions.getValue("poke")
-        func.name shouldBe "poke"
         func.parameters.size shouldBe 2
         func.parameters[0].name shouldBe "address"
         func.parameters[0].possibleDatatypes shouldBe arrayOf(DataType.UWORD)
@@ -80,6 +66,45 @@ class TestBuiltinFunctions: FunSpec({
         conv.returns.dt shouldBe null
         conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe null
+    }
+
+    test("push pop") {
+        val src="""
+            main  {
+                sub start () { 
+                    pushw(cx16.r0)
+                    push(cx16.r1L)
+                    pop(cx16.r1L)
+                    popw(cx16.r0)
+                }
+            }"""
+        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("certain builtin functions should be compile time evaluated") {
+        val src="""
+main {
+    sub start() {
+
+        uword[] array = [1,2,3]
+        str name = "hello"
+        cx16.r0L = len(array)
+        cx16.r0L = len(name)
+        cx16.r0L = sizeof(array)
+        cx16.r0 = mkword(200,100)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, writeAssembly = false)
+        val statements = result!!.compilerAst.entrypoint.statements
+        statements.size shouldBe 6
+        val a1 = statements[2] as Assignment
+        val a2 = statements[3] as Assignment
+        val a3 = statements[4] as Assignment
+        val a4 = statements[5] as Assignment
+        (a1.value as NumericLiteral).number shouldBe 3.0
+        (a2.value as NumericLiteral).number shouldBe 5.0
+        (a3.value as NumericLiteral).number shouldBe 6.0
+        (a4.value as NumericLiteral).number shouldBe 200*256+100
     }
 })
 

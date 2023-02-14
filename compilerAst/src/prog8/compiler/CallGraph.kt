@@ -3,7 +3,6 @@ package prog8.compiler
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.IdentifierReference
@@ -12,7 +11,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.IErrorReporter
 
 
-class CallGraph(private val program: Program, private val allowMissingIdentifierTargetVarDecls: Boolean=false) : IAstVisitor {
+class CallGraph(private val program: Program) : IAstVisitor {
 
     val imports = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
     val importedBy = mutableMapOf<Module, Set<Module>>().withDefault { setOf() }
@@ -99,15 +98,8 @@ class CallGraph(private val program: Program, private val allowMissingIdentifier
 
     override fun visit(identifier: IdentifierReference) {
         val target = identifier.targetStatement(program)
-        if(allowMissingIdentifierTargetVarDecls) {
-            if(target!=null)
-                allIdentifiersAndTargets[identifier] = target
-        } else {
-            if(target==null)
-                throw FatalAstException("missing target stmt for $identifier")
-            else
-                allIdentifiersAndTargets[identifier] = target
-        }
+        if(target!=null)
+            allIdentifiersAndTargets[identifier] = target
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {

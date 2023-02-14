@@ -3,48 +3,39 @@ package prog8.code.ast
 import prog8.code.core.*
 
 
+sealed interface IPtSubroutine {
+    val name: String
+}
+
 class PtAsmSub(
     name: String,
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
-    val parameters: List<Pair<PtSubroutineParameter, RegisterOrStatusflag>>,
-    val returnTypes: List<DataType>,    // TODO join with register as Pairs ?
-    val retvalRegisters: List<RegisterOrStatusflag>,
+    val parameters: List<Pair<RegisterOrStatusflag, PtSubroutineParameter>>,
+    val returns: List<Pair<RegisterOrStatusflag, DataType>>,
     val inline: Boolean,
     position: Position
-) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("$name  inline=$inline")
-    }
-}
+) : PtNamedNode(name, position), IPtSubroutine
 
 
 class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
     val returntype: DataType?,
-    val inline: Boolean,
     position: Position
-) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print(name)
-    }
-
+) : PtNamedNode(name, position), IPtSubroutine {
     init {
         // params and return value should not be str
         if(parameters.any{ it.type !in NumericDatatypes })
             throw AssemblyError("non-numeric parameter")
         if(returntype!=null && returntype !in NumericDatatypes)
             throw AssemblyError("non-numeric returntype $returntype")
+        parameters.forEach { it.parent=this }
     }
 }
 
 
-class PtSubroutineParameter(val name: String, val type: DataType, position: Position): PtNode(position) {
-    override fun printProperties() {
-        print("$type $name")
-    }
-}
+class PtSubroutineParameter(name: String, val type: DataType, position: Position): PtNamedNode(name, position)
 
 
 class PtAssignment(position: Position) : PtNode(position) {
@@ -52,8 +43,6 @@ class PtAssignment(position: Position) : PtNode(position) {
         get() = children[0] as PtAssignTarget
     val value: PtExpression
         get() = children[1] as PtExpression
-
-    override fun printProperties() { }
 
     val isInplaceAssign: Boolean by lazy {
         val target = target.children.single() as PtExpression
@@ -102,7 +91,7 @@ class PtAssignTarget(position: Position) : PtNode(position) {
             }
         }
 
-    override fun printProperties() {}
+    infix fun isSameAs(expression: PtExpression): Boolean = expression.isSameAs(this)
 }
 
 
@@ -111,10 +100,6 @@ class PtConditionalBranch(val condition: BranchCondition, position: Position) : 
         get() = children[0] as PtNodeGroup
     val falseScope: PtNodeGroup
         get() = children[1] as PtNodeGroup
-
-    override fun printProperties() {
-        print(condition)
-    }
 }
 
 
@@ -125,8 +110,6 @@ class PtForLoop(position: Position) : PtNode(position) {
         get() = children[1] as PtExpression
     val statements: PtNodeGroup
         get() = children[2] as PtNodeGroup
-
-    override fun printProperties() {}
 }
 
 
@@ -137,8 +120,6 @@ class PtIfElse(position: Position) : PtNode(position) {
         get() = children[1] as PtNodeGroup
     val elseScope: PtNodeGroup
         get() = children[2] as PtNodeGroup
-
-    override fun printProperties() {}
 }
 
 
@@ -146,10 +127,8 @@ class PtJump(val identifier: PtIdentifier?,
              val address: UInt?,
              val generatedLabel: String?,
              position: Position) : PtNode(position) {
-    override fun printProperties() {
-        identifier?.printProperties()
-        if(address!=null) print(address.toHex())
-        if(generatedLabel!=null) print(generatedLabel)
+    init {
+        identifier?.let {it.parent = this }
     }
 }
 
@@ -157,10 +136,6 @@ class PtJump(val identifier: PtIdentifier?,
 class PtPostIncrDecr(val operator: String, position: Position) : PtNode(position) {
     val target: PtAssignTarget
         get() = children.single() as PtAssignTarget
-
-    override fun printProperties() {
-        print(operator)
-    }
 }
 
 
@@ -169,8 +144,6 @@ class PtRepeatLoop(position: Position) : PtNode(position) {
         get() = children[0] as PtExpression
     val statements: PtNodeGroup
         get() = children[1] as PtNodeGroup
-
-    override fun printProperties() {}
 }
 
 
@@ -183,30 +156,26 @@ class PtReturn(position: Position) : PtNode(position) {
             else
                 null
         }
-
-    override fun printProperties() {}
 }
 
 
-class PtVariable(name: String, val type: DataType, var value: PtExpression?, var arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("$type  $name")
+sealed interface IPtVariable {
+    val name: String
+    val type: DataType
+}
+
+
+class PtVariable(name: String, override val type: DataType, val zeropage: ZeropageWish, val value: PtExpression?, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
+    init {
+        value?.let {it.parent=this}
     }
 }
 
 
-class PtConstant(name: String, val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("$type $name = $value")
-    }
-}
+class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
 
 
-class PtMemMapped(name: String, val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position) {
-    override fun printProperties() {
-        print("&$type $name = ${address.toHex()}")
-    }
-}
+class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable
 
 
 class PtWhen(position: Position) : PtNode(position) {
@@ -214,8 +183,6 @@ class PtWhen(position: Position) : PtNode(position) {
         get() = children[0] as PtExpression
     val choices: PtNodeGroup
         get() = children[1] as PtNodeGroup
-
-    override fun printProperties() {}
 }
 
 
@@ -224,5 +191,4 @@ class PtWhenChoice(val isElse: Boolean, position: Position) : PtNode(position) {
         get() = children[0] as PtNodeGroup
     val statements: PtNodeGroup
         get() = children[1] as PtNodeGroup
-    override fun printProperties() {}
 }

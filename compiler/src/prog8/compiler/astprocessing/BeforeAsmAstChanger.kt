@@ -90,7 +90,7 @@ internal class BeforeAsmAstChanger(val program: Program,
                                 "unknown dt"
                             )
                             }, sourceDt, implicit=true)
-                            val assignRight = Assignment(assignment.target, right, AssignmentOrigin.BEFOREASMGEN, assignment.position)
+                            val assignRight = Assignment(assignment.target, right, AssignmentOrigin.ASMGEN, assignment.position)
                             return listOf(
                                 IAstModification.InsertBefore(assignment, assignRight, parent as IStatementContainer),
                                 IAstModification.ReplaceNode(binExpr.right, binExpr.left, binExpr),
@@ -103,7 +103,7 @@ internal class BeforeAsmAstChanger(val program: Program,
                             "unknown dt"
                         )
                         }, sourceDt, implicit=true)
-                        val assignLeft = Assignment(assignment.target, left, AssignmentOrigin.BEFOREASMGEN, assignment.position)
+                        val assignLeft = Assignment(assignment.target, left, AssignmentOrigin.ASMGEN, assignment.position)
                         return listOf(
                             IAstModification.InsertBefore(assignment, assignLeft, parent as IStatementContainer),
                             IAstModification.ReplaceNode(binExpr.left, assignment.target.toExpression(), binExpr)
@@ -293,7 +293,7 @@ internal class BeforeAsmAstChanger(val program: Program,
         val dt = expr.indexer.indexExpr.inferType(program)
         val (tempVarName, _) = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
         val target = AssignTarget(IdentifierReference(tempVarName, expr.indexer.position), null, null, expr.indexer.position)
-        val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.BEFOREASMGEN, expr.indexer.position)
+        val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.ASMGEN, expr.indexer.position)
         modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
         modifications.add(
             IAstModification.ReplaceNode(

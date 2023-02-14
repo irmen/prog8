@@ -8,8 +8,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import prog8.compiler.BuiltinFunctions
-import prog8.compiler.InplaceModifyingBuiltinFunctions
 import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
 import java.io.File
@@ -62,10 +60,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
-        val targetParam = identifier.targetVarDecl(program)?.subroutineParameter
-        if(targetParam!=null) {
-            if((targetParam.parent as Subroutine).isAsmSubroutine)
-                errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+        val target = identifier.targetVarDecl(program)
+        if(target != null && target.origin==VarDeclOrigin.SUBROUTINEPARAM) {
+            if(target.definingSubroutine!!.isAsmSubroutine) {
+                if(target.definingSubroutine!!.parameters.any { it.name == identifier.nameInSource.last() })
+                    errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+            }
         }
     }
 
@@ -664,8 +664,12 @@ internal class AstChecker(private val program: Program,
                     err("string var must be initialized with a string literal")
             }
 
-            if(decl.value !is StringLiteral)
-                err("string var must be initialized with a string literal")
+            if(decl.value !is StringLiteral) {
+                if(decl.type==VarDeclType.MEMORY)
+                    err("strings can't be memory mapped")
+                else
+                    err("string var must be initialized with a string literal")
+            }
         }
 
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)

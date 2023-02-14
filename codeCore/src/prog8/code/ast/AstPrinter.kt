@@ -57,7 +57,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
             is PtAsmSub -> {
                 val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
                 val clobbers = if (node.clobbers.isEmpty()) "" else "clobbers ${node.clobbers}"
-                val returns = if (node.returnTypes.isEmpty()) "" else (if (node.returnTypes.size == 1) "-> ${node.returnTypes[0].name.lowercase()}" else "-> ${node.returnTypes.map { it.name.lowercase() }}")
+                val returns = if (node.returns.isEmpty()) "" else (if (node.returns.size == 1) "-> ${node.returns[0].second.name.lowercase()}" else "-> ${node.returns.map { it.second.name.lowercase() }}")
                 val str = if (node.inline) "inline " else ""
                 if(node.address==null) {
                     str + "asmsub ${node.name}($params) $clobbers $returns"
@@ -66,7 +66,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
                 }
             }
             is PtBlock -> {
-                val addr = if(node.address==null) "" else "@${node.address?.toHex()}"
+                val addr = if(node.address==null) "" else "@${node.address.toHex()}"
                 val align = if(node.alignment==PtBlock.BlockAlignment.NONE) "" else "align=${node.alignment}"
                 "\nblock '${node.name}' $addr $align"
             }
@@ -86,8 +86,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
             }
             is PtSub -> {
                 val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
-                var str = if(node.inline) "inline " else ""
-                str += "sub ${node.name}($params) "
+                var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
                     str += "-> ${node.returntype.name.lowercase()}"
                 str
@@ -104,7 +103,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
                 else
                     "${node.type.name.lowercase()} ${node.name}"
                 if(node.value!=null)
-                    str + " = " + txt(node.value!!)
+                    str + " = " + txt(node.value)
                 else
                     str
             }
@@ -135,6 +134,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
                     output("    ".repeat(depth) + txt(node))
             }
         }
+        println()
     } else {
         walkAst(root) { node, depth ->
             val txt = txt(node)

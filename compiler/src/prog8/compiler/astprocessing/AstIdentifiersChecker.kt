@@ -7,11 +7,11 @@ import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 import prog8.code.target.VMTarget
-import prog8.compiler.BuiltinFunctions
 
 
 internal class AstIdentifiersChecker(private val errors: IErrorReporter,
@@ -92,7 +92,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
                 val symbol = subroutine.searchSymbol(name)
-                if(symbol!=null && (symbol as? VarDecl)?.subroutineParameter==null)
+                if(symbol!=null && (symbol as? VarDecl)?.origin!=VarDeclOrigin.SUBROUTINEPARAM)
                     nameError(name, symbol.position, subroutine)
             }
 
@@ -163,7 +163,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
                     errors.err("invalid number of arguments", pos)
                 }
-                if(func.name=="memory") {
+                if(target.name=="memory") {
                     val name = call.args[0] as? StringLiteral
                     if(name!=null) {
                         val processed = name.value.map {

@@ -1,23 +1,23 @@
 package prog8.codegen.cpu6502
 
-import prog8.ast.Program
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.PostIncrDecr
+import prog8.code.ast.PtIdentifier
+import prog8.code.ast.PtNumber
+import prog8.code.ast.PtPostIncrDecr
+import prog8.code.ast.PtProgram
 import prog8.code.core.*
 
 
-internal class PostIncrDecrAsmGen(private val program: Program, private val asmgen: AsmGen) {
-    internal fun translate(stmt: PostIncrDecr) {
+internal class PostIncrDecrAsmGen(private val program: PtProgram, private val asmgen: AsmGen6502Internal) {
+    internal fun translate(stmt: PtPostIncrDecr) {
         val incr = stmt.operator=="++"
         val targetIdent = stmt.target.identifier
-        val targetMemory = stmt.target.memoryAddress
-        val targetArrayIdx = stmt.target.arrayindexed
-        val scope = stmt.definingSubroutine
+        val targetMemory = stmt.target.memory
+        val targetArrayIdx = stmt.target.array
+        val scope = stmt.definingISub()
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)
-                when (stmt.target.inferType(program).getOr(DataType.UNDEFINED)) {
+                when (stmt.target.type) {
                     in ByteDatatypes -> asmgen.out(if (incr) "  inc  $what" else "  dec  $what")
                     in WordDatatypes -> {
                         if(incr)
@@ -38,12 +38,12 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 }
             }
             targetMemory!=null -> {
-                when (val addressExpr = targetMemory.addressExpression) {
-                    is NumericLiteral -> {
+                when (val addressExpr = targetMemory.address) {
+                    is PtNumber -> {
                         val what = addressExpr.number.toHex()
                         asmgen.out(if(incr) "  inc  $what" else "  dec  $what")
                     }
-                    is IdentifierReference -> {
+                    is PtIdentifier -> {
                         val what = asmgen.asmVariableName(addressExpr)
                         asmgen.out("  lda  $what |  sta  (+) +1 |  lda  $what+1 |  sta  (+) +2")
                         if(incr)
@@ -62,9 +62,9 @@ internal class PostIncrDecrAsmGen(private val program: Program, private val asmg
                 }
             }
             targetArrayIdx!=null -> {
-                val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.arrayvar)
-                val elementDt = targetArrayIdx.inferType(program).getOr(DataType.UNDEFINED)
-                val constIndex = targetArrayIdx.indexer.constIndex()
+                val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.variable)
+                val elementDt = targetArrayIdx.type
+                val constIndex = targetArrayIdx.index.asConstInteger()
                 if(constIndex!=null) {
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)
                     when(elementDt) {

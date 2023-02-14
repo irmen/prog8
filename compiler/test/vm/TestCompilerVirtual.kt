@@ -35,7 +35,7 @@ main {
 }"""
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
 
@@ -57,7 +57,7 @@ main {
         compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
 
@@ -75,11 +75,11 @@ main {
 }"""
         val target = VMTarget()
         var result = compileText(target, false, src, writeAssembly = true)!!
-        var virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
 
         result = compileText(target, true, src, writeAssembly = true)!!
-        virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
 
@@ -169,7 +169,7 @@ skipLABEL:
         compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
             vm.memory.getUB(3) shouldBe 66u
@@ -189,10 +189,10 @@ main {
 }"""
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
-        val start = result.program.entrypoint
+        val start = result.compilerAst.entrypoint
         start.statements.size shouldBe 9
         ((start.statements[1] as Assignment).value as BuiltinFunctionCall).name shouldBe "memory"
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(2) shouldBe 42u
             vm.memory.getUB(3) shouldBe 43u
@@ -213,7 +213,7 @@ main {
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.stepCount shouldBe 49
         }
@@ -283,7 +283,7 @@ main {
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
         }
@@ -304,7 +304,7 @@ main {
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
 
@@ -329,7 +329,7 @@ mylabel:
 
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
         }
@@ -381,8 +381,8 @@ main {
     }
 }"""
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
-        result.program.entrypoint.statements.size shouldBe 9
-        val virtfile = result.compilationOptions.outputDir.resolve(result.program.name + ".p8ir")
+        result.compilerAst.entrypoint.statements.size shouldBe 9
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }

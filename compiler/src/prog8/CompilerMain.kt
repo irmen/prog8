@@ -206,13 +206,13 @@ private fun compileMain(args: Array<String>): Boolean {
             }
 
             if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.program.name.isEmpty()) {
+                if (compilationResult.compilerAst.name.isEmpty()) {
                     println("\nCan't start emulator because no program was assembled.")
                     return true
                 }
             }
 
-            val programNameInPath = outputPath.resolve(compilationResult.program.name)
+            val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
 
             if(startEmulator1==true || startEmulator2==true) {
                 if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari") {

@@ -23,7 +23,7 @@ object Encoder: IStringEncoding {
             success = { it }
         )
     }
-    override fun decodeString(bytes: List<UByte>, encoding: Encoding): String {
+    override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {
         val decoded = when(encoding) {
             Encoding.PETSCII -> PetsciiEncoding.decodePetscii(bytes, true)
             Encoding.SCREENCODES -> PetsciiEncoding.decodeScreencode(bytes, true)

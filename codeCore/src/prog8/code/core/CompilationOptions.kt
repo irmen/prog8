@@ -23,4 +23,8 @@ class CompilationOptions(val output: OutputType,
                          var evalStackBaseAddress: UInt? = null,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()
-)
+) {
+    init {
+        compTarget.machine.initializeMemoryAreas(this)
+    }
+}

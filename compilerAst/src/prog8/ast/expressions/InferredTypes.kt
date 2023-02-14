@@ -14,7 +14,7 @@ object InferredTypes {
         fun getOr(default: DataType) = if(isUnknown || isVoid) default else datatype!!
         fun getOrElse(transform: (InferredType) -> DataType): DataType =
             if(isUnknown || isVoid) transform(this) else datatype!!
-        infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type
+        infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type      // strict equality if known
         infix fun isnot(type: DataType): Boolean = if(isUnknown || isVoid) true else this.datatype!=type
         fun oneOf(vararg types: DataType) = if(isUnknown || isVoid) false else this.datatype in types
 

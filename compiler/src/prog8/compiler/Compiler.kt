@@ -1,17 +1,14 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.onFailure
-import prog8.ast.AstToSourceTextConverter
 import prog8.ast.IBuiltinFunctions
-import prog8.ast.IStatementContainer
 import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
-import prog8.ast.statements.VarDecl
-import prog8.ast.walk.IAstVisitor
-import prog8.code.SymbolTable
+import prog8.code.SymbolTableMaker
+import prog8.code.ast.PtProgram
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -25,7 +22,8 @@ import kotlin.math.round
 import kotlin.system.measureTimeMillis
 
 
-class CompilationResult(val program: Program,
+class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAst instead
+                        val codegenAst: PtProgram?,
                         val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>)
 
@@ -63,6 +61,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
 
     var compilationOptions: CompilationOptions
+    var ast: PtProgram? = null
 
     try {
         val totalTime = measureTimeMillis {
@@ -113,10 +112,22 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             args.errors.report()
 
             if (args.writeAssembly) {
-                if(!createAssemblyAndAssemble(program, args.errors, compilationOptions)) {
+
+                compilationOptions.compTarget.machine.initializeMemoryAreas(compilationOptions)
+                program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
+                args.errors.report()
+
+                val intermediateAst = IntermediateAstMaker(program, compilationOptions).transform()
+//                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
+//                printProgram(program)
+//                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//                printAst(intermediateAst, ::println)
+
+                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
                     return null
                 }
+                ast = intermediateAst
             }
         }
 
@@ -124,7 +135,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         System.err.flush()
         val seconds = totalTime/1000.0
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
-        return CompilationResult(program, compilationOptions, importedFiles)
+        return CompilationResult(program, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
@@ -208,7 +219,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? {
         val func = BuiltinFunctions[funcName]
         if(func!=null) {
-            val exprfunc = func.constExpressionFunc
+            val exprfunc = constEvaluatorsForBuiltinFuncs[funcName]
             if(exprfunc!=null) {
                 return try {
                     exprfunc(args, position, program)
@@ -385,25 +396,23 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     errors.report()
 }
 
-private fun createAssemblyAndAssemble(program: Program,
+private fun createAssemblyAndAssemble(program: PtProgram,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions
 ): Boolean {
-    compilerOptions.compTarget.machine.initializeMemoryAreas(compilerOptions)
-    program.processAstBeforeAsmGeneration(compilerOptions, errors)
-    errors.report()
-    val symbolTable = SymbolTableMaker(program, compilerOptions).make()
 
-    // TODO make removing all VarDecls work, but this needs inferType to be able to get its information from somewhere else as the VarDecl nodes in the Ast,
-    //      or don't use inferType at all anymore and "bake the type information" into the Ast somehow.
-    //      Note: we don't actually *need* to remove the VarDecl nodes, but it is nice as a temporary measure
-    //      to help clean up the code that still depends on them.
-    // removeAllVardeclsFromAst(program)
+    val asmgen = if(compilerOptions.experimentalCodegen)
+        prog8.codegen.experimental.ExperiCodeGen()
+    else if (compilerOptions.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+        prog8.codegen.cpu6502.AsmGen6502()
+    else if (compilerOptions.compTarget.name == VMTarget.NAME)
+        VmCodeGen()
+    else
+        throw NotImplementedError("no asm generator for cpu ${compilerOptions.compTarget.machine.cpu}")
 
-//    println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
-//    printProgram(program)
-
-    val assembly = asmGeneratorFor(program, errors, symbolTable, compilerOptions).compileToAssembly()
+    val stMaker = SymbolTableMaker(program, compilerOptions)
+    val symbolTable = stMaker.make()
+    val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
@@ -411,52 +420,4 @@ private fun createAssemblyAndAssemble(program: Program,
     } else {
         false
     }
-}
-
-private fun removeAllVardeclsFromAst(program: Program) {
-    // remove all VarDecl nodes from the AST.
-    // code generation doesn't require them anymore, it operates only on the 'variables' collection.
-
-    class SearchAndRemove: IAstVisitor {
-        private val allVars = mutableListOf<VarDecl>()
-        init {
-            visit(program)
-            for (it in allVars) {
-                require((it.parent as IStatementContainer).statements.remove(it))
-            }
-        }
-        override fun visit(decl: VarDecl) {
-            allVars.add(decl)
-        }
-    }
-
-    SearchAndRemove()
-}
-
-fun printProgram(program: Program) {
-    println()
-    val printer = AstToSourceTextConverter(::print, program)
-    printer.visit(program)
-    println()
-}
-
-internal fun asmGeneratorFor(program: Program,
-                             errors: IErrorReporter,
-                             symbolTable: SymbolTable,
-                             options: CompilationOptions): IAssemblyGenerator
-{
-    if(options.experimentalCodegen) {
-        val intermediateAst = IntermediateAstMaker(program, symbolTable, options).transform()
-        return prog8.codegen.experimental.CodeGen(intermediateAst, symbolTable, options, errors)
-    } else {
-        if (options.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-            // TODO rewrite 6502 codegen on new Intermediary Ast or on new Intermediate Representation
-            return prog8.codegen.cpu6502.AsmGen(program, symbolTable, options, errors)
-        if (options.compTarget.name == VMTarget.NAME) {
-            val intermediateAst = IntermediateAstMaker(program, symbolTable, options).transform()
-            return VmCodeGen(intermediateAst, symbolTable, options, errors)
-        }
-    }
-
-    throw NotImplementedError("no asm generator for cpu ${options.compTarget.machine.cpu}")
 }

@@ -40,7 +40,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
@@ -72,7 +72,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val decl = startSub
             .statements.filterIsInstance<VarDecl>()[0]
@@ -143,7 +143,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -177,7 +177,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -203,7 +203,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val rangeExpr = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -247,7 +247,7 @@ class TestCompilerOnRanges: FunSpec({
             }
         """)!!
 
-        val program = result.program
+        val program = result.compilerAst
         val startSub = program.entrypoint
         val iterable = startSub
             .statements.filterIsInstance<ForLoop>()
@@ -279,7 +279,7 @@ class TestCompilerOnRanges: FunSpec({
                 }
             }
         """)!!
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         val array = (statements[0] as VarDecl).value
         array shouldBe instanceOf<ArrayLiteral>()
         (array as ArrayLiteral).value.size shouldBe 26
@@ -301,7 +301,7 @@ class TestCompilerOnRanges: FunSpec({
                 }
             }
         """)!!
-        val statements = result.program.entrypoint.statements
+        val statements = result.compilerAst.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
         (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)

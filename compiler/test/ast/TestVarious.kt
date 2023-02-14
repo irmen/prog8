@@ -85,7 +85,7 @@ main {
             }
         }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
     }
 
@@ -101,7 +101,7 @@ main {
             }
         }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val name1 = stmts[0] as VarDecl
         val rept1 = stmts[1] as VarDecl
@@ -111,8 +111,8 @@ main {
         val rept2strcopy = stmts[4] as IFunctionCall
         val name2 = name2strcopy.args.first() as IdentifierReference
         val rept2 = rept2strcopy.args.first() as IdentifierReference
-        (name2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xx1xx2"
-        (rept2.targetVarDecl(result.program)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
+        (name2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xx1xx2"
+        (rept2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
     }
 
     test("pointervariable indexing allowed with >255") {
@@ -144,15 +144,15 @@ main {
     }
 }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         val assign1expr = (stmts[3] as Assignment).value as BinaryExpression
         val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
         assign1expr.operator shouldBe "<<"
-        val leftval1 = assign1expr.left.constValue(result.program)!!
+        val leftval1 = assign1expr.left.constValue(result.compilerAst)!!
         leftval1.type shouldBe DataType.UWORD
         leftval1.number shouldBe 1.0
-        val leftval2 = assign2expr.left.constValue(result.program)!!
+        val leftval2 = assign2expr.left.constValue(result.compilerAst)!!
         leftval2.type shouldBe DataType.UWORD
         leftval2.number shouldBe 1.0
     }
@@ -175,7 +175,7 @@ main {
     }
 }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
     }
 
@@ -190,7 +190,7 @@ main {
 }
 """
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
-        val stmts = result.program.entrypoint.statements
+        val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
         val value1 = (stmts[1] as Assignment).value as BinaryExpression
         val value2 = (stmts[2] as Assignment).value as BinaryExpression

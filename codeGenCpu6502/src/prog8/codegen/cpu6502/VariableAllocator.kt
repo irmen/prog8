@@ -22,7 +22,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         allocateZeropageVariables()
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars
+    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars // TODO as dotted string instead of list?
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
@@ -59,7 +59,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                 variable.scopedName.split('.'),
                 variable.dt,
                 variable.length,
-                variable.position,
+                variable.astNode.position,
                 errors
             )
             result.fold(
@@ -67,7 +67,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     numVariablesAllocatedInZP++
                 },
                 failure = {
-                    errors.err(it.message!!, variable.position)
+                    errors.err(it.message!!, variable.astNode.position)
                 }
             )
         }
@@ -78,7 +78,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     variable.scopedName.split('.'),
                     variable.dt,
                     variable.length,
-                    variable.position,
+                    variable.astNode.position,
                     errors
                 )
                 result.onSuccess { numVariablesAllocatedInZP++ }
@@ -98,7 +98,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                 variable.scopedName.split('.'),
                                 variable.dt,
                                 variable.length,
-                                variable.position,
+                                variable.astNode.position,
                                 errors
                             )
                             result.onSuccess { numVariablesAllocatedInZP++ }

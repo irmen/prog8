@@ -3,7 +3,6 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
-import prog8.ast.generatedLabelPrefix
 import prog8.code.core.*
 import java.io.File
 import java.nio.file.Path
@@ -63,7 +62,7 @@ internal class AssemblyProgram(
             "atari" -> {
                 // Atari800XL .xex generation.
 
-                // TODO are these options okay?
+                // TODO are these options okay for atari?
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                     "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
                     "--no-monitor"
@@ -104,7 +103,7 @@ internal class AssemblyProgram(
     }
 
     private fun removeGeneratedLabelsFromMonlist() {
-        val pattern = Regex("""al (\w+) \S+${generatedLabelPrefix}.+?""")
+        val pattern = Regex("""al (\w+) \S+prog8_label_.+?""")
         val lines = viceMonListFile.toFile().readLines()
         viceMonListFile.toFile().outputStream().bufferedWriter().use {
             for (line in lines) {

@@ -10,5 +10,5 @@ enum class Encoding(val prefix: String) {
 
 interface IStringEncoding {
     fun encodeString(str: String, encoding: Encoding): List<UByte>
-    fun decodeString(bytes: List<UByte>, encoding: Encoding): String
+    fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String
 }
