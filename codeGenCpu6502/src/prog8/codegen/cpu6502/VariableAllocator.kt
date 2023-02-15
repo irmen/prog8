@@ -16,13 +16,14 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
     private val zeropage = options.compTarget.machine.zeropage
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
-    internal val zeropageVars: Map<List<String>, MemoryAllocator.VarAllocation> = zeropage.allocatedVariables
+    internal val zeropageVars: Map<String, MemoryAllocator.VarAllocation>
 
     init {
         allocateZeropageVariables()
+        zeropageVars = zeropage.allocatedVariables
     }
 
-    internal fun isZpVar(scopedName: List<String>) = scopedName in zeropageVars    // TODO as dotted string instead of list
+    internal fun isZpVar(scopedName: String) = scopedName in zeropageVars
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
@@ -56,7 +57,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
         varsRequiringZp.forEach { variable ->
             val result = zeropage.allocate(
-                variable.scopedName.split('.'),
+                variable.scopedName,
                 variable.dt,
                 variable.length,
                 variable.astNode.position,
@@ -75,7 +76,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
                 val result = zeropage.allocate(
-                    variable.scopedName.split('.'),
+                    variable.scopedName,
                     variable.dt,
                     variable.length,
                     variable.astNode.position,
@@ -95,7 +96,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                             break
                         } else {
                             val result = zeropage.allocate(
-                                variable.scopedName.split('.'),
+                                variable.scopedName,
                                 variable.dt,
                                 variable.length,
                                 variable.astNode.position,

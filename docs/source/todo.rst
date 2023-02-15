@@ -17,9 +17,6 @@ For 9.0 major changes
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
-- rewrite 6502 codegen on Pt* ast and symboltable, instead of CompilerAst nodes.
-    - optimize "dotted string" comments again.
-
 
 Need help with
 ^^^^^^^^^^^^^^
