@@ -21,8 +21,17 @@ internal object DummyFunctions : IBuiltinFunctions {
 }
 
 internal object DummyMemsizer : IMemSizer {
-    override fun memorySize(dt: DataType) = 0
-    override fun memorySize(arrayDt: DataType, numElements: Int) = 0
+    override fun memorySize(dt: DataType) = when(dt) {
+        in ByteDatatypes -> 1
+        DataType.FLOAT -> 5
+        else -> 2
+    }
+    override fun memorySize(arrayDt: DataType, numElements: Int) = when(arrayDt) {
+        DataType.ARRAY_UW -> numElements*2
+        DataType.ARRAY_W -> numElements*2
+        DataType.ARRAY_F -> numElements*5
+        else -> numElements
+    }
 }
 
 internal object DummyStringEncoder : IStringEncoding {

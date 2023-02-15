@@ -1,17 +1,17 @@
-package prog8tests.codegencpu6502
-
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.code.target.C64Target
-import prog8.codegen.cpu6502.AsmGen6502
+import prog8.code.target.VMTarget
+import prog8.codegen.vm.VmAssemblyProgram
+import prog8.codegen.vm.VmCodeGen
+import prog8.intermediate.IRSubroutine
 
-class TestCodegen: FunSpec({
+class TestVmCodeGen: FunSpec({
 
     fun getTestOptions(): CompilationOptions {
-        val target = C64Target()
+        val target = VMTarget()
         return CompilationOptions(
             OutputType.RAW,
             CbmPrgLauncherType.NONE,
@@ -24,7 +24,7 @@ class TestCodegen: FunSpec({
         )
     }
 
-    test("augmented assign on arrays") {
+    test("augmented assigns") {
 //main {
 //    sub start() {
 //        ubyte[] particleX = [1,2,3]
@@ -37,7 +37,7 @@ class TestCodegen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
-        val codegen = AsmGen6502()
+        val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
@@ -69,7 +69,7 @@ class TestCodegen: FunSpec({
         prefixAssign.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
         sub.add(prefixAssign)
 
-        val numberAssign = PtAugmentedAssign("-=", Position.DUMMY)
+        val numberAssign = PtAugmentedAssign("+=", Position.DUMMY)
         val numberAssignTarget = PtAssignTarget(Position.DUMMY).also {
             it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
         }
@@ -96,7 +96,8 @@ class TestCodegen: FunSpec({
         val options = getTestOptions()
         val st = SymbolTableMaker(program, options).make()
         val errors = ErrorReporterForTests()
-        codegen.generate(program, st, options, errors) shouldNotBe null
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
     }
 })
-

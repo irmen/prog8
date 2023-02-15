@@ -1,3 +1,5 @@
+package prog8tests.codegencpu6502
+
 import prog8.code.core.*
 
 

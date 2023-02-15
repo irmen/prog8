@@ -11,23 +11,22 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
     fun translate(assignment: PtAssignment) {
-        val target = AsmAssignTarget.fromAstAssignment(assignment, asmgen)
+        val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
-        val assign = AsmAssignment(source, target, assignment.isInplaceAssign, program.memsizer, assignment.position)
+        val assign = AsmAssignment(source, target, program.memsizer, assignment.position)
         target.origAssign = assign
+        translateNormalAssignment(assign)
+    }
 
-        if(assign.isAugmentable)
-            augmentableAsmGen.translate(assign)
-        else
-            translateNormalAssignment(assign)
+    fun translate(augmentedAssign: PtAugmentedAssign) {
+        val target = AsmAssignTarget.fromAstAssignment(augmentedAssign.target, augmentedAssign.definingISub(), asmgen)
+        val source = AsmAssignSource.fromAstSource(augmentedAssign.value, program, asmgen).adjustSignedUnsigned(target)
+        val assign = AsmAugmentedAssignment(source, augmentedAssign.operator, target, program.memsizer, augmentedAssign.position)
+        target.origAssign = assign
+        augmentableAsmGen.translate(assign)
     }
 
     fun translateNormalAssignment(assign: AsmAssignment) {
-        if(assign.isAugmentable) {
-            augmentableAsmGen.translate(assign)
-            return
-        }
-
         when(assign.source.kind) {
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
@@ -277,14 +276,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     translateNormalAssignment(
                         AsmAssignment(
                             AsmAssignSource.fromAstSource(value.value, program, asmgen),
-                            assign.target,
-                            false, program.memsizer, assign.position
+                            assign.target, program.memsizer, assign.position
                         )
                     )
                     when (value.operator) {
                         "+" -> {}
-                        "-" -> augmentableAsmGen.inplaceNegate(assign, true)
-                        "~" -> augmentableAsmGen.inplaceInvert(assign)
+                        "-" -> inplaceNegate(assign, true)
+                        "~" -> inplaceInvert(assign)
                         "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
                         else -> throw AssemblyError("invalid prefix operator")
                     }
@@ -308,7 +306,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    internal fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment) {
+    private fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment) {
         require(assign.source.expression is PtPrefix)
         if(assign.source.datatype==DataType.FLOAT) {
             // floatarray[x] = -value   ... just use FAC1 to calculate the expression into and then store that back into the array.
@@ -318,8 +316,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             // array[x] = -value   ... use a tempvar then store that back into the array.
             val tempvar = asmgen.getTempVarName(assign.target.datatype)
             val assignToTempvar = AsmAssignment(assign.source,
-                AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget),
-                false, program.memsizer, assign.position)
+                AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope,
+                    variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget), program.memsizer, assign.position)
             asmgen.translateNormalAssignment(assignToTempvar)
             when(assign.target.datatype) {
                 in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
@@ -1106,7 +1104,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
-        val assign = AsmAssignment(src, target, false, program.memsizer, value.position)
+        val assign = AsmAssignment(src, target, program.memsizer, value.position)
         translateNormalAssignment(assign)
     }
 
@@ -2831,7 +2829,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, signed, null, asmgen)
-        val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
+        val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
 
@@ -2841,7 +2839,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
             val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, scope, variableAsmName = asmVarName)
-            val assign = AsmAssignment(src, tgt, false, program.memsizer, expr.position)
+            val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
             translateNormalAssignment(assign)
         }
     }
@@ -2849,7 +2847,218 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean) {
         val tgt = AsmAssignTarget.fromRegisters(register, signed, null, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, false, program.memsizer, Position.DUMMY)
+        val assign = AsmAssignment(src, tgt, program.memsizer, Position.DUMMY)
         translateNormalAssignment(assign)
+    }
+
+    internal fun inplaceInvert(assign: AsmAssignment) {
+        val target = assign.target
+        when (assign.target.datatype) {
+            DataType.UBYTE -> {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            eor  #255
+                            sta  ${target.asmVarname}""")
+                    }
+                    TargetStorageKind.MEMORY -> {
+                        val memory = target.memory!!
+                        when (memory.address) {
+                            is PtNumber -> {
+                                val addr = (memory.address as PtNumber).number.toHex()
+                                asmgen.out("""
+                                    lda  $addr
+                                    eor  #255
+                                    sta  $addr""")
+                            }
+                            is PtIdentifier -> {
+                                val sourceName = asmgen.loadByteFromPointerIntoA(memory.address as PtIdentifier)
+                                asmgen.out("  eor  #255")
+                                asmgen.out("  sta  ($sourceName),y")
+                            }
+                            else -> {
+                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
+                                asmgen.out("""
+                                    ldy  #0
+                                    lda  (P8ZP_SCRATCH_W2),y
+                                    eor  #255""")
+                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
+                            }
+                        }
+                    }
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.A -> asmgen.out("  eor  #255")
+                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay")
+                            else -> throw AssemblyError("invalid reg dt for byte invert")
+                        }
+                    }
+                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
+                    TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign))
+                    else -> throw AssemblyError("weird target")
+                }
+            }
+            DataType.UWORD -> {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            eor  #255
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            eor  #255
+                            sta  ${target.asmVarname}+1""")
+                    }
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.AX -> asmgen.out("  pha |  txa |  eor  #255 |  tax |  pla |  eor  #255")
+                            RegisterOrPair.AY -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
+                            RegisterOrPair.XY -> asmgen.out("  txa |  eor  #255 |  tax |  tya |  eor  #255 |  tay")
+                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
+                            else -> throw AssemblyError("invalid reg dt for word invert")
+                        }
+                    }
+                    TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
+                    TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign))
+                    else -> throw AssemblyError("weird target")
+                }
+            }
+            else -> throw AssemblyError("invert of invalid type")
+        }
+    }
+
+    internal fun inplaceNegate(assign: AsmAssignment, ignoreDatatype: Boolean) {
+        val target = assign.target
+        val datatype = if(ignoreDatatype) {
+            when(target.datatype) {
+                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
+                DataType.UWORD, DataType.WORD -> DataType.WORD
+                else -> target.datatype
+            }
+        } else target.datatype
+        when (datatype) {
+            DataType.BYTE -> {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  #0
+                            sec
+                            sbc  ${target.asmVarname}
+                            sta  ${target.asmVarname}""")
+                    }
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.A -> {
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  eor  #255 |  ina")
+                                else
+                                    asmgen.out("  eor  #255 |  clc |  adc  #1")
+
+                            }
+                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax |  inx")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay |  iny")
+                            else -> throw AssemblyError("invalid reg dt for byte negate")
+                        }
+                    }
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
+                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
+                    TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign))
+                    else -> throw AssemblyError("weird target")
+                }
+            }
+            DataType.WORD -> {
+                when (target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  #0
+                            sec
+                            sbc  ${target.asmVarname}
+                            sta  ${target.asmVarname}
+                            lda  #0
+                            sbc  ${target.asmVarname}+1
+                            sta  ${target.asmVarname}+1""")
+                    }
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) { //P8ZP_SCRATCH_REG
+                            RegisterOrPair.AX -> {
+                                asmgen.out("""
+                                    sec
+                                    eor  #255
+                                    adc  #0
+                                    pha
+                                    txa
+                                    eor  #255
+                                    adc  #0
+                                    tax
+                                    pla""")
+                            }
+                            RegisterOrPair.AY -> {
+                                asmgen.out("""
+                                    sec
+                                    eor  #255
+                                    adc  #0
+                                    pha
+                                    tya
+                                    eor  #255
+                                    adc  #0
+                                    tay
+                                    pla""")
+                            }
+                            RegisterOrPair.XY -> {
+                                asmgen.out("""
+                                    sec
+                                    txa
+                                    eor  #255
+                                    adc  #0
+                                    tax
+                                    tya
+                                    eor  #255
+                                    adc  #0
+                                    tay""")
+                            }
+                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
+                            else -> throw AssemblyError("invalid reg dt for word neg")
+                        }
+                    }
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
+                    TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
+                    TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign))
+                    else -> throw AssemblyError("weird target")
+                }
+            }
+            DataType.FLOAT -> {
+                when (target.kind) {
+                    TargetStorageKind.REGISTER -> {
+                        when(target.register!!) {
+                            RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.NEGOP")
+                            RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.MOVFA |  jsr floats.NEGOP |  jsr  floats.MOVEF")
+                            else -> throw AssemblyError("invalid float register")
+                        }
+                    }
+                    TargetStorageKind.VARIABLE -> {
+                        // simply flip the sign bit in the float
+                        asmgen.out("""
+                            lda  ${target.asmVarname}+1
+                            eor  #$80
+                            sta  ${target.asmVarname}+1
+                        """)
+                    }
+                    TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
+                    TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign))
+                    else -> throw AssemblyError("weird target for in-place float negation")
+                }
+            }
+            else -> throw AssemblyError("negate of invalid type")
+        }
+    }
+
+    private fun makePrefixedExprFromArrayExprAssign(operator: String, assign: AsmAssignment): AsmAssignment {
+        val prefix = PtPrefix(operator, assign.source.datatype, assign.source.array!!.position)
+        prefix.add(assign.source.array)
+        prefix.parent = assign.target.origAstTarget ?: program
+        val prefixSrc = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, assign.source.datatype, expression=prefix)
+        return AsmAssignment(prefixSrc, assign.target, assign.memsizer, assign.position)
     }
 }

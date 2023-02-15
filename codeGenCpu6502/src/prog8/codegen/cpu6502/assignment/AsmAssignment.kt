@@ -44,7 +44,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             asmgen.asmVariableName(array.variable)
     }
 
-    lateinit var origAssign: AsmAssignment
+    lateinit var origAssign: AsmAssignmentBase
 
     init {
         if(register!=null && datatype !in NumericDatatypes)
@@ -52,8 +52,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
-        fun fromAstAssignment(assign: PtAssignment, asmgen: AsmGen6502Internal): AsmAssignTarget {
-            with(assign.target) {
+        fun fromAstAssignment(target: PtAssignTarget, definingSub: IPtSubroutine?, asmgen: AsmGen6502Internal): AsmAssignTarget {
+            with(target) {
                 when {
                     identifier != null -> {
                         val parameter = asmgen.findSubroutineParameter(identifier!!.name, asmgen)
@@ -64,13 +64,13 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                 if(reg.statusflag!=null)
                                     throw AssemblyError("can't assign value to processor statusflag directly")
                                 else
-                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, assign.definingISub(), register=reg.registerOrPair, origAstTarget = this)
+                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, definingSub, register=reg.registerOrPair, origAstTarget = this)
                             }
                         }
-                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, assign.definingISub(), variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, definingSub, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                     }
-                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, assign.definingISub(), array = array, origAstTarget =  this)
-                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, assign.definingISub(), memory =  memory, origAstTarget =  this)
+                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, definingSub, array = array, origAstTarget =  this)
+                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, definingSub, memory =  memory, origAstTarget =  this)
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -191,12 +191,10 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 }
 
 
-internal class AsmAssignment(val source: AsmAssignSource,
-                             val target: AsmAssignTarget,
-                             val isAugmentable: Boolean,
-                             memsizer: IMemSizer,
-                             val position: Position) {
-
+internal sealed class AsmAssignmentBase(val source: AsmAssignSource,
+                                        val target: AsmAssignTarget,
+                                        val memsizer: IMemSizer,
+                                        val position: Position) {
     init {
         if(target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
             require(source.datatype != DataType.UNDEFINED) { "must not be placeholder/undefined datatype at $position" }
@@ -205,3 +203,15 @@ internal class AsmAssignment(val source: AsmAssignSource,
             }
     }
 }
+
+internal class AsmAssignment(source: AsmAssignSource,
+                             target: AsmAssignTarget,
+                             memsizer: IMemSizer,
+                             position: Position): AsmAssignmentBase(source, target, memsizer, position)
+
+internal class AsmAugmentedAssignment(source: AsmAssignSource,
+                                      val operator: String,
+                                      target: AsmAssignTarget,
+                                      memsizer: IMemSizer,
+                                      position: Position): AsmAssignmentBase(source, target, memsizer, position)
+

@@ -12,6 +12,7 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
         return when(node) {
             is PtAssignTarget -> ""
             is PtAssignment -> "<assign>"
+            is PtAugmentedAssign -> "<inplace-assign> ${node.operator}"
             is PtBreakpoint -> "%breakpoint"
             is PtConditionalBranch -> "if_${node.condition.name.lowercase()}"
             is PtAddressOf -> "&"
@@ -30,7 +31,10 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
             is PtIdentifier -> "${node.name} ${type(node.type)}"
             is PtMachineRegister -> "VMREG#${node.register} ${type(node.type)}"
             is PtMemoryByte -> "@()"
-            is PtNumber -> "${node.number.toHex()} ${type(node.type)}"
+            is PtNumber -> {
+                val numstr = if(node.type == DataType.FLOAT) node.number.toString() else node.number.toHex()
+                "$numstr ${type(node.type)}"
+            }
             is PtPrefix -> node.operator
             is PtRange -> "<range>"
             is PtString -> "\"${node.value.escape()}\""

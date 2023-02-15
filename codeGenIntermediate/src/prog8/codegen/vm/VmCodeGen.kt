@@ -24,7 +24,7 @@ class VmCodeGen: ICodeGeneratorBackend {
 }
 
 
-internal class VmAssemblyProgram(override val name: String, private val irProgram: IRProgram): IAssemblyProgram {
+internal class VmAssemblyProgram(override val name: String, internal val irProgram: IRProgram): IAssemblyProgram {
 
     override fun assemble(options: CompilationOptions): Boolean {
         // the VM reads the IR file from disk.

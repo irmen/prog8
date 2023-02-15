@@ -90,6 +90,54 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
     }
 
     private fun transform(srcAssign: Assignment): PtNode {
+        if(srcAssign.isAugmentable) {
+            val srcExpr = srcAssign.value
+            val (operator: String, augmentedValue: Expression?) = when(srcExpr) {
+                is BinaryExpression -> {
+                    if(srcExpr.operator=="==" || srcExpr.operator=="%") {
+                        // no special code possible for 'in-place comparison and result as boolean' or 'remainder'
+                        Pair("", null)
+                    }
+                    else if(srcExpr.left isSameAs srcAssign.target) {
+                        Pair(srcExpr.operator+'=', srcExpr.right)
+                    } else if(srcExpr.right isSameAs srcAssign.target) {
+                        Pair(srcExpr.operator+'=', srcExpr.left)
+                    } else {
+                        // either left or right is same as target, other combinations are not supported here
+                        Pair("", null)
+                    }
+                }
+                is PrefixExpression -> {
+                    require(srcExpr.expression isSameAs srcAssign.target)
+                    Pair(srcExpr.operator, srcExpr.expression)
+                }
+                is TypecastExpression -> {
+                    // At this time, there are no special optimized instructions to do an in-place type conversion.
+                    // so we simply revert to a regular type converting assignment.
+                    // Also, an in-place type cast is very uncommon so probably not worth optimizing anyway.
+                    Pair("", null)
+                    // the following is what *could* be used here if such instructions *were* available:
+//                    if(srcExpr.expression isSameAs srcAssign.target)
+//                        Pair("cast", srcExpr.expression)
+//                    else {
+//                        val subTypeCast = srcExpr.expression as? TypecastExpression
+//                        val targetDt = srcAssign.target.inferType(program).getOrElse { DataType.UNDEFINED }
+//                        if (subTypeCast!=null && srcExpr.type==targetDt && subTypeCast.expression isSameAs srcAssign.target) {
+//                            Pair("cast", subTypeCast)
+//                        } else
+//                            Pair("", null)
+//                    }
+                }
+                else -> Pair("", null)
+            }
+            if(augmentedValue!=null) {
+                val assign = PtAugmentedAssign(operator, srcAssign.position)
+                assign.add(transform(srcAssign.target))
+                assign.add(transformExpression(augmentedValue))
+                return assign
+            }
+        }
+
         val assign = PtAssignment(srcAssign.position)
         assign.add(transform(srcAssign.target))
         assign.add(transformExpression(srcAssign.value))

@@ -1,7 +1,6 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.instanceOf
 import prog8.code.StStaticVariable
 import prog8.code.core.CbmPrgLauncherType
 import prog8.code.core.CompilationOptions

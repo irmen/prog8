@@ -11,134 +11,41 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                            private val asmgen: AsmGen6502Internal,
                                            private val allocator: VariableAllocator
 ) {
-    fun translate(assign: AsmAssignment) {
-        require(assign.isAugmentable)
-        require(assign.source.kind == SourceStorageKind.EXPRESSION) {
-            "non-expression assign value should be handled elsewhere ${assign.position}"
-        }
+    fun translate(assign: AsmAugmentedAssignment) {
 
-        when (val value = assign.source.expression!!) {
-            is PtPrefix -> {
-                // A = -A , A = +A, A = ~A, A = not A
-                when (value.operator) {
-                    "+" -> {}
-                    "-" -> inplaceNegate(assign, false)
-                    "~" -> inplaceInvert(assign)
-                    else -> throw AssemblyError("invalid prefix operator")
-                }
+        when(assign.operator) {
+            "-" -> {
+                val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
+                assignmentAsmGen.inplaceNegate(a2, false)
             }
-            is PtTypeCast -> inplaceCast(assign.target, value, assign.position)
-            is PtBinaryExpression -> inplaceBinary(assign.target, value)
-            else -> throw AssemblyError("invalid aug assign value type")
+            "~" -> {
+                val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
+                assignmentAsmGen.inplaceInvert(a2)
+            }
+            "+" -> { /* is a nop */ }
+            else -> {
+                if(assign.operator.endsWith('='))
+                    augmentedAssignExpr(assign)
+                else
+                    throw AssemblyError("invalid augmented assign operator ${assign.operator}")
+            }
         }
     }
 
-    private fun inplaceBinary(target: AsmAssignTarget, binExpr: PtBinaryExpression) {
-        val astTarget = target.origAstTarget!!
-        if (binExpr.left isSameAs astTarget) {
-            // A = A <operator> Something
-            return inplaceModification(target, binExpr.operator, binExpr.right)
+    private fun augmentedAssignExpr(assign: AsmAugmentedAssignment) {
+        val srcValue = assign.source.toAstExpression(assign.target.scope as PtNamedNode)
+        when (assign.operator) {
+            "+=" -> inplaceModification(assign.target, "+", srcValue)
+            "-=" -> inplaceModification(assign.target, "-", srcValue)
+            "*=" -> inplaceModification(assign.target, "*", srcValue)
+            "/=" -> inplaceModification(assign.target, "/", srcValue)
+            "|=" -> inplaceModification(assign.target, "|", srcValue)
+            "&=" -> inplaceModification(assign.target, "&", srcValue)
+            "^=" -> inplaceModification(assign.target, "^", srcValue)
+            "<<=" -> inplaceModification(assign.target, "<<", srcValue)
+            ">>=" -> inplaceModification(assign.target, ">>", srcValue)
+            else -> throw AssemblyError("invalid augmented assign operator ${assign.operator}")     // TODO fallback to non-augmented Assign?
         }
-
-        if (binExpr.operator in AssociativeOperators) {
-            if (binExpr.right isSameAs astTarget) {
-                // A = 5 <operator> A
-                return inplaceModification(target, binExpr.operator, binExpr.left)
-            }
-
-            val leftBinExpr = binExpr.left as? PtBinaryExpression
-            if (leftBinExpr?.operator == binExpr.operator) {
-                // TODO better optimize the chained asm to avoid intermediate stores/loads?
-                when {
-                    binExpr.right isSameAs astTarget -> {
-                        // A = (x <associative-operator> y) <same-operator> A
-                        inplaceModification(target, binExpr.operator, leftBinExpr.left)
-                        inplaceModification(target, binExpr.operator, leftBinExpr.right)
-                        return
-                    }
-                    leftBinExpr.left isSameAs astTarget -> {
-                        // A = (A <associative-operator> x) <same-operator> y
-                        inplaceModification(target, binExpr.operator, leftBinExpr.right)
-                        inplaceModification(target, binExpr.operator, binExpr.right)
-                        return
-                    }
-                    leftBinExpr.right isSameAs astTarget -> {
-                        // A = (x <associative-operator> A) <same-operator> y
-                        inplaceModification(target, binExpr.operator, leftBinExpr.left)
-                        inplaceModification(target, binExpr.operator, binExpr.right)
-                        return
-                    }
-                }
-            }
-            val rightBinExpr = binExpr.right as? PtBinaryExpression
-            if (rightBinExpr?.operator == binExpr.operator) {
-                when {
-                    binExpr.left isSameAs astTarget -> {
-                        // A = A <associative-operator> (x <same-operator> y)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.left)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.right)
-                        return
-                    }
-                    rightBinExpr.left isSameAs astTarget -> {
-                        // A = y <associative-operator> (A <same-operator> x)
-                        inplaceModification(target, binExpr.operator, binExpr.left)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.right)
-                        return
-                    }
-                    rightBinExpr.right isSameAs astTarget -> {
-                        // A = y <associative-operator> (x <same-operator> y)
-                        inplaceModification(target, binExpr.operator, binExpr.left)
-                        inplaceModification(target, binExpr.operator, rightBinExpr.left)
-                        return
-                    }
-                }
-            }
-        }
-
-        val leftBinExpr = binExpr.left as? PtBinaryExpression
-        val rightBinExpr = binExpr.right as? PtBinaryExpression
-        if(leftBinExpr!=null && rightBinExpr==null) {
-            if(leftBinExpr.left isSameAs astTarget) {
-                // X = (X <oper> Right) <oper> Something
-                inplaceModification(target, leftBinExpr.operator, leftBinExpr.right)
-                inplaceModification(target, binExpr.operator, binExpr.right)
-                return
-            }
-            if(leftBinExpr.right isSameAs astTarget) {
-                // X = (Left <oper> X) <oper> Something
-                if(leftBinExpr.operator in AssociativeOperators) {
-                    inplaceModification(target, leftBinExpr.operator, leftBinExpr.left)
-                    inplaceModification(target, binExpr.operator, binExpr.right)
-                    return
-                } else {
-                    throw AssemblyError("operands in wrong order for non-associative operator")
-                }
-            }
-        }
-        if(leftBinExpr==null && rightBinExpr!=null) {
-            if(rightBinExpr.left isSameAs astTarget) {
-                // X = Something <oper> (X <oper> Right)
-                if(binExpr.operator in AssociativeOperators) {
-                    inplaceModification(target, rightBinExpr.operator, rightBinExpr.right)
-                    inplaceModification(target, binExpr.operator, binExpr.left)
-                    return
-                } else {
-                    throw AssemblyError("operands in wrong order for non-associative operator")
-                }
-            }
-            if(rightBinExpr.right isSameAs astTarget) {
-                // X = Something <oper> (Left <oper> X)
-                if(binExpr.operator in AssociativeOperators && rightBinExpr.operator in AssociativeOperators) {
-                    inplaceModification(target, rightBinExpr.operator, rightBinExpr.left)
-                    inplaceModification(target, binExpr.operator, binExpr.left)
-                    return
-                } else {
-                    throw AssemblyError("operands in wrong order for non-associative operator")
-                }
-            }
-        }
-
-        throw AssemblyError("assignment should follow augmentable rules $binExpr")
     }
 
     private fun inplaceModification(target: AsmAssignTarget, operator: String, origValue: PtExpression) {
@@ -303,7 +210,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                         target.datatype == DataType.BYTE, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
                             }
@@ -314,7 +221,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                         target.datatype == DataType.WORD, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                             }
@@ -325,7 +232,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                         true, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, false, program.memsizer, value.position)
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignFAC1float(target)
                             }
@@ -1736,260 +1643,50 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         """)
         asmgen.restoreRegisterLocal(CpuRegister.X)
     }
+}
 
-    private fun inplaceCast(target: AsmAssignTarget, cast: PtTypeCast, position: Position) {
-        val outerCastDt = cast.type
-        val innerCastDt = (cast.value as? PtTypeCast)?.type
-        if (innerCastDt == null) {
-            // simple typecast where the value is the target
-            when (target.datatype) {
-                DataType.UBYTE, DataType.BYTE -> { /* byte target can't be typecasted to anything else at all */ }
-                DataType.UWORD, DataType.WORD -> {
-                    when (outerCastDt) {
-                        DataType.UBYTE, DataType.BYTE -> {
-                            when (target.kind) {
-                                TargetStorageKind.VARIABLE -> {
-                                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                        asmgen.out(" stz  ${target.asmVarname}+1")
-                                    else
-                                        asmgen.out(" lda  #0 |  sta  ${target.asmVarname}+1")
-                                }
-                                TargetStorageKind.ARRAY -> {
-                                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, target.datatype, CpuRegister.Y, true)
-                                    asmgen.out("  lda  #0 |  sta  ${target.asmVarname},y")
-                                }
-                                TargetStorageKind.STACK -> {
-                                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                        asmgen.out(" stz  P8ESTACK_HI+1,x")
-                                    else
-                                        asmgen.out(" lda  #0 |  sta  P8ESTACK_HI+1,x")
-                                }
-                                else -> throw AssemblyError("weird target")
-                            }
-                        }
-                        DataType.UWORD, DataType.WORD, in IterableDatatypes -> {}
-                        DataType.FLOAT -> throw AssemblyError("can't cast float in-place")
-                        else -> throw AssemblyError("weird cast type")
-                    }
-                }
-                DataType.FLOAT -> {
-                    if (outerCastDt != DataType.FLOAT)
-                        throw AssemblyError("in-place cast of a float makes no sense")
-                }
-                else -> throw AssemblyError("invalid cast target type")
-            }
-        } else {
-            // typecast with nested typecast, that has the target as a value
-            // calculate singular cast that is required
-            val castDt = if (outerCastDt largerThan innerCastDt) innerCastDt else outerCastDt
-            val resultingCast = PtTypeCast(castDt, position)
-            resultingCast.add((cast.value as PtTypeCast).value)
-            require(castDt!=resultingCast.value.type)
-            inplaceCast(target, resultingCast, position)
+private fun AsmAssignSource.toAstExpression(scope: PtNamedNode): PtExpression {
+    return when(kind) {
+        SourceStorageKind.LITERALNUMBER -> this.number!!
+        SourceStorageKind.VARIABLE -> {
+            val ident = PtIdentifier(scope.scopedName + '.' + asmVarname, datatype, Position.DUMMY)
+            ident.parent = scope
+            ident
         }
-    }
-
-    internal fun inplaceInvert(assign: AsmAssignment) {
-        val target = assign.target
-        when (assign.target.datatype) {
-            DataType.UBYTE -> {
-                when (target.kind) {
-                    TargetStorageKind.VARIABLE -> {
-                        asmgen.out("""
-                            lda  ${target.asmVarname}
-                            eor  #255
-                            sta  ${target.asmVarname}""")
-                    }
-                    TargetStorageKind.MEMORY -> {
-                        val memory = target.memory!!
-                        when (memory.address) {
-                            is PtNumber -> {
-                                val addr = (memory.address as PtNumber).number.toHex()
-                                asmgen.out("""
-                                    lda  $addr
-                                    eor  #255
-                                    sta  $addr""")
-                            }
-                            is PtIdentifier -> {
-                                val sourceName = asmgen.loadByteFromPointerIntoA(memory.address as PtIdentifier)
-                                asmgen.out("  eor  #255")
-                                asmgen.out("  sta  ($sourceName),y")
-                            }
-                            else -> {
-                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
-                                asmgen.out("""
-                                    ldy  #0
-                                    lda  (P8ZP_SCRATCH_W2),y
-                                    eor  #255""")
-                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
-                            }
-                        }
-                    }
-                    TargetStorageKind.REGISTER -> {
-                        when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out("  eor  #255")
-                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax")
-                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay")
-                            else -> throw AssemblyError("invalid reg dt for byte invert")
-                        }
-                    }
-                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
-                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target")
-                }
+        SourceStorageKind.ARRAY -> this.array!!
+        SourceStorageKind.MEMORY -> this.memory!!
+        SourceStorageKind.EXPRESSION -> this.expression!!
+        SourceStorageKind.REGISTER -> {
+            if(register in Cx16VirtualRegisters) {
+                val ident = PtIdentifier("cx16.${register!!.name.lowercase()}", DataType.UWORD, position = scope.position)
+                ident.parent = scope
+                ident
+            } else {
+                throw AssemblyError("no ast expr possible for source register $register")
             }
-            DataType.UWORD -> {
-                when (target.kind) {
-                    TargetStorageKind.VARIABLE -> {
-                        asmgen.out("""
-                            lda  ${target.asmVarname}
-                            eor  #255
-                            sta  ${target.asmVarname}
-                            lda  ${target.asmVarname}+1
-                            eor  #255
-                            sta  ${target.asmVarname}+1""")
-                    }
-                    TargetStorageKind.REGISTER -> {
-                        when(target.register!!) {
-                            RegisterOrPair.AX -> asmgen.out("  pha |  txa |  eor  #255 |  tax |  pla |  eor  #255")
-                            RegisterOrPair.AY -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
-                            RegisterOrPair.XY -> asmgen.out("  txa |  eor  #255 |  tax |  tya |  eor  #255 |  tay")
-                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
-                            else -> throw AssemblyError("invalid reg dt for word invert")
-                        }
-                    }
-                    TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
-                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target")
-                }
-            }
-            else -> throw AssemblyError("invert of invalid type")
         }
+        else -> throw AssemblyError("invalid assign source kind $kind")
     }
+}
 
-    internal fun inplaceNegate(assign: AsmAssignment, ignoreDatatype: Boolean) {
-        val target = assign.target
-        val datatype = if(ignoreDatatype) {
-            when(target.datatype) {
-                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
-                DataType.UWORD, DataType.WORD -> DataType.WORD
-                else -> target.datatype
-            }
-        } else target.datatype
-        when (datatype) {
-            DataType.BYTE -> {
-                when (target.kind) {
-                    TargetStorageKind.VARIABLE -> {
-                        asmgen.out("""
-                            lda  #0
-                            sec
-                            sbc  ${target.asmVarname}
-                            sta  ${target.asmVarname}""")
-                    }
-                    TargetStorageKind.REGISTER -> {
-                        when(target.register!!) {
-                            RegisterOrPair.A -> {
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                    asmgen.out("  eor  #255 |  ina")
-                                else
-                                    asmgen.out("  eor  #255 |  clc |  adc  #1")
-
-                            }
-                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax |  inx")
-                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay |  iny")
-                            else -> throw AssemblyError("invalid reg dt for byte negate")
-                        }
-                    }
-                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
-                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
-                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target")
-                }
-            }
-            DataType.WORD -> {
-                when (target.kind) {
-                    TargetStorageKind.VARIABLE -> {
-                        asmgen.out("""
-                            lda  #0
-                            sec
-                            sbc  ${target.asmVarname}
-                            sta  ${target.asmVarname}
-                            lda  #0
-                            sbc  ${target.asmVarname}+1
-                            sta  ${target.asmVarname}+1""")
-                    }
-                    TargetStorageKind.REGISTER -> {
-                        when(target.register!!) { //P8ZP_SCRATCH_REG
-                            RegisterOrPair.AX -> {
-                                asmgen.out("""
-                                    sec
-                                    eor  #255
-                                    adc  #0
-                                    pha
-                                    txa
-                                    eor  #255
-                                    adc  #0
-                                    tax
-                                    pla""")
-                            }
-                            RegisterOrPair.AY -> {
-                                asmgen.out("""
-                                    sec
-                                    eor  #255
-                                    adc  #0
-                                    pha
-                                    tya
-                                    eor  #255
-                                    adc  #0
-                                    tay
-                                    pla""")
-                            }
-                            RegisterOrPair.XY -> {
-                                asmgen.out("""
-                                    sec
-                                    txa
-                                    eor  #255
-                                    adc  #0
-                                    tax
-                                    tya
-                                    eor  #255
-                                    adc  #0
-                                    tay""")
-                            }
-                            in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
-                            else -> throw AssemblyError("invalid reg dt for word neg")
-                        }
-                    }
-                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
-                    TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
-                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target")
-                }
-            }
-            DataType.FLOAT -> {
-                when (target.kind) {
-                    TargetStorageKind.REGISTER -> {
-                        when(target.register!!) {
-                            RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.NEGOP")
-                            RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.MOVFA |  jsr floats.NEGOP |  jsr  floats.MOVEF")
-                            else -> throw AssemblyError("invalid float register")
-                        }
-                    }
-                    TargetStorageKind.VARIABLE -> {
-                        // simply flip the sign bit in the float
-                        asmgen.out("""
-                            lda  ${target.asmVarname}+1
-                            eor  #$80
-                            sta  ${target.asmVarname}+1
-                        """)
-                    }
-                    TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
-                    TargetStorageKind.ARRAY -> assignmentAsmGen.assignPrefixedExpressionToArrayElt(assign)
-                    else -> throw AssemblyError("weird target for in-place float negation")
-                }
-            }
-            else -> throw AssemblyError("negate of invalid type")
+private fun AsmAssignTarget.toAstExpression(): PtExpression {
+    return when(kind) {
+        TargetStorageKind.VARIABLE -> {
+            val ident = PtIdentifier((this.scope as PtNamedNode).scopedName + '.' + asmVarname, datatype, origAstTarget?.position ?: Position.DUMMY)
+            ident.parent = this.scope
+            ident
         }
+        TargetStorageKind.ARRAY -> this.array!!
+        TargetStorageKind.MEMORY -> this.memory!!
+        TargetStorageKind.REGISTER -> {
+            if(register in Cx16VirtualRegisters) {
+                val ident = PtIdentifier("cx16.${register!!.name.lowercase()}", DataType.UWORD, position = this.origAssign.position)
+                ident.parent =  (this.scope as? PtNamedNode) ?: this.origAstTarget!!
+                ident
+            } else {
+                throw AssemblyError("no ast expr possible for target register $register")
+            }
+        }
+        else -> throw AssemblyError("invalid assign target kind $kind")
     }
-
 }

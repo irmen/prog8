@@ -221,7 +221,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 } else {
                     AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, false, program.memsizer, Position.DUMMY))
+                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY))
             }
         }
     }

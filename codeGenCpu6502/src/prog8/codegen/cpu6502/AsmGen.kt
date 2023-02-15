@@ -148,7 +148,7 @@ class AsmGen6502Internal (
             is PtVariable, is PtMemMapped -> {
                 val sourceName = asmVariableName(pointervar)
                 if (isTargetCpu(CpuType.CPU65c02)) {
-                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {       // TODO dotted string
+                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
                         sourceName
@@ -162,7 +162,7 @@ class AsmGen6502Internal (
                         "P8ZP_SCRATCH_W1"
                     }
                 } else {
-                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {       // TODO dotted string
+                    return if (allocator.isZpVar((target as PtNamedNode).scopedName.split('.'))) {
                         // pointervar is already in the zero page, no need to copy
                         out("  ldy  #0 |  lda  ($sourceName),y")
                         sourceName
@@ -185,7 +185,7 @@ class AsmGen6502Internal (
     internal fun storeAIntoPointerVar(pointervar: PtIdentifier) {
         val sourceName = asmVariableName(pointervar)
         if (isTargetCpu(CpuType.CPU65c02)) {
-            if (allocator.isZpVar(pointervar.name.split('.'))) {     // TODO dotted string
+            if (allocator.isZpVar(pointervar.name.split('.'))) {
                 // pointervar is already in the zero page, no need to copy
                 out("  sta  ($sourceName)")
             } else {
@@ -197,7 +197,7 @@ class AsmGen6502Internal (
                     sta  (P8ZP_SCRATCH_W2)""")
             }
         } else {
-            if (allocator.isZpVar(pointervar.name.split('.'))) {     // TODO dotted string
+            if (allocator.isZpVar(pointervar.name.split('.'))) {
                 // pointervar is already in the zero page, no need to copy
                 out(" ldy  #0 |  sta  ($sourceName),y")
             } else {
@@ -337,6 +337,7 @@ class AsmGen6502Internal (
             is PtBuiltinFunctionCall -> builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
             is PtFunctionCall -> functioncallAsmGen.translateFunctionCallStatement(stmt)
             is PtAssignment -> assignmentAsmGen.translate(stmt)
+            is PtAugmentedAssign -> assignmentAsmGen.translate(stmt)
             is PtJump -> {
                 val (asmLabel, indirect) = getJumpTarget(stmt)
                 jmp(asmLabel, indirect)
@@ -505,7 +506,7 @@ class AsmGen6502Internal (
                 translateNormalAssignment(
                     AsmAssignment(
                         AsmAssignSource(SourceStorageKind.REGISTER, program, this, target.datatype, register=RegisterOrPair.AY),
-                        target, false, program.memsizer, value.position
+                        target, program.memsizer, value.position
                     )
                 )
             }
@@ -962,7 +963,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name.split('.'))     // TODO dotted string
+    internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name.split('.'))
 
     internal fun jmp(asmLabel: String, indirect: Boolean=false) {
         if(indirect) {

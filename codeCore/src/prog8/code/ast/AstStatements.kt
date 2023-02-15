@@ -43,35 +43,21 @@ class PtAssignment(position: Position) : PtNode(position) {
         get() = children[0] as PtAssignTarget
     val value: PtExpression
         get() = children[1] as PtExpression
+}
 
-    val isInplaceAssign: Boolean by lazy {
-        val target = target.children.single() as PtExpression
-        when(val source = value) {
-            is PtArrayIndexer -> {
-                if(target is PtArrayIndexer && source.type==target.type) {
-                    if(target.variable isSameAs source.variable) {
-                        target.index isSameAs source.index
-                    }
-                }
-                false
-            }
-            is PtIdentifier -> target is PtIdentifier && target.type==source.type && target.name==source.name
-            is PtMachineRegister -> target is PtMachineRegister && target.register==source.register
-            is PtMemoryByte -> target is PtMemoryByte && target.address isSameAs source.address
-            is PtNumber -> target is PtNumber && target.type == source.type && target.number==source.number
-            is PtAddressOf -> target is PtAddressOf && target.identifier isSameAs source.identifier
-            is PtPrefix -> {
-                (target is PtPrefix && target.operator==source.operator && target.value isSameAs source.value)
-                        ||
-                (target is PtIdentifier && (source.value as? PtIdentifier)?.name==target.name)
-            }
-            is PtTypeCast -> target is PtTypeCast && target.type==source.type && target.value isSameAs source.value
-            is PtBinaryExpression ->
-                target isSameAs source.left
-            else -> false
+
+class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position) {
+    val target: PtAssignTarget
+        get() = children[0] as PtAssignTarget
+    val value: PtExpression
+        get() = children[1] as PtExpression
+    init {
+        require(operator.endsWith('=') || operator in PrefixOperators) {
+            "invalid augmented assign operator $operator"
         }
     }
 }
+
 
 class PtAssignTarget(position: Position) : PtNode(position) {
     val identifier: PtIdentifier?

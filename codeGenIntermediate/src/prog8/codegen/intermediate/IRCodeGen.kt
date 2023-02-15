@@ -238,6 +238,7 @@ class IRCodeGen(
             is PtMemMapped -> emptyList() // memmapped var should be looked up via symbol table
             is PtConstant -> emptyList() // constants have all been folded into the code
             is PtAssignment -> assignmentGen.translate(node)
+            is PtAugmentedAssign -> assignmentGen.translate(node)
             is PtNodeGroup -> translateGroup(node.children)
             is PtBuiltinFunctionCall -> translateBuiltinFunc(node, 0)
             is PtFunctionCall -> expressionEval.translate(node, 0, 0)
@@ -1178,7 +1179,7 @@ class IRCodeGen(
         for (child in block.children) {
             when(child) {
                 is PtNop -> { /* nothing */ }
-                is PtAssignment -> { /* global variable initialization is done elsewhere */ }
+                is PtAssignment, is PtAugmentedAssign -> { /* global variable initialization is done elsewhere */ }
                 is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
