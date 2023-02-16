@@ -3,13 +3,10 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- 6502 codegen optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
-  the old CompilerAst, those checks should probably be removed, or be made permanent
-- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
+- BSS in 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
   Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
   Note that bss can still contain variables that have @zp tag and those are already dealt with differently
-- bss: subroutine parameters don't have to be set to 0.
+- BSS: subroutine parameters don't have to be set to 0.
 
 ...
 
@@ -84,6 +81,8 @@ Optimizations:
 - when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 - optimize function argument expressions better (use temporary variables to replace non-simple expressions?)
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
+  those checks should probably be removed, or be made permanent
 
 
 STRUCTS again?
