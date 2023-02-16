@@ -3,10 +3,20 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- 6502 codegen optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
+  the old CompilerAst, those checks should probably be removed, or be made permanent
+- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
+  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
+  Note that bss can still contain variables that have @zp tag and those are already dealt with differently
+- bss: subroutine parameters don't have to be set to 0.
+
 ...
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
+- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - SEGMENTS.
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - block "golden" treated specially: every var in here will be allocated in the Golden ram area
@@ -29,10 +39,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
-  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
-  Note that bss can still contain variables that have @zp tag and those are already dealt with differently
-- bss: subroutine parameters don't have to be set to 0.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
@@ -44,8 +50,6 @@ Compiler:
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....  (vm codegen already behaves like this)
 - ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
-- createAssemblyAndAssemble(): make it possible to actually get rid of the VarDecl nodes by fixing the rest of the code mentioned there.
-  but probably better to rewrite the 6502 codegen on top of the new Ast.
 - generate WASM to eventually run prog8 on a browser canvas?
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
   Perhaps replace all uses of .proc/.pend by .block/.bend will fix that with a compiler flag?
@@ -57,8 +61,6 @@ Compiler:
 
 Libraries:
 
-- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
-- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - fix the problems in c128 target, and flesh out its libraries.
 - fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
@@ -78,13 +80,10 @@ Expressions:
 
 Optimizations:
 
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  When 6502-codegen is no longer done from
-  the old CompilerAst, those checks should probably be removed, or be made permanent
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
 - when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
 - optimize function argument expressions better (use temporary variables to replace non-simple expressions?)
-- 6502 codegen optimize array1[index] += / -= array2[index]  to not use slow stackeval (attemptAssignOptimizedBinexpr)
 
 
 STRUCTS again?
