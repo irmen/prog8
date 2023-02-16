@@ -66,12 +66,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.returntype, node)
             }
             is PtVariable -> {
-                val bss = when (node.type) {
-                    // TODO should bss be a computed property on PtVariable?
-                    DataType.STR -> false
-                    in ArrayDatatypes -> node.value==null || node.arraySize==0u
-                    else -> node.value==null
-                }
                 val initialNumeric: Double?
                 val initialString: StString?
                 val initialArray: StArray?
@@ -103,7 +97,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     initialString = null
                     numElements = node.arraySize?.toInt()
                 }
-                StStaticVariable(node.name, node.type, bss, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
+                StStaticVariable(node.name, node.type, node.bss, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
             }
             is PtBuiltinFunctionCall -> {
                 if(node.name=="memory") {

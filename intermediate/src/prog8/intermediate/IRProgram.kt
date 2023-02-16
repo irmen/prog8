@@ -234,7 +234,6 @@ class IRBlock(
     val alignment: BlockAlignment,
     val position: Position
 ) {
-    // TODO not separate lists but just a single list of chunks, like IRSubroutine?  (but these are not all chunks...)
     val children = mutableListOf<IIRBlockElement>()
 
     enum class BlockAlignment {

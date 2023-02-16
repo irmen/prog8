@@ -155,6 +155,13 @@ class PtVariable(name: String, override val type: DataType, val zeropage: Zeropa
     init {
         value?.let {it.parent=this}
     }
+
+    val bss: Boolean =
+        when (type) {
+            DataType.STR -> false
+            in ArrayDatatypes -> value==null || arraySize==0u
+            else -> value==null
+        }
 }
 
 

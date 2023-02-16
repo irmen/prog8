@@ -44,7 +44,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "^=" -> inplaceModification(assign.target, "^", srcValue)
             "<<=" -> inplaceModification(assign.target, "<<", srcValue)
             ">>=" -> inplaceModification(assign.target, ">>", srcValue)
-            else -> throw AssemblyError("invalid augmented assign operator ${assign.operator}")     // TODO fallback to non-augmented Assign?
+            else -> throw AssemblyError("invalid augmented assign operator ${assign.operator}")
         }
     }
 

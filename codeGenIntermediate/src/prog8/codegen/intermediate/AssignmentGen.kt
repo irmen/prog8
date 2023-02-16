@@ -62,7 +62,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             "<<" -> expressionEval.operatorShiftLeftInplace(address, null, vmDt, value)
             ">>" -> expressionEval.operatorShiftRightInplace(address, null, vmDt, value.type in SignedDatatypes, value)
             in PrefixOperators -> inplacePrefix(assignment.operator, vmDt, address, null)
-            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")     // TODO fallbackAssign?
+            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
     }
 
@@ -80,7 +80,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             "<<=" -> expressionEval.operatorShiftLeftInplace(null, symbol, valueVmDt, value)
             ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, valueVmDt, value.type in SignedDatatypes, value)
             in PrefixOperators -> inplacePrefix(assignment.operator, valueVmDt, null, symbol)
-            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")     // TODO fallbackAssign?
+            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
     }
 
