@@ -4,6 +4,9 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
 import prog8.code.target.VMTarget
+import prog8.code.target.c64.C64MachineDefinition
+import prog8.code.target.cx16.CX16MachineDefinition
+import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import prog8.vm.VirtualMachine
 import prog8.vm.VmRunner
@@ -131,5 +134,15 @@ class TestVm: FunSpec( {
 </PROGRAM>
 """
         runner.runProgram(irSource)
+    }
+
+    test("vm machine float bits") {
+        val cx16machine = CX16MachineDefinition()
+        cx16machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
+        val c64machine = C64MachineDefinition()
+        c64machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
+
+        val vm = VirtualMachineDefinition()
+        vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$49, \$0f, \$db"
     }
 })

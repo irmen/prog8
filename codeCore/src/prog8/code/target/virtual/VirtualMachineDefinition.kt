@@ -20,7 +20,13 @@ class VirtualMachineDefinition: IMachineDefinition {
     override lateinit var zeropage: Zeropage    // not actually used
     override lateinit var golden: GoldenRam     // not actually used
 
-    override fun getFloatAsmBytes(num: Number) = TODO("float asm bytes from number")
+    override fun getFloatAsmBytes(num: Number): String {
+        // little endian binary representation
+        val bits = num.toFloat().toBits().toUInt()
+        val hexStr = bits.toString(16).padStart(8, '0')
+        val parts = hexStr.chunked(2).map { "\$" + it }
+        return parts.joinToString(", ")
+    }
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return listOf("syslib")
