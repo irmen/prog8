@@ -28,10 +28,6 @@ romsub $bc0c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2 
 romsub $bc0f = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $bbd4 = MOVMF(uword mflpt @ XY) clobbers(A,Y)        ; store fac1 to memory  X/Y as 5-byte mflpt
 
-; fac1-> signed word in Y/A (might throw ILLEGAL QUANTITY)
-; (tip: use floats.FTOSWRDAY to get A/Y output; lo/hi switched to normal little endian order)
-romsub $b1aa = FTOSWORDYA() clobbers(X) -> ubyte @ Y, ubyte @ A       ; note: calls AYINT.
-
 ; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use floats.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
 romsub $b7f7 = GETADR() clobbers(X) -> ubyte @ Y, ubyte @ A
@@ -144,17 +140,6 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 		tya
 		ldy  P8ZP_SCRATCH_REG
 		jmp  GIVAYF		; this uses the inverse order, Y/A
-	}}
-}
-
-asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
-	; ---- fac1 to signed word in A/Y
-	%asm {{
-		jsr  FTOSWORDYA	; note the inverse Y/A order
-		sta  P8ZP_SCRATCH_REG
-		tya
-		ldy  P8ZP_SCRATCH_REG
-		rts
 	}}
 }
 

@@ -120,17 +120,6 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	}}
 }
 
-asmsub  FTOSWRDAY  () clobbers(X) -> uword @ AY  {
-	; ---- fac1 to signed word in A/Y
-	%asm {{
-		jsr  FTOSWORDYA	; note the inverse Y/A order
-		sta  P8ZP_SCRATCH_B1
-		tya
-		ldy  P8ZP_SCRATCH_B1
-		rts
-	}}
-}
-
 asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to unsigned word in A/Y
 	%asm {{
