@@ -3,16 +3,10 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- BSS.
-    64tass can put variables into a section with .section BSS <variable> .send BSS
-    and then putting .dsection BSS where it should output the BSS
-    Define vars in BSS with .fill rather than .byte otherwise they STILL take up space!
-
-- BSS in 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with uninitialized=true.
-  Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
-  Note that 'uninitialized' can still be true for variables that were moved into zeropage, so have to check that!
-- BSS subroutine parameters don't have to be set to 0.
-- when putting BSS in specific memory block ($a000-$bfff, $c000-$cfff) add a .cerror check for overflow!
+- cleanup handling of noreinit
+- BSS: initialize BSS block (without slabs!) to zeros on start, using 1 loop instead of all those initialization assignments
+- BSS subroutine parameters don't have to be set to 0. But meh, the loop should be super fast anyway.
+- allow putting BSS in specific upper memory block ($a000-$bfff, $c000-$cfff on C64) add a .cerror check for overflow!
 
 ...
 

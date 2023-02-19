@@ -21,6 +21,8 @@ main {
         ubyte[10] filledarray = [1,2,3,4,5,6,7,8,9,10]
         float[3] floatarray
         uword[3] wordarray
+        uword slab1 = memory("slab1",400, 0)
+        uword slab2 = memory("slab2",200, $1000)
 
         txt.print("**subroutine scope**\n")
         txt.print("uninit wordvar=")
@@ -103,5 +105,9 @@ main {
         txt.print_ub(b_filledarray[2])
 
         txt.print("\n\nrun again to see effect of re-init.\n")
+        txt.print_uwhex(slab1, true)
+        txt.nl()
+        txt.print_uwhex(slab2, true)
+        txt.nl()
     }
 }

@@ -162,18 +162,18 @@ internal class ProgramAndVarsGen(
     }
 
     private fun memorySlabs() {
-        asmgen.out("; memory slabs")
+        asmgen.out("; memory slabs\n  .section slabs_BSS")
         asmgen.out("prog8_slabs\t.block")
         for(slab in symboltable.allMemorySlabs) {
             if(slab.align>1u)
                 asmgen.out("\t.align  ${slab.align.toHex()}")
             asmgen.out("${slab.name}\t.fill  ${slab.size}")
         }
-        asmgen.out("\t.bend")
+        asmgen.out("\t.bend\n  .send slabs_BSS")
     }
 
     private fun footer() {
-        // program end
+        asmgen.out("; bss sections\n  .dsection BSS\n  .dsection slabs_BSS")
         asmgen.out("prog8_program_end\t; end of program label for progend()")
     }
 
@@ -468,20 +468,52 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun nonZpVariables2asm(variables: List<StStaticVariable>) {
+    private fun nonZpVariables2asm(variables2: List<StStaticVariable>) {
         asmgen.out("")
-        asmgen.out("; non-zeropage variables")
-        val (stringvars, othervars) = variables.sortedBy { it.name }.partition { it.dt==DataType.STR }
-        stringvars.forEach {
-            outputStringvar(it.name, it.onetimeInitializationStringValue!!.second, it.onetimeInitializationStringValue!!.first)
+        val (varsNoInit, varsWithInit) = variables2.partition { it.uninitialized }
+        if(varsNoInit.isNotEmpty()) {
+            asmgen.out("; non-zeropage variables without initialization value")
+            asmgen.out("  .section BSS")
+            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+                uninitializedVariable2asm(it)
+            }
+            asmgen.out("  .send BSS")
         }
-        othervars.sortedBy { it.type }.forEach {
-            staticVariable2asm(it)
+
+        if(varsWithInit.isNotEmpty()) {
+            asmgen.out("; non-zeropage variables")
+            val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt == DataType.STR }
+            stringvars.forEach {
+                outputStringvar(
+                    it.name,
+                    it.onetimeInitializationStringValue!!.second,
+                    it.onetimeInitializationStringValue!!.first
+                )
+            }
+            othervars.sortedBy { it.type }.forEach {
+                staticVariable2asm(it)
+            }
+        }
+    }
+
+    private fun uninitializedVariable2asm(variable: StStaticVariable) {
+        when (variable.dt) {
+            DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
+            DataType.BYTE -> asmgen.out("${variable.name}\t.char  ?")
+            DataType.UWORD -> asmgen.out("${variable.name}\t.word  ?")
+            DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
+            DataType.FLOAT -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
+            in ArrayDatatypes -> {
+                val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
+                asmgen.out("${variable.name}\t.fill  $numbytes")
+            }
+            else -> {
+                throw AssemblyError("weird dt")
+            }
         }
     }
 
     private fun staticVariable2asm(variable: StStaticVariable) {
-        val name = variable.name
         val initialValue: Number =
             if(variable.onetimeInitializationNumericValue!=null) {
                 if(variable.dt== DataType.FLOAT)
@@ -491,22 +523,22 @@ internal class ProgramAndVarsGen(
             } else 0
 
         when (variable.dt) {
-            DataType.UBYTE -> asmgen.out("$name\t.byte  ${initialValue.toHex()}")
-            DataType.BYTE -> asmgen.out("$name\t.char  $initialValue")
-            DataType.UWORD -> asmgen.out("$name\t.word  ${initialValue.toHex()}")
-            DataType.WORD -> asmgen.out("$name\t.sint  $initialValue")
+            DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
+            DataType.BYTE -> asmgen.out("${variable.name}\t.char  $initialValue")
+            DataType.UWORD -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
+            DataType.WORD -> asmgen.out("${variable.name}\t.sint  $initialValue")
             DataType.FLOAT -> {
                 if(initialValue==0) {
-                    asmgen.out("$name\t.byte  0,0,0,0,0  ; float")
+                    asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
                 } else {
                     val floatFill = compTarget.machine.getFloatAsmBytes(initialValue)
-                    asmgen.out("$name\t.byte  $floatFill  ; float $initialValue")
+                    asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
                 }
             }
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
+            in ArrayDatatypes -> arrayVariable2asm(variable.name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }
