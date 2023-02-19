@@ -139,14 +139,16 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeVariables() {
 
+        val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
+
         out.write("\n<VARIABLESNOINIT>\n")
-        for (variable in irProgram.st.allVariables().filter { it.bss }) {
+        for (variable in variablesNoInit) {
             val typeStr = getTypeString(variable)
             out.write("$typeStr ${variable.name} zp=${variable.zpwish}\n")
         }
 
         out.write("</VARIABLESNOINIT>\n<VARIABLESWITHINIT>\n")
-        for (variable in irProgram.st.allVariables().filter { !it.bss }) {
+        for (variable in variablesWithInit) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
                 DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()

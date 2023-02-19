@@ -3,15 +3,14 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix hasInitValue() and isBssVar()
 - BSS.
     64tass can put variables into a section with .section BSS <variable> .send BSS
     and then putting .dsection BSS where it should output the BSS
     Define vars in BSS with .fill rather than .byte otherwise they STILL take up space!
 
-- BSS in 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with bss=true.
+- BSS in 6502 codegen: create BSS section in output assembly code and put StStaticVariables in there with uninitialized=true.
   Don't forget to add init code to zero out everything that was put in bss. If array in bss->only zero ONCE if possible.
-  Note that 'bss' can still be true for variables that were moved into zeropage, so have to check that!
+  Note that 'uninitialized' can still be true for variables that were moved into zeropage, so have to check that!
 - BSS subroutine parameters don't have to be set to 0.
 - when putting BSS in specific memory block ($a000-$bfff, $c000-$cfff) add a .cerror check for overflow!
 

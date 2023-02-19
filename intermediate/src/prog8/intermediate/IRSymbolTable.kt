@@ -75,7 +75,7 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             }
             scopedName = variable.scopedName
             val dummyNode = PtVariable(scopedName, variable.dt, variable.zpwish, null, null, variable.astNode.position)
-            varToadd = StStaticVariable(scopedName, variable.dt, variable.bss,
+            varToadd = StStaticVariable(scopedName, variable.dt,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),

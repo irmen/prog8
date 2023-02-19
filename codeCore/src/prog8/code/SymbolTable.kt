@@ -147,7 +147,6 @@ open class StNode(val name: String,
 
 class StStaticVariable(name: String,
                        val dt: DataType,
-                       val bss: Boolean,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: StString?,
                        val onetimeInitializationArrayValue: StArray?,
@@ -155,25 +154,22 @@ class StStaticVariable(name: String,
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        astNode: PtNode) : StNode(name, StNodeType.STATICVAR, astNode) {
 
+    val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
+
     init {
-        if(bss) {
-            require(onetimeInitializationNumericValue==null)
-            require(onetimeInitializationStringValue==null)
-            require(onetimeInitializationArrayValue.isNullOrEmpty())
-        } else {
-            require(onetimeInitializationNumericValue!=null ||
-                    onetimeInitializationStringValue!=null ||
-                    onetimeInitializationArrayValue!=null)
-        }
         if(length!=null) {
             require(onetimeInitializationNumericValue == null)
             if(onetimeInitializationArrayValue!=null)
                 require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
         }
-        if(onetimeInitializationNumericValue!=null)
+        if(onetimeInitializationNumericValue!=null) {
             require(dt in NumericDatatypes)
-        if(onetimeInitializationArrayValue!=null)
+            require(onetimeInitializationNumericValue!=0.0) { "zero as init value should just remain uninitialized"}
+        }
+        if(onetimeInitializationArrayValue!=null) {
             require(dt in ArrayDatatypes)
+            require(onetimeInitializationArrayValue.any { it.number!=0.0} ) { "array of all zerors as init value should just remain uninitialized"}
+        }
         if(onetimeInitializationStringValue!=null) {
             require(dt == DataType.STR)
             require(length == onetimeInitializationStringValue.first.length+1)

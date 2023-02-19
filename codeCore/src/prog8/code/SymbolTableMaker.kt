@@ -72,7 +72,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 val numElements: Int?
                 val value = node.value
                 if(value!=null) {
-                    initialNumeric = (value as? PtNumber)?.number
+                    val number = (value as? PtNumber)?.number
+                    initialNumeric = if(number==0.0) null else number       // 0 as init value -> just uninitialized
                     when (value) {
                         is PtString -> {
                             initialString = StString(value.value, value.encoding)
@@ -80,9 +81,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             numElements = value.value.length + 1   // include the terminating 0-byte
                         }
                         is PtArray -> {
-                            initialArray = makeInitialArray(value)
+                            val array = makeInitialArray(value)
+                            initialArray = if(array.all { it.number==0.0 }) null else array            // all 0 as init value -> just uninitialized
                             initialString = null
-                            numElements = initialArray.size
+                            numElements = array.size
                             require(node.arraySize?.toInt()==numElements)
                         }
                         else -> {
@@ -97,7 +99,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     initialString = null
                     numElements = node.arraySize?.toInt()
                 }
-                StStaticVariable(node.name, node.type, node.bss, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
+                StStaticVariable(node.name, node.type, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
             }
             is PtBuiltinFunctionCall -> {
                 if(node.name=="memory") {

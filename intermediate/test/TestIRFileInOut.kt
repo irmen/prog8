@@ -110,7 +110,7 @@ return
         program.st.allVariables().count() shouldBe 2
         val var1 = program.st.lookup("sys.wait.jiffies") as StStaticVariable
         val var2 = program.st.lookup("sys.bssvar") as StStaticVariable
-        var1.bss shouldBe false
-        var2.bss shouldBe true
+        var1.uninitialized shouldBe false
+        var2.uninitialized shouldBe true
     }
 })

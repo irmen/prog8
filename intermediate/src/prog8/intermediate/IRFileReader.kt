@@ -172,7 +172,7 @@ class IRFileReader {
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, true, null, null, null, arraysize, zp, dummyNode)
+                val newVar = StStaticVariable(name, dt, null, null, null, arraysize, zp, dummyNode)
                 variables.add(newVar)
             }
             return variables
@@ -202,40 +202,23 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val bss: Boolean
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
-                    in NumericDatatypes -> {
-                        if(value.isBlank()) {
-                            require(!dontReinitGlobals)
-                            bss = true
-                        } else {
-                            require(dontReinitGlobals)
-                            bss = false
-                            initNumeric = parseIRValue(value).toDouble()
-                        }
-                    }
+                    in NumericDatatypes -> initNumeric = parseIRValue(value).toDouble()
                     in ArrayDatatypes -> {
-                        if(value.isBlank()) {
-                            bss = true
-                            initArray = emptyList()
-                        } else {
-                            bss = false
-                            initArray = value.split(',').map {
-                                if (it.startsWith('@'))
-                                    StArrayElement(null, it.drop(1))
-                                else
-                                    StArrayElement(parseIRValue(it).toDouble(), null)
-                            }
+                        initArray = value.split(',').map {
+                            if (it.startsWith('@'))
+                                StArrayElement(null, it.drop(1))
+                            else
+                                StArrayElement(parseIRValue(it).toDouble(), null)
                         }
                     }
                     DataType.STR -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
-                require(!bss) { "bss var should be in BSS section" }
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
-                variables.add(StStaticVariable(name, dt, bss, initNumeric, null, initArray, arraysize, zp, dummyNode))
+                variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, dummyNode))
             }
             return variables
         }

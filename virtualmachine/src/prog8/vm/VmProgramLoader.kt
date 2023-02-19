@@ -177,7 +177,7 @@ class VmProgramLoader {
             var addr = allocations.allocations.getValue(variable.name)
 
             // zero out uninitialized variables.
-            if(variable.bss) {
+            if(variable.uninitialized) {
                 if(variable.dt in ArrayDatatypes) {
                     repeat(variable.length!!) {
                         when(variable.dt) {
@@ -222,10 +222,10 @@ class VmProgramLoader {
                 require(variable.length==it.size || it.size==1 || it.size==0)
                 if(it.isEmpty() || it.size==1) {
                     val value = if(it.isEmpty()) {
-                        require(variable.bss)
+                        require(variable.uninitialized)
                         0.0
                     } else {
-                        require(!variable.bss)
+                        require(!variable.uninitialized)
                         it[0].number!!
                     }
                     when(variable.dt) {
