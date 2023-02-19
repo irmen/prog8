@@ -15,7 +15,7 @@ class VmProgramLoader {
 
         varsToMemory(irProgram, allocations, variableAddresses, memory)
 
-        if(!irProgram.options.dontReinitGlobals) {
+        if(irProgram.options.reinitGlobals) {
             if(irProgram.globalInits.isNotEmpty())
                 programChunks += irProgram.globalInits
         }
@@ -197,7 +197,8 @@ class VmProgramLoader {
                         }
                     }
                 } else {
-                    if(program.options.dontReinitGlobals) {
+                    if(!program.options.reinitGlobals) {
+                        // variable is not initialized as part of a global reinitialization, so we clear it here
                         when(variable.dt) {
                             in ByteDatatypes -> memory.setUB(addr, 0u)
                             in WordDatatypes -> memory.setUW(addr, 0u)

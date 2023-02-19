@@ -33,7 +33,7 @@ class IRCodeGen(
         if(options.evalStackBaseAddress!=null)
             throw AssemblyError("IR doesn't use eval-stack")
 
-        if(!options.dontReinitGlobals) {
+        if(options.reinitGlobals) {
             // collect global variables initializers
             program.allBlocks().forEach {
                 val result = mutableListOf<IRCodeChunkBase>()

@@ -3,10 +3,12 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- cleanup handling of noreinit
+- cleanup handling of noreinit / fix compilation crash of petaxian with this option enabled
 - BSS: initialize BSS block (without slabs!) to zeros on start, using 1 loop instead of all those initialization assignments
 - BSS subroutine parameters don't have to be set to 0. But meh, the loop should be super fast anyway.
-- allow putting BSS in specific upper memory block ($a000-$bfff, $c000-$cfff on C64) add a .cerror check for overflow!
+- option to put BSS in specific upper memory block ($a000-$bfff, $c000-$cfff on C64) add a .cerror check for overflow!
+- document bss stuff in the manual
+
 
 ...
 

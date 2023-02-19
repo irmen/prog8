@@ -46,7 +46,7 @@ class IRFileReader {
         val options = parseOptions(reader)
         val asmsymbols = parseAsmSymbols(reader)
         val varsWithoutInit = parseVarsWithoutInit(reader)
-        val variables = parseVariables(reader, options.dontReinitGlobals)
+        val variables = parseVariables(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
         val initGlobals = parseInitGlobals(reader)
@@ -82,7 +82,7 @@ class IRFileReader {
         var zeropage = ZeropageType.FULL
         val zpReserved = mutableListOf<UIntRange>()
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
-        var dontReinitGlobals = false
+        var reInitGlobals = true
         var optimize = true
         var evalStackBaseAddress: UInt? = null
         var outputDir = Path("")
@@ -105,7 +105,7 @@ class IRFileReader {
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)
                     "loadAddress" -> loadAddress = value.toUInt()
-                    "dontReinitGlobals" -> dontReinitGlobals = value.toBoolean()
+                    "reinitGlobals" -> reInitGlobals = value.toBoolean()
                     "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
                     "zpReserved" -> {
                         val (zpstart, zpend) = value.split(',')
@@ -127,10 +127,10 @@ class IRFileReader {
             false,
             target,
             loadAddress,
-            dontReinitGlobals = dontReinitGlobals,
             evalStackBaseAddress = evalStackBaseAddress,
             outputDir = outputDir,
-            optimize = optimize
+            optimize = optimize,
+            reinitGlobals = reInitGlobals
         )
     }
 
@@ -179,7 +179,7 @@ class IRFileReader {
         }
     }
 
-    private fun parseVariables(reader: XMLEventReader, dontReinitGlobals: Boolean): List<StStaticVariable> {
+    private fun parseVariables(reader: XMLEventReader): List<StStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="VARIABLESWITHINIT") { "missing VARIABLESWITHINIT" }

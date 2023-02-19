@@ -201,7 +201,7 @@ internal class ProgramAndVarsGen(
         val notInitializers = block.children.filterNot { it in initializers }
         notInitializers.forEach { asmgen.translate(it) }
 
-        if(!options.dontReinitGlobals) {
+        if(options.reinitGlobals) {
             // generate subroutine to initialize block-level (global) variables
             if (initializers.isNotEmpty()) {
                 asmgen.out("prog8_init_vars\t.block")
@@ -364,7 +364,7 @@ internal class ProgramAndVarsGen(
     private fun entrypointInitialization() {
         asmgen.out("; program startup initialization")
         asmgen.out("  cld")
-        if(!options.dontReinitGlobals) {
+        if(options.reinitGlobals) {
             blockVariableInitializers.forEach {
                 if (it.value.isNotEmpty())
                     asmgen.out("  jsr  ${it.key.name}.prog8_init_vars")

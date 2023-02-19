@@ -6,11 +6,9 @@ import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.printProgram
 import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
-import prog8.code.ast.printAst
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -32,7 +30,7 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val optimizeFloatExpressions: Boolean,
-                        val dontReinitGlobals: Boolean,
+                        val reinitGlobals: Boolean,
                         val writeAssembly: Boolean,
                         val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
@@ -77,7 +75,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
                 optimizeFloatExpressions = optimizeFloatExpr
-                dontReinitGlobals = args.dontReinitGlobals
+                reinitGlobals = args.reinitGlobals
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
