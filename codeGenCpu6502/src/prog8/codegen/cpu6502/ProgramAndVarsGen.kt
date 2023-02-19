@@ -468,9 +468,9 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun nonZpVariables2asm(variables2: List<StStaticVariable>) {
+    private fun nonZpVariables2asm(variables: List<StStaticVariable>) {
         asmgen.out("")
-        val (varsNoInit, varsWithInit) = variables2.partition { it.uninitialized }
+        val (varsNoInit, varsWithInit) = variables.partition { it.uninitialized }
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables without initialization value")
             asmgen.out("  .section BSS")

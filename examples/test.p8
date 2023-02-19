@@ -6,7 +6,8 @@
 main {
 
     uword b_wordvar
-    ubyte b_bb =123
+    uword b_initwordvar = 12345     ; TODO FIX THIS INIT VALUE FOR noreinit=true
+    ubyte b_bb =123      ; TODO FIX THIS INIT VALUE FOR noreinit=true
     float b_fl
     ubyte[10] b_emptyarray
     ubyte[10] b_filledarray = [1,2,3,4,5,6,7,8,9,10]
@@ -15,6 +16,7 @@ main {
 
     sub start() {
         uword wordvar
+        uword initwordvar = 12345
         float fl
         ubyte bb =123
         ubyte[10] emptyarray
@@ -25,12 +27,14 @@ main {
         uword slab2 = memory("slab2",200, $1000)
 
         txt.print("**subroutine scope**\n")
-        txt.print("uninit wordvar=")
+        txt.print("init wordvar=")
+        txt.print_uw(initwordvar)
+        txt.print("\ninit bb=")
+        txt.print_ub(bb)
+        txt.print("\nuninit wordvar=")
         txt.print_uw(wordvar)
         txt.print("\nuninit float=")
         floats.print_f(fl)
-        txt.print("\ninit bb=")
-        txt.print_ub(bb)
         txt.print("\nuninit emptyarray[2]=")
         txt.print_ub(emptyarray[2])
         txt.print("\nuninit wordarray[2]=")
@@ -41,12 +45,14 @@ main {
         txt.print_ub(filledarray[2])
 
         txt.print("\n**block scope**\n")
-        txt.print("uninit b_wordvar=")
+        txt.print("init wordvar=")
+        txt.print_uw(b_initwordvar)
+        txt.print("\ninit b_bb=")
+        txt.print_ub(b_bb)
+        txt.print("\nuninit b_wordvar=")
         txt.print_uw(b_wordvar)
         txt.print("\nuninit b_float=")
         floats.print_f(b_fl)
-        txt.print("\ninit b_bb=")
-        txt.print_ub(b_bb)
         txt.print("\nuninit b_emptyarray[2]=")
         txt.print_ub(b_emptyarray[2])
         txt.print("\nuninit b_wordarray[2]=")

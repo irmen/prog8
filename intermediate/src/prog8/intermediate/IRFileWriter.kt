@@ -23,7 +23,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         out.write("\n<INITGLOBALS>\n")
         if(irProgram.options.reinitGlobals) {
-            // note: this a block of code that loads values and stores them into the global variables to reset their values.
+            // this a code that re-loads startup values into all global (block-level) variables.
             writeCodeChunk(irProgram.globalInits)
         }
         out.write("</INITGLOBALS>\n")

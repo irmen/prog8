@@ -41,7 +41,6 @@ internal class BeforeAsmAstChanger(val program: Program,
         if(!options.reinitGlobals) {
             block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
                 if(it.type==VarDeclType.VAR) {
-                    it.zeropage = ZeropageWish.NOT_IN_ZEROPAGE
                     it.findInitializer(program)?.let { initializer ->
                         it.value = initializer.value     // put the init value back into the vardecl
                     }

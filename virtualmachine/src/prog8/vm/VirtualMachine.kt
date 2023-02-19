@@ -37,7 +37,7 @@ class VirtualMachine(irProgram: IRProgram) {
     val callStack = Stack<Pair<IRCodeChunk, Int>>()
     val valueStack = Stack<UByte>()       // max 128 entries
     var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
-    var pcChunk: IRCodeChunk
+    var pcChunk = IRCodeChunk(null, null)
     var pcIndex = 0
     var stepCount = 0
     var statusCarry = false
@@ -51,7 +51,7 @@ class VirtualMachine(irProgram: IRProgram) {
         program = VmProgramLoader().load(irProgram, memory)
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
         cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
-        pcChunk = program.firstOrNull() ?: IRCodeChunk(null, null)
+        reset(false)
     }
 
     fun run() {
@@ -81,13 +81,17 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    fun reset() {
+    fun reset(clearMemory: Boolean) {
+        // "reset" the VM without erasing the currently loaded program
+        // this allows you to re-run the program multiple times without having to reload it
         registers.reset()
-        // memory.reset()
+        if(clearMemory)
+            memory.reset()
         pcIndex = 0
-        pcChunk = IRCodeChunk(null, null)
+        pcChunk = program.firstOrNull() ?: IRCodeChunk(null, null)
         stepCount = 0
         callStack.clear()
+        valueStack.clear()
         statusCarry = false
         statusNegative = false
         statusZero = false

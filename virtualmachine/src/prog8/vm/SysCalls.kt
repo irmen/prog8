@@ -89,7 +89,7 @@ object SysCalls {
 
         when(call) {
             Syscall.RESET -> {
-                vm.reset()
+                vm.reset(false)
             }
             Syscall.EXIT ->{
                 vm.exit(vm.registers.getUB(SyscallRegisterBase).toInt())
