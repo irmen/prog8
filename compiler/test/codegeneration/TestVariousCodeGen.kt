@@ -13,7 +13,7 @@ import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8tests.helpers.compileText
 
-class TestVarious: FunSpec({
+class TestVariousCodeGen: FunSpec({
     test("bool to byte cast in expression is correct") {
         val text="""
 main {

@@ -14,7 +14,7 @@ import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8tests.helpers.compileText
 
-class TestVarious: FunSpec({
+class TestVariousCompilerAst: FunSpec({
     test("symbol names in inline assembly blocks") {
         val names1 = InlineAssembly("""
             

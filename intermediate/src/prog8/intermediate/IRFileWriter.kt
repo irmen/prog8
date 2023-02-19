@@ -139,14 +139,13 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
     private fun writeVariables() {
 
-        out.write("\n<BSS>\n")
+        out.write("\n<VARIABLESNOINIT>\n")
         for (variable in irProgram.st.allVariables().filter { it.bss }) {
             val typeStr = getTypeString(variable)
-            // bss variables have no initialization value
             out.write("$typeStr ${variable.name} zp=${variable.zpwish}\n")
         }
 
-        out.write("</BSS>\n<VARIABLES>\n")
+        out.write("</VARIABLESNOINIT>\n<VARIABLESWITHINIT>\n")
         for (variable in irProgram.st.allVariables().filter { !it.bss }) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
@@ -179,7 +178,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
             out.write("$typeStr ${variable.name}=$value zp=${variable.zpwish}\n")
         }
-        out.write("</VARIABLES>\n")
+        out.write("</VARIABLESWITHINIT>\n")
 
         out.write("\n<MEMORYMAPPEDVARIABLES>\n")
         for (variable in irProgram.st.allMemMappedVariables()) {

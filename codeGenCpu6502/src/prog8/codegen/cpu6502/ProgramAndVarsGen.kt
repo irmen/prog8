@@ -65,7 +65,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; assembler syntax is for the 64tasm cross-assembler")
         asmgen.out("; output options: output=${options.output} launcher=${options.launcher} zp=${options.zeropage}")
         asmgen.out("")
-        asmgen.out(".cpu  '$cpu'\n.enc  'none'\n")
+        asmgen.out(".cpu  '$cpu'\n.enc  'none'")
 
         // the global prog8 variables needed
         val zp = zeropage
@@ -88,7 +88,7 @@ internal class ProgramAndVarsGen(
         when(options.output) {
             OutputType.RAW -> {
                 asmgen.out("; ---- raw assembler program ----")
-                asmgen.out("* = ${options.loadAddress.toHex()}\n")
+                asmgen.out("* = ${options.loadAddress.toHex()}")
             }
             OutputType.PRG -> {
                 when(options.launcher) {
@@ -102,14 +102,14 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .word  (+), $year")
                         asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
                         asmgen.out("+\t.word  0")
-                        asmgen.out("prog8_entrypoint\t; assembly code starts here\n")
+                        asmgen.out("prog8_entrypoint\t; assembly code starts here")
                         if(!options.noSysInit)
                             asmgen.out("  jsr  ${compTarget.name}.init_system")
                         asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
                     }
                     CbmPrgLauncherType.NONE -> {
                         asmgen.out("; ---- program without basic sys call ----")
-                        asmgen.out("* = ${options.loadAddress.toHex()}\n")
+                        asmgen.out("* = ${options.loadAddress.toHex()}")
                         if(!options.noSysInit)
                             asmgen.out("  jsr  ${compTarget.name}.init_system")
                         asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
@@ -118,7 +118,7 @@ internal class ProgramAndVarsGen(
             }
             OutputType.XEX -> {
                 asmgen.out("; ---- atari xex program ----")
-                asmgen.out("* = ${options.loadAddress.toHex()}\n")
+                asmgen.out("* = ${options.loadAddress.toHex()}")
                 if(!options.noSysInit)
                     asmgen.out("  jsr  ${compTarget.name}.init_system")
                 asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
@@ -189,7 +189,7 @@ internal class ProgramAndVarsGen(
                 asmgen.out("\t.align $100")
         }
 
-        asmgen.out("${block.name}\t" + (if(block.forceOutput) ".block\n" else ".proc\n"))
+        asmgen.out("${block.name}\t" + (if(block.forceOutput) ".block" else ".proc"))
         asmgen.outputSourceLine(block)
 
         createBlockVariables(block)
@@ -204,13 +204,13 @@ internal class ProgramAndVarsGen(
         if(!options.dontReinitGlobals) {
             // generate subroutine to initialize block-level (global) variables
             if (initializers.isNotEmpty()) {
-                asmgen.out("prog8_init_vars\t.block\n")
+                asmgen.out("prog8_init_vars\t.block")
                 initializers.forEach { assign -> asmgen.translate(assign) }
                 asmgen.out("  rts\n  .bend")
             }
         }
 
-        asmgen.out(if(block.forceOutput) "\n\t.bend\n" else "\n\t.pend\n")
+        asmgen.out(if(block.forceOutput) "\n\t.bend" else "\n\t.pend")
     }
 
     private fun getVars(scope: StNode): Map<String, StNode> =
@@ -266,7 +266,7 @@ internal class ProgramAndVarsGen(
         // asmsub with most likely just an inline asm in it
         asmgen.out("${sub.name}\t$asmStartScope")
         sub.children.forEach { asmgen.translate(it) }
-        asmgen.out("  $asmEndScope\n")
+        asmgen.out("  $asmEndScope")
     }
 
 
@@ -358,7 +358,7 @@ internal class ProgramAndVarsGen(
             .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
 
-        asmgen.out("  $asmEndScope\n")
+        asmgen.out("  $asmEndScope")
     }
 
     private fun entrypointInitialization() {

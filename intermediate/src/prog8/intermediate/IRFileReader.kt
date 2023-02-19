@@ -45,7 +45,7 @@ class IRFileReader {
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val options = parseOptions(reader)
         val asmsymbols = parseAsmSymbols(reader)
-        val bss = parseBss(reader)
+        val varsWithoutInit = parseVarsWithoutInit(reader)
         val variables = parseVariables(reader, options.dontReinitGlobals)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
@@ -54,7 +54,7 @@ class IRFileReader {
 
         val st = IRSymbolTable(null)
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
-        bss.forEach { st.add(it) }
+        varsWithoutInit.forEach { st.add(it) }
         variables.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
@@ -150,10 +150,10 @@ class IRFileReader {
             }
     }
 
-    private fun parseBss(reader: XMLEventReader): List<StStaticVariable> {
+    private fun parseVarsWithoutInit(reader: XMLEventReader): List<StStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="BSS") { "missing BSS" }
+        require(start.name.localPart=="VARIABLESNOINIT") { "missing VARIABLESNOINIT" }
         val text = readText(reader).trim()
         require(reader.nextEvent().isEndElement)
 
@@ -161,10 +161,10 @@ class IRFileReader {
             emptyList()
         else {
             val varPattern = Regex("(.+?)(\\[.+?\\])? (.+) (zp=(.+))?")
-            val bssVariables = mutableListOf<StStaticVariable>()
+            val variables = mutableListOf<StStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
-                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid BSS $line")
+                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
                 val (type, arrayspec, name, _, zpwish) = match.destructured
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
@@ -173,16 +173,16 @@ class IRFileReader {
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
                 val newVar = StStaticVariable(name, dt, true, null, null, null, arraysize, zp, dummyNode)
-                bssVariables.add(newVar)
+                variables.add(newVar)
             }
-            return bssVariables
+            return variables
         }
     }
 
     private fun parseVariables(reader: XMLEventReader, dontReinitGlobals: Boolean): List<StStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="VARIABLES") { "missing VARIABLES" }
+        require(start.name.localPart=="VARIABLESWITHINIT") { "missing VARIABLESWITHINIT" }
         val text = readText(reader).trim()
         require(reader.nextEvent().isEndElement)
 
