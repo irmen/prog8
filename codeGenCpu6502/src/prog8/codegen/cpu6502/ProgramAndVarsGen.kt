@@ -201,13 +201,20 @@ internal class ProgramAndVarsGen(
         val notInitializers = block.children.filterNot { it in initializers }
         notInitializers.forEach { asmgen.translate(it) }
 
-        if(options.reinitGlobals) {
-            // generate subroutine to initialize block-level (global) variables
-            if (initializers.isNotEmpty()) {
-                asmgen.out("prog8_init_vars\t.block")
-                initializers.forEach { assign -> asmgen.translate(assign) }
-                asmgen.out("  rts\n  .bend")
+        // generate subroutine to initialize block-level (global) variables
+        if (initializers.isNotEmpty()) {
+            asmgen.out("prog8_init_vars\t.block")
+            initializers.forEach { assign ->
+                if(options.reinitGlobals) {
+                    asmgen.translate(assign)
+                } else {
+                    // only re-init zeropage vars because non-zeropage vars will have a statically defined value
+                    if(allocator.isZpVar(assign.target.identifier!!.name)) {
+                        asmgen.translate(assign)
+                    }
+                }
             }
+            asmgen.out("  rts\n  .bend")
         }
 
         asmgen.out(if(block.forceOutput) "\n\t.bend" else "\n\t.pend")
@@ -364,11 +371,9 @@ internal class ProgramAndVarsGen(
     private fun entrypointInitialization() {
         asmgen.out("; program startup initialization")
         asmgen.out("  cld")
-        if(options.reinitGlobals) {
-            blockVariableInitializers.forEach {
-                if (it.value.isNotEmpty())
-                    asmgen.out("  jsr  ${it.key.name}.prog8_init_vars")
-            }
+        blockVariableInitializers.forEach {
+            if (it.value.isNotEmpty())
+                asmgen.out("  jsr  ${it.key.name}.prog8_init_vars")
         }
 
         // string and array variables in zeropage that have initializer value, should be initialized

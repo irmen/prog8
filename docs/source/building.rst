@@ -138,10 +138,8 @@ One or more .p8 module files
 
 ``-noreinit``
     Don't create code to reinitialize the global (block level) variables on every run of the program.
-    Also means that all such variables are no longer placed in the zeropage.
-    Sometimes the program will be a lot shorter when using this, but sometimes the opposite happens.
-    When using this option, it may no longer be possible to run the program correctly more than once!
-    *Experimental feature*: this feature has not been tested much yet.
+    When using this option, it is often no longer be possible to run the program correctly more than once,
+    however, the program may be a bit shorter as a result.
 
 ``-optfloatx``
     Also optimize float expressions if optimizations are enabled.
