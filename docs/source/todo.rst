@@ -3,8 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- BSS: initialize BSS block (without slabs!) to zeros on start, using 1 loop instead of all those initialization assignments
-- BSS subroutine parameters don't have to be set to 0. But meh, the loop should be super fast anyway.
+- subroutine parameters don't have to be initialized to 0 in prog8_init_vars()
 - option to put BSS in specific upper memory block ($a000-$bfff, $c000-$cfff on C64) add a .cerror check for overflow!
 - document bss stuff in the manual
 

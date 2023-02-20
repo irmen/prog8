@@ -173,7 +173,11 @@ internal class ProgramAndVarsGen(
     }
 
     private fun footer() {
-        asmgen.out("; bss sections\n  .dsection BSS\n  .dsection slabs_BSS")
+        asmgen.out("; bss sections")
+        asmgen.out("prog8_bss_section_start")
+        asmgen.out("  .dsection BSS")
+        asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
+        asmgen.out("  .dsection slabs_BSS")
         asmgen.out("prog8_program_end\t; end of program label for progend()")
     }
 
@@ -205,7 +209,9 @@ internal class ProgramAndVarsGen(
         if (initializers.isNotEmpty()) {
             asmgen.out("prog8_init_vars\t.block")
             initializers.forEach { assign ->
-                asmgen.translate(assign)
+                if((assign.value as? PtNumber)?.number != 0.0 || allocator.isZpVar(assign.target.identifier!!.name))
+                    asmgen.translate(assign)
+                // the other variables that should be set to zero are done so as part of the BSS section.
             }
             asmgen.out("  rts\n  .bend")
         }
@@ -363,7 +369,21 @@ internal class ProgramAndVarsGen(
 
     private fun entrypointInitialization() {
         asmgen.out("; program startup initialization")
-        asmgen.out("  cld")
+        asmgen.out("  cld |  tsx |  stx  prog8_lib.orig_stackpointer    ; required for sys.exit()")
+        // set full BSS area to zero
+        asmgen.out("""
+    .if  prog8_bss_section_size>0
+    ; reset all variables in BSS section to zero
+	lda  #<prog8_bss_section_start
+	ldy  #>prog8_bss_section_start
+	sta  P8ZP_SCRATCH_W1
+	sty  P8ZP_SCRATCH_W1+1
+	ldx  #<prog8_bss_section_size
+	ldy  #>prog8_bss_section_size
+	lda  #0
+	jsr  prog8_lib.memset
+    .endif""")
+
         blockVariableInitializers.forEach {
             if (it.value.isNotEmpty())
                 asmgen.out("  jsr  ${it.key.name}.prog8_init_vars")
@@ -414,8 +434,7 @@ internal class ProgramAndVarsGen(
             arrayVariable2asm(varname, it.alloc.dt, it.value, null)
         }
 
-        asmgen.out("""+       tsx
-                    stx  prog8_lib.orig_stackpointer    ; required for sys.exit()                    
+        asmgen.out("""+        
                     ldx  #255       ; init estack ptr
                     clv
                     clc""")

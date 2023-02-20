@@ -6,8 +6,8 @@
 main {
 
     uword b_wordvar
-    uword b_initwordvar = 12345     ; TODO FIX THIS INIT VALUE FOR noreinit=true
-    ubyte b_bb =123      ; TODO FIX THIS INIT VALUE FOR noreinit=true
+    uword b_initwordvar = 12345
+    ubyte b_bb =123
     float b_fl
     ubyte[10] b_emptyarray
     ubyte[10] b_filledarray = [1,2,3,4,5,6,7,8,9,10]

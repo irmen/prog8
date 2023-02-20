@@ -890,7 +890,8 @@ sizeof(name)
 
 memory(name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
-    with the given name.  If you specify an alignment value >1, it means the block of memory will
+    with the given name. The block is uninitialized memory, it is *not* set to zero!
+    If you specify an alignment value >1, it means the block of memory will
     be aligned to such a dividable address in memory, for instance an alignment of $100 means the
     memory block is aligned on a page boundary, and $2 means word aligned (even addresses).
     Requesting the address of such a named memory block again later with
