@@ -25,7 +25,6 @@ internal fun compileFile(
         filepath,
         optimize,
         optimizeFloatExpressions = optFloatExpr,
-        reinitGlobals = true,
         writeAssembly = writeAssembly,
         slowCodegenWarnings = false,
         quietAssembler = true,

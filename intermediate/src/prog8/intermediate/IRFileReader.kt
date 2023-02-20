@@ -82,7 +82,6 @@ class IRFileReader {
         var zeropage = ZeropageType.FULL
         val zpReserved = mutableListOf<UIntRange>()
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
-        var reInitGlobals = true
         var optimize = true
         var evalStackBaseAddress: UInt? = null
         var outputDir = Path("")
@@ -105,7 +104,6 @@ class IRFileReader {
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)
                     "loadAddress" -> loadAddress = value.toUInt()
-                    "reinitGlobals" -> reInitGlobals = value.toBoolean()
                     "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
                     "zpReserved" -> {
                         val (zpstart, zpend) = value.split(',')
@@ -129,8 +127,7 @@ class IRFileReader {
             loadAddress,
             evalStackBaseAddress = evalStackBaseAddress,
             outputDir = outputDir,
-            optimize = optimize,
-            reinitGlobals = reInitGlobals
+            optimize = optimize
         )
     }
 

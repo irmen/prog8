@@ -48,7 +48,6 @@ output=PRG
 launcher=BASIC
 zeropage=KERNALSAFE
 loadAddress=0
-reinitGlobals=false
 evalStackBaseAddress=null
 </OPTIONS>
 

@@ -22,10 +22,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         writeVariables()
 
         out.write("\n<INITGLOBALS>\n")
-        if(irProgram.options.reinitGlobals) {
-            // this a code that re-loads startup values into all global (block-level) variables.
-            writeCodeChunk(irProgram.globalInits)
-        }
+        writeCodeChunk(irProgram.globalInits)
         out.write("</INITGLOBALS>\n")
         writeBlocks()
         out.write("</PROGRAM>\n")
@@ -130,7 +127,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
         out.write("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
         out.write("optimize=${irProgram.options.optimize}\n")
-        out.write("reinitGlobals=${irProgram.options.reinitGlobals}\n")
         out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress?.toHex()}\n")
         out.write("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
         // other options not yet useful here?

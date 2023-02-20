@@ -36,26 +36,9 @@ internal class BeforeAsmAstChanger(val program: Program,
         return noModifications
     }
 
-    override fun before(block: Block, parent: Node): Iterable<IAstModification> {
-        // adjust global variables initialization
-        if(!options.reinitGlobals) {
-            block.statements.asSequence().filterIsInstance<VarDecl>().forEach {
-                if(it.type==VarDeclType.VAR) {
-                    it.findInitializer(program)?.let { initializer ->
-                        it.value = initializer.value     // put the init value back into the vardecl
-                    }
-                }
-            }
-        }
-
-        return noModifications
-    }
-
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(options.reinitGlobals) {
-            if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
-                throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
-        }
+        if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
+            throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
 
         return noModifications
     }

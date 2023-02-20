@@ -1,6 +1,8 @@
 package prog8.vm
 
-import prog8.code.core.*
+import prog8.code.core.ArrayDatatypes
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -15,10 +17,8 @@ class VmProgramLoader {
 
         varsToMemory(irProgram, allocations, variableAddresses, memory)
 
-        if(irProgram.options.reinitGlobals) {
-            if(irProgram.globalInits.isNotEmpty())
-                programChunks += irProgram.globalInits
-        }
+        if(irProgram.globalInits.isNotEmpty())
+            programChunks += irProgram.globalInits
 
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
@@ -193,16 +193,6 @@ class VmProgramLoader {
                                 memory.setFloat(addr, 0.0f)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
-                            else -> throw IRParseException("invalid dt")
-                        }
-                    }
-                } else {
-                    if(!program.options.reinitGlobals) {
-                        // variable is not initialized as part of a global reinitialization, so we clear it here
-                        when(variable.dt) {
-                            in ByteDatatypes -> memory.setUB(addr, 0u)
-                            in WordDatatypes -> memory.setUW(addr, 0u)
-                            DataType.FLOAT -> memory.setFloat(addr, 0.0f)
                             else -> throw IRParseException("invalid dt")
                         }
                     }

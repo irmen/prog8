@@ -30,7 +30,6 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val optimizeFloatExpressions: Boolean,
-                        val reinitGlobals: Boolean,
                         val writeAssembly: Boolean,
                         val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
@@ -75,7 +74,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
                 optimizeFloatExpressions = optimizeFloatExpr
-                reinitGlobals = args.reinitGlobals
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen

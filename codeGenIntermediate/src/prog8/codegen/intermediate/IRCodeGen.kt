@@ -33,15 +33,13 @@ class IRCodeGen(
         if(options.evalStackBaseAddress!=null)
             throw AssemblyError("IR doesn't use eval-stack")
 
-        if(options.reinitGlobals) {
-            // collect global variables initializers
-            program.allBlocks().forEach {
-                val result = mutableListOf<IRCodeChunkBase>()
-                it.children.filterIsInstance<PtAssignment>().forEach { assign -> result += assignmentGen.translate(assign) }
-                result.forEach { chunk ->
-                    if (chunk is IRCodeChunk) irProg.addGlobalInits(chunk)
-                    else throw AssemblyError("only expect code chunk for global inits")
-                }
+        // collect global variables initializers
+        program.allBlocks().forEach {
+            val result = mutableListOf<IRCodeChunkBase>()
+            it.children.filterIsInstance<PtAssignment>().forEach { assign -> result += assignmentGen.translate(assign) }
+            result.forEach { chunk ->
+                if (chunk is IRCodeChunk) irProg.addGlobalInits(chunk)
+                else throw AssemblyError("only expect code chunk for global inits")
             }
         }
 

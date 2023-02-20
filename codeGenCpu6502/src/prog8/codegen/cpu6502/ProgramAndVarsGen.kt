@@ -205,14 +205,7 @@ internal class ProgramAndVarsGen(
         if (initializers.isNotEmpty()) {
             asmgen.out("prog8_init_vars\t.block")
             initializers.forEach { assign ->
-                if(options.reinitGlobals) {
-                    asmgen.translate(assign)
-                } else {
-                    // only re-init zeropage vars because non-zeropage vars will have a statically defined value
-                    if(allocator.isZpVar(assign.target.identifier!!.name)) {
-                        asmgen.translate(assign)
-                    }
-                }
+                asmgen.translate(assign)
             }
             asmgen.out("  rts\n  .bend")
         }

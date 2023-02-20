@@ -44,7 +44,6 @@ class TestCompilerOptionSourcedirs: FunSpec({
             filepath = filePath,
             optimize = false,
             optimizeFloatExpressions = false,
-            reinitGlobals = true,
             writeAssembly = true,
             slowCodegenWarnings = false,
             quietAssembler = true,
