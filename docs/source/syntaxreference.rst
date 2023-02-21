@@ -119,7 +119,7 @@ Directives
 	Sets special compiler options.
 
     - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Commodore 64 Kernal).
+      to deal with floating point numbers (by using various subroutines from the Kernal).
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include

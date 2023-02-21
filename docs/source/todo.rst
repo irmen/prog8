@@ -3,9 +3,10 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- subroutine parameters don't have to be initialized to 0 in prog8_init_vars()
-- option to put BSS in specific upper memory block ($a000-$bfff, $c000-$cfff on C64) add a .cerror check for overflow!
+- option to put BSS in specific upper memory block ($a000-$bfff on x16, $c000-$cdff on C64) add a .cerror check for overflow!
 - document bss stuff in the manual
+- shrink the evalstack to just 1 page (half page for upper, half page for lower byte)
+- after that, move evalstack on x16 to $0700-$07ff rather than $0400-$04ff ?  -> gotta fix x16shell 'bios' vectors
 
 
 ...

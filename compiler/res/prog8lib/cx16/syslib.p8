@@ -649,8 +649,9 @@ asmsub  init_system()  {
         sta  VERA_DC_VIDEO  ; keep old output mode
         lda  #$90       ; black
         jsr  c64.CHROUT
-        lda  #1         ; swap fg/bg
-        jsr  c64.CHROUT
+        lda  #1
+        sta  $00        ; select ram bank 1
+        jsr  c64.CHROUT ; swap fg/bg
         lda  #$9e       ; yellow
         jsr  c64.CHROUT
         lda  #147       ; clear screen
