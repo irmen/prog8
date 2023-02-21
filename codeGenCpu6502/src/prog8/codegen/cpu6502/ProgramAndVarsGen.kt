@@ -435,7 +435,7 @@ internal class ProgramAndVarsGen(
         }
 
         asmgen.out("""+        
-                    ldx  #255       ; init estack ptr
+                    ldx  #127       ; init estack ptr (half page)
                     clv
                     clc""")
     }

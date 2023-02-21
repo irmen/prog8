@@ -14,9 +14,9 @@ class CX16MachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
 
-    // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override var ESTACK_LO = 0x0400u        //  $0400-$04ff inclusive
-    override var ESTACK_HI = 0x0500u        //  $0500-$05ff inclusive
+    // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
+    override var ESTACK_LO = 0x0700u        //  $0700-$077f inclusive
+    override var ESTACK_HI = 0x0780u        //  $0780-$07ff inclusive
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 

@@ -15,9 +15,9 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
 
-    // the 2*256 byte evaluation stack (on which bytes, words, and even floats are stored during calculations)
-    override var ESTACK_LO = 0xce00u     //  $ce00-$ceff inclusive
-    override var ESTACK_HI = 0xcf00u     //  $ce00-$ceff inclusive
+    // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
+    override var ESTACK_LO = 0xcf00u     //  $cf00-$cf7f inclusive
+    override var ESTACK_HI = 0xcf80u     //  $cf80-$cfff inclusive
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 
