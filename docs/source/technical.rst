@@ -12,10 +12,12 @@ but care should be taken of course to avoid unexpected side effects.
 Especially when you're dealing with interrupts or re-entrant routines: don't modify variables
 that you not own or else you will break stuff.
 
-Uninitialized and zero-initialized variables that are not put into zeropage, will be put into
-a special 'BSS' section for the assembler. This section is usually placed at the end of the resulting program
-but because it only contains empty space it won't actually increase the size of the resulting program binary.
-Prog8 takes care of properly filling this memory area with zeros at program startup.
+Variables that are not put into zeropage, will be put into a special 'BSS' section for the assembler.
+This section is usually placed at the end of the resulting program but because it only contains empty space
+it won't actually increase the size of the resulting program binary.
+Prog8 takes care of properly filling this memory area with zeros at program startup and then reinitializes
+the subset of variables that have a nonzero initialization value.
+
 It is possible to relocate the BSS section using a compiler option
 so that more system ram is available for the program code itself.
 

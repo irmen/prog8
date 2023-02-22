@@ -33,9 +33,10 @@ RAM, ROM, I/O
 
 #. what part(s) of the address space is RAM?  What parts of the RAM can be used by user programs?
 #. what is the usual starting memory address of programs?
-#. what is the best place to put 2 pages (512 bytes total) of scratch area data in RAM?
+#. what is the best place to put a page (256 bytes total) of scratch area data in RAM?
 #. what part(s) of the address space is ROM?
 #. what part(s) of the address space is memory mapped I/O registers?
+#. is there a block of "high ram" available (ram that is not the main ram used to load programs in) that could be used for variables?
 #. is there a banking system? How does it work (how do you select Ram/Rom banks)? How is the default bank configuration set?
 
 Character encodings

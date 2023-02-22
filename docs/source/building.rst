@@ -176,11 +176,11 @@ One or more .p8 module files
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
 ``-varshigh``
-    Places the uninitialized (and zero-initialized) variables in a separate high memory area, instead of
-    inside the program itself. This results in an increase of the amount of system ram available for the program
-    itself. The amount of ram saved depends on the amount and types of variables in the program, but can be
-    several hundreds of bytes or more.
-    The new memory location of the variables depends on the compilation target machine
+    Places the non-zeropage variables in a separate high memory area, instead of inside the program itself.
+    This results in an increase of the amount of system ram available for the program
+    itself. The amount of ram saved depends on the amount and types of variables in the program,
+    but can be several hundreds of bytes or more.
+    The new memory location of the variables depends on the compilation target machine:
 
     c64: $C000 - $CEFF
 
