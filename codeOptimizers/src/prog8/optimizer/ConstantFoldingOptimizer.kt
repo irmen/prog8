@@ -354,9 +354,11 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)
             if(valueDt isnot decl.datatype) {
-                val cast = numval.cast(decl.datatype)
-                if(cast.isValid)
-                    return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
+                if(decl.datatype!=DataType.BOOL || valueDt.isnot(DataType.UBYTE)) {
+                    val cast = numval.cast(decl.datatype)
+                    if (cast.isValid)
+                        return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
+                }
             }
         }
         return noModifications

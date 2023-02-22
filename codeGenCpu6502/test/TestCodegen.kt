@@ -1,12 +1,14 @@
 package prog8tests.codegencpu6502
 
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.codegen.cpu6502.AsmGen6502
+import java.nio.file.Files
+import kotlin.io.path.Path
 
 class TestCodegen: FunSpec({
 
@@ -96,7 +98,9 @@ class TestCodegen: FunSpec({
         val options = getTestOptions()
         val st = SymbolTableMaker(program, options).make()
         val errors = ErrorReporterForTests()
-        codegen.generate(program, st, options, errors) shouldNotBe null
+        val result = codegen.generate(program, st, options, errors)!!
+        result.name shouldBe "test"
+        Files.deleteIfExists(Path("${result.name}.asm"))
     }
 })
 
