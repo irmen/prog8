@@ -3,21 +3,18 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- option to put BSS in specific upper memory block ($a000-$bfff on x16, $c000-$cdff on C64) add a .cerror check for overflow!
-- document bss stuff in the manual
-
 ...
+
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
-- SEGMENTS.
+- Some support for (64tass) SEGMENTS ?
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
-    - block "golden" treated specially: every var in here will be allocated in the Golden ram area
-    - that block can only contain variables.
+    - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
     - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-    - just initialize them yourself in start() if you need a non-zero value
+      just initialize them yourself in start() if you need a non-zero value
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)

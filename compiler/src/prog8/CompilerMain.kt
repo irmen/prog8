@@ -51,6 +51,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").default(C64Target.NAME)
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
+    val varsHigh by cli.option(ArgType.Boolean, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -124,6 +125,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
+                    varsHigh == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,
@@ -187,6 +189,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
+                    varsHigh == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,

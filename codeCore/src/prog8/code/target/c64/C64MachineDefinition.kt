@@ -18,6 +18,10 @@ class C64MachineDefinition: IMachineDefinition {
     // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0xcf00u     //  $cf00-$cf7f inclusive
     override var ESTACK_HI = 0xcf80u     //  $cf80-$cfff inclusive
+
+    override val BSSHIGHRAM_START = 0xc000u
+    override val BSSHIGHRAM_END = ESTACK_LO
+
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 

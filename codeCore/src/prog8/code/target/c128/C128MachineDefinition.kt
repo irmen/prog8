@@ -17,6 +17,10 @@ class C128MachineDefinition: IMachineDefinition {
     // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0x1b00u     //  $1b00-$1b7f inclusive
     override var ESTACK_HI = 0x1b80u     //  $1b80-$1bff inclusive
+
+    override val BSSHIGHRAM_START = 0u    // TODO
+    override val BSSHIGHRAM_END = 0u      // TODO
+
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 

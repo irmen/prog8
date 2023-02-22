@@ -17,6 +17,10 @@ class CX16MachineDefinition: IMachineDefinition {
     // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
     override var ESTACK_LO = 0x0700u        //  $0700-$077f inclusive
     override var ESTACK_HI = 0x0780u        //  $0780-$07ff inclusive
+
+    override val BSSHIGHRAM_START = 0xa000u     // hiram bank 1, 8Kb, assumed to be active
+    override val BSSHIGHRAM_END = 0xc000u       // rom starts here.
+
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 

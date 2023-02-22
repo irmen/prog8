@@ -16,6 +16,8 @@ interface IMachineDefinition {
     var ESTACK_LO: UInt
     var ESTACK_HI: UInt
     val PROGRAM_LOAD_ADDRESS : UInt
+    val BSSHIGHRAM_START: UInt
+    val BSSHIGHRAM_END: UInt
 
     val cpu: CpuType
     var zeropage: Zeropage

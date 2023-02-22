@@ -175,6 +175,23 @@ One or more .p8 module files
     When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
+``-varshigh``
+    Places the uninitialized (and zero-initialized) variables in a separate high memory area, instead of
+    inside the program itself. This results in an increase of the amount of system ram available for the program
+    itself. The amount of ram saved depends on the amount and types of variables in the program, but can be
+    several hundreds of bytes or more.
+    The new memory location of the variables depends on the compilation target machine
+
+    c64: $C000 - $CEFF
+
+    cx16: $A000 - $BFFF     (note: assumes that the correct HiRam bank #1 is mapped in at all times!)
+
+    If you use this option, you can no longer use the part of the above memory area that is
+    now alotted to the variables for your own purposes. The output of the 64tass assembler step at the
+    end of compilation shows precise details of where and how much memory is used by the variables
+    (it's called 'BSS' section or Gap).  Compilation (or rather, assembling) will fail if there are too
+    many variables to fit in the high ram block.
+
 
 Module source code files
 ------------------------

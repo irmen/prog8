@@ -30,6 +30,7 @@ internal fun compileFile(
         quietAssembler = true,
         asmListfile = false,
         experimentalCodegen = false,
+        varsHigh = false,
         platform.name,
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),

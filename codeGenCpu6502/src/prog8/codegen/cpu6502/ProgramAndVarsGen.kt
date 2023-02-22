@@ -162,23 +162,44 @@ internal class ProgramAndVarsGen(
     }
 
     private fun memorySlabs() {
-        asmgen.out("; memory slabs\n  .section slabs_BSS")
-        asmgen.out("prog8_slabs\t.block")
-        for(slab in symboltable.allMemorySlabs) {
-            if(slab.align>1u)
-                asmgen.out("\t.align  ${slab.align.toHex()}")
-            asmgen.out("${slab.name}\t.fill  ${slab.size}")
+        if(symboltable.allMemorySlabs.isNotEmpty()) {
+            asmgen.out("; memory slabs\n  .section slabs_BSS")
+            asmgen.out("prog8_slabs\t.block")
+            for (slab in symboltable.allMemorySlabs) {
+                if (slab.align > 1u)
+                    asmgen.out("\t.align  ${slab.align.toHex()}")
+                asmgen.out("${slab.name}\t.fill  ${slab.size}")
+            }
+            asmgen.out("\t.bend\n  .send slabs_BSS")
         }
-        asmgen.out("\t.bend\n  .send slabs_BSS")
     }
 
     private fun footer() {
         asmgen.out("; bss sections")
-        asmgen.out("prog8_bss_section_start")
-        asmgen.out("  .dsection BSS")
-        asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
-        asmgen.out("  .dsection slabs_BSS")
-        asmgen.out("prog8_program_end\t; end of program label for progend()")
+        if(options.varsHigh) {
+            if(options.compTarget.machine.BSSHIGHRAM_START == 0u || options.compTarget.machine.BSSHIGHRAM_END==0u) {
+                throw AssemblyError("current compilation target hasn't got the high ram area properly defined")
+            }
+            // BSS vars in high ram area, memory() slabs just concatenated at the end of the program.
+            if(symboltable.allMemorySlabs.isNotEmpty()) {
+                asmgen.out("  .dsection slabs_BSS")
+            }
+            asmgen.out("prog8_program_end\t; end of program label for progend()")
+            asmgen.out("  * = ${options.compTarget.machine.BSSHIGHRAM_START.toHex()}")
+            asmgen.out("prog8_bss_section_start")
+            asmgen.out("  .dsection BSS")
+            asmgen.out("  .cerror * >= ${options.compTarget.machine.BSSHIGHRAM_END.toHex()}, \"too many variables for BSS section\"")
+            asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
+        } else {
+            // BSS vars followed by memory() slabs, concatenated at the end of the program.
+            asmgen.out("prog8_bss_section_start")
+            asmgen.out("  .dsection BSS")
+            asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
+            if(symboltable.allMemorySlabs.isNotEmpty()) {
+                asmgen.out("  .dsection slabs_BSS")
+            }
+            asmgen.out("prog8_program_end\t; end of program label for progend()")
+        }
     }
 
     private fun block2asm(block: PtBlock) {
