@@ -908,7 +908,8 @@ callfar(bank, address, argumentword) -> uword     ; NOTE: specific to cx16 targe
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
     The uword value that the routine returns in the A+Y registers, will be returned.
-    NOTE: this routine is very inefficient so don't use it to call often.
+    NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
+    or even write a custom tailored trampoline routine if you need to.
 
 syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
