@@ -70,7 +70,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rrestorex" -> funcRrestoreX()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
-            "callrom" -> funcCallRom(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
@@ -132,101 +131,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         if(asmgen.options.compTarget.name != "cx16")
             throw AssemblyError("callfar only works on cx16 target at this time")
 
-        val bank = fcall.args[0].asConstInteger()
-        val address = fcall.args[1].asConstInteger() ?: 0
-        val argAddrArg = fcall.args[2]
-        if(bank==null)
-            throw AssemblyError("callfar (jsrfar) bank has to be a constant")
-        if(fcall.args[1] !is PtNumber) {
-            assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
-            asmgen.out("  sta  (+)+0 |  sty  (+)+1  ; store jsrfar address word")
-        }
-
-        if(argAddrArg.asConstInteger() == 0) {
-            asmgen.out("""
-                jsr  cx16.jsrfar
-+               .word  ${address.toHex()}
-                .byte  ${bank.toHex()}""")
-        } else {
-            when(argAddrArg) {
-                is PtAddressOf -> {
-                    if(argAddrArg.identifier.type != DataType.UBYTE)
-                        throw AssemblyError("callfar done with 'arg' pointer to variable that's not UBYTE")
-                    asmgen.out("""
-                        lda  ${asmgen.asmVariableName(argAddrArg.identifier)}
-                        jsr  cx16.jsrfar
-+                       .word  ${address.toHex()}
-                        .byte  ${bank.toHex()}
-                        sta  ${asmgen.asmVariableName(argAddrArg.identifier)}""")
-                }
-                is PtNumber -> {
-                    asmgen.out("""
-                        lda  ${argAddrArg.number.toHex()}
-                        jsr  cx16.jsrfar
-+                       .word  ${address.toHex()}
-                        .byte  ${bank.toHex()}
-                        sta  ${argAddrArg.number.toHex()}""")
-                }
-                else -> throw AssemblyError("callfar only accepts pointer-of a (ubyte) variable or constant memory address for the 'arg' parameter")
-            }
-        }
-    }
-
-    private fun funcCallRom(fcall: PtBuiltinFunctionCall) {
-        if(asmgen.options.compTarget.name != "cx16")
-            throw AssemblyError("callrom only works on cx16 target at this time")
-
-        val bank = fcall.args[0].asConstInteger()
-        val address = fcall.args[1].asConstInteger()
-        if(bank==null || address==null)
-            throw AssemblyError("callrom requires constant arguments")
-
-        if(address !in 0xc000..0xffff)
-            throw AssemblyError("callrom done on address outside of cx16 banked rom")
-        if(bank>=32)
-            throw AssemblyError("callrom bank must be <32")
-
-        val argAddrArg = fcall.args[2]
-        if(argAddrArg.asConstInteger() == 0) {
-            asmgen.out("""
-                lda  $01
-                pha
-                lda  #${bank}
-                sta  $01
-                jsr  ${address.toHex()}
-                pla
-                sta  $01""")
-        } else {
-            when(argAddrArg) {
-                is PtAddressOf -> {
-                    if(argAddrArg.identifier.type != DataType.UBYTE)
-                        throw AssemblyError("callrom done with 'arg' pointer to variable that's not UBYTE")
-                    asmgen.out("""
-                        lda  $01
-                        pha
-                        lda  #${bank}
-                        sta  $01
-                        lda  ${asmgen.asmVariableName(argAddrArg.identifier)}                
-                        jsr  ${address.toHex()}
-                        sta  ${asmgen.asmVariableName(argAddrArg.identifier)}
-                        pla
-                        sta  $01""")
-                }
-                is PtNumber -> {
-                    asmgen.out("""
-                        lda  $01
-                        pha
-                        lda  #${bank}
-                        sta  $01
-                        lda  ${argAddrArg.number.toHex()}
-                        jsr  ${address.toHex()}
-                        sta  ${argAddrArg.number.toHex()}
-                        pla
-                        sta  $01""")
-                }
-                else -> throw AssemblyError("callrom only accepts pointer-of a (ubyte) variable or constant memory address for the 'arg' parameter")
-            }
-        }
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
+        asmgen.out("  sta  (++)+0")
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
+        asmgen.out("  sta  (+)+0 |  sty  (+)+1")
+        asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
+        asmgen.out("""
+            jsr  cx16.jsrfar
++           .word  0
++           .byte  0""")
+        // note that by convention the values in A+Y registers are now the return value of the call.
     }
 
     private fun funcCmp(fcall: PtBuiltinFunctionCall) {

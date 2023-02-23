@@ -903,31 +903,12 @@ memory(name, size, alignment)
     The return value is just a simple uword address so it cannot be used as an array in your program.
     You can only treat it as a pointer or use it in inline assembly.
 
-callfar(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another ram-bank on the Commander X16 (using the ``jsrfar`` routine)
-    The banked RAM is located in the address range $A000-$BFFF (8 kilobyte), but you can specify
-    any address in system ram (why this can be useful is explained at the end of this paragraph)
-    The third argument can be used to designate the memory address
-    of an argument for the routine; it will be loaded into the A register and will
-    receive the result value returned by the routine in the A register. If you leave this at zero,
-    no argument passing will be done.
-    If the routine requires different arguments or return values, ``callfar`` cannot be used
-    and you'll have to set up a call to ``jsrfar`` yourself to process this.
-    Note: the address can be a variable or other expression, which allows you to use ``callfar`` with bank 0 to do an indirect JSR to a subroutine
-    whose address can vary (jump table, etc.  ``goto`` can do an indirect JMP to a variable address): ``callfar(0, &routine, &argument)``
-    This is not very efficient though, so maybe you should write a small piece of inline assembly for this instead.
-
-callrom(bank, address, argumentaddress)      ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another rom-bank on the Commander X16
-    The banked ROM is located in the address range $C000-$FFFF (16 kilobyte).
-    There are 32 banks (0 to 31).
-    The third argument can be used to designate the memory address
-    of an argument for the routine; it will be loaded into the A register and will
-    receive the result value returned by the routine in the A register. If you leave this at zero,
-    no argument passing will be done.
-    If the routine requires different arguments or return values, ``callrom`` cannot be used
-    and you'll have to set up a call in assembly code yourself that handles the banking and
-    argument/returnvalues.
+callfar(bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
+    Calls an assembly routine in another bank on the Commander X16 (using its ``jsrfar`` routine)
+    Be aware that ram OR rom bank may be changed depending on the address it jumps to!
+    The argumentword will be loaded into the A+Y registers before calling the routine.
+    The uword value that the routine returns in the A+Y registers, will be returned.
+    NOTE: this routine is very inefficient so don't use it to call often.
 
 syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target

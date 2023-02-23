@@ -787,8 +787,6 @@ to another piece of code that eventually returns).
 
 If you jump to an address variable (uword), it is doing an 'indirect' jump: the jump will be done
 to the address that's currently in the variable.
-Note: to do an indirect *JSR* to a routine with a varying address, you can use the ``callfar`` builtin function
-(which is not very efficient) or you have to write a small piece of inline assembly.
 
 
 if statements

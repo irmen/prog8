@@ -26,7 +26,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "rrestore",
             "rrestorex" -> emptyList()  // vm doesn't have registers to save/restore
             "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
-            "callrom" -> throw AssemblyError("callrom() is for cx16 target only")
             "msb" -> funcMsb(call, resultRegister)
             "lsb" -> funcLsb(call, resultRegister)
             "memory" -> funcMemory(call, resultRegister)
