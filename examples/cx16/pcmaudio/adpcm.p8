@@ -27,10 +27,10 @@ main {
     sub start() {
         wavfile.parse()
 
-        txt.print_uw(wavfile.adpcm_size)
-        txt.print(" adpcm data size = ")
         txt.print_ub(wavfile.num_adpcm_blocks)
-        txt.print(" blocks\nsamplerate = ")
+        txt.print(" blocks = ")
+        txt.print_uw(wavfile.adpcm_size)
+        txt.print(" adpcm bytes\nsamplerate = ")
         txt.print_uw(wavfile.sample_rate)
         txt.print(" vera rate = ")
         txt.print_uw(wavfile.vera_rate_hz)
@@ -58,9 +58,15 @@ main {
             }
         }
         float duration_secs = (c64.RDTIM16() as float) / 60.0
-        float words_per_second = 505.0 * (wavfile.num_adpcm_blocks as float) / duration_secs
+        floats.print_f(duration_secs)
+        txt.print(" seconds (approx)\n")
+        const float PCM_WORDS_PER_BLOCK = 1 + 252*2
+        float words_per_second = PCM_WORDS_PER_BLOCK * (wavfile.num_adpcm_blocks as float) / duration_secs
         txt.print_uw(words_per_second as uword)
-        txt.print(" words/sec\n")
+        txt.print(" decoded pcm words/sec\n")
+        float src_per_second = wavfile.adpcm_size as float / duration_secs
+        txt.print_uw(src_per_second as uword)
+        txt.print(" adpcm data bytes/sec\n")
     }
 
     sub playback() {
@@ -97,27 +103,28 @@ main {
             ; AFLOW irq.
     	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 
-            ; refill the fifo buffer with two decoded adpcm blocks (252 nibbles -> 1008 bytes per block)
-            repeat 2 {
-                adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
-                nibblesptr += 4
-                repeat 252 {
-                   ubyte @zp nibble = @(nibblesptr)
-                   adpcm.decode_nibble(nibble & 15)     ; first word
-                   cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-                   cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-                   adpcm.decode_nibble(nibble>>4)       ; second word
-                   cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-                   cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-                   nibblesptr++
-                }
+            ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
+            adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
+            cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+            cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+            nibblesptr += 4
+            repeat 252 {
+               ubyte @zp nibble = @(nibblesptr)
+               adpcm.decode_nibble(nibble & 15)     ; first word
+               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+               adpcm.decode_nibble(nibble>>4)       ; second word
+               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+               nibblesptr++
+            }
 
-                adpcm_blocks_left--
-                if adpcm_blocks_left==0 {
-                    ; restart adpcm data from the beginning
-                    nibblesptr = wavfile.adpcm_data_ptr
-                    adpcm_blocks_left = wavfile.num_adpcm_blocks
-                }
+            adpcm_blocks_left--
+            if adpcm_blocks_left==0 {
+                ; restart adpcm data from the beginning
+                nibblesptr = wavfile.adpcm_data_ptr
+                adpcm_blocks_left = wavfile.num_adpcm_blocks
+                txt.print("end of data, restarting.\n")
             }
 
         } else {
@@ -184,7 +191,7 @@ adpcm {
             cx16.r0s = -cx16.r0s
         predict += cx16.r0s as uword
         index += t_index[nibble]
-        if index & 128
+        if_neg              ; was:  if index & 128
             index = 0
         else if index > len(t_step)-1
             index = len(t_step)-1
