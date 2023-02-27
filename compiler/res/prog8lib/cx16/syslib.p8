@@ -633,6 +633,10 @@ asmsub  init_system()  {
     ; Called automatically by the loader program logic.
     %asm {{
         sei
+        lda  #0
+        tax
+        tay
+        jsr  cx16.mouse_config  ; disable mouse
         cld
         lda  VERA_DC_VIDEO
         and  #%00000111 ; retain chroma + output mode

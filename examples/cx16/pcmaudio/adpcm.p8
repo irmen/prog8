@@ -57,7 +57,8 @@ main {
                nibblesptr++
             }
         }
-        float duration_secs = (c64.RDTIM16() as float) / 60.0
+        const float REFRESH_RATE = 25.0e6/(525.0*800)       ; Vera VGA refresh rate is not precisely 60 hz!
+        float duration_secs = (c64.RDTIM16() as float) / REFRESH_RATE
         floats.print_f(duration_secs)
         txt.print(" seconds (approx)\n")
         const float PCM_WORDS_PER_BLOCK = 1 + 252*2

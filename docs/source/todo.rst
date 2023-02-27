@@ -3,12 +3,18 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- improve search paths for %import;   importing something from code in a subdir
+    won't find a module in the current directory where the compiler is launched in.
+    also it prints '.' as search path which is confusing.
+
+
 ...
 
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
+- get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - Some support for (64tass) SEGMENTS ?
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
