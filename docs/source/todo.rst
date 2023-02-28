@@ -3,11 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- improve search paths for %import;   importing something from code in a subdir
-    won't find a module in the current directory where the compiler is launched in.
-    also it prints '.' as search path which is confusing.
-
-
 ...
 
 

@@ -65,11 +65,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
     try {
         val totalTime = measureTimeMillis {
-            // import main module and everything it needs
-            val (programresult, options, imported) = parseImports(args.filepath, args.errors, compTarget, args.sourceDirs)
+            val (programresult, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs)
             compilationOptions = options
-            print("Parsed ${args.filepath}")
-            ModuleImporter.ansiEraseRestOfLine(true)
 
             with(compilationOptions) {
                 slowCodegenWarnings = args.slowCodegenWarnings
@@ -237,17 +234,16 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override fun returnType(funcName: String) = builtinFunctionReturnType(funcName)
 }
 
-fun parseImports(filepath: Path,
-                 errors: IErrorReporter,
-                 compTarget: ICompilationTarget,
-                 sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
-    println("Compilation target: ${compTarget.name}")
+fun parseMainModule(filepath: Path,
+                    errors: IErrorReporter,
+                    compTarget: ICompilationTarget,
+                    sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
 
     val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs)
-    val importedModuleResult = importer.importModule(filepath)
+    val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onFailure { throw it }
     errors.report()
 
@@ -257,11 +253,11 @@ fun parseImports(filepath: Path,
     val compilerOptions = determineCompilationOptions(program, compTarget)
     // depending on the machine and compiler options we may have to include some libraries
     for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
-        importer.importLibraryModule(lib)
+        importer.importImplicitLibraryModule(lib)
 
     // always import prog8_lib and math
-    importer.importLibraryModule("math")
-    importer.importLibraryModule("prog8_lib")
+    importer.importImplicitLibraryModule("math")
+    importer.importImplicitLibraryModule("prog8_lib")
 
     if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
@@ -339,7 +335,6 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    println("Analyzing code...")
     program.preprocessAst(errors, compilerOptions)
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
@@ -364,7 +359,6 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
 }
 
 private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
-    println("Optimizing...")
     val remover = UnusedCodeRemover(program, errors, compTarget)
     remover.visit(program)
     remover.applyModifications()

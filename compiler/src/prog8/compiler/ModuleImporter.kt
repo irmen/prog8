@@ -13,7 +13,9 @@ import prog8.code.core.SourceCode
 import prog8.parser.Prog8Parser
 import java.io.File
 import java.nio.file.Path
-import kotlin.io.path.*
+import kotlin.io.path.Path
+import kotlin.io.path.absolute
+import kotlin.io.path.exists
 
 
 class ModuleImporter(private val program: Program,
@@ -21,30 +23,25 @@ class ModuleImporter(private val program: Program,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>) {
 
-    private val sourcePaths: List<Path> = sourceDirs.map { Path(it) }
+    private val sourcePaths: List<Path> = sourceDirs.map { Path(it).absolute().normalize() }.toSortedSet().toList()
 
-    fun importModule(filePath: Path): Result<Module, NoSuchFileException> {
-        val currentDir = Path("").absolute()
-        val searchIn = listOf(currentDir) + sourcePaths
-        val candidates = searchIn
-            .map { it.absolute().div(filePath).normalize().absolute() }
-            .filter { it.exists() }
-            .map { currentDir.relativize(it) }
-            .map { if (it.isAbsolute) it else Path(".", "$it") }
-
-        val srcPath = when (candidates.size) {
-            0 -> return Err(NoSuchFileException(
-                    file = filePath.normalize().toFile(),
-                    reason = "Searched in $searchIn"))
-            1 -> candidates.first()
-            else -> candidates.first()  // when more candiates, pick the one from the first location
+    fun importMainModule(filePath: Path): Result<Module, NoSuchFileException> {
+        val searchIn = (listOf(Path("").absolute()) + sourcePaths).toSortedSet()
+        val normalizedFilePath = filePath.normalize()
+        for(path in searchIn) {
+            val programPath = path.resolve(normalizedFilePath)
+            if(programPath.exists()) {
+                println("Compiling program ${Path("").absolute().relativize(programPath)}")
+                val source = SourceCode.File(programPath)
+                return Ok(importModule(source))
+            }
         }
-
-        val source = SourceCode.File(srcPath)
-        return Ok(importModule(source))
+        return Err(NoSuchFileException(
+            file = normalizedFilePath.toFile(),
+            reason = "Searched in $searchIn"))
     }
 
-    fun importLibraryModule(name: String): Module? {
+    fun importImplicitLibraryModule(name: String): Module? {
         val import = Directive("%import", listOf(
                 DirectiveArg("", name, 42u, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
@@ -52,7 +49,6 @@ class ModuleImporter(private val program: Program,
     }
 
     private fun importModule(src: SourceCode) : Module {
-        printImportingMessage(src.name, src.origin)
         val moduleAst = Prog8Parser.parseModule(src)
         program.addModule(moduleAst)
 
@@ -146,10 +142,8 @@ class ModuleImporter(private val program: Program,
             if (importingModule == null) { // <=> imported from library module
                 sourcePaths
             } else {
-                val dropCurDir = if(sourcePaths.isNotEmpty() && sourcePaths[0].name == ".") 1 else 0
-                sourcePaths.drop(dropCurDir) +
-                listOf(Path(importingModule.position.file).parent ?: Path("")) +
-                listOf(Path(".", "prog8lib"))
+                val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).absolute()
+                listOf(pathFromImportingModule) + sourcePaths
             }
 
         locations.forEach {
@@ -160,19 +154,5 @@ class ModuleImporter(private val program: Program,
         }
 
         return Err(NoSuchFileException(File("name")))
-    }
-
-    fun printImportingMessage(module: String, origin: String) {
-        print(" importing '$module'  (from ${origin})")
-        ansiEraseRestOfLine(false)
-        print("\r")
-    }
-
-    companion object {
-        fun ansiEraseRestOfLine(newline: Boolean) {
-            print("\u001b[0K")
-            if(newline)
-                println()
-        }
     }
 }

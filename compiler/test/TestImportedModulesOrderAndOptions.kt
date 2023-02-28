@@ -8,7 +8,7 @@ import prog8.code.core.ZeropageType
 import prog8.code.core.internedStringsModuleName
 import prog8.code.target.C64Target
 import prog8.compiler.determineCompilationOptions
-import prog8.compiler.parseImports
+import prog8.compiler.parseMainModule
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import prog8tests.helpers.outputDir
@@ -87,7 +87,7 @@ main {
         val filenameBase = "on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16)
         val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
-        val (program, options, importedfiles) = parseImports(filepath, errors, C64Target(), emptyList())
+        val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList())
 
         program.toplevelModule.name shouldBe filenameBase
         withClue("all imports other than the test source must have been internal resources library files") {
