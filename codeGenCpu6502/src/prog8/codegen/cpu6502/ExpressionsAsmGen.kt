@@ -11,7 +11,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     @Deprecated("avoid calling this as it generates slow evalstack based code")
     internal fun translateExpression(expression: PtExpression) {
         if (this.asmgen.options.slowCodegenWarnings) {
-            asmgen.errors.warn("slow stack evaluation used for expression $expression", expression.position)
+            asmgen.errors.warn("slow stack evaluation used for expression", expression.position)
         }
         translateExpressionInternal(expression)
     }

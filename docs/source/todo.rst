@@ -8,10 +8,11 @@ For next minor release
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
+- get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
+  the large majority of users will only deal with a single disk drive so why not make it easier for them.
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
-- get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
-- Some support for (64tass) SEGMENTS ?
+- Some more support for (64tass) SEGMENTS ?
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
     - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
@@ -74,9 +75,9 @@ Expressions:
 Optimizations:
 
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
-- when a loopvariable of a forloop isn't referenced in the body, and the iterations are known, replace the loop by a repeatloop
+  for instance, vars used inside loops first, then loopvars, then the rest
+- when a loopvariable of a forloop isn't referenced in the body, and the number of iterations is known, replace the loop by a repeatloop
   but we have no efficient way right now to see if the body references a variable.
-- optimize function argument expressions better (use temporary variables to replace non-simple expressions?)
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
 

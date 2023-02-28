@@ -276,39 +276,6 @@ class TestOptimization: FunSpec({
         value3.operator shouldBe "&"
     }
 
-    test("intermediate assignment steps generated for typecasted expression") {
-        val src = """
-            main {
-                sub start() {
-                    ubyte r
-                    ubyte @shared bb = (sgn(r)*2 + 100) as ubyte
-                }
-            }
-        """
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
-        /* turned into:
-        ubyte r
-        r = 0
-        ubyte bb
-        prog8_lib.retval_interm_b = sgn(r)
-        prog8_lib.retval_interm_b <<= 1
-        prog8_lib.retval_interm_b += 100
-        bb = prog8_lib.retval_interm_b
-        return
-         */
-        val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
-        st.last() shouldBe instanceOf<Return>()
-        var assign = st[3] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
-        assign = st[4] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
-        assign = st[5] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("prog8_lib","tempvar_b")
-        assign = st[6] as Assignment
-        assign.target.identifier!!.nameInSource shouldBe listOf("bb")
-    }
-
     test("asmgen correctly deals with float typecasting in augmented assignment") {
         val src="""
             %import floats

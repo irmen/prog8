@@ -2,7 +2,9 @@ package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.codegen.cpu6502.*
+import prog8.codegen.cpu6502.AsmGen6502Internal
+import prog8.codegen.cpu6502.VariableAllocator
+import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal class AssignmentAsmGen(private val program: PtProgram,
@@ -793,9 +795,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun fallbackToStackEval(assign: AsmAssignment) {
-        // this routine is called for assigning a binaryexpression value:
-        // - if it's a boolean comparison expression and the workaround isn't possible (no origTarget ast node)
-        // - for all other binary expressions.
+        // this routine is called for assigning a binaryexpression value that has no optimized code path.
         asmgen.translateExpression(assign.source.expression!!)
         if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
             asmgen.signExtendStackLsb(assign.source.datatype)
