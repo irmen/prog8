@@ -643,7 +643,7 @@ asmsub  init_system()  {
         sta  P8ZP_SCRATCH_REG
         lda  #$80
         sta  VERA_CTRL  ; reset vera
-        stz  $01        ; select rom bank 0 (enable kernal)
+        stz  $01        ; rom bank 0 (kernal)
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
@@ -688,7 +688,7 @@ asmsub  cleanup_at_exit() {
         lda  #1
         sta  $00        ; ram bank 1
         lda  #4
-        sta  $01        ; rom bank 4 (kernal)
+        sta  $01        ; rom bank 4 (basic)
         stz  $2d        ; hack to reset machine code monitor bank to 0
         rts
     }}

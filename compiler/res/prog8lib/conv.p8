@@ -521,7 +521,7 @@ asmsub  uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X  {
 
 ;Convert 16 bit Hex to Decimal (0-65535) Rev 2
 ;By Omegamatrix    Further optimizations by tepples
-; routine from https://forums.nesdev.org/viewtopic.php?f=2&t=11341&start=15
+; routine from https://forums.nesdev.org/viewtopic.php?p=130363&sid=1944ba8bac4d6afa9c02e3cc42304e6b#p130363
 
 ;HexToDec99
 ; start in A

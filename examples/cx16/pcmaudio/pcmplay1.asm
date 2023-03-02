@@ -145,5 +145,5 @@ _done:	rts
 
 	.align $0100
 pcm_data:
-	.binary "pcm-mono.bin"
+	.binary "small-pcm-mono.bin"
 pcm_data_end:
