@@ -74,7 +74,7 @@ main {
 
         if wavfile.nchannels>2 or
            (wavfile.wavefmt!=wavfile.WAVE_FORMAT_DVI_ADPCM and wavfile.wavefmt!=wavfile.WAVE_FORMAT_PCM) or
-           wavfile.sample_rate > 44100 or
+           wavfile.sample_rate > 48828 or
            wavfile.bits_per_sample>16 {
             error("unsupported format!")
         }
