@@ -718,8 +718,7 @@ _modified	jsr  $ffff                      ; modified
 		lda  _use_kernal
 		bne  +
 		; end irq processing - don't use kernal's irq handling
-		lda  cx16.VERA_ISR
-		ora  #1
+		lda  #1
 		sta  cx16.VERA_ISR      ; clear Vera Vsync irq status
 		ply
 		plx

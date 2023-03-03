@@ -21,7 +21,6 @@ main {
             $312,  $211,  $100
         ]
 
-        ; Not yet implemented in ROM:  cx16.FB_set_palette(&colors, 0, len(colors)*3)
         palette.set_rgb(&colors, len(colors))
         gfx2.screen_mode(4)       ; lores 256 colors
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch 1 line of display all the way to the bottom
@@ -35,7 +34,7 @@ main {
 
 
 irq {
-    const ubyte BAR_Y_OFFSET = 5
+    const ubyte BAR_Y_OFFSET = 6
     uword next_irq_line = 0
     ubyte anim1 = 0
     ubyte av1 = 0
