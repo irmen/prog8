@@ -3,8 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- can we optimize expressions as function call args? for instance vpoke(1, addr+1, 0)  is inefficient
-
 ...
 
 

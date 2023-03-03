@@ -11,10 +11,8 @@
 ; It can be uncompressed or IMA-adpcm compressed (factor 4 lossy compression).
 ; See the "adpcm" module source for tips how to create those files.
 ;
-; Sample width must be 16 bit because 8 bit wav files use unsigned values
-; and that is not compatible with the Vera (requires signed values).
-; You could ofcourse create a raw file with the correct 8 bit values
-; and stream that, but this example deals with wav files only for now.
+; Note that 8 bit wav files are *unsigned* values whereas Vera wants *signed* values
+; so these have to be converted on the fly. 16 bit wav files are signed already.
 ;
 ; The playback is done via AFLOW irq handler that fills the audio fifo buffer
 ; with around 1 Kb of new audio data. (copies raw pcm data or decodes adpcm block)
@@ -72,7 +70,7 @@ main {
         if wavfile.nchannels>2 or
            (wavfile.wavefmt!=wavfile.WAVE_FORMAT_DVI_ADPCM and wavfile.wavefmt!=wavfile.WAVE_FORMAT_PCM) or
            wavfile.sample_rate > 44100 or
-           (wavfile.bits_per_sample!=16) {
+           wavfile.bits_per_sample>16 {
             error("unsupported format!")
         }
 
@@ -88,8 +86,8 @@ main {
         cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
         if wavfile.nchannels==2
             cx16.VERA_AUDIO_CTRL = %10111111    ; stereo 16 bit
-;        if(wavfile.bits_per_sample==8)
-;            cx16.VERA_AUDIO_CTRL &= %11011111    ; set to 8 bit instead
+        if(wavfile.bits_per_sample==8)
+            cx16.VERA_AUDIO_CTRL &= %11011111    ; set to 8 bit instead
         repeat 1024
             cx16.VERA_AUDIO_DATA = 0            ; fill buffer with short silence
 
@@ -159,8 +157,10 @@ interrupt {
             aflow_semaphore = 0
             if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
                 adpcm_block()
+            else if wavfile.bits_per_sample==16
+                uncompressed_block_16()
             else
-                uncompressed_block()
+                uncompressed_block_8()
         } else if cx16.VERA_ISR & %00000001 {
             cx16.VERA_ISR = %00000001
             ; TODO handle vsync irq
@@ -174,7 +174,39 @@ interrupt {
         }}
     }
 
-    sub uncompressed_block() {
+    asmsub uncompressed_block_8() {
+        ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
+        ; converting unsigned wav 8 bit samples to signed 8 bit on the fly
+        %asm {{
+            lda  main.start.buffer
+            sta  cx16.r0L
+            lda  main.start.buffer+1
+            sta  cx16.r0H
+            ldx  #4
+-           ldy  #0
+-           lda  (cx16.r0),y
+            sec
+            sbc  #128       ; convert to unsigned
+            sta  cx16.VERA_AUDIO_DATA
+            iny
+            bne  -
+            inc  cx16.r0H
+            dex
+            bne  --
+            rts
+        }}
+
+; original prog8 code:
+;        uword @requirezp ptr = main.start.buffer
+;        ubyte @requirezp sample
+;        repeat 1024 {
+;            sample = @(ptr) - 128
+;            cx16.VERA_AUDIO_DATA = sample
+;            ptr++
+;        }
+    }
+
+    asmsub uncompressed_block_16() {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         %asm {{
             lda  main.start.buffer
