@@ -29,7 +29,12 @@ main {
 
     sub start() {
         uword buffer = memory("buffer", 1024, 256)
-        str MUSIC_FILENAME = "music.wav"
+        str MUSIC_FILENAME = "?"*32
+
+        txt.print("name of .wav file to play: ")
+        while 0==txt.input_chars(MUSIC_FILENAME) {
+            ; until user types a name...
+        }
 
         bool wav_ok = false
         txt.print("\nchecking ")
