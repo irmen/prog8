@@ -720,22 +720,6 @@ class Subroutine(override val name: String,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
-
-    // code to provide the ability to reference asmsub parameters via qualified name:
-    private val asmParamsDecls = mutableMapOf<String, VarDecl>()
-
-    fun searchParameter(name: String): VarDecl? {
-        // TODO can we get rid of this routine? it makes temporary vardecls...
-        val existingDecl = asmParamsDecls[name]
-        if(existingDecl!=null)
-            return existingDecl
-
-        val param = parameters.firstOrNull {it.name==name} ?: return null
-        val decl = VarDecl.fromParameter(param)
-        decl.linkParents(this)
-        asmParamsDecls[name] = decl
-        return decl
-    }
 }
 
 open class SubroutineParameter(val name: String,
