@@ -187,10 +187,35 @@ class ExpressionSimplifier(private val program: Program,
             }
         }
 
+        // X <= Y-1 ---> X<Y  ,  X >= Y+1 ---> X>Y
+        if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
+            val rightExpr = expr.right as? BinaryExpression
+            if(rightExpr!=null && rightExpr.right.constValue(program)?.number==1.0) {
+                if (expr.operator == "<=" && rightExpr.operator == "-") {
+                    expr.operator = "<"
+                    return listOf(IAstModification.ReplaceNode(rightExpr, rightExpr.left, expr))
+                } else if (expr.operator == ">=" && rightExpr.operator == "+") {
+                    expr.operator = ">"
+                    return listOf(IAstModification.ReplaceNode(rightExpr, rightExpr.left, expr))
+                }
+            }
+        }
+
         if(leftDt!=DataType.FLOAT && expr.operator == ">=" && rightVal?.number == 1.0) {
             // for integers: x >= 1  -->  x > 0
             expr.operator = ">"
             return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral.optimalInteger(0, expr.right.position), expr))
+        }
+
+        // for signed integers: X <= -1 => X<0 ,  X > -1 => X>=0
+        if(leftDt in SignedDatatypes && leftDt!=DataType.FLOAT && rightVal?.number==-1.0) {
+            if(expr.operator=="<=") {
+                expr.operator = "<"
+                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt, 0.0, expr.right.position), expr))
+            } else if(expr.operator==">") {
+                expr.operator = ">="
+                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt, 0.0, expr.right.position), expr))
+            }
         }
 
         if (leftDt == DataType.UBYTE || leftDt == DataType.UWORD) {
