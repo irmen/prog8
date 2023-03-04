@@ -146,7 +146,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 pcChunk = target
                 pcIndex = 0
             }
-            null -> TODO("no branchtarget in $i (remove this check)")
+            null -> throw IllegalArgumentException("no branchtarget in $i")
             else -> throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
         }
     }

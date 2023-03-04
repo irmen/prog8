@@ -3,6 +3,16 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- fix compiler crash on Virtual Textelite example
+- add optimizations for integer X <= Y-1 ---> X<Y   , X >= Y+1 ---> X>Y
+- add optimizations for integer:
+    X >= 1  =>  X > 0     (signed and unsigned)
+    X < 1   =>  X <= 0      (signed)    or  X==0   (unsigned)
+    X <= -1 =>  X >= 0      (signed only)
+    X > -1  =>  X >= 0      (signed only)
+
+- TestSymbolTable: add some more tests
+
 ...
 
 

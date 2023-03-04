@@ -240,11 +240,10 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateExpression(expr: PtBinaryExpression) {
-        // Uses evalstack to evaluate the given expression.
-        // TODO we're slowly reducing the number of places where this is called and instead replace that by more efficient assignment-form code (using temp var or register for instance).
+        // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
         val leftDt = expr.left.type
         val rightDt = expr.right.type
-        // see if we can apply some optimized routines
+        // see if we can apply some optimized routines still
         when(expr.operator) {
             "+" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
@@ -567,7 +566,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             translateCompareStrings(expr.left, expr.operator, expr.right)
         }
         else {
-            // the general, non-optimized cases  TODO optimize more cases.... (or one day just don't use the evalstack at all anymore)
+            // the general, non-optimized cases
+            // TODO optimize more cases.... (or one day just don't use the evalstack at all anymore)
             translateExpressionInternal(expr.left)
             translateExpressionInternal(expr.right)
             when (leftDt) {
