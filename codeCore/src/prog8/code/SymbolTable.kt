@@ -54,7 +54,17 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     val allMemorySlabs: Collection<StMemorySlab> by lazy {
-        children.mapNotNull { if (it.value.type == StNodeType.MEMORYSLAB) it.value as StMemorySlab else null }
+        val vars = mutableListOf<StMemorySlab>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type== StNodeType.MEMORYSLAB)
+                    vars.add(child.value as StMemorySlab)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(this)
+        vars
     }
 
     override fun lookup(scopedName: String) = flat[scopedName]
@@ -168,7 +178,9 @@ class StStaticVariable(name: String,
         }
         if(onetimeInitializationArrayValue!=null) {
             require(dt in ArrayDatatypes)
-            require(onetimeInitializationArrayValue.any { it.number!=0.0} ) { "array of all zerors as init value should just remain uninitialized"}
+            if(onetimeInitializationArrayValue.all { it.number!=null} ) {
+                require(onetimeInitializationArrayValue.any { it.number != 0.0 }) { "array of all zerors as init value should just remain uninitialized" }
+            }
         }
         if(onetimeInitializationStringValue!=null) {
             require(dt == DataType.STR)

@@ -59,7 +59,7 @@ class TestSymbolTable: FunSpec({
         sub1.name shouldBe "sub1"
         sub1.scopedName shouldBe "block1.sub1"
         sub1.type shouldBe StNodeType.SUBROUTINE
-        sub1.children.size shouldBe 2
+        sub1.children.size shouldBe 4
 
         val v1 = sub1.lookupUnscopedOrElse("v1") { fail("v1 must be found") } as StStaticVariable
         v1.type shouldBe StNodeType.STATICVAR
@@ -75,7 +75,13 @@ class TestSymbolTable: FunSpec({
         subsub.lookupUnscoped("label") shouldNotBe null
     }
 
-    // TODO add more SymbolTable tests
+    test("symboltable collections") {
+        val st= makeSt()
+
+        st.allVariables.size shouldBe 4
+        st.allMemMappedVariables.single().scopedName shouldBe "block1.sub1.v3"
+        st.allMemorySlabs.single().scopedName shouldBe "block1.sub1.slab1"
+    }
     
 })
 
@@ -93,10 +99,14 @@ private fun makeSt(): SymbolTable {
     val astSub2 = PtSub("sub2", emptyList(), null, Position.DUMMY)
     val astSub1v1 = PtVariable("v1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY)
     val astSub1v2 = PtVariable("v2", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
+    val astSub1v3 = PtVariable("v3", DataType.FLOAT, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
+    val astSub1v4 = PtVariable("slab1", DataType.UWORD, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
     val astSub2v1 = PtVariable("v1", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
     val astSub2v2 = PtVariable("v2", DataType.BYTE, ZeropageWish.DONTCARE,null, null, Position.DUMMY)
     astSub1.add(astSub1v1)
     astSub1.add(astSub1v2)
+    astSub1.add(astSub1v3)
+    astSub1.add(astSub1v4)
     astSub2.add(astSub2v2)
     astSub2.add(astSub2v2)
     astBlock1.add(astSub1)
@@ -126,9 +136,10 @@ private fun makeSt(): SymbolTable {
     block1.add(StConstant("blockc", DataType.UWORD, 999.0, astConstant2))
     sub11.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, astSub1v1))
     sub11.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, astSub1v2))
+    sub11.add(StMemVar("v3", DataType.FLOAT, 12345u, null, astSub1v3))
+    sub11.add(StMemorySlab("slab1", 200u, 64u, astSub1v4))
     sub12.add(StStaticVariable("v1", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, astSub2v1))
     sub12.add(StStaticVariable("v2", DataType.BYTE, null, null, null, null, ZeropageWish.DONTCARE, astSub2v2))
-
     val block2 = StNode("block2", StNodeType.BLOCK, astBlock2)
     val sub21 = StNode("sub1", StNodeType.SUBROUTINE, astSub21)
     val sub22 = StNode("sub2", StNodeType.SUBROUTINE, astSub22)

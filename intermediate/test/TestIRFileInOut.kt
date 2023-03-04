@@ -59,6 +59,7 @@ uword sys.bssvar zp=DONTCARE
 </VARIABLESNOINIT>
 <VARIABLESWITHINIT>
 uword sys.wait.jiffies=10 zp=DONTCARE
+ubyte[3] sys.emptystring=0,0,0 zp=DONTCARE
 </VARIABLESWITHINIT>
 
 <MEMORYMAPPEDVARIABLES>
@@ -106,10 +107,12 @@ return
         tempfile.deleteExisting()
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2
-        program.st.allVariables().count() shouldBe 2
+        program.st.allVariables().count() shouldBe 3
         val var1 = program.st.lookup("sys.wait.jiffies") as StStaticVariable
         val var2 = program.st.lookup("sys.bssvar") as StStaticVariable
+        val var3 = program.st.lookup("sys.emptystring") as StStaticVariable
         var1.uninitialized shouldBe false
         var2.uninitialized shouldBe true
+        var3.uninitialized shouldBe true
     }
 })

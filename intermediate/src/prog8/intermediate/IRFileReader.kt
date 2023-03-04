@@ -215,6 +215,9 @@ class IRFileReader {
                     else -> throw IRParseException("weird dt")
                 }
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
+                if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
+                    initArray=null  // arrays with just zeros can be left uninitialized
+                }
                 variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, dummyNode))
             }
             return variables
