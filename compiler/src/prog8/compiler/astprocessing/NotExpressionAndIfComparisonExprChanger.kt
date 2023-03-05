@@ -153,17 +153,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
         if(compTarget.name == VMTarget.NAME)  // don't apply this optimization for Vm target
             return CondExprSimplificationResult(null, null, null, null)
 
-        var leftAssignment: Assignment? = null
-        var leftOperandReplacement: Expression? = null
-        var rightAssignment: Assignment? = null
-        var rightOperandReplacement: Expression? = null
-
-        val separateLeftExpr = !expr.left.isSimple
-                && expr.left !is IFunctionCall
-                && expr.left !is ContainmentCheck
-        val separateRightExpr = !expr.right.isSimple
-                && expr.right !is IFunctionCall
-                && expr.right !is ContainmentCheck
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
 
@@ -171,6 +160,17 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             // we can't reasonably simplify non-integer expressions
             return CondExprSimplificationResult(null, null, null, null)
         }
+
+        var leftAssignment: Assignment? = null
+        var leftOperandReplacement: Expression? = null
+        var rightAssignment: Assignment? = null
+        var rightOperandReplacement: Expression? = null
+        val separateLeftExpr = !expr.left.isSimple
+                && expr.left !is IFunctionCall
+                && expr.left !is ContainmentCheck
+        val separateRightExpr = !expr.right.isSimple
+                && expr.right !is IFunctionCall
+                && expr.right !is ContainmentCheck
 
         if(separateLeftExpr) {
             val name = getTempRegisterName(leftDt)
