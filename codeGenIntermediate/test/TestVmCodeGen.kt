@@ -100,4 +100,343 @@ class TestVmCodeGen: FunSpec({
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
         irChunks.size shouldBeGreaterThan 4
     }
+
+    test("float comparison expressions against zero") {
+//main {
+//    sub start() {
+//        float @shared f1
+//
+//        if f1==0
+//            nop
+//        if f1!=0
+//            nop
+//        if f1>0
+//            nop
+//        if f1<0
+//            nop
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.UBYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression("!=", DataType.UBYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if2)
+        val if3 = PtIfElse(Position.DUMMY)
+        val cmp3 = PtBinaryExpression("<", DataType.UBYTE, Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp3.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        if3.add(cmp3)
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if3)
+        val if4 = PtIfElse(Position.DUMMY)
+        val cmp4 = PtBinaryExpression(">", DataType.UBYTE, Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp4.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        if4.add(cmp4)
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if4)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
+    test("float comparison expressions against nonzero") {
+//main {
+//    sub start() {
+//        float @shared f1
+//
+//        if f1==42
+//            nop
+//        if f1!=42
+//            nop
+//        if f1>42
+//            nop
+//        if f1<42
+//            nop
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.UBYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression("!=", DataType.UBYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if2)
+        val if3 = PtIfElse(Position.DUMMY)
+        val cmp3 = PtBinaryExpression("<", DataType.UBYTE, Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp3.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if3.add(cmp3)
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if3)
+        val if4 = PtIfElse(Position.DUMMY)
+        val cmp4 = PtBinaryExpression(">", DataType.UBYTE, Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp4.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if4.add(cmp4)
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if4)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
+    test("float conditional jump") {
+//main {
+//    sub start() {
+//        float @shared f1
+//
+//        if f1==42
+//            goto $c000
+//        if f1>42
+//            goto $c000
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.UBYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, null, Position.DUMMY)) })
+        if1.add(PtNodeGroup())
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression(">", DataType.UBYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, null, Position.DUMMY)) })
+        if2.add(PtNodeGroup())
+        sub.add(if2)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
+    test("integer comparison expressions against zero") {
+//main {
+//    sub start() {
+//        byte @shared sb1
+//
+//        if sb1==0
+//            nop
+//        if sb1!=0
+//            nop
+//        if sb1>0
+//            nop
+//        if sb1<0
+//            nop
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("sb1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.BYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression("!=", DataType.BYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if2)
+        val if3 = PtIfElse(Position.DUMMY)
+        val cmp3 = PtBinaryExpression("<", DataType.BYTE, Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp3.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        if3.add(cmp3)
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if3)
+        val if4 = PtIfElse(Position.DUMMY)
+        val cmp4 = PtBinaryExpression(">", DataType.BYTE, Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp4.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        if4.add(cmp4)
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if4)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
+    test("integer comparison expressions against nonzero") {
+//main {
+//    sub start() {
+//        byte @shared sb1
+//
+//        if sb1==42
+//            nop
+//        if sb1!=42
+//            nop
+//        if sb1>42
+//            nop
+//        if sb1<42
+//            nop
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("sb1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.BYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression("!=", DataType.BYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if2)
+        val if3 = PtIfElse(Position.DUMMY)
+        val cmp3 = PtBinaryExpression("<", DataType.BYTE, Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp3.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        if3.add(cmp3)
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if3)
+        val if4 = PtIfElse(Position.DUMMY)
+        val cmp4 = PtBinaryExpression(">", DataType.BYTE, Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
+        cmp4.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        if4.add(cmp4)
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
+        sub.add(if4)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
+    test("integer conditional jump") {
+//main {
+//    sub start() {
+//        ubyte @shared ub1
+//
+//        if ub1==42
+//            goto $c000
+//        if ub1>42
+//            goto $c000
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        sub.add(PtVariable("ub1", DataType.UBYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        val if1 = PtIfElse(Position.DUMMY)
+        val cmp1 = PtBinaryExpression("==", DataType.UBYTE, Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.ub1", DataType.UBYTE, Position.DUMMY))
+        cmp1.add(PtNumber(DataType.UBYTE, 42.0, Position.DUMMY))
+        if1.add(cmp1)
+        if1.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, null, Position.DUMMY)) })
+        if1.add(PtNodeGroup())
+        sub.add(if1)
+        val if2 = PtIfElse(Position.DUMMY)
+        val cmp2 = PtBinaryExpression(">", DataType.UBYTE, Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.ub1", DataType.UBYTE, Position.DUMMY))
+        cmp2.add(PtNumber(DataType.UBYTE, 42.0, Position.DUMMY))
+        if2.add(cmp2)
+        if2.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, null, Position.DUMMY)) })
+        if2.add(PtNodeGroup())
+        sub.add(if2)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBeGreaterThan 4
+    }
+
 })

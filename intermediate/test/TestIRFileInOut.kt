@@ -47,8 +47,8 @@ compTarget=virtual
 output=PRG
 launcher=BASIC
 zeropage=KERNALSAFE
-loadAddress=0
-evalStackBaseAddress=null
+loadAddress=$0000
+evalStackBaseAddress=
 </OPTIONS>
 
 <ASMSYMBOLS>
@@ -75,8 +75,8 @@ load.b r1,42
 </CODE>
 </INITGLOBALS>
 
-<BLOCK NAME="main" ADDRESS="null" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
-<SUB NAME="main.start" RETURNTYPE="null" POS="[examples/test.p8: line 4 col 6-8]">
+<BLOCK NAME="main" ADDRESS="" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
+<SUB NAME="main.start" RETURNTYPE="" POS="[examples/test.p8: line 4 col 6-8]">
 <PARAMS>
 </PARAMS>
 <CODE LABEL="main.start">
@@ -85,8 +85,8 @@ return
 </SUB>
 </BLOCK>
 
-<BLOCK NAME="sys" ADDRESS="null" ALIGN="NONE" POS="[library:/prog8lib/virtual/syslib.p8: line 3 col 2-4]">
-<SUB NAME="sys.wait" RETURNTYPE="null" POS="[library:/prog8lib/virtual/syslib.p8: line 15 col 6-8]">
+<BLOCK NAME="sys" ADDRESS="" ALIGN="NONE" POS="[library:/prog8lib/virtual/syslib.p8: line 3 col 2-4]">
+<SUB NAME="sys.wait" RETURNTYPE="" POS="[library:/prog8lib/virtual/syslib.p8: line 15 col 6-8]">
 <PARAMS>
 uword sys.wait.jiffies
 </PARAMS>

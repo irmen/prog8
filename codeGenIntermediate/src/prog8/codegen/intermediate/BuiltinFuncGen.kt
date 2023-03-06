@@ -265,7 +265,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val addressReg = codeGen.registers.nextFree()
                 result += exprGen.translateExpression(call.args[0], addressReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg2 = addressReg)
+                    it += IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = addressReg)
                 }
             }
         } else {
@@ -300,7 +300,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val addressReg = codeGen.registers.nextFree()
                 result += exprGen.translateExpression(call.args[0], addressReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg2 = addressReg)
+                    it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = addressReg)
                 }
             }
         } else {

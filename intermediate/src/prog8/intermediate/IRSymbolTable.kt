@@ -95,9 +95,12 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
             scopedName = variable.name
             varToadd = variable
         } else {
-            scopedName = variable.scopedName
-            val dummyNode = PtVariable(scopedName, variable.dt, ZeropageWish.NOT_IN_ZEROPAGE, null, null, variable.astNode.position)
-            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, dummyNode)
+            scopedName = try {
+                variable.scopedName
+            } catch (ux: UninitializedPropertyAccessException) {
+                variable.name
+            }
+            varToadd = StMemVar(scopedName, variable.dt, variable.address, variable.length, variable.astNode)
         }
         table[scopedName] = varToadd
     }

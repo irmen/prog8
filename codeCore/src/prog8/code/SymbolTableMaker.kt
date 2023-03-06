@@ -26,11 +26,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY),
-                PtMemMapped("P8ESTACK_LO", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_LO, 256u, Position.DUMMY),
-                PtMemMapped("P8ESTACK_HI", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_HI, 256u, Position.DUMMY)
+                PtMemMapped("P8ESTACK_LO", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_LO, 128u, Position.DUMMY),
+                PtMemMapped("P8ESTACK_HI", DataType.ARRAY_UB, options.compTarget.machine.ESTACK_HI, 128u, Position.DUMMY)
             ).forEach {
                 it.parent = program
-                st.add(StMemVar(it.name, it.type, it.address, null, it))
+                st.add(StMemVar(it.name, it.type, it.address, it.arraySize?.toInt(), it))
             }
         }
 

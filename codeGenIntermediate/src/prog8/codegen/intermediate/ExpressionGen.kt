@@ -16,6 +16,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         require(codeGen.registers.peekNext() > resultRegister || resultRegister >= SyscallRegisterBase) {
             "no more registers for expression ${expr.position}"
         }
+        require((expr.type!=DataType.FLOAT && resultRegister>=0) || (expr.type==DataType.FLOAT && resultFpRegister>=0)) {
+            "mismatched result register for expression datatype ${expr.type} ${expr.position}"
+        }
 
         return when (expr) {
             is PtMachineRegister -> {

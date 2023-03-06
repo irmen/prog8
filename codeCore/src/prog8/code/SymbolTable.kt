@@ -133,7 +133,7 @@ open class StNode(val name: String,
     }
 
     private val scopedNameList: List<String> by lazy {
-        if(type== StNodeType.GLOBAL)
+        if(type==StNodeType.GLOBAL)
             emptyList()
         else
             parent.scopedNameList + name
@@ -142,7 +142,7 @@ open class StNode(val name: String,
     private fun lookup(scopedName: List<String>): StNode? {
         // a scoped name refers to a name in another namespace, and always stars from the root.
         var node = this
-        while(node.type!= StNodeType.GLOBAL)
+        while(node.type!=StNodeType.GLOBAL)
             node = node.parent
 
         for(name in scopedName) {
@@ -201,6 +201,11 @@ class StMemVar(name: String,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                astNode: PtNode) :
     StNode(name, StNodeType.MEMVAR, astNode) {
+
+    init{
+        if(dt in ArrayDatatypes || dt == DataType.STR)
+            require(length!=null) { "memory mapped array or string must have known length" }
+    }
 }
 
 class StMemorySlab(

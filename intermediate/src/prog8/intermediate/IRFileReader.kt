@@ -103,8 +103,8 @@ class IRFileReader {
                     "output" -> outputType = OutputType.valueOf(value)
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)
-                    "loadAddress" -> loadAddress = value.toUInt()
-                    "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="null") null else parseIRValue(value).toUInt()
+                    "loadAddress" -> loadAddress = parseIRValue(value).toUInt()
+                    "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="") null else parseIRValue(value).toUInt()
                     "zpReserved" -> {
                         val (zpstart, zpend) = value.split(',')
                         zpReserved.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
@@ -262,10 +262,10 @@ class IRFileReader {
             emptyList()
         else {
             val slabs = mutableListOf<StMemorySlab>()
-            val slabPattern = Regex("SLAB (.+) (.+) (.+)")
+            val slabPattern = Regex("(.+) (.+) (.+)")
             text.lineSequence().forEach { line ->
-                // example: "SLAB slabname 4096 0"
-                val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid SLAB $line")
+                // example: "slabname 4096 0"
+                val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
                 val dummyNode = PtVariable(name, DataType.ARRAY_UB, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
@@ -331,7 +331,7 @@ class IRFileReader {
         val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
         val block = IRBlock(
             attrs.getValue("NAME"),
-            if(attrs.getValue("ADDRESS")=="null") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+            if(attrs.getValue("ADDRESS")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
             IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN")),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)
@@ -364,7 +364,7 @@ class IRFileReader {
         skipText(reader)
         val sub = IRSubroutine(attrs.getValue("NAME"),
             parseParameters(reader),
-            if(returntype=="null") null else parseDatatype(returntype, false),
+            if(returntype=="") null else parseDatatype(returntype, false),
             parsePosition(attrs.getValue("POS")))
 
         skipText(reader)
@@ -433,7 +433,7 @@ class IRFileReader {
         }
         return IRAsmSubroutine(
             attrs.getValue("NAME"),
-            if(attrs.getValue("ADDRESS")=="null") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+            if(attrs.getValue("ADDRESS")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
             clobberRegs.toSet(),
             params,
             returns,

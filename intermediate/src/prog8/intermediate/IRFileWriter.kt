@@ -2,6 +2,7 @@ package prog8.intermediate
 
 import prog8.code.core.*
 import java.nio.file.Path
+import javax.xml.stream.XMLOutputFactory
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
@@ -9,23 +10,32 @@ import kotlin.io.path.div
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
     private val out = outfile.bufferedWriter(charset=Charsets.UTF_8)
+    private val xml = XMLOutputFactory.newInstance().createXMLStreamWriter(out)
     private var numChunks = 0
     private var numInstr = 0
 
 
     fun write(): Path {
+
         println("Writing intermediate representation to $outfile")
-        out.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
-        out.write("<PROGRAM NAME=\"${irProgram.name}\">\n")
+        xml.writeStartDocument("utf-8", "1.0")
+        xml.writeEndDocument()
+        xml.writeCharacters("\n")
+        xml.writeStartElement("PROGRAM")
+        xml.writeAttribute("NAME", irProgram.name)
+        xml.writeCharacters("\n")
         writeOptions()
         writeAsmSymbols()
         writeVariables()
-
-        out.write("\n<INITGLOBALS>\n")
+        xml.writeStartElement("INITGLOBALS")
+        xml.writeCharacters("\n")
         writeCodeChunk(irProgram.globalInits)
-        out.write("</INITGLOBALS>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n\n")
         writeBlocks()
-        out.write("</PROGRAM>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+        xml.close()
         out.close()
 
         val used = irProgram.registersUsed()
@@ -35,14 +45,21 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeAsmSymbols() {
-        out.write("<ASMSYMBOLS>\n")
-        irProgram.asmSymbols.forEach { (name, value) -> out.write("$name=$value\n" )}
-        out.write("</ASMSYMBOLS>\n")
+        xml.writeStartElement("ASMSYMBOLS")
+        xml.writeCharacters("\n")
+        irProgram.asmSymbols.forEach { (name, value) -> xml.writeCharacters("$name=$value\n" )}
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
-            out.write("\n<BLOCK NAME=\"${block.name}\" ADDRESS=\"${block.address?.toHex()}\" ALIGN=\"${block.alignment}\" POS=\"${block.position}\">\n")
+            xml.writeStartElement("BLOCK")
+            xml.writeAttribute("NAME", block.name)
+            xml.writeAttribute("ADDRESS", block.address?.toHex() ?: "")
+            xml.writeAttribute("ALIGN", block.alignment.toString())
+            xml.writeAttribute("POS", block.position.toString())
+            xml.writeCharacters("\n")
             block.children.forEach { child ->
                 when(child) {
                     is IRAsmSubroutine -> {
@@ -51,25 +68,40 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             if(ret.reg.registerOrPair!=null) "${ret.reg.registerOrPair}:${ret.dt.toString().lowercase()}"
                             else "${ret.reg.statusflag}:${ret.dt.toString().lowercase()}"
                         }.joinToString(",")
-                        out.write("<ASMSUB NAME=\"${child.label}\" ADDRESS=\"${child.address?.toHex()}\" CLOBBERS=\"$clobbers\" RETURNS=\"$returns\" POS=\"${child.position}\">\n")
-                        out.write("<ASMPARAMS>\n")
+                        xml.writeStartElement("ASMSUB")
+                        xml.writeAttribute("NAME", child.label)
+                        xml.writeAttribute("ADDRESS", child.address?.toHex() ?: "")
+                        xml.writeAttribute("CLOBBERS", clobbers)
+                        xml.writeAttribute("RETURNS", returns)
+                        xml.writeAttribute("POS", child.position.toString())
+                        xml.writeCharacters("\n")
+                        xml.writeStartElement("ASMPARAMS")
+                        xml.writeCharacters("\n")
                         child.parameters.forEach { ret ->
                             val reg = if(ret.reg.registerOrPair!=null) ret.reg.registerOrPair.toString()
                             else ret.reg.statusflag.toString()
-                            out.write("${ret.dt.toString().lowercase()} $reg\n")
+                            xml.writeCharacters("${ret.dt.toString().lowercase()} $reg\n")
                         }
-                        out.write("</ASMPARAMS>\n")
+                        xml.writeEndElement()
+                        xml.writeCharacters("\n")
                         writeInlineAsm(child.asmChunk)
-                        out.write("</ASMSUB>\n")
+                        xml.writeEndElement()
+                        xml.writeCharacters("\n\n")
                     }
                     is IRCodeChunk -> writeCodeChunk(child)
                     is IRInlineAsmChunk -> writeInlineAsm(child)
                     is IRInlineBinaryChunk -> writeInlineBytes(child)
                     is IRSubroutine -> {
-                        out.write("<SUB NAME=\"${child.label}\" RETURNTYPE=\"${child.returnType.toString().lowercase()}\" POS=\"${child.position}\">\n")
-                        out.write("<PARAMS>\n")
-                        child.parameters.forEach { param -> out.write("${getTypeString(param.dt)} ${param.name}\n") }
-                        out.write("</PARAMS>\n")
+                        xml.writeStartElement("SUB")
+                        xml.writeAttribute("NAME", child.label)
+                        xml.writeAttribute("RETURNTYPE", child.returnType?.toString()?.lowercase() ?: "")
+                        xml.writeAttribute("POS", child.position.toString())
+                        xml.writeCharacters("\n")
+                        xml.writeStartElement("PARAMS")
+                        xml.writeCharacters("\n")
+                        child.parameters.forEach { param -> xml.writeCharacters("${getTypeString(param.dt)} ${param.name}\n") }
+                        xml.writeEndElement()
+                        xml.writeCharacters("\n")
                         child.chunks.forEach { chunk ->
                             numChunks++
                             when (chunk) {
@@ -79,71 +111,87 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                                 else -> throw InternalCompilerException("invalid chunk")
                             }
                         }
-                        out.write("</SUB>\n")
+                        xml.writeEndElement()
+                        xml.writeCharacters("\n\n")
                     }
                 }
             }
-            out.write("</BLOCK>\n")
+            xml.writeEndElement()
+            xml.writeCharacters("\n\n")
         }
     }
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
-        if(chunk.label!=null)
-            out.write("<CODE LABEL=\"${chunk.label}\">\n")
-        else
-            out.write("<CODE>\n")
+        xml.writeStartElement("CODE")
+        chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
+        xml.writeCharacters("\n")
         chunk.instructions.forEach { instr ->
             numInstr++
-            out.write(instr.toString())
-            out.write("\n")
+            xml.writeCharacters(instr.toString())
+            xml.writeCharacters("\n")
         }
-        out.write("</CODE>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {
-        out.write("<BYTES LABEL=\"${chunk.label ?: ""}\">\n")
+        xml.writeStartElement("BYTES")
+        chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
+        xml.writeCharacters("\n")
         chunk.data.withIndex().forEach {(index, byte) ->
-            out.write(byte.toString(16).padStart(2,'0'))
+            xml.writeCharacters(byte.toString(16).padStart(2,'0'))
             if(index and 63 == 63 && index < chunk.data.size-1)
-                out.write("\n")
+                xml.writeCharacters("\n")
         }
-        out.write("\n</BYTES>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        out.write("<INLINEASM LABEL=\"${chunk.label ?: ""}\" IR=\"${chunk.isIR}\">\n")
-        out.write(chunk.assembly)
-        out.write("\n</INLINEASM>\n")
+        xml.writeStartElement("INLINEASM")
+        xml.writeAttribute("LABEL", chunk.label ?: "")
+        xml.writeAttribute("IR", chunk.isIR.toString())
+        xml.writeCharacters("\n")
+        xml.writeCharacters(chunk.assembly)
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 
     private fun writeOptions() {
-        out.write("<OPTIONS>\n")
-        out.write("compTarget=${irProgram.options.compTarget.name}\n")
-        out.write("output=${irProgram.options.output}\n")
-        out.write("launcher=${irProgram.options.launcher}\n")
-        out.write("zeropage=${irProgram.options.zeropage}\n")
+        xml.writeStartElement("OPTIONS")
+        xml.writeCharacters("\n")
+        xml.writeCharacters("compTarget=${irProgram.options.compTarget.name}\n")
+        xml.writeCharacters("output=${irProgram.options.output}\n")
+        xml.writeCharacters("launcher=${irProgram.options.launcher}\n")
+        xml.writeCharacters("zeropage=${irProgram.options.zeropage}\n")
         for(range in irProgram.options.zpReserved) {
-            out.write("zpReserved=${range.first},${range.last}\n")
+            xml.writeCharacters("zpReserved=${range.first},${range.last}\n")
         }
-        out.write("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
-        out.write("optimize=${irProgram.options.optimize}\n")
-        out.write("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress?.toHex()}\n")
-        out.write("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
+        xml.writeCharacters("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
+        xml.writeCharacters("optimize=${irProgram.options.optimize}\n")
+        xml.writeCharacters("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress?.toHex() ?: ""}\n")
+        xml.writeCharacters("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
         // other options not yet useful here?
-        out.write("</OPTIONS>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n\n")
     }
 
     private fun writeVariables() {
 
         val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
 
-        out.write("\n<VARIABLESNOINIT>\n")
+        xml.writeStartElement("VARIABLESNOINIT")
+        xml.writeCharacters("\n")
         for (variable in variablesNoInit) {
             val typeStr = getTypeString(variable)
-            out.write("$typeStr ${variable.name} zp=${variable.zpwish}\n")
+            xml.writeCharacters("$typeStr ${variable.name} zp=${variable.zpwish}\n")
         }
 
-        out.write("</VARIABLESNOINIT>\n<VARIABLESWITHINIT>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+        xml.writeStartElement("VARIABLESWITHINIT")
+        xml.writeCharacters("\n")
+
         for (variable in variablesWithInit) {
             val typeStr = getTypeString(variable)
             val value: String = when(variable.dt) {
@@ -174,19 +222,24 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 }
                 else -> throw InternalCompilerException("weird dt")
             }
-            out.write("$typeStr ${variable.name}=$value zp=${variable.zpwish}\n")
+            xml.writeCharacters("$typeStr ${variable.name}=$value zp=${variable.zpwish}\n")
         }
-        out.write("</VARIABLESWITHINIT>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
 
-        out.write("\n<MEMORYMAPPEDVARIABLES>\n")
+        xml.writeStartElement("MEMORYMAPPEDVARIABLES")
+        xml.writeCharacters("\n")
         for (variable in irProgram.st.allMemMappedVariables()) {
             val typeStr = getTypeString(variable)
-            out.write("@$typeStr ${variable.name}=${variable.address.toHex()}\n")
+            xml.writeCharacters("@$typeStr ${variable.name}=${variable.address.toHex()}\n")
         }
-        out.write("</MEMORYMAPPEDVARIABLES>\n")
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
 
-        out.write("\n<MEMORYSLABS>\n")
-        irProgram.st.allMemorySlabs().forEach{ slab -> out.write("SLAB ${slab.name} ${slab.size} ${slab.align}\n") }
-        out.write("</MEMORYSLABS>\n")
+        xml.writeStartElement("MEMORYSLABS")
+        xml.writeCharacters("\n")
+        irProgram.st.allMemorySlabs().forEach{ slab -> xml.writeCharacters("${slab.name} ${slab.size} ${slab.align}\n") }
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
     }
 }
