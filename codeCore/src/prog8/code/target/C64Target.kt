@@ -16,5 +16,7 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Cb
 
     companion object {
         const val NAME = "c64"
+
+        fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"
     }
 }

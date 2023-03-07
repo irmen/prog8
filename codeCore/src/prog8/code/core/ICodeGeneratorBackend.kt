@@ -13,7 +13,5 @@ interface ICodeGeneratorBackend {
 
 interface IAssemblyProgram {
     val name: String
-    fun assemble(options: CompilationOptions): Boolean
+    fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean
 }
-
-fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"

@@ -158,14 +158,13 @@ Some notes and references into the compiler's source code modules:
 #. ANTLR is a Java parser generator and is used for initial parsing of the source code. (``parser`` module)
 #. Most of the compiler and the optimizer operate on the *Compiler AST*. These are complicated
    syntax nodes closely representing the Prog8 program structure. (``compilerAst`` module)
-#. For code generation, a much simpler *intermediate AST* has been defined that replaces the *Compiler AST*.
-   Most notably, node type information is now baked in. (``codeCore`` module)
+#. For code generation, a much simpler AST has been defined that replaces the *Compiler AST*.
+   Most notably, node type information is now baked in. (``codeCore`` module, Pt- classes)
 #. An *Intermediate Representation* has been defined that is generated from the intermediate AST. This IR
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
    prog8 VM will execute if you use the 'virtual' compilation target and use ``-emu`` to launch the VM.
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
-#. Currently the 6502 ASM code generator still works directly on the *Compiler AST*. A future version
-   should replace this by working on the IR code, and should be much smaller and simpler.
-   (``codeGenCpu6502`` module)
-#. Other code generators may either work on the intermediate AST or on the IR. Selection of what code generator
-   to use is mostly based on the compilation target, and is done in the ``asmGeneratorFor()`` function.
+#. The code generator backends all implement a common interface ``ICodeGeneratorBackend`` defined in the ``codeCore`` module.
+   Currently they get handed the program Ast, Symboltable and several other things.
+   If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module
+   to convert the Ast into IR first. The VM target uses this, but the 6502 codegen doesn't right now.

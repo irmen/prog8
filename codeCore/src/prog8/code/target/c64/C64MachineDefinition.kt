@@ -1,6 +1,7 @@
 package prog8.code.target.c64
 
 import prog8.code.core.*
+import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
 import java.io.IOException
 import java.nio.file.Path
@@ -42,7 +43,7 @@ class C64MachineDefinition: IMachineDefinition {
 
         for(emulator in listOf("x64sc", "x64")) {
             println("\nStarting C-64 emulator $emulator...")
-            val viceMonlist = viceMonListName(programNameWithPath.toString())
+            val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
             val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
                     "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
             val processb = ProcessBuilder(cmdline).inheritIO()

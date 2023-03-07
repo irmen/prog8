@@ -4,6 +4,7 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.mapError
 import prog8.code.core.*
+import prog8.code.target.C64Target
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
@@ -19,10 +20,10 @@ internal class AssemblyProgram(
     private val prgFile = outputDir.resolve("$name.prg")        // CBM prg executable program
     private val xexFile = outputDir.resolve("$name.xex")        // Atari xex executable program
     private val binFile = outputDir.resolve("$name.bin")
-    private val viceMonListFile = outputDir.resolve(viceMonListName(name))
+    private val viceMonListFile = outputDir.resolve(C64Target.viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
 
-    override fun assemble(options: CompilationOptions): Boolean {
+    override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
         val assemblerCommand: List<String>
 

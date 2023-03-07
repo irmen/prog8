@@ -413,7 +413,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     errors.report()
 
     return if(assembly!=null && errors.noErrors()) {
-        assembly.assemble(compilerOptions)
+        assembly.assemble(compilerOptions, errors)
     } else {
         false
     }

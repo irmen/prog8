@@ -1,6 +1,7 @@
 package prog8.code.target.cx16
 
 import prog8.code.core.*
+import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
 import java.nio.file.Path
 
@@ -43,7 +44,7 @@ class CX16MachineDefinition: IMachineDefinition {
             }
             2 -> {
                 emulator = "box16"
-                extraArgs = listOf("-sym", viceMonListName(programNameWithPath.toString()))
+                extraArgs = listOf("-sym", C64Target.viceMonListName(programNameWithPath.toString()))
             }
             else -> {
                 System.err.println("Cx16 target only supports x16emu and box16 emulators.")

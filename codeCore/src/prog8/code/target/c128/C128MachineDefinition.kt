@@ -1,6 +1,7 @@
 package prog8.code.target.c128
 
 import prog8.code.core.*
+import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
 import java.nio.file.Path
 
@@ -40,7 +41,7 @@ class C128MachineDefinition: IMachineDefinition {
         }
 
         println("\nStarting C-128 emulator x128...")
-        val viceMonlist = viceMonListName(programNameWithPath.toString())
+        val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
         val cmdline = listOf("x128", "-silent", "-moncommands", viceMonlist,
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
         val processb = ProcessBuilder(cmdline).inheritIO()
