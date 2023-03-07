@@ -906,7 +906,29 @@ class IRCodeGen(
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
         if(irDtLeft==IRDataType.FLOAT) {
-            TODO("float comparison followed by goto")
+            val leftFpRegNum = registers.nextFreeFloat()
+            val rightFpRegNum = registers.nextFreeFloat()
+            val compResultReg = registers.nextFree()
+            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
+            result += expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            result += IRCodeChunk(null,null).also {
+                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum)
+                val gotoOpcode = when (ifElse.condition.operator) {
+                    "==" -> Opcode.BZ
+                    "!=" -> Opcode.BNZ
+                    "<" -> Opcode.BLEZS
+                    ">" -> Opcode.BGEZS
+                    "<=" -> Opcode.BLZS
+                    ">=" -> Opcode.BGZS
+                    else -> throw AssemblyError("weird operator")
+                }
+                it += if (goto.address != null)
+                    IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, value = goto.address?.toInt())
+                else if (goto.generatedLabel != null)
+                    IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = goto.generatedLabel)
+                else
+                    IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = goto.identifier!!.name)
+            }
         } else {
             val leftRegNum = registers.nextFree()
             val rightRegNum = registers.nextFree()
@@ -964,7 +986,9 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         val elseBranch: Opcode
         val compResultReg: Int
+        val branchDt: IRDataType
         if(irDtLeft==IRDataType.FLOAT) {
+            branchDt = IRDataType.BYTE
             val leftFpReg = registers.nextFreeFloat()
             val rightFpReg = registers.nextFreeFloat()
             compResultReg = registers.nextFree()
@@ -984,6 +1008,7 @@ class IRCodeGen(
             }
         } else {
             // integer comparisons
+            branchDt = irDtLeft
             compResultReg = registers.nextFree()
             result += expressionEval.translateExpression(ifElse.condition.left, compResultReg, -1)
             elseBranch = when (ifElse.condition.operator) {
@@ -1000,14 +1025,14 @@ class IRCodeGen(
         if(ifElse.elseScope.children.isEmpty()) {
             // just if
             val afterIfLabel = createLabelName()
-            addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = afterIfLabel), null)
+            addInstr(result, IRInstruction(elseBranch, branchDt, reg1=compResultReg, labelSymbol = afterIfLabel), null)
             result += translateNode(ifElse.ifScope)
             result += IRCodeChunk(afterIfLabel, null)
         } else {
             // if and else
             val elseLabel = createLabelName()
             val afterIfLabel = createLabelName()
-            addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = elseLabel), null)
+            addInstr(result, IRInstruction(elseBranch, branchDt, reg1=compResultReg, labelSymbol = elseLabel), null)
             result += translateNode(ifElse.ifScope)
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
             result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
