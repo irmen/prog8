@@ -373,6 +373,9 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (optsDone1 + optsDone2 + optsDone3 + optsDone4 == 0)
             break
     }
+    val remover2 = UnusedCodeRemover(program, errors, compTarget)
+    remover2.visit(program)
+    remover2.applyModifications()
     errors.report()
 }
 

@@ -87,7 +87,7 @@ class AsmInstructionNamesReplacer(
         return if(newName!=subroutine.name || changedParams.isNotEmpty()) {
             val newSub = Subroutine(newName, subroutine.parameters, subroutine.returntypes,
                 subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers, subroutine.asmAddress, subroutine.isAsmSubroutine,
-                subroutine.inline, subroutine.statements, subroutine.position)
+                subroutine.inline, false, subroutine.statements, subroutine.position)
             if(changedParams.isNotEmpty())
                 subsWithParamRefsToFix += newSub
             listOf(IAstModification.ReplaceNode(subroutine, newSub, parent))

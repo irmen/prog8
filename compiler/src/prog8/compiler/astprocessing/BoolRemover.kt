@@ -65,7 +65,7 @@ internal class BoolRemover(val program: Program) : AstWalker() {
             }.toMutableList()
             val newSubroutine = Subroutine(subroutine.name, newParams, newReturnTypes,
                 subroutine.asmParameterRegisters, subroutine.asmReturnvaluesRegisters, subroutine.asmClobbers,
-                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, subroutine.statements,
+                subroutine.asmAddress, subroutine.isAsmSubroutine, subroutine.inline, false, subroutine.statements,
                 subroutine.position)
             return listOf(IAstModification.ReplaceNode(subroutine, newSubroutine, parent))
         }

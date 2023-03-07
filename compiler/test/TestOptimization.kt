@@ -334,6 +334,7 @@ class TestOptimization: FunSpec({
                          uword yy           ; to be removed
                          yy=99              ; to be removed
                          cx16.r0 = 0
+                         cx16.r0++
                     }
                 }
             }"""
@@ -343,7 +344,7 @@ class TestOptimization: FunSpec({
         ifstmt.truepart.statements.size shouldBe 1
         (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
         val func2 = result.compilerAst.entrypoint.statements[2] as Subroutine
-        func2.statements.size shouldBe 1
+        func2.statements.size shouldBe 2
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
 

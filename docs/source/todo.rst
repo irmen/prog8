@@ -3,10 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix expericodegen compiler errors:
-    tehtriz: thinks sound.init routine is unused
-    textelite: thinks trader.do_local routine is unused , and debug_seed
-- fix IR/VM: animals.p8 example somehow doesn't print the animal name in the first question, and exits after 1 animal instead of looping
+- fix IR/VM: animals.p8 example somehow doesn't print the animal name correctly in the first question, and exits after 1 animal instead of looping
 - fix Github issue with X register https://github.com/irmen/prog8/issues/94
 
 ...

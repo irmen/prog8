@@ -688,6 +688,7 @@ class Subroutine(override val name: String,
                  val asmAddress: UInt?,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
+                 var hasBeenInlined: Boolean=false,
                  override var statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 

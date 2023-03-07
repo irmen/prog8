@@ -21,8 +21,9 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
-                    if(!sub.position.file.startsWith(libraryFilePrefix))
+                    if(!sub.position.file.startsWith(libraryFilePrefix)) {
                         errors.warn("unused subroutine ${sub.label}", sub.position)
+                    }
                     block.children.remove(sub)
                     numRemoved++
                 }

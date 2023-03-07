@@ -64,13 +64,17 @@ class UnusedCodeRemover(private val program: Program,
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars) {
-                if(block.name != internedStringsModuleName)
-                    errors.warn("removing unused block '${block.name}'", block.position)
+                if(block.name != internedStringsModuleName) {
+                    if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
+                        errors.warn("removing unused block '${block.name}'", block.position)
+                }
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
             if(callgraph.unused(block)) {
-                if(block.statements.any{ it !is VarDecl || it.type== VarDeclType.VAR})
-                    errors.warn("removing unused block '${block.name}'", block.position)
+                if(block.statements.any{ it !is VarDecl || it.type== VarDeclType.VAR}) {
+                    if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
+                        errors.warn("removing unused block '${block.name}'", block.position)
+                }
                 program.removeInternedStringsFromRemovedBlock(block)
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
@@ -81,7 +85,7 @@ class UnusedCodeRemover(private val program: Program,
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val forceOutput = "force_output" in subroutine.definingBlock.options()
-        if (subroutine !== program.entrypoint && !forceOutput && !subroutine.inline && !subroutine.isAsmSubroutine) {
+        if (subroutine !== program.entrypoint && !forceOutput && !subroutine.isAsmSubroutine) {
             if(callgraph.unused(subroutine)) {
                 if(subroutine.containsNoCodeNorVars) {
                     if(!subroutine.definingModule.isLibrary)
@@ -93,8 +97,9 @@ class UnusedCodeRemover(private val program: Program,
                     }
                     return removals
                 }
-                if(!subroutine.definingModule.isLibrary)
-                    errors.warn("removing unused subroutine '${subroutine.name}'", subroutine.position)
+                if(!subroutine.definingModule.isLibrary && !subroutine.hasBeenInlined) {
+                    errors.warn("unused subroutine '${subroutine.name}'", subroutine.position)
+                }
                 program.removeInternedStringsFromRemovedSubroutine(subroutine)
                 return listOf(IAstModification.Remove(subroutine, parent as IStatementContainer))
             }

@@ -159,7 +159,7 @@ private fun Prog8ANTLRParser.AsmsubroutineContext.toAst(): Subroutine {
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, null, true, inline, statements, toPosition())
+            subdecl.asmClobbers, null, true, inline, false, statements, toPosition())
 }
 
 private fun Prog8ANTLRParser.RomsubroutineContext.toAst(): Subroutine {

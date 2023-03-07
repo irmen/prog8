@@ -184,6 +184,7 @@ class Inliner(val program: Program): AstWalker() {
             }
             return if(sub.isAsmSubroutine) {
                 // simply insert the asm for the argument-less routine
+                sub.hasBeenInlined=true
                 listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
             } else {
                 // note that we don't have to process any args, because we online inline parameterless subroutines.
@@ -192,12 +193,16 @@ class Inliner(val program: Program): AstWalker() {
                         val fcall = toInline.value as? FunctionCallExpression
                         if(fcall!=null) {
                             // insert the function call expression as a void function call directly
+                            sub.hasBeenInlined=true
                             val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
                             listOf(IAstModification.ReplaceNode(origNode, call, parent))
                         } else
                             noModifications
                     }
-                    else -> listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+                    else -> {
+                        sub.hasBeenInlined=true
+                        listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+                    }
                 }
             }
         }
@@ -226,8 +231,10 @@ class Inliner(val program: Program): AstWalker() {
                     is Return -> {
                         // is an expression, so we have to have a Return here in the inlined sub
                         // note that we don't have to process any args, because we online inline parameterless subroutines.
-                        if(toInline.value!=null)
+                        if(toInline.value!=null) {
+                            sub.hasBeenInlined=true
                             listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.value!!.copy(), parent))
+                        }
                         else
                             noModifications
                     }
