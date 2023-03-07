@@ -1047,11 +1047,43 @@ class IRCodeGen(
         val elseBranchOpcode: Opcode
         val elseBranchFirstReg: Int
         val elseBranchSecondReg: Int
-
+        val branchDt: IRDataType
         if(irDtLeft==IRDataType.FLOAT) {
-            TODO("float non-zero compare via fcomp instruction")
+            branchDt = IRDataType.BYTE
+            val leftFpRegNum = registers.nextFreeFloat()
+            val rightFpRegNum = registers.nextFreeFloat()
+            val compResultReg = registers.nextFree()
+            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
+            result += expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum), null)
+            val elseBranch = when (ifElse.condition.operator) {
+                "==" -> Opcode.BNZ
+                "!=" -> Opcode.BZ
+                "<" -> Opcode.BGEZS
+                ">" -> Opcode.BLEZS
+                "<=" -> Opcode.BGZS
+                ">=" -> Opcode.BLZS
+                else -> throw AssemblyError("weird operator")
+            }
+            if(ifElse.elseScope.children.isNotEmpty()) {
+                // if and else parts
+                val elseLabel = createLabelName()
+                val afterIfLabel = createLabelName()
+                addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = elseLabel), null)
+                result += translateNode(ifElse.ifScope)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+                result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                result += IRCodeChunk(afterIfLabel, null)
+            } else {
+                // only if part
+                val afterIfLabel = createLabelName()
+                addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = afterIfLabel), null)
+                result += translateNode(ifElse.ifScope)
+                result += IRCodeChunk(afterIfLabel, null)
+            }
         } else {
             // integer comparisons
+            branchDt = irDtLeft
             val leftRegNum = registers.nextFree()
             val rightRegNum = registers.nextFree()
             result += expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
@@ -1097,7 +1129,7 @@ class IRCodeGen(
                 // if and else parts
                 val elseLabel = createLabelName()
                 val afterIfLabel = createLabelName()
-                addInstr(result, IRInstruction(elseBranchOpcode, irDtLeft,
+                addInstr(result, IRInstruction(elseBranchOpcode, branchDt,
                     reg1=elseBranchFirstReg, reg2=elseBranchSecondReg,
                     labelSymbol = elseLabel), null)
                 result += translateNode(ifElse.ifScope)
@@ -1107,7 +1139,7 @@ class IRCodeGen(
             } else {
                 // only if part
                 val afterIfLabel = createLabelName()
-                addInstr(result, IRInstruction(elseBranchOpcode, irDtLeft,
+                addInstr(result, IRInstruction(elseBranchOpcode, branchDt,
                     reg1=elseBranchFirstReg, reg2=elseBranchSecondReg,
                     labelSymbol = afterIfLabel), null)
                 result += translateNode(ifElse.ifScope)

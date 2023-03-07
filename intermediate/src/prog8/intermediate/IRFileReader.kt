@@ -8,6 +8,7 @@ import java.io.StringReader
 import java.nio.file.Path
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamException
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
 
@@ -19,6 +20,9 @@ class IRFileReader {
             val reader = XMLInputFactory.newInstance().createXMLEventReader(stream)
             try {
                 return parseProgram(reader)
+            } catch(x: XMLStreamException) {
+                System.err.println("Error during parsing, this is not a well-formed P8IR source file")
+                throw x
             } finally {
                 reader.close()
             }
