@@ -184,7 +184,7 @@ ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
 ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
 fpow         fpreg1, fpreg2             - fpreg1 = fpreg1 to the power of fpreg2
 fabs         fpreg1, fpreg2             - fpreg1 = abs(fpreg2)
-fcomp        reg1, fpreg1, fpreg2       - reg1 = result of comparison of fpreg1 and fpreg2: 0=equal, 1=fpreg1 is greater, -1=fpreg1 is smaller
+fcomp        reg1, fpreg1, fpreg2       - reg1 = result of comparison of fpreg1 and fpreg2: 0.b=equal, 1.b=fpreg1 is greater, -1.b=fpreg1 is smaller
 fsin         fpreg1, fpreg2             - fpreg1 = sin(fpreg2)
 fcos         fpreg1, fpreg2             - fpreg1 = cos(fpreg2)
 ftan         fpreg1, fpreg2             - fpreg1 = tan(fpreg2)

@@ -961,42 +961,59 @@ class IRCodeGen(
     }
 
     private fun translateIfElseZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val elseBranch: Opcode
+        val compResultReg: Int
         if(irDtLeft==IRDataType.FLOAT) {
-            TODO("float zero compare via fcomp instruction")
+            val leftFpReg = registers.nextFreeFloat()
+            val rightFpReg = registers.nextFreeFloat()
+            compResultReg = registers.nextFree()
+            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpReg)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, fpValue = 0f)
+                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
+            }
+            elseBranch = when (ifElse.condition.operator) {
+                "==" -> Opcode.BNZ
+                "!=" -> Opcode.BZ
+                "<" -> Opcode.BGEZS
+                ">" -> Opcode.BLEZS
+                "<=" -> Opcode.BGZS
+                ">=" -> Opcode.BLZS
+                else -> throw AssemblyError("weird operator")
+            }
         } else {
             // integer comparisons
-            fun equalOrNotEqualZero(elseBranch: Opcode): IRCodeChunks {
-                val result = mutableListOf<IRCodeChunkBase>()
-                val leftReg = registers.nextFree()
-                result += expressionEval.translateExpression(ifElse.condition.left, leftReg, -1)
-                if(ifElse.elseScope.children.isNotEmpty()) {
-                    // if and else parts
-                    val elseLabel = createLabelName()
-                    val afterIfLabel = createLabelName()
-                    addInstr(result, IRInstruction(elseBranch, irDtLeft, reg1=leftReg, labelSymbol = elseLabel), null)
-                    result += translateNode(ifElse.ifScope)
-                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
-                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
-                    result += IRCodeChunk(afterIfLabel, null)
-                } else {
-                    // only if part
-                    val afterIfLabel = createLabelName()
-                    addInstr(result, IRInstruction(elseBranch, irDtLeft, reg1=leftReg, labelSymbol = afterIfLabel), null)
-                    result += translateNode(ifElse.ifScope)
-                    result += IRCodeChunk(afterIfLabel, null)
-                }
-                return result
-            }
-            return when (ifElse.condition.operator) {
-                "==" -> equalOrNotEqualZero(Opcode.BNZ)
-                "!=" -> equalOrNotEqualZero(Opcode.BZ)
-                "<" -> if (signed) equalOrNotEqualZero(Opcode.BGEZS) else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
-                ">" -> if (signed) equalOrNotEqualZero(Opcode.BLEZS) else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
-                "<=" -> if (signed) equalOrNotEqualZero(Opcode.BGZS) else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
-                ">=" -> if (signed) equalOrNotEqualZero(Opcode.BLZS) else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
+            compResultReg = registers.nextFree()
+            result += expressionEval.translateExpression(ifElse.condition.left, compResultReg, -1)
+            elseBranch = when (ifElse.condition.operator) {
+                "==" -> Opcode.BNZ
+                "!=" -> Opcode.BZ
+                "<" -> if (signed) Opcode.BGEZS else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
+                ">" -> if (signed) Opcode.BLEZS else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
+                "<=" -> if (signed) Opcode.BGZS else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
+                ">=" -> if (signed) Opcode.BLZS else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
                 else -> throw AssemblyError("weird operator")
             }
         }
+
+        if(ifElse.elseScope.children.isEmpty()) {
+            // just if
+            val afterIfLabel = createLabelName()
+            addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = afterIfLabel), null)
+            result += translateNode(ifElse.ifScope)
+            result += IRCodeChunk(afterIfLabel, null)
+        } else {
+            // if and else
+            val elseLabel = createLabelName()
+            val afterIfLabel = createLabelName()
+            addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1=compResultReg, labelSymbol = elseLabel), null)
+            result += translateNode(ifElse.ifScope)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+            result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+            result += IRCodeChunk(afterIfLabel, null)
+        }
+        return result
     }
 
     private fun translateIfElseNonZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
