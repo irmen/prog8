@@ -202,14 +202,14 @@ private class AsmSubroutineReturn(val type: DataType,
 
 private fun Prog8ANTLRParser.Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
         = asmsub_return().map {
-            val register = it.register().text
+            val register = it.register.text
             var registerorpair: RegisterOrPair? = null
             var statusregister: Statusflag? = null
             if(register!=null) {
                 when (register) {
                     in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
                     in Statusflag.names -> statusregister = Statusflag.valueOf(register)
-                    else -> throw FatalAstException("invalid register or status flag in $it")
+                    else -> throw SyntaxError("invalid register or status flag", toPosition())
                 }
             }
             AsmSubroutineReturn(
@@ -224,14 +224,17 @@ private fun Prog8ANTLRParser.Asmsub_paramsContext.toAst(): List<AsmSubroutinePar
     var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = ElementToArrayTypes.getValue(datatype)
-    val register = it.register().text
+    val register = it.register.text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
     if(register!=null) {
         when (register) {
             in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
             in Statusflag.names -> statusregister = Statusflag.valueOf(register)
-            else -> throw FatalAstException("invalid register or status flag '$register'")
+            else -> {
+                val p = toPosition()
+                throw SyntaxError("invalid register or status flag", Position(p.file, it.register.line, it.register.charPositionInLine, it.register.charPositionInLine+1))
+            }
         }
     }
     AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister, toPosition())
@@ -314,8 +317,12 @@ private fun Prog8ANTLRParser.Assign_targetContext.toAst() : AssignTarget {
 }
 
 private fun Prog8ANTLRParser.ClobberContext.toAst() : Set<CpuRegister> {
-    val names = this.cpuregister().map { it.text }
-    return names.map { CpuRegister.valueOf(it) }.toSet()
+    val names = this.NAME().map { it.text }
+    try {
+        return names.map { CpuRegister.valueOf(it) }.toSet()
+    } catch(ax: IllegalArgumentException) {
+        throw SyntaxError("invalid pu register", toPosition())
+    }
 }
 
 private fun Prog8ANTLRParser.DatatypeContext.toAst() = DataType.valueOf(text.uppercase())

@@ -3,8 +3,11 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix IR/VM: animals.p8 example somehow doesn't print the animal name correctly in the first question, and exits after 1 animal instead of looping
+- check that peekw() and peek() and @(...) accept a[i] where a=uword
+- fix pokew() crash with args like: a[i] (where a=uword) ,  z % twoIMinusOne
 - fix Github issue with X register https://github.com/irmen/prog8/issues/94
+- fix Github issue with array problems https://github.com/irmen/prog8/issues/99
+- fix IR/VM: animals.p8 example somehow doesn't print the animal name correctly in the first question, and exits after 1 animal instead of looping
 
 ...
 
