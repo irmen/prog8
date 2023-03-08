@@ -91,4 +91,22 @@ main {
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtArrayIndexer>()
     }
+
+    test("peek and poke argument types") {
+        val text="""
+main {
+    sub start() {
+        uword[3] arr
+        ubyte i = 42
+        uword ww = peekw(arr[i])
+        ubyte xx = peek(arr[i])
+        xx = @(arr[i])
+        
+        @(arr[i]) = 42
+        poke(arr[i], 42)
+        pokew(arr[i], 4242)
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })
