@@ -1001,4 +1001,19 @@ main  {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("byte when choices silently converted to word for convenience") {
+        var text="""
+main {
+  sub start() {
+    uword z = 3
+    when z {
+        1-> z++
+        2-> z++
+        else -> z++
+    }
+  }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+    }
 })

@@ -311,7 +311,7 @@ class TestProg8Parser: FunSpec( {
                     sub start() {
                         ubyte foo = 42
                         ubyte bar
-                        when (foo) {
+                        when foo {
                             23 -> bar = 'x'
                             42 -> bar = 'y'
                             else -> bar = 'z'

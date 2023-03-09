@@ -375,6 +375,21 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return noModifications
     }
 
+    override fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> {
+        if((parent as When).condition.inferType(program).isWords) {
+            val values = whenChoice.values
+            values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
+                val num = value.constValue(program)
+                if(num!=null && num.type in ByteDatatypes) {
+                    val wordNum = NumericLiteral(if(num.type==DataType.UBYTE) DataType.UWORD else DataType.WORD, num.number, num.position)
+                    wordNum.parent = num.parent
+                    values[index] = wordNum
+                }
+            }
+        }
+        return noModifications
+    }
+
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,
         expressionToCast: Expression,
