@@ -112,4 +112,21 @@ class TestAstChecks: FunSpec({
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "const modifier can only be used"
     }
+
+    test("array indexing is not allowed on a memory mapped variable") {
+        val text = """
+            main {
+                sub start() {
+                    &ubyte a = 10000
+                    uword z = 500
+                    a[4] = (z % 3) as ubyte
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors)
+        errors.errors.size shouldBe 1
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "indexing requires"
+    }
 })

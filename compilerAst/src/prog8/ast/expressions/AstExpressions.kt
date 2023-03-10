@@ -315,7 +315,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
             return when (target.datatype) {
                 DataType.STR, DataType.UWORD -> InferredTypes.knownFor(DataType.UBYTE)
                 in ArrayDatatypes -> InferredTypes.knownFor(ArrayToElementTypes.getValue(target.datatype))
-                else -> InferredTypes.unknown()
+                else -> InferredTypes.knownFor(target.datatype)
             }
         }
         return InferredTypes.unknown()

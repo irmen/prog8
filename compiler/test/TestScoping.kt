@@ -162,7 +162,8 @@ class TestScoping: FunSpec({
         val errors= ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "undefined symbol: routine2"
+        errors.errors[0] shouldContain "undefined"
+        errors.errors[0] shouldContain "routine2"
     }
 
     test("good subroutine calls with qualified names (from root)") {
@@ -201,10 +202,14 @@ class TestScoping: FunSpec({
         val errors= ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain "undefined symbol: start.routine2"
-        errors.errors[1] shouldContain "undefined symbol: wrong.start.routine2"
-        errors.errors[2] shouldContain "undefined symbol: start.routine2"
-        errors.errors[3] shouldContain "undefined symbol: wrong.start.routine2"
+        errors.errors[0] shouldContain "undefined"
+        errors.errors[0] shouldContain "start.routine2"
+        errors.errors[1] shouldContain "undefined"
+        errors.errors[1] shouldContain "wrong.start.routine2"
+        errors.errors[2] shouldContain "undefined"
+        errors.errors[2] shouldContain "start.routine2"
+        errors.errors[3] shouldContain "undefined"
+        errors.errors[3] shouldContain "wrong.start.routine2"
     }
 
     test("good variables without qualified names") {
