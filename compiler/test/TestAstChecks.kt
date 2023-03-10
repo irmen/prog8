@@ -96,4 +96,20 @@ class TestAstChecks: FunSpec({
             """
         compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
     }
+
+    test("const is not allowed on arrays") {
+        val text = """
+            main {
+                sub start() {
+                    const ubyte[5] a = 5
+                    a[2]=42
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors)
+        errors.errors.size shouldBe 1
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "const modifier can only be used"
+    }
 })

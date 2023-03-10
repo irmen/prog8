@@ -87,6 +87,10 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
         if(forloop!=null && identifier===forloop.loopVar)
             return noModifications
 
+        val dt = identifier.inferType(program)
+        if(!dt.isKnown || !dt.isNumeric)
+            return noModifications
+
         try {
             val cval = identifier.constValue(program) ?: return noModifications
             return when (cval.type) {
