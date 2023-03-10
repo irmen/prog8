@@ -129,4 +129,20 @@ class TestAstChecks: FunSpec({
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "indexing requires"
     }
+
+    test("array decl with expression as size can be initialized with a single value") {
+        val text = """
+            main {
+                sub start() {
+                    const ubyte n = 40
+                    const ubyte half = n / 2
+                    ubyte[half] @shared a = 5
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), true, text, writeAssembly = true, errors=errors)  shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
+    }
 })

@@ -626,8 +626,15 @@ internal class AstChecker(private val program: Program,
 
         val declValue = decl.value
         if(declValue!=null && decl.type==VarDeclType.VAR) {
-            if (declValue.inferType(program) isnot decl.datatype) {
-                err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+            val iDt = declValue.inferType(program)
+            if (iDt isnot decl.datatype) {
+                if(decl.datatype in ArrayDatatypes) {
+                    val eltDt = ArrayToElementTypes.getValue(decl.datatype)
+                    if(iDt isnot eltDt)
+                        err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                } else {
+                    err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                }
             }
         }
 
@@ -1461,6 +1468,10 @@ internal class AstChecker(private val program: Program,
             }
             DataType.BOOL -> {
                 return true
+            }
+            in ArrayDatatypes -> {
+                val eltDt = ArrayToElementTypes.getValue(targetDt)
+                return checkValueTypeAndRange(eltDt, value)
             }
             else -> return err("value of type ${value.type} not compatible with $targetDt")
         }
