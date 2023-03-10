@@ -316,7 +316,7 @@ class StatementOptimizer(private val program: Program,
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0 && compTarget.name!=VMTarget.NAME) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && compTarget.name!=VMTarget.NAME) {
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
                                 val incs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
@@ -330,7 +330,7 @@ class StatementOptimizer(private val program: Program,
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..4.0 && compTarget.name!=VMTarget.NAME) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && compTarget.name!=VMTarget.NAME) {
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
                                 val decs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
