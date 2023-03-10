@@ -130,7 +130,7 @@ class AsmGen6502Internal (
             DataType.BYTE -> "cx16.r9sL"
             DataType.UWORD -> "cx16.r9"
             DataType.WORD -> "cx16.r9s"
-            DataType.FLOAT -> throw AssemblyError("a float tempvar should never be requested and it also doesn't exist")
+            DataType.FLOAT -> "floats.floats_temp_var"
             else -> throw AssemblyError("invalid dt $dt")
         }
     }

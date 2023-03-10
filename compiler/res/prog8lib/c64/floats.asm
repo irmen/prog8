@@ -6,7 +6,7 @@ FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
 
 
 floats_store_reg	.byte  0		; temp storage
-
+floats_temp_var         .byte  0,0,0,0,0        ; temporary storage for a float
 
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y

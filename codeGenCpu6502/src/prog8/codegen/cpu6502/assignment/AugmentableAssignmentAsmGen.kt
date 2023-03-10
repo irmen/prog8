@@ -204,41 +204,79 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     indexVar!=null -> {
                         when (target.datatype) {
                             in ByteDatatypes -> {
-                                val tgt =
-                                    AsmAssignTarget.fromRegisters(
-                                        RegisterOrPair.A,
-                                        target.datatype == DataType.BYTE, target.position, null,
-                                        asmgen
-                                    )
-                                target.toAstExpression()
-                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
-                                assignmentAsmGen.translateNormalAssignment(assign)
-                                assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
+                                asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_B1")
+                                asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
+                                when {
+                                    valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, valueLv.toInt())
+                                    ident != null -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, ident)
+                                    memread != null -> inplaceModification_byte_memread_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, memread)
+                                    value is PtTypeCast -> {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator))
+                                            return
+                                        inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value)
+                                    }
+                                    else -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value)
+                                }
+                                asmgen.restoreRegisterLocal(CpuRegister.Y)
+                                asmgen.out("  lda  P8ZP_SCRATCH_B1 |  sta  ${target.array.variable.name},y")
                             }
                             in WordDatatypes -> {
-                                val tgt =
-                                    AsmAssignTarget.fromRegisters(
-                                        RegisterOrPair.AY,
-                                        target.datatype == DataType.WORD, target.position, null,
-                                        asmgen
-                                    )
-                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
-                                assignmentAsmGen.translateNormalAssignment(assign)
-                                assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                                asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1")
+                                asmgen.out("  iny |  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1+1")
+                                asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
+                                when {
+                                    valueLv != null -> inplaceModification_word_litval_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, valueLv.toInt())
+                                    ident != null -> inplaceModification_word_variable_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, ident)
+                                    memread != null -> inplaceModification_word_memread_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, memread)
+                                    value is PtTypeCast -> {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator))
+                                            return
+                                        inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value)
+                                    }
+                                    else -> inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value)
+                                }
+                                asmgen.restoreRegisterLocal(CpuRegister.Y)
+                                asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name},y")
+                                asmgen.out("  lda  P8ZP_SCRATCH_W1 |  dey |  sta  ${target.array.variable.name},y")
                             }
                             DataType.FLOAT -> {
-                                val tgt =
-                                    AsmAssignTarget.fromRegisters(
-                                        RegisterOrPair.FAC1,
-                                        true, target.position, null,
-                                        asmgen
-                                    )
-                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
-                                assignmentAsmGen.translateNormalAssignment(assign)
-                                assignmentAsmGen.assignFAC1float(target)
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
+                                val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+                                asmgen.out("""
+                                    ldy  #>${target.asmVarname}
+                                    clc
+                                    adc  #<${target.asmVarname}
+                                    bcc  +
+                                    iny
++                                   sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
+                                    lda  #<$tempvar
+                                    ldy  #>$tempvar
+                                    jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
+                                when {
+                                    valueLv != null -> inplaceModification_float_litval_to_variable(tempvar, operator, valueLv, target.scope!!)
+                                    ident != null -> inplaceModification_float_variable_to_variable(tempvar, operator, ident, target.scope!!)
+                                    value is PtTypeCast -> {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value, target, operator))
+                                            return
+                                        inplaceModification_float_value_to_variable(tempvar, operator, value, target.scope!!)
+                                    }
+                                    else -> inplaceModification_float_value_to_variable(tempvar, operator, value, target.scope!!)
+                                }
+                                asmgen.out("""
+                                    lda  P8ZP_SCRATCH_W1
+                                    pha
+                                    lda  P8ZP_SCRATCH_W1+1
+                                    pha
+                                    lda  #<$tempvar
+                                    ldy  #>$tempvar
+                                    sta  P8ZP_SCRATCH_W1
+                                    sty  P8ZP_SCRATCH_W1+1
+                                    ply
+                                    pla
+                                    jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                             }
                             else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                         }

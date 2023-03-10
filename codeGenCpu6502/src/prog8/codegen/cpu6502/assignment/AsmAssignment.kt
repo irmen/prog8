@@ -44,8 +44,6 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             asmgen.asmVariableName(array.variable)
     }
 
-    lateinit var origAssign: AsmAssignmentBase      // TODO GET RID OF THIS
-
     init {
         if(register!=null && datatype !in NumericDatatypes)
             throw AssemblyError("register must be integer or float type")

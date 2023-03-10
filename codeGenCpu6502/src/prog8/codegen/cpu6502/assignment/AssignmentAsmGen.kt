@@ -16,7 +16,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
         val assign = AsmAssignment(source, target, program.memsizer, assignment.position)
-        target.origAssign = assign
         translateNormalAssignment(assign)
     }
 
@@ -24,7 +23,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val target = AsmAssignTarget.fromAstAssignment(augmentedAssign.target, augmentedAssign.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(augmentedAssign.value, program, asmgen).adjustSignedUnsigned(target)
         val assign = AsmAugmentedAssignment(source, augmentedAssign.operator, target, program.memsizer, augmentedAssign.position)
-        target.origAssign = assign
         augmentableAsmGen.translate(assign)
     }
 
