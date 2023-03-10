@@ -28,6 +28,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                private val asmgen: AsmGen6502Internal,
                                val datatype: DataType,
                                val scope: IPtSubroutine?,
+                               val position: Position,
                                private val variableAsmName: String? = null,
                                val array: PtArrayIndexer? = null,
                                val memory: PtMemoryByte? = null,
@@ -43,7 +44,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             asmgen.asmVariableName(array.variable)
     }
 
-    lateinit var origAssign: AsmAssignmentBase
+    lateinit var origAssign: AsmAssignmentBase      // TODO GET RID OF THIS
 
     init {
         if(register!=null && datatype !in NumericDatatypes)
@@ -63,28 +64,28 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                 if(reg.statusflag!=null)
                                     throw AssemblyError("can't assign value to processor statusflag directly")
                                 else
-                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, definingSub, register=reg.registerOrPair, origAstTarget = this)
+                                    return AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, type, definingSub, target.position, register=reg.registerOrPair, origAstTarget = this)
                             }
                         }
-                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, definingSub, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
+                        return AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, type, definingSub, target.position, variableAsmName = asmgen.asmVariableName(identifier!!), origAstTarget =  this)
                     }
-                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, definingSub, array = array, origAstTarget =  this)
-                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, definingSub, memory =  memory, origAstTarget =  this)
+                    array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, definingSub, target.position, array = array, origAstTarget =  this)
+                    memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, definingSub, target.position, memory =  memory, origAstTarget =  this)
                     else -> throw AssemblyError("weird target")
                 }
             }
         }
 
-        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, scope: IPtSubroutine?, asmgen: AsmGen6502Internal): AsmAssignTarget =
+        fun fromRegisters(registers: RegisterOrPair, signed: Boolean, pos: Position, scope: IPtSubroutine?, asmgen: AsmGen6502Internal): AsmAssignTarget =
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
-                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.BYTE else DataType.UBYTE, scope, register = registers)
+                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.BYTE else DataType.UBYTE, scope, pos, register = registers)
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
-                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, register = registers)
+                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, pos, register = registers)
                     RegisterOrPair.FAC1,
-                    RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, scope, register = registers)
+                    RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, scope, pos, register = registers)
                     RegisterOrPair.R0,
                     RegisterOrPair.R1,
                     RegisterOrPair.R2,
@@ -100,7 +101,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R12,
                     RegisterOrPair.R13,
                     RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, register = registers)
+                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, pos, register = registers)
                 }
     }
 }

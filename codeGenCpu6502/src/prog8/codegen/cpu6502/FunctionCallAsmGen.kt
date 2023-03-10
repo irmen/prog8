@@ -200,14 +200,14 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 // we need to sign extend the source, do this via temporary word variable
                 asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
-                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register)
+                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, Position.DUMMY)
             } else {
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
-                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, sub, register = register)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, sub, value.position, register = register)
                     else {
                         val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
-                        AsmAssignTarget.fromRegisters(register, signed, sub, asmgen)
+                        AsmAssignTarget.fromRegisters(register, signed, value.position, sub, asmgen)
                     }
                 val src = if(value.type in PassByReferenceDatatypes) {
                     if(value is PtIdentifier) {

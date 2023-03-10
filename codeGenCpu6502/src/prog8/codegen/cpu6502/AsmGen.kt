@@ -476,8 +476,8 @@ class AsmGen6502Internal (
     internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType, scope: IPtSubroutine?) =
             assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
 
-    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean=false) =
-            assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed)
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, pos: Position, signed: Boolean=false) =
+            assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed, pos)
 
     internal fun assignRegister(reg: RegisterOrPair, target: AsmAssignTarget) {
         when(reg) {
@@ -597,11 +597,11 @@ class AsmGen6502Internal (
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when(vardecl.type) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        assignVariableToRegister(name, RegisterOrPair.Y)
+                        assignVariableToRegister(name, RegisterOrPair.Y, stmt.count.position)
                         repeatCountInY(stmt, endLabel)
                     }
                     DataType.UWORD, DataType.WORD -> {
-                        assignVariableToRegister(name, RegisterOrPair.AY)
+                        assignVariableToRegister(name, RegisterOrPair.AY, stmt.count.position)
                         repeatWordCountInAY(endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
@@ -3004,7 +3004,7 @@ $repeatLabel    lda  $counterVar
             is PtVariable -> target.scopedName
             else -> throw AssemblyError("weird target var")
         }
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.type, scope, variableAsmName = asmVariableName(scopedName))
+        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.type, scope, target.position, variableAsmName = asmVariableName(scopedName))
         if (dt in ByteDatatypes) {
             out("  pla")
             assignRegister(RegisterOrPair.A, tgt)

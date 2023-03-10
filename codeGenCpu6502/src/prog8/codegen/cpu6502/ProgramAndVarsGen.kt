@@ -339,7 +339,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("; simple int arg(s) passed via register(s)")
             if(sub.parameters.size==1) {
                 val dt = sub.parameters[0].type
-                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, variableAsmName = sub.parameters[0].name)
+                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
                 if(dt in ByteDatatypes)
                     asmgen.assignRegister(RegisterOrPair.A, target)
                 else
@@ -347,8 +347,8 @@ internal class ProgramAndVarsGen(
             } else {
                 require(sub.parameters.size==2)
                 // 2 simple byte args, first in A, second in Y
-                val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[0].type, sub, variableAsmName = sub.parameters[0].name)
-                val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[1].type, sub, variableAsmName = sub.parameters[1].name)
+                val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[0].type, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
+                val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[1].type, sub, sub.parameters[1].position, variableAsmName = sub.parameters[1].name)
                 asmgen.assignRegister(RegisterOrPair.A, target1)
                 asmgen.assignRegister(RegisterOrPair.Y, target2)
             }

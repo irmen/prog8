@@ -318,7 +318,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             // array[x] = -value   ... use a tempvar then store that back into the array.
             val tempvar = asmgen.getTempVarName(assign.target.datatype)
             val assignToTempvar = AsmAssignment(assign.source,
-                AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope,
+                AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, assign.target.datatype, assign.target.scope, assign.target.position,
                     variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget), program.memsizer, assign.position)
             asmgen.translateNormalAssignment(assignToTempvar)
             when(assign.target.datatype) {
@@ -818,7 +818,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W1"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position,"P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
                 val stringVal = (variable as PtVariable).value as PtString
                 asmgen.out("  ldy  #${stringVal.value.length}")
@@ -831,7 +831,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W1"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W1"), varname)
                 asmgen.restoreRegisterLocal(CpuRegister.A)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -839,7 +839,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt, containment.definingISub())
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), "P8ZP_SCRATCH_W2"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W2"), varname)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
                 return
@@ -1000,7 +1000,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 // have to typecast the float number on the fly down to an integer
                 assignExpressionToRegister(value, RegisterOrPair.FAC1, target.datatype in SignedDatatypes)
                 assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", target.datatype)
-                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes)
+                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes, target.position)
                 return
             } else {
                 if(!(valueDt isAssignableTo targetDt)) {
@@ -1486,7 +1486,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     DataType.UBYTE, DataType.BYTE -> {
                         when(target.register!!) {
                             RegisterOrPair.A -> asmgen.out(" inx |  lda  P8ESTACK_LO,x")
-                            RegisterOrPair.X -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
+                            RegisterOrPair.X -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
                             RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
                             RegisterOrPair.AX -> asmgen.out(" inx |  txy |  ldx  #0 |  lda  P8ESTACK_LO,y")
                             RegisterOrPair.AY -> asmgen.out(" inx |  ldy  #0 |  lda  P8ESTACK_LO,x")
@@ -1505,9 +1505,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
                         when(target.register!!) {
-                            RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
+                            RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
                             RegisterOrPair.AY-> asmgen.out(" inx |  ldy  P8ESTACK_HI,x |  lda  P8ESTACK_LO,x")
-                            RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.origAstTarget?.position}")
+                            RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
                             in Cx16VirtualRegisters -> {
                                 asmgen.out(
                                     """
@@ -2054,7 +2054,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         // we make an exception in the type check for assigning something to a register pair AX, AY or XY
         // these will be correctly typecasted from a byte to a word value here
         if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-            require(target.datatype in ByteDatatypes) { "assign target must be byte type ${target.origAstTarget?.position ?: ""}"}
+            require(target.datatype in ByteDatatypes) { "assign target must be byte type ${target.position}"}
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -2144,7 +2144,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
         require(target.datatype in NumericDatatypes || target.datatype in PassByReferenceDatatypes) {
-            "assign target must be word type ${target.origAstTarget?.position ?: ""}"
+            "assign target must be word type ${target.position}"
         }
         if(target.datatype==DataType.FLOAT)
             throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")
@@ -2828,7 +2828,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
-        val tgt = AsmAssignTarget.fromRegisters(register, signed, null, asmgen)
+        val tgt = AsmAssignTarget.fromRegisters(register, signed, expr.position, null, asmgen)
         val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
         translateNormalAssignment(assign)
     }
@@ -2838,14 +2838,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
-            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, scope, variableAsmName = asmVarName)
+            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, scope, expr.position, variableAsmName = asmVarName)
             val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
             translateNormalAssignment(assign)
         }
     }
 
-    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean) {
-        val tgt = AsmAssignTarget.fromRegisters(register, signed, null, asmgen)
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean, pos: Position) {
+        val tgt = AsmAssignTarget.fromRegisters(register, signed, pos, null, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
         val assign = AsmAssignment(src, tgt, program.memsizer, Position.DUMMY)
         translateNormalAssignment(assign)

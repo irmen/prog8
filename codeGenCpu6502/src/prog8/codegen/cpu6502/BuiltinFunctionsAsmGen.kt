@@ -246,9 +246,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = addressOf)
         val target =
             if(resultToStack)
-                AsmAssignTarget(TargetStorageKind.STACK,  asmgen, DataType.UWORD, null)
+                AsmAssignTarget(TargetStorageKind.STACK,  asmgen, DataType.UWORD, null, fcall.position)
             else
-                AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, null, asmgen)
+                AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
         val assign = AsmAssignment(src, target, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign)
     }
@@ -259,7 +259,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
         else {
             asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
         }
     }
 
@@ -581,7 +581,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
                 else -> throw AssemblyError("weird type $dt")
             }
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
         }
     }
 
@@ -602,7 +602,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A |  ldy  #0")
                 else -> throw AssemblyError("weird type $dt")
             }
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
         }
     }
 
@@ -625,7 +625,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
                 else -> throw AssemblyError("weird type")
             }
-            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, scope, asmgen), RegisterOrPair.AY)
+            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen), RegisterOrPair.AY)
         }
     }
 
@@ -1003,7 +1003,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             AsmAssignSource.fromAstSource(value, program, asmgen)
                         }
                     }
-                    val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, conv.dt, null, variableAsmName = varname)
+                    val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, conv.dt, null, value.position, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }
@@ -1021,7 +1021,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             AsmAssignSource.fromAstSource(value, program, asmgen)
                         }
                     }
-                    val tgt = AsmAssignTarget.fromRegisters(conv.reg!!, false, null, asmgen)
+                    val tgt = AsmAssignTarget.fromRegisters(conv.reg!!, false, value.position, null, asmgen)
                     val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign)
                 }

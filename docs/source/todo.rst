@@ -3,6 +3,8 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- fix flakes2_yy[idx]+=10  and -=10  not working. Error is in line 205+ in AugmentableAssignmentAsmGen.   Snow example in cx16  (balls as well?)
+- try to get rid of AsmAssignTarget.origAssign
 - fix Github issue with X register https://github.com/irmen/prog8/issues/94
 - fix Github issue with array problems https://github.com/irmen/prog8/issues/99
 - fix IR/VM: animals.p8 example is borked, it jumps straight to a suggestion and then somehow doesn't print the animal name correctly in the first question, and exits after 1 animal instead of looping

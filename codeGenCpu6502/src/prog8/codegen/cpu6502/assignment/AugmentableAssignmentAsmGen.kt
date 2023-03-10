@@ -140,7 +140,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         // TODO use some other evaluation here; don't use the estack to transfer the address to read/write from
-                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub()))
+                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub(), target.position))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when {
                             valueLv != null -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, valueLv.toInt())
@@ -207,10 +207,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 val tgt =
                                     AsmAssignTarget.fromRegisters(
                                         RegisterOrPair.A,
-                                        target.datatype == DataType.BYTE, null,
+                                        target.datatype == DataType.BYTE, target.position, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
+                                target.toAstExpression()
+                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A)
                             }
@@ -218,10 +220,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 val tgt =
                                     AsmAssignTarget.fromRegisters(
                                         RegisterOrPair.AY,
-                                        target.datatype == DataType.WORD, null,
+                                        target.datatype == DataType.WORD, target.position, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
+                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
                             }
@@ -229,10 +232,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 val tgt =
                                     AsmAssignTarget.fromRegisters(
                                         RegisterOrPair.FAC1,
-                                        true, null,
+                                        true, target.position, null,
                                         asmgen
                                     )
-                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, value.position)
+                                TODO("ORIGASSIGN IS AsmAugmentedAssignment CLASS: $target $operator= $value")
+                                val assign = AsmAssignment(target.origAssign.source, tgt, program.memsizer, target.position)
                                 assignmentAsmGen.translateNormalAssignment(assign)
                                 assignmentAsmGen.assignFAC1float(target)
                             }
@@ -1672,7 +1676,7 @@ private fun AsmAssignSource.toAstExpression(scope: PtNamedNode): PtExpression {
 private fun AsmAssignTarget.toAstExpression(): PtExpression {
     return when(kind) {
         TargetStorageKind.VARIABLE -> {
-            val ident = PtIdentifier((this.scope as PtNamedNode).scopedName + '.' + asmVarname, datatype, origAstTarget?.position ?: Position.DUMMY)
+            val ident = PtIdentifier((this.scope as PtNamedNode).scopedName + '.' + asmVarname, datatype, position)
             ident.parent = this.scope
             ident
         }
@@ -1680,7 +1684,7 @@ private fun AsmAssignTarget.toAstExpression(): PtExpression {
         TargetStorageKind.MEMORY -> this.memory!!
         TargetStorageKind.REGISTER -> {
             if(register in Cx16VirtualRegisters) {
-                val ident = PtIdentifier("cx16.${register!!.name.lowercase()}", DataType.UWORD, position = this.origAssign.position)
+                val ident = PtIdentifier("cx16.${register!!.name.lowercase()}", DataType.UWORD, position)
                 ident.parent =  (this.scope as? PtNamedNode) ?: this.origAstTarget!!
                 ident
             } else {
