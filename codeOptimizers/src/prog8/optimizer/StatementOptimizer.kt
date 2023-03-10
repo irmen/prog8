@@ -322,7 +322,7 @@ class StatementOptimizer(private val program: Program,
                                 repeat(rightCv.toInt()) {
                                     incs.statements.add(PostIncrDecr(assignment.target.copy(), "++", assignment.position))
                                 }
-                                listOf(IAstModification.ReplaceNode(assignment, if(incs.statements.size==1) incs.statements[0] else incs, parent))
+                                return listOf(IAstModification.ReplaceNode(assignment, if(incs.statements.size==1) incs.statements[0] else incs, parent))
                             }
                         }
                     }
