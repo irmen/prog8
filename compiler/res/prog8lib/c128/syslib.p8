@@ -340,8 +340,7 @@ _modified	jsr  $ffff                      ; modified
 _use_kernal     .byte  0
 
 _irq_handler_init
-		; save all zp scratch registers and the X register as these might be clobbered by the irq routine
-		stx  IRQ_X_REG
+		; save all zp scratch registers as these might be clobbered by the irq routine
 		lda  P8ZP_SCRATCH_B1
 		sta  IRQ_SCRATCH_ZPB1
 		lda  P8ZP_SCRATCH_REG
@@ -354,18 +353,15 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; stack protector; make sure we don't clobber the top of the evaluation stack
-		dex
-		dex
-		dex
-		dex
-		dex
-		dex
+		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
+		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
+		; We assume IRQ handlers don't contain complex expressions taking up more than that.
+		ldx  #32
 		cld
 		rts
 
 _irq_handler_end
-		; restore all zp scratch registers and the X register
+		; restore all zp scratch registers
 		lda  IRQ_SCRATCH_ZPB1
 		sta  P8ZP_SCRATCH_B1
 		lda  IRQ_SCRATCH_ZPREG
@@ -378,10 +374,8 @@ _irq_handler_end
 		sta  P8ZP_SCRATCH_W2
 		lda  IRQ_SCRATCH_ZPWORD2+1
 		sta  P8ZP_SCRATCH_W2+1
-		ldx  IRQ_X_REG
 		rts
 
-IRQ_X_REG		.byte  0
 IRQ_SCRATCH_ZPB1	.byte  0
 IRQ_SCRATCH_ZPREG	.byte  0
 IRQ_SCRATCH_ZPWORD1	.word  0
