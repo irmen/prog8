@@ -208,6 +208,7 @@ main {
     sub start() {
         const uword pointer=$1000
         cx16.r0L = pointer[2]
+        pointer[2] = cx16.r0L
     }
 }
 """

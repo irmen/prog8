@@ -2656,7 +2656,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    throw AssemblyError("no asm gen for assign memory byte at $address to array ${target.asmVarname}")
+                    asmgen.out("  lda  ${address.toHex()}")
+                    assignRegisterByte(target, CpuRegister.A)
                 }
                 TargetStorageKind.REGISTER -> when(target.register!!) {
                     RegisterOrPair.A -> asmgen.out("  lda  ${address.toHex()}")
@@ -2695,7 +2696,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    throw AssemblyError("no asm gen for assign memory byte $identifier to array ${target.asmVarname} ")
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    assignRegisterByte(target, CpuRegister.A)
                 }
                 TargetStorageKind.REGISTER -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
@@ -2737,7 +2739,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
-                    throw AssemblyError("no asm gen for assign memory byte at $address to word array ${wordtarget.asmVarname}")
+                    asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
+                    assignRegisterpairWord(wordtarget, RegisterOrPair.AY)
                 }
                 TargetStorageKind.REGISTER -> when(wordtarget.register!!) {
                     RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  ${address.toHex()}")
@@ -2765,7 +2768,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
-                    throw AssemblyError("no asm gen for assign memory byte $identifier to word array ${wordtarget.asmVarname} ")
+                    asmgen.loadByteFromPointerIntoA(identifier)
+                    asmgen.out("  ldy  #0")
+                    assignRegisterpairWord(wordtarget, RegisterOrPair.AY)
                 }
                 TargetStorageKind.REGISTER -> {
                     asmgen.loadByteFromPointerIntoA(identifier)

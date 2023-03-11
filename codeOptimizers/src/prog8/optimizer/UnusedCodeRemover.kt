@@ -115,7 +115,7 @@ class UnusedCodeRemover(private val program: Program,
             if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm) {
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
-                    // if(!decl.definingModule.isLibrary)
+                    if(!decl.definingModule.isLibrary)
                         errors.warn("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }

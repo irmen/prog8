@@ -112,13 +112,21 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    test("assigning memory byte into array works") {
+    test("assigning memory byte into arrays works") {
         val text="""
 main {
     sub start() {
         uword factor1
-        ubyte[3] @shared factor124
-        factor124[0] = @(factor1)
+        ubyte[3] bytearray
+        uword[3] wordarray
+        @(factor1) = bytearray[0]
+        bytearray[0] = @(factor1)
+        @(factor1) = lsb(wordarray[0])
+        wordarray[0] = @(factor1)
+        @(5000) = bytearray[0]
+        @(5000) = lsb(wordarray[0])
+        bytearray[0] = @(5000)
+        wordarray[0] = @(5000)
     }
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null

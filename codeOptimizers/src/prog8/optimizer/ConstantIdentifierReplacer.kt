@@ -93,6 +93,21 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
 
         try {
             val cval = identifier.constValue(program) ?: return noModifications
+            val arrayIdx = identifier.parent as? ArrayIndexedExpression
+            if(arrayIdx!=null && cval.type in NumericDatatypes) {
+                // special case when the identifier is used as a pointer var
+                // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
+                // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
+                val add = BinaryExpression(NumericLiteral(cval.type, cval.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
+                return if(arrayIdx.parent is AssignTarget) {
+                    val memwrite = DirectMemoryWrite(add, identifier.position)
+                    val assignTarget = AssignTarget(null, null, memwrite, identifier.position)
+                    listOf(IAstModification.ReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
+                } else {
+                    val memread = DirectMemoryRead(add, identifier.position)
+                    listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
+                }
+            }
             return when (cval.type) {
                 in NumericDatatypes -> listOf(
                     IAstModification.ReplaceNode(
