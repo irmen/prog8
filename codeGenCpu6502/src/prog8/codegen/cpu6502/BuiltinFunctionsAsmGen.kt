@@ -680,13 +680,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            else -> {
-                asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)
-                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
-                asmgen.out("  jsr  prog8_lib.func_pokew")
-                return
-            }
+            else -> { /* fall through */ }
         }
+
+        // fall through method:
+        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.func_pokew")
     }
 
     private fun funcPeekW(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
