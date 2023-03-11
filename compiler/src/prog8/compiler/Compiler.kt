@@ -405,7 +405,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
         VmCodeGen()
     else
-        throw NotImplementedError("no asm generator for cpu ${compilerOptions.compTarget.machine.cpu}")
+        throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.machine.cpu}")
 
     val stMaker = SymbolTableMaker(program, compilerOptions)
     val symbolTable = stMaker.make()

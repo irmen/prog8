@@ -60,11 +60,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
-        val target = identifier.targetVarDecl(program)
-        if(target != null && target.origin==VarDeclOrigin.SUBROUTINEPARAM) {
-            if(target.definingSubroutine!!.isAsmSubroutine) {
-                if(target.definingSubroutine!!.parameters.any { it.name == identifier.nameInSource.last() })
-                    errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+        val stmt = identifier.targetStatement(program)
+        if(stmt==null)
+            errors.err("undefined symbol: ${identifier.nameInSource.joinToString(".")}", identifier.position)
+        else {
+            val target = stmt as? VarDecl
+            if (target != null && target.origin == VarDeclOrigin.SUBROUTINEPARAM) {
+                if (target.definingSubroutine!!.isAsmSubroutine) {
+                    if (target.definingSubroutine!!.parameters.any { it.name == identifier.nameInSource.last() })
+                        errors.err("cannot refer to parameter of asmsub by name", identifier.position)
+                }
             }
         }
     }
@@ -1323,7 +1328,7 @@ internal class AstChecker(private val program: Program,
                 else
                     errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
             }
-            null -> errors.err("undefined function or subroutine: ${target.nameInSource.joinToString(".")}", target.position)
+            null -> errors.err("undefined symbol: ${target.nameInSource.joinToString(".")}", target.position)
             else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
         }
         return null

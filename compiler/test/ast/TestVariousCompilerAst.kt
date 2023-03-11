@@ -201,5 +201,17 @@ main {
         value2.left shouldBe instanceOf<ContainmentCheck>()
         (value2.right as NumericLiteral).number shouldBe 0.0
     }
+
+    test("const pointer variable indexing works") {
+        val src="""
+main {
+    sub start() {
+        const uword pointer=$1000
+        cx16.r0L = pointer[2]
+    }
+}
+"""
+        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 

@@ -413,7 +413,16 @@ class TestScoping: FunSpec({
         """
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
-        println(errors.errors)
+        /*
+There are 4 errors and 3 warnings.
+ERROR name conflict 'start', also defined...
+ERROR name conflict 'var1Warn', also defined...
+ERROR name conflict 'main', also defined...
+ERROR name conflict 'internalOk', also defined...
+WARN name 'var1Warn' shadows occurrence at...
+WARN name 'var1Warn' shadows occurrence at...
+WARN name 'var1Warn' shadows occurrence at...
+         */
         errors.warnings.size shouldBe 3
         errors.warnings[0] shouldContain "var1Warn"
         errors.warnings[0] shouldContain "shadows"
@@ -424,7 +433,7 @@ class TestScoping: FunSpec({
         errors.warnings[2] shouldContain "var1Warn"
         errors.warnings[2] shouldContain "shadows"
         errors.warnings[2] shouldContain "line 3"
-        errors.errors.size shouldBe 5
+        errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "name conflict"
         errors.errors[0] shouldContain "start"
         errors.errors[0] shouldContain "line 5"
@@ -435,10 +444,7 @@ class TestScoping: FunSpec({
         errors.errors[2] shouldContain "main"
         errors.errors[2] shouldContain "line 2"
         errors.errors[3] shouldContain "name conflict"
-        errors.errors[3] shouldContain "start"
-        errors.errors[3] shouldContain "line 5"
-        errors.errors[4] shouldContain "name conflict"
-        errors.errors[4] shouldContain "internalOk"
-        errors.errors[4] shouldContain "line 11"
+        errors.errors[3] shouldContain "internalOk"
+        errors.errors[3] shouldContain "line 11"
     }
 })

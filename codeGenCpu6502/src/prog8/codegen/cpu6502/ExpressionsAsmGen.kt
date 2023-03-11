@@ -34,7 +34,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             is PtFunctionCall -> translateFunctionCallResultOntoStack(expression)
             is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
             is PtContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
-            is PtArray, is PtString -> throw AssemblyError("no asm gen for string/array literal value assignment - should have been replaced by a variable")
+            is PtArray, is PtString -> throw AssemblyError("string/array literal value assignment should have been replaced by a variable")
             is PtRange -> throw AssemblyError("range expression should have been changed into array values")
             is PtMachineRegister -> throw AssemblyError("machine register ast node should not occur in 6502 codegen it is for IR code")
             else -> TODO("missing expression asmgen for $expression")

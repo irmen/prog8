@@ -13,7 +13,9 @@ import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 import prog8.code.target.VMTarget
 
-
+/**
+ * This checks for naming conflicts, not for correct symbol references yet.
+ */
 internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                                      private val program: Program,
                                      private val compTarget: ICompilationTarget

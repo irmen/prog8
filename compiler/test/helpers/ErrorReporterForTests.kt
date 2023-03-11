@@ -10,11 +10,15 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     val warnings = mutableListOf<String>()
 
     override fun err(msg: String, position: Position) {
-        errors.add("${position.toClickableStr()} $msg")
+        val text = "${position.toClickableStr()} $msg"
+        if(text !in errors)
+            errors.add(text)
     }
 
     override fun warn(msg: String, position: Position) {
-        warnings.add("${position.toClickableStr()} $msg")
+        val text = "${position.toClickableStr()} $msg"
+        if(text !in warnings)
+            warnings.add(text)
     }
 
     override fun noErrors(): Boolean  = errors.isEmpty()

@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtArrayIndexer
@@ -11,6 +12,7 @@ import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestVariousCodeGen: FunSpec({
@@ -108,5 +110,30 @@ main {
     }
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("assigning memory byte into array works") {
+        val text="""
+main {
+    sub start() {
+        uword factor1
+        ubyte[3] @shared factor124
+        factor124[0] = @(factor1)
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("reading memory from unknown var gives proper error") {
+        val text="""
+main {
+    sub start() {
+        cx16.r0L = @(doesnotexist)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = true, errors = errors)
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "undefined symbol: doesnotexist"
     }
 })
