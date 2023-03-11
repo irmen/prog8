@@ -4,6 +4,14 @@
 
 txt {
 
+sub width() -> ubyte {
+    return 80   ; just some chosen value for the 'width' of the console
+}
+
+sub height() -> ubyte {
+    return 30   ; just some chosen value for the 'height' of the console
+}
+
 sub  clear_screen() {
     str @shared sequence = "\x1b[2J\x1B[H"
     %ir {{
