@@ -447,6 +447,13 @@ internal class AstChecker(private val program: Program,
         val iterations = repeatLoop.iterations?.constValue(program)
         if(iterations != null && iterations.number.toInt() > 65535)
             errors.err("repeat cannot go over 65535 iterations", iterations.position)
+
+        val ident = repeatLoop.iterations as? IdentifierReference
+        if(ident!=null) {
+            val targetVar = ident.targetVarDecl(program)
+            if(targetVar==null)
+                errors.err("invalid assignment value, maybe forgot '&' (address-of)", ident.position)
+        }
         super.visit(repeatLoop)
     }
 
