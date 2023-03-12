@@ -2,6 +2,9 @@
 %zeropage basicsafe
 %option no_sysinit
 
+; The documentation for custom PS2 key handlers can be found here:
+; https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-scancode-handler
+
 main {
 
     sub start() {
@@ -69,6 +72,9 @@ main {
         ; Unfortunately this also means you cannot decide from that prog8 code
         ; if the keyboard press should be consumed/ignored or put into the keyboard queue
         ; (this is controlled by returning 0 or 1 in register A here)
+        ;
+        ; see:
+        ; https://github.com/X16Community/x16-docs/tree/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-scancode-handler
 
         %asm {{
             php

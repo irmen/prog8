@@ -3,9 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix IR/VM: animals.p8 example is borked, it jumps straight to a suggestion and then somehow doesn't print the animal name correctly in the first question, and exits after 1 animal instead of looping
-  this has happened after v8.7:  caused by c21913a6  ir: keep order of children in block  22-11-2022
-
 ...
 
 

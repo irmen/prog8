@@ -23,9 +23,11 @@ class VmProgramLoader {
         // make sure that if there is a "main.start" entrypoint, we jump to it
         irProgram.blocks.firstOrNull()?.let {
             if(it.children.any { sub -> sub is IRSubroutine && sub.label=="main.start" }) {
-                val chunk = IRCodeChunk(null, null)
+                val previous = programChunks.lastOrNull()
+                val chunk = IRCodeChunk(null, previous)
                 placeholders[Pair(chunk, 0)] = "main.start"
                 chunk += IRInstruction(Opcode.JUMP, labelSymbol = "main.start")
+                previous?.let { p -> p.next = chunk }
                 programChunks += chunk
             }
         }
