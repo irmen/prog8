@@ -119,8 +119,8 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.PUSH) {
                 if(idx < chunk.instructions.size-1) {
-                    val insAfter = chunk.instructions[idx+1] as? IRInstruction
-                    if(insAfter!=null && insAfter.opcode == Opcode.POP) {
+                    val insAfter = chunk.instructions[idx+1]
+                    if(insAfter.opcode == Opcode.POP) {
                         if(ins.reg1==insAfter.reg1) {
                             chunk.instructions.removeAt(idx)
                             chunk.instructions.removeAt(idx)
@@ -143,16 +143,16 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(ins.opcode== Opcode.SEC || ins.opcode== Opcode.CLC) {
                 if(idx < chunk.instructions.size-1) {
-                    val insAfter = chunk.instructions[idx+1] as? IRInstruction
-                    if(insAfter?.opcode == ins.opcode) {
+                    val insAfter = chunk.instructions[idx+1]
+                    if(insAfter.opcode == ins.opcode) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode== Opcode.SEC && insAfter?.opcode== Opcode.CLC) {
+                    else if(ins.opcode== Opcode.SEC && insAfter.opcode== Opcode.CLC) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
-                    else if(ins.opcode== Opcode.CLC && insAfter?.opcode== Opcode.SEC) {
+                    else if(ins.opcode== Opcode.CLC && insAfter.opcode== Opcode.SEC) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
@@ -174,10 +174,30 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     changed = true
                 }
             }
+
             // remove useless RETURN
             if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNREG)) {
-                val previous = chunk.instructions[idx-1] as? IRInstruction
-                if(previous?.opcode in OpcodesThatJump) {
+                val previous = chunk.instructions[idx-1]
+                if(previous.opcode in OpcodesThatJump) {
+                    chunk.instructions.removeAt(idx)
+                    changed = true
+                }
+            }
+
+            // replace subsequent opcodes that jump by just the first
+            if(idx>0 && (ins.opcode in OpcodesThatJump)) {
+                val previous = chunk.instructions[idx-1]
+                if(previous.opcode in OpcodesThatJump) {
+                    chunk.instructions.removeAt(idx)
+                    changed = true
+                }
+            }
+
+            // replace call + return --> jump
+            if(idx>0 && ins.opcode==Opcode.RETURN) {
+                val previous = chunk.instructions[idx-1]
+                if(previous.opcode==Opcode.CALL || previous.opcode==Opcode.CALLRVAL) {
+                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, value=previous.value, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }

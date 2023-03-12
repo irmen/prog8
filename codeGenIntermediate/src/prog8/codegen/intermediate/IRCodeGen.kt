@@ -7,7 +7,6 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
-import prog8.iroptimizer.IROptimizer
 import kotlin.io.path.readBytes
 import kotlin.math.pow
 
@@ -65,12 +64,6 @@ class IRCodeGen(
             errors.report()
 
             irProg.linkChunks()  // re-link
-        }
-
-        if(options.optimize) {
-            // TODO integrate into peephole optimizer above
-            val opt = IROptimizer(irProg)
-            opt.optimize()
         }
 
         irProg.validate()
