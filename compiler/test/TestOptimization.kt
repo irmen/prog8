@@ -767,4 +767,18 @@ main {
 }"""
         compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
     }
+
+    test("no string error when inlining") {
+        val text="""
+main {
+    sub start() {
+        test()
+    }
+
+    sub test() {
+        cx16.r0 = "abc"
+    }
+}"""
+        compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
+    }
 })

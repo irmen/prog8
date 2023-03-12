@@ -100,7 +100,9 @@ class UnusedCodeRemover(private val program: Program,
                 if(!subroutine.definingModule.isLibrary && !subroutine.hasBeenInlined) {
                     errors.warn("unused subroutine '${subroutine.name}'", subroutine.position)
                 }
-                program.removeInternedStringsFromRemovedSubroutine(subroutine)
+                if(!subroutine.inline) {
+                    program.removeInternedStringsFromRemovedSubroutine(subroutine)
+                }
                 return listOf(IAstModification.Remove(subroutine, parent as IStatementContainer))
             }
         }
