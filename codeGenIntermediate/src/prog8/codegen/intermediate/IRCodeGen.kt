@@ -7,6 +7,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
+import prog8.iroptimizer.IROptimizer
 import kotlin.io.path.readBytes
 import kotlin.math.pow
 
@@ -64,6 +65,11 @@ class IRCodeGen(
             errors.report()
 
             irProg.linkChunks()  // re-link
+        }
+
+        if(options.optimize) {
+            val opt = IROptimizer(irProg)
+            opt.optimize()
         }
 
         irProg.validate()
@@ -217,7 +223,7 @@ class IRCodeGen(
         }
 
         program.allBlocks().forEach { block ->
-            block.children.forEach {
+            block.children.toList().forEach {
                 if (it is PtSub) {
                     // Only regular subroutines can have nested subroutines.
                     it.children.filterIsInstance<PtSub>().forEach { subsub -> moveToBlock(block, it, subsub) }

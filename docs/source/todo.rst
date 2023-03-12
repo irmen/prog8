@@ -3,6 +3,10 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- IR: don't hardcode r0/fr0 as return registers.
+  instead have RETURN -> returns void, RETURNREG <register>  -> return value from given register
+  also CALL -> void call,  CALLRVAL  ->  specify register to put call result in.  CALLRVAL r0, functionThatReturnsInt
+
 ...
 
 

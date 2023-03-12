@@ -24,7 +24,7 @@ class TestInstructions: FunSpec({
         val ins = IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42, value = 99)
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe IRDataType.BYTE
-        ins.reg1direction shouldBe OperandDirection.INPUT
+        ins.reg1direction shouldBe OperandDirection.READ
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 42
         ins.reg2 shouldBe null
@@ -37,7 +37,7 @@ class TestInstructions: FunSpec({
         val ins = IRInstruction(Opcode.BZ, IRDataType.WORD, reg1=11, labelSymbol = "a.b.c")
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe IRDataType.WORD
-        ins.reg1direction shouldBe OperandDirection.INPUT
+        ins.reg1direction shouldBe OperandDirection.READ
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe null
@@ -50,8 +50,8 @@ class TestInstructions: FunSpec({
         val ins = IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=11, reg2=22)
         ins.opcode shouldBe Opcode.ADDR
         ins.type shouldBe IRDataType.WORD
-        ins.reg1direction shouldBe OperandDirection.INOUT
-        ins.reg2direction shouldBe OperandDirection.INPUT
+        ins.reg1direction shouldBe OperandDirection.READWRITE
+        ins.reg2direction shouldBe OperandDirection.READ
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.fpReg2direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 11
@@ -63,8 +63,8 @@ class TestInstructions: FunSpec({
         val ins2 = IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=11, reg2=22)
         ins2.opcode shouldBe Opcode.SQRT
         ins2.type shouldBe IRDataType.BYTE
-        ins2.reg1direction shouldBe OperandDirection.OUTPUT
-        ins2.reg2direction shouldBe OperandDirection.INPUT
+        ins2.reg1direction shouldBe OperandDirection.WRITE
+        ins2.reg2direction shouldBe OperandDirection.READ
         ins2.fpReg1direction shouldBe OperandDirection.UNUSED
         ins2.fpReg2direction shouldBe OperandDirection.UNUSED
         ins2.reg1 shouldBe 11
@@ -80,8 +80,8 @@ class TestInstructions: FunSpec({
         ins.type shouldBe IRDataType.FLOAT
         ins.reg1direction shouldBe OperandDirection.UNUSED
         ins.reg2direction shouldBe OperandDirection.UNUSED
-        ins.fpReg1direction shouldBe OperandDirection.OUTPUT
-        ins.fpReg2direction shouldBe OperandDirection.INPUT
+        ins.fpReg1direction shouldBe OperandDirection.WRITE
+        ins.fpReg2direction shouldBe OperandDirection.READ
         ins.fpReg1 shouldBe 1
         ins.fpReg2 shouldBe 2
         ins.reg1 shouldBe null
@@ -115,8 +115,8 @@ class TestInstructions: FunSpec({
         Opcode.values().forEach {
             val fmt = instructionFormats.getValue(it)
             fmt.values.forEach { format ->
-                require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.INPUT) {"reg2 can only be used as input"}
-                require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.INPUT) {"fpReg2 can only be used as input"}
+                require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.READ) {"reg2 can only be used as input"}
+                require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.READ) {"fpReg2 can only be used as input"}
             }
         }
      }
