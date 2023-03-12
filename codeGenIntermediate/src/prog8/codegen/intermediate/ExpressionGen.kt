@@ -954,17 +954,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         }
                     }
                 }
-                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol=fcall.name), null)
-                if(fcall.type==DataType.FLOAT) {
-                    if (!fcall.void && resultFpRegister != 0) {
-                        // Call convention: result value is in fr0, so put it in the required register instead.
-                        addInstr(result, IRInstruction(Opcode.LOADR, IRDataType.FLOAT, fpReg1 = resultFpRegister, fpReg2 = 0), null)
-                    }
-                } else {
-                    if (!fcall.void && resultRegister != 0) {
-                        // Call convention: result value is in r0, so put it in the required register instead.
-                        addInstr(result, IRInstruction(Opcode.LOADR, codeGen.irType(fcall.type), reg1 = resultRegister, reg2 = 0), null)
-                    }
+                if(fcall.void)
+                    addInstr(result, IRInstruction(Opcode.CALL, labelSymbol=fcall.name), null)
+                else {
+                    if(fcall.type==DataType.FLOAT)
+                        addInstr(result, IRInstruction(Opcode.CALLRVAL, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol=fcall.name), null)
+                    else
+                        addInstr(result, IRInstruction(Opcode.CALLRVAL, codeGen.irType(fcall.type), reg1=resultRegister, labelSymbol=fcall.name), null)
                 }
                 return result
             }
@@ -983,6 +979,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.STORECPU, paramDt, reg1 = argReg, labelSymbol = paramRegStr), null)
                     }
                 }
+                // just a regular call without using Vm register call convention: the value is returned in CPU registers!
                 addInstr(result, IRInstruction(Opcode.CALL, value=callTarget.address.toInt()), null)
                 if(!fcall.void) {
                     when(callTarget.returns.size) {

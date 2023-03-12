@@ -134,7 +134,7 @@ class IRProgram(val name: String,
 
                         // link all jump and branching instructions to their target
                         chunk.instructions.forEach {
-                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.labelSymbol!=null)
+                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNREG && it.labelSymbol!=null)
                                 it.branchTarget = labeledChunks.getValue(it.labelSymbol)
                             // note: branches with an address value cannot be linked to something...
                         }

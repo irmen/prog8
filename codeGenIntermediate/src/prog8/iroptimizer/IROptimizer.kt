@@ -2,6 +2,8 @@ package prog8.iroptimizer
 
 import prog8.intermediate.*
 
+// TODO integrate into peephole optimizer
+
 internal class IROptimizer(val program: IRProgram) {
     fun optimize() {
         program.blocks.forEach { block ->
@@ -36,7 +38,7 @@ internal class IROptimizer(val program: IRProgram) {
             val i1 = first.value
             val i2 = second.value
             // replace call + return --> jump
-            if(i1.opcode==Opcode.CALL && i2.opcode==Opcode.RETURN) {
+            if((i1.opcode==Opcode.CALL || i1.opcode==Opcode.CALLRVAL) && i2.opcode==Opcode.RETURN) {
                 elt.instructions[first.index] = IRInstruction(Opcode.JUMP, value=i1.value, labelSymbol = i1.labelSymbol, branchTarget = i1.branchTarget)
                 elt.instructions[second.index] = IRInstruction(Opcode.NOP)
                 if(second.index==elt.instructions.size-1) {

@@ -198,7 +198,7 @@ sub  str2uword(str string) -> uword {
     %ir {{
         loadm.w r65500,conv.str2uword.string
         syscall 11
-        return
+        returnreg.w r0
     }}
 }
 
@@ -209,7 +209,7 @@ sub  str2word(str string) -> word {
     %ir {{
         loadm.w r65500,conv.str2word.string
         syscall 12
-        return
+        returnreg.w r0
     }}
 }
 

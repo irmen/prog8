@@ -21,7 +21,7 @@ sub pow(float value, float power) -> float {
         loadm.f fr0,floats.pow.value
         loadm.f fr1,floats.pow.power
         fpow.f fr0,fr1
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -29,7 +29,7 @@ sub fabs(float value) -> float {
     %ir {{
         loadm.f fr0,floats.fabs.value
         fabs.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -37,7 +37,7 @@ sub sin(float angle) -> float {
     %ir {{
         loadm.f fr0,floats.sin.angle
         fsin.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -45,7 +45,7 @@ sub cos(float angle) -> float {
     %ir {{
         loadm.f fr0,floats.cos.angle
         fcos.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -53,7 +53,7 @@ sub tan(float value) -> float {
     %ir {{
         loadm.f fr0,floats.tan.value
         ftan.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -61,7 +61,7 @@ sub atan(float value) -> float {
     %ir {{
         loadm.f fr0,floats.atan.value
         fatan.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -69,7 +69,7 @@ sub ln(float value) -> float {
     %ir {{
         loadm.f fr0,floats.ln.value
         fln.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -77,7 +77,7 @@ sub log2(float value) -> float {
     %ir {{
         loadm.f fr0,floats.log2.value
         flog.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -85,7 +85,7 @@ sub sqrt(float value) -> float {
     %ir {{
         loadm.f fr0,floats.sqrt.value
         sqrt.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -103,7 +103,7 @@ sub round(float value) -> float {
     %ir {{
         loadm.f fr0,floats.round.value
         fround.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -111,7 +111,7 @@ sub floor(float value) -> float {
     %ir {{
         loadm.f fr0,floats.floor.value
         ffloor.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
@@ -120,14 +120,14 @@ sub ceil(float value) -> float {
     %ir {{
         loadm.f fr0,floats.ceil.value
         fceil.f fr0,fr0
-        return
+        returnreg.f fr0
     }}
 }
 
 sub rndf() -> float {
     %ir {{
         syscall 35
-        return
+        returnreg.f fr0
     }}
 }
 

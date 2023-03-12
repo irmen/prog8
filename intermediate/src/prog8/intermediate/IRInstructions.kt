@@ -47,17 +47,13 @@ storezx     reg1,         address     - store zero at memory address, indexed by
 
 CONTROL FLOW
 ------------
-Possible subroutine call convention:
-Set parameters in Reg 0, 1, 2... before call. Return value set in Reg 0 before return.
-But you can decide whatever you want because here we just care about jumping and returning the flow of control.
-Saving/restoring registers is possible with PUSH and POP instructions.
-
 jump                    location      - continue running at instruction number given by location
 jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
-call                    location      - save current instruction location+1, continue execution at instruction nr given by location
-calli       reg1                      - save current instruction location+1, continue execution at instruction number in reg1
+call                    location      - save current instruction location+1, continue execution at instruction nr given by location. Expect no return value.
+callrval    reg1,       location      - like call but expects a return value from a returnreg instruction, and puts that in reg1
 syscall                 value         - do a systemcall identified by call number
-return                                - restore last saved instruction location and continue at that instruction
+return                                - restore last saved instruction location and continue at that instruction. No return value.
+returnreg   reg1                      - like return, but also returns a value to the caller via reg1
 
 
 BRANCHING and CONDITIONALS
@@ -232,8 +228,10 @@ enum class Opcode {
     JUMP,
     JUMPA,
     CALL,
+    CALLRVAL,
     SYSCALL,
     RETURN,
+    RETURNREG,
 
     BSTCC,
     BSTCS,
@@ -363,14 +361,17 @@ enum class Opcode {
 val OpcodesThatJump = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
-    Opcode.RETURN
+    Opcode.RETURN,
+    Opcode.RETURNREG
 )
 
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
     Opcode.RETURN,
+    Opcode.RETURNREG,
     Opcode.CALL,
+    Opcode.CALLRVAL,
     Opcode.SYSCALL,
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -412,6 +413,7 @@ val OpcodesWithMemoryAddressAsValue = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
     Opcode.CALL,
+    Opcode.CALLRVAL,
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTEQ,
@@ -551,8 +553,10 @@ val instructionFormats = mutableMapOf(
     Opcode.JUMP       to InstructionFormat.from("N,<v"),
     Opcode.JUMPA      to InstructionFormat.from("N,<v"),
     Opcode.CALL       to InstructionFormat.from("N,<v"),
+    Opcode.CALLRVAL   to InstructionFormat.from("BW,<r1,<v     | F,<fr1,<v"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<v"),
     Opcode.RETURN     to InstructionFormat.from("N"),
+    Opcode.RETURNREG  to InstructionFormat.from("BW,<r1        | F,<fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<v"),
     Opcode.BSTCS      to InstructionFormat.from("N,<v"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<v"),

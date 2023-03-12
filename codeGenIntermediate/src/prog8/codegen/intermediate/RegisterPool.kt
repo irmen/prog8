@@ -5,6 +5,7 @@ import prog8.intermediate.SyscallRegisterBase
 
 internal class RegisterPool {
     // reserve 0,1,2 for return values of subroutine calls and syscalls
+    // TODO set this back to 0 once 'resultRegister' has been removed everywhere?
     private var firstFree: Int=3
     private var firstFreeFloat: Int=3
 

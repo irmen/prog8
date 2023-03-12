@@ -87,7 +87,7 @@ string {
             loadm.w r65500,string.compare.st1
             loadm.w r65501,string.compare.st2
             syscall 29
-            return
+            returnreg.b r0
         }}
     }
 

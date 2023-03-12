@@ -175,7 +175,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 }
             }
             // remove useless RETURN
-            if(ins.opcode == Opcode.RETURN && idx>0) {
+            if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNREG)) {
                 val previous = chunk.instructions[idx-1] as? IRInstruction
                 if(previous?.opcode in OpcodesThatJump) {
                     chunk.instructions.removeAt(idx)

@@ -68,6 +68,7 @@ class IRCodeGen(
         }
 
         if(options.optimize) {
+            // TODO integrate into peephole optimizer above
             val opt = IROptimizer(irProg)
             opt.optimize()
         }
@@ -1265,14 +1266,20 @@ class IRCodeGen(
     private fun translate(ret: PtReturn): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val value = ret.value
-        if(value!=null) {
-            // Call Convention: return value is always returned in r0 (or fr0 if float)
-            result += if(value.type==DataType.FLOAT)
-                expressionEval.translateExpression(value, -1, 0)
-            else
-                expressionEval.translateExpression(value, 0, -1)
+        if(value==null) {
+            addInstr(result, IRInstruction(Opcode.RETURN), null)
+        } else {
+            if(value.type==DataType.FLOAT) {
+                val reg = registers.nextFreeFloat()
+                result += expressionEval.translateExpression(value, -1, reg)
+                addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = reg), null)
+            }
+            else {
+                val reg = registers.nextFree()
+                result += expressionEval.translateExpression(value, reg, -1)
+                addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=reg), null)
+            }
         }
-        addInstr(result, IRInstruction(Opcode.RETURN), null)
         return result
     }
 

@@ -31,10 +31,11 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
+    class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val returnValueReg: Int?, val returnValueFpReg: Int?)
     val memory = Memory()
     val program: List<IRCodeChunk>
     val registers = Registers()
-    val callStack = Stack<Pair<IRCodeChunk, Int>>()
+    val callStack = Stack<CallSiteContext>()
     val valueStack = Stack<UByte>()       // max 128 entries
     var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
     var pcChunk = IRCodeChunk(null, null)
@@ -170,8 +171,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
             Opcode.CALL -> InsCALL(ins)
+            Opcode.CALLRVAL -> InsCALLRVAL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
+            Opcode.RETURNREG -> InsRETURNREG(ins)
             Opcode.BSTCC -> InsBSTCC(ins)
             Opcode.BSTCS -> InsBSTCS(ins)
             Opcode.BSTEQ -> InsBSTEQ(ins)
@@ -578,7 +581,12 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsCALL(i: IRInstruction) {
-        callStack.push(Pair(pcChunk, pcIndex+1))
+        callStack.push(CallSiteContext(pcChunk, pcIndex+1, null, null))
+        branchTo(i)
+    }
+
+    private fun InsCALLRVAL(i: IRInstruction) {
+        callStack.push(CallSiteContext(pcChunk, pcIndex+1, i.reg1, i.fpReg1))
         branchTo(i)
     }
 
@@ -586,9 +594,49 @@ class VirtualMachine(irProgram: IRProgram) {
         if(callStack.isEmpty())
             exit(0)
         else {
-            val (chunk, idx) = callStack.pop()
-            pcChunk = chunk
-            pcIndex = idx
+            val context = callStack.pop()
+            pcChunk = context.returnChunk
+            pcIndex = context.returnIndex
+            // ignore any return values.
+        }
+    }
+
+    private fun InsRETURNREG(i: IRInstruction) {
+        if(callStack.isEmpty())
+            exit(0)
+        else {
+            val context = callStack.pop()
+            when (i.type!!) {
+                IRDataType.BYTE -> {
+                    if(context.returnValueReg!=null)
+                        registers.setUB(context.returnValueReg, registers.getUB(i.reg1!!))
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+                IRDataType.WORD -> {
+                    if(context.returnValueReg!=null)
+                        registers.setUW(context.returnValueReg, registers.getUW(i.reg1!!))
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+                IRDataType.FLOAT -> {
+                    if(context.returnValueFpReg!=null)
+                        registers.setFloat(context.returnValueFpReg, registers.getFloat(i.fpReg1!!))
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+            }
+            pcChunk = context.returnChunk
+            pcIndex = context.returnIndex
         }
     }
 
