@@ -238,8 +238,15 @@ class IRCodeGen(
             is PtAssignment -> assignmentGen.translate(node)
             is PtAugmentedAssign -> assignmentGen.translate(node)
             is PtNodeGroup -> translateGroup(node.children)
-            is PtBuiltinFunctionCall -> translateBuiltinFunc(node, 0)
-            is PtFunctionCall -> expressionEval.translate(node, 0, 0)
+            is PtBuiltinFunctionCall -> {
+                val result = translateBuiltinFunc(node)
+                result.chunks          // it's not an expression so no result value.
+            }
+            is PtFunctionCall -> {
+                val result = expressionEval.translate(node, 0, 0)
+                require(result.resultReg==0 && result.resultFpReg==0)  // TODO weg
+                result.chunks
+            }
             is PtNop -> emptyList()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
@@ -398,7 +405,8 @@ class IRCodeGen(
         val valueReg = registers.nextFree()
         val choiceReg = registers.nextFree()
         val valueDt = irType(whenStmt.value.type)
-        result += expressionEval.translateExpression(whenStmt.value, valueReg, -1)
+        val tr = expressionEval.translateExpression(whenStmt.value, valueReg, -1)
+        addToResult(result, tr, valueReg, -1)
         val choices = whenStmt.choices.children.map {it as PtWhenChoice }
         val endLabel = createLabelName()
         for (choice in choices) {
@@ -523,8 +531,10 @@ class IRCodeGen(
         val loopLabel = createLabelName()
         val result = mutableListOf<IRCodeChunkBase>()
 
-        result += expressionEval.translateExpression(iterable.to, endvalueReg, -1)
-        result += expressionEval.translateExpression(iterable.from, indexReg, -1)
+        var tr = expressionEval.translateExpression(iterable.to, endvalueReg, -1)
+        addToResult(result, tr, endvalueReg, -1)
+        tr = expressionEval.translateExpression(iterable.from, indexReg, -1)
+        addToResult(result, tr, indexReg, -1)
 
         val labelAfterFor = createLabelName()
         val greaterOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGTS else Opcode.BGT
@@ -909,8 +919,10 @@ class IRCodeGen(
             val leftFpRegNum = registers.nextFreeFloat()
             val rightFpRegNum = registers.nextFreeFloat()
             val compResultReg = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
-            result += expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            var tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
+            addToResult(result, tr, -1, leftFpRegNum)
+            tr = expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            addToResult(result, tr, -1, rightFpRegNum)
             result += IRCodeChunk(null,null).also {
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum)
                 val gotoOpcode = when (ifElse.condition.operator) {
@@ -932,8 +944,10 @@ class IRCodeGen(
         } else {
             val leftRegNum = registers.nextFree()
             val rightRegNum = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
-            result += expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
+            var tr = expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
+            addToResult(result, tr, leftRegNum, -1)
+            tr = expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
+            addToResult(result, tr, rightRegNum, -1)
             val opcode: Opcode
             val firstReg: Int
             val secondReg: Int
@@ -992,7 +1006,8 @@ class IRCodeGen(
             val leftFpReg = registers.nextFreeFloat()
             val rightFpReg = registers.nextFreeFloat()
             compResultReg = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpReg)
+            val tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpReg)
+            addToResult(result, tr, -1, leftFpReg)
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, fpValue = 0f)
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
@@ -1010,7 +1025,8 @@ class IRCodeGen(
             // integer comparisons
             branchDt = irDtLeft
             compResultReg = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, compResultReg, -1)
+            val tr = expressionEval.translateExpression(ifElse.condition.left, compResultReg, -1)
+            addToResult(result, tr, compResultReg, -1)
             elseBranch = when (ifElse.condition.operator) {
                 "==" -> Opcode.BNZ
                 "!=" -> Opcode.BZ
@@ -1049,12 +1065,13 @@ class IRCodeGen(
         val elseBranchSecondReg: Int
         val branchDt: IRDataType
         if(irDtLeft==IRDataType.FLOAT) {
-            branchDt = IRDataType.BYTE
             val leftFpRegNum = registers.nextFreeFloat()
             val rightFpRegNum = registers.nextFreeFloat()
             val compResultReg = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
-            result += expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            var tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
+            addToResult(result, tr, -1, leftFpRegNum)
+            tr = expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            addToResult(result, tr, -1, rightFpRegNum)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum), null)
             val elseBranch = when (ifElse.condition.operator) {
                 "==" -> Opcode.BNZ
@@ -1086,8 +1103,10 @@ class IRCodeGen(
             branchDt = irDtLeft
             val leftRegNum = registers.nextFree()
             val rightRegNum = registers.nextFree()
-            result += expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
-            result += expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
+            var tr = expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
+            addToResult(result, tr, leftRegNum, -1)
+            tr = expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
+            addToResult(result, tr, rightRegNum, -1)
             when (ifElse.condition.operator) {
                 "==" -> {
                     elseBranchOpcode = Opcode.BNE
@@ -1178,7 +1197,8 @@ class IRCodeGen(
             } else {
                 val incReg = registers.nextFree()
                 val addressReg = registers.nextFree()
-                result += expressionEval.translateExpression(memory.address, addressReg, -1)
+                val tr = expressionEval.translateExpression(memory.address, addressReg, -1)
+                addToResult(result, tr, addressReg, -1)
                 val chunk = IRCodeChunk(null, null)
                 chunk += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = addressReg)
                 chunk += IRInstruction(operationRegister, irDt, reg1 = incReg)
@@ -1195,7 +1215,8 @@ class IRCodeGen(
             } else {
                 val incReg = registers.nextFree()
                 val indexReg = registers.nextFree()
-                result += expressionEval.translateExpression(array.index, indexReg, -1)
+                val tr = expressionEval.translateExpression(array.index, indexReg, -1)
+                addToResult(result, tr, indexReg, -1)
                 val chunk = IRCodeChunk(null, null)
                 chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
                 chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
@@ -1223,7 +1244,8 @@ class IRCodeGen(
         val counterReg = registers.nextFree()
         val irDt = irType(repeat.count.type)
         val result = mutableListOf<IRCodeChunkBase>()
-        result += expressionEval.translateExpression(repeat.count, counterReg, -1)
+        val tr = expressionEval.translateExpression(repeat.count, counterReg, -1)
+        addToResult(result, tr, counterReg, -1)
         addInstr(result, IRInstruction(Opcode.BZ, irDt, reg1=counterReg, labelSymbol = skipRepeatLabel), null)
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
         val chunk = IRCodeChunk(null, null)
@@ -1264,12 +1286,14 @@ class IRCodeGen(
         } else {
             if(value.type==DataType.FLOAT) {
                 val reg = registers.nextFreeFloat()
-                result += expressionEval.translateExpression(value, -1, reg)
+                val tr = expressionEval.translateExpression(value, -1, reg)
+                addToResult(result, tr, -1, reg)
                 addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = reg), null)
             }
             else {
                 val reg = registers.nextFree()
-                result += expressionEval.translateExpression(value, reg, -1)
+                val tr = expressionEval.translateExpression(value, reg, -1)
+                addToResult(result, tr, reg, -1)
                 addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=reg), null)
             }
         }
@@ -1363,8 +1387,8 @@ class IRCodeGen(
         return "prog8_label_gen_$labelSequenceNumber"
     }
 
-    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks =
-        builtinFuncGen.translate(call, resultRegister)
+    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult
+        = builtinFuncGen.translate(call)
 
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
 
