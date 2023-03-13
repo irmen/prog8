@@ -386,7 +386,7 @@ main {
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }
-        instructions.size shouldBe 18
+        instructions.size shouldBe 13
         instructions.last().opcode shouldBe Opcode.RETURN
     }
 

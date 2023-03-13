@@ -937,57 +937,100 @@ class IRCodeGen(
                 else
                     IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = goto.identifier!!.name)
             }
+            return result
         } else {
-            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
-            addToResult(result, leftTr, leftTr.resultReg, -1)
-            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
-            require(rightTr.resultReg!=leftTr.resultReg)
-            addToResult(result, rightTr, rightTr.resultReg, -1)
-            val opcode: Opcode
-            val firstReg: Int
-            val secondReg: Int
-            when (ifElse.condition.operator) {
-                "==" -> {
-                    opcode = Opcode.BEQ
-                    firstReg = leftTr.resultReg
-                    secondReg = rightTr.resultReg
-                }
-                "!=" -> {
-                    opcode = Opcode.BNE
-                    firstReg = leftTr.resultReg
-                    secondReg = rightTr.resultReg
-                }
-                "<" -> {
-                    // swapped '>'
-                    opcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    firstReg = rightTr.resultReg
-                    secondReg = leftTr.resultReg
-                }
-                ">" -> {
-                    opcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    firstReg = leftTr.resultReg
-                    secondReg = rightTr.resultReg
-                }
-                "<=" -> {
-                    // swapped '>='
-                    opcode = if (signed) Opcode.BGES else Opcode.BGE
-                    firstReg = rightTr.resultReg
-                    secondReg = leftTr.resultReg
-                }
-                ">=" -> {
-                    opcode = if (signed) Opcode.BGES else Opcode.BGE
-                    firstReg = leftTr.resultReg
-                    secondReg = rightTr.resultReg
-                }
-                else -> throw AssemblyError("invalid comparison operator")
+            val rightConst = ifElse.condition.right.asConstInteger()
+            return if(rightConst==0)
+                ifZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
+            else {
+                ifNonZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
             }
-            if (goto.address != null)
-                addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, value = goto.address?.toInt()), null)
-            else if (goto.generatedLabel != null)
-                addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.generatedLabel), null)
-            else
-                addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
         }
+    }
+
+    private fun ifZeroIntThenJump(
+        result: MutableList<IRCodeChunkBase>,
+        ifElse: PtIfElse,
+        signed: Boolean,
+        irDtLeft: IRDataType,
+        goto: PtJump
+    ): MutableList<IRCodeChunkBase> {
+        val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+        addToResult(result, leftTr, leftTr.resultReg, -1)
+        val opcode = when (ifElse.condition.operator) {
+            "==" -> Opcode.BZ
+            "!=" -> Opcode.BNZ
+            "<" -> if (signed) Opcode.BLZS else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
+            ">" -> if (signed) Opcode.BGZS else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
+            "<=" -> if (signed) Opcode.BLEZS else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
+            ">=" -> if (signed) Opcode.BGEZS else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
+            else -> throw AssemblyError("invalid comparison operator")
+        }
+        if (goto.address != null)
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, value = goto.address?.toInt()), null)
+        else if (goto.generatedLabel != null)
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, labelSymbol = goto.generatedLabel), null)
+        else
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, labelSymbol = goto.identifier!!.name), null)
+        return result
+    }
+
+    private fun ifNonZeroIntThenJump(
+        result: MutableList<IRCodeChunkBase>,
+        ifElse: PtIfElse,
+        signed: Boolean,
+        irDtLeft: IRDataType,
+        goto: PtJump
+    ): MutableList<IRCodeChunkBase> {
+        val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+        addToResult(result, leftTr, leftTr.resultReg, -1)
+        val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+        require(rightTr.resultReg!=leftTr.resultReg)
+        addToResult(result, rightTr, rightTr.resultReg, -1)
+        val opcode: Opcode
+        val firstReg: Int
+        val secondReg: Int
+        when (ifElse.condition.operator) {
+            "==" -> {
+                opcode = Opcode.BEQ
+                firstReg = leftTr.resultReg
+                secondReg = rightTr.resultReg
+            }
+            "!=" -> {
+                opcode = Opcode.BNE
+                firstReg = leftTr.resultReg
+                secondReg = rightTr.resultReg
+            }
+            "<" -> {
+                // swapped '>'
+                opcode = if (signed) Opcode.BGTS else Opcode.BGT
+                firstReg = rightTr.resultReg
+                secondReg = leftTr.resultReg
+            }
+            ">" -> {
+                opcode = if (signed) Opcode.BGTS else Opcode.BGT
+                firstReg = leftTr.resultReg
+                secondReg = rightTr.resultReg
+            }
+            "<=" -> {
+                // swapped '>='
+                opcode = if (signed) Opcode.BGES else Opcode.BGE
+                firstReg = rightTr.resultReg
+                secondReg = leftTr.resultReg
+            }
+            ">=" -> {
+                opcode = if (signed) Opcode.BGES else Opcode.BGE
+                firstReg = leftTr.resultReg
+                secondReg = rightTr.resultReg
+            }
+            else -> throw AssemblyError("invalid comparison operator")
+        }
+        if (goto.address != null)
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, value = goto.address?.toInt()), null)
+        else if (goto.generatedLabel != null)
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.generatedLabel), null)
+        else
+            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
         return result
     }
 
