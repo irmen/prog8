@@ -530,7 +530,6 @@ class IRCodeGen(
         val toTr = expressionEval.translateExpression(iterable.to)
         addToResult(result, toTr, toTr.resultReg, -1)
         val fromTr = expressionEval.translateExpression(iterable.from)
-        require(fromTr.resultReg!=toTr.resultReg)
         addToResult(result, fromTr, fromTr.resultReg, -1)
 
         val labelAfterFor = createLabelName()
@@ -916,7 +915,6 @@ class IRCodeGen(
             val leftTr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = expressionEval.translateExpression(ifElse.condition.right)
-            require(rightTr.resultFpReg!=leftTr.resultFpReg)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             result += IRCodeChunk(null,null).also {
                 val compResultReg = registers.nextFree()
@@ -985,7 +983,6 @@ class IRCodeGen(
         val leftTr = expressionEval.translateExpression(ifElse.condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
         val rightTr = expressionEval.translateExpression(ifElse.condition.right)
-        require(rightTr.resultReg!=leftTr.resultReg)
         addToResult(result, rightTr, rightTr.resultReg, -1)
         val opcode: Opcode
         val firstReg: Int
@@ -1105,7 +1102,6 @@ class IRCodeGen(
             val leftTr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = expressionEval.translateExpression(ifElse.condition.right)
-            require(rightTr.resultFpReg!=leftTr.resultFpReg)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val compResultReg = registers.nextFree()
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
@@ -1140,7 +1136,6 @@ class IRCodeGen(
             val leftTr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = expressionEval.translateExpression(ifElse.condition.right)
-            require(rightTr.resultReg!=leftTr.resultReg)
             addToResult(result, rightTr, rightTr.resultReg, -1)
             when (ifElse.condition.operator) {
                 "==" -> {

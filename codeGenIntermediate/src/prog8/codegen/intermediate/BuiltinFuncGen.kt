@@ -50,7 +50,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val leftTr = exprGen.translateExpression(call.args[0])
         addToResult(result, leftTr, leftTr.resultReg, -1)
         val rightTr = exprGen.translateExpression(call.args[1])
-        require(leftTr.resultReg!=rightTr.resultReg)
         addToResult(result, rightTr, rightTr.resultReg, -1)
         val dt = codeGen.irType(call.args[0].type)
         result += IRCodeChunk(null, null).also {
@@ -262,7 +261,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val msbTr = exprGen.translateExpression(call.args[0])
         addToResult(result, msbTr, msbTr.resultReg, -1)
         val lsbTr = exprGen.translateExpression(call.args[1])
-        require(lsbTr.resultReg!=msbTr.resultReg)
         addToResult(result, lsbTr, lsbTr.resultReg, -1)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = lsbTr.resultReg, reg2 = msbTr.resultReg)
@@ -297,7 +295,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val addressTr = exprGen.translateExpression(call.args[0])
                 addToResult(result, addressTr, addressTr.resultReg, -1)
                 val valueTr = exprGen.translateExpression(call.args[1])
-                require(valueTr.resultReg!=addressTr.resultReg)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg)
@@ -334,7 +331,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val addressTr = exprGen.translateExpression(call.args[0])
                 addToResult(result, addressTr, addressTr.resultReg, -1)
                 val valueTr = exprGen.translateExpression(call.args[1])
-                require(valueTr.resultReg!=addressTr.resultReg)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg)

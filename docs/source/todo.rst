@@ -3,8 +3,8 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- bouncegfx is larger than with 8.10
-- get rid of all the require() checks that test result regs to be different
+- array[var] = 22    generates lareger code now in IR  (-> bouncegfx is larger than with 8.10)
+- array[var] *= -1   generates lareger code now in IR  (-> bouncegfx is larger than with 8.10)
 
 ...
 
