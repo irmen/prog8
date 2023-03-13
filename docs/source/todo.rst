@@ -4,8 +4,8 @@ TODO
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
 - fix IR/VM crashing in bouncegfx and textelite
+- bouncegfx is larger than with 8.10
 - reduce the usage of register.nextFree() in IR codegen
-- get rid of ResultRegister in IR codegen? as the calls now encode this into the new opcodes...
 - get rid of all the require() checks that test result regs to be different
 
 ...

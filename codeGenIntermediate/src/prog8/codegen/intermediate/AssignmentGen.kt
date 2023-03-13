@@ -52,16 +52,17 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val value = assignment.value
         val vmDt = codeGen.irType(value.type)
         return when(assignment.operator) {
-            "+" -> expressionEval.operatorPlusInplace(address, null, vmDt, value)
-            "-" -> expressionEval.operatorMinusInplace(address, null, vmDt, value)
-            "*" -> expressionEval.operatorMultiplyInplace(address, null, vmDt, value)
-            "/" -> expressionEval.operatorDivideInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            "|" -> expressionEval.operatorOrInplace(address, null, vmDt, value)
-            "&" -> expressionEval.operatorAndInplace(address, null, vmDt, value)
-            "^" -> expressionEval.operatorXorInplace(address, null, vmDt, value)
-            "<<" -> expressionEval.operatorShiftLeftInplace(address, null, vmDt, value)
-            ">>" -> expressionEval.operatorShiftRightInplace(address, null, vmDt, value.type in SignedDatatypes, value)
+            "+" -> expressionEval.operatorPlusInplace(address, null, vmDt, value).chunks
+            "-" -> expressionEval.operatorMinusInplace(address, null, vmDt, value).chunks
+            "*" -> expressionEval.operatorMultiplyInplace(address, null, vmDt, value).chunks
+            "/" -> expressionEval.operatorDivideInplace(address, null, vmDt, value.type in SignedDatatypes, value).chunks
+            "|" -> expressionEval.operatorOrInplace(address, null, vmDt, value).chunks
+            "&" -> expressionEval.operatorAndInplace(address, null, vmDt, value).chunks
+            "^" -> expressionEval.operatorXorInplace(address, null, vmDt, value).chunks
+            "<<" -> expressionEval.operatorShiftLeftInplace(address, null, vmDt, value).chunks
+            ">>" -> expressionEval.operatorShiftRightInplace(address, null, vmDt, value.type in SignedDatatypes, value).chunks
             in PrefixOperators -> inplacePrefix(assignment.operator, vmDt, address, null)
+
             else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
     }
@@ -70,15 +71,15 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val value = assignment.value
         val valueVmDt = codeGen.irType(value.type)
         return when (assignment.operator) {
-            "+=" -> expressionEval.operatorPlusInplace(null, symbol, valueVmDt, value)
-            "-=" -> expressionEval.operatorMinusInplace(null, symbol, valueVmDt, value)
-            "*=" -> expressionEval.operatorMultiplyInplace(null, symbol, valueVmDt, value)
-            "/=" -> expressionEval.operatorDivideInplace(null, symbol, valueVmDt, value.type in SignedDatatypes, value)
-            "|=" -> expressionEval.operatorOrInplace(null, symbol, valueVmDt, value)
-            "&=" -> expressionEval.operatorAndInplace(null, symbol, valueVmDt, value)
-            "^=" -> expressionEval.operatorXorInplace(null, symbol, valueVmDt, value)
-            "<<=" -> expressionEval.operatorShiftLeftInplace(null, symbol, valueVmDt, value)
-            ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, valueVmDt, value.type in SignedDatatypes, value)
+            "+=" -> expressionEval.operatorPlusInplace(null, symbol, valueVmDt, value).chunks
+            "-=" -> expressionEval.operatorMinusInplace(null, symbol, valueVmDt, value).chunks
+            "*=" -> expressionEval.operatorMultiplyInplace(null, symbol, valueVmDt, value).chunks
+            "/=" -> expressionEval.operatorDivideInplace(null, symbol, valueVmDt, value.type in SignedDatatypes, value).chunks
+            "|=" -> expressionEval.operatorOrInplace(null, symbol, valueVmDt, value).chunks
+            "&=" -> expressionEval.operatorAndInplace(null, symbol, valueVmDt, value).chunks
+            "^=" -> expressionEval.operatorXorInplace(null, symbol, valueVmDt, value).chunks
+            "<<=" -> expressionEval.operatorShiftLeftInplace(null, symbol, valueVmDt, value).chunks
+            ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, valueVmDt, value.type in SignedDatatypes, value).chunks
             in PrefixOperators -> inplacePrefix(assignment.operator, valueVmDt, null, symbol)
             else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
