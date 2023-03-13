@@ -20,6 +20,7 @@ Instruction set is mostly a load/store architecture, there are few instructions 
 Most instructions have an associated data type 'b','w','f'. (omitting it defaults to 'b' - byte).
 Currently NO support for 24 or 32 bits integers.
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
+Instructions taking more than 1 register cannot take the same register multiple times! (to avoid confusing different datatypes)
 
 
 LOAD/STORE
@@ -707,6 +708,7 @@ data class IRInstruction(
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
+        if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
         if(value!=null && opcode !in OpcodesWithMemoryAddressAsValue) {
             when (type) {
                 IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}

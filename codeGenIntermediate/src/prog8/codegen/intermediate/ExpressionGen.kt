@@ -84,8 +84,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 } else {
                     val tr = translateExpression(expr.address)
                     addToResult(result, tr, tr.resultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=tr.resultReg, reg2=tr.resultReg), null)
-                    ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
+                    val resultReg = codeGen.registers.nextFree()
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=resultReg, reg2=tr.resultReg), null)
+                    ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 }
             }
             is PtTypeCast -> translate(expr)
@@ -162,8 +163,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 throw AssemblyError("non-array var indexing requires bytes index")
             val tr = translateExpression(arrayIx.index)
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LOADIX, vmDt, reg1=tr.resultReg, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
-            return ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            val resultReg = codeGen.registers.nextFree()
+            addInstr(result, IRInstruction(Opcode.LOADIX, vmDt, reg1=resultReg, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
+            return ExpressionCodeResult(result, vmDt, resultReg, -1)
         }
 
         var resultRegister = -1
@@ -188,7 +190,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=tr.resultReg, labelSymbol = arrayVarSymbol), null)
             }
             else {
-                resultRegister = tr.resultReg
+                resultRegister = codeGen.registers.nextFree()
                 addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
             }
         }
@@ -586,8 +588,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, tr.resultReg, -1)
                     val opcode = if (notEquals) Opcode.SNZ else Opcode.SZ
-                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = tr.resultReg, reg2 = tr.resultReg), null)
-                    ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
+                    val resultReg = codeGen.registers.nextFree()
+                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultReg, reg2 = tr.resultReg), null)
+                    ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 } else {
                     val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, leftTr.resultReg, -1)
