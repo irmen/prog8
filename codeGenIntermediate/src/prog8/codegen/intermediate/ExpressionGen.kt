@@ -1171,11 +1171,9 @@ internal fun addToResult(
     if(requiredResultFpReg!=-1) require(requiredResultReg==-1)
 
     if(requiredResultReg>=0 && requiredResultReg!=codeResult.resultReg) {
-        println("RESULT REG DIFFERENCE: GOT ${codeResult.resultReg}  WANTED $requiredResultReg  ${codeResult.dt}")
         codeResult.chunks.last().instructions += IRInstruction(Opcode.LOADR, codeResult.dt, reg1=requiredResultReg, reg2=codeResult.resultReg)
     }
     if(requiredResultFpReg>=0 && requiredResultFpReg!=codeResult.resultFpReg) {
-        println("RESULT FPREG DIFFERENCE: GOT ${codeResult.resultFpReg}  WANTED $requiredResultFpReg  ${codeResult.dt}")
         codeResult.chunks.last().instructions += IRInstruction(Opcode.LOADR, IRDataType.FLOAT, fpReg1 = requiredResultFpReg, fpReg2 = codeResult.resultFpReg)
     }
     result += codeResult.chunks
