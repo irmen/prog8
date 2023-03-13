@@ -517,8 +517,6 @@ class IRCodeGen(
         val step = iterable.step.number.toInt()
         if (step==0)
             throw AssemblyError("step 0")
-        val indexReg = registers.nextFree()
-        val endvalueReg = registers.nextFree()
         require(forLoop.variable.name == loopvar.scopedName)
         val loopvarSymbol = forLoop.variable.name
         val loopvarDt = when(loopvar) {
@@ -530,22 +528,23 @@ class IRCodeGen(
         val loopLabel = createLabelName()
         val result = mutableListOf<IRCodeChunkBase>()
 
-        var tr = expressionEval.translateExpression(iterable.to)
-        addToResult(result, tr, endvalueReg, -1)
-        tr = expressionEval.translateExpression(iterable.from)
-        addToResult(result, tr, indexReg, -1)
+        val toTr = expressionEval.translateExpression(iterable.to)
+        addToResult(result, toTr, toTr.resultReg, -1)
+        val fromTr = expressionEval.translateExpression(iterable.from)
+        require(fromTr.resultReg!=toTr.resultReg)
+        addToResult(result, fromTr, fromTr.resultReg, -1)
 
         val labelAfterFor = createLabelName()
         val greaterOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGTS else Opcode.BGT
-        addInstr(result, IRInstruction(greaterOpcode, loopvarDtIr, indexReg, endvalueReg, labelSymbol=labelAfterFor), null)
+        addInstr(result, IRInstruction(greaterOpcode, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor), null)
 
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol), null)
+        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol), null)
         // if endvalue >= index, iterate loop
         val branchOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGES else Opcode.BGE
-        addInstr(result, IRInstruction(branchOpcode, loopvarDtIr, reg1=endvalueReg, reg2=indexReg, labelSymbol=loopLabel), null)
+        addInstr(result, IRInstruction(branchOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=loopLabel), null)
 
         result += IRCodeChunk(labelAfterFor, null)
         return result
@@ -918,6 +917,7 @@ class IRCodeGen(
             val leftTr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            require(rightTr.resultFpReg!=leftTr.resultFpReg)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             result += IRCodeChunk(null,null).also {
                 val compResultReg = registers.nextFree()
@@ -942,6 +942,7 @@ class IRCodeGen(
             val leftTr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
             addToResult(result, rightTr, rightTr.resultReg, -1)
             val opcode: Opcode
             val firstReg: Int
@@ -1060,14 +1061,13 @@ class IRCodeGen(
         val elseBranchSecondReg: Int
         val branchDt: IRDataType
         if(irDtLeft==IRDataType.FLOAT) {
-            val leftFpRegNum = registers.nextFreeFloat()
-            val rightFpRegNum = registers.nextFreeFloat()
+            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            addToResult(result, leftTr, -1, leftTr.resultFpReg)
+            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            require(rightTr.resultFpReg!=leftTr.resultFpReg)
+            addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val compResultReg = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left)
-            addToResult(result, tr, -1, leftFpRegNum)
-            tr = expressionEval.translateExpression(ifElse.condition.right)
-            addToResult(result, tr, -1, rightFpRegNum)
-            addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum), null)
+            addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
             val elseBranch = when (ifElse.condition.operator) {
                 "==" -> Opcode.BNZ
                 "!=" -> Opcode.BZ
@@ -1096,46 +1096,45 @@ class IRCodeGen(
         } else {
             // integer comparisons
             branchDt = irDtLeft
-            val leftRegNum = registers.nextFree()
-            val rightRegNum = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left)
-            addToResult(result, tr, leftRegNum, -1)
-            tr = expressionEval.translateExpression(ifElse.condition.right)
-            addToResult(result, tr, rightRegNum, -1)
+            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            addToResult(result, leftTr, leftTr.resultReg, -1)
+            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
             when (ifElse.condition.operator) {
                 "==" -> {
                     elseBranchOpcode = Opcode.BNE
-                    elseBranchFirstReg = leftRegNum
-                    elseBranchSecondReg = rightRegNum
+                    elseBranchFirstReg = leftTr.resultReg
+                    elseBranchSecondReg = rightTr.resultReg
                 }
                 "!=" -> {
                     elseBranchOpcode = Opcode.BEQ
-                    elseBranchFirstReg = leftRegNum
-                    elseBranchSecondReg = rightRegNum
+                    elseBranchFirstReg = leftTr.resultReg
+                    elseBranchSecondReg = rightTr.resultReg
                 }
                 "<" -> {
                     // else part when left >= right
                     elseBranchOpcode = if (signed) Opcode.BGES else Opcode.BGE
-                    elseBranchFirstReg = leftRegNum
-                    elseBranchSecondReg = rightRegNum
+                    elseBranchFirstReg = leftTr.resultReg
+                    elseBranchSecondReg = rightTr.resultReg
                 }
                 ">" -> {
                     // else part when left <= right --> right >= left
                     elseBranchOpcode = if (signed) Opcode.BGES else Opcode.BGE
-                    elseBranchFirstReg = rightRegNum
-                    elseBranchSecondReg = leftRegNum
+                    elseBranchFirstReg = rightTr.resultReg
+                    elseBranchSecondReg = leftTr.resultReg
                 }
                 "<=" -> {
                     // else part when left > right
                     elseBranchOpcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    elseBranchFirstReg = leftRegNum
-                    elseBranchSecondReg = rightRegNum
+                    elseBranchFirstReg = leftTr.resultReg
+                    elseBranchSecondReg = rightTr.resultReg
                 }
                 ">=" -> {
                     // else part when left < right --> right > left
                     elseBranchOpcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    elseBranchFirstReg = rightRegNum
-                    elseBranchSecondReg = leftRegNum
+                    elseBranchFirstReg = rightTr.resultReg
+                    elseBranchSecondReg = leftTr.resultReg
                 }
                 else -> throw AssemblyError("invalid comparison operator")
             }

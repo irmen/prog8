@@ -109,15 +109,14 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     // TODO let all funcs return ExpressionCodeResult as well
 
     private fun funcCmp(call: PtBuiltinFunctionCall): IRCodeChunks {
-        val leftRegister = codeGen.registers.nextFree()
-        val rightRegister = codeGen.registers.nextFree()
         val result = mutableListOf<IRCodeChunkBase>()
-        var tr = exprGen.translateExpression(call.args[0])
-        addToResult(result, tr, leftRegister, -1)
-        tr = exprGen.translateExpression(call.args[1])
-        addToResult(result, tr, rightRegister, -1)
+        val leftTr = exprGen.translateExpression(call.args[0])
+        addToResult(result, leftTr, leftTr.resultReg, -1)
+        val rightTr = exprGen.translateExpression(call.args[1])
+        require(leftTr.resultReg!=rightTr.resultReg)
+        addToResult(result, rightTr, rightTr.resultReg, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.CMP, codeGen.irType(call.args[0].type), reg1=leftRegister, reg2=rightRegister)
+            it += IRInstruction(Opcode.CMP, codeGen.irType(call.args[0].type), reg1=leftTr.resultReg, reg2=rightTr.resultReg)
         }
         return result
     }
@@ -317,14 +316,14 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcMkword(call: PtBuiltinFunctionCall, resultRegister: Int): IRCodeChunks {
-        val msbReg = codeGen.registers.nextFree()
         val result = mutableListOf<IRCodeChunkBase>()
-        var tr = exprGen.translateExpression(call.args[0])
-        addToResult(result, tr, msbReg, -1)
-        tr = exprGen.translateExpression(call.args[1])
-        addToResult(result, tr, resultRegister, -1)
+        val msbTr = exprGen.translateExpression(call.args[0])
+        addToResult(result, msbTr, msbTr.resultReg, -1)
+        val lsbTr = exprGen.translateExpression(call.args[1])
+        require(lsbTr.resultReg!=msbTr.resultReg)
+        addToResult(result, lsbTr, resultRegister, -1)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = resultRegister, reg2 = msbReg)
+            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = resultRegister, reg2 = msbTr.resultReg)
         }
         return result
     }
@@ -355,13 +354,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     it += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1 = valueReg, value = address)
                 }
             } else {
-                val addressReg = codeGen.registers.nextFree()
-                var tr = exprGen.translateExpression(call.args[0])
-                addToResult(result, tr, addressReg, -1)
-                tr = exprGen.translateExpression(call.args[1])
-                addToResult(result, tr, valueReg, -1)
+                val addressTr = exprGen.translateExpression(call.args[0])
+                addToResult(result, addressTr, addressTr.resultReg, -1)
+                val valueTr = exprGen.translateExpression(call.args[1])
+                require(valueTr.resultReg!=addressTr.resultReg)
+                addToResult(result, valueTr, valueReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueReg, reg2 = addressReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueReg, reg2 = addressTr.resultReg)
                 }
             }
         }
@@ -394,13 +393,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = valueReg, value = address)
                 }
             } else {
-                val addressReg = codeGen.registers.nextFree()
-                var tr = exprGen.translateExpression(call.args[0])
-                addToResult(result, tr, addressReg, -1)
-                tr = exprGen.translateExpression(call.args[1])
-                addToResult(result, tr, valueReg, -1)
+                val addressTr = exprGen.translateExpression(call.args[0])
+                addToResult(result, addressTr, addressTr.resultReg, -1)
+                val valueTr = exprGen.translateExpression(call.args[1])
+                require(valueTr.resultReg!=addressTr.resultReg)
+                addToResult(result, valueTr, valueReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueReg, reg2 = addressReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueReg, reg2 = addressTr.resultReg)
                 }
             }
         }

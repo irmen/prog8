@@ -459,10 +459,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, SyscallRegisterBase, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, SyscallRegisterBase, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
                     if(resultRegister!=0)
@@ -474,17 +475,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.SGTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
                 }
             } else {
-                val rightResultReg = codeGen.registers.nextFree()
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, resultRegister, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, rightResultReg, -1)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, resultRegister, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, rightTr.resultReg, -1)
                 val ins = if (signed) {
                     if (greaterEquals) Opcode.SGES else Opcode.SGTS
                 } else {
                     if (greaterEquals) Opcode.SGE else Opcode.SGT
                 }
-                addInstr(result, IRInstruction(ins, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                addInstr(result, IRInstruction(ins, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
             }
         }
         return result
@@ -515,10 +516,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, SyscallRegisterBase, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, SyscallRegisterBase, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
                     if(resultRegister!=0)
@@ -530,17 +532,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
                 }
             } else {
-                val rightResultReg = codeGen.registers.nextFree()
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, resultRegister, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, rightResultReg, -1)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, resultRegister, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, rightTr.resultReg, -1)
                 val ins = if (signed) {
                     if (lessEquals) Opcode.SLES else Opcode.SLTS
                 } else {
                     if (lessEquals) Opcode.SLE else Opcode.SLT
                 }
-                addInstr(result, IRInstruction(ins, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                addInstr(result, IRInstruction(ins, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
             }
         }
         return result
@@ -567,10 +569,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, SyscallRegisterBase, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, SyscallRegisterBase, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SYSCALL, value = IMSyscall.COMPARE_STRINGS.number)
                     if(resultRegister!=0)
@@ -586,13 +589,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val opcode = if (notEquals) Opcode.SNZ else Opcode.SZ
                     addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = resultRegister), null)
                 } else {
-                    val rightResultReg = codeGen.registers.nextFree()
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, resultRegister, -1)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, rightResultReg, -1)
+                    val leftTr = translateExpression(binExpr.right)
+                    addToResult(result, leftTr, resultRegister, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultReg!=leftTr.resultReg)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
                     val opcode = if (notEquals) Opcode.SNE else Opcode.SEQ
-                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                    addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
                 }
             }
         }
@@ -607,13 +610,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val opc = if (signed) Opcode.ASR else Opcode.LSR
             addInstr(result, IRInstruction(opc, vmDt, reg1 = resultRegister), null)
         } else {
-            val rightResultReg = codeGen.registers.nextFree()
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr = translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
+            val leftTr = translateExpression(binExpr.right)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
             val opc = if (signed) Opcode.ASRN else Opcode.LSRN
-            addInstr(result, IRInstruction(opc, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+            addInstr(result, IRInstruction(opc, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
         }
         return result
     }
@@ -647,12 +650,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.LSL, vmDt, reg1=resultRegister), null)
         } else {
-            val rightResultReg = codeGen.registers.nextFree()
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr = translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, rightResultReg), null)
+            val leftTr = translateExpression(binExpr.right)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.LSLN, vmDt, reg1=resultRegister, rightTr.resultReg), null)
         }
         return result
     }
@@ -684,12 +687,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            val rightResultReg = codeGen.registers.nextFree()
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr = translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
-            addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+            val leftTr = translateExpression(binExpr.right)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
         }
         return result
     }
@@ -713,12 +716,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.AND, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            val rightResultReg = codeGen.registers.nextFree()
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr= translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
-            addInstr(result, IRInstruction(Opcode.ANDR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+            val leftTr = translateExpression(binExpr.left)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.ANDR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
         }
         return result
     }
@@ -742,12 +745,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.OR, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            val rightResultReg = codeGen.registers.nextFree()
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr = translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
-            addInstr(result, IRInstruction(Opcode.ORR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+            val leftTr = translateExpression(binExpr.left)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.ORR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
         }
         return result
     }
@@ -767,17 +770,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: IRDataType, resultRegister: Int): IRCodeChunks {
         require(vmDt!=IRDataType.FLOAT) {"floating-point modulo not supported ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
-        val rightResultReg = codeGen.registers.nextFree()
         if(binExpr.right is PtNumber) {
             val tr = translateExpression(binExpr.left)
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.MOD, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            var tr = translateExpression(binExpr.left)
-            addToResult(result, tr, resultRegister, -1)
-            tr = translateExpression(binExpr.right)
-            addToResult(result, tr, rightResultReg, -1)
-            addInstr(result, IRInstruction(Opcode.MODR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+            val leftTr = translateExpression(binExpr.right)
+            addToResult(result, leftTr, resultRegister, -1)
+            val rightTr = translateExpression(binExpr.right)
+            require(rightTr.resultReg!=leftTr.resultReg)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.MODR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
         }
         return result
     }
@@ -796,15 +799,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toFloat()
                 result += codeGen.divideByConstFloat(resultFpRegister, factor)
             } else {
-                val rightResultFpReg = codeGen.registers.nextFreeFloat()
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, -1, resultFpRegister)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, -1, rightResultFpReg)
+                val leftTr = translateExpression(binExpr.left)
+                addToResult(result, leftTr, -1, resultFpRegister)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultFpReg!=leftTr.resultFpReg)
+                addToResult(result, rightTr, -1, rightTr.resultFpReg)
                 addInstr(result, if(signed)
-                        IRInstruction(Opcode.DIVSR, vmDt, fpReg1 = resultFpRegister, fpReg2=rightResultFpReg)
+                        IRInstruction(Opcode.DIVSR, vmDt, fpReg1 = resultFpRegister, fpReg2=rightTr.resultFpReg)
                     else
-                        IRInstruction(Opcode.DIVR, vmDt, fpReg1 = resultFpRegister, fpReg2=rightResultFpReg)
+                        IRInstruction(Opcode.DIVR, vmDt, fpReg1 = resultFpRegister, fpReg2=rightTr.resultFpReg)
                         , null)
             }
         } else {
@@ -814,7 +817,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.divideByConst(vmDt, resultRegister, factor, signed)
             } else {
-                val rightResultReg = codeGen.registers.nextFree()
                 if(binExpr.right is PtNumber) {
                     val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, resultRegister, -1)
@@ -824,14 +826,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                             IRInstruction(Opcode.DIV, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt())
                             , null)
                 } else {
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, resultRegister, -1)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, rightResultReg, -1)
+                    val leftTr = translateExpression(binExpr.left)
+                    addToResult(result, leftTr, resultRegister, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultReg!=leftTr.resultReg)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
                     addInstr(result, if (signed)
-                            IRInstruction(Opcode.DIVSR, vmDt, reg1 = resultRegister, reg2 = rightResultReg)
+                            IRInstruction(Opcode.DIVSR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg)
                         else
-                            IRInstruction(Opcode.DIVR, vmDt, reg1 = resultRegister, reg2 = rightResultReg)
+                            IRInstruction(Opcode.DIVR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg)
                             , null)
                 }
             }
@@ -904,12 +907,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toFloat()
                 result += codeGen.multiplyByConstFloat(resultFpRegister, factor)
             } else {
-                val rightResultFpReg = codeGen.registers.nextFreeFloat()
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, -1, resultFpRegister)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, -1, rightResultFpReg)
-                addInstr(result, IRInstruction(Opcode.MULR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightResultFpReg), null)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, -1, resultFpRegister)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultFpReg!=leftTr.resultFpReg)
+                addToResult(result, rightTr, -1, rightTr.resultFpReg)
+                addInstr(result, IRInstruction(Opcode.MULR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightTr.resultFpReg), null)
             }
         } else {
             if(constFactorLeft!=null && constFactorLeft.type!=DataType.FLOAT) {
@@ -923,12 +926,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.multiplyByConst(vmDt, resultRegister, factor)
             } else {
-                val rightResultReg = codeGen.registers.nextFree()
-                var tr = translateExpression(binExpr.left)
-                addToResult(result, tr, resultRegister, -1)
-                tr = translateExpression(binExpr.right)
-                addToResult(result, tr, rightResultReg, -1)
-                addInstr(result, IRInstruction(Opcode.MULR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                val leftTr = translateExpression(binExpr.right)
+                addToResult(result, leftTr, resultRegister, -1)
+                val rightTr = translateExpression(binExpr.right)
+                require(rightTr.resultReg!=leftTr.resultReg)
+                addToResult(result, rightTr, rightTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.MULR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
             }
         }
         return result
@@ -981,12 +984,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, -1, resultFpRegister)
                     addInstr(result, IRInstruction(Opcode.SUB, vmDt, fpReg1 = resultFpRegister, fpValue = (binExpr.right as PtNumber).number.toFloat()), null)
                 } else {
-                    val rightResultFpReg = codeGen.registers.nextFreeFloat()
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, -1, resultFpRegister)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, -1, rightResultFpReg)
-                    addInstr(result, IRInstruction(Opcode.SUBR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightResultFpReg), null)
+                    val leftTr = translateExpression(binExpr.right)
+                    addToResult(result, leftTr, -1, resultFpRegister)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultFpReg!=leftTr.resultFpReg)
+                    addToResult(result, rightTr, -1, rightTr.resultFpReg)
+                    addInstr(result, IRInstruction(Opcode.SUBR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightTr.resultFpReg), null)
                 }
             }
         } else {
@@ -1001,12 +1004,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, resultRegister, -1)
                     addInstr(result, IRInstruction(Opcode.SUB, vmDt, reg1 = resultRegister, value = (binExpr.right as PtNumber).number.toInt()), null)
                 } else {
-                    val rightResultReg = codeGen.registers.nextFree()
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, resultRegister, -1)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, rightResultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.SUBR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                    val leftTr = translateExpression(binExpr.right)
+                    addToResult(result, leftTr, resultRegister, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultReg!=leftTr.resultReg)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
+                    addInstr(result, IRInstruction(Opcode.SUBR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
                 }
             }
         }
@@ -1072,12 +1075,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, -1, resultFpRegister)
                     addInstr(result, IRInstruction(Opcode.ADD, vmDt, fpReg1 = resultFpRegister, fpValue = (binExpr.right as PtNumber).number.toFloat()), null)
                 } else {
-                    val rightResultFpReg = codeGen.registers.nextFreeFloat()
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, -1, resultFpRegister)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, -1, rightResultFpReg)
-                    addInstr(result, IRInstruction(Opcode.ADDR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightResultFpReg), null)
+                    val leftTr = translateExpression(binExpr.right)
+                    addToResult(result, leftTr, -1, resultFpRegister)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultFpReg!=leftTr.resultFpReg)
+                    addToResult(result, rightTr, -1, rightTr.resultFpReg)
+                    addInstr(result, IRInstruction(Opcode.ADDR, vmDt, fpReg1 = resultFpRegister, fpReg2 = rightTr.resultFpReg), null)
                 }
             }
         } else {
@@ -1097,12 +1100,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, resultRegister, -1)
                     addInstr(result, IRInstruction(Opcode.ADD, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
                 } else {
-                    val rightResultReg = codeGen.registers.nextFree()
-                    var tr = translateExpression(binExpr.left)
-                    addToResult(result, tr, resultRegister, -1)
-                    tr = translateExpression(binExpr.right)
-                    addToResult(result, tr, rightResultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.ADDR, vmDt, reg1 = resultRegister, reg2 = rightResultReg), null)
+                    val leftTr = translateExpression(binExpr.right)
+                    addToResult(result, leftTr, resultRegister, -1)
+                    val rightTr = translateExpression(binExpr.right)
+                    require(rightTr.resultReg!=leftTr.resultReg)
+                    addToResult(result, rightTr, rightTr.resultReg, -1)
+                    addInstr(result, IRInstruction(Opcode.ADDR, vmDt, reg1 = resultRegister, reg2 = rightTr.resultReg), null)
                 }
             }
         }
