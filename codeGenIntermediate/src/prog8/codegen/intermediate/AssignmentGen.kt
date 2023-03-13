@@ -142,14 +142,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             // calculate the assignment value
             if (vmDt == IRDataType.FLOAT) {
                 resultFpRegister = codeGen.registers.nextFreeFloat()
-                val tr = expressionEval.translateExpression(assignment.value, -1, resultFpRegister)
+                val tr = expressionEval.translateExpression(assignment.value)
                 addToResult(result, tr, -1, resultFpRegister)
             } else {
                 resultRegister = if (assignment.value is PtMachineRegister) {
                     (assignment.value as PtMachineRegister).register
                 } else {
                     val reg = codeGen.registers.nextFree()
-                    val tr = expressionEval.translateExpression(assignment.value, reg, -1)
+                    val tr = expressionEval.translateExpression(assignment.value)
                     addToResult(result, tr, reg, -1)
                     reg
                 }
@@ -178,7 +178,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(array.index.type!=DataType.UBYTE)
                     throw AssemblyError("non-array var indexing requires bytes index")
                 val idxReg = codeGen.registers.nextFree()
-                val tr = expressionEval.translateExpression(array.index, idxReg, -1)
+                val tr = expressionEval.translateExpression(array.index)
                 addToResult(result, tr, idxReg, -1)
                 val code = IRCodeChunk(null, null)
                 if(zero) {
@@ -235,7 +235,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     result += chunk
                 } else {
                     val addressReg = codeGen.registers.nextFree()
-                    val tr = expressionEval.translateExpression(memory.address, addressReg, -1)
+                    val tr = expressionEval.translateExpression(memory.address)
                     addToResult(result, tr, addressReg, -1)
                     result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZI, vmDt, reg1=addressReg) }
                 }
@@ -245,7 +245,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     result += chunk
                 } else {
                     val addressReg = codeGen.registers.nextFree()
-                    val tr = expressionEval.translateExpression(memory.address, addressReg, -1)
+                    val tr = expressionEval.translateExpression(memory.address)
                     addToResult(result, tr, addressReg, -1)
                     result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREI, vmDt, reg1=resultRegister, reg2=addressReg) }
                 }
@@ -258,15 +258,16 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, indexReg: Int): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
         val tr = if(itemsize==1) {
-            expressionEval.translateExpression(array.index, indexReg, -1)
+            expressionEval.translateExpression(array.index)
         } else {
             val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
             mult.children += array.index
             mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
-            expressionEval.translateExpression(mult, indexReg, -1)
+            expressionEval.translateExpression(mult)
         }
-        require(tr.resultReg==indexReg && tr.resultFpReg==-1)  // TODO weg
-        return tr.chunks
+        addToResult(result, tr, indexReg, -1)
+        return result
     }
 }

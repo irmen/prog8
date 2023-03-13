@@ -240,12 +240,11 @@ class IRCodeGen(
             is PtNodeGroup -> translateGroup(node.children)
             is PtBuiltinFunctionCall -> {
                 val result = translateBuiltinFunc(node)
-                result.chunks          // it's not an expression so no result value.
+                result.chunks       // it's not an expression so no result value.
             }
             is PtFunctionCall -> {
-                val result = expressionEval.translate(node, 0, 0)
-                require(result.resultReg==0 && result.resultFpReg==0)  // TODO weg
-                result.chunks
+                val result = expressionEval.translate(node)
+                result.chunks       // it's not an expression so no result value
             }
             is PtNop -> emptyList()
             is PtReturn -> translate(node)
@@ -405,7 +404,7 @@ class IRCodeGen(
         val valueReg = registers.nextFree()
         val choiceReg = registers.nextFree()
         val valueDt = irType(whenStmt.value.type)
-        val tr = expressionEval.translateExpression(whenStmt.value, valueReg, -1)
+        val tr = expressionEval.translateExpression(whenStmt.value)
         addToResult(result, tr, valueReg, -1)
         val choices = whenStmt.choices.children.map {it as PtWhenChoice }
         val endLabel = createLabelName()
@@ -531,9 +530,9 @@ class IRCodeGen(
         val loopLabel = createLabelName()
         val result = mutableListOf<IRCodeChunkBase>()
 
-        var tr = expressionEval.translateExpression(iterable.to, endvalueReg, -1)
+        var tr = expressionEval.translateExpression(iterable.to)
         addToResult(result, tr, endvalueReg, -1)
-        tr = expressionEval.translateExpression(iterable.from, indexReg, -1)
+        tr = expressionEval.translateExpression(iterable.from)
         addToResult(result, tr, indexReg, -1)
 
         val labelAfterFor = createLabelName()
@@ -916,15 +915,13 @@ class IRCodeGen(
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
         if(irDtLeft==IRDataType.FLOAT) {
-            val leftFpRegNum = registers.nextFreeFloat()
-            val rightFpRegNum = registers.nextFreeFloat()
-            val compResultReg = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
-            addToResult(result, tr, -1, leftFpRegNum)
-            tr = expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
-            addToResult(result, tr, -1, rightFpRegNum)
+            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            addToResult(result, leftTr, -1, leftTr.resultFpReg)
+            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            addToResult(result, rightTr, -1, rightTr.resultFpReg)
             result += IRCodeChunk(null,null).also {
-                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum)
+                val compResultReg = registers.nextFree()
+                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg)
                 val gotoOpcode = when (ifElse.condition.operator) {
                     "==" -> Opcode.BZ
                     "!=" -> Opcode.BNZ
@@ -942,47 +939,45 @@ class IRCodeGen(
                     IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = goto.identifier!!.name)
             }
         } else {
-            val leftRegNum = registers.nextFree()
-            val rightRegNum = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
-            addToResult(result, tr, leftRegNum, -1)
-            tr = expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
-            addToResult(result, tr, rightRegNum, -1)
+            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            addToResult(result, leftTr, leftTr.resultReg, -1)
+            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            addToResult(result, rightTr, rightTr.resultReg, -1)
             val opcode: Opcode
             val firstReg: Int
             val secondReg: Int
             when (ifElse.condition.operator) {
                 "==" -> {
                     opcode = Opcode.BEQ
-                    firstReg = leftRegNum
-                    secondReg = rightRegNum
+                    firstReg = leftTr.resultReg
+                    secondReg = rightTr.resultReg
                 }
                 "!=" -> {
                     opcode = Opcode.BNE
-                    firstReg = leftRegNum
-                    secondReg = rightRegNum
+                    firstReg = leftTr.resultReg
+                    secondReg = rightTr.resultReg
                 }
                 "<" -> {
                     // swapped '>'
                     opcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    firstReg = rightRegNum
-                    secondReg = leftRegNum
+                    firstReg = rightTr.resultReg
+                    secondReg = leftTr.resultReg
                 }
                 ">" -> {
                     opcode = if (signed) Opcode.BGTS else Opcode.BGT
-                    firstReg = leftRegNum
-                    secondReg = rightRegNum
+                    firstReg = leftTr.resultReg
+                    secondReg = rightTr.resultReg
                 }
                 "<=" -> {
                     // swapped '>='
                     opcode = if (signed) Opcode.BGES else Opcode.BGE
-                    firstReg = rightRegNum
-                    secondReg = leftRegNum
+                    firstReg = rightTr.resultReg
+                    secondReg = leftTr.resultReg
                 }
                 ">=" -> {
                     opcode = if (signed) Opcode.BGES else Opcode.BGE
-                    firstReg = leftRegNum
-                    secondReg = rightRegNum
+                    firstReg = leftTr.resultReg
+                    secondReg = rightTr.resultReg
                 }
                 else -> throw AssemblyError("invalid comparison operator")
             }
@@ -1006,7 +1001,7 @@ class IRCodeGen(
             val leftFpReg = registers.nextFreeFloat()
             val rightFpReg = registers.nextFreeFloat()
             compResultReg = registers.nextFree()
-            val tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpReg)
+            val tr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, tr, -1, leftFpReg)
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, fpValue = 0f)
@@ -1025,7 +1020,7 @@ class IRCodeGen(
             // integer comparisons
             branchDt = irDtLeft
             compResultReg = registers.nextFree()
-            val tr = expressionEval.translateExpression(ifElse.condition.left, compResultReg, -1)
+            val tr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, tr, compResultReg, -1)
             elseBranch = when (ifElse.condition.operator) {
                 "==" -> Opcode.BNZ
@@ -1068,9 +1063,9 @@ class IRCodeGen(
             val leftFpRegNum = registers.nextFreeFloat()
             val rightFpRegNum = registers.nextFreeFloat()
             val compResultReg = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left, -1, leftFpRegNum)
+            var tr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, tr, -1, leftFpRegNum)
-            tr = expressionEval.translateExpression(ifElse.condition.right, -1, rightFpRegNum)
+            tr = expressionEval.translateExpression(ifElse.condition.right)
             addToResult(result, tr, -1, rightFpRegNum)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpRegNum, fpReg2 = rightFpRegNum), null)
             val elseBranch = when (ifElse.condition.operator) {
@@ -1103,9 +1098,9 @@ class IRCodeGen(
             branchDt = irDtLeft
             val leftRegNum = registers.nextFree()
             val rightRegNum = registers.nextFree()
-            var tr = expressionEval.translateExpression(ifElse.condition.left, leftRegNum, -1)
+            var tr = expressionEval.translateExpression(ifElse.condition.left)
             addToResult(result, tr, leftRegNum, -1)
-            tr = expressionEval.translateExpression(ifElse.condition.right, rightRegNum, -1)
+            tr = expressionEval.translateExpression(ifElse.condition.right)
             addToResult(result, tr, rightRegNum, -1)
             when (ifElse.condition.operator) {
                 "==" -> {
@@ -1197,7 +1192,7 @@ class IRCodeGen(
             } else {
                 val incReg = registers.nextFree()
                 val addressReg = registers.nextFree()
-                val tr = expressionEval.translateExpression(memory.address, addressReg, -1)
+                val tr = expressionEval.translateExpression(memory.address,)
                 addToResult(result, tr, addressReg, -1)
                 val chunk = IRCodeChunk(null, null)
                 chunk += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = addressReg)
@@ -1215,7 +1210,7 @@ class IRCodeGen(
             } else {
                 val incReg = registers.nextFree()
                 val indexReg = registers.nextFree()
-                val tr = expressionEval.translateExpression(array.index, indexReg, -1)
+                val tr = expressionEval.translateExpression(array.index)
                 addToResult(result, tr, indexReg, -1)
                 val chunk = IRCodeChunk(null, null)
                 chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexReg, labelSymbol=variable)
@@ -1244,7 +1239,7 @@ class IRCodeGen(
         val counterReg = registers.nextFree()
         val irDt = irType(repeat.count.type)
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(repeat.count, counterReg, -1)
+        val tr = expressionEval.translateExpression(repeat.count)
         addToResult(result, tr, counterReg, -1)
         addInstr(result, IRInstruction(Opcode.BZ, irDt, reg1=counterReg, labelSymbol = skipRepeatLabel), null)
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
@@ -1286,13 +1281,13 @@ class IRCodeGen(
         } else {
             if(value.type==DataType.FLOAT) {
                 val reg = registers.nextFreeFloat()
-                val tr = expressionEval.translateExpression(value, -1, reg)
+                val tr = expressionEval.translateExpression(value)
                 addToResult(result, tr, -1, reg)
                 addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = reg), null)
             }
             else {
                 val reg = registers.nextFree()
-                val tr = expressionEval.translateExpression(value, reg, -1)
+                val tr = expressionEval.translateExpression(value)
                 addToResult(result, tr, reg, -1)
                 addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=reg), null)
             }
