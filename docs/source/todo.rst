@@ -3,7 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix VM bsieve not printing the last number and string correctly
 - fix IR/VM crashing in bouncegfx and textelite
 - reduce the usage of register.nextFree() in IR codegen
 - get rid of ResultRegister in IR codegen? as the calls now encode this into the new opcodes...

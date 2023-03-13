@@ -141,17 +141,16 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(!zero) {
             // calculate the assignment value
             if (vmDt == IRDataType.FLOAT) {
-                resultFpRegister = codeGen.registers.nextFreeFloat()
                 val tr = expressionEval.translateExpression(assignment.value)
-                addToResult(result, tr, -1, resultFpRegister)
+                resultFpRegister = tr.resultFpReg
+                addToResult(result, tr, -1, tr.resultFpReg)
             } else {
                 resultRegister = if (assignment.value is PtMachineRegister) {
                     (assignment.value as PtMachineRegister).register
                 } else {
-                    val reg = codeGen.registers.nextFree()
                     val tr = expressionEval.translateExpression(assignment.value)
-                    addToResult(result, tr, reg, -1)
-                    reg
+                    addToResult(result, tr, tr.resultReg, -1)
+                    tr.resultReg
                 }
             }
         }

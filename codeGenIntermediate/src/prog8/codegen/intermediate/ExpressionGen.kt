@@ -459,7 +459,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, SyscallRegisterBase, -1)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultReg!=leftTr.resultReg)
@@ -475,7 +475,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.SGTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
                 }
             } else {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, resultRegister, -1)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultReg!=leftTr.resultReg)
@@ -516,7 +516,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, SyscallRegisterBase, -1)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultReg!=leftTr.resultReg)
@@ -532,7 +532,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = resultRegister, reg2 = 1)
                 }
             } else {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, resultRegister, -1)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultReg!=leftTr.resultReg)
@@ -589,7 +589,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val opcode = if (notEquals) Opcode.SNZ else Opcode.SZ
                     addInstr(result, IRInstruction(opcode, vmDt, reg1 = resultRegister, reg2 = resultRegister), null)
                 } else {
-                    val leftTr = translateExpression(binExpr.right)
+                    val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, resultRegister, -1)
                     val rightTr = translateExpression(binExpr.right)
                     require(rightTr.resultReg!=leftTr.resultReg)
@@ -610,7 +610,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val opc = if (signed) Opcode.ASR else Opcode.LSR
             addInstr(result, IRInstruction(opc, vmDt, reg1 = resultRegister), null)
         } else {
-            val leftTr = translateExpression(binExpr.right)
+            val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, resultRegister, -1)
             val rightTr = translateExpression(binExpr.right)
             require(rightTr.resultReg!=leftTr.resultReg)
@@ -650,7 +650,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.LSL, vmDt, reg1=resultRegister), null)
         } else {
-            val leftTr = translateExpression(binExpr.right)
+            val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, resultRegister, -1)
             val rightTr = translateExpression(binExpr.right)
             require(rightTr.resultReg!=leftTr.resultReg)
@@ -687,7 +687,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            val leftTr = translateExpression(binExpr.right)
+            val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, resultRegister, -1)
             val rightTr = translateExpression(binExpr.right)
             require(rightTr.resultReg!=leftTr.resultReg)
@@ -775,7 +775,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, resultRegister, -1)
             addInstr(result, IRInstruction(Opcode.MOD, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
         } else {
-            val leftTr = translateExpression(binExpr.right)
+            val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, resultRegister, -1)
             val rightTr = translateExpression(binExpr.right)
             require(rightTr.resultReg!=leftTr.resultReg)
@@ -907,7 +907,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toFloat()
                 result += codeGen.multiplyByConstFloat(resultFpRegister, factor)
             } else {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, -1, resultFpRegister)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultFpReg!=leftTr.resultFpReg)
@@ -926,7 +926,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.multiplyByConst(vmDt, resultRegister, factor)
             } else {
-                val leftTr = translateExpression(binExpr.right)
+                val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, resultRegister, -1)
                 val rightTr = translateExpression(binExpr.right)
                 require(rightTr.resultReg!=leftTr.resultReg)
@@ -984,7 +984,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, -1, resultFpRegister)
                     addInstr(result, IRInstruction(Opcode.SUB, vmDt, fpReg1 = resultFpRegister, fpValue = (binExpr.right as PtNumber).number.toFloat()), null)
                 } else {
-                    val leftTr = translateExpression(binExpr.right)
+                    val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, -1, resultFpRegister)
                     val rightTr = translateExpression(binExpr.right)
                     require(rightTr.resultFpReg!=leftTr.resultFpReg)
@@ -1004,7 +1004,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, resultRegister, -1)
                     addInstr(result, IRInstruction(Opcode.SUB, vmDt, reg1 = resultRegister, value = (binExpr.right as PtNumber).number.toInt()), null)
                 } else {
-                    val leftTr = translateExpression(binExpr.right)
+                    val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, resultRegister, -1)
                     val rightTr = translateExpression(binExpr.right)
                     require(rightTr.resultReg!=leftTr.resultReg)
@@ -1075,7 +1075,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, -1, resultFpRegister)
                     addInstr(result, IRInstruction(Opcode.ADD, vmDt, fpReg1 = resultFpRegister, fpValue = (binExpr.right as PtNumber).number.toFloat()), null)
                 } else {
-                    val leftTr = translateExpression(binExpr.right)
+                    val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, -1, resultFpRegister)
                     val rightTr = translateExpression(binExpr.right)
                     require(rightTr.resultFpReg!=leftTr.resultFpReg)
@@ -1100,7 +1100,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, tr, resultRegister, -1)
                     addInstr(result, IRInstruction(Opcode.ADD, vmDt, reg1 = resultRegister, value=(binExpr.right as PtNumber).number.toInt()), null)
                 } else {
-                    val leftTr = translateExpression(binExpr.right)
+                    val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, resultRegister, -1)
                     val rightTr = translateExpression(binExpr.right)
                     require(rightTr.resultReg!=leftTr.resultReg)

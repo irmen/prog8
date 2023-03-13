@@ -999,14 +999,13 @@ class IRCodeGen(
         val branchDt: IRDataType
         if(irDtLeft==IRDataType.FLOAT) {
             branchDt = IRDataType.BYTE
-            val leftFpReg = registers.nextFreeFloat()
-            val rightFpReg = registers.nextFreeFloat()
             compResultReg = registers.nextFree()
-            val tr = expressionEval.translateExpression(ifElse.condition.left)
-            addToResult(result, tr, -1, leftFpReg)
+            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            addToResult(result, leftTr, -1, leftTr.resultFpReg)
             result += IRCodeChunk(null, null).also {
+                val rightFpReg = registers.nextFreeFloat()
                 it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, fpValue = 0f)
-                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftFpReg, fpReg2 = rightFpReg)
+                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightFpReg)
             }
             elseBranch = when (ifElse.condition.operator) {
                 "==" -> Opcode.BNZ
@@ -1279,16 +1278,14 @@ class IRCodeGen(
             addInstr(result, IRInstruction(Opcode.RETURN), null)
         } else {
             if(value.type==DataType.FLOAT) {
-                val reg = registers.nextFreeFloat()
                 val tr = expressionEval.translateExpression(value)
-                addToResult(result, tr, -1, reg)
-                addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = reg), null)
+                addToResult(result, tr, -1, tr.resultFpReg)
+                addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
             }
             else {
-                val reg = registers.nextFree()
                 val tr = expressionEval.translateExpression(value)
-                addToResult(result, tr, reg, -1)
-                addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=reg), null)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=tr.resultReg), null)
             }
         }
         return result
