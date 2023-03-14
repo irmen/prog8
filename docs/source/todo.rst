@@ -3,6 +3,9 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- when a loopvariable of a forloop is *only* referenced in the for loop as loopvariable, and the number of iterations is known, replace the loop by a repeatloop (and remove the vardecl)
+  but we have no efficient way right now to see if the body references a variable. (what about ReferencesIdentifier? - only on Expressions now)
+
 ...
 
 
@@ -15,8 +18,8 @@ For 9.0 major changes
 - Some more support for (64tass) SEGMENTS ?
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
-    - the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-      just initialize them yourself in start() if you need a non-zero value
+    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
+      just initialize them yourself in start() if you need a non-zero value .
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
@@ -33,24 +36,28 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
 - ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
 - ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer?
-- vm: somehow be able to load a label address as value? (VmProgramLoader) this may require storing the program in actual memory bytes though...
+- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
+- PtAst/IR: more complex common subexpression eliminations
+- vm: somehow be able to load a label address as value? (VmProgramLoader) this may require storing the program as bytecodes in actual memory though...
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....  (vm codegen already behaves like this)
-- ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
-- generate WASM to eventually run prog8 on a browser canvas?
+- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
+- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
-  Perhaps replace all uses of .proc/.pend by .block/.bend will fix that with a compiler flag?
-  But all library code written in asm uses .proc already..... (search/replace when writing the actual asm?)
-  Once new codegen is written that is based on the IR, this point is moot anyway as that will have its own dead code removal.
-- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that)
+  Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
+  But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
+  Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
+- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 - add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+  this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
+  So maybe only allow the bare essntials? (store, get)
 
 
 Libraries:
@@ -65,8 +72,10 @@ Libraries:
 
 Expressions:
 
-- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
-- rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code
+- investigate if transforming BinaryExpression into RPN notation makes code generation better. (new Pt node: PtRpn that is just a list of PtOperators and PtExpression nodes, except PtBinaryExpression and PtRpn sub-nodes.)
+  It's super easy to determine the number of stack positions required for this RPN expression (even grouped per data type).
+  Which should make it easier to not use the eval stack for this, but a limited set of regular variables instead.
+- Or rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code
   that, for instance, uses a fixed number of predetermined value 'variables'?
   The VM IL solves this already (by using unlimited registers) but that still lacks a translation to 6502.
 - this removes the need for the BinExprSplitter? (which is problematic and very limited now)
@@ -76,8 +85,6 @@ Optimizations:
 
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then the rest
-- when a loopvariable of a forloop isn't referenced in the body, and the number of iterations is known, replace the loop by a repeatloop
-  but we have no efficient way right now to see if the body references a variable.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
 
