@@ -55,6 +55,7 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
             is Label -> transform(statement)
             is PostIncrDecr -> transform(statement)
             is RepeatLoop -> transform(statement)
+            is UnrollLoop -> transform(statement)
             is Return -> transform(statement)
             is Subroutine -> {
                 if(statement.isAsmSubroutine)
@@ -323,6 +324,16 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
         }
         repeat.add(scope)
         return repeat
+    }
+
+    private fun transform(srcUnroll: UnrollLoop): PtNodeGroup {
+        val result = PtNodeGroup()
+        repeat(srcUnroll.iterations) {
+            srcUnroll.body.statements.forEach {
+                result.add(transformStatement(it))
+            }
+        }
+        return result
     }
 
     private fun transform(srcNode: Return): PtReturn {

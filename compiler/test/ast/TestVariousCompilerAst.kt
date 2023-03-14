@@ -3,6 +3,7 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
@@ -12,6 +13,7 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestVariousCompilerAst: FunSpec({
@@ -213,6 +215,47 @@ main {
 }
 """
         compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("unroll good") {
+        val src="""
+main {
+    sub start() {
+        unroll 200 {
+            cx16.r0++
+            poke(2000,2)
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldNotBe null
+        errors.warnings.size shouldBe 1
+        errors.warnings[0] shouldContain "large number of unrolls"
+    }
+
+    test("unroll bad") {
+        val src="""
+main {
+    sub start() {
+        repeat {
+            unroll 80 {
+                cx16.r0++
+                when cx16.r0 {
+                    1 -> cx16.r0++
+                    else -> cx16.r0++
+                }
+                break
+            }
+        }
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "invalid statement in unroll loop"
+        errors.errors[1] shouldContain "invalid statement in unroll loop"
     }
 })
 

@@ -131,6 +131,10 @@ interface IAstVisitor {
         repeatLoop.body.accept(this)
     }
 
+    fun visit(unrollLoop: UnrollLoop) {
+        unrollLoop.body.accept(this)
+    }
+
     fun visit(untilLoop: UntilLoop) {
         untilLoop.condition.accept(this)
         untilLoop.body.accept(this)

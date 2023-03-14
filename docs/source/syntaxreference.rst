@@ -767,6 +767,21 @@ If you omit the iteration count, it simply loops forever.
 You can still ``break`` out of such a loop if you want though.
 
 
+unroll loop
+^^^^^^^^^^^
+
+Like a repeat loop, but trades memory for speed by not generating the code
+for the counter. Instead it duplicates the code inside the loop on the spot for
+the given number of iterations. This means that only a constant number of iterations can be specified.
+Also, only simple statements such as assignments and function calls can be inside the loop::
+
+    unroll 80 {
+        cx16.VERA_DATA0 = 255
+    }
+
+A `break` statement cannot occur in an unroll loop, as there is not really a loop to break out of.
+
+
 Conditional Execution and Jumps
 -------------------------------
 

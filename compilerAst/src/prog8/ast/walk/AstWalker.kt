@@ -106,6 +106,7 @@ abstract class AstWalker {
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
@@ -148,6 +149,7 @@ abstract class AstWalker {
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
@@ -392,6 +394,12 @@ abstract class AstWalker {
         repeatLoop.iterations?.accept(this, repeatLoop)
         repeatLoop.body.accept(this, repeatLoop)
         track(after(repeatLoop, parent), repeatLoop, parent)
+    }
+
+    fun visit(unrollLoop: UnrollLoop, parent: Node) {
+        track(before(unrollLoop, parent), unrollLoop, parent)
+        unrollLoop.body.accept(this, unrollLoop)
+        track(after(unrollLoop, parent), unrollLoop, parent)
     }
 
     fun visit(untilLoop: UntilLoop, parent: Node) {

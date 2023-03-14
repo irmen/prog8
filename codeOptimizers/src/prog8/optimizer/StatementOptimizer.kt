@@ -374,4 +374,11 @@ class StatementOptimizer(private val program: Program,
 
         return noModifications
     }
+
+    override fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> {
+        return if(unrollLoop.iterations<1)
+            listOf(IAstModification.Remove(unrollLoop, parent as IStatementContainer))
+        else
+            noModifications
+    }
 }

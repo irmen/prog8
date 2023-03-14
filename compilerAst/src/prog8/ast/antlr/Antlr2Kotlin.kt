@@ -150,6 +150,9 @@ private fun Prog8ANTLRParser.StatementContext.toAst() : Statement {
     val whenstmt = whenstmt()?.toAst()
     if(whenstmt!=null) return whenstmt
 
+    val unrollstmt = unrollloop()?.toAst()
+    if(unrollstmt!=null) return unrollstmt
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -571,6 +574,14 @@ private fun Prog8ANTLRParser.RepeatloopContext.toAst(): RepeatLoop {
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
             ?: statement().toPosition())
     return RepeatLoop(iterations, scope, toPosition())
+}
+
+private fun Prog8ANTLRParser.UnrollloopContext.toAst(): UnrollLoop {
+    val iterations = integerliteral().toAst().number.toInt()
+    val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
+    val scope = AnonymousScope(statements, statement_block()?.toPosition()
+        ?: statement().toPosition())
+    return UnrollLoop(iterations, scope, toPosition())
 }
 
 private fun Prog8ANTLRParser.UntilloopContext.toAst(): UntilLoop {

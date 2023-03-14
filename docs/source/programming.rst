@@ -485,6 +485,10 @@ You can also create loops by using the ``goto`` statement, but this should usual
 
 Breaking out of a loop prematurely is possible with the ``break`` statement.
 
+The *unroll* loop is not really a loop, but looks like one. It actually duplicates the statements in its block on the spot by
+the given number of times. It's meant to "unroll loops" - trade memory for speed by avoiding the actual repeat loop counting code.
+Only simple statements are allowed to be inside an unroll loop (assignments, function calls etc.).
+
 .. attention::
     The value of the loop variable after executing the loop *is undefined*. Don't use it immediately
     after the loop without first assigning a new value to it!

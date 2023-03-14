@@ -880,6 +880,26 @@ class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
+class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val position: Position) : Statement() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        body.linkParents(this)
+    }
+
+    override fun copy() = throw NotImplementedError("no support for duplicating a RepeatLoop")
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if (node===body) body = replacement as AnonymousScope
+        else throw FatalAstException("invalid replace")
+        replacement.parent = this
+    }
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+}
+
 class UntilLoop(var body: AnonymousScope,
                 var condition: Expression,
                 override val position: Position) : Statement() {

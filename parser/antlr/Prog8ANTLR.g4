@@ -92,6 +92,7 @@ statement :
 	| whileloop
 	| untilloop
 	| repeatloop
+	| unrollloop
 	| whenstmt
 	| breakstmt
 	| labeldef
@@ -288,6 +289,8 @@ whileloop:  'while' expression EOL? (statement | statement_block) ;
 untilloop:  'do' (statement | statement_block) EOL? 'until' expression ;
 
 repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
+
+unrollloop:  'unroll' integerliteral? EOL? (statement | statement_block) ;
 
 whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
 
