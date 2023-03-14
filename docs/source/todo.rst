@@ -3,8 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- IR: animals and textelite take more registers now than with 8.10  (code *is* smaller)  see test.p8
-
 ...
 
 

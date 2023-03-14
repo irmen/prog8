@@ -17,11 +17,13 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
 
     val flat: Map<String, StNode> by lazy {
         val result = mutableMapOf<String, StNode>()
-        fun flatten(node: StNode) {
-            result[node.scopedName] = node
-            node.children.values.forEach { flatten(it) }
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                result[child.value.scopedName] = child.value
+                collect(child.value)
+            }
         }
-        children.values.forEach { flatten(it) }
+        collect(this)
         result
     }
 
