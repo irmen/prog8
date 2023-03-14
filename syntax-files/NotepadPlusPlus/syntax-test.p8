@@ -29,6 +29,9 @@ main {
 		} else {
 			return 0
 		}
+        unroll 80 {
+            cx16.r0++
+        }
 		repeat {
 			ch = input[index+5]
 			when ch {

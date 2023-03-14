@@ -888,7 +888,7 @@ class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val pos
         body.linkParents(this)
     }
 
-    override fun copy() = throw NotImplementedError("no support for duplicating a RepeatLoop")
+    override fun copy() = throw NotImplementedError("no support for duplicating an UnrollLoop")
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if (node===body) body = replacement as AnonymousScope
