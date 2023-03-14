@@ -3,8 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- array[var] = 22    generates lareger code now in IR  (-> bouncegfx is larger than with 8.10)
-- array[var] *= -1   generates lareger code now in IR  (-> bouncegfx is larger than with 8.10)
+- IR: animals and textelite take more registers now than with 8.10  (code *is* smaller)  see test.p8
 
 ...
 

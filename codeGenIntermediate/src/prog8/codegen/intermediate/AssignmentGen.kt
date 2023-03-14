@@ -197,8 +197,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = "$variable+$offset") }
                     result += chunk
                 } else {
-                    val indexReg = codeGen.registers.nextFree()
-                    result += loadIndexReg(targetArray, itemsize, indexReg)
+                    val (code, indexReg) = loadIndexReg(targetArray, itemsize)
+                    result += code
                     result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, labelSymbol = variable) }
                 }
             } else {
@@ -208,8 +208,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, vmDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset") }
                         result += chunk
                     } else {
-                        val indexReg = codeGen.registers.nextFree()
-                        result += loadIndexReg(targetArray, itemsize, indexReg)
+                        val (code, indexReg) = loadIndexReg(targetArray, itemsize)
+                        result += code
                         result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable) }
                     }
                 } else {
@@ -218,8 +218,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, vmDt, reg1 = valueRegister, labelSymbol = "$variable+$offset") }
                         result += chunk
                     } else {
-                        val indexReg = codeGen.registers.nextFree()
-                        result += loadIndexReg(targetArray, itemsize, indexReg)
+                        val (code, indexReg) = loadIndexReg(targetArray, itemsize)
+                        result += code
                         result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable) }
                     }
                 }
@@ -256,7 +256,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             throw AssemblyError("weird assigntarget")
     }
 
-    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, indexReg: Int): IRCodeChunks {
+    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {
+        // returns the code to load the Index into the register, which is also return\ed.
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = if(itemsize==1) {
             expressionEval.translateExpression(array.index)
@@ -266,7 +267,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
             expressionEval.translateExpression(mult)
         }
-        addToResult(result, tr, indexReg, -1)
-        return result
+        addToResult(result, tr, tr.resultReg, -1)
+        return Pair(result, tr.resultReg)
     }
 }

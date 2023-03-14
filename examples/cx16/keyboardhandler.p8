@@ -74,7 +74,7 @@ main {
         ; (this is controlled by returning 0 or 1 in register A here)
         ;
         ; see:
-        ; https://github.com/X16Community/x16-docs/tree/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-scancode-handler
+        ; https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-keyboard-scancode-handler
 
         %asm {{
             php
