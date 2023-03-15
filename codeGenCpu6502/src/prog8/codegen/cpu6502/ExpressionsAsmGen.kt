@@ -24,7 +24,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
 
         when(expression) {
             is PtPrefix -> translateExpression(expression)
-            is PtBinaryExpression -> translateExpression(expression)
+            is PtBinaryExpressionObsoleteUsePtRpn -> translateExpression(expression)
+            is PtRpn -> translateExpression(expression)
             is PtArrayIndexer -> translateExpression(expression)
             is PtTypeCast -> translateExpression(expression)
             is PtAddressOf -> translateExpression(expression)
@@ -239,7 +240,11 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateExpression(expr: PtBinaryExpression) {
+    private fun translateExpression(expr: PtRpn) {
+        TODO("translate RPN $expr")
+    }
+
+    private fun translateExpression(expr: PtBinaryExpressionObsoleteUsePtRpn) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
         val leftDt = expr.left.type
         val rightDt = expr.right.type

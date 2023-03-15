@@ -661,7 +661,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtBinaryExpression -> {
+            is PtRpn -> {
+                TODO("pokeW for RPN $addrExpr")
+            }
+            is PtBinaryExpressionObsoleteUsePtRpn -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
                     if(asmgen.isZpVar(addrExpr.left as PtIdentifier)) {
@@ -720,7 +723,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.out("  jsr  prog8_lib.func_peekw")
                 }
             }
-            is PtBinaryExpression -> {
+            is PtRpn -> {
+                TODO("peekW for RPN $addrExpr")
+            }
+            is PtBinaryExpressionObsoleteUsePtRpn -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
                     if(asmgen.isZpVar(addrExpr.left as PtIdentifier)) {

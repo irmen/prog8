@@ -92,7 +92,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtTypeCast -> translate(expr)
             is PtPrefix -> translate(expr)
             is PtArrayIndexer -> translate(expr)
-            is PtBinaryExpression -> translate(expr)
+            is PtBinaryExpressionObsoleteUsePtRpn -> translate(expr)
+            is PtRpn -> translate(expr)
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
@@ -315,7 +316,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return ExpressionCodeResult(result, codeGen.irType(cast.type), actualResultReg2, actualResultFpReg2)
     }
 
-    private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {
+    private fun translate(rpn: PtRpn): ExpressionCodeResult {
+        TODO("translate RPN expression $rpn")
+    }
+
+    private fun translate(binExpr: PtBinaryExpressionObsoleteUsePtRpn): ExpressionCodeResult {
         val vmDt = codeGen.irType(binExpr.left.type)
         val signed = binExpr.left.type in SignedDatatypes
         return when(binExpr.operator) {
@@ -430,7 +435,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun operatorGreaterThan(
-        binExpr: PtBinaryExpression,
+        binExpr: PtBinaryExpressionObsoleteUsePtRpn,
         vmDt: IRDataType,
         signed: Boolean,
         greaterEquals: Boolean
@@ -486,7 +491,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun operatorLessThan(
-        binExpr: PtBinaryExpression,
+        binExpr: PtBinaryExpressionObsoleteUsePtRpn,
         vmDt: IRDataType,
         signed: Boolean,
         lessEquals: Boolean
@@ -541,7 +546,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorEquals(binExpr: PtBinaryExpression, vmDt: IRDataType, notEquals: Boolean): ExpressionCodeResult {
+    private fun operatorEquals(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType, notEquals: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             val leftTr = translateExpression(binExpr.left)
@@ -596,7 +601,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorShiftRight(binExpr: PtBinaryExpression, vmDt: IRDataType, signed: Boolean): ExpressionCodeResult {
+    private fun operatorShiftRight(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType, signed: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         return if(codeGen.isOne(binExpr.right)) {
             val tr = translateExpression(binExpr.left)
@@ -615,29 +620,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorShiftRightInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        if(codeGen.isOne(operand)) {
-            val opc = if (signed) Opcode.ASRM else Opcode.LSRM
-            val ins = if(knownAddress!=null)
-                IRInstruction(opc, vmDt, value=knownAddress)
-            else
-                IRInstruction(opc, vmDt, labelSymbol = symbol)
-            addInstr(result, ins, null)
-        } else {
-            val tr = translateExpression(operand)
-            addToResult(result, tr, tr.resultReg, -1)
-            val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
-            val ins = if(knownAddress!=null)
-                IRInstruction(opc, vmDt, reg1 = tr.resultReg, value=knownAddress)
-            else
-                IRInstruction(opc, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
-            addInstr(result, ins, null)
-        }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorShiftLeft(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorShiftLeft(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         return if(codeGen.isOne(binExpr.right)){
             val tr = translateExpression(binExpr.left)
@@ -654,27 +637,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorShiftLeftInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        if(codeGen.isOne(operand)){
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.LSLM, vmDt, value=knownAddress)
-            else
-                IRInstruction(Opcode.LSLM, vmDt, labelSymbol = symbol)
-                , null)
-        } else {
-            val tr = translateExpression(operand)
-            addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, value=knownAddress)
-                else
-                    IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                    ,null)
-        }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorXor(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorXor(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         return if(binExpr.right is PtNumber) {
             val tr = translateExpression(binExpr.left)
@@ -691,19 +654,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorXorInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = translateExpression(operand)
-        addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, value = knownAddress)
-            else
-                IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                ,null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorAnd(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorAnd(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         return if(binExpr.right is PtNumber) {
             val tr = translateExpression(binExpr.left)
@@ -720,19 +671,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal  fun operatorAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = translateExpression(operand)
-        addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, value=knownAddress)
-            else
-                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                ,null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorOr(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorOr(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         return if(binExpr.right is PtNumber) {
             val tr = translateExpression(binExpr.left)
@@ -749,19 +688,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = translateExpression(operand)
-        addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, value = knownAddress)
-            else
-                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                , null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorModulo(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         require(vmDt!=IRDataType.FLOAT) {"floating-point modulo not supported ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
         return if(binExpr.right is PtNumber) {
@@ -779,7 +706,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorDivide(binExpr: PtBinaryExpression, vmDt: IRDataType, signed: Boolean): ExpressionCodeResult {
+    private fun operatorDivide(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType, signed: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = binExpr.right as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
@@ -834,56 +761,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorDivideInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val constFactorRight = operand as? PtNumber
-        if(vmDt==IRDataType.FLOAT) {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
-                val factor = constFactorRight.number.toFloat()
-                result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor)
-            } else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, -1, tr.resultFpReg)
-                val ins = if(signed) {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
-                    else
-                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
-                }
-                else {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
-                    else
-                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
-                }
-                addInstr(result, ins, null)
-            }
-        } else {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
-                val factor = constFactorRight.number.toInt()
-                result += codeGen.divideByConstInplace(vmDt, knownAddress, symbol, factor, signed)
-            } else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, tr.resultReg, -1)
-                val ins = if(signed) {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, value = knownAddress)
-                    else
-                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
-                }
-                else {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, value = knownAddress)
-                    else
-                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
-                }
-                addInstr(result, ins, null)
-            }
-        }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorMultiply(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorMultiply(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorLeft = binExpr.left as? PtNumber
         val constFactorRight = binExpr.right as? PtNumber
@@ -932,40 +810,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorMultiplyInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val constFactorRight = operand as? PtNumber
-        if(vmDt==IRDataType.FLOAT) {
-            if(constFactorRight!=null) {
-                val factor = constFactorRight.number.toFloat()
-                result += codeGen.multiplyByConstFloatInplace(knownAddress, symbol, factor)
-            } else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
-                else
-                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
-                    , null)
-            }
-        } else {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
-                val factor = constFactorRight.number.toInt()
-                result += codeGen.multiplyByConstInplace(vmDt, knownAddress, symbol, factor)
-            } else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, value = knownAddress)
-                else
-                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                    , null)
-            }
-        }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorMinus(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorMinus(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((binExpr.right as? PtNumber)?.number==1.0) {
@@ -1014,47 +859,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun operatorMinusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        if(vmDt==IRDataType.FLOAT) {
-            if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, value=knownAddress)
-                else
-                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
-                    , null)
-            }
-            else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, value=knownAddress)
-                else
-                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
-                    , null)
-            }
-        } else {
-            if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, value=knownAddress)
-                else
-                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
-                    , null)
-            }
-            else {
-                val tr = translateExpression(operand)
-                addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, value = knownAddress)
-                else
-                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                    , null)
-            }
-        }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
-    }
-
-    private fun operatorPlus(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorPlus(binExpr: PtBinaryExpressionObsoleteUsePtRpn, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((binExpr.left as? PtNumber)?.number==1.0) {
@@ -1115,6 +920,153 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
+
+    internal fun operatorAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, if(knownAddress!=null)
+            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, value=knownAddress)
+        else
+            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            ,null)
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, if(knownAddress!=null)
+            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, value = knownAddress)
+        else
+            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            , null)
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorDivideInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val constFactorRight = operand as? PtNumber
+        if(vmDt==IRDataType.FLOAT) {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toFloat()
+                result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor)
+            } else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, -1, tr.resultFpReg)
+                val ins = if(signed) {
+                    if(knownAddress!=null)
+                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
+                    else
+                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
+                }
+                else {
+                    if(knownAddress!=null)
+                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
+                    else
+                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
+                }
+                addInstr(result, ins, null)
+            }
+        } else {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toInt()
+                result += codeGen.divideByConstInplace(vmDt, knownAddress, symbol, factor, signed)
+            } else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                val ins = if(signed) {
+                    if(knownAddress!=null)
+                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, value = knownAddress)
+                    else
+                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
+                }
+                else {
+                    if(knownAddress!=null)
+                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, value = knownAddress)
+                    else
+                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
+                }
+                addInstr(result, ins, null)
+            }
+        }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorMultiplyInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val constFactorRight = operand as? PtNumber
+        if(vmDt==IRDataType.FLOAT) {
+            if(constFactorRight!=null) {
+                val factor = constFactorRight.number.toFloat()
+                result += codeGen.multiplyByConstFloatInplace(knownAddress, symbol, factor)
+            } else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, -1, tr.resultFpReg)
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, value = knownAddress)
+                else
+                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
+                    , null)
+            }
+        } else {
+            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+                val factor = constFactorRight.number.toInt()
+                result += codeGen.multiplyByConstInplace(vmDt, knownAddress, symbol, factor)
+            } else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, value = knownAddress)
+                else
+                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                    , null)
+            }
+        }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorMinusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(vmDt==IRDataType.FLOAT) {
+            if((operand as? PtNumber)?.number==1.0) {
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.DECM, vmDt, value=knownAddress)
+                else
+                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
+                    , null)
+            }
+            else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, -1, tr.resultFpReg)
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, value=knownAddress)
+                else
+                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
+                    , null)
+            }
+        } else {
+            if((operand as? PtNumber)?.number==1.0) {
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.DECM, vmDt, value=knownAddress)
+                else
+                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
+                    , null)
+            }
+            else {
+                val tr = translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, if(knownAddress!=null)
+                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, value = knownAddress)
+                else
+                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                    , null)
+            }
+        }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
     internal fun operatorPlusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
@@ -1152,6 +1104,60 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     , null)
             }
         }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorShiftRightInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(codeGen.isOne(operand)) {
+            val opc = if (signed) Opcode.ASRM else Opcode.LSRM
+            val ins = if(knownAddress!=null)
+                IRInstruction(opc, vmDt, value=knownAddress)
+            else
+                IRInstruction(opc, vmDt, labelSymbol = symbol)
+            addInstr(result, ins, null)
+        } else {
+            val tr = translateExpression(operand)
+            addToResult(result, tr, tr.resultReg, -1)
+            val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
+            val ins = if(knownAddress!=null)
+                IRInstruction(opc, vmDt, reg1 = tr.resultReg, value=knownAddress)
+            else
+                IRInstruction(opc, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
+            addInstr(result, ins, null)
+        }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorShiftLeftInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(codeGen.isOne(operand)){
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.LSLM, vmDt, value=knownAddress)
+            else
+                IRInstruction(Opcode.LSLM, vmDt, labelSymbol = symbol)
+                , null)
+        } else {
+            val tr = translateExpression(operand)
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            else
+                IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                ,null)
+        }
+        return ExpressionCodeResult(result, vmDt, -1, -1)
+    }
+
+    internal fun operatorXorInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, if(knownAddress!=null)
+            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, value = knownAddress)
+        else
+            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            ,null)
         return ExpressionCodeResult(result, vmDt, -1, -1)
     }
 

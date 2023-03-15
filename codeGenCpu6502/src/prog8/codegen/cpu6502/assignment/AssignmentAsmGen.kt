@@ -141,8 +141,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     is PtIdentifier -> {
                         assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
-                    is PtBinaryExpression -> {
-                        if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
+                    is PtRpn -> {
+                        TODO("translate RPN ${value.address}")
+                    }
+                    is PtBinaryExpressionObsoleteUsePtRpn -> {
+                        if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpressionObsoleteUsePtRpn, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
                         } else {
                             assignViaExprEval(value.address)
@@ -294,13 +297,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 containmentCheckIntoA(value)
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
-            is PtBinaryExpression -> {
+            is PtBinaryExpressionObsoleteUsePtRpn -> {
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                     // because the code here is the implementation of exactly that...)
                     fallbackToStackEval(assign)
                 }
+            }
+            is PtRpn ->{
+                TODO("assign RPN expression $value  depth=${value.maxDepth()}")
             }
             else -> throw AssemblyError("weird assignment value type $value")
         }
@@ -339,7 +345,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+    private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpressionObsoleteUsePtRpn, assign: AsmAssignment): Boolean {
         if(expr.operator in ComparisonOperators) {
             if(expr.right.asConstInteger() == 0) {
                 if(expr.operator == "==" || expr.operator=="!=") {
@@ -361,7 +367,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignTrue.add(assignment)
                 val assignFalse = PtNodeGroup()
                 val ifelse = PtIfElse(assign.position)
-                val exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
+                val exprClone = PtBinaryExpressionObsoleteUsePtRpn(expr.operator, expr.type, expr.position)
                 expr.children.forEach { exprClone.children.add(it) }        // doesn't seem to need a deep clone
                 ifelse.add(exprClone)
                 ifelse.add(assignTrue)
@@ -721,7 +727,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         assignRegisterpairWord(target, RegisterOrPair.AY)
     }
 
-    private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+    private fun attemptAssignToByteCompareZero(expr: PtBinaryExpressionObsoleteUsePtRpn, assign: AsmAssignment): Boolean {
         when (expr.operator) {
             "==" -> {
                 when(val dt = expr.left.type) {
@@ -900,8 +906,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         is PtIdentifier -> {
                             assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
                         }
-                        is PtBinaryExpression -> {
-                            if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
+                        is PtRpn -> {
+                            TODO("translate RPN ${value.address}")
+                        }
+                        is PtBinaryExpressionObsoleteUsePtRpn -> {
+                            if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpressionObsoleteUsePtRpn, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
@@ -2821,7 +2830,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             addressExpr is PtIdentifier -> {
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
-            addressExpr is PtBinaryExpression -> {
+            addressExpr is PtRpn -> {
+                TODO("translate RPN $addressExpr")
+            }
+            addressExpr is PtBinaryExpressionObsoleteUsePtRpn -> {
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }

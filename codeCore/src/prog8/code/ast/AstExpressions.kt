@@ -3,6 +3,7 @@ package prog8.code.ast
 import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.round
 
 
@@ -26,7 +27,8 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         return when(this) {
             is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
-            is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
+            is PtBinaryExpressionObsoleteUsePtRpn -> other is PtBinaryExpressionObsoleteUsePtRpn && other.left isSameAs left && other.right isSameAs right
+            is PtRpn -> other is PtRpn && this.isSame(other)
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
@@ -61,7 +63,8 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtAddressOf -> true
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
-            is PtBinaryExpression -> false
+            is PtBinaryExpressionObsoleteUsePtRpn -> false
+            is PtRpn -> false
             is PtBuiltinFunctionCall -> name in arrayOf("msb", "lsb", "peek", "peekw", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
             is PtContainmentCheck -> false
             is PtFunctionCall -> false
@@ -149,12 +152,116 @@ class PtBuiltinFunctionCall(val name: String,
 }
 
 
-class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+class PtBinaryExpressionObsoleteUsePtRpn(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
     // note: "and", "or", "xor" do not occur anymore as operators. They've been replaced int the ast by their bitwise versions &, |, ^.
     val left: PtExpression
         get() = children[0] as PtExpression
     val right: PtExpression
         get() = children[1] as PtExpression
+}
+
+
+class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
+    // contains only PtExpression (not PtRpn!) and PtRpnOperator nodes
+
+    operator fun plusAssign(node: PtNode) {
+        require(node is PtRpnOperator || node is PtExpression)
+        if(node is PtRpn)
+            children.addAll(node.children)
+        else
+            children += node
+    }
+
+    fun print() {
+        children.forEach {
+            when(it) {
+                is PtRpnOperator -> println(it.operator)
+                is PtExpression -> println("expr $it  ${it.position}")
+                else -> {}
+            }
+        }
+    }
+
+    fun isSame(other: PtRpn): Boolean {
+        if(other.children.size==children.size) {
+            return other.children.zip(this.children).all { (first, second) ->
+                when (first) {
+                    is PtRpnOperator -> second is PtRpnOperator && first.operator==second.operator
+                    is PtExpression -> second is PtExpression && first isSameAs second
+                    else -> false
+                }
+            }
+        }
+        return false
+    }
+
+    fun maxDepth(): Pair<Map<DataType, Int>, Int> {
+        val depths = mutableMapOf(
+            DataType.UBYTE to 0,
+            DataType.UWORD to 0,
+            DataType.FLOAT to 0
+        )
+        val maxDepths = mutableMapOf(
+            DataType.UBYTE to 0,
+            DataType.UWORD to 0,
+            DataType.FLOAT to 0
+        )
+        var numPushes = 0
+        var numPops = 0
+
+        fun push(type: DataType) {
+            when (type) {
+                in ByteDatatypes -> {
+                    val depth = depths.getValue(DataType.UBYTE) + 1
+                    depths[DataType.UBYTE] = depth
+                    maxDepths[DataType.UBYTE] = max(maxDepths.getValue(DataType.UBYTE), depth)
+                }
+                in WordDatatypes -> {
+                    val depth = depths.getValue(DataType.UWORD) + 1
+                    depths[DataType.UWORD] = depth
+                    maxDepths[DataType.UWORD] = max(maxDepths.getValue(DataType.UWORD), depth)
+                }
+                DataType.FLOAT -> {
+                    val depth = depths.getValue(DataType.FLOAT) + 1
+                    depths[DataType.FLOAT] = depth
+                    maxDepths[DataType.FLOAT] = max(maxDepths.getValue(DataType.FLOAT), depth)
+                }
+                else -> throw IllegalArgumentException("invalid dt")
+            }
+            numPushes++
+        }
+
+        fun pop(type: DataType) {
+            when (type) {
+                in ByteDatatypes -> depths[DataType.UBYTE]=depths.getValue(DataType.UBYTE) - 1
+                in WordDatatypes -> depths[DataType.UWORD]=depths.getValue(DataType.UWORD) - 1
+                DataType.FLOAT -> depths[DataType.FLOAT]=depths.getValue(DataType.FLOAT) - 1
+                else -> throw IllegalArgumentException("invalid dt")
+            }
+            numPops++
+        }
+
+        children.withIndex().forEach { (index, node) ->
+            if (node is PtRpnOperator) {
+                pop(node.operand1Type)
+                pop(node.operand2Type)
+                push(node.type)
+            }
+            else {
+                push((node as PtExpression).type)
+            }
+        }
+        require(numPushes==numPops+1) {
+            "RPN not balanced, pushes=$numPushes pops=$numPops"
+        }
+        return Pair(maxDepths, numPushes)
+    }
+}
+
+class PtRpnOperator(val operator: String, val type: DataType, val operand1Type: DataType, val operand2Type: DataType, position: Position): PtNode(position) {
+    init {
+        require(type==operand1Type && type==operand2Type)   // TODO if this is always true, can remove operand1 and 2 types again.
+    }
 }
 
 
