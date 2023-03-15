@@ -21,6 +21,7 @@ object ParentSentinel : Node {
     }
 
     override fun copy(): Node = throw FatalAstException("should never duplicate a ParentSentinel")
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
 
@@ -254,6 +255,7 @@ interface Node {
 
     fun replaceChildNode(node: Node, replacement: Node)
     fun copy(): Node
+    fun referencesIdentifier(nameInSource: List<String>): Boolean
 }
 
 
@@ -309,6 +311,8 @@ open class Module(final override var statements: MutableList<Statement>,
     override fun copy(): Node = throw NotImplementedError("no support for duplicating a Module")
 
     override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary})"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
+
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -336,6 +340,8 @@ class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("cannot replace anything in the namespace")
     }
+
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = modules.any { it.referencesIdentifier(nameInSource) }
 }
 
 internal object BuiltinFunctionScopePlaceholder : INameScope {

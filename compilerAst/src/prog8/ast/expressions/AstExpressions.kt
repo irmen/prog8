@@ -21,7 +21,6 @@ sealed class Expression: Node {
     abstract fun constValue(program: Program): NumericLiteral?
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
-    abstract fun referencesIdentifier(nameInSource: List<String>): Boolean
     abstract fun inferType(program: Program): InferredTypes.InferredType
     abstract val isSimple: Boolean
 
@@ -307,7 +306,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>) = arrayvar.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>) = arrayvar.referencesIdentifier(nameInSource) || indexer.referencesIdentifier(nameInSource)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         val target = arrayvar.targetStatement(program)
@@ -835,7 +834,7 @@ class RangeExpression(var from: Expression,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean  = from.referencesIdentifier(nameInSource) || to.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean  = from.referencesIdentifier(nameInSource) || to.referencesIdentifier(nameInSource) || step.referencesIdentifier(nameInSource)
     override fun inferType(program: Program): InferredTypes.InferredType {
         val fromDt=from.inferType(program)
         val toDt=to.inferType(program)
@@ -897,7 +896,6 @@ class RangeExpression(var from: Expression,
         return toConstantIntegerRange()?.count()
     }
 }
-
 
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
     override lateinit var parent: Node
@@ -1062,7 +1060,6 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 }
 
-
 class ContainmentCheck(var element: Expression,
                        var iterable: Expression,
                        override val position: Position): Expression() {
@@ -1114,11 +1111,7 @@ class ContainmentCheck(var element: Expression,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean {
-        if(element is IdentifierReference)
-            return element.referencesIdentifier(nameInSource)
-        return iterable.referencesIdentifier(nameInSource)
-    }
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = element.referencesIdentifier(nameInSource) || iterable.referencesIdentifier(nameInSource)
 
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.BOOL)
 
@@ -1133,17 +1126,6 @@ class ContainmentCheck(var element: Expression,
             throw FatalAstException("invalid replace")
     }
 }
-
-
-fun invertCondition(cond: Expression): BinaryExpression? {
-    if(cond is BinaryExpression) {
-        val invertedOperator = invertedComparisonOperator(cond.operator)
-        if (invertedOperator != null)
-            return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
-    }
-    return null
-}
-
 
 class BuiltinFunctionCall(override var target: IdentifierReference,
                           override var args: MutableList<Expression>,
@@ -1184,4 +1166,13 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
     override fun inferType(program: Program) = program.builtinFunctions.returnType(name)
+}
+
+fun invertCondition(cond: Expression): BinaryExpression? {
+    if(cond is BinaryExpression) {
+        val invertedOperator = invertedComparisonOperator(cond.operator)
+        if (invertedOperator != null)
+            return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
+    }
+    return null
 }

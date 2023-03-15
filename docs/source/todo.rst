@@ -4,7 +4,7 @@ TODO
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
 - when a loopvariable of a forloop is *only* referenced in the for loop as loopvariable, and the number of iterations is known, replace the loop by a repeatloop (and remove the vardecl)
-  but we have no efficient way right now to see if the body references a variable. (what about ReferencesIdentifier? - only on Expressions now)
+  but we have no efficient way right now to see if the body references a variable. (what about ReferencesIdentifier?)
 
 ...
 

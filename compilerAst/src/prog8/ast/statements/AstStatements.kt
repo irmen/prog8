@@ -64,6 +64,7 @@ class BuiltinFunctionPlaceholder(override val name: String, override val positio
     }
 
     override fun copy() = throw NotImplementedError("no support for duplicating a BuiltinFunctionStatementPlaceholder")
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 }
 
 class Block(override val name: String,
@@ -90,6 +91,7 @@ class Block(override val name: String,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "Block(name=$name, address=$address, ${statements.size} statements)"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
 
     fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
 }
@@ -104,6 +106,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = Directive(directive, args.map { it.copy() }, position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
@@ -116,6 +119,7 @@ data class DirectiveArg(val str: String?, val name: String?, val int: UInt?, ove
     }
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = DirectiveArg(str, name, int, position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
 data class Label(override val name: String, override val position: Position) : Statement(), INamedStatement {
@@ -127,6 +131,7 @@ data class Label(override val name: String, override val position: Position) : S
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun copy() = Label(name, position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && nameInSource[0]==name
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString()= "Label(name=$name, pos=$position)"
@@ -147,6 +152,7 @@ class Return(var value: Expression?, override val position: Position) : Statemen
     }
 
     override fun copy() = Return(value?.copy(), position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = value?.referencesIdentifier(nameInSource)==true
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "Return($value, pos=$position)"
@@ -160,6 +166,7 @@ class Break(override val position: Position) : Statement() {
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
     override fun copy() = Break(position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -277,6 +284,10 @@ class VarDecl(val type: VarDeclType,
         .asSequence()
         .filterIsInstance<Assignment>()
         .singleOrNull { it.origin==AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === this }
+
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        value?.referencesIdentifier(nameInSource)==true ||
+                this.arraysize?.referencesIdentifier(nameInSource)==true
 }
 
 class ArrayIndex(var indexExpr: Expression,
@@ -309,6 +320,7 @@ class ArrayIndex(var indexExpr: Expression,
 
     infix fun isSameAs(other: ArrayIndex): Boolean = indexExpr isSameAs other.indexExpr
     override fun copy() = ArrayIndex(indexExpr.copy(), position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = indexExpr.referencesIdentifier(nameInSource)
 }
 
 enum class AssignmentOrigin {
@@ -340,6 +352,7 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "Assignment(target: $target, value: $value, pos=$position)"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || value.referencesIdentifier(nameInSource)
 
     /**
      * Is the assigment value an expression that references the assignment target itself?
@@ -429,6 +442,10 @@ data class AssignTarget(var identifier: IdentifierReference?,
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        identifier?.referencesIdentifier(nameInSource)==true ||
+                arrayindexed?.referencesIdentifier(nameInSource)==true ||
+                memoryAddress?.referencesIdentifier(nameInSource)==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
         if (identifier != null) {
@@ -554,6 +571,7 @@ class PostIncrDecr(var target: AssignTarget, val operator: String, override val 
         replacement.parent = this
     }
 
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource)
     override fun copy() = PostIncrDecr(target.copy(), operator, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -581,6 +599,7 @@ class Jump(var address: UInt?,
     override fun copy() = Jump(address, identifier?.copy(), generatedLabel, position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = identifier?.referencesIdentifier(nameInSource)==true
 
     override fun toString() =
         "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
@@ -613,6 +632,7 @@ class FunctionCallStatement(override var target: IdentifierReference,
         replacement.parent = this
     }
 
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any { it.referencesIdentifier(nameInSource) }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "FunctionCallStatement(target=$target, pos=$position)"
@@ -630,6 +650,7 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 
     fun hasReturnOrRts(): Boolean {
         return if(isIR) {
@@ -671,6 +692,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
         replacement.parent = this
     }
 
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
     override fun copy() = AnonymousScope(statements.map { it.copy() }.toMutableList(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -717,6 +739,10 @@ class Subroutine(override val name: String,
         }
     }
 
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        statements.any { it.referencesIdentifier(nameInSource) } ||
+                parameters.any { it.referencesIdentifier(nameInSource) }
+
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() =
@@ -738,6 +764,7 @@ open class SubroutineParameter(val name: String,
 
     override fun copy() = SubroutineParameter(name, type, position)
     override fun toString() = "Param($type:$name)"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 }
 
 class IfElse(var condition: Expression,
@@ -767,7 +794,10 @@ class IfElse(var condition: Expression,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        condition.referencesIdentifier(nameInSource) ||
+                truepart.referencesIdentifier(nameInSource) ||
+                elsepart.referencesIdentifier(nameInSource)
 }
 
 class ConditionalBranch(var condition: BranchCondition,
@@ -795,7 +825,8 @@ class ConditionalBranch(var condition: BranchCondition,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        truepart.referencesIdentifier(nameInSource) || elsepart.referencesIdentifier(nameInSource)
 }
 
 class ForLoop(var loopVar: IdentifierReference,
@@ -826,6 +857,10 @@ class ForLoop(var loopVar: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "ForLoop(loopVar: $loopVar, iterable: $iterable, pos=$position)"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        loopVar.referencesIdentifier(nameInSource) ||
+                iterable.referencesIdentifier(nameInSource) ||
+                body.referencesIdentifier(nameInSource)
 
     fun loopVarDt(program: Program) = loopVar.inferType(program)
 }
@@ -854,6 +889,8 @@ class WhileLoop(var condition: Expression,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        condition.referencesIdentifier(nameInSource) || body.referencesIdentifier(nameInSource)
 }
 
 class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override val position: Position) : Statement() {
@@ -878,6 +915,8 @@ class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        iterations?.referencesIdentifier(nameInSource)==true || body.referencesIdentifier(nameInSource)
 }
 
 class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val position: Position) : Statement() {
@@ -898,6 +937,7 @@ class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val pos
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = body.referencesIdentifier(nameInSource)
 }
 
 class UntilLoop(var body: AnonymousScope,
@@ -923,6 +963,8 @@ class UntilLoop(var body: AnonymousScope,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        condition.referencesIdentifier(nameInSource) || body.referencesIdentifier(nameInSource)
 }
 
 class When(var condition: Expression,
@@ -967,6 +1009,8 @@ class When(var condition: Expression,
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        condition.referencesIdentifier(nameInSource) || choices.any { it.referencesIdentifier(nameInSource) }
 }
 
 class WhenChoice(var values: MutableList<Expression>?,           // if null,  this is the 'else' part
@@ -999,6 +1043,8 @@ class WhenChoice(var values: MutableList<Expression>?,           // if null,  th
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        values?.any { it.referencesIdentifier(nameInSource) }==true || statements.referencesIdentifier(nameInSource)
 }
 
 class DirectMemoryWrite(var addressExpression: Expression, override val position: Position) : Node {
@@ -1019,6 +1065,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun copy() = DirectMemoryWrite(addressExpression.copy(), position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = addressExpression.referencesIdentifier(nameInSource)
 }
 
 
@@ -1047,6 +1094,7 @@ class BuiltinFunctionCallStatement(override var target: IdentifierReference,
         replacement.parent = this
     }
 
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any { it.referencesIdentifier(nameInSource) }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() = "BuiltinFunctionCallStatement(name=$name, pos=$position)"
