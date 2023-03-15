@@ -863,6 +863,26 @@ class ForLoop(var loopVar: IdentifierReference,
                 body.referencesIdentifier(nameInSource)
 
     fun loopVarDt(program: Program) = loopVar.inferType(program)
+
+    fun constIterationCount(program: Program): Int? {
+        return when (val iter = iterable) {
+            is IdentifierReference -> {
+                val target = iter.targetVarDecl(program)!!
+                if (target.isArray)
+                    target.arraysize!!.constIndex()
+                else if (target.value is StringLiteral)
+                    (target.value as StringLiteral).value.length
+                else if (target.value is ArrayLiteral)
+                    (target.value as ArrayLiteral).value.size
+                else null
+            }
+            is ArrayLiteral -> iter.value.size
+            is RangeExpression -> iter.size()
+            is StringLiteral -> iter.value.length
+            else -> null
+        }
+    }
+
 }
 
 class WhileLoop(var condition: Expression,

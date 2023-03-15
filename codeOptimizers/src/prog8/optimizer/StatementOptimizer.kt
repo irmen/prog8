@@ -166,6 +166,16 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        val iterationCount = forLoop.constIterationCount(program)
+        if(iterationCount!=null) {
+            val loopName = forLoop.loopVar.nameInSource
+            if(!forLoop.iterable.referencesIdentifier(loopName) && !forLoop.body.referencesIdentifier(loopName)) {
+                errors.warn("for loop can be replaced with repeat loop, possibly also remove the loop variable", forLoop.position)
+                val repeat = RepeatLoop(NumericLiteral.optimalNumeric(iterationCount, forLoop.position), forLoop.body, forLoop.position)
+                return listOf(IAstModification.ReplaceNode(forLoop, repeat, parent))
+            }
+        }
+
         return noModifications
     }
 

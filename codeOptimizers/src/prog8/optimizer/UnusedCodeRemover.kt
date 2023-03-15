@@ -125,8 +125,8 @@ class UnusedCodeRemover(private val program: Program,
                     if(usages.size==1) {
                         val singleUse = usages[0].parent
                         if(singleUse is AssignTarget) {
-                            val assignment = singleUse.parent as Assignment
-                            if(assignment.origin==AssignmentOrigin.VARINIT) {
+                            val assignment = singleUse.parent as? Assignment
+                            if(assignment!=null && assignment.origin==AssignmentOrigin.VARINIT) {
                                 if(assignment.value.isSimple) {
                                     // remove the vardecl
                                     if(!decl.definingModule.isLibrary)
