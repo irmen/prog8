@@ -93,7 +93,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             require(origAssign.operator.endsWith('='))
             if(codeGen.program.binaryExpressionsAreRPN) {
-                TODO("RPN")
+                TODO("RPN fallbackassign alt.")
             } else {
                 value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
                 val left: PtExpression = origAssign.target.children.single() as PtExpression
@@ -267,7 +267,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             expressionEval.translateExpression(array.index)
         } else {
             if(codeGen.program.binaryExpressionsAreRPN) {
-                TODO("RPN")
+                TODO("RPN loadindexreg alt.")
             } else {
                 val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
                 mult.children += array.index

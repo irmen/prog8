@@ -265,7 +265,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         return Pair(maxDepths, numPushes)
     }
 
-    fun finalOperator(): String? = (children.last() as? PtRpnOperator)?.operator
+    fun finalOperator() = children.last() as? PtRpnOperator
     fun finalFirstOperand() = children[children.size-3]
     fun finalSecondOperand() = children[children.size-2]
 }
@@ -273,9 +273,6 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
 class PtRpnOperator(val operator: String, val type: DataType, val operand1Type: DataType, val operand2Type: DataType, position: Position): PtNode(position) {
     init {
         // NOTE: For now, we require that the types of the operands are the same size as the output type of the operator node.
-        require(operand1Type equalsSize  operand2Type) {
-            "operand type size(s) differ: $operand1Type $operand2Type  oper: $operator"
-        }
         if(operator !in ComparisonOperators) {
             require(type equalsSize operand1Type && type equalsSize operand2Type) {
                 "operand type size(s) differ from operator result type $type:  $operand1Type $operand2Type  oper: $operator"
@@ -342,6 +339,8 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
     }
 
     operator fun compareTo(other: PtNumber): Int = number.compareTo(other.number)
+
+    override fun toString() = "PtNumber:$type:$number"
 }
 
 

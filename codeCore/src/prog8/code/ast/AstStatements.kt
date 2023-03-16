@@ -100,8 +100,8 @@ class PtForLoop(position: Position) : PtNode(position) {
 
 
 class PtIfElse(position: Position) : PtNode(position) {
-    val condition: PtNode
-        get() = children[0]
+    val condition: PtExpression     // either PtRpn or PtBinaryExpression
+        get() = children[0] as PtExpression
     val ifScope: PtNodeGroup
         get() = children[1] as PtNodeGroup
     val elseScope: PtNodeGroup

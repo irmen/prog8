@@ -913,7 +913,7 @@ class IRCodeGen(
                 }
             }
             is PtRpn -> {
-                TODO("RPN")
+                TODO("RPN ifelse $condition")
             }
             else -> {
                 TODO("weird condition node: $condition")

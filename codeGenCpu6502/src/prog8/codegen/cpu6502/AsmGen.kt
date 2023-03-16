@@ -21,8 +21,10 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        if(options.useRPN)
+        if(options.useRPN) {
             program.transformBinExprToRPN()
+            errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
+        }
 
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
@@ -548,11 +550,32 @@ class AsmGen6502Internal (
 
     private fun translate(stmt: PtIfElse) {
         if(stmt.condition is PtRpn) {
-            TODO("RPN")
+            val condition = stmt.condition as PtRpn
+            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    translateCompareAndJumpIfTrueRPN(condition, jump)
+                } else {
+                    val endLabel = makeLabel("if_end")
+                    translateCompareAndJumpIfFalseRPN(condition, endLabel)
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
+            } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
+                val endLabel = makeLabel("if_end")
+                translateCompareAndJumpIfFalseRPN(condition, elseLabel)
+                translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
+                out(endLabel)
+            }
         } else {
             val condition = stmt.condition as PtBinaryExpression
             requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-
             if (stmt.elseScope.children.isEmpty()) {
                 val jump = stmt.ifScope.children.singleOrNull()
                 if (jump is PtJump) {
@@ -578,7 +601,7 @@ class AsmGen6502Internal (
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if (!(condition is PtRpn && condition.finalOperator() in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
+        if (!(condition is PtRpn && condition.finalOperator()?.operator in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 
@@ -984,7 +1007,7 @@ $repeatLabel    lda  $counterVar
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
         if (pointerOffsetExpr is PtRpn) {
-            TODO("RPN")
+            TODO("RPN determine pointer+index via reg.")   // however, is this ever getting called from RPN code?
         }
         else if (pointerOffsetExpr is PtBinaryExpression) {
             if (pointerOffsetExpr.operator != "+") return null
@@ -1101,6 +1124,22 @@ $repeatLabel    lda  $counterVar
         if(node is PtSubroutineParameter)
             return node
         return node.definingSub()?.parameters?.singleOrNull { it.name===name }
+    }
+
+    private fun translateCompareAndJumpIfTrueRPN(expr: PtRpn, jump: PtJump) {
+        val label = when {
+            jump.generatedLabel!=null -> jump.generatedLabel!!
+            jump.identifier!=null -> asmSymbolName(jump.identifier!!)
+            jump.address!=null -> jump.address!!.toHex()
+            else -> throw AssemblyError("weird jump")
+        }
+        assignExpressionToRegister(expr, RegisterOrPair.A)
+        out("  bne  $label")
+    }
+
+    private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
+        assignExpressionToRegister(expr, RegisterOrPair.A)
+        out("  beq  $jumpIfFalseLabel")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
@@ -2850,7 +2889,8 @@ $repeatLabel    lda  $counterVar
                 }
             }
             is PtRpn -> {
-                TODO("translate RPN $expr")
+                // TODO RPN: optimized memread address
+                assignViaExprEval()
             }
             else -> assignViaExprEval()
         }

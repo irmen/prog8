@@ -2,10 +2,7 @@ package prog8.codegen.experimental
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
-import prog8.code.core.CompilationOptions
-import prog8.code.core.IAssemblyProgram
-import prog8.code.core.ICodeGeneratorBackend
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 
@@ -17,8 +14,10 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         errors: IErrorReporter
     ): IAssemblyProgram? {
 
-        if(options.useRPN)
+        if(options.useRPN) {
             program.transformBinExprToRPN()
+            errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
+        }
 
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:

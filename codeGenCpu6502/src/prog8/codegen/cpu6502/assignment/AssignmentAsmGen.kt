@@ -142,7 +142,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
                     is PtRpn -> {
-                        TODO("translate RPN ${value.address}")
+                        // TODO RPN: optimized pointer access
+                        assignViaExprEval(value.address)
                     }
                     is PtBinaryExpression -> {
                         if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
@@ -305,8 +306,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     fallbackToStackEval(assign)
                 }
             }
-            is PtRpn ->{
-                TODO("assign RPN expression $value  depth=${value.maxDepth()}")
+            is PtRpn -> {
+                // TODO RPN: optimized evaluation
+                fallbackToStackEval(assign)
             }
             else -> throw AssemblyError("weird assignment value type $value")
         }
@@ -907,7 +909,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
                         }
                         is PtRpn -> {
-                            TODO("translate RPN ${value.address}")
+                            // TODO RPN: optimized pointer access
+                            assignViaExprEval(value.address)
                         }
                         is PtBinaryExpression -> {
                             if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
@@ -2831,7 +2834,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtRpn -> {
-                TODO("translate RPN $addressExpr")
+                // TODO RPN: optimize pointer access
+                storeViaExprEval()
             }
             addressExpr is PtBinaryExpression -> {
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))

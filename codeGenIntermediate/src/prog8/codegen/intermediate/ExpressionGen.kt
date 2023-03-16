@@ -317,7 +317,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(rpn: PtRpn): ExpressionCodeResult {
-        TODO("translate RPN expression $rpn")
+        TODO("RPN expression $rpn")
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {

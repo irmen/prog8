@@ -662,7 +662,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 }
             }
             is PtRpn -> {
-                TODO("pokeW for RPN $addrExpr")
+                // TODO RPN: optimized addr+index
+                // for now: fall through
             }
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
@@ -724,7 +725,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 }
             }
             is PtRpn -> {
-                TODO("peekW for RPN $addrExpr")
+                // TODO RPN: optimized pointer+index
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.out("  jsr  prog8_lib.func_peekw")
             }
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {

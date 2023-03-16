@@ -34,12 +34,17 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             is PtIdentifier -> translateExpression(expression)
             is PtFunctionCall -> translateFunctionCallResultOntoStack(expression)
             is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
-            is PtContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
+            is PtContainmentCheck -> translateContainmentCheck(expression)
             is PtArray, is PtString -> throw AssemblyError("string/array literal value assignment should have been replaced by a variable")
             is PtRange -> throw AssemblyError("range expression should have been changed into array values")
             is PtMachineRegister -> throw AssemblyError("machine register ast node should not occur in 6502 codegen it is for IR code")
             else -> TODO("missing expression asmgen for $expression")
         }
+    }
+
+    private fun translateContainmentCheck(check: PtContainmentCheck) {
+        asmgen.assignExpressionToRegister(check, RegisterOrPair.A)
+        asmgen.out("  sta  P8ESTACK_LO,x |  dex")
     }
 
     private fun translateFunctionCallResultOntoStack(call: PtFunctionCall) {
@@ -241,7 +246,46 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateExpression(expr: PtRpn) {
-        TODO("translate RPN $expr")
+        // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
+        val oper = expr.finalOperator()!!
+        val leftDt = oper.operand1Type
+        val rightDt = oper.operand2Type
+
+        // comparison against zero
+        if(oper.operator in ComparisonOperators) {
+            if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
+                val rightVal = (expr.finalSecondOperand() as PtExpression).asConstInteger()
+                if(rightVal==0)
+                    return translateComparisonWithZero(expr.finalFirstOperand() as PtExpression, leftDt, oper.operator)
+            }
+        }
+
+        // string compare
+        if(leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators) {
+            return translateCompareStrings(expr.finalFirstOperand() as PtExpression, oper.operator, expr.finalSecondOperand() as PtExpression)
+        }
+
+        // any other expression
+        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
+            || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
+            throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalSecondOperand()}")
+
+        var depth=0
+        expr.children.forEach {
+            if(it is PtRpnOperator) {
+                when(it.operand1Type) {
+                    in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.operand1Type)
+                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.operand1Type)
+                    DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
+                    else -> throw AssemblyError("non-numerical datatype  ${it.operand1Type}")
+                }
+                depth--
+            } else {
+                translateExpressionInternal(it as PtExpression)
+                depth++
+            }
+        }
+        require(depth==1) { "unbalanced RPN: $depth  ${expr.position}" }
     }
 
     private fun translateExpression(expr: PtBinaryExpression) {
