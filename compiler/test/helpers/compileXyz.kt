@@ -31,6 +31,7 @@ internal fun compileFile(
         asmListfile = false,
         experimentalCodegen = false,
         varsHigh = false,
+        useRPN = false,
         platform.name,
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),

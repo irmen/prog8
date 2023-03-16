@@ -170,12 +170,12 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         require(node is PtRpnOperator || node is PtExpression)
         if(node is PtRpn) {
             node.children.forEach {
-                children += it
+                children.add(it)
                 it.parent = this
             }
         }
         else {
-            children += node
+            children.add(node)
             node.parent = this
         }
     }
@@ -264,19 +264,24 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         }
         return Pair(maxDepths, numPushes)
     }
+
+    fun finalOperator(): String? = (children.last() as? PtRpnOperator)?.operator
+    fun finalFirstOperand() = children[children.size-3]
+    fun finalSecondOperand() = children[children.size-2]
 }
 
 class PtRpnOperator(val operator: String, val type: DataType, val operand1Type: DataType, val operand2Type: DataType, position: Position): PtNode(position) {
-//    init {
-//        require(operand1Type equalsSize operand2Type) {
-//            "operator $operator : operand1 and 2 types aren't equal sizes: $operand1Type $operand2Type"
-//        }
-//        if(operator !in ComparisonOperators) {
-//            require(type equalsSize operand1Type && type equalsSize operand2Type) {
-//                "operator $operator : type $type size not equal to operand1 and 2 types: $operand1Type $operand2Type"
-//            }
-//        }
-//    }
+    init {
+        // NOTE: For now, we require that the types of the operands are the same size as the output type of the operator node.
+        require(operand1Type equalsSize  operand2Type) {
+            "operand type size(s) differ: $operand1Type $operand2Type  oper: $operator"
+        }
+        if(operator !in ComparisonOperators) {
+            require(type equalsSize operand1Type && type equalsSize operand2Type) {
+                "operand type size(s) differ from operator result type $type:  $operand1Type $operand2Type  oper: $operator"
+            }
+        }
+    }
 }
 
 

@@ -50,6 +50,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             asmListfile = false,
             experimentalCodegen = false,
             varsHigh = false,
+            useRPN = false,
             compilationTarget = Cx16Target.NAME,
             evalStackBaseAddress = null,
             symbolDefs = emptyMap(),

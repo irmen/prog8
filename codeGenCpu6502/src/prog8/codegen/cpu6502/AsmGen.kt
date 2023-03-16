@@ -21,8 +21,8 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        // If we want RPN expressions instead, use this:
-        // TODO program.transformBinExprToRPN()
+        if(options.useRPN)
+            program.transformBinExprToRPN()
 
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
@@ -547,35 +547,38 @@ class AsmGen6502Internal (
             }
 
     private fun translate(stmt: PtIfElse) {
-        val condition =  stmt.condition as PtBinaryExpression
-        requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
+        if(stmt.condition is PtRpn) {
+            TODO("RPN")
+        } else {
+            val condition = stmt.condition as PtBinaryExpression
+            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
 
-        if (stmt.elseScope.children.isEmpty()) {
-            val jump = stmt.ifScope.children.singleOrNull()
-            if(jump is PtJump) {
-                translateCompareAndJumpIfTrue(condition, jump)
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    translateCompareAndJumpIfTrue(condition, jump)
+                } else {
+                    val endLabel = makeLabel("if_end")
+                    translateCompareAndJumpIfFalse(condition, endLabel)
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
             } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
                 val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalse(condition, endLabel)
+                translateCompareAndJumpIfFalse(condition, elseLabel)
                 translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
                 out(endLabel)
             }
-        }
-        else {
-            // both true and else parts
-            val elseLabel = makeLabel("if_else")
-            val endLabel = makeLabel("if_end")
-            translateCompareAndJumpIfFalse(condition, elseLabel)
-            translate(stmt.ifScope)
-            jmp(endLabel)
-            out(elseLabel)
-            translate(stmt.elseScope)
-            out(endLabel)
         }
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if(condition !is PtBinaryExpression || condition.operator !in ComparisonOperators)
+        if (!(condition is PtRpn && condition.finalOperator() in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 
@@ -980,7 +983,11 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
-        if(pointerOffsetExpr is PtBinaryExpression && pointerOffsetExpr.operator=="+") {
+        if (pointerOffsetExpr is PtRpn) {
+            TODO("RPN")
+        }
+        else if (pointerOffsetExpr is PtBinaryExpression) {
+            if (pointerOffsetExpr.operator != "+") return null
             val leftDt = pointerOffsetExpr.left.type
             val rightDt = pointerOffsetExpr.left.type
             if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
@@ -1001,7 +1008,6 @@ $repeatLabel    lda  $counterVar
                 if(leftTc!=null && leftTc.value.type == DataType.UBYTE)
                     return Pair(pointerOffsetExpr.right, leftTc.value)
             }
-
         }
         return null
     }
@@ -1021,7 +1027,6 @@ $repeatLabel    lda  $counterVar
                 else -> true
             }
         }
-
 
         if(expr.operator=="+") {
             val ptrAndIndex = pointerViaIndexRegisterPossible(expr)

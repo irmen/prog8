@@ -17,8 +17,8 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         errors: IErrorReporter
     ): IAssemblyProgram? {
 
-        // If we want RPN expressions instead, use this:
-        // program.transformBinExprToRPN()
+        if(options.useRPN)
+            program.transformBinExprToRPN()
 
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:

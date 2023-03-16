@@ -92,10 +92,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             value.add(origAssign.value)
         } else {
             require(origAssign.operator.endsWith('='))
-            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
-            val left: PtExpression = origAssign.target.children.single() as PtExpression
-            value.add(left)
-            value.add(origAssign.value)
+            if(codeGen.program.binaryExpressionsAreRPN) {
+                TODO("RPN")
+            } else {
+                value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
+                val left: PtExpression = origAssign.target.children.single() as PtExpression
+                value.add(left)
+                value.add(origAssign.value)
+            }
         }
         normalAssign.add(value)
         return translateRegularAssign(normalAssign)
@@ -262,10 +266,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val tr = if(itemsize==1) {
             expressionEval.translateExpression(array.index)
         } else {
-            val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
-            mult.children += array.index
-            mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
-            expressionEval.translateExpression(mult)
+            if(codeGen.program.binaryExpressionsAreRPN) {
+                TODO("RPN")
+            } else {
+                val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
+                mult.children += array.index
+                mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
+                expressionEval.translateExpression(mult)
+            }
         }
         addToResult(result, tr, tr.resultReg, -1)
         return Pair(result, tr.resultReg)

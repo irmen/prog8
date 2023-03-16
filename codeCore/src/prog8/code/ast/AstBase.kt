@@ -53,7 +53,8 @@ sealed class PtNamedNode(var name: String, position: Position): PtNode(position)
 class PtProgram(
     val name: String,
     val memsizer: IMemSizer,
-    val encoding: IStringEncoding
+    val encoding: IStringEncoding,
+    var binaryExpressionsAreRPN: Boolean = false
 ) : PtNode(Position.DUMMY) {
 
 //    fun allModuleDirectives(): Sequence<PtDirective> =
@@ -68,7 +69,8 @@ class PtProgram(
     // If the code generator wants, it can transform binary expression nodes into flat RPN nodes.
     // This will destroy the original binaryexpression nodes!
     fun transformBinExprToRPN() {
-
+        if(binaryExpressionsAreRPN)
+            return
         fun transformToRPN(originalExpr: PtBinaryExpression): PtRpn {
             fun makeRpn(expr: PtExpression): PtRpn {
                 val rpn = PtRpn(expr.type, expr.position)
@@ -97,6 +99,7 @@ class PtProgram(
         }
 
         children.forEach { transformBinExprToRPN(it, this) }
+        binaryExpressionsAreRPN = true
     }
 }
 

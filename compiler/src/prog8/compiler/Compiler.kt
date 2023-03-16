@@ -36,6 +36,7 @@ class CompilerArguments(val filepath: Path,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHigh: Boolean,
+                        val useRPN: Boolean,
                         val compilationTarget: String,
                         val evalStackBaseAddress: UInt?,
                         val symbolDefs: Map<String, String>,
@@ -76,6 +77,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
                 varsHigh = args.varsHigh
+                useRPN = args.useRPN
                 evalStackBaseAddress = args.evalStackBaseAddress
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs

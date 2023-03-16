@@ -101,7 +101,7 @@ class PtForLoop(position: Position) : PtNode(position) {
 
 class PtIfElse(position: Position) : PtNode(position) {
     val condition: PtNode
-        get() = children[0] as PtNode
+        get() = children[0]
     val ifScope: PtNodeGroup
         get() = children[1] as PtNodeGroup
     val elseScope: PtNodeGroup

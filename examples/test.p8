@@ -1,11 +1,26 @@
-main {
-    uword[10] answers_animals
+%import textio
+%import test_stack
+%zeropage basicsafe
+%option no_sysinit
 
-    sub start() {
-        ubyte current_question = 1
-        uword previous_animals = 33
-        current_question = msb(answers_animals[current_question])               ; TODO takes 1 more vm registers than 8.10
-        answers_animals[current_question] = mkword(msb(previous_animals), 0)    ; TODO takes 1 more vm registers than 8.10
-        ; TODO expected result: 7 registers in 8.10,   now takes 9 instead
+main {
+
+  sub start() {
+    test_stack.test()
+    uword xx=32
+    cx16.r0L = 3
+
+    if cx16.r0L in "derp" {
+        xx++
     }
+
+    xx = xx+(3*func(xx)+xx*2*cx16.r0L)
+    txt.print_uw(xx)
+    test_stack.test()
+  }
+
+  sub func(uword value) -> uword {
+    value ++
+    return value
+  }
 }

@@ -52,6 +52,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsHigh by cli.option(ArgType.Boolean, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program")
+    val useRPN by cli.option(ArgType.Boolean, fullName = "rpn", description = "use RPN for expression code-generation (experimental)")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -126,6 +127,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHigh == true,
+                    useRPN == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,
@@ -190,6 +192,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHigh == true,
+                    useRPN == true,
                     compilationTarget,
                     evalStackAddr,
                     processedSymbols,
