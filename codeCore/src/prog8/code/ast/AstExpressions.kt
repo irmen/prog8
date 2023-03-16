@@ -27,7 +27,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         return when(this) {
             is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
-            is PtBinaryExpressionObsoleteUsePtRpn -> other is PtBinaryExpressionObsoleteUsePtRpn && other.left isSameAs left && other.right isSameAs right
+            is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
             is PtRpn -> other is PtRpn && this.isSame(other)
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
@@ -63,7 +63,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtAddressOf -> true
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
-            is PtBinaryExpressionObsoleteUsePtRpn -> false
+            is PtBinaryExpression -> false
             is PtRpn -> false
             is PtBuiltinFunctionCall -> name in arrayOf("msb", "lsb", "peek", "peekw", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
             is PtContainmentCheck -> false
@@ -152,7 +152,7 @@ class PtBuiltinFunctionCall(val name: String,
 }
 
 
-class PtBinaryExpressionObsoleteUsePtRpn(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
     // note: "and", "or", "xor" do not occur anymore as operators. They've been replaced int the ast by their bitwise versions &, |, ^.
     val left: PtExpression
         get() = children[0] as PtExpression
@@ -163,13 +163,21 @@ class PtBinaryExpressionObsoleteUsePtRpn(val operator: String, type: DataType, p
 
 class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
     // contains only PtExpression (not PtRpn!) and PtRpnOperator nodes
+    // not created directly by the compiler for now, if code generators prefer this over PtBinaryExpression,
+    // they have to transform the ast themselves first using the utility routine on PtProgram for it.
 
-    operator fun plusAssign(node: PtNode) {
+    fun addRpnNode(node: PtNode) {
         require(node is PtRpnOperator || node is PtExpression)
-        if(node is PtRpn)
-            children.addAll(node.children)
-        else
+        if(node is PtRpn) {
+            node.children.forEach {
+                children += it
+                it.parent = this
+            }
+        }
+        else {
             children += node
+            node.parent = this
+        }
     }
 
     fun print() {
@@ -259,9 +267,16 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
 }
 
 class PtRpnOperator(val operator: String, val type: DataType, val operand1Type: DataType, val operand2Type: DataType, position: Position): PtNode(position) {
-    init {
-        require(type==operand1Type && type==operand2Type)   // TODO if this is always true, can remove operand1 and 2 types again.
-    }
+//    init {
+//        require(operand1Type equalsSize operand2Type) {
+//            "operator $operator : operand1 and 2 types aren't equal sizes: $operand1Type $operand2Type"
+//        }
+//        if(operator !in ComparisonOperators) {
+//            require(type equalsSize operand1Type && type equalsSize operand2Type) {
+//                "operator $operator : type $type size not equal to operand1 and 2 types: $operand1Type $operand2Type"
+//            }
+//        }
+//    }
 }
 
 

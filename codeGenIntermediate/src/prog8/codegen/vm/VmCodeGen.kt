@@ -17,6 +17,8 @@ class VmCodeGen: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
+        // If we want RPN expressions instead, use this:
+        // program.transformBinExprToRPN()
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
         return VmAssemblyProgram(irProgram.name, irProgram)

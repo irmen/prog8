@@ -92,7 +92,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             value.add(origAssign.value)
         } else {
             require(origAssign.operator.endsWith('='))
-            value = PtBinaryExpressionObsoleteUsePtRpn(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
+            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
             val left: PtExpression = origAssign.target.children.single() as PtExpression
             value.add(left)
             value.add(origAssign.value)
@@ -262,7 +262,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val tr = if(itemsize==1) {
             expressionEval.translateExpression(array.index)
         } else {
-            val mult = PtBinaryExpressionObsoleteUsePtRpn("*", DataType.UBYTE, array.position)
+            val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
             mult.children += array.index
             mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
             expressionEval.translateExpression(mult)

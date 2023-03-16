@@ -268,7 +268,7 @@ class IRCodeGen(
             is PtMemoryByte,
             is PtProgram,
             is PtArrayIndexer,
-            is PtBinaryExpressionObsoleteUsePtRpn,
+            is PtBinaryExpression,
             is PtRpn,
             is PtRpnOperator,
             is PtIdentifier,
@@ -898,30 +898,35 @@ class IRCodeGen(
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
         val condition = ifElse.condition
-        if(condition.operator !in ComparisonOperators)
-            throw AssemblyError("if condition should only be a binary comparison expression")
+        if(condition is PtBinaryExpression) {
+            if(condition.operator !in ComparisonOperators)
+                throw AssemblyError("if condition should only be a binary comparison expression")
 
-        val signed = condition.left.type in SignedDatatypes
-        val irDtLeft = irType(condition.left.type)
-        val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
-        return when {
-            goto!=null && ifElse.elseScope.children.isEmpty() -> translateIfFollowedByJustGoto(ifElse, goto, irDtLeft, signed)
-            constValue(condition.right) == 0.0 -> translateIfElseZeroComparison(ifElse, irDtLeft, signed)
-            else -> translateIfElseNonZeroComparison(ifElse, irDtLeft, signed)
+            val signed = condition.left.type in SignedDatatypes
+            val irDtLeft = irType(condition.left.type)
+            val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
+            return when {
+                goto!=null && ifElse.elseScope.children.isEmpty() -> translateIfFollowedByJustGoto(ifElse, goto, irDtLeft, signed)
+                constValue(condition.right) == 0.0 -> translateIfElseZeroComparison(ifElse, irDtLeft, signed)
+                else -> translateIfElseNonZeroComparison(ifElse, irDtLeft, signed)
+            }
+        } else {
+            TODO("weird condition node: $condition")
         }
     }
 
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
+        val condition = ifElse.condition as PtBinaryExpression
         if(irDtLeft==IRDataType.FLOAT) {
-            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
-            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            val rightTr = expressionEval.translateExpression(condition.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             result += IRCodeChunk(null,null).also {
                 val compResultReg = registers.nextFree()
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg)
-                val gotoOpcode = when (ifElse.condition.operator) {
+                val gotoOpcode = when (condition.operator) {
                     "==" -> Opcode.BZ
                     "!=" -> Opcode.BNZ
                     "<" -> Opcode.BLEZS
@@ -939,7 +944,7 @@ class IRCodeGen(
             }
             return result
         } else {
-            val rightConst = ifElse.condition.right.asConstInteger()
+            val rightConst = condition.right.asConstInteger()
             return if(rightConst==0)
                 ifZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
             else {
@@ -955,9 +960,10 @@ class IRCodeGen(
         irDtLeft: IRDataType,
         goto: PtJump
     ): MutableList<IRCodeChunkBase> {
-        val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+        val condition = ifElse.condition as PtBinaryExpression
+        val leftTr = expressionEval.translateExpression(condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
-        val opcode = when (ifElse.condition.operator) {
+        val opcode = when (condition.operator) {
             "==" -> Opcode.BZ
             "!=" -> Opcode.BNZ
             "<" -> if (signed) Opcode.BLZS else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
@@ -982,14 +988,15 @@ class IRCodeGen(
         irDtLeft: IRDataType,
         goto: PtJump
     ): MutableList<IRCodeChunkBase> {
-        val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+        val condition = ifElse.condition as PtBinaryExpression
+        val leftTr = expressionEval.translateExpression(condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
-        val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+        val rightTr = expressionEval.translateExpression(condition.right)
         addToResult(result, rightTr, rightTr.resultReg, -1)
         val opcode: Opcode
         val firstReg: Int
         val secondReg: Int
-        when (ifElse.condition.operator) {
+        when (condition.operator) {
             "==" -> {
                 opcode = Opcode.BEQ
                 firstReg = leftTr.resultReg
@@ -1038,17 +1045,18 @@ class IRCodeGen(
         val elseBranch: Opcode
         val compResultReg: Int
         val branchDt: IRDataType
+        val condition = ifElse.condition as PtBinaryExpression
         if(irDtLeft==IRDataType.FLOAT) {
             branchDt = IRDataType.BYTE
             compResultReg = registers.nextFree()
-            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             result += IRCodeChunk(null, null).also {
                 val rightFpReg = registers.nextFreeFloat()
                 it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, fpValue = 0f)
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightFpReg)
             }
-            elseBranch = when (ifElse.condition.operator) {
+            elseBranch = when (condition.operator) {
                 "==" -> Opcode.BNZ
                 "!=" -> Opcode.BZ
                 "<" -> Opcode.BGEZS
@@ -1060,10 +1068,10 @@ class IRCodeGen(
         } else {
             // integer comparisons
             branchDt = irDtLeft
-            val tr = expressionEval.translateExpression(ifElse.condition.left)
+            val tr = expressionEval.translateExpression(condition.left)
             compResultReg = tr.resultReg
             addToResult(result, tr, tr.resultReg, -1)
-            elseBranch = when (ifElse.condition.operator) {
+            elseBranch = when (condition.operator) {
                 "==" -> Opcode.BNZ
                 "!=" -> Opcode.BZ
                 "<" -> if (signed) Opcode.BGEZS else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
@@ -1100,14 +1108,15 @@ class IRCodeGen(
         val elseBranchFirstReg: Int
         val elseBranchSecondReg: Int
         val branchDt: IRDataType
+        val condition = ifElse.condition as PtBinaryExpression
         if(irDtLeft==IRDataType.FLOAT) {
-            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
-            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            val rightTr = expressionEval.translateExpression(condition.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val compResultReg = registers.nextFree()
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
-            val elseBranch = when (ifElse.condition.operator) {
+            val elseBranch = when (condition.operator) {
                 "==" -> Opcode.BNZ
                 "!=" -> Opcode.BZ
                 "<" -> Opcode.BGEZS
@@ -1135,11 +1144,11 @@ class IRCodeGen(
         } else {
             // integer comparisons
             branchDt = irDtLeft
-            val leftTr = expressionEval.translateExpression(ifElse.condition.left)
+            val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
-            val rightTr = expressionEval.translateExpression(ifElse.condition.right)
+            val rightTr = expressionEval.translateExpression(condition.right)
             addToResult(result, rightTr, rightTr.resultReg, -1)
-            when (ifElse.condition.operator) {
+            when (condition.operator) {
                 "==" -> {
                     elseBranchOpcode = Opcode.BNE
                     elseBranchFirstReg = leftTr.resultReg

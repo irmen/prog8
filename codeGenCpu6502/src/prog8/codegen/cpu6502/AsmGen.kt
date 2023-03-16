@@ -21,6 +21,9 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
+        // If we want RPN expressions instead, use this:
+        // TODO program.transformBinExprToRPN()
+
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
     }
@@ -544,16 +547,16 @@ class AsmGen6502Internal (
             }
 
     private fun translate(stmt: PtIfElse) {
-        requireComparisonExpression(stmt.condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-        val booleanCondition = stmt.condition
+        val condition =  stmt.condition as PtBinaryExpression
+        requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
 
         if (stmt.elseScope.children.isEmpty()) {
             val jump = stmt.ifScope.children.singleOrNull()
             if(jump is PtJump) {
-                translateCompareAndJumpIfTrue(booleanCondition, jump)
+                translateCompareAndJumpIfTrue(condition, jump)
             } else {
                 val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalse(booleanCondition, endLabel)
+                translateCompareAndJumpIfFalse(condition, endLabel)
                 translate(stmt.ifScope)
                 out(endLabel)
             }
@@ -562,7 +565,7 @@ class AsmGen6502Internal (
             // both true and else parts
             val elseLabel = makeLabel("if_else")
             val endLabel = makeLabel("if_end")
-            translateCompareAndJumpIfFalse(booleanCondition, elseLabel)
+            translateCompareAndJumpIfFalse(condition, elseLabel)
             translate(stmt.ifScope)
             jmp(endLabel)
             out(elseLabel)
@@ -572,7 +575,7 @@ class AsmGen6502Internal (
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if(condition !is PtBinaryExpressionObsoleteUsePtRpn || condition.operator !in ComparisonOperators)
+        if(condition !is PtBinaryExpression || condition.operator !in ComparisonOperators)
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 
@@ -977,7 +980,7 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
-        if(pointerOffsetExpr is PtBinaryExpressionObsoleteUsePtRpn && pointerOffsetExpr.operator=="+") {
+        if(pointerOffsetExpr is PtBinaryExpression && pointerOffsetExpr.operator=="+") {
             val leftDt = pointerOffsetExpr.left.type
             val rightDt = pointerOffsetExpr.left.type
             if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
@@ -1003,7 +1006,7 @@ $repeatLabel    lda  $counterVar
         return null
     }
 
-    internal fun tryOptimizedPointerAccessWithA(expr: PtBinaryExpressionObsoleteUsePtRpn, write: Boolean): Boolean {
+    internal fun tryOptimizedPointerAccessWithA(expr: PtBinaryExpression, write: Boolean): Boolean {
         // optimize pointer,indexregister if possible
 
         fun evalBytevalueWillClobberA(expr: PtExpression): Boolean {
@@ -1095,7 +1098,7 @@ $repeatLabel    lda  $counterVar
         return node.definingSub()?.parameters?.singleOrNull { it.name===name }
     }
 
-    private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpressionObsoleteUsePtRpn, jump: PtJump) {
+    private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
         if(expr.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
 
@@ -1121,7 +1124,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateCompareAndJumpIfFalse(expr: PtBinaryExpressionObsoleteUsePtRpn, jumpIfFalseLabel: String) {
+    private fun translateCompareAndJumpIfFalse(expr: PtBinaryExpression, jumpIfFalseLabel: String) {
         val left = expr.left
         val right = expr.right
         val operator = expr.operator
@@ -2833,8 +2836,8 @@ $repeatLabel    lda  $counterVar
                 if(pushResultOnEstack)
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
-            is PtBinaryExpressionObsoleteUsePtRpn -> {
-                if(tryOptimizedPointerAccessWithA(expr.address as PtBinaryExpressionObsoleteUsePtRpn, false)) {
+            is PtBinaryExpression -> {
+                if(tryOptimizedPointerAccessWithA(expr.address as PtBinaryExpression, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")
                 } else {

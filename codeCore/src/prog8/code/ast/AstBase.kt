@@ -64,6 +64,40 @@ class PtProgram(
 
     fun entrypoint(): PtSub? =
         allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && it.name == "start" } as PtSub?
+
+    // If the code generator wants, it can transform binary expression nodes into flat RPN nodes.
+    // This will destroy the original binaryexpression nodes!
+    fun transformBinExprToRPN() {
+
+        fun transformToRPN(originalExpr: PtBinaryExpression): PtRpn {
+            fun makeRpn(expr: PtExpression): PtRpn {
+                val rpn = PtRpn(expr.type, expr.position)
+                rpn.addRpnNode(expr)
+                return rpn
+            }
+
+            val rpn = PtRpn(originalExpr.type, position)
+            rpn.addRpnNode(makeRpn(originalExpr.left))
+            rpn.addRpnNode(makeRpn(originalExpr.right))
+            rpn.addRpnNode(PtRpnOperator(originalExpr.operator, originalExpr.type, originalExpr.left.type, originalExpr.right.type, position))
+            return rpn
+        }
+
+        fun transformBinExprToRPN(node: PtNode, parent: PtNode) {
+            if(node is PtBinaryExpression) {
+                val rpn = transformToRPN(node)
+                val idx = parent.children.indexOf(node)
+                rpn.parent = parent
+                parent.children[idx] = rpn
+            }
+
+            node.children.forEach {child ->
+                transformBinExprToRPN(child, node)
+            }
+        }
+
+        children.forEach { transformBinExprToRPN(it, this) }
+    }
 }
 
 

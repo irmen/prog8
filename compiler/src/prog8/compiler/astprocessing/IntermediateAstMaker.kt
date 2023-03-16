@@ -456,35 +456,16 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
         return arr
     }
 
-    private fun transform(srcExpr: BinaryExpression): PtBinaryExpressionObsoleteUsePtRpn {
+    private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
+        // NOTE: the  Ast maker here will NOT create RPN-expression nodes for the code generator.
+        // If the code generator prefers RPN expressions, it has to transform the PtBinaryExpression itself into PtRpn.
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
         val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
-        val expr = PtBinaryExpressionObsoleteUsePtRpn(srcExpr.operator, actualType, srcExpr.position)
+        val expr = PtBinaryExpression(srcExpr.operator, actualType, srcExpr.position)
         expr.add(transformExpression(srcExpr.left))
         expr.add(transformExpression(srcExpr.right))
         return expr
     }
-
-//    TODO replace the above with this, to generete RPN expression nodes:
-//    private fun transform(srcExpr: BinaryExpression): PtRpn {
-//        fun makeRpn(expr: Expression): PtRpn {
-//            val type = expr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-//            val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
-//            val rpn = PtRpn(actualType, expr.position)
-//            rpn += transformExpression(expr)
-//            return rpn
-//        }
-//
-//        val leftDt = srcExpr.left.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-//        val rightDt = srcExpr.left.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-//        val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-//        val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
-//        val rpn = PtRpn(actualType, srcExpr.position)
-//        rpn += makeRpn(srcExpr.left)
-//        rpn += makeRpn(srcExpr.right)
-//        rpn += PtRpnOperator(srcExpr.operator, actualType, leftDt, rightDt, srcExpr.position)
-//        return rpn
-//    }
 
     private fun transform(srcCall: BuiltinFunctionCall): PtBuiltinFunctionCall {
         val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
