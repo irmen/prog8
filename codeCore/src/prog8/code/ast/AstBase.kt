@@ -78,10 +78,10 @@ class PtProgram(
                 return rpn
             }
 
-            val rpn = PtRpn(originalExpr.type, position)
+            val rpn = PtRpn(originalExpr.type, originalExpr.position)
             rpn.addRpnNode(makeRpn(originalExpr.left))
             rpn.addRpnNode(makeRpn(originalExpr.right))
-            rpn.addRpnNode(PtRpnOperator(originalExpr.operator, originalExpr.type, originalExpr.left.type, originalExpr.right.type, position))
+            rpn.addRpnNode(PtRpnOperator(originalExpr.operator, originalExpr.type, originalExpr.left.type, originalExpr.right.type, originalExpr.position))
             return rpn
         }
 

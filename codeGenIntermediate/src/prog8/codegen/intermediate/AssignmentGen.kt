@@ -93,7 +93,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             require(origAssign.operator.endsWith('='))
             if(codeGen.program.binaryExpressionsAreRPN) {
-                TODO("RPN fallbackassign alt.")
+                value = PtRpn(origAssign.value.type, origAssign.value.position)
+                val left = origAssign.target.children.single() as PtExpression
+                val right = origAssign.value
+                value.add(left)
+                value.add(right)
+                value.add(PtRpnOperator(origAssign.operator.dropLast(1), origAssign.target.type, left.type, right.type, origAssign.position))
             } else {
                 value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
                 val left: PtExpression = origAssign.target.children.single() as PtExpression
@@ -266,14 +271,20 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val tr = if(itemsize==1) {
             expressionEval.translateExpression(array.index)
         } else {
+            val mult : PtExpression
             if(codeGen.program.binaryExpressionsAreRPN) {
-                TODO("RPN loadindexreg alt.")
+                mult = PtRpn(DataType.UBYTE, array.position)
+                val left = array.index
+                val right = PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
+                mult.add(left)
+                mult.add(right)
+                mult.add(PtRpnOperator("*", DataType.UBYTE, left.type, right.type, array.position))
             } else {
-                val mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
+                mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
                 mult.children += array.index
                 mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
-                expressionEval.translateExpression(mult)
             }
+            expressionEval.translateExpression(mult)
         }
         addToResult(result, tr, tr.resultReg, -1)
         return Pair(result, tr.resultReg)

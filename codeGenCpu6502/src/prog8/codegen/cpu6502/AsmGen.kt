@@ -50,8 +50,9 @@ class AsmGen6502Internal (
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
+    private val assignmentAsmGen = AssignmentAsmGen(program, symbolTable, this, allocator)
+    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, symbolTable, this, assignmentAsmGen)
+    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, assignmentAsmGen, this)
 
     fun compileToAssembly(): IAssemblyProgram? {
 
@@ -601,7 +602,7 @@ class AsmGen6502Internal (
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if (!(condition is PtRpn && condition.finalOperator()?.operator in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
+        if (!(condition is PtRpn && condition.finalOperator().operator in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 
@@ -1007,7 +1008,7 @@ $repeatLabel    lda  $counterVar
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
         if (pointerOffsetExpr is PtRpn) {
-            TODO("RPN determine pointer+index via reg.")   // however, is this ever getting called from RPN code?
+            return rpnAssignmentAsmGen.pointerViaIndexRegisterPossible(pointerOffsetExpr)
         }
         else if (pointerOffsetExpr is PtBinaryExpression) {
             if (pointerOffsetExpr.operator != "+") return null
@@ -2889,8 +2890,12 @@ $repeatLabel    lda  $counterVar
                 }
             }
             is PtRpn -> {
-                // TODO RPN: optimized memread address
-                assignViaExprEval()
+                if(rpnAssignmentAsmGen.tryOptimizedPointerAccessWithA(expr.address as PtRpn, false)) {
+                    if(pushResultOnEstack)
+                        out("  sta  P8ESTACK_LO,x |  dex")
+                } else {
+                    assignViaExprEval()
+                }
             }
             else -> assignViaExprEval()
         }

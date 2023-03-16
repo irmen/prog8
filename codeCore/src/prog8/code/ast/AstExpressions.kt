@@ -251,8 +251,8 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
 
         children.withIndex().forEach { (index, node) ->
             if (node is PtRpnOperator) {
-                pop(node.operand1Type)
-                pop(node.operand2Type)
+                pop(node.leftType)
+                pop(node.rightType)
                 push(node.type)
             }
             else {
@@ -265,17 +265,18 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         return Pair(maxDepths, numPushes)
     }
 
-    fun finalOperator() = children.last() as? PtRpnOperator
-    fun finalFirstOperand() = children[children.size-3]
-    fun finalSecondOperand() = children[children.size-2]
+    fun finalOperator() = children.last() as PtRpnOperator
+    fun finalLeftOperand() = children[children.size-3]
+    fun finalRightOperand() = children[children.size-2]
+    fun finalOperation() = Triple(finalLeftOperand(), finalOperator(), finalRightOperand())
 }
 
-class PtRpnOperator(val operator: String, val type: DataType, val operand1Type: DataType, val operand2Type: DataType, position: Position): PtNode(position) {
+class PtRpnOperator(val operator: String, val type: DataType, val leftType: DataType, val rightType: DataType, position: Position): PtNode(position) {
     init {
         // NOTE: For now, we require that the types of the operands are the same size as the output type of the operator node.
         if(operator !in ComparisonOperators) {
-            require(type equalsSize operand1Type && type equalsSize operand2Type) {
-                "operand type size(s) differ from operator result type $type:  $operand1Type $operand2Type  oper: $operator"
+            require(type equalsSize leftType && type equalsSize rightType) {
+                "operand type size(s) differ from operator result type $type:  $leftType $rightType  oper: $operator"
             }
         }
     }

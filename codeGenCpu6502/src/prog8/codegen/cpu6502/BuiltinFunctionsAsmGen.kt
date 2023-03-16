@@ -1,13 +1,17 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 
 
 internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
+                                      private val symbolTable: SymbolTable,
                                       private val asmgen: AsmGen6502Internal,
                                       private val assignAsmGen: AssignmentAsmGen) {
+
+    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, assignAsmGen, asmgen)
 
     internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? {
         return translateFunctioncall(fcall, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
@@ -661,10 +665,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtRpn -> {
-                // TODO RPN: optimized addr+index
-                // for now: fall through
-            }
+            is PtRpn -> if(rpnAssignmentAsmGen.funcPokeW(fcall)) return
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
@@ -724,11 +725,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.out("  jsr  prog8_lib.func_peekw")
                 }
             }
-            is PtRpn -> {
-                // TODO RPN: optimized pointer+index
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                asmgen.out("  jsr  prog8_lib.func_peekw")
-            }
+            is PtRpn -> rpnAssignmentAsmGen.funcPeekW(fcall, resultToStack, resultRegister)
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)

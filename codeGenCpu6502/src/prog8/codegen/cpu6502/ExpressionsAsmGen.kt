@@ -247,37 +247,37 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
 
     private fun translateExpression(expr: PtRpn) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
-        val oper = expr.finalOperator()!!
-        val leftDt = oper.operand1Type
-        val rightDt = oper.operand2Type
+        val oper = expr.finalOperator()
+        val leftDt = oper.leftType
+        val rightDt = oper.rightType
 
         // comparison against zero
         if(oper.operator in ComparisonOperators) {
             if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
-                val rightVal = (expr.finalSecondOperand() as PtExpression).asConstInteger()
+                val rightVal = (expr.finalRightOperand() as PtExpression).asConstInteger()
                 if(rightVal==0)
-                    return translateComparisonWithZero(expr.finalFirstOperand() as PtExpression, leftDt, oper.operator)
+                    return translateComparisonWithZero(expr.finalLeftOperand() as PtExpression, leftDt, oper.operator)
             }
         }
 
         // string compare
         if(leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators) {
-            return translateCompareStrings(expr.finalFirstOperand() as PtExpression, oper.operator, expr.finalSecondOperand() as PtExpression)
+            return translateCompareStrings(expr.finalLeftOperand() as PtExpression, oper.operator, expr.finalRightOperand() as PtExpression)
         }
 
         // any other expression
         if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
             || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
-            throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalSecondOperand()}")
+            throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalRightOperand()}")
 
         var depth=0
         expr.children.forEach {
             if(it is PtRpnOperator) {
-                when(it.operand1Type) {
-                    in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.operand1Type)
-                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.operand1Type)
+                when(it.leftType) {
+                    in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.leftType)
+                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
                     DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
-                    else -> throw AssemblyError("non-numerical datatype  ${it.operand1Type}")
+                    else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
                 }
                 depth--
             } else {

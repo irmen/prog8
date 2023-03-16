@@ -913,7 +913,7 @@ class IRCodeGen(
                 }
             }
             is PtRpn -> {
-                TODO("RPN ifelse $condition")
+                TODO("RPN ifelse (intermediate codegen) $condition")
             }
             else -> {
                 TODO("weird condition node: $condition")
@@ -923,7 +923,7 @@ class IRCodeGen(
 
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
         if(program.binaryExpressionsAreRPN) {
-            TODO ("RPN")
+            TODO ("RPN (intermediate codegen)")
         } else {
             val result = mutableListOf<IRCodeChunkBase>()
             val condition = ifElse.condition as PtBinaryExpression
