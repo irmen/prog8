@@ -266,41 +266,41 @@ cx16 {
 
 ; I/O
 
-    const uword  via1   = $9f00                  ;VIA 6522 #1
-    &ubyte  d1prb	= via1+0
-    &ubyte  d1pra	= via1+1
-    &ubyte  d1ddrb	= via1+2
-    &ubyte  d1ddra	= via1+3
-    &ubyte  d1t1l	= via1+4
-    &ubyte  d1t1h	= via1+5
-    &ubyte  d1t1ll	= via1+6
-    &ubyte  d1t1lh	= via1+7
-    &ubyte  d1t2l	= via1+8
-    &ubyte  d1t2h	= via1+9
-    &ubyte  d1sr	= via1+10
-    &ubyte  d1acr	= via1+11
-    &ubyte  d1pcr	= via1+12
-    &ubyte  d1ifr	= via1+13
-    &ubyte  d1ier	= via1+14
-    &ubyte  d1ora	= via1+15
+    const uword  VIA1_BASE   = $9f00                  ;VIA 6522 #1
+    &ubyte  via1prb	= VIA1_BASE + 0
+    &ubyte  via1pra	= VIA1_BASE + 1
+    &ubyte  via1ddrb	= VIA1_BASE + 2
+    &ubyte  via1ddra	= VIA1_BASE + 3
+    &ubyte  via1t1l	= VIA1_BASE + 4
+    &ubyte  via1t1h	= VIA1_BASE + 5
+    &ubyte  via1t1ll	= VIA1_BASE + 6
+    &ubyte  via1t1lh	= VIA1_BASE + 7
+    &ubyte  via1t2l	= VIA1_BASE + 8
+    &ubyte  via1t2h	= VIA1_BASE + 9
+    &ubyte  via1sr	= VIA1_BASE + 10
+    &ubyte  via1acr	= VIA1_BASE + 11
+    &ubyte  via1pcr	= VIA1_BASE + 12
+    &ubyte  via1ifr	= VIA1_BASE + 13
+    &ubyte  via1ier	= VIA1_BASE + 14
+    &ubyte  via1ora	= VIA1_BASE + 15
 
-    const uword  via2   = $9f10                  ;VIA 6522 #2
-    &ubyte  d2prb	= via2+0
-    &ubyte  d2pra	= via2+1
-    &ubyte  d2ddrb	= via2+2
-    &ubyte  d2ddra	= via2+3
-    &ubyte  d2t1l	= via2+4
-    &ubyte  d2t1h	= via2+5
-    &ubyte  d2t1ll	= via2+6
-    &ubyte  d2t1lh	= via2+7
-    &ubyte  d2t2l	= via2+8
-    &ubyte  d2t2h	= via2+9
-    &ubyte  d2sr	= via2+10
-    &ubyte  d2acr	= via2+11
-    &ubyte  d2pcr	= via2+12
-    &ubyte  d2ifr	= via2+13
-    &ubyte  d2ier	= via2+14
-    &ubyte  d2ora	= via2+15
+    const uword  VIA2_BASE   = $9f10                  ;VIA 6522 #2
+    &ubyte  via2prb	= VIA2_BASE + 0
+    &ubyte  via2pra	= VIA2_BASE + 1
+    &ubyte  via2ddrb	= VIA2_BASE + 2
+    &ubyte  via2ddra	= VIA2_BASE + 3
+    &ubyte  via2t1l	= VIA2_BASE + 4
+    &ubyte  via2t1h	= VIA2_BASE + 5
+    &ubyte  via2t1ll	= VIA2_BASE + 6
+    &ubyte  via2t1lh	= VIA2_BASE + 7
+    &ubyte  via2t2l	= VIA2_BASE + 8
+    &ubyte  via2t2h	= VIA2_BASE + 9
+    &ubyte  via2sr	= VIA2_BASE + 10
+    &ubyte  via2acr	= VIA2_BASE + 11
+    &ubyte  via2pcr	= VIA2_BASE + 12
+    &ubyte  via2ifr	= VIA2_BASE + 13
+    &ubyte  via2ier	= VIA2_BASE + 14
+    &ubyte  via2ora	= VIA2_BASE + 15
 
 ; YM-2151 sound chip
     &ubyte  YM_ADDRESS	= $9f40
