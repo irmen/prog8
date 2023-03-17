@@ -1,7 +1,9 @@
 TODO
 ====
 
-BRANCH: Fix the TODO RPN  routines to be optimized assembly
+BRANCH: Fix the TODO RPN  routines to be optimized assembly in RpnExpressionAsmGen.kt
+
+Implement RPN codegen for IR.
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^

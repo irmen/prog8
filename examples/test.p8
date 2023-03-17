@@ -3,6 +3,8 @@
 %zeropage basicsafe
 %option no_sysinit
 
+; $1e4 size
+
 main {
 
   sub start() {
@@ -10,17 +12,20 @@ main {
     uword xx=32
     cx16.r0L = 3
 
-    if cx16.r0L in "derp" {
-        xx++
-    }
+    cx16.r0 = peekw(xx + 44)
+    @(xx+44) = cx16.r0L
 
-    xx = xx+(3*func(xx)+xx*2*cx16.r0L)
-    txt.print_uw(xx)
+;    if cx16.r0L in "derp" {
+;        xx++
+;    }
+;
+;    xx = xx+(3*func(xx)+xx*2*cx16.r0L)
+;    txt.print_uw(xx)
     test_stack.test()
   }
 
-  sub func(uword value) -> uword {
-    value ++
-    return value
-  }
+;  sub func(uword value) -> uword {
+;    value ++
+;    return value
+;  }
 }

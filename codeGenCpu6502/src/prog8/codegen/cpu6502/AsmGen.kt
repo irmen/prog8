@@ -48,11 +48,11 @@ class AsmGen6502Internal (
     private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
-    private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
     private val assignmentAsmGen = AssignmentAsmGen(program, symbolTable, this, allocator)
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, symbolTable, this, assignmentAsmGen)
-    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, assignmentAsmGen, this)
+    private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
+    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
+    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, this)
 
     fun compileToAssembly(): IAssemblyProgram? {
 
@@ -1007,36 +1007,53 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
-        if (pointerOffsetExpr is PtRpn) {
-            return rpnAssignmentAsmGen.pointerViaIndexRegisterPossible(pointerOffsetExpr)
-        }
-        else if (pointerOffsetExpr is PtBinaryExpression) {
-            if (pointerOffsetExpr.operator != "+") return null
-            val leftDt = pointerOffsetExpr.left.type
-            val rightDt = pointerOffsetExpr.left.type
-            if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
-                return Pair(pointerOffsetExpr.left, pointerOffsetExpr.right)
-            if(leftDt == DataType.UBYTE && rightDt == DataType.UWORD)
-                return Pair(pointerOffsetExpr.right, pointerOffsetExpr.left)
-            if(leftDt == DataType.UWORD && rightDt == DataType.UWORD) {
-                // could be that the index was a constant numeric byte but converted to word, check that
-                val constIdx = pointerOffsetExpr.right as? PtNumber
-                if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
-                    return Pair(pointerOffsetExpr.left, PtNumber(DataType.UBYTE, constIdx.number, constIdx.position))
-                }
-                // could be that the index was typecasted into uword, check that
-                val rightTc = pointerOffsetExpr.right as? PtTypeCast
-                if(rightTc!=null && rightTc.value.type == DataType.UBYTE)
-                    return Pair(pointerOffsetExpr.left, rightTc.value)
-                val leftTc = pointerOffsetExpr.left as? PtTypeCast
-                if(leftTc!=null && leftTc.value.type == DataType.UBYTE)
-                    return Pair(pointerOffsetExpr.right, leftTc.value)
+        val left: PtExpression
+        val right: PtExpression
+        val operator: String
+
+        when (pointerOffsetExpr) {
+            is PtRpn -> {
+                if(pointerOffsetExpr.children.size>3)
+                    return null     // expression is too complex, we need just a pointer var + index
+                val (leftNode, oper, rightNode) = pointerOffsetExpr.finalOperation()
+                operator=oper.operator
+                if (leftNode !is PtExpression || rightNode !is PtExpression) return null
+                left = leftNode
+                right = rightNode
             }
+            is PtBinaryExpression -> {
+                operator = pointerOffsetExpr.operator
+                left = pointerOffsetExpr.left
+                right = pointerOffsetExpr.right
+            }
+            else -> return null
+        }
+
+        if (operator != "+") return null
+        val leftDt = left.type
+        val rightDt = right.type
+        if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
+            return Pair(left, right)
+        if(leftDt == DataType.UBYTE && rightDt == DataType.UWORD)
+            return Pair(right, left)
+        if(leftDt == DataType.UWORD && rightDt == DataType.UWORD) {
+            // could be that the index was a constant numeric byte but converted to word, check that
+            val constIdx = right as? PtNumber
+            if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
+                return Pair(left, PtNumber(DataType.UBYTE, constIdx.number, constIdx.position))
+            }
+            // could be that the index was typecasted into uword, check that
+            val rightTc = right as? PtTypeCast
+            if(rightTc!=null && rightTc.value.type == DataType.UBYTE)
+                return Pair(left, rightTc.value)
+            val leftTc = left as? PtTypeCast
+            if(leftTc!=null && leftTc.value.type == DataType.UBYTE)
+                return Pair(right, leftTc.value)
         }
         return null
     }
 
-    internal fun tryOptimizedPointerAccessWithA(expr: PtBinaryExpression, write: Boolean): Boolean {
+    internal fun tryOptimizedPointerAccessWithA(addressExpr: PtExpression, operator: String, write: Boolean): Boolean {
         // optimize pointer,indexregister if possible
 
         fun evalBytevalueWillClobberA(expr: PtExpression): Boolean {
@@ -1052,8 +1069,8 @@ $repeatLabel    lda  $counterVar
             }
         }
 
-        if(expr.operator=="+") {
-            val ptrAndIndex = pointerViaIndexRegisterPossible(expr)
+        if(operator=="+") {
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? PtIdentifier
                 val target = if(pointervar==null) null else symbolTable.lookup(pointervar.name)!!.astNode
@@ -2882,7 +2899,8 @@ $repeatLabel    lda  $counterVar
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
-                if(tryOptimizedPointerAccessWithA(expr.address as PtBinaryExpression, false)) {
+                val addrExpr = expr.address as PtBinaryExpression
+                if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")
                 } else {
@@ -2890,7 +2908,8 @@ $repeatLabel    lda  $counterVar
                 }
             }
             is PtRpn -> {
-                if(rpnAssignmentAsmGen.tryOptimizedPointerAccessWithA(expr.address as PtRpn, false)) {
+                val addrExpr = expr.address as PtRpn
+                if(addrExpr.children.size==3 && tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")
                 } else {

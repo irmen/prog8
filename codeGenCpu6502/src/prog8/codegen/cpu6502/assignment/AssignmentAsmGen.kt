@@ -9,11 +9,11 @@ import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal class AssignmentAsmGen(private val program: PtProgram,
-                                private val symbolTable: SymbolTable,
+                                symbolTable: SymbolTable,
                                 private val asmgen: AsmGen6502Internal,
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
-    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, this, asmgen)
+    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, asmgen)
 
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
@@ -145,14 +145,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
                     is PtRpn -> {
-                        if(rpnAssignmentAsmGen.tryOptimizedPointerAccessWithA(value.address as PtRpn, false)) {
+                        val addrExpr = value.address as PtRpn
+                        if(addrExpr.children.size==3 && asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
                         } else {
                             assignViaExprEval(value.address)
                         }
                     }
                     is PtBinaryExpression -> {
-                        if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
+                        val addrExpr = value.address as PtBinaryExpression
+                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
                         } else {
                             assignViaExprEval(value.address)
@@ -313,7 +315,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             is PtRpn -> {
-                if(!rpnAssignmentAsmGen.attemptAssignOptimizedExpr(value, assign)) {
+                if(!rpnAssignmentAsmGen.attemptAssignOptimizedExpr(assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // TODO: For RPN expressions this should never occur anymore and the eval stack should be removed when we achieve this
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
@@ -920,7 +922,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
                         }
                         is PtRpn -> {
-                            if(rpnAssignmentAsmGen.tryOptimizedPointerAccessWithA(value.address as PtRpn, false)) {
+                            val addrExpr = value.address as PtRpn
+                            if(addrExpr.children.size==3 && asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
@@ -928,7 +931,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                         is PtBinaryExpression -> {
-                            if(asmgen.tryOptimizedPointerAccessWithA(value.address as PtBinaryExpression, false)) {
+                            val addrExpr = value.address as PtBinaryExpression
+                            if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
@@ -2849,11 +2853,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtRpn -> {
-                if(!rpnAssignmentAsmGen.tryOptimizedPointerAccessWithA(addressExpr, true))
+                if(addressExpr.children.size!=3 || !asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.finalOperator().operator, true))
                     storeViaExprEval()
             }
             addressExpr is PtBinaryExpression -> {
-                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
+                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))
                     storeViaExprEval()
             }
             else -> storeViaExprEval()

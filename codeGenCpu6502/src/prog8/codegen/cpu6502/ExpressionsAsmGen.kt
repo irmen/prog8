@@ -25,7 +25,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         when(expression) {
             is PtPrefix -> translateExpression(expression)
             is PtBinaryExpression -> translateExpression(expression)
-            is PtRpn -> translateExpression(expression)
+            is PtRpn -> translateRpnExpression(expression)
             is PtArrayIndexer -> translateExpression(expression)
             is PtTypeCast -> translateExpression(expression)
             is PtAddressOf -> translateExpression(expression)
@@ -245,7 +245,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateExpression(expr: PtRpn) {
+    private fun translateRpnExpression(expr: PtRpn) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
         val oper = expr.finalOperator()
         val leftDt = oper.leftType
@@ -264,6 +264,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         if(leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators) {
             return translateCompareStrings(expr.finalLeftOperand() as PtExpression, oper.operator, expr.finalRightOperand() as PtExpression)
         }
+
+        // TODO: RPN: add the other optimizations that BinaryExpression has, to avoid eval stack usage
 
         // any other expression
         if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)

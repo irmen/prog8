@@ -1,17 +1,13 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
 
 
 internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
-                                      private val symbolTable: SymbolTable,
                                       private val asmgen: AsmGen6502Internal,
                                       private val assignAsmGen: AssignmentAsmGen) {
-
-    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, assignAsmGen, asmgen)
 
     internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? {
         return translateFunctioncall(fcall, discardResult = false, resultToStack = resultToStack, resultRegister = resultRegister)
@@ -665,7 +661,29 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtRpn -> if(rpnAssignmentAsmGen.funcPokeW(fcall)) return
+            is PtRpn -> {
+                if(addrExpr.children.size==3) {
+                    // we want just one '+' operator
+                    val (left, oper, right) = addrExpr.finalOperation()
+                    if(oper.operator=="+" && left is PtIdentifier && right is PtNumber) {
+                        val varname = asmgen.asmVariableName(left)
+                        if(asmgen.isZpVar(left)) {
+                            // pointervar is already in the zero page, no need to copy
+                            asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
+                            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
+                            val index = right.number.toHex()
+                            asmgen.out("""
+                                ldy  #$index
+                                sta  ($varname),y
+                                txa
+                                iny
+                                sta  ($varname),y""")
+                            asmgen.restoreRegisterLocal(CpuRegister.X)
+                            return
+                        }
+                    }
+                }
+            }
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
@@ -695,6 +713,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPeekW(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        fun fallback() {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+            asmgen.out("  jsr  prog8_lib.func_peekw")
+        }
         when(val addrExpr = fcall.args[0]) {
             is PtNumber -> {
                 val addr = addrExpr.number.toHex()
@@ -720,12 +742,29 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             tay
                             pla""")
                     }
-                } else {
-                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                    asmgen.out("  jsr  prog8_lib.func_peekw")
-                }
+                } else fallback()
             }
-            is PtRpn -> rpnAssignmentAsmGen.funcPeekW(fcall, resultToStack, resultRegister)
+            is PtRpn -> {
+                if(addrExpr.children.size==3) {
+                    // must be 3 (one '+' operator), otherwise expression is too complex for this
+                    val (left, oper, right) = addrExpr.finalOperation()
+                    if(oper.operator=="+" && left is PtIdentifier && right is PtNumber) {
+                        val varname = asmgen.asmVariableName(left)
+                        if(asmgen.isZpVar(left)) {
+                            // pointervar is already in the zero page, no need to copy
+                            val index = right.number.toHex()
+                            asmgen.out("""
+                                ldy  #$index
+                                lda  ($varname),y
+                                pha
+                                iny
+                                lda  ($varname),y
+                                tay
+                                pla""")
+                        } else fallback()
+                    } else fallback()
+                } else fallback()
+            }
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
                     val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
@@ -740,19 +779,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             lda  ($varname),y
                             tay
                             pla""")
-                    }  else {
-                        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                        asmgen.out("  jsr  prog8_lib.func_peekw")
-                    }
-                } else {
-                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                    asmgen.out("  jsr  prog8_lib.func_peekw")
-                }
+                    }  else fallback()
+                } else fallback()
             }
-            else -> {
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                asmgen.out("  jsr  prog8_lib.func_peekw")
-            }
+            else -> fallback()
         }
 
         if(resultToStack){
