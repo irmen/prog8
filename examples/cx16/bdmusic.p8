@@ -59,7 +59,7 @@ main {
         psg.silent()
         psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
         psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
-        cx16.set_irq(&psg.envelopes_irq, false)
+        cx16.set_irq(&psg.envelopes_irq, true)
 
         repeat {
             uword note
