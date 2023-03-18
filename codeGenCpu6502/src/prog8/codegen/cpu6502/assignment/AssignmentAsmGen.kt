@@ -146,9 +146,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     is PtRpn -> {
                         val addrExpr = value.address as PtRpn
-                        if(addrExpr.children.size>3)
-                            println("TODO: RPN: too complex translateNormalAssignment")     // TODO RPN: split expression?
-                        if(addrExpr.children.size==3 && asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
+                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
                         } else {
                             assignViaExprEval(value.address)
@@ -926,10 +924,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         is PtRpn -> {
                             val addrExpr = value.address as PtRpn
-                            if(addrExpr.children.size>3) {
-                                println("TODO: RPN: too complex assignTypeCastedValue")     // TODO RPN : split expression?
-                            }
-                            if(addrExpr.children.size==3 && asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
+                            if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
@@ -2859,9 +2854,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtRpn -> {
-                if(addressExpr.children.size>3)
-                    println("TODO: RPN: too complex storeRegisterAInMemoryAddress $memoryAddress")     // TODO RPN: split expression?
-                if(addressExpr.children.size!=3 || !asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.finalOperator().operator, true))
+                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.finalOperator().operator, true))
                     storeViaExprEval()
             }
             addressExpr is PtBinaryExpression -> {

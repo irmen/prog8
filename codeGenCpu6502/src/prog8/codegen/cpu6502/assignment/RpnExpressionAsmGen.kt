@@ -13,7 +13,7 @@ internal class RpnExpressionAsmGen(
 
     fun attemptAssignOptimizedExpr(assign: AsmAssignment): Boolean {
         val value = assign.source.expression as PtRpn
-        println("TODO: RPN: optimized assignment ${value.position}")   // TODO RPN: optimized assignment
+        println("TODO: RPN: optimized assignment ${value.position} maxdepth=${value.maxDepth()}")   // TODO RPN: optimized assignment
         // NOTE: don't forgot to evaluate the rest of the RPN expr as well
         return false
     }

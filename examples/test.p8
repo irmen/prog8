@@ -8,17 +8,18 @@
 main {
 
   sub start() {
-    test_stack.test()
-
     uword xx=4000
-    ubyte a
-    ubyte b
-    ubyte c
-    ubyte d
+    ubyte a=11
+    ubyte b=22
+    ubyte c=33
 
-    cx16.r0 = peekw(xx+42)
-    ; TODO cx16.r0 = peekw(a+xx+b+c+d+)
-    ; TODO @(a+xx+b+c+d) = cx16.r0L
+;    cx16.r0 = peekw(xx+a+b+c)
+;    cx16.r1 = peekw(xx+a+b+c+42)
+;    pokew(xx+a+b+c, xx)
+;    pokew(xx+a+b+c+42, xx)
+
+    if a and a & $40 == 0
+        cx16.r0++
 
 ;    if cx16.r0L in "derp" {
 ;        xx++
@@ -26,7 +27,6 @@ main {
 ;
 ;    xx = xx+(3*func(xx)+xx*2*cx16.r0L)
 ;    txt.print_uw(xx)
-    test_stack.test()
   }
 
 ;  sub func(uword value) -> uword {

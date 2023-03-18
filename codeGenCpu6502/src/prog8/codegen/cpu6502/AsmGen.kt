@@ -1013,8 +1013,29 @@ $repeatLabel    lda  $counterVar
         when (pointerOffsetExpr) {
             is PtRpn -> {
                 if(pointerOffsetExpr.children.size>3) {
-                    println("TODO: RPN: too complicated pointerViaIndexRegisterPossible") // TODO RPN: split expression?
-                    return null     // expression is too complex, we need just a pointer var + index
+                    val rightmostOperator = pointerOffsetExpr.finalOperator()
+                    if(rightmostOperator.operator=="+") {
+                        val rightmostOperand = pointerOffsetExpr.finalRightOperand()
+                        if ((rightmostOperand is PtNumber && rightmostOperand.type in IntegerDatatypes && rightmostOperand.number.toInt() in 0..255)
+                            || (rightmostOperand is PtExpression && rightmostOperand.type == DataType.UBYTE)
+                            || (rightmostOperand is PtTypeCast && rightmostOperand.value.type == DataType.UBYTE)
+                        ) {
+                            // split up the big expression in 2 parts so that we CAN use ZP,Y indexing after all
+                            pointerOffsetExpr.children.removeLast()
+                            pointerOffsetExpr.children.removeLast()
+                            val tempvar = getTempVarName(DataType.UWORD)
+                            assignExpressionToVariable(pointerOffsetExpr, tempvar, DataType.UWORD, pointerOffsetExpr.definingISub())
+                            val smallExpr = PtRpn(DataType.UWORD, pointerOffsetExpr.position)
+                            smallExpr.addRpnNode(PtIdentifier(tempvar, DataType.UWORD, pointerOffsetExpr.position))
+                            smallExpr.addRpnNode(rightmostOperand)
+                            smallExpr.addRpnNode(rightmostOperator)
+                            smallExpr.parent = pointerOffsetExpr.parent
+                            val result = pointerViaIndexRegisterPossible(smallExpr)
+                            require(result != null)
+                            return result
+                        }
+                    }
+                    return null     // expression is too complex
                 }
                 val (leftNode, oper, rightNode) = pointerOffsetExpr.finalOperation()
                 operator=oper.operator
@@ -2910,9 +2931,7 @@ $repeatLabel    lda  $counterVar
             }
             is PtRpn -> {
                 val addrExpr = expr.address as PtRpn
-                if(addrExpr.children.size>3)
-                    println("TODO: RPN: too complicated translateDirectMemReadExpressionToRegAorStack")     // TODO RPN: split expression?
-                if(addrExpr.children.size==3 && tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
+                if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")
                 } else {

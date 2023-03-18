@@ -204,7 +204,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         return false
     }
 
-    fun maxDepth(): Pair<Map<DataType, Int>, Int> {
+    fun maxDepth(): Map<DataType, Int> {
         val depths = mutableMapOf(
             DataType.UBYTE to 0,
             DataType.UWORD to 0,
@@ -225,7 +225,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
                     depths[DataType.UBYTE] = depth
                     maxDepths[DataType.UBYTE] = max(maxDepths.getValue(DataType.UBYTE), depth)
                 }
-                in WordDatatypes -> {
+                in WordDatatypes, in PassByReferenceDatatypes -> {
                     val depth = depths.getValue(DataType.UWORD) + 1
                     depths[DataType.UWORD] = depth
                     maxDepths[DataType.UWORD] = max(maxDepths.getValue(DataType.UWORD), depth)
@@ -243,7 +243,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
         fun pop(type: DataType) {
             when (type) {
                 in ByteDatatypes -> depths[DataType.UBYTE]=depths.getValue(DataType.UBYTE) - 1
-                in WordDatatypes -> depths[DataType.UWORD]=depths.getValue(DataType.UWORD) - 1
+                in WordDatatypes, in PassByReferenceDatatypes -> depths[DataType.UWORD]=depths.getValue(DataType.UWORD) - 1
                 DataType.FLOAT -> depths[DataType.FLOAT]=depths.getValue(DataType.FLOAT) - 1
                 else -> throw IllegalArgumentException("invalid dt")
             }
@@ -260,10 +260,10 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
                 push((node as PtExpression).type)
             }
         }
-        require(numPushes==numPops+1) {
-            "RPN not balanced, pushes=$numPushes pops=$numPops"
+        require(numPushes==numPops+1 && numPushes==children.size) {
+            "RPN not balanced, pushes=$numPushes pops=$numPops childs=${children.size}"
         }
-        return Pair(maxDepths, numPushes)
+        return maxDepths
     }
 
     fun finalOperator() = children.last() as PtRpnOperator
