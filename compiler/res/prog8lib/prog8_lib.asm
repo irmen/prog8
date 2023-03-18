@@ -997,6 +997,20 @@ _arg_s1		.word  0
 _arg_s2		.word  0
 		.pend
 
+strcmp_stack	.proc
+		; -- compare strings, both on stack.
+		;    Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
+		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		inx
+		lda  P8ESTACK_LO,x
+		ldy  P8ESTACK_HI,x
+		jmp  strcmp_mem
+		.pend
+
 
 strcmp_mem	.proc
 		; --   compares strings in s1 (AY) and s2 (P8ZP_SCRATCH_W2).

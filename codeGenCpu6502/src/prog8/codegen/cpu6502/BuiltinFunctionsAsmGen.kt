@@ -683,7 +683,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         }
                     }
                 } else {
-                    println("TODO: RPN: too complicated PokeW")  // TODO RPN
+                    println("TODO: RPN: too complicated PokeW")  // TODO RPN: split expression?
                 }
             }
             is PtBinaryExpression -> {
@@ -766,7 +766,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else fallback()
                     } else fallback()
                 } else {
-                    println("TODO: RPN: too complicated PeekW")  // TODO RPN
+                    println("TODO: RPN: too complicated PeekW")  // TODO RPN: split expression?
                     fallback()
                 }
             }

@@ -9,6 +9,15 @@ main {
 
   sub start() {
     test_stack.test()
+
+    str name = "irmen"
+    name[3] = 0
+    if name==".asm" or name=="irm" or name==".src"
+        txt.print("ok\n")
+    else
+        txt.print("fail\n")
+
+
     uword xx=4000
     ubyte a
     ubyte b

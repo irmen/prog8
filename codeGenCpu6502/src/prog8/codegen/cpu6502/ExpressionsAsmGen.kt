@@ -287,8 +287,14 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             if(it is PtRpnOperator) {
                 when(it.leftType) {
                     in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.leftType)
-                    in WordDatatypes, in PassByReferenceDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
+                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
                     DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
+                    DataType.STR -> {
+                        if(it.operator !in ComparisonOperators)
+                            throw AssemblyError("expected only comparison operators on string, not ${oper.operator}")
+                        asmgen.out("  jsr  prog8_lib.strcmp_stack")
+                        compareStringsProcessResultInA(it.operator)
+                    }
                     else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
                 }
                 depth--
@@ -947,6 +953,10 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD, null)
         asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD, null)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
+        compareStringsProcessResultInA(operator)
+    }
+
+    private fun compareStringsProcessResultInA(operator: String) {
         when(operator) {
             "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO,x")
             "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO,x")

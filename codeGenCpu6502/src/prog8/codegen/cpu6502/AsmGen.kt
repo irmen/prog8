@@ -1013,7 +1013,7 @@ $repeatLabel    lda  $counterVar
         when (pointerOffsetExpr) {
             is PtRpn -> {
                 if(pointerOffsetExpr.children.size>3) {
-                    println("TODO: RPN: too complicated pointerViaIndexRegisterPossible") // TODO RPN
+                    println("TODO: RPN: too complicated pointerViaIndexRegisterPossible") // TODO RPN: split expression?
                     return null     // expression is too complex, we need just a pointer var + index
                 }
                 val (leftNode, oper, rightNode) = pointerOffsetExpr.finalOperation()
@@ -2911,7 +2911,7 @@ $repeatLabel    lda  $counterVar
             is PtRpn -> {
                 val addrExpr = expr.address as PtRpn
                 if(addrExpr.children.size>3)
-                    println("TODO: RPN: too complicated translateDirectMemReadExpressionToRegAorStack")     // TODO RPN
+                    println("TODO: RPN: too complicated translateDirectMemReadExpressionToRegAorStack")     // TODO RPN: split expression?
                 if(addrExpr.children.size==3 && tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")
