@@ -661,48 +661,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtRpn -> {
-                if(addrExpr.children.size==3) {
-                    // we want just one '+' operator
-                    val (left, oper, right) = addrExpr.finalOperation()
-                    if(oper.operator=="+" && left is PtIdentifier && right is PtNumber) {
-                        val varname = asmgen.asmVariableName(left)
-                        if(asmgen.isZpVar(left)) {
-                            // pointervar is already in the zero page, no need to copy
-                            asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
-                            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                            val index = right.number.toHex()
-                            asmgen.out("""
-                                ldy  #$index
-                                sta  ($varname),y
-                                txa
-                                iny
-                                sta  ($varname),y""")
-                            asmgen.restoreRegisterLocal(CpuRegister.X)
-                            return
-                        }
-                    }
-                } else {
-                    println("TODO: RPN: too complicated PokeW")  // TODO RPN: split expression?
-                }
-            }
-            is PtBinaryExpression -> {
-                if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
-                    val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
-                    if(asmgen.isZpVar(addrExpr.left as PtIdentifier)) {
-                        // pointervar is already in the zero page, no need to copy
-                        asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
-                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                        val index = (addrExpr.right as PtNumber).number.toHex()
-                        asmgen.out("""
-                            ldy  #$index
+            is PtRpn, is PtBinaryExpression -> {
+                val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
+                val pointer = result?.first as? PtIdentifier
+                if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
+                    // can do ZP,Y indexing
+                    val varname = asmgen.asmVariableName(pointer)
+                    val scope = fcall.definingISub()!!
+                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
+                    asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
+                    asmgen.saveRegisterLocal(CpuRegister.Y, scope)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
+                    asmgen.restoreRegisterLocal(CpuRegister.Y)
+                    asmgen.out("""
                             sta  ($varname),y
                             txa
                             iny
                             sta  ($varname),y""")
-                        asmgen.restoreRegisterLocal(CpuRegister.X)
-                        return
-                    }
+                    asmgen.restoreRegisterLocal(CpuRegister.X)
+                    return
                 }
             }
             else -> { /* fall through */ }
@@ -746,45 +723,20 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                 } else fallback()
             }
-            is PtRpn -> {
-                if(addrExpr.children.size==3) {
-                    // must be 3 (one '+' operator), otherwise expression is too complex for this
-                    val (left, oper, right) = addrExpr.finalOperation()
-                    if(oper.operator=="+" && left is PtIdentifier && right is PtNumber) {
-                        val varname = asmgen.asmVariableName(left)
-                        if(asmgen.isZpVar(left)) {
-                            // pointervar is already in the zero page, no need to copy
-                            val index = right.number.toHex()
-                            asmgen.out("""
-                                ldy  #$index
-                                lda  ($varname),y
-                                pha
-                                iny
-                                lda  ($varname),y
-                                tay
-                                pla""")
-                        } else fallback()
-                    } else fallback()
-                } else {
-                    println("TODO: RPN: too complicated PeekW")  // TODO RPN: split expression?
-                    fallback()
-                }
-            }
-            is PtBinaryExpression -> {
-                if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {
-                    val varname = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
-                    if(asmgen.isZpVar(addrExpr.left as PtIdentifier)) {
-                        // pointervar is already in the zero page, no need to copy
-                        val index = (addrExpr.right as PtNumber).number.toHex()
-                        asmgen.out("""
-                            ldy  #$index
-                            lda  ($varname),y
-                            pha
-                            iny
-                            lda  ($varname),y
-                            tay
-                            pla""")
-                    }  else fallback()
+            is PtRpn, is PtBinaryExpression -> {
+                val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
+                val pointer = result?.first as? PtIdentifier
+                if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
+                    // can do ZP,Y indexing
+                    val varname = asmgen.asmVariableName(pointer)
+                    asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
+                    asmgen.out("""
+                        lda  ($varname),y
+                        pha
+                        iny
+                        lda  ($varname),y
+                        tay
+                        pla""")
                 } else fallback()
             }
             else -> fallback()

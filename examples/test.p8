@@ -10,21 +10,14 @@ main {
   sub start() {
     test_stack.test()
 
-    str name = "irmen"
-    name[3] = 0
-    if name==".asm" or name=="irm" or name==".src"
-        txt.print("ok\n")
-    else
-        txt.print("fail\n")
-
-
     uword xx=4000
     ubyte a
     ubyte b
     ubyte c
     ubyte d
 
-    cx16.r0 = peekw(a+xx+b+c+d)
+    cx16.r0 = peekw(xx+42)
+    ; TODO cx16.r0 = peekw(a+xx+b+c+d+)
     ; TODO @(a+xx+b+c+d) = cx16.r0L
 
 ;    if cx16.r0L in "derp" {
