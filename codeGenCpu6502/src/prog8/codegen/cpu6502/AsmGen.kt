@@ -979,7 +979,7 @@ $repeatLabel    lda  $counterVar
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
         if(pointerOffsetExpr is PtBinaryExpression && pointerOffsetExpr.operator=="+") {
             val leftDt = pointerOffsetExpr.left.type
-            val rightDt = pointerOffsetExpr.left.type
+            val rightDt = pointerOffsetExpr.right.type
             if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
                 return Pair(pointerOffsetExpr.left, pointerOffsetExpr.right)
             if(leftDt == DataType.UBYTE && rightDt == DataType.UWORD)

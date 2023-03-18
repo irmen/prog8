@@ -657,7 +657,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             "<=" -> {
                 when(dt) {
                     DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.equalzero_b")
-                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lessequalzeros_b")
+                    DataType.BYTE -> asmgen.out("  jsr  prog8_lib.lessequalzero_sb")
                     DataType.UWORD -> asmgen.out("  jsr  prog8_lib.equalzero_w")
                     DataType.WORD -> asmgen.out("  jsr  prog8_lib.lessequalzero_sw")
                     DataType.FLOAT -> asmgen.out("  jsr  floats.lessequal_zero")
