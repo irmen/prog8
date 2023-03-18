@@ -1,8 +1,8 @@
 TODO
 ====
 
-BRANCH: Write some unit tests for the RPN.
-BRANCH: Fix the TODO RPN  routines to be optimized assembly in RpnExpressionAsmGen.kt
+BRANCH: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
+BRANCH: check BinExprSplitter disablement any effect for RPN?
 BRANCH: Implement RPN codegen for IR.
 
 For next minor release

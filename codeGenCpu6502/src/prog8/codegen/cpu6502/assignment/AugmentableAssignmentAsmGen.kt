@@ -11,16 +11,16 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                            private val asmgen: AsmGen6502Internal,
                                            private val allocator: VariableAllocator
 ) {
-    fun translate(assign: AsmAugmentedAssignment) {
+    fun translate(assign: AsmAugmentedAssignment, scope: IPtSubroutine?) {
 
         when(assign.operator) {
             "-" -> {
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
-                assignmentAsmGen.inplaceNegate(a2, false)
+                assignmentAsmGen.inplaceNegate(a2, false, scope)
             }
             "~" -> {
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
-                assignmentAsmGen.inplaceInvert(a2)
+                assignmentAsmGen.inplaceInvert(a2, scope)
             }
             "+" -> { /* is a nop */ }
             else -> {
@@ -44,6 +44,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "^=" -> inplaceModification(assign.target, "^", srcValue)
             "<<=" -> inplaceModification(assign.target, "<<", srcValue)
             ">>=" -> inplaceModification(assign.target, ">>", srcValue)
+            "%=" -> inplaceModification(assign.target, "%", srcValue)
             else -> throw AssemblyError("invalid augmented assign operator ${assign.operator}")
         }
     }

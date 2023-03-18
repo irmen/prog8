@@ -472,8 +472,8 @@ class AsmGen6502Internal (
     internal fun restoreXafterCall(functionCall: PtFunctionCall) =
             functioncallAsmGen.restoreXafterCall(functionCall)
 
-    internal fun translateNormalAssignment(assign: AsmAssignment) =
-            assignmentAsmGen.translateNormalAssignment(assign)
+    internal fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) =
+            assignmentAsmGen.translateNormalAssignment(assign, scope)
 
     internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean=false) =
             assignmentAsmGen.assignExpressionToRegister(expr, register, signed)
@@ -481,8 +481,8 @@ class AsmGen6502Internal (
     internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType, scope: IPtSubroutine?) =
             assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
 
-    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, pos: Position, signed: Boolean=false) =
-            assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed, pos)
+    internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, scope: IPtSubroutine?, pos: Position, signed: Boolean=false) =
+            assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed, scope, pos)
 
     internal fun assignRegister(reg: RegisterOrPair, target: AsmAssignTarget) {
         when(reg) {
@@ -512,7 +512,7 @@ class AsmGen6502Internal (
                     AsmAssignment(
                         AsmAssignSource(SourceStorageKind.REGISTER, program, this, target.datatype, register=RegisterOrPair.AY),
                         target, program.memsizer, value.position
-                    )
+                    ), value.definingISub()
                 )
             }
             DataType.FLOAT -> {
@@ -626,11 +626,11 @@ class AsmGen6502Internal (
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when(vardecl.type) {
                     DataType.UBYTE, DataType.BYTE -> {
-                        assignVariableToRegister(name, RegisterOrPair.Y, stmt.count.position)
+                        assignVariableToRegister(name, RegisterOrPair.Y, stmt.definingISub(), stmt.count.position)
                         repeatCountInY(stmt, endLabel)
                     }
                     DataType.UWORD, DataType.WORD -> {
-                        assignVariableToRegister(name, RegisterOrPair.AY, stmt.count.position)
+                        assignVariableToRegister(name, RegisterOrPair.AY, stmt.definingISub(), stmt.count.position)
                         repeatWordCountInAY(endLabel, stmt)
                     }
                     else -> throw AssemblyError("invalid loop variable datatype $vardecl")
@@ -1062,7 +1062,9 @@ $repeatLabel    lda  $counterVar
             // could be that the index was a constant numeric byte but converted to word, check that
             val constIdx = right as? PtNumber
             if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
-                return Pair(left, PtNumber(DataType.UBYTE, constIdx.number, constIdx.position))
+                val num = PtNumber(DataType.UBYTE, constIdx.number, constIdx.position)
+                num.parent = right.parent
+                return Pair(left, num)
             }
             // could be that the index was typecasted into uword, check that
             val rightTc = right as? PtTypeCast
@@ -1160,26 +1162,61 @@ $repeatLabel    lda  $counterVar
     }
 
     internal fun findSubroutineParameter(name: String, asmgen: AsmGen6502Internal): PtSubroutineParameter? {
-        val node = asmgen.symbolTable.lookup(name)!!.astNode
+        val stScope = asmgen.symbolTable.lookup(name)
+        require(stScope!=null) {
+            "invalid name lookup $name"
+        }
+        val node = stScope.astNode
         if(node is PtSubroutineParameter)
             return node
         return node.definingSub()?.parameters?.singleOrNull { it.name===name }
     }
 
     private fun translateCompareAndJumpIfTrueRPN(expr: PtRpn, jump: PtJump) {
+        val (left, oper, right) = expr.finalOperation()
+        if(expr.children.size>3) {
+            TODO("RPN comparison too complex ${expr.position}")
+        }
+
+        require(left is PtExpression && right is PtExpression)
+
+        if(oper.operator !in ComparisonOperators)
+            throw AssemblyError("must be comparison expression")
+
+        // invert the comparison, so we can reuse the JumpIfFalse code generation routines
+        val invertedComparisonOperator = invertedComparisonOperator(oper.operator)
+            ?: throw AssemblyError("can't invert comparison $expr")
+
+        val rightConstVal = right as? PtNumber
+
         val label = when {
             jump.generatedLabel!=null -> jump.generatedLabel!!
             jump.identifier!=null -> asmSymbolName(jump.identifier!!)
             jump.address!=null -> jump.address!!.toHex()
             else -> throw AssemblyError("weird jump")
         }
-        assignExpressionToRegister(expr, RegisterOrPair.A)
-        out("  bne  $label")
+        if (rightConstVal!=null && rightConstVal.number == 0.0)
+            testZeroAndJump(left, invertedComparisonOperator, label)
+        else {
+            val leftConstVal = left as? PtNumber
+            testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
+        }
     }
 
     private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
-        assignExpressionToRegister(expr, RegisterOrPair.A)
-        out("  beq  $jumpIfFalseLabel")
+        val (left, oper, right) = expr.finalOperation()
+        if(expr.children.size>3) {
+            TODO("RPN comparison too complex ${expr.position}")
+        }
+
+        require(left is PtExpression && right is PtExpression)
+        val leftConstVal = left as? PtNumber
+        val rightConstVal = right as? PtNumber
+
+        if (rightConstVal!=null && rightConstVal.number == 0.0)
+            testZeroAndJump(left, oper.operator, jumpIfFalseLabel)
+        else
+            testNonzeroComparisonAndJump(left, oper.operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
@@ -1374,7 +1411,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun testNonzeroComparisonAndJump(
+    internal fun testNonzeroComparisonAndJump(
         left: PtExpression,
         operator: String,
         right: PtExpression,

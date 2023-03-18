@@ -1,36 +1,17 @@
-%import textio
-%import test_stack
+%import math
 %zeropage basicsafe
-%option no_sysinit
 
-; $1e4 size
+; Note: this program is compatible with C64 and CX16.
 
 main {
 
-  sub start() {
-    uword xx=4000
-    ubyte a=11
-    ubyte b=22
-    ubyte c=33
+    sub start() {
+        ubyte[255] BC
+        bool[255] DX
 
-;    cx16.r0 = peekw(xx+a+b+c)
-;    cx16.r1 = peekw(xx+a+b+c+42)
-;    pokew(xx+a+b+c, xx)
-;    pokew(xx+a+b+c+42, xx)
-
-    if a and a & $40 == 0
-        cx16.r0++
-
-;    if cx16.r0L in "derp" {
-;        xx++
-;    }
-;
-;    xx = xx+(3*func(xx)+xx*2*cx16.r0L)
-;    txt.print_uw(xx)
-  }
-
-;  sub func(uword value) -> uword {
-;    value ++
-;    return value
-;  }
+        BC[2] = math.rnd() & 15
+        BC[3] = math.rnd() & 15
+        BC[4] = math.rnd() & 15
+        ;DX[2] = math.rnd() & 1
+    }
 }

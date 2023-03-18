@@ -15,7 +15,12 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
      * This gives the fastest lookup possible (no need to traverse tree nodes)
      */
 
-    val flat: Map<String, StNode> by lazy {
+    private var cachedFlat: Map<String, StNode>? = null
+
+    val flat: Map<String, StNode> get()  {
+        if(cachedFlat!=null)
+            return cachedFlat!!
+
         val result = mutableMapOf<String, StNode>()
         fun collect(node: StNode) {
             for(child in node.children) {
@@ -24,8 +29,13 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             }
         }
         collect(this)
-        result
+        cachedFlat = result
+        return result
     }
+
+//    fun resetCachedFlat() {
+//        cachedFlat = null
+//    }
 
     val allVariables: Collection<StStaticVariable> by lazy {
         val vars = mutableListOf<StStaticVariable>()

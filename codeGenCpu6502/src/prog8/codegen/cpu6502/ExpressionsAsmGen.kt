@@ -478,15 +478,15 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO+1,x |  sta  P8ESTACK_HI+1,x")
                                 return true
                             }
-                            var left = amount
-                            while (left >= 7) {
+                            var amountLeft = amount
+                            while (amountLeft >= 7) {
                                 asmgen.out(" jsr  math.shift_right_uw_7")
-                                left -= 7
+                                amountLeft -= 7
                             }
-                            if (left in 0..2)
-                                repeat(left) { asmgen.out(" lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
+                            if (amountLeft in 0..2)
+                                repeat(amountLeft) { asmgen.out(" lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
-                                asmgen.out(" jsr  math.shift_right_uw_$left")
+                                asmgen.out(" jsr  math.shift_right_uw_$amountLeft")
                         }
                         DataType.WORD -> {
                             if(amount>=16) {
@@ -503,15 +503,15 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
 +""")
                                 return true
                             }
-                            var left = amount
-                            while (left >= 7) {
+                            var amountLeft = amount
+                            while (amountLeft >= 7) {
                                 asmgen.out(" jsr  math.shift_right_w_7")
-                                left -= 7
+                                amountLeft -= 7
                             }
-                            if (left in 0..2)
-                                repeat(left) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl  a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
+                            if (amountLeft in 0..2)
+                                repeat(amountLeft) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl  a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
-                                asmgen.out(" jsr  math.shift_right_w_$left")
+                                asmgen.out(" jsr  math.shift_right_w_$amountLeft")
                         }
                         else -> throw AssemblyError("weird type")
                     }
@@ -531,15 +531,15 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                             asmgen.out("  sta  P8ESTACK_LO+1,x")
                         }
                     } else {
-                        var left = amount
-                        while (left >= 7) {
+                        var amountLeft = amount
+                        while (amountLeft >= 7) {
                             asmgen.out(" jsr  math.shift_left_w_7")
-                            left -= 7
+                            amountLeft -= 7
                         }
-                        if (left in 0..2)
-                            repeat(left) { asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x") }
+                        if (amountLeft in 0..2)
+                            repeat(amountLeft) { asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x") }
                         else
-                            asmgen.out(" jsr  math.shift_left_w_$left")
+                            asmgen.out(" jsr  math.shift_left_w_$amountLeft")
                     }
                     return true
                 }

@@ -200,7 +200,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 // we need to sign extend the source, do this via temporary word variable
                 asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
-                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, Position.DUMMY)
+                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
@@ -221,7 +221,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 } else {
                     AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY))
+                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY), sub)
             }
         }
     }

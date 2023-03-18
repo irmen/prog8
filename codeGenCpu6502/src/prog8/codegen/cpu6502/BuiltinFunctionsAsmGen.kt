@@ -250,7 +250,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             else
                 AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
         val assign = AsmAssignment(src, target, program.memsizer, fcall.position)
-        asmgen.translateNormalAssignment(assign)
+        asmgen.translateNormalAssignment(assign, fcall.definingISub())
     }
 
     private fun funcSqrt16(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
@@ -998,7 +998,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, conv.dt, null, value.position, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
-                    asmgen.translateNormalAssignment(assign)
+                    asmgen.translateNormalAssignment(assign, scope)
                 }
                 conv.reg != null -> {
                     val src = when (conv.dt) {
@@ -1016,7 +1016,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     val tgt = AsmAssignTarget.fromRegisters(conv.reg!!, false, value.position, null, asmgen)
                     val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
-                    asmgen.translateNormalAssignment(assign)
+                    asmgen.translateNormalAssignment(assign, scope)
                 }
                 else -> throw AssemblyError("callconv")
             }
