@@ -163,24 +163,24 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             asmgen.out("  cmp  ${arg2.address.asConstInteger()!!.toHex()}")
                         } else {
                             if(arg1.isSimple()) {
-                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                                 asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                                 asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                             } else {
                                 asmgen.pushCpuStack(DataType.UBYTE, arg1)
-                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
+                                asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                                 asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
                             }
                         }
                     }
                     else -> {
                         if(arg1.isSimple()) {
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                             asmgen.out("  cmp  P8ZP_SCRATCH_B1")
                         } else {
                             asmgen.pushCpuStack(DataType.UBYTE, arg1)
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE, fcall.definingISub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                             asmgen.out("  pla |  cmp  P8ZP_SCRATCH_B1")
                         }
                     }
@@ -209,7 +209,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(arg1.isSimple()) {
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingISub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD)
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                             asmgen.out("""
                                 cpy  P8ZP_SCRATCH_W1+1
@@ -218,7 +218,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     +""")
                         } else {
                             asmgen.pushCpuStack(DataType.UWORD, arg1)
-                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD, fcall.definingISub())
+                            asmgen.assignExpressionToVariable(arg2, "P8ZP_SCRATCH_W1", DataType.UWORD)
                             asmgen.restoreRegisterStack(CpuRegister.Y, false)
                             asmgen.restoreRegisterStack(CpuRegister.A, false)
                             asmgen.out("""
@@ -550,14 +550,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         if(arrayvar.type==DataType.UWORD) {
             if(dt!='b')
                 throw AssemblyError("non-array var indexing requires bytes dt")
-            asmgen.assignExpressionToVariable(arrayvar, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
+            asmgen.assignExpressionToVariable(arrayvar, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
         } else {
             val addressOf = PtAddressOf(arrayvar.position)
             addressOf.add(arrayvar)
             addressOf.parent = arrayvar.parent.parent
-            asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD, null)
+            asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
         }
-        asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE, null)
+        asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE)
     }
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
@@ -686,7 +686,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
 
         // fall through method:
-        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD, null)
+        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
         asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_pokew")
     }
@@ -970,7 +970,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val addr = PtAddressOf(value.position)
                     addr.add(variable)
                     addr.parent = call
-                    asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT, scope)
+                    asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT)
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
             }

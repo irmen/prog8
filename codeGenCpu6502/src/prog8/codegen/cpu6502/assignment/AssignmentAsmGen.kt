@@ -131,7 +131,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             SourceStorageKind.MEMORY -> {
                 fun assignViaExprEval(expression: PtExpression) {
-                    assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD, assign.target.scope)
+                    assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                     assignRegisterByte(assign.target, CpuRegister.A)
                 }
@@ -370,66 +370,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return true
         }
 
-        fun simpleLogicalBytesExpr() {
-            // both left and right expression operands are simple.
-            require(left is PtExpression && right is PtExpression)
-            if (right is PtNumber || right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, left, oper.operator, right)
-            else if (left is PtNumber || left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, right, oper.operator, left)
-            else {
-                assignExpressionToRegister(left, RegisterOrPair.A, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, scope)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-                when (oper.operator) {
-                    "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
-                    "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
-                    "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
-                    else -> throw AssemblyError("invalid operator")
-                }
-                assignRegisterByte(assign.target, CpuRegister.A)
-            }
-        }
-
-        fun simpleLogicalWordsExpr() {
-            // both left and right expression operands are simple.
-            require(left is PtExpression && right is PtExpression)
-            if (right is PtNumber || right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, left, oper.operator, right)
-            else if (left is PtNumber || left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, right, oper.operator, left)
-            else {
-                assignExpressionToRegister(left, RegisterOrPair.AY, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.UWORD, scope)
-                when (oper.operator) {
-                    "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
-                    "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
-                    "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
-                    else -> throw AssemblyError("invalid operator")
-                }
-                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-            }
-        }
-
-        if(value.children.size==3 && oper.operator in setOf("&", "|", "^", "and", "or", "xor")) {
-            if(left is PtExpression && right is PtExpression) {
-                if (left.type in ByteDatatypes && right.type in ByteDatatypes) {
-                    if (right.isSimple()) {
-                        simpleLogicalBytesExpr()
-                        return true
-                    }
-                }
-                if (left.type in WordDatatypes && right.type in WordDatatypes) {
-                    if (right.isSimple()) {
-                        simpleLogicalWordsExpr()
-                        return true
-                    }
-                }
-            }
-        }
+        if(value.children.size==3 && left is PtExpression && right is PtExpression)
+            if(simpleLogicalExprRPN(left, oper.operator, right, assign.target))
+                return true
 
         // TODO RPN add +,-,<<,>> and perhaps even == and != special behaviors of BinExpr
 
@@ -509,7 +452,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 is PtExpression -> {
                     val varname = evalVarName(it.type, depth)
-                    assignExpressionToVariable(it, varname, it.type, scope)
+                    assignExpressionToVariable(it, varname, it.type)
                     depth++
                 }
                 else -> throw AssemblyError("weird rpn node")
@@ -527,6 +470,66 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         require(evalVars.all { it.value.isEmpty() }) { "invalid rpn evaluation" }
 
         return true
+    }
+
+    private fun simpleLogicalExprRPN(left: PtExpression, operator: String, right: PtExpression, target: AsmAssignTarget): Boolean {
+        fun simpleLogicalBytesExpr() {
+            // both left and right expression operands are simple.
+            if (right is PtNumber || right is PtIdentifier)
+                assignLogicalWithSimpleRightOperandByte(target, left, operator, right)
+            else if (left is PtNumber || left is PtIdentifier)
+                assignLogicalWithSimpleRightOperandByte(target, right, operator, left)
+            else {
+                assignExpressionToRegister(left, RegisterOrPair.A, false)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                when (operator) {
+                    "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
+                    "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
+                    "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
+                    else -> throw AssemblyError("invalid operator")
+                }
+                assignRegisterByte(target, CpuRegister.A)
+            }
+        }
+
+        fun simpleLogicalWordsExpr() {
+            // both left and right expression operands are simple.
+            if (right is PtNumber || right is PtIdentifier)
+                assignLogicalWithSimpleRightOperandWord(target, left, operator, right)
+            else if (left is PtNumber || left is PtIdentifier)
+                assignLogicalWithSimpleRightOperandWord(target, right, operator, left)
+            else {
+                assignExpressionToRegister(left, RegisterOrPair.AY, false)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.UWORD)
+                when (operator) {
+                    "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
+                    "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
+                    "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
+                    else -> throw AssemblyError("invalid operator")
+                }
+                assignRegisterpairWord(target, RegisterOrPair.AY)
+            }
+        }
+
+        if(operator in setOf("&", "|", "^", "and", "or", "xor")) {
+            if (left.type in ByteDatatypes && right.type in ByteDatatypes) {
+                if (right.isSimple()) {
+                    simpleLogicalBytesExpr()
+                    return true
+                }
+            }
+            if (left.type in WordDatatypes && right.type in WordDatatypes) {
+                if (right.isSimple()) {
+                    simpleLogicalWordsExpr()
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private fun assignRPNComparison(assign: AsmAssignment, comparison: PtRpn) {
@@ -622,7 +625,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             else {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingISub())
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 when (expr.operator) {
                     "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
@@ -644,7 +647,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingISub())
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD)
                 when (expr.operator) {
                     "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
                     "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
@@ -677,7 +680,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     expr.left.isSimple() && expr.right.isSimple()) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE, expr.definingISub())
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 if(expr.operator=="==") {
                     asmgen.out("""
@@ -703,7 +706,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD, expr.definingISub())
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD)
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 if(expr.operator=="==") {
@@ -1148,7 +1151,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt, containment.definingISub())
+                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W2"), varname)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
@@ -1198,7 +1201,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(targetDt in WordDatatypes) {
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
-                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -1262,7 +1265,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 in PassByReferenceDatatypes -> {
                     // str/array value cast (most likely to UWORD, take address-of)
-                    assignExpressionToVariable(value, target.asmVarname, targetDt, null)
+                    assignExpressionToVariable(value, target.asmVarname, targetDt)
                 }
                 else -> throw AssemblyError("strange dt in typecast assign to var: $valueDt  -->  $targetDt")
             }
@@ -3123,13 +3126,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         fun storeViaExprEval() {
             when(addressExpr) {
                 is PtNumber, is PtIdentifier -> {
-                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }
                 else -> {
                     // same as above but we need to save the A register
                     asmgen.out("  pha")
-                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     asmgen.out("  pla")
                     asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                 }
@@ -3162,12 +3165,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         translateNormalAssignment(assign, expr.definingISub())
     }
 
-    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType, scope: IPtSubroutine?) {
+    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType) {
         if(expr.type==DataType.FLOAT && dt!=DataType.FLOAT) {
             throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
-            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, scope, expr.position, variableAsmName = asmVarName)
+            val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, expr.definingISub(), expr.position, variableAsmName = asmVarName)
             val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
             translateNormalAssignment(assign, expr.definingISub())
         }
@@ -3207,7 +3210,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 asmgen.out("  sta  ($sourceName),y")
                             }
                             else -> {
-                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD, target.scope)
+                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                 asmgen.out("""
                                     ldy  #0
                                     lda  (P8ZP_SCRATCH_W2),y

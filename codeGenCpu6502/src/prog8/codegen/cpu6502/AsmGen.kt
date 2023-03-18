@@ -478,8 +478,8 @@ class AsmGen6502Internal (
     internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean=false) =
             assignmentAsmGen.assignExpressionToRegister(expr, register, signed)
 
-    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType, scope: IPtSubroutine?) =
-            assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt, scope)
+    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType) =
+            assignmentAsmGen.assignExpressionToVariable(expr, asmVarName, dt)
 
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, scope: IPtSubroutine?, pos: Position, signed: Boolean=false) =
             assignmentAsmGen.assignVariableToRegister(asmVarName, register, signed, scope, pos)
@@ -1024,7 +1024,7 @@ $repeatLabel    lda  $counterVar
                             pointerOffsetExpr.children.removeLast()
                             pointerOffsetExpr.children.removeLast()
                             val tempvar = getTempVarName(DataType.UWORD)
-                            assignExpressionToVariable(pointerOffsetExpr, tempvar, DataType.UWORD, pointerOffsetExpr.definingISub())
+                            assignExpressionToVariable(pointerOffsetExpr, tempvar, DataType.UWORD)
                             val smallExpr = PtRpn(DataType.UWORD, pointerOffsetExpr.position)
                             smallExpr.addRpnNode(PtIdentifier(tempvar, DataType.UWORD, pointerOffsetExpr.position))
                             smallExpr.addRpnNode(rightmostOperand)
@@ -1120,14 +1120,14 @@ $repeatLabel    lda  $counterVar
                                 if(saveA)
                                     out("  pha")
                                 if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                     assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                     if(saveA)
                                         out("  pla")
                                     out("  sta  (P8ZP_SCRATCH_W2),y")
                                 } else {
                                     pushCpuStack(DataType.UBYTE,  ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                     restoreRegisterStack(CpuRegister.Y, true)
                                     if(saveA)
                                         out("  pla")
@@ -1141,12 +1141,12 @@ $repeatLabel    lda  $counterVar
                             } else {
                                 // copy the pointer var to zp first
                                 if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                     assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                     out("  lda  (P8ZP_SCRATCH_W2),y")
                                 } else {
                                     pushCpuStack(DataType.UBYTE, ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                     restoreRegisterStack(CpuRegister.Y, false)
                                     out("  lda  (P8ZP_SCRATCH_W2),y")
                                 }
@@ -1522,7 +1522,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -1567,7 +1567,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -1612,7 +1612,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -1657,7 +1657,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -1702,11 +1702,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -1743,11 +1743,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -1786,11 +1786,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.UWORD, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -1832,11 +1832,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.WORD, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -1879,11 +1879,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -1922,11 +1922,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.BYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -1971,11 +1971,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.UWORD, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2022,11 +2022,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(right.isSimple()) {
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD)
             assignExpressionToRegister(right, RegisterOrPair.AY)
         }  else {
             pushCpuStack(DataType.WORD, right)
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2070,11 +2070,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -2113,11 +2113,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.BYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -2164,11 +2164,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.UWORD, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2219,11 +2219,11 @@ $repeatLabel    lda  $counterVar
         }
 
         if(right.isSimple()) {
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD)
             assignExpressionToRegister(right, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.WORD, right)
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.WORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2263,11 +2263,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -2303,11 +2303,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.BYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.BYTE)
             out("  pla")
         }
         return code("P8ZP_SCRATCH_B1")
@@ -2345,11 +2345,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(right.isSimple()) {
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD)
             assignExpressionToRegister(right, RegisterOrPair.AY)
         }  else {
             pushCpuStack(DataType.UWORD, right)
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2391,11 +2391,11 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
             pushCpuStack(DataType.WORD, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.WORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -2434,14 +2434,14 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else if(right.isSimple()) {
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(right, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             restoreRegisterStack(CpuRegister.A, false)
         }
         out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
@@ -2480,14 +2480,14 @@ $repeatLabel    lda  $counterVar
             return
 
         if(left.isSimple()) {
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else if(right.isSimple()) {
-            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             assignExpressionToRegister(right, RegisterOrPair.A)
         } else {
             pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             restoreRegisterStack(CpuRegister.A, false)
         }
         return code("P8ZP_SCRATCH_B1")
@@ -2556,14 +2556,14 @@ $repeatLabel    lda  $counterVar
             }
             else -> {
                 if(left.isSimple()) {
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     assignExpressionToRegister(left, RegisterOrPair.AY)
                 } else if(right.isSimple()) {
-                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     assignExpressionToRegister(right, RegisterOrPair.AY)
                 } else {
                     pushCpuStack(DataType.UWORD, left)
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     restoreRegisterStack(CpuRegister.Y, false)
                     restoreRegisterStack(CpuRegister.A, false)
                 }
@@ -2642,14 +2642,14 @@ $repeatLabel    lda  $counterVar
             }
             else -> {
                 if(left.isSimple()) {
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     assignExpressionToRegister(left, RegisterOrPair.AY)
                 } else if (right.isSimple()) {
-                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(left, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     assignExpressionToRegister(right, RegisterOrPair.AY)
                 } else {
                     pushCpuStack(DataType.UWORD, left)
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     restoreRegisterStack(CpuRegister.Y, false)
                     restoreRegisterStack(CpuRegister.A, false)
                 }
@@ -2739,7 +2739,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -2824,7 +2824,7 @@ $repeatLabel    lda  $counterVar
         } else {
             val subroutine = left.definingSub()!!
             subroutineExtra(subroutine).usedFloatEvalResultVar1 = true
-            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT, subroutine)
+            assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
             assignExpressionToRegister(left, RegisterOrPair.FAC1)
             out("""
                 lda  #<$subroutineFloatEvalResultVar1
@@ -2928,7 +2928,7 @@ $repeatLabel    lda  $counterVar
     internal fun translateDirectMemReadExpressionToRegAorStack(expr: PtMemoryByte, pushResultOnEstack: Boolean) {
 
         fun assignViaExprEval() {
-            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD, null)
+            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
             if (isTargetCpu(CpuType.CPU65c02)) {
                 if (pushResultOnEstack) {
                     out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")

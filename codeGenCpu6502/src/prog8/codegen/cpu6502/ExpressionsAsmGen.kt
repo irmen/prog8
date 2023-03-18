@@ -950,8 +950,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateCompareStrings(s1: PtExpression, operator: String, s2: PtExpression) {
-        asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD, null)
-        asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD, null)
+        asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD)
+        asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
         compareStringsProcessResultInA(operator)
     }

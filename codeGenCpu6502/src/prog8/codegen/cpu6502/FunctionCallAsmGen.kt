@@ -141,7 +141,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             throw AssemblyError("argument type incompatible")
 
         val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
-        asmgen.assignExpressionToVariable(value, varName, parameter.type, sub)
+        asmgen.assignExpressionToVariable(value, varName, parameter.type)
     }
 
     private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null) {
@@ -198,7 +198,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             register!!
             if(requiredDt largerThan value.type) {
                 // we need to sign extend the source, do this via temporary word variable
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE)
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {

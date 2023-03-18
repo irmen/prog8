@@ -304,7 +304,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplaceModification_byte_value_to_pointer(pointervar: PtIdentifier, operator: String, value: PtExpression) {
-        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE, null)
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
         val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
             // note: ** (power) operator requires floats.
@@ -454,7 +454,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  clc |  adc  $name |  sta  $name")
             }
             "-" -> {
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", dt, null)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", dt)
                 asmgen.out(" lda  $name |  sec |  sbc  P8ZP_SCRATCH_B1 |  sta  $name")
             }
             "*" -> {
@@ -1359,7 +1359,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 when (operator) {
                     // note: ** (power) operator requires floats.
                     "+" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt, null)
+                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
                                 lda  $name
@@ -1383,7 +1383,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "-" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt, null)
+                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
                                 lda  $name
@@ -1489,7 +1489,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  clc |  adc  $name |  sta  $name |  tya |  adc  $name+1 |  sta  $name+1")
                     }
                     "-" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", valueDt, null)
+                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", valueDt)
                         asmgen.out(" lda  $name |  sec |  sbc  P8ZP_SCRATCH_W1 |  sta  $name |  lda  $name+1 |  sbc  P8ZP_SCRATCH_W1+1 |  sta  $name+1")
                     }
                     "*" -> {
