@@ -52,7 +52,6 @@ class AsmGen6502Internal (
     private val assignmentAsmGen = AssignmentAsmGen(program, symbolTable, this, allocator)
     private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    private val rpnAssignmentAsmGen = RpnExpressionAsmGen(program, symbolTable, this)
 
     fun compileToAssembly(): IAssemblyProgram? {
 
@@ -1013,8 +1012,10 @@ $repeatLabel    lda  $counterVar
 
         when (pointerOffsetExpr) {
             is PtRpn -> {
-                if(pointerOffsetExpr.children.size>3)
+                if(pointerOffsetExpr.children.size>3) {
+                    println("TODO: RPN: too complicated pointerViaIndexRegisterPossible") // TODO RPN
                     return null     // expression is too complex, we need just a pointer var + index
+                }
                 val (leftNode, oper, rightNode) = pointerOffsetExpr.finalOperation()
                 operator=oper.operator
                 if (leftNode !is PtExpression || rightNode !is PtExpression) return null
@@ -2909,6 +2910,8 @@ $repeatLabel    lda  $counterVar
             }
             is PtRpn -> {
                 val addrExpr = expr.address as PtRpn
+                if(addrExpr.children.size>3)
+                    println("TODO: RPN: too complicated translateDirectMemReadExpressionToRegAorStack")     // TODO RPN
                 if(addrExpr.children.size==3 && tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
                     if(pushResultOnEstack)
                         out("  sta  P8ESTACK_LO,x |  dex")

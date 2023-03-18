@@ -175,6 +175,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
             }
         }
         else {
+            require(node !is PtBinaryExpression)
             children.add(node)
             node.parent = this
         }

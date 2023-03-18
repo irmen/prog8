@@ -9,11 +9,14 @@ main {
 
   sub start() {
     test_stack.test()
-    uword xx=32
-    cx16.r0L = 3
+    uword xx=4000
+    ubyte a
+    ubyte b
+    ubyte c
+    ubyte d
 
-    cx16.r0 = peekw(xx + 44)
-    @(xx+44) = cx16.r0L
+    cx16.r0 = peekw(a+xx+b+c+d)
+    ; TODO @(a+xx+b+c+d) = cx16.r0L
 
 ;    if cx16.r0L in "derp" {
 ;        xx++

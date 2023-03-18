@@ -74,7 +74,10 @@ class PtProgram(
         fun transformToRPN(originalExpr: PtBinaryExpression): PtRpn {
             fun makeRpn(expr: PtExpression): PtRpn {
                 val rpn = PtRpn(expr.type, expr.position)
-                rpn.addRpnNode(expr)
+                if(expr is PtBinaryExpression)
+                    rpn.addRpnNode(transformToRPN(expr))
+                else
+                    rpn.addRpnNode(expr)
                 return rpn
             }
 

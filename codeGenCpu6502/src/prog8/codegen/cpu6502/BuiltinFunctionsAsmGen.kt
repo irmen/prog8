@@ -682,6 +682,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             return
                         }
                     }
+                } else {
+                    println("TODO: RPN: too complicated PokeW")  // TODO RPN
                 }
             }
             is PtBinaryExpression -> {
@@ -763,7 +765,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 pla""")
                         } else fallback()
                     } else fallback()
-                } else fallback()
+                } else {
+                    println("TODO: RPN: too complicated PeekW")  // TODO RPN
+                    fallback()
+                }
             }
             is PtBinaryExpression -> {
                 if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier && addrExpr.right is PtNumber) {

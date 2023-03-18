@@ -248,21 +248,22 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     private fun translateRpnExpression(expr: PtRpn) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
         val oper = expr.finalOperator()
+        val left = expr.finalLeftOperand() as? PtExpression
         val leftDt = oper.leftType
         val rightDt = oper.rightType
 
         // comparison against zero
-        if(oper.operator in ComparisonOperators) {
+        if(left != null && oper.operator in ComparisonOperators) {
             if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
                 val rightVal = (expr.finalRightOperand() as PtExpression).asConstInteger()
                 if(rightVal==0)
-                    return translateComparisonWithZero(expr.finalLeftOperand() as PtExpression, leftDt, oper.operator)
+                    return translateComparisonWithZero(left, leftDt, oper.operator)
             }
         }
 
         // string compare
-        if(leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators) {
-            return translateCompareStrings(expr.finalLeftOperand() as PtExpression, oper.operator, expr.finalRightOperand() as PtExpression)
+        if(left!=null && leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators) {
+            return translateCompareStrings(left, oper.operator, expr.finalRightOperand() as PtExpression)
         }
 
         // TODO: RPN: add the other optimizations that BinaryExpression has, to avoid eval stack usage
@@ -277,7 +278,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             if(it is PtRpnOperator) {
                 when(it.leftType) {
                     in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.leftType)
-                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
+                    in WordDatatypes, in PassByReferenceDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
                     DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
                     else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
                 }
@@ -292,6 +293,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
 
     private fun translateExpression(expr: PtBinaryExpression) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
+        require(!program.binaryExpressionsAreRPN)
         val leftDt = expr.left.type
         val rightDt = expr.right.type
         // see if we can apply some optimized routines still
