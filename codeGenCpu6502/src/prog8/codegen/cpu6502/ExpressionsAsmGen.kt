@@ -25,6 +25,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         when(expression) {
             is PtPrefix -> translateExpression(expression)
             is PtBinaryExpression -> translateExpression(expression)
+            is PtRpn -> translateRpnExpression(expression)
             is PtArrayIndexer -> translateExpression(expression)
             is PtTypeCast -> translateExpression(expression)
             is PtAddressOf -> translateExpression(expression)
@@ -33,12 +34,17 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             is PtIdentifier -> translateExpression(expression)
             is PtFunctionCall -> translateFunctionCallResultOntoStack(expression)
             is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
-            is PtContainmentCheck -> throw AssemblyError("containment check as complex expression value is not supported")
+            is PtContainmentCheck -> translateContainmentCheck(expression)
             is PtArray, is PtString -> throw AssemblyError("string/array literal value assignment should have been replaced by a variable")
             is PtRange -> throw AssemblyError("range expression should have been changed into array values")
             is PtMachineRegister -> throw AssemblyError("machine register ast node should not occur in 6502 codegen it is for IR code")
             else -> TODO("missing expression asmgen for $expression")
         }
+    }
+
+    private fun translateContainmentCheck(check: PtContainmentCheck) {
+        asmgen.assignExpressionToRegister(check, RegisterOrPair.A)
+        asmgen.out("  sta  P8ESTACK_LO,x |  dex")
     }
 
     private fun translateFunctionCallResultOntoStack(call: PtFunctionCall) {
@@ -239,18 +245,114 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun translateRpnExpression(expr: PtRpn) {
+        // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
+        val (left, oper, right) = expr.finalOperation()
+        if(left is PtExpression && right is PtExpression && translateSomewhatOptimized(left, oper.operator, right))
+            return
+
+        val leftDt = oper.leftType
+        val rightDt = oper.rightType
+
+        // comparison with zero
+        if(oper.operator in ComparisonOperators && leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
+            val rightVal = (expr.finalRightOperand() as PtExpression).asConstInteger()
+            if (rightVal == 0) {
+                when (left) {
+                    is PtExpression -> {
+                        translateComparisonWithZero(left, leftDt, oper.operator)
+                    }
+                    is PtRpnOperator -> {
+                        expr.children.removeLast()
+                        expr.children.removeLast()
+                        translateComparisonWithZero(expr, leftDt, oper.operator)
+                    }
+                    else -> throw AssemblyError("weird rpn node")
+                }
+                return
+            }
+        }
+
+        // string compare
+        if(left is PtExpression && leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators)
+            return translateCompareStrings(left, oper.operator, expr.finalRightOperand() as PtExpression)
+
+        // any other expression
+        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
+                || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
+            throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalRightOperand()}")
+
+        var depth=0
+        expr.children.forEach {
+            if(it is PtRpnOperator) {
+                when(it.leftType) {
+                    in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.leftType)
+                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
+                    DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
+                    DataType.STR -> {
+                        if(it.operator !in ComparisonOperators)
+                            throw AssemblyError("expected only comparison operators on string, not ${oper.operator}")
+                        asmgen.out("  jsr  prog8_lib.strcmp_stack")
+                        compareStringsProcessResultInA(it.operator)
+                    }
+                    else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
+                }
+                depth--
+            } else {
+                translateExpressionInternal(it as PtExpression)
+                depth++
+            }
+        }
+        require(depth==1) { "unbalanced RPN: $depth  ${expr.position}" }
+    }
+
     private fun translateExpression(expr: PtBinaryExpression) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
+        require(!program.binaryExpressionsAreRPN)
+        if(translateSomewhatOptimized(expr.left, expr.operator, expr.right))
+            return
+
         val leftDt = expr.left.type
         val rightDt = expr.right.type
-        // see if we can apply some optimized routines still
-        when(expr.operator) {
+
+        // compare with zero
+        if(expr.operator in ComparisonOperators) {
+            if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
+                val rightVal = expr.right.asConstInteger()
+                if(rightVal==0)
+                    return translateComparisonWithZero(expr.left, leftDt, expr.operator)
+            }
+        }
+
+        if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in ComparisonOperators)
+            return translateCompareStrings(expr.left, expr.operator, expr.right)
+
+        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
+                || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
+            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
+
+        // the general, non-optimized cases
+        // TODO optimize more cases.... (or one day just don't use the evalstack at all anymore)
+        translateExpressionInternal(expr.left)
+        translateExpressionInternal(expr.right)
+        when (leftDt) {
+            in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
+            in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
+            DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
+            else -> throw AssemblyError("non-numerical datatype")
+        }
+    }
+
+    private fun translateSomewhatOptimized(left: PtExpression, operator: String, right: PtExpression): Boolean {
+        val leftDt = left.type
+        val rightDt = right.type
+        when(operator) {
             "+" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val leftVal = expr.left.asConstInteger()
-                    val rightVal = expr.right.asConstInteger()
+                    val leftVal = left.asConstInteger()
+                    val rightVal = right.asConstInteger()
                     if (leftVal!=null && leftVal in -4..4) {
-                        translateExpressionInternal(expr.right)
+                        translateExpressionInternal(right)
                         if(rightDt in ByteDatatypes) {
                             val incdec = if(leftVal<0) "dec" else "inc"
                             repeat(leftVal.absoluteValue) {
@@ -276,11 +378,11 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                 }
                             }
                         }
-                        return
+                        return true
                     }
                     else if (rightVal!=null && rightVal in -4..4)
                     {
-                        translateExpressionInternal(expr.left)
+                        translateExpressionInternal(left)
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "dec" else "inc"
                             repeat(rightVal.absoluteValue) {
@@ -306,16 +408,16 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                 }
                             }
                         }
-                        return
+                        return true
                     }
                 }
             }
             "-" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val rightVal = expr.right.asConstInteger()
+                    val rightVal = right.asConstInteger()
                     if (rightVal!=null && rightVal in -4..4)
                     {
-                        translateExpressionInternal(expr.left)
+                        translateExpressionInternal(left)
                         if(leftDt in ByteDatatypes) {
                             val incdec = if(rightVal<0) "inc" else "dec"
                             repeat(rightVal.absoluteValue) {
@@ -341,14 +443,14 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                 }
                             }
                         }
-                        return
+                        return true
                     }
                 }
             }
             ">>" -> {
-                val amount = expr.right.asConstInteger()
+                val amount = right.asConstInteger()
                 if(amount!=null) {
-                    translateExpressionInternal(expr.left)
+                    translateExpressionInternal(left)
                     when (leftDt) {
                         DataType.UBYTE -> {
                             if (amount <= 2)
@@ -374,17 +476,17 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                     asmgen.out("  stz  P8ESTACK_LO+1,x |  stz  P8ESTACK_HI+1,x")
                                 else
                                     asmgen.out("  lda  #0 |  sta  P8ESTACK_LO+1,x |  sta  P8ESTACK_HI+1,x")
-                                return
+                                return true
                             }
-                            var left = amount
-                            while (left >= 7) {
+                            var amountLeft = amount
+                            while (amountLeft >= 7) {
                                 asmgen.out(" jsr  math.shift_right_uw_7")
-                                left -= 7
+                                amountLeft -= 7
                             }
-                            if (left in 0..2)
-                                repeat(left) { asmgen.out(" lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
+                            if (amountLeft in 0..2)
+                                repeat(amountLeft) { asmgen.out(" lsr  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
-                                asmgen.out(" jsr  math.shift_right_uw_$left")
+                                asmgen.out(" jsr  math.shift_right_uw_$amountLeft")
                         }
                         DataType.WORD -> {
                             if(amount>=16) {
@@ -399,27 +501,27 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                                     sta  P8ESTACK_LO+1,x
                                     sta  P8ESTACK_HI+1,x
 +""")
-                                return
+                                return true
                             }
-                            var left = amount
-                            while (left >= 7) {
+                            var amountLeft = amount
+                            while (amountLeft >= 7) {
                                 asmgen.out(" jsr  math.shift_right_w_7")
-                                left -= 7
+                                amountLeft -= 7
                             }
-                            if (left in 0..2)
-                                repeat(left) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl  a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
+                            if (amountLeft in 0..2)
+                                repeat(amountLeft) { asmgen.out(" lda  P8ESTACK_HI+1,x |  asl  a  |  ror  P8ESTACK_HI+1,x |  ror  P8ESTACK_LO+1,x") }
                             else
-                                asmgen.out(" jsr  math.shift_right_w_$left")
+                                asmgen.out(" jsr  math.shift_right_w_$amountLeft")
                         }
                         else -> throw AssemblyError("weird type")
                     }
-                    return
+                    return true
                 }
             }
             "<<" -> {
-                val amount = expr.right.asConstInteger()
+                val amount = right.asConstInteger()
                 if(amount!=null) {
-                    translateExpressionInternal(expr.left)
+                    translateExpressionInternal(left)
                     if (leftDt in ByteDatatypes) {
                         if (amount <= 2)
                             repeat(amount) { asmgen.out("  asl  P8ESTACK_LO+1,x") }
@@ -429,78 +531,80 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                             asmgen.out("  sta  P8ESTACK_LO+1,x")
                         }
                     } else {
-                        var left = amount
-                        while (left >= 7) {
+                        var amountLeft = amount
+                        while (amountLeft >= 7) {
                             asmgen.out(" jsr  math.shift_left_w_7")
-                            left -= 7
+                            amountLeft -= 7
                         }
-                        if (left in 0..2)
-                            repeat(left) { asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x") }
+                        if (amountLeft in 0..2)
+                            repeat(amountLeft) { asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x") }
                         else
-                            asmgen.out(" jsr  math.shift_left_w_$left")
+                            asmgen.out(" jsr  math.shift_left_w_$amountLeft")
                     }
-                    return
+                    return true
                 }
             }
             "*" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val leftVar = expr.left as? PtIdentifier
-                    val rightVar = expr.right as? PtIdentifier
-                    if(leftVar!=null && rightVar!=null && leftVar==rightVar)
-                        return translateSquared(leftVar, leftDt)
+                    val leftVar = left as? PtIdentifier
+                    val rightVar = right as? PtIdentifier
+                    if(leftVar!=null && rightVar!=null && leftVar==rightVar) {
+                        translateSquared(leftVar, leftDt)
+                        return true
+                    }
                 }
 
-                val value = expr.right as? PtNumber
+                val value = right as? PtNumber
                 if(value!=null) {
                     if(rightDt in IntegerDatatypes) {
                         val amount = value.number.toInt()
                         if(amount==2) {
                             // optimize x*2 common case
-                            translateExpressionInternal(expr.left)
+                            translateExpressionInternal(left)
                             if(leftDt in ByteDatatypes) {
                                 asmgen.out("  asl  P8ESTACK_LO+1,x")
                             } else {
                                 asmgen.out("  asl  P8ESTACK_LO+1,x |  rol  P8ESTACK_HI+1,x")
                             }
-                            return
+                            return true
                         }
                         when(rightDt) {
                             DataType.UBYTE -> {
                                 if(amount in asmgen.optimizedByteMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  math.stack_mul_byte_$amount")
-                                    return
+                                    return true
                                 }
                             }
                             DataType.BYTE -> {
                                 if(amount in asmgen.optimizedByteMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  math.stack_mul_byte_$amount")
-                                    return
+                                    return true
                                 }
                                 if(amount.absoluteValue in asmgen.optimizedByteMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  prog8_lib.neg_b |  jsr  math.stack_mul_byte_${amount.absoluteValue}")
-                                    return
+                                    return true
                                 }
                             }
                             DataType.UWORD -> {
                                 if(amount in asmgen.optimizedWordMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  math.stack_mul_word_$amount")
-                                    return
+                                    return true
                                 }
                             }
                             DataType.WORD -> {
                                 if(amount in asmgen.optimizedWordMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  math.stack_mul_word_$amount")
-                                    return
+                                    return true
                                 }
                                 if(amount.absoluteValue in asmgen.optimizedWordMultiplications) {
-                                    translateExpressionInternal(expr.left)
+                                    translateExpressionInternal(left)
                                     asmgen.out(" jsr  prog8_lib.neg_w |  jsr  math.stack_mul_word_${amount.absoluteValue}")
-                                    return
+                                    return true
                                 }
                             }
                             else -> {}
@@ -510,9 +614,9 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             }
             "/" -> {
                 if(leftDt in IntegerDatatypes && rightDt in IntegerDatatypes) {
-                    val rightVal = expr.right.asConstInteger()
+                    val rightVal = right.asConstInteger()
                     if(rightVal!=null && rightVal==2) {
-                        translateExpressionInternal(expr.left)
+                        translateExpressionInternal(left)
                         when (leftDt) {
                             DataType.UBYTE -> {
                                 asmgen.out("  lsr  P8ESTACK_LO+1,x")
@@ -545,38 +649,13 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                             }
                             else -> throw AssemblyError("weird dt")
                         }
-                        return
+                        return true
                     }
                 }
             }
-            in ComparisonOperators -> {
-                if(leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
-                    val rightVal = expr.right.asConstInteger()
-                    if(rightVal==0)
-                        return translateComparisonWithZero(expr.left, leftDt, expr.operator)
-                }
-            }
         }
 
-        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
-                || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
-            throw AssemblyError("binary operator ${expr.operator} left/right dt not identical")
-
-        if(leftDt==DataType.STR && rightDt==DataType.STR && expr.operator in ComparisonOperators) {
-            translateCompareStrings(expr.left, expr.operator, expr.right)
-        }
-        else {
-            // the general, non-optimized cases
-            // TODO optimize more cases.... (or one day just don't use the evalstack at all anymore)
-            translateExpressionInternal(expr.left)
-            translateExpressionInternal(expr.right)
-            when (leftDt) {
-                in ByteDatatypes -> translateBinaryOperatorBytes(expr.operator, leftDt)
-                in WordDatatypes -> translateBinaryOperatorWords(expr.operator, leftDt)
-                DataType.FLOAT -> translateBinaryOperatorFloats(expr.operator)
-                else -> throw AssemblyError("non-numerical datatype")
-            }
-        }
+        return false
     }
 
     private fun translateComparisonWithZero(expr: PtExpression, dt: DataType, operator: String) {
@@ -871,9 +950,13 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateCompareStrings(s1: PtExpression, operator: String, s2: PtExpression) {
-        asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD, null)
-        asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD, null)
+        asmgen.assignExpressionToVariable(s1, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD)
+        asmgen.assignExpressionToVariable(s2, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD)
         asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
+        compareStringsProcessResultInA(operator)
+    }
+
+    private fun compareStringsProcessResultInA(operator: String) {
         when(operator) {
             "==" -> asmgen.out(" and  #1 |  eor  #1 |  sta  P8ESTACK_LO,x")
             "!=" -> asmgen.out(" and  #1 |  sta  P8ESTACK_LO,x")

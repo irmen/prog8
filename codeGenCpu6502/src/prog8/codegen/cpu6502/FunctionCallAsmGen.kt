@@ -141,7 +141,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             throw AssemblyError("argument type incompatible")
 
         val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
-        asmgen.assignExpressionToVariable(value, varName, parameter.type, sub)
+        asmgen.assignExpressionToVariable(value, varName, parameter.type)
     }
 
     private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null) {
@@ -198,16 +198,17 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             register!!
             if(requiredDt largerThan value.type) {
                 // we need to sign extend the source, do this via temporary word variable
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE, sub)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE)
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
-                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, Position.DUMMY)
+                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
+                val scope = value.definingISub()
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
-                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, sub, value.position, register = register)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, scope, value.position, register = register)
                     else {
                         val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
-                        AsmAssignTarget.fromRegisters(register, signed, value.position, sub, asmgen)
+                        AsmAssignTarget.fromRegisters(register, signed, value.position, scope, asmgen)
                     }
                 val src = if(value.type in PassByReferenceDatatypes) {
                     if(value is PtIdentifier) {
@@ -221,7 +222,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 } else {
                     AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY))
+                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY), scope)
             }
         }
     }

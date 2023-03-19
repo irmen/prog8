@@ -42,7 +42,8 @@ class RequestParser : Take {
             quietAssembler = false,
             asmListfile = false,
             experimentalCodegen = false,
-            varsHigh = false
+            varsHigh = false,
+            useRPN = false
         )
         val compilationResult = compileProgram(args)
         return RsJson(Jsonding())

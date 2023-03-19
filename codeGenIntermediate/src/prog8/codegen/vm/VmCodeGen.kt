@@ -2,10 +2,7 @@ package prog8.codegen.vm
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
-import prog8.code.core.CompilationOptions
-import prog8.code.core.IAssemblyProgram
-import prog8.code.core.ICodeGeneratorBackend
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram
@@ -17,6 +14,13 @@ class VmCodeGen: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
+
+        if(options.useRPN) {
+            program.transformBinExprToRPN()
+            errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
+        }
+
+
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
         return VmAssemblyProgram(irProgram.name, irProgram)

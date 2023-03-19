@@ -21,6 +21,8 @@ class BinExprSplitter(private val program: Program, private val options: Compila
 
         if(options.compTarget.name == VMTarget.NAME)
             return noModifications  // don't split expressions when targeting the vm codegen, it handles nested expressions well
+        if(options.useRPN)      // TODO RPN does this make a difference?
+            return noModifications
 
         if(assignment.value.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
             return noModifications

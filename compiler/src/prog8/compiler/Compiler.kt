@@ -36,6 +36,7 @@ class CompilerArguments(val filepath: Path,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHigh: Boolean,
+                        val useRPN: Boolean,
                         val compilationTarget: String,
                         val evalStackBaseAddress: UInt?,
                         val symbolDefs: Map<String, String>,
@@ -76,6 +77,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
                 varsHigh = args.varsHigh
+                useRPN = args.useRPN
                 evalStackBaseAddress = args.evalStackBaseAddress
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
@@ -118,7 +120,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //                printProgram(program)
 //                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-//                printAst(intermediateAst, ::println)
+//                printAst(intermediateAst, true, ::println)
 
                 if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")

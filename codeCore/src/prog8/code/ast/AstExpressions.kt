@@ -3,6 +3,7 @@ package prog8.code.ast
 import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.round
 
 
@@ -27,6 +28,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
             is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
+            is PtRpn -> other is PtRpn && this.isSame(other)
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
@@ -62,6 +64,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
+            is PtRpn -> false
             is PtBuiltinFunctionCall -> name in arrayOf("msb", "lsb", "peek", "peekw", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
             is PtContainmentCheck -> false
             is PtFunctionCall -> false
@@ -158,6 +161,129 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 }
 
 
+class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
+    // contains only PtExpression (not PtRpn!) and PtRpnOperator nodes
+    // not created directly by the compiler for now, if code generators prefer this over PtBinaryExpression,
+    // they have to transform the ast themselves first using the utility routine on PtProgram for it.
+
+    fun addRpnNode(node: PtNode) {
+        require(node is PtRpnOperator || node is PtExpression)
+        if(node is PtRpn) {
+            node.children.forEach {
+                children.add(it)
+                it.parent = this
+            }
+        }
+        else {
+            require(node !is PtBinaryExpression)
+            children.add(node)
+            node.parent = this
+        }
+    }
+
+    fun print() {
+        children.forEach {
+            when(it) {
+                is PtRpnOperator -> println(it.operator)
+                is PtExpression -> println("expr $it  ${it.position}")
+                else -> {}
+            }
+        }
+    }
+
+    fun isSame(other: PtRpn): Boolean {
+        if(other.children.size==children.size) {
+            return other.children.zip(this.children).all { (first, second) ->
+                when (first) {
+                    is PtRpnOperator -> second is PtRpnOperator && first.operator==second.operator
+                    is PtExpression -> second is PtExpression && first isSameAs second
+                    else -> false
+                }
+            }
+        }
+        return false
+    }
+
+    fun maxDepth(): Map<DataType, Int> {
+        val depths = mutableMapOf(
+            DataType.UBYTE to 0,
+            DataType.UWORD to 0,
+            DataType.FLOAT to 0
+        )
+        val maxDepths = mutableMapOf(
+            DataType.UBYTE to 0,
+            DataType.UWORD to 0,
+            DataType.FLOAT to 0
+        )
+        var numPushes = 0
+        var numPops = 0
+
+        fun push(type: DataType) {
+            when (type) {
+                in ByteDatatypes -> {
+                    val depth = depths.getValue(DataType.UBYTE) + 1
+                    depths[DataType.UBYTE] = depth
+                    maxDepths[DataType.UBYTE] = max(maxDepths.getValue(DataType.UBYTE), depth)
+                }
+                in WordDatatypes, in PassByReferenceDatatypes -> {
+                    val depth = depths.getValue(DataType.UWORD) + 1
+                    depths[DataType.UWORD] = depth
+                    maxDepths[DataType.UWORD] = max(maxDepths.getValue(DataType.UWORD), depth)
+                }
+                DataType.FLOAT -> {
+                    val depth = depths.getValue(DataType.FLOAT) + 1
+                    depths[DataType.FLOAT] = depth
+                    maxDepths[DataType.FLOAT] = max(maxDepths.getValue(DataType.FLOAT), depth)
+                }
+                else -> throw IllegalArgumentException("invalid dt")
+            }
+            numPushes++
+        }
+
+        fun pop(type: DataType) {
+            when (type) {
+                in ByteDatatypes -> depths[DataType.UBYTE]=depths.getValue(DataType.UBYTE) - 1
+                in WordDatatypes, in PassByReferenceDatatypes -> depths[DataType.UWORD]=depths.getValue(DataType.UWORD) - 1
+                DataType.FLOAT -> depths[DataType.FLOAT]=depths.getValue(DataType.FLOAT) - 1
+                else -> throw IllegalArgumentException("invalid dt")
+            }
+            numPops++
+        }
+
+        children.withIndex().forEach { (index, node) ->
+            if (node is PtRpnOperator) {
+                pop(node.leftType)
+                pop(node.rightType)
+                push(node.type)
+            }
+            else {
+                push((node as PtExpression).type)
+            }
+        }
+        require(numPushes==numPops+1 && numPushes==children.size) {
+            "RPN not balanced, pushes=$numPushes pops=$numPops childs=${children.size}"
+        }
+        return maxDepths
+    }
+
+    fun finalOperator() = children.last() as PtRpnOperator
+    fun finalLeftOperand() = children[children.size-3]
+    fun finalRightOperand() = children[children.size-2]
+    fun finalOperation() = Triple(finalLeftOperand(), finalOperator(), finalRightOperand())
+}
+
+class PtRpnOperator(val operator: String, val type: DataType, val leftType: DataType, val rightType: DataType, position: Position): PtNode(position) {
+    init {
+        // NOTE: For now, we require that the types of the operands are the same size as the output type of the operator node.
+        if(operator !in ComparisonOperators) {
+            require(type equalsSize leftType && type equalsSize rightType) {
+                "operand type size(s) differ from operator result type $type:  $leftType $rightType  oper: $operator"
+            }
+        }
+    }
+}
+
+
 class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, position) {
     val element: PtExpression
         get() = children[0] as PtExpression
@@ -215,6 +341,8 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
     }
 
     operator fun compareTo(other: PtNumber): Int = number.compareTo(other.number)
+
+    override fun toString() = "PtNumber:$type:$number"
 }
 
 

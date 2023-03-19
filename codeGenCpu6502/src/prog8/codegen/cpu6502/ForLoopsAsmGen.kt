@@ -50,8 +50,8 @@ internal class ForLoopsAsmGen(private val program: PtProgram,
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
-                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt))
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.statements)
                     asmgen.out("""
@@ -68,8 +68,8 @@ $modifiedLabel          cmp  #0         ; modified
 
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt), null)
-                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt), null)
+                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
+                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt))
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.statements)
                     if(stepsize>0) {
@@ -594,6 +594,5 @@ $loopLabel""")
         asmgen.assignExpressionToVariable(
             range.from,
             asmgen.asmVariableName(stmt.variable),
-            stmt.variable.type,
-            stmt.definingISub())
+            stmt.variable.type)
 }
