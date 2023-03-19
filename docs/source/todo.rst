@@ -12,12 +12,9 @@ RPN: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.k
 RPN: check BinExprSplitter disablement any effect for RPN?
 RPN: Implement RPN codegen for IR.
 
-- Move asmExtra vars into BSS as well, now are .byte 0 allocated
-
-
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- should X16 R0-R15 be saved in IRQ routine? At least document that you should not use them in IRQ handler?
+- Move asmExtra vars into BSS as well, now are .byte 0 allocated
 
 ...
 

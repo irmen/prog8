@@ -159,7 +159,7 @@ And for the Commander X16::
     cx16.restore_irq()     ; set everything back to the systems default irq handler
 
 
-The Commander X16 syslib provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
+The Commander X16 syslib does provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
 They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
 will corrupt any Vera operations that were going on in the main program. The routines are::
 
@@ -168,7 +168,11 @@ will corrupt any Vera operations that were going on in the main program. The rou
     cx16.pop_vera_context()
 
 .. caution::
-    It is advised to not use floating point calculations inside IRQ handler routines.
+    The Commander X16's 16 'virtual registers' R0-R15 are located in zeropage and *are not preserved* in the IRQ handler!
+    So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
+    of the ones that you do need in the IRQ handler.
+
+    It is also advised to not use floating point calculations inside IRQ handler routines.
     Beside them being very slow, there are intricate requirements such as having the
     correct ROM bank enabled to be able to successfully call them (and making sure the correct
     ROM bank is reset at the end of the handler), and the possibility

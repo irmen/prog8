@@ -21,7 +21,7 @@ while still being low level enough to create high performance programs.
 You can compile programs for various machines with this CPU:
 
 * Commodore 64
-* Commander X16
+* Commander X16 (release R42 or newer is required)
 * Commodore 128 (limited support for now)
 * Atari 800 XL (limited support for now)
 

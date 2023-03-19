@@ -435,7 +435,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         require(it.type == DataType.UBYTE)
                         val scopeName = (scope as PtNamedNode).scopedName
                         val comparison = PtRpn(DataType.UBYTE, assign.position)
-                        comparison.addRpnNode(PtIdentifier("$scopeName.$leftvar", it.type, value.position))
+                        comparison.addRpnNode(PtIdentifier("$scopeName.$leftvar", it.leftType, value.position))
                         comparison.addRpnNode(PtIdentifier("$scopeName.$rightvar", it.rightType, value.position))
                         comparison.addRpnNode(PtRpnOperator(it.operator, it.type, it.leftType, it.rightType, it.position))
                         comparison.parent = scope

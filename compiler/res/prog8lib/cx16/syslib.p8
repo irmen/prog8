@@ -394,6 +394,11 @@ romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
 
+; Audio (bank 10)
+romsub $C09F = audio_init() -> ubyte @Pc                ; (re)initialize PSG and YM audio chips
+; TODO: add more of the audio routines here.
+
+
 asmsub kbdbuf_clear() {
     ; -- convenience helper routine to clear the keyboard buffer
     %asm {{
@@ -641,8 +646,9 @@ asmsub  init_system()  {
         lda  VERA_DC_VIDEO
         and  #%00000111 ; retain chroma + output mode
         sta  P8ZP_SCRATCH_REG
-        lda  #$80
-        sta  VERA_CTRL  ; reset vera
+        lda  #$0a
+        sta  $01        ; rom bank 10 (audio)
+        jsr  audio_init ; silence
         stz  $01        ; rom bank 0 (kernal)
         jsr  c64.IOINIT
         jsr  c64.RESTOR
@@ -650,7 +656,7 @@ asmsub  init_system()  {
         lda  VERA_DC_VIDEO
         and  #%11111000
         ora  P8ZP_SCRATCH_REG
-        sta  VERA_DC_VIDEO  ; keep old output mode
+        sta  VERA_DC_VIDEO  ; restore old output mode
         lda  #$90       ; black
         jsr  c64.CHROUT
         lda  #1
@@ -907,8 +913,6 @@ sys {
         %asm {{
             sei
             stz  $01                        ; bank the kernal in
-            lda  #$80
-            sta  cx16.VERA_CTRL             ; reset Vera (kernal doesn't do this?)
             jmp  (cx16.RESET_VEC)
         }}
     }
