@@ -3,6 +3,8 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- should X16 R0-R15 be saved in IRQ routine? At least document that you should not use them in IRQ handler?
+
 ...
 
 
