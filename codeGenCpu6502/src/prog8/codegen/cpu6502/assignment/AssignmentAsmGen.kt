@@ -420,11 +420,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return name
         }
 
-
+        asmgen.out("    ; rpn expression @ ${value.position}  ${value.children.size} nodes")  // TODO
         var depth=0
         value.children.forEach {
             when (it) {
                 is PtRpnOperator -> {
+                    asmgen.out("    ; rpn child node ${it.operator}")  // TODO
                     val rightvar = evalVars.getValue(getVarDt(it.rightType)).pop()
                     val leftvar = evalVars.getValue(getVarDt(it.leftType)).pop()
                     depth-=2
@@ -454,6 +455,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
                 is PtExpression -> {
+                    asmgen.out("    ; rpn child node expr ${it}")  // TODO
                     val varname = evalVarName(it.type, depth)
                     assignExpressionToVariable(it, varname, it.type)
                     depth++
@@ -461,14 +463,30 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("weird rpn node")
             }
         }
+        asmgen.out("    ; DONE rpn expression @ ${value.position}")  // TODO
+
         require(depth==1) { "unbalanced RPN: $depth  ${value.position}" }
+        asmgen.out("    ; assign rpn result to target")   // TODO
         val resultVariable = evalVars.getValue(getVarDt(value.type)).pop()
-        when(assign.target.datatype) {
-            in ByteDatatypes -> assignVariableByte(assign.target, resultVariable)
-            in WordDatatypes -> assignVariableWord(assign.target, resultVariable)
-            DataType.FLOAT -> assignVariableFloat(assign.target, resultVariable)
-            else -> throw AssemblyError("weird dt")
+        if(assign.target.datatype != value.type) {
+            // we only allow for transparent byte -> word / ubyte -> uword assignments
+            // any other type difference is an error
+            if(assign.target.datatype in WordDatatypes && value.type in ByteDatatypes) {
+                assignVariableToRegister(resultVariable, RegisterOrPair.A, value.type==DataType.BYTE, scope, assign.position)
+                asmgen.signExtendAYlsb(value.type)
+                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+            } else {
+                throw AssemblyError("data type mismatch, missing typecast ${value.type} -> ${assign.target.datatype}")
+            }
+        } else {
+            when (value.type) {
+                in ByteDatatypes -> assignVariableByte(assign.target, resultVariable)
+                in WordDatatypes -> assignVariableWord(assign.target, resultVariable)
+                DataType.FLOAT -> assignVariableFloat(assign.target, resultVariable)
+                else -> throw AssemblyError("weird dt")
+            }
         }
+        asmgen.out("    ; DONE assign rpn result to target")   // TODO
 
         require(evalVars.all { it.value.isEmpty() }) { "invalid rpn evaluation" }
 

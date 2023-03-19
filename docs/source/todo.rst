@@ -1,18 +1,22 @@
 TODO
 ====
-RPN: examples/turtlegfx crashes
 RPN: examples/maze crashes
+RPN: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
+RPN: check BinExprSplitter disablement any effect for RPN?
+then:
 RPN: examples/bsieve,charset compilation crash (bit shift expression)
 RPN: cube3d-float is massive and slow
 RPN: mandelbrot is big, but seems faster
 RPN: swirl is MUCH slower, wizzine is slower
-
-RPN: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
+then:
 RPN: check BinExprSplitter disablement any effect for RPN?
 RPN: Implement RPN codegen for IR.
 
+
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- ubyte fits = cx<numCellsHoriz-1   much larger code than when declared as bool.  (RPN only?)
+- if fits and @(celladdr(cx+1))  much larger code than   if fits and not @(celladdr(cx+1))   (RPN only?)
 - Move asmExtra vars into BSS as well, now are .byte 0 allocated
 
 ...
