@@ -1,6 +1,5 @@
 TODO
 ====
-RPN: examples/line-circle-txt crashes
 RPN: examples/turtlegfx crashes
 RPN: examples/maze crashes
 RPN: examples/bsieve,charset compilation crash (bit shift expression)

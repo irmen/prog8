@@ -766,9 +766,9 @@ $repeatLabel    lda  $counterVar
         }
         val isNested = parent is PtRepeatLoop
 
-        if(!isNested) {
+        if(!isNested && !options.useRPN) {
             // we can re-use a counter var from the subroutine if it already has one for that datatype
-            val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt }
+            val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("counter") }
             if(existingVar!=null) {
                 if(!preferZeropage || existingVar.third!=null)
                     return existingVar.second
