@@ -1174,20 +1174,15 @@ $repeatLabel    lda  $counterVar
 
     private fun translateCompareAndJumpIfTrueRPN(expr: PtRpn, jump: PtJump) {
         val (left, oper, right) = expr.finalOperation()
-        if(expr.children.size>3) {
-            TODO("RPN comparison too complex ${expr.position}")
-        }
-
-        require(left is PtExpression && right is PtExpression)
-
         if(oper.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
+        if(expr.children.size>3) {
+            TODO("RPN comparison too complex ${expr.position} - split off the comparison + compare value")
+        }
 
         // invert the comparison, so we can reuse the JumpIfFalse code generation routines
         val invertedComparisonOperator = invertedComparisonOperator(oper.operator)
             ?: throw AssemblyError("can't invert comparison $expr")
-
-        val rightConstVal = right as? PtNumber
 
         val label = when {
             jump.generatedLabel!=null -> jump.generatedLabel!!
@@ -1195,9 +1190,13 @@ $repeatLabel    lda  $counterVar
             jump.address!=null -> jump.address!!.toHex()
             else -> throw AssemblyError("weird jump")
         }
-        if (rightConstVal!=null && rightConstVal.number == 0.0)
+        val rightConstVal = right as? PtNumber
+        if (rightConstVal!=null && rightConstVal.number == 0.0) {
+            require(left is PtExpression)
             testZeroAndJump(left, invertedComparisonOperator, label)
+        }
         else {
+            require(left is PtExpression && right is PtExpression)
             val leftConstVal = left as? PtNumber
             testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
         }
@@ -1206,7 +1205,7 @@ $repeatLabel    lda  $counterVar
     private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
         val (left, oper, right) = expr.finalOperation()
         if(expr.children.size>3) {
-            TODO("RPN comparison too complex ${expr.position}")
+            TODO("RPN comparison too complex ${expr.position} - split off the comparison + compare value")
         }
 
         require(left is PtExpression && right is PtExpression)

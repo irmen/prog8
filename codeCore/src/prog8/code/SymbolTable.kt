@@ -33,9 +33,9 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
         return result
     }
 
-//    fun resetCachedFlat() {
-//        cachedFlat = null
-//    }
+    fun resetCachedFlat() {
+        cachedFlat = null
+    }
 
     val allVariables: Collection<StStaticVariable> by lazy {
         val vars = mutableListOf<StStaticVariable>()

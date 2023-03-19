@@ -365,7 +365,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun attemptAssignOptimizedExprRPN(assign: AsmAssignment, scope: IPtSubroutine): Boolean {
         val value = assign.source.expression as PtRpn
         val (left, oper, right) = value.finalOperation()
-        if(oper.operator in ComparisonOperators) {
+
+        // TODO RPN the fallthrough if size>3 seems to generate not 100% correct code... (balls example fills the screen weird)
+        if(value.children.size==3 && oper.operator in ComparisonOperators) {
             assignRPNComparison(assign, value)
             return true
         }
@@ -424,19 +426,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         value.children.forEach {
             when (it) {
                 is PtRpnOperator -> {
-                    val varDt = getVarDt(it.type)
-                    val rightvar = evalVars.getValue(varDt).pop()
-                    val leftvar = evalVars.getValue(varDt).pop()
+                    val rightvar = evalVars.getValue(getVarDt(it.rightType)).pop()
+                    val leftvar = evalVars.getValue(getVarDt(it.leftType)).pop()
                     depth-=2
                     val resultVarname = evalVarName(it.type, depth)
                     depth++
                     require(resultVarname==leftvar)
-                    // TODO no longer needed? symbolTable.resetCachedFlat()
+                    symbolTable.resetCachedFlat()
                     if(it.operator in ComparisonOperators) {
                         val scopeName = (scope as PtNamedNode).scopedName
                         val comparison = PtRpn(DataType.UBYTE, assign.position)
                         comparison.addRpnNode(PtIdentifier("$scopeName.$resultVarname", it.type, value.position))
-                        comparison.addRpnNode(PtIdentifier("$scopeName.$rightvar", it.type, value.position))
+                        comparison.addRpnNode(PtIdentifier("$scopeName.$rightvar", it.rightType, value.position))
                         comparison.addRpnNode(PtRpnOperator(it.operator, it.type, it.leftType, it.rightType, it.position))
                         comparison.parent = scope
                         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = comparison)
@@ -577,7 +578,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             else -> throw AssemblyError("invalid dt")
         }
         asmgen.out(jumpIfFalseLabel)
-        asmgen.out("; cmp done")
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {

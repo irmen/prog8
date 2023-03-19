@@ -6,12 +6,15 @@
 main {
 
     sub start() {
-        ubyte[255] BC
-        bool[255] DX
+;        ubyte[255] BC
+;        bool[255] DX
 
-        BC[2] = math.rnd() & 15
-        BC[3] = math.rnd() & 15
-        BC[4] = math.rnd() & 15
+        if math.rnd() & 22 {
+            cx16.r0L++
+        }
+;        BC[2] = math.rnd() & 15
+;        BC[3] = math.rnd() & 15
+;        BC[4] = math.rnd() & 15
         ;DX[2] = math.rnd() & 1
     }
 }
