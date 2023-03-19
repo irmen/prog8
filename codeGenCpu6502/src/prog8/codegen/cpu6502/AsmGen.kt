@@ -1175,12 +1175,15 @@ $repeatLabel    lda  $counterVar
     }
 
     private fun translateCompareAndJumpIfTrueRPN(expr: PtRpn, jump: PtJump) {
-        val (left, oper, right) = expr.finalOperation()
+        val (leftRpn, oper, right) = expr.finalOperation()
         if(oper.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
-        if(expr.children.size>3) {
-            TODO("RPN comparison too complex ${expr.position} - split off the comparison + compare value")
-        }
+        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression) {
+            expr.children.removeLast()
+            expr.children.removeLast()
+            expr
+        } else
+            leftRpn
 
         // invert the comparison, so we can reuse the JumpIfFalse code generation routines
         val invertedComparisonOperator = invertedComparisonOperator(oper.operator)
@@ -1194,23 +1197,25 @@ $repeatLabel    lda  $counterVar
         }
         val rightConstVal = right as? PtNumber
         if (rightConstVal!=null && rightConstVal.number == 0.0) {
-            require(left is PtExpression)
             testZeroAndJump(left, invertedComparisonOperator, label)
         }
         else {
-            require(left is PtExpression && right is PtExpression)
+            require(right is PtExpression)
             val leftConstVal = left as? PtNumber
             testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
         }
     }
 
     private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
-        val (left, oper, right) = expr.finalOperation()
-        if(expr.children.size>3) {
-            TODO("RPN comparison too complex ${expr.position} - split off the comparison + compare value")
-        }
+        val (leftRpn, oper, right) = expr.finalOperation()
+        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression) {
+            expr.children.removeLast()
+            expr.children.removeLast()
+            expr
+        } else
+            leftRpn
 
-        require(left is PtExpression && right is PtExpression)
+        require(right is PtExpression)
         val leftConstVal = left as? PtNumber
         val rightConstVal = right as? PtNumber
 

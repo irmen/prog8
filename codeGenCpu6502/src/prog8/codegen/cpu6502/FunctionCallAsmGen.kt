@@ -202,12 +202,13 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
+                val scope = value.definingISub()
                 val target: AsmAssignTarget =
                     if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
-                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, sub, value.position, register = register)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, scope, value.position, register = register)
                     else {
                         val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
-                        AsmAssignTarget.fromRegisters(register, signed, value.position, sub, asmgen)
+                        AsmAssignTarget.fromRegisters(register, signed, value.position, scope, asmgen)
                     }
                 val src = if(value.type in PassByReferenceDatatypes) {
                     if(value is PtIdentifier) {
@@ -221,7 +222,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 } else {
                     AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY), sub)
+                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY), scope)
             }
         }
     }

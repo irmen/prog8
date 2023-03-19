@@ -359,13 +359,18 @@ internal class ProgramAndVarsGen(
 
         asmgen.out("; variables")
         val asmGenInfo = asmgen.subroutineExtra(sub)
+        // TODO move these to BSS as well
         for((dt, name, addr) in asmGenInfo.extraVars) {
             if(addr!=null)
                 asmgen.out("$name = $addr")
             else when(dt) {
                 DataType.UBYTE -> asmgen.out("$name    .byte  0")
                 DataType.UWORD -> asmgen.out("$name    .word  0")
-                else -> throw AssemblyError("weird dt")
+                DataType.FLOAT -> {
+                    require(options.compTarget.machine.FLOAT_MEM_SIZE==5)
+                    asmgen.out("$name    .byte  0,0,0,0,0")
+                }
+                else -> throw AssemblyError("weird dt for extravar $dt")
             }
         }
         if(asmGenInfo.usedRegsaveA)      // will probably never occur

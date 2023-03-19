@@ -366,8 +366,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val value = assign.source.expression as PtRpn
         val (left, oper, right) = value.finalOperation()
 
-        // TODO RPN the fallthrough if size>3 seems to generate very inefficient code...
-        if(value.children.size==3 && oper.operator in ComparisonOperators) {
+        if(oper.operator in ComparisonOperators) {
             assignRPNComparison(assign, value)
             return true
         }
@@ -416,7 +415,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val dummyNode = PtVariable(name, varDt, ZeropageWish.DONTCARE, null, null, Position.DUMMY)
                 dummyNode.parent = scope
                 stScope.add(StStaticVariable(name, varDt, null, null, null, null, ZeropageWish.DONTCARE, dummyNode))
-                asmExtra.extraVars.add(Triple(dt, name, null))
+                asmExtra.extraVars.add(Triple(varDt, name, null))
             }
             return name
         }
@@ -431,12 +430,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     depth-=2
                     val resultVarname = evalVarName(it.type, depth)
                     depth++
-                    require(resultVarname==leftvar)
                     symbolTable.resetCachedFlat()
                     if(it.operator in ComparisonOperators) {
+                        require(it.type == DataType.UBYTE)
                         val scopeName = (scope as PtNamedNode).scopedName
                         val comparison = PtRpn(DataType.UBYTE, assign.position)
-                        comparison.addRpnNode(PtIdentifier("$scopeName.$resultVarname", it.type, value.position))
+                        comparison.addRpnNode(PtIdentifier("$scopeName.$leftvar", it.type, value.position))
                         comparison.addRpnNode(PtIdentifier("$scopeName.$rightvar", it.rightType, value.position))
                         comparison.addRpnNode(PtRpnOperator(it.operator, it.type, it.leftType, it.rightType, it.position))
                         comparison.parent = scope
@@ -445,8 +444,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         val normalAssign = AsmAssignment(src, target, program.memsizer, assign.position)
                         assignRPNComparison(normalAssign, comparison)
                     } else {
-                        val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, DataType.UBYTE, variableAsmName = rightvar)
-                        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, scope, assign.position, variableAsmName = resultVarname)
+                        require(resultVarname==leftvar) {
+                            "expected result $resultVarname == leftvar $leftvar"
+                        }
+                        val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
+                        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.type, scope, assign.position, variableAsmName = resultVarname)
                         val augAssign = AsmAugmentedAssignment(src, it.operator+"=", target, program.memsizer, assign.position)
                         augmentableAsmGen.translate(augAssign, scope)
                     }
@@ -534,7 +536,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignRPNComparison(assign: AsmAssignment, comparison: PtRpn) {
-        val (left, oper, right) = comparison.finalOperation()
+        val (leftRpn, oper, right) = comparison.finalOperation()
         val constRight = (right as PtExpression).asConstInteger()
         if(constRight == 0) {
             if(oper.operator == "==" || oper.operator == "!=") {
@@ -555,18 +557,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        if(comparison.children.size>3) {
-            TODO("RPN comparison too complex ${comparison.position}")
-        }
+        val left: PtExpression = if(comparison.children.size>3 || leftRpn !is PtExpression) {
+            comparison.children.removeLast()
+            comparison.children.removeLast()
+            comparison
+        } else
+            leftRpn
 
-        require(left is PtExpression)
         val leftNum = left as? PtNumber
         val rightNum = right as? PtNumber
         val jumpIfFalseLabel = asmgen.makeLabel("cmp")
 
         if(assign.target.isSameAs(left)) {
             // In-place comparison  Target = Target <compare> Right
-            // NOTE : this generates pretty inefficient code.... TODO RPN optimize?
             val targetDt = assign.target.datatype
             val tempVar = asmgen.getTempVarName(assign.target.datatype)
             val tempTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, targetDt, comparison.definingISub(), comparison.position, variableAsmName = tempVar)
@@ -989,9 +992,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignToByteCompareZeroRPN(expr: PtRpn, assign: AsmAssignment): Boolean {
-        val (left, oper, right) = expr.finalOperation()
-        if(expr.children.size!=3 || left !is PtExpression)
-            return false
+        val (leftRpn, oper, right) = expr.finalOperation()
+        val left = if(expr.children.size!=3 || leftRpn !is PtExpression) {
+            expr.children.removeLast()
+            expr.children.removeLast()
+            expr
+        } else
+            leftRpn
         when (oper.operator) {
             "==" -> {
                 when(val dt = left.type) {
