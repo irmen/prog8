@@ -43,7 +43,7 @@ main {
                         DX[lp] = true
                     else
                         BX[lp]=BX[lp]-1
-                } else if DX[lp] {
+                } else {
                     if (BX[lp] == txt.DEFAULT_WIDTH-1) {
                         BX[lp] = txt.DEFAULT_WIDTH-2
                         DX[lp] = false
@@ -56,7 +56,7 @@ main {
                         DY[lp] = true
                     else
                         BY[lp]=BY[lp]-1
-                } else if DY[lp] == 1 {
+                } else {
                     if (BY[lp] == txt.DEFAULT_HEIGHT-1) {
                         BY[lp] = txt.DEFAULT_HEIGHT-2
                         DY[lp] = false

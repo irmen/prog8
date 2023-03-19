@@ -120,7 +120,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //                printProgram(program)
 //                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-//                printAst(intermediateAst, ::println)
+//                printAst(intermediateAst, true, ::println)
 
                 if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")

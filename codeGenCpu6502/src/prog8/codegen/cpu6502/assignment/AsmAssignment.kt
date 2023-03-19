@@ -102,6 +102,28 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, pos, register = registers)
                 }
     }
+
+    fun isSameAs(left: PtExpression): Boolean =
+        when(kind) {
+            TargetStorageKind.VARIABLE -> {
+                val scopedName: String = if('.' in asmVarname)
+                    asmVarname
+                else {
+                    val scopeName = (scope as? PtNamedNode)?.scopedName
+                    if (scopeName == null) asmVarname else "$scopeName.$asmVarname"
+                }
+                left is PtIdentifier && left.name==scopedName
+            }
+            TargetStorageKind.ARRAY -> {
+                left is PtArrayIndexer && left isSameAs array!!
+            }
+            TargetStorageKind.MEMORY -> {
+                left isSameAs memory!!
+            }
+            TargetStorageKind.REGISTER, TargetStorageKind.STACK -> {
+                false
+            }
+        }
 }
 
 internal class AsmAssignSource(val kind: SourceStorageKind,

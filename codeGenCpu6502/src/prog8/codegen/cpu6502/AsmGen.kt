@@ -26,6 +26,8 @@ class AsmGen6502: ICodeGeneratorBackend {
             errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
         }
 
+        // printAst(program, true) { println(it) }
+
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
     }

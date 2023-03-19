@@ -366,7 +366,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val value = assign.source.expression as PtRpn
         val (left, oper, right) = value.finalOperation()
 
-        // TODO RPN the fallthrough if size>3 seems to generate not 100% correct code... (balls example fills the screen weird)
+        // TODO RPN the fallthrough if size>3 seems to generate very inefficient code...
         if(value.children.size==3 && oper.operator in ComparisonOperators) {
             assignRPNComparison(assign, value)
             return true
@@ -564,20 +564,46 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val rightNum = right as? PtNumber
         val jumpIfFalseLabel = asmgen.makeLabel("cmp")
 
-        when(assign.target.datatype) {
-            in ByteDatatypes -> assignConstantByte(assign.target, 0)
-            in WordDatatypes -> assignConstantWord(assign.target, 0)
-            DataType.FLOAT -> assignConstantFloat(assign.target, 0.0)
-            else -> throw AssemblyError("invalid dt")
+        if(assign.target.isSameAs(left)) {
+            // In-place comparison  Target = Target <compare> Right
+            // NOTE : this generates pretty inefficient code.... TODO RPN optimize?
+            val targetDt = assign.target.datatype
+            val tempVar = asmgen.getTempVarName(assign.target.datatype)
+            val tempTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, targetDt, comparison.definingISub(), comparison.position, variableAsmName = tempVar)
+            when (assign.target.datatype) {
+                in ByteDatatypes -> assignConstantByte(tempTarget, 0)
+                in WordDatatypes -> assignConstantWord(tempTarget, 0)
+                DataType.FLOAT -> assignConstantFloat(tempTarget, 0.0)
+                else -> throw AssemblyError("invalid dt")
+            }
+            asmgen.testNonzeroComparisonAndJump(left, oper.operator, right, jumpIfFalseLabel, leftNum, rightNum)
+            when (assign.target.datatype) {
+                in ByteDatatypes -> assignConstantByte(tempTarget, 1)
+                in WordDatatypes -> assignConstantWord(tempTarget, 1)
+                DataType.FLOAT -> assignConstantFloat(tempTarget, 1.0)
+                else -> throw AssemblyError("invalid dt")
+            }
+            asmgen.out(jumpIfFalseLabel)
+            val tempLeft = PtIdentifier(tempVar, targetDt, comparison.position)
+            tempLeft.parent=comparison
+            asmgen.assignExpressionTo(tempLeft, assign.target)
+        } else {
+            // Normal comparison  Target = Left <compare> Right
+            when (assign.target.datatype) {
+                in ByteDatatypes -> assignConstantByte(assign.target, 0)
+                in WordDatatypes -> assignConstantWord(assign.target, 0)
+                DataType.FLOAT -> assignConstantFloat(assign.target, 0.0)
+                else -> throw AssemblyError("invalid dt")
+            }
+            asmgen.testNonzeroComparisonAndJump(left, oper.operator, right, jumpIfFalseLabel, leftNum, rightNum)
+            when (assign.target.datatype) {
+                in ByteDatatypes -> assignConstantByte(assign.target, 1)
+                in WordDatatypes -> assignConstantWord(assign.target, 1)
+                DataType.FLOAT -> assignConstantFloat(assign.target, 1.0)
+                else -> throw AssemblyError("invalid dt")
+            }
+            asmgen.out(jumpIfFalseLabel)
         }
-        asmgen.testNonzeroComparisonAndJump(left, oper.operator, right, jumpIfFalseLabel, leftNum, rightNum)
-        when(assign.target.datatype) {
-            in ByteDatatypes -> assignConstantByte(assign.target, 1)
-            in WordDatatypes -> assignConstantWord(assign.target, 1)
-            DataType.FLOAT -> assignConstantFloat(assign.target, 1.0)
-            else -> throw AssemblyError("invalid dt")
-        }
-        asmgen.out(jumpIfFalseLabel)
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {

@@ -1,7 +1,6 @@
 TODO
 ====
 
-BRANCH: balls.p8  directions are wrong since the comparison operator fallthrough in attemptAssignOptimizedExprRPN
 BRANCH: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
 BRANCH: check BinExprSplitter disablement any effect for RPN?
 BRANCH: Implement RPN codegen for IR.

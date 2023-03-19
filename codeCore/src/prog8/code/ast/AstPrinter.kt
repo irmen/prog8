@@ -6,7 +6,7 @@ import prog8.code.core.*
  * Produces readable text from a [PtNode] (AST node, usually starting with PtProgram as root),
  * passing it as a String to the specified receiver function.
  */
-fun printAst(root: PtNode, output: (text: String) -> Unit) {
+fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Unit) {
     fun type(dt: DataType) = "!${dt.name.lowercase()}!"
     fun txt(node: PtNode): String {
         return when(node) {
@@ -136,16 +136,22 @@ fun printAst(root: PtNode, output: (text: String) -> Unit) {
         root.children.forEach {
             walkAst(it) { node, depth ->
                 val txt = txt(node)
-                if(txt.isNotEmpty())
-                    output("    ".repeat(depth) + txt(node))
+                val library = if(node is PtBlock) node.library else node.definingBlock()?.library==true
+                if(!library || !skipLibraries) {
+                    if (txt.isNotEmpty())
+                        output("    ".repeat(depth) + txt(node))
+                }
             }
         }
         println()
     } else {
         walkAst(root) { node, depth ->
             val txt = txt(node)
-            if(txt.isNotEmpty())
-                output("    ".repeat(depth) + txt(node))
+            val library = if(node is PtBlock) node.library else node.definingBlock()?.library==true
+            if(!library || !skipLibraries) {
+                if (txt.isNotEmpty())
+                    output("    ".repeat(depth) + txt(node))
+            }
         }
     }
 }
