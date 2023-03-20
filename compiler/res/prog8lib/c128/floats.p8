@@ -66,7 +66,7 @@ romsub $af66 = MOVMF(uword mflpt @ XY) clobbers(A,X,Y)      ; store fac1 to memo
 romsub $af69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
 romsub $af6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded)
 
-; X16 additions
+; X16 additions TODO so.... not on c128 !?
 romsub $af6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
 romsub $af72 = FADDT2() clobbers(A,X,Y)                     ; fac1 += fac2
 romsub $af75 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
@@ -78,7 +78,7 @@ romsub $af84 = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTI
 romsub $af87 = FDIVT2() clobbers(A,X,Y)                     ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
 romsub $af8a = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $af8d = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-romsub $af90 = FLOAT() clobbers(A,X,Y)                      ; FAC = (u8).A
+romsub $af90 = FLOAT() clobbers(A,X,Y)                      ; FAC = (s8).A
 romsub $af93 = FLOATS() clobbers(A,X,Y)                     ; FAC = (s16)facho+1:facho
 romsub $af9C = QINT() clobbers(A,X,Y)                       ; facho:facho+1:facho+2:facho+3 = u32(FAC)
 romsub $af9f = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
@@ -134,8 +134,8 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 asmsub  FREADUY (ubyte value @Y) {
     ; -- 8 bit unsigned Y -> float in fac1
     %asm {{
-        tya
-        jmp  FLOAT
+        lda  #0
+        jmp  GIVAYF
     }}
 }
 

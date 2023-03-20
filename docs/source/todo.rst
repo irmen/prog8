@@ -1,6 +1,5 @@
 TODO
 ====
-RPN: cx16/mandelbrot-gfx-colors half display is wrong
 RPN: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
 then:
 RPN: examples/bsieve,charset compilation crash (bit shift expression)

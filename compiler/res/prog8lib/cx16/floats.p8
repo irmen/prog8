@@ -76,7 +76,7 @@ romsub $fe7b = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 romsub $fe7e = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
 romsub $fe81 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $fe84 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
-romsub $fe87 = FLOAT() clobbers(A,X,Y)                      ; FAC = (u8).A
+romsub $fe87 = FLOAT() clobbers(A,X,Y)                      ; FAC = (s8).A
 romsub $fe8a = FLOATS() clobbers(A,X,Y)                     ; FAC = (s16)facho+1:facho
 romsub $fe8d = QINT() clobbers(A,X,Y)                       ; facho:facho+1:facho+2:facho+3 = u32(FAC)
 romsub $fe90 = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
@@ -133,8 +133,8 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 asmsub  FREADUY (ubyte value @Y) {
     ; -- 8 bit unsigned Y -> float in fac1
     %asm {{
-        tya
-        jmp  FLOAT
+        lda  #0
+        jmp  GIVAYF
     }}
 }
 
