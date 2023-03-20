@@ -1,11 +1,13 @@
 TODO
 ====
-RPN: Fix the TODO RPN routines to be optimized assembly in RpnExpressionAsmGen.kt
-then:
-RPN: examples/bsieve,charset compilation crash (bit shift expression)
+RPN: cube3d-sprites compiler crash (bit shift too large)
+RPN: swirl is bigger and MUCH slower
+RPN: wizzine is slower but about equal size
+RPN: charset is larger
+RPN: cube3d is much larger, but a bit faster
 RPN: cube3d-float is massive and slow
-RPN: mandelbrot is big, but seems faster
-RPN: swirl is MUCH slower, wizzine is slower
+RPN: mandelbrot is bigger, but seems faster
+
 then:
 RPN: Implement RPN codegen for IR.
 
