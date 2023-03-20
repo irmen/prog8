@@ -20,8 +20,8 @@ main {
         const float XU=0.800
         const float YL=-1.300
         const float YU=1.300
-        float dx = (XU-XL)/width
-        float dy = (YU-YL)/height
+        const float dx = (XU-XL)/width
+        const float dy = (YU-YL)/height
         ubyte pixelx
         ubyte pixely
 
