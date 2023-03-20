@@ -263,9 +263,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                         translateComparisonWithZero(left, leftDt, oper.operator)
                     }
                     is PtRpnOperator -> {
-                        expr.children.removeLast()
-                        expr.children.removeLast()
-                        translateComparisonWithZero(expr, leftDt, oper.operator)
+                        val truncated = expr.truncateLastOperator()
+                        translateComparisonWithZero(truncated, leftDt, oper.operator)
                     }
                     else -> throw AssemblyError("weird rpn node")
                 }
@@ -282,7 +281,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                 || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
             throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalRightOperand()}")
 
-        var depth=0
+        val asmExtra = asmgen.subroutineExtra(expr.definingISub()!!)
+        val startDepth = asmExtra.rpnDepth
         expr.children.forEach {
             if(it is PtRpnOperator) {
                 when(it.leftType) {
@@ -297,13 +297,13 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                     }
                     else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
                 }
-                depth--
+                asmExtra.rpnDepth--
             } else {
                 translateExpressionInternal(it as PtExpression)
-                depth++
+                asmExtra.rpnDepth++
             }
         }
-        require(depth==1) { "unbalanced RPN: $depth  ${expr.position}" }
+        require(asmExtra.rpnDepth-startDepth==1) { "unbalanced RPN: ${expr.position}" }
     }
 
     private fun translateExpression(expr: PtBinaryExpression) {

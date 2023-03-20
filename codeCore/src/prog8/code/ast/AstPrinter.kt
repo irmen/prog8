@@ -19,8 +19,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtArray -> "array len=${node.children.size} ${type(node.type)}"
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
-            is PtRpn -> "<rpnexpr>"
-            is PtRpnOperator -> node.operator
+            is PtRpn -> "<rpnexpr> ${type(node.type)}"
+            is PtRpnOperator -> "${node.operator}  ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
                 val str = if(node.void) "void " else ""
                 str + node.name + "()"

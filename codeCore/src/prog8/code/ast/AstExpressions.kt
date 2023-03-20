@@ -270,6 +270,17 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
     fun finalLeftOperand() = children[children.size-3]
     fun finalRightOperand() = children[children.size-2]
     fun finalOperation() = Triple(finalLeftOperand(), finalOperator(), finalRightOperand())
+    fun truncateLastOperator(): PtRpn {
+        // NOTE: this is a destructive operation!
+        children.removeLast()
+        children.removeLast()
+        val finalOper = finalOperator()
+        if(finalOper.type==type) return this
+        val typeAdjusted = PtRpn(finalOper.type, this.position)
+        typeAdjusted.children.addAll(children)
+        typeAdjusted.parent = parent
+        return typeAdjusted
+    }
 }
 
 class PtRpnOperator(val operator: String, val type: DataType, val leftType: DataType, val rightType: DataType, position: Position): PtNode(position) {

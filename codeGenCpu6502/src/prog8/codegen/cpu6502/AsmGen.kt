@@ -1023,15 +1023,14 @@ $repeatLabel    lda  $counterVar
                             || (rightmostOperand is PtTypeCast && rightmostOperand.value.type == DataType.UBYTE)
                         ) {
                             // split up the big expression in 2 parts so that we CAN use ZP,Y indexing after all
-                            pointerOffsetExpr.children.removeLast()
-                            pointerOffsetExpr.children.removeLast()
+                            val truncatedExpr = pointerOffsetExpr.truncateLastOperator()
                             val tempvar = getTempVarName(DataType.UWORD)
-                            assignExpressionToVariable(pointerOffsetExpr, tempvar, DataType.UWORD)
-                            val smallExpr = PtRpn(DataType.UWORD, pointerOffsetExpr.position)
-                            smallExpr.addRpnNode(PtIdentifier(tempvar, DataType.UWORD, pointerOffsetExpr.position))
+                            assignExpressionToVariable(truncatedExpr, tempvar, DataType.UWORD)
+                            val smallExpr = PtRpn(DataType.UWORD, truncatedExpr.position)
+                            smallExpr.addRpnNode(PtIdentifier(tempvar, DataType.UWORD, truncatedExpr.position))
                             smallExpr.addRpnNode(rightmostOperand)
                             smallExpr.addRpnNode(rightmostOperator)
-                            smallExpr.parent = pointerOffsetExpr.parent
+                            smallExpr.parent = truncatedExpr.parent
                             val result = pointerViaIndexRegisterPossible(smallExpr)
                             require(result != null)
                             return result
@@ -1178,11 +1177,9 @@ $repeatLabel    lda  $counterVar
         val (leftRpn, oper, right) = expr.finalOperation()
         if(oper.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
-        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression) {
-            expr.children.removeLast()
-            expr.children.removeLast()
-            expr
-        } else
+        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression)
+            expr.truncateLastOperator()
+        else
             leftRpn
 
         // invert the comparison, so we can reuse the JumpIfFalse code generation routines
@@ -1208,11 +1205,9 @@ $repeatLabel    lda  $counterVar
 
     private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
         val (leftRpn, oper, right) = expr.finalOperation()
-        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression) {
-            expr.children.removeLast()
-            expr.children.removeLast()
-            expr
-        } else
+        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression)
+            expr.truncateLastOperator()
+        else
             leftRpn
 
         require(right is PtExpression)
@@ -3210,6 +3205,7 @@ internal class SubroutineExtraAsmInfo {
     var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
+    var rpnDepth = 0        // 'depth' tracking of the RPN expression evaluator
 
     val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
 }

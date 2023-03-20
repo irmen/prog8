@@ -365,6 +365,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun attemptAssignOptimizedExprRPN(assign: AsmAssignment, scope: IPtSubroutine): Boolean {
         val value = assign.source.expression as PtRpn
         val (left, oper, right) = value.finalOperation()
+        if(oper.type != value.type)
+            throw AssemblyError("rpn node type error, expected ${value.type} got ${oper.type}")
 
         if(oper.operator in ComparisonOperators) {
             assignRPNComparison(assign, value)
@@ -420,17 +422,15 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return name
         }
 
-        asmgen.out("    ; rpn expression @ ${value.position}  ${value.children.size} nodes")  // TODO
-        var depth=0
+        val startDepth = asmExtra.rpnDepth
         value.children.forEach {
             when (it) {
                 is PtRpnOperator -> {
-                    asmgen.out("    ; rpn child node ${it.operator}")  // TODO
                     val rightvar = evalVars.getValue(getVarDt(it.rightType)).pop()
                     val leftvar = evalVars.getValue(getVarDt(it.leftType)).pop()
-                    depth-=2
-                    val resultVarname = evalVarName(it.type, depth)
-                    depth++
+                    asmExtra.rpnDepth -= 2
+                    val resultVarname = evalVarName(it.type, asmExtra.rpnDepth)
+                    asmExtra.rpnDepth++
                     symbolTable.resetCachedFlat()
                     if(it.operator in ComparisonOperators) {
                         require(it.type == DataType.UBYTE)
@@ -445,8 +445,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         val normalAssign = AsmAssignment(src, target, program.memsizer, assign.position)
                         assignRPNComparison(normalAssign, comparison)
                     } else {
-                        require(resultVarname==leftvar) {
-                            "expected result $resultVarname == leftvar $leftvar"
+                        if(leftvar!=resultVarname) {
+                            val scopeName = (scope as PtNamedNode).scopedName
+                            val leftVarPt = PtIdentifier("$scopeName.$leftvar", it.leftType, it.position)
+                            leftVarPt.parent=scope
+                            assignExpressionToVariable(leftVarPt, resultVarname, it.type)
                         }
                         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
                         val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.type, scope, assign.position, variableAsmName = resultVarname)
@@ -455,20 +458,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
                 is PtExpression -> {
-                    asmgen.out("    ; rpn child node expr ${it}")  // TODO
-                    val varname = evalVarName(it.type, depth)
+                    val varname = evalVarName(it.type, asmExtra.rpnDepth)
                     assignExpressionToVariable(it, varname, it.type)
-                    depth++
+                    asmExtra.rpnDepth++
                 }
                 else -> throw AssemblyError("weird rpn node")
             }
         }
-        asmgen.out("    ; DONE rpn expression @ ${value.position}")  // TODO
+        require(asmExtra.rpnDepth-startDepth == 1) {
+            "unbalanced RPN ${value.position}"
+        }
 
-        require(depth==1) { "unbalanced RPN: $depth  ${value.position}" }
-        asmgen.out("    ; assign rpn result to target")   // TODO
         val resultVariable = evalVars.getValue(getVarDt(value.type)).pop()
-        if(assign.target.datatype != value.type) {
+        asmExtra.rpnDepth--
+        if(!(assign.target.datatype equalsSize  value.type)) {
             // we only allow for transparent byte -> word / ubyte -> uword assignments
             // any other type difference is an error
             if(assign.target.datatype in WordDatatypes && value.type in ByteDatatypes) {
@@ -486,8 +489,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("weird dt")
             }
         }
-        asmgen.out("    ; DONE assign rpn result to target")   // TODO
-
         require(evalVars.all { it.value.isEmpty() }) { "invalid rpn evaluation" }
 
         return true
@@ -575,11 +576,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        val left: PtExpression = if(comparison.children.size>3 || leftRpn !is PtExpression) {
-            comparison.children.removeLast()
-            comparison.children.removeLast()
-            comparison
-        } else
+        val left: PtExpression = if(comparison.children.size>3 || leftRpn !is PtExpression)
+            comparison.truncateLastOperator()
+        else
             leftRpn
 
         val leftNum = left as? PtNumber
@@ -1011,11 +1010,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun attemptAssignToByteCompareZeroRPN(expr: PtRpn, assign: AsmAssignment): Boolean {
         val (leftRpn, oper, right) = expr.finalOperation()
-        val left = if(expr.children.size!=3 || leftRpn !is PtExpression) {
-            expr.children.removeLast()
-            expr.children.removeLast()
-            expr
-        } else
+        val left = if(expr.children.size!=3 || leftRpn !is PtExpression)
+            expr.truncateLastOperator()
+        else
             leftRpn
         when (oper.operator) {
             "==" -> {
