@@ -12,6 +12,7 @@ import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -143,5 +144,25 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true, errors = errors)
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "undefined symbol: doesnotexist"
+    }
+
+    test("shifting by word value is ok") {
+        val text="""
+main {
+    sub start() {
+        ubyte c = 1
+        @(15000 + c<<${'$'}0003) = 42
+        @(15000 + (c<<${'$'}0003)) = 42
+        @(15000 + c*${'$'}0008) = 42       ; *8 becomes a shift after opt
+
+        uword @shared qq = 15000 + c<<${'$'}0003
+        qq = 15000 + (c<<${'$'}0003)
+        qq = 16000 + c*${'$'}0008
+    }
+}"""
+        compileText(C64Target(), true, text, writeAssembly = true, useRPN = false) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true, useRPN = true) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true, useRPN = false) shouldNotBe null
+        // TODO RPN once IR RPN codegen is done:  compileText(VMTarget(), true, text, writeAssembly = true, useRPN = true) shouldNotBe null
     }
 })

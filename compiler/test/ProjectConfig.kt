@@ -3,7 +3,7 @@ package prog8tests
 import io.kotest.core.config.AbstractProjectConfig
 
 object ProjectConfig : AbstractProjectConfig() {
-    override val parallelism = 2 // max(2, Runtime.getRuntime().availableProcessors() / 2)
+    override val parallelism = kotlin.math.max(1, Runtime.getRuntime().availableProcessors() / 2)
     // override fun listeners() = listOf(SystemOutToNullListener)
 }
 

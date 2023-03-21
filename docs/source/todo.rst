@@ -1,14 +1,19 @@
 TODO
 ====
-RPN: cube3d-sprites compiler crash (bit shift too large)
-RPN: swirl is bigger and MUCH slower
-RPN: wizzine is slower but about equal size
+RPN: assem once again is broken with selftest
+RPN: optimize RPN in AssignmentAsmGen TODO's
+RPN: swirl is MUCH slower
+RPN: wizzine is slower
+
+- Move asmExtra vars into BSS as well, now are .byte 0 allocated
+
+then:
+RPN: swirl is bigger
+RPN: petaxian is 900 bytes larger, chess is a lot bigger
 RPN: charset is larger
 RPN: cube3d is much larger, but a bit faster
 RPN: cube3d-float is massive and slow
 RPN: mandelbrot is bigger, but seems faster
-
-then:
 RPN: Implement RPN codegen for IR.
 
 
@@ -16,7 +21,7 @@ For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
 - ubyte fits = cx<numCellsHoriz-1   much larger code than when declared as bool.  (RPN only?)
 - if fits and @(celladdr(cx+1))  much larger code than   if fits and not @(celladdr(cx+1))   (RPN only?)
-- Move asmExtra vars into BSS as well, now are .byte 0 allocated
+- @($5000 + c<<$0003) = 22   why is 22 pushed on the stack first and then popped after the address is calcualted
 
 ...
 

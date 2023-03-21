@@ -60,15 +60,15 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if (parent is Assignment) {
                         if (parent.target.inferType(program).isWords) {
                             modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
-                            if(rightDt.isBytes)
-                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+//                            if(rightDt.isBytes)
+//                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
                         }
                     } else if (parent is TypecastExpression && parent.type == DataType.UWORD && parent.parent is Assignment) {
                         val assign = parent.parent as Assignment
                         if (assign.target.inferType(program).isWords) {
                             modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
-                            if(rightDt.isBytes)
-                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+//                            if(rightDt.isBytes)
+//                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
                         }
                     }
                     if(modifications.isNotEmpty())
@@ -140,16 +140,18 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 }
 
 
-                // determine common datatype and add typecast as required to make left and right equal types
-                val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
-                if(toFix!=null) {
-                    val modifications = mutableListOf<IAstModification>()
-                    when {
-                        toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
-                        toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
-                        else -> throw FatalAstException("confused binary expression side")
+                if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isWords || !rightDt.isBytes) {
+                    // determine common datatype and add typecast as required to make left and right equal types
+                    val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
+                    if(toFix!=null) {
+                        val modifications = mutableListOf<IAstModification>()
+                        when {
+                            toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
+                            toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
+                            else -> throw FatalAstException("confused binary expression side")
+                        }
+                        return modifications
                     }
-                    return modifications
                 }
             }
         }

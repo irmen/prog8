@@ -134,7 +134,7 @@ main {
         compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 
-    test("bitshift left of const byte converted to word") {
+    test("bitshift left of const byte not converted to word") {
         val src="""
 main {
     sub start() {

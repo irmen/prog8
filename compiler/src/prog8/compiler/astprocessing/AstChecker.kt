@@ -929,6 +929,14 @@ internal class AstChecker(private val program: Program,
                     errors.err("bitwise operator can only be used on integer operands", expr.right.position)
             }
             "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
+            "<<", ">>" -> {
+                if(rightDt in WordDatatypes) {
+                    val shift = expr.right.constValue(program)?.number?.toInt()
+                    if(shift==null || shift > 255) {
+                        errors.err("shift by a word value not supported, max is a byte", expr.position)
+                    }
+                }
+            }
         }
 
         if(leftDt !in NumericDatatypes && leftDt != DataType.STR && leftDt != DataType.BOOL)
@@ -937,11 +945,13 @@ internal class AstChecker(private val program: Program,
             errors.err("right operand is not numeric or str", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt==DataType.STR && rightDt in IntegerDatatypes && expr.operator=="*") {
-                // only exception allowed: str * constvalue
+                // exception allowed: str * constvalue
                 if(expr.right.constValue(program)==null)
                     errors.err("can only use string repeat with a constant number value", expr.left.position)
             } else if(leftDt==DataType.BOOL && rightDt in ByteDatatypes || leftDt in ByteDatatypes && rightDt==DataType.BOOL) {
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
+            } else if((expr.operator == "<<" || expr.operator == ">>") && (leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
+                // exception allowed: shifting a word by a byte
             } else {
                 errors.err("left and right operands aren't the same type", expr.left.position)
             }

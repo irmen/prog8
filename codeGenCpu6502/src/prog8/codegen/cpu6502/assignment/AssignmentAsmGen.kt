@@ -374,15 +374,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
 
         if(value.children.size==3 && left is PtExpression && right is PtExpression) {
+            // TODO RPN make this work also when left is not an Expression (in which case size >3)
             if (simpleEqualityExprRPN(left, oper.operator, right, assign.target))
                 return true
             if (simpleLogicalExprRPN(left, oper.operator, right, assign.target))
                 return true
             if (simplePlusOrMinusExprRPN(left, oper.operator, right, assign.target))
                 return true
-            if (simpleBitshiftExprRPN(left, oper.operator, right, assign.target))
-                return true
         }
+
+        if (simpleBitshiftExprRPN(value, oper, right, assign.target))
+            return true
 
         val asmExtra = asmgen.subroutineExtra(scope)
         val evalVars = mutableMapOf (
@@ -564,8 +566,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return false
 
         // expression datatype is BOOL (ubyte) but operands can be anything
-        if(left.type in ByteDatatypes && right.type in ByteDatatypes &&
-            left.isSimple() && right.isSimple()) {
+        if(left.type in ByteDatatypes && right.type in ByteDatatypes && left.isSimple() && right.isSimple()) {
             assignExpressionToRegister(left, RegisterOrPair.A, false)
             asmgen.saveRegisterStack(CpuRegister.A, false)
             assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
@@ -589,8 +590,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             assignRegisterByte(target, CpuRegister.A)
             return true
-        } else if(left.type in WordDatatypes && right.type in WordDatatypes &&
-            left.isSimple() && right.isSimple()) {
+        } else if(left.type in WordDatatypes && right.type in WordDatatypes && left.isSimple() && right.isSimple()) {
             assignExpressionToRegister(left, RegisterOrPair.AY, false)
             asmgen.saveRegisterStack(CpuRegister.A, false)
             asmgen.saveRegisterStack(CpuRegister.Y, false)
@@ -759,59 +759,61 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun simpleBitshiftExprRPN(left: PtExpression, operator: String, right: PtExpression, target: AsmAssignTarget): Boolean {
-        if(operator!="<<" && operator!=">>")
+    private fun simpleBitshiftExprRPN(expr: PtRpn, operator: PtRpnOperator, rightNode: PtNode, target: AsmAssignTarget): Boolean {
+        if(operator.operator!="<<" && operator.operator!=">>")
+            return false
+        val shifts = (rightNode as? PtExpression)?.asConstInteger()
+        if(shifts==null || shifts !in 0..7 || operator.leftType !in IntegerDatatypes)
             return false
 
-        val shifts = right.asConstInteger()
-        if(shifts!=null) {
-            val dt = left.type
-            if(dt in ByteDatatypes && shifts in 0..7) {
-                val signed = dt == DataType.BYTE
-                assignExpressionToRegister(left, RegisterOrPair.A, signed)
-                if(operator=="<<") {
-                    repeat(shifts) {
-                        asmgen.out("  asl  a")
-                    }
+        if(operator.leftType in ByteDatatypes) {
+            val signed = operator.leftType == DataType.BYTE
+            val left = expr.truncateLastOperator()
+            assignExpressionToRegister(left, RegisterOrPair.A, signed)
+            if(operator.operator=="<<") {
+                repeat(shifts) {
+                    asmgen.out("  asl  a")
+                }
+            } else {
+                if(signed && shifts>0) {
+                    asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
                 } else {
-                    if(signed && shifts>0) {
-                        asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
-                    } else {
-                        repeat(shifts) {
-                            asmgen.out("  lsr  a")
-                        }
+                    repeat(shifts) {
+                        asmgen.out("  lsr  a")
                     }
                 }
-                assignRegisterByte(target, CpuRegister.A)
-                return true
-            } else if(dt in WordDatatypes && shifts in 0..7) {
-                val signed = dt == DataType.WORD
+            }
+            assignRegisterByte(target, CpuRegister.A)
+            return true
+        } else if(operator.leftType in WordDatatypes) {
+            val signed = operator.leftType == DataType.WORD
+            if(operator.operator=="<<") {
+                val left = expr.truncateLastOperator()
                 assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                if(operator=="<<") {
+                if(shifts>0) {
+                    asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                    repeat(shifts) {
+                        asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_B1")
+                    }
+                    asmgen.out("  ldy  P8ZP_SCRATCH_B1")
+                }
+            } else {
+                if(signed) {
+                    return false    // TODO("shift AY >> $shifts signed")
+                } else {
+                    val left = expr.truncateLastOperator()
+                    assignExpressionToRegister(left, RegisterOrPair.AY, false)
                     if(shifts>0) {
                         asmgen.out("  sty  P8ZP_SCRATCH_B1")
                         repeat(shifts) {
-                            asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_B1")
+                            asmgen.out("  lsr  P8ZP_SCRATCH_B1 |  ror  a")
                         }
                         asmgen.out("  ldy  P8ZP_SCRATCH_B1")
                     }
-                } else {
-                    if(signed) {
-                        // TODO("shift AY >> $shifts signed")
-                        return false
-                    } else {
-                        if(shifts>0) {
-                            asmgen.out("  sty  P8ZP_SCRATCH_B1")
-                            repeat(shifts) {
-                                asmgen.out("  lsr  P8ZP_SCRATCH_B1 |  ror  a")
-                            }
-                            asmgen.out("  ldy  P8ZP_SCRATCH_B1")
-                        }
-                    }
                 }
-                assignRegisterpairWord(target, RegisterOrPair.AY)
-                return true
             }
+            assignRegisterpairWord(target, RegisterOrPair.AY)
+            return true
         }
 
         return false

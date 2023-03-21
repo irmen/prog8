@@ -139,6 +139,10 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                     errors.warn("shift always results in 0", expr.position)
                 if(dt.istype(DataType.UWORD) && shifts.number>=16.0)
                     errors.warn("shift always results in 0", expr.position)
+                if(shifts.number<=255.0 && shifts.type in WordDatatypes) {
+                    val byteVal = NumericLiteral(DataType.UBYTE, shifts.number, shifts.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, byteVal, expr))
+                }
             }
         }
         return noModifications

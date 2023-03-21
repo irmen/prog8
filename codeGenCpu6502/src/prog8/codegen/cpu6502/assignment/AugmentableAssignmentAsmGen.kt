@@ -1288,7 +1288,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             sta  $name+1
                         """)
                     }
-                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
+                    "<<", ">>" -> {
+                        throw AssemblyError("shift by a word variable not supported, max is a byte")
+                    }
                     "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
@@ -1504,7 +1506,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         remainderVarByWordInAY()
                     }
-                    "<<", ">>" -> throw AssemblyError("shift by a word value not supported, max is a byte")
+                    "<<", ">>" -> {
+                        if(value is PtNumber && value.number<=255) {
+                            when (dt) {
+                                in WordDatatypes -> TODO("shift a word var by ${value.number}")
+                                in ByteDatatypes -> TODO("shift a byte var by ${value.number}")
+                                else -> throw AssemblyError("weird dt for shift")
+                            }
+                        } else {
+                            throw AssemblyError("shift by a word value not supported, max is a byte")
+                        }
+                    }
                     "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  and  $name |  sta  $name |  tya |  and  $name+1 |  sta  $name+1")

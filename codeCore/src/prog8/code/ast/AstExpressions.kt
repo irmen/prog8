@@ -270,10 +270,16 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
     fun finalLeftOperand() = children[children.size-3]
     fun finalRightOperand() = children[children.size-2]
     fun finalOperation() = Triple(finalLeftOperand(), finalOperator(), finalRightOperand())
-    fun truncateLastOperator(): PtRpn {
+    fun truncateLastOperator(): PtExpression {
         // NOTE: this is a destructive operation!
         children.removeLast()
         children.removeLast()
+        if(children.last() !is PtRpnOperator) {
+            if(children.size==1 && children[0] is PtExpression)
+                return children[0] as PtExpression
+            else
+                throw IllegalArgumentException("don't know what to do with children: $children")
+        }
         val finalOper = finalOperator()
         if(finalOper.type==type) return this
         val typeAdjusted = PtRpn(finalOper.type, this.position)
@@ -286,7 +292,7 @@ class PtRpn(type: DataType, position: Position): PtExpression(type, position) {
 class PtRpnOperator(val operator: String, val type: DataType, val leftType: DataType, val rightType: DataType, position: Position): PtNode(position) {
     init {
         // NOTE: For now, we require that the types of the operands are the same size as the output type of the operator node.
-        if(operator !in ComparisonOperators) {
+        if(operator !in ComparisonOperators && operator != "<<" && operator != ">>") {
             require(type equalsSize leftType && type equalsSize rightType) {
                 "operand type size(s) differ from operator result type $type:  $leftType $rightType  oper: $operator"
             }
