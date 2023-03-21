@@ -255,7 +255,7 @@ sin(x)
 
 sqrt(x)
     Floating point Square root.
-    To do the reverse, squaring a floating point number, just write ``x*x`` or ``x**2``.
+    To do the reverse, squaring a floating point number, just write ``x*x``.
 
 tan(x)
     Tangent.

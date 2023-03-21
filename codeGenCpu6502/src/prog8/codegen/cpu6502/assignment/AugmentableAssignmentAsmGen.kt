@@ -307,7 +307,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
         val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
             "-" -> asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
             "*" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.multiply_bytes")
@@ -344,7 +343,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
 
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> asmgen.out("  clc |  adc  $otherName")
             "-" -> asmgen.out("  sec |  sbc  $otherName")
             "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes")
@@ -378,7 +376,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplaceModification_byte_litval_to_pointer(pointervar: PtIdentifier, operator: String, value: Int) {
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  clc |  adc  #$value")
@@ -448,7 +445,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                 asmgen.out("  clc |  adc  $name |  sta  $name")
@@ -542,7 +538,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplaceModification_byte_variable_to_variable(name: String, dt: DataType, operator: String, ident: PtIdentifier) {
         val otherName = asmgen.asmVariableName(ident)
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name")
             "*" -> asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.multiply_bytes |  sta  $name")
@@ -618,7 +613,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplaceModification_byte_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
             "*" -> {
@@ -795,7 +789,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
         when (operator) {
-            // note: ** (power) operator requires floats.
             "+" -> {
                 when {
                     value==0 -> {}
@@ -1062,7 +1055,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
-                    // note: ** (power) operator requires floats.
                     "+" -> {
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
@@ -1225,7 +1217,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             in WordDatatypes -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
-                    // note: ** (power) operator requires floats.
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
@@ -1359,7 +1350,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
-                    // note: ** (power) operator requires floats.
                     "+" -> {
                         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                         if(valueDt==DataType.UBYTE)
@@ -1485,7 +1475,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             in WordDatatypes -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
-                    // note: ** (power) operator requires floats.
                     "+" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  clc |  adc  $name |  sta  $name |  tya |  adc  $name+1 |  sta  $name+1")

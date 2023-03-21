@@ -487,7 +487,7 @@ assignment: ``=``
     Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
     Note that an assignment sometimes is not possible or supported.
 
-augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``**=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
 	This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
 
 postfix increment and decrement: ``++``  ``--``
