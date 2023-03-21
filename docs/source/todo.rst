@@ -1,7 +1,5 @@
 TODO
 ====
-RPN: assem once again is broken with selftest
-RPN: optimize RPN in AssignmentAsmGen TODO's
 RPN: swirl is MUCH slower
 RPN: wizzine is slower
 
@@ -10,7 +8,6 @@ RPN: wizzine is slower
 then:
 RPN: swirl is bigger
 RPN: petaxian is 900 bytes larger, chess is a lot bigger
-RPN: charset is larger
 RPN: cube3d is much larger, but a bit faster
 RPN: cube3d-float is massive and slow
 RPN: mandelbrot is bigger, but seems faster
@@ -89,9 +86,8 @@ Libraries:
 
 Expressions:
 
-- investigate if transforming BinaryExpression into RPN notation makes code generation better. (new Pt node: PtRpn that is just a list of PtOperators and PtExpression nodes, except PtBinaryExpression and PtRpn sub-nodes.)
-  It's super easy to determine the number of stack positions required for this RPN expression (even grouped per data type).
-  Which should make it easier to not use the eval stack for this, but a limited set of regular variables instead.
+- Once the evalstack-free expression codegen is in place, the Eval Stack can be removed from the compiler.
+    Machinedefinition, .p8 and .asm library files, all routines operationg on estack, and everything saving/restoring the X register related to this stack.
 - Or rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code
   that, for instance, uses a fixed number of predetermined value 'variables'?
   The VM IL solves this already (by using unlimited registers) but that still lacks a translation to 6502.

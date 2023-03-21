@@ -373,18 +373,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return true
         }
 
-        if(value.children.size==3 && left is PtExpression && right is PtExpression) {
-            // TODO RPN make this work also when left is not an Expression (in which case size >3)
-            if (simpleEqualityExprRPN(left, oper.operator, right, assign.target))
+        if(right is PtExpression) {
+            if (simpleEqualityExprRPN(value, oper, right, assign.target))
                 return true
-            if (simpleLogicalExprRPN(left, oper.operator, right, assign.target))
+            if (simpleLogicalExprRPN(value, oper, right, assign.target))
                 return true
-            if (simplePlusOrMinusExprRPN(left, oper.operator, right, assign.target))
+            if (simplePlusOrMinusExprRPN(value, oper, right, assign.target))
+                return true
+            if (simpleBitshiftExprRPN(value, oper, right, assign.target))
                 return true
         }
-
-        if (simpleBitshiftExprRPN(value, oper, right, assign.target))
-            return true
 
         val asmExtra = asmgen.subroutineExtra(scope)
         val evalVars = mutableMapOf (
@@ -501,19 +499,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return true
     }
 
-    private fun simpleLogicalExprRPN(left: PtExpression, operator: String, right: PtExpression, target: AsmAssignTarget): Boolean {
-        fun simpleLogicalBytesExpr() {
+    private fun simpleLogicalExprRPN(expr: PtRpn, oper: PtRpnOperator, right: PtExpression, target: AsmAssignTarget): Boolean {
+        fun simpleLogicalBytesExpr(left: PtExpression, operand: String) {
             // both left and right expression operands are simple.
             if (right is PtNumber || right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(target, left, operator, right)
+                assignLogicalWithSimpleRightOperandByte(target, left, operand, right)
             else if (left is PtNumber || left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(target, right, operator, left)
+                assignLogicalWithSimpleRightOperandByte(target, right, operand, left)
             else {
                 assignExpressionToRegister(left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
-                when (operator) {
+                when (operand) {
                     "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                     "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
                     "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
@@ -523,18 +521,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        fun simpleLogicalWordsExpr() {
+        fun simpleLogicalWordsExpr(left: PtExpression, operand: String) {
             // both left and right expression operands are simple.
             if (right is PtNumber || right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(target, left, operator, right)
+                assignLogicalWithSimpleRightOperandWord(target, left, operand, right)
             else if (left is PtNumber || left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(target, right, operator, left)
+                assignLogicalWithSimpleRightOperandWord(target, right, operand, left)
             else {
                 assignExpressionToRegister(left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
                 assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                when (operator) {
+                when (operand) {
                     "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
                     "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
                     "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
@@ -544,16 +542,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        if(operator in setOf("&", "|", "^", "and", "or", "xor")) {
-            if (left.type in ByteDatatypes && right.type in ByteDatatypes) {
+        if(oper.operator in setOf("&", "|", "^", "and", "or", "xor")) {
+            if (oper.leftType in ByteDatatypes && right.type in ByteDatatypes) {
                 if (right.isSimple()) {
-                    simpleLogicalBytesExpr()
+                    val left = expr.truncateLastOperator()
+                    simpleLogicalBytesExpr(left, oper.operator)
                     return true
                 }
             }
-            if (left.type in WordDatatypes && right.type in WordDatatypes) {
+            if (oper.leftType in WordDatatypes && right.type in WordDatatypes) {
                 if (right.isSimple()) {
-                    simpleLogicalWordsExpr()
+                    val left = expr.truncateLastOperator()
+                    simpleLogicalWordsExpr(left, oper.operator)
                     return true
                 }
             }
@@ -561,17 +561,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun simpleEqualityExprRPN(left: PtExpression, operator: String, right: PtExpression, target: AsmAssignTarget): Boolean {
-        if(operator!="==" && operator!="!=")
+    private fun simpleEqualityExprRPN(expr: PtRpn, oper: PtRpnOperator, right: PtExpression, target: AsmAssignTarget): Boolean {
+        if(oper.operator!="==" && oper.operator!="!=")
             return false
 
         // expression datatype is BOOL (ubyte) but operands can be anything
-        if(left.type in ByteDatatypes && right.type in ByteDatatypes && left.isSimple() && right.isSimple()) {
+        if(oper.leftType in ByteDatatypes && oper.rightType in ByteDatatypes && right.isSimple()) {      // TODO && left.isSimple??
+            val left = expr.truncateLastOperator()
             assignExpressionToRegister(left, RegisterOrPair.A, false)
             asmgen.saveRegisterStack(CpuRegister.A, false)
             assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
-            if(operator=="==") {
+            if(oper.operator=="==") {
                 asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
                         bne  +
@@ -590,14 +591,15 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             assignRegisterByte(target, CpuRegister.A)
             return true
-        } else if(left.type in WordDatatypes && right.type in WordDatatypes && left.isSimple() && right.isSimple()) {
+        } else if(oper.leftType in WordDatatypes && oper.rightType in WordDatatypes && right.isSimple()) {     // TODO && left.isSimple?
+            val left = expr.truncateLastOperator()
             assignExpressionToRegister(left, RegisterOrPair.AY, false)
             asmgen.saveRegisterStack(CpuRegister.A, false)
             asmgen.saveRegisterStack(CpuRegister.Y, false)
             assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.UWORD)
             asmgen.restoreRegisterStack(CpuRegister.Y, false)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
-            if(operator=="==") {
+            if(oper.operator=="==") {
                 asmgen.out("""
                         cmp  P8ZP_SCRATCH_W1
                         bne  +
@@ -625,17 +627,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun simplePlusOrMinusExprRPN(left: PtExpression, operator: String, right: PtExpression, target: AsmAssignTarget): Boolean {
-        if(operator!="+" && operator!="!-")
+    private fun simplePlusOrMinusExprRPN(expr: PtRpn, oper: PtRpnOperator, right: PtExpression, target: AsmAssignTarget): Boolean {
+        if(oper.operator!="+" && oper.operator!="!-")
             return false
 
         val dt = target.datatype
         if(dt in ByteDatatypes) {
             when (right) {
                 is PtIdentifier -> {
+                    val left=expr.truncateLastOperator()
                     assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
                     val symname = asmgen.asmVariableName(right)
-                    if(operator=="+")
+                    if(oper.operator=="+")
                         asmgen.out("  clc |  adc  $symname")
                     else
                         asmgen.out("  sec |  sbc  $symname")
@@ -643,8 +646,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 is PtNumber -> {
+                    val left=expr.truncateLastOperator()
                     assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
-                    if(operator=="+")
+                    if(oper.operator=="+")
                         asmgen.out("  clc |  adc  #${right.number.toHex()}")
                     else
                         asmgen.out("  sec |  sbc  #${right.number.toHex()}")
@@ -656,9 +660,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         } else if(dt in WordDatatypes) {
             when (right) {
                 is PtAddressOf -> {
+                    val left=expr.truncateLastOperator()
                     assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                     val symbol = asmgen.asmVariableName(right.identifier)
-                    if(operator=="+")
+                    if(oper.operator=="+")
                         asmgen.out("""
                                 clc
                                 adc  #<$symbol
@@ -680,9 +685,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 is PtIdentifier -> {
+                    val left=expr.truncateLastOperator()
                     val symname = asmgen.asmVariableName(right)
                     assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                    if(operator=="+")
+                    if(oper.operator=="+")
                         asmgen.out("""
                                 clc
                                 adc  $symname
@@ -704,8 +710,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 is PtNumber -> {
+                    val left=expr.truncateLastOperator()
                     assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                    if(operator=="+") {
+                    if(oper.operator=="+") {
                         asmgen.out("""
                                 clc
                                 adc  #<${right.number.toHex()}
@@ -714,7 +721,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 adc  #>${right.number.toHex()}
                                 tay
                                 pla""")
-                    } else if(operator=="-") {
+                    } else if(oper.operator=="-") {
                         asmgen.out("""
                                 sec
                                 sbc  #<${right.number.toHex()}
@@ -732,8 +739,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     if(right.type in WordDatatypes && castedValue.type in ByteDatatypes) {
                         if(castedValue is PtIdentifier) {
                             val castedSymname = asmgen.asmVariableName(castedValue)
+                            val left=expr.truncateLastOperator()
                             assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                            if(operator=="+")
+                            if(oper.operator=="+")
                                 asmgen.out("""
                                         clc
                                         adc  $castedSymname
@@ -759,18 +767,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun simpleBitshiftExprRPN(expr: PtRpn, operator: PtRpnOperator, rightNode: PtNode, target: AsmAssignTarget): Boolean {
-        if(operator.operator!="<<" && operator.operator!=">>")
+    private fun simpleBitshiftExprRPN(expr: PtRpn, oper: PtRpnOperator, right: PtExpression, target: AsmAssignTarget): Boolean {
+        if(oper.operator!="<<" && oper.operator!=">>")
             return false
-        val shifts = (rightNode as? PtExpression)?.asConstInteger()
-        if(shifts==null || shifts !in 0..7 || operator.leftType !in IntegerDatatypes)
+        val shifts = right.asConstInteger()
+        if(shifts==null || shifts !in 0..7 || oper.leftType !in IntegerDatatypes)
             return false
 
-        if(operator.leftType in ByteDatatypes) {
-            val signed = operator.leftType == DataType.BYTE
+        if(oper.leftType in ByteDatatypes) {
+            val signed = oper.leftType == DataType.BYTE
             val left = expr.truncateLastOperator()
             assignExpressionToRegister(left, RegisterOrPair.A, signed)
-            if(operator.operator=="<<") {
+            if(oper.operator=="<<") {
                 repeat(shifts) {
                     asmgen.out("  asl  a")
                 }
@@ -785,9 +793,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             assignRegisterByte(target, CpuRegister.A)
             return true
-        } else if(operator.leftType in WordDatatypes) {
-            val signed = operator.leftType == DataType.WORD
-            if(operator.operator=="<<") {
+        } else if(oper.leftType in WordDatatypes) {
+            val signed = oper.leftType == DataType.WORD
+            if(oper.operator=="<<") {
                 val left = expr.truncateLastOperator()
                 assignExpressionToRegister(left, RegisterOrPair.AY, signed)
                 if(shifts>0) {
