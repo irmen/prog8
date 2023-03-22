@@ -103,6 +103,14 @@ class PtProgram(
 
         children.forEach { transformBinExprToRPN(it, this) }
         binaryExpressionsAreRPN = true
+
+        // extra check to see that all PtBinaryExpressions have been transformed
+        fun binExprCheck(node: PtNode) {
+            if(node is PtBinaryExpression)
+                throw IllegalArgumentException("still got binexpr $node ${node.position}")
+            node.children.forEach { binExprCheck(it) }
+        }
+        binExprCheck(this)
     }
 }
 
