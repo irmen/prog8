@@ -979,10 +979,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 
     override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple =
-        target.nameInSource.size==1
-                && target.nameInSource[0] in arrayOf("msb", "lsb", "peek", "peekw", "mkword")
-                && args.all { it.isSimple }
+    override val isSimple = false
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
@@ -1142,7 +1139,7 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     }
 
     override fun copy() = BuiltinFunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple = name in arrayOf("msb", "lsb", "peek", "peekw", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
+    override val isSimple = false
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
