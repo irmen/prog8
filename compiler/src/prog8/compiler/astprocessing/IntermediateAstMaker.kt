@@ -9,10 +9,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
-import prog8.code.core.BuiltinFunctions
-import prog8.code.core.CompilationOptions
-import prog8.code.core.DataType
-import prog8.code.core.SourceCode
+import prog8.code.core.*
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
@@ -95,14 +92,12 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
             val srcExpr = srcAssign.value
             val (operator: String, augmentedValue: Expression?) = when(srcExpr) {
                 is BinaryExpression -> {
-                    if(srcExpr.operator=="==" || srcExpr.operator=="%") {
-                        // no special code possible for 'in-place comparison and result as boolean' or 'remainder'
-                        Pair("", null)
-                    }
-                    else if(srcExpr.left isSameAs srcAssign.target) {
-                        Pair(srcExpr.operator+'=', srcExpr.right)
+                    if(srcExpr.left isSameAs srcAssign.target) {
+                        val oper = if(srcExpr.operator in ComparisonOperators) srcExpr.operator else srcExpr.operator+'='
+                        Pair(oper, srcExpr.right)
                     } else if(srcExpr.right isSameAs srcAssign.target) {
-                        Pair(srcExpr.operator+'=', srcExpr.left)
+                        val oper = if(srcExpr.operator in ComparisonOperators) srcExpr.operator else srcExpr.operator+'='
+                        Pair(oper, srcExpr.left)
                     } else {
                         // either left or right is same as target, other combinations are not supported here
                         Pair("", null)

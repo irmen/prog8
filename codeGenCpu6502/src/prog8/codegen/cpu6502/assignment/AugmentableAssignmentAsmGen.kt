@@ -24,10 +24,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "+" -> { /* is a nop */ }
             else -> {
-                if(assign.operator.endsWith('='))
-                    augmentedAssignExpr(assign)
-                else
-                    throw AssemblyError("invalid augmented assign operator ${assign.operator}")
+                require(assign.operator in ComparisonOperators || assign.operator.length>=2) { "invalid aug assign operator ${assign.operator}" }
+                augmentedAssignExpr(assign)
             }
         }
     }
@@ -35,22 +33,22 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun augmentedAssignExpr(assign: AsmAugmentedAssignment) {
         val srcValue = assign.source.toAstExpression(assign.target.scope as PtNamedNode)
         when (assign.operator) {
-            "+=", "+:=" -> inplaceModification(assign.target, "+", srcValue)
-            "-=", "-:=" -> inplaceModification(assign.target, "-", srcValue)
-            "*=", "*:=" -> inplaceModification(assign.target, "*", srcValue)
-            "/=", "/:=" -> inplaceModification(assign.target, "/", srcValue)
-            "|=", "|:=" -> inplaceModification(assign.target, "|", srcValue)
-            "&=", "&:=" -> inplaceModification(assign.target, "&", srcValue)
-            "^=", "^:=" -> inplaceModification(assign.target, "^", srcValue)
-            "<<=", "<<:=" -> inplaceModification(assign.target, "<<", srcValue)
-            ">>=", ">>:=" -> inplaceModification(assign.target, ">>", srcValue)
-            "%=", "%:=" -> inplaceModification(assign.target, "%", srcValue)
-            "==:=" -> inplaceModification(assign.target, "==", srcValue)
-            "!=:=" -> inplaceModification(assign.target, "!=", srcValue)
-            "<:=" -> inplaceModification(assign.target, "<", srcValue)
-            ">:=" -> inplaceModification(assign.target, ">", srcValue)
-            "<=:=" -> inplaceModification(assign.target, "<=", srcValue)
-            ">=:=" -> inplaceModification(assign.target, ">=", srcValue)
+            "+=" -> inplaceModification(assign.target, "+", srcValue)
+            "-=" -> inplaceModification(assign.target, "-", srcValue)
+            "*=" -> inplaceModification(assign.target, "*", srcValue)
+            "/=" -> inplaceModification(assign.target, "/", srcValue)
+            "|=" -> inplaceModification(assign.target, "|", srcValue)
+            "&=" -> inplaceModification(assign.target, "&", srcValue)
+            "^=" -> inplaceModification(assign.target, "^", srcValue)
+            "<<=" -> inplaceModification(assign.target, "<<", srcValue)
+            ">>=" -> inplaceModification(assign.target, ">>", srcValue)
+            "%=" -> inplaceModification(assign.target, "%", srcValue)
+            "==" -> inplaceModification(assign.target, "==", srcValue)
+            "!=" -> inplaceModification(assign.target, "!=", srcValue)
+            "<" -> inplaceModification(assign.target, "<", srcValue)
+            ">" -> inplaceModification(assign.target, ">", srcValue)
+            "<=" -> inplaceModification(assign.target, "<=", srcValue)
+            ">=" -> inplaceModification(assign.target, ">=", srcValue)
             else -> throw AssemblyError("invalid augmented assign operator ${assign.operator}")
         }
     }
@@ -339,12 +337,26 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "&" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
             "|" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
             "^" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
-            "==" -> TODO("byte-value-to-pointer ==")
-            "!=" -> TODO("byte-value-to-pointer !=")
-            "<" -> TODO("byte-value-to-pointer <")
-            "<=" -> TODO("byte-value-to-pointer <=")
-            ">" -> TODO("byte-value-to-pointer >")
-            ">=" -> TODO("byte-value-to-pointer >=")
+            "==" -> {
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer:
+            "<", "<=", ">", ">=" -> TODO("byte-value-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.storeAIntoZpPointerVar(sourceName)
@@ -381,12 +393,26 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "&" -> asmgen.out(" and  $otherName")
             "|" -> asmgen.out(" ora  $otherName")
             "^" -> asmgen.out(" eor  $otherName")
-            "==" -> TODO("byte-var-to-pointer ==")
-            "!=" -> TODO("byte-var-to-pointer !=")
-            "<" -> TODO("byte-var-to-pointer <")
-            "<=" -> TODO("byte-var-to-pointer <=")
-            ">" -> TODO("byte-var-to-pointer >")
-            ">=" -> TODO("byte-var-to-pointer >=")
+            "==" -> {
+                asmgen.out("""
+                    cmp  $otherName
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    cmp  $otherName
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?
+            "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.storeAIntoZpPointerVar(sourceName)
@@ -455,12 +481,30 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  eor  #$value")
                 asmgen.storeAIntoZpPointerVar(sourceName)
             }
-            "==" -> TODO("byte-litval-to-pointer ==")
-            "!=" -> TODO("byte-litval-to-pointer !=")
-            "<" -> TODO("byte-litval-to-pointer <")
-            "<=" -> TODO("byte-litval-to-pointer <=")
-            ">" -> TODO("byte-litval-to-pointer >")
-            ">=" -> TODO("byte-litval-to-pointer >=")
+            "==" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("""
+                    cmp  #$value
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+                asmgen.storeAIntoZpPointerVar(sourceName)
+            }
+            "!=" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("""
+                    cmp  #$value
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+                asmgen.storeAIntoZpPointerVar(sourceName)
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?:
+            "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -555,10 +599,46 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   lda  #0
 +                   sta  $name""")
             }
-            "<" -> TODO("byte-value-to-var <")
-            "<=" -> TODO("byte-value-to-var <=")
-            ">" -> TODO("byte-value-to-var >")
-            ">=" -> TODO("byte-value-to-var >=")
+            "<" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    bcc  +
+                    beq  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
+            "<=" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    lda  #0
+                    adc  #0
+                    sta  $name""")
+            }
+            ">" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    bcc  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            ">=" -> {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  $name
+                    bcc  +
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1                    
++                   sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -635,10 +715,42 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   lda  #0
 +                   sta  $name""")
             }
-            "<" -> TODO("byte-var-to-var <")
-            "<=" -> TODO("byte-var-to-var <=")
-            ">" -> TODO("byte-var-to-var >")
-            ">=" -> TODO("byte-var-to-var >=")
+            "<" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  $otherName
+                    bcs  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
+            "<=" -> {
+                asmgen.out("""
+                    lda  $otherName
+                    cmp  $name
+                    lda  #0
+                    adc  #0
+                    sta  $name""")
+            }
+            ">" -> {
+                asmgen.out("""
+                    lda  $otherName
+                    cmp  $name
+                    bcc  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            ">=" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  $otherName
+                    lda  #0
+                    adc  #0
+                    sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -729,10 +841,42 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   lda  #0
 +                   sta  $name""")
             }
-            "<" -> TODO("byte-litval-to-var <")
-            "<=" -> TODO("byte-litval-to-var <=")
-            ">" -> TODO("byte-litval-to-var >")
-            ">=" -> TODO("byte-litval-to-var >=")
+            "<" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  #$value
+                    bcs  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name""")
+            }
+            "<=" -> {
+                asmgen.out("""
+                    lda  #$value
+                    cmp  $name
+                    lda  #0
+                    adc  #0
+                    sta  $name""")
+            }
+            ">" -> {
+                asmgen.out("""
+                    lda  #$value
+                    cmp  $name
+                    bcc  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++                   sta  $name""")
+            }
+            ">=" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  #$value
+                    lda  #0
+                    adc  #0
+                    sta  $name""")
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -767,13 +911,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
-            // TODO: tuned code for more operators
-            "==" -> TODO("byte-memread-to-var ==")
-            "!=" -> TODO("byte-memread-to-var !=")
-            "<" -> TODO("byte-memread-to-var <")
-            "<=" -> TODO("byte-memread-to-var <=")
-            ">" -> TODO("byte-memread-to-var >")
-            ">=" -> TODO("byte-memread-to-var >=")
             else -> {
                 inplaceModification_byte_value_to_variable(name, dt, operator, memread)
             }
@@ -822,13 +959,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
-            // TODO: tuned code for more operators
-            "==" -> TODO("word-memread-to-var ==")
-            "!=" -> TODO("word-memread-to-var !=")
-            "<" -> TODO("word-memread-to-var <")
-            "<=" -> TODO("word-memread-to-var <=")
-            ">" -> TODO("word-memread-to-var >")
-            ">=" -> TODO("word-memread-to-var >=")
             else -> {
                 inplaceModification_word_value_to_variable(name, dt, operator, memread)
             }
@@ -1093,12 +1223,38 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     else -> asmgen.out("  lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
                 }
             }
-            "==" -> TODO("word-litval-to-var ==")
-            "!=" -> TODO("word-litval-to-var !=")
-            "<" -> TODO("word-litval-to-var <")
-            "<=" -> TODO("word-litval-to-var <=")
-            ">" -> TODO("word-litval-to-var >")
-            ">=" -> TODO("word-litval-to-var >=")
+            "==" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  #<$value
+                    bne  +
+                    lda  $name+1
+                    cmp  #>$value
+                    bne  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++                   sta  $name
+                    lda  #0
+                    sta  $name+1""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  $name
+                    cmp  #<$value
+                    bne  +
+                    lda  $name+1
+                    cmp  #>$value
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++                   sta  $name
+                    lda  #0
+                    sta  $name+1""")
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+            "<", "<=", ">", ">=" -> TODO("word-litval-to-var comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -1265,12 +1421,36 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     "|" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
                     "^" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
-                    "==" -> TODO("word-bytevar-to-var ==")
-                    "!=" -> TODO("word-bytevar-to-var !=")
-                    "<" -> TODO("word-bytevar-to-var <")
-                    "<=" -> TODO("word-bytevar-to-var <=")
-                    ">" -> TODO("word-bytevar-to-var >")
-                    ">=" -> TODO("word-bytevar-to-var >=")
+                    "==" -> {
+                        asmgen.out("""
+                            lda  $name
+                            cmp  $otherName
+                            bne  +
+                            lda  $name+1
+                            bne  +
+                            lda  #1
+                            bne  ++
++                           lda  #0
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    "!=" -> {
+                        asmgen.out("""
+                            lda  $name
+                            cmp  $otherName
+                            bne  +
+                            lda  $name+1
+                            bne  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    "<", "<=", ">", ">=" -> TODO("word-bytevar-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1345,12 +1525,38 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name |  lda  $name+1 |  and  $otherName+1 |  sta  $name+1")
                     "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name |  lda  $name+1 |  ora  $otherName+1 |  sta  $name+1")
                     "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name |  lda  $name+1 |  eor  $otherName+1 |  sta  $name+1")
-                    "==" -> TODO("word-var-to-var ==")
-                    "!=" -> TODO("word-var-to-var !=")
-                    "<" -> TODO("word-var-to-var <")
-                    "<=" -> TODO("word-var-to-var <=")
-                    ">" -> TODO("word-var-to-var >")
-                    ">=" -> TODO("word-var-to-var >=")
+                    "==" -> {
+                        asmgen.out("""
+                            lda  $name
+                            cmp  $otherName
+                            bne  +
+                            lda  $name+1
+                            cmp  $otherName+1
+                            bne  +
+                            lda  #1
+                            bne  ++
++                           lda  #0
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    "!=" -> {
+                        asmgen.out("""
+                            lda  $name
+                            cmp  $otherName
+                            bne  +
+                            lda  $name+1
+                            cmp  $otherName+1
+                            bne  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?
+                    "<", "<=", ">", ">=" -> TODO("word-var-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1535,12 +1741,36 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  eor  $name |  sta  $name")
                     }
-                    "==" -> TODO("word-bytevalue-to-var ==")
-                    "!=" -> TODO("word-bytevalue-to-var !=")
-                    "<" -> TODO("word-bytevalue-to-var <")
-                    "<=" -> TODO("word-bytevalue-to-var <=")
-                    ">" -> TODO("word-bytevalue-to-var >")
-                    ">=" -> TODO("word-bytevalue-to-var >=")
+                    "==" -> {
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("""
+                            cmp  $name
+                            bne  +
+                            lda  $name+1
+                            bne  +
+                            lda  #1
+                            bne  ++
++                           lda  #0
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    "!=" -> {
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
+                        asmgen.out("""
+                            cmp  $name
+                            bne  +
+                            lda  $name+1
+                            bne  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    "<", "<=", ">", ">=" -> TODO("word-bytevalue-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1590,12 +1820,36 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
                         asmgen.out("  eor  $name |  sta  $name |  tya |  eor  $name+1 |  sta  $name+1")
                     }
-                    "==" -> TODO("word-value-to-var ==")
-                    "!=" -> TODO("word-value-to-var !=")
-                    "<" -> TODO("word-value-to-var <")
-                    "<=" -> TODO("word-value-to-var <=")
-                    ">" -> TODO("word-value-to-var >")
-                    ">=" -> TODO("word-value-to-var >=")
+                    "==" -> {
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
+                        asmgen.out("""
+                            cmp  $name
+                            bne  +
+                            cpy  $name+1
+                            bne  +
+                            lda  #1
+                            bne  ++
++                           lda  #0
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    "!=" -> {
+                        asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
+                        asmgen.out("""
+                            cmp  $name
+                            bne  +
+                            cpy  $name+1
+                            bne  +
+                            lda  #0
+                            beq  ++
++                           lda  #1
++                           sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    "<", "<=", ">", ">=" -> TODO("word-value-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1635,12 +1889,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.FDIV
                 """)
             }
-            "==" -> TODO("float-value-to-var ==")
-            "!=" -> TODO("float-value-to-var !=")
-            "<" -> TODO("float-value-to-var <")
-            "<=" -> TODO("float-value-to-var <=")
-            ">" -> TODO("float-value-to-var >")
-            ">=" -> TODO("float-value-to-var >=")
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-value-to-var comparisons")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         asmgen.out("""
@@ -1699,12 +1949,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.FDIV
                 """)
             }
-            "==" -> TODO("float-var-to-var ==")
-            "!=" -> TODO("float-var-to-var !=")
-            "<" -> TODO("float-var-to-var <")
-            "<=" -> TODO("float-var-to-var <=")
-            ">" -> TODO("float-var-to-var >")
-            ">=" -> TODO("float-var-to-var >=")
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-var-to-var comparisons")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory
@@ -1767,12 +2013,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.FDIV
                 """)
             }
-            "==" -> TODO("float-litval-to-var ==")
-            "!=" -> TODO("float-litval-to-var !=")
-            "<" -> TODO("float-litval-to-var <")
-            "<=" -> TODO("float-litval-to-var <=")
-            ">" -> TODO("float-litval-to-var >")
-            ">=" -> TODO("float-litval-to-var >=")
+            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-litval-to-var comparisons")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory

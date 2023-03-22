@@ -119,10 +119,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 args.errors.report()
 
                 val intermediateAst = IntermediateAstMaker(program, compilationOptions).transform()
-                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
-                printProgram(program)
-                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-                printAst(intermediateAst, true, ::println)
+//                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
+//                printProgram(program)
+//                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+//                printAst(intermediateAst, true, ::println)
 
                 if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")

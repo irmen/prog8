@@ -23,7 +23,7 @@ class AtariMachineDefinition: IMachineDefinition {
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
 
-    override fun getFloatAsmBytes(num: Number) = TODO("float asm bytes from number")
+    override fun getFloatAsmBytes(num: Number) = TODO("atari float asm bytes from number")
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.output == OutputType.XEX)

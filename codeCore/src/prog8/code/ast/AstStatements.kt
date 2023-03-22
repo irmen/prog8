@@ -51,11 +51,6 @@ class PtAugmentedAssign(val operator: String, position: Position) : PtNode(posit
         get() = children[0] as PtAssignTarget
     val value: PtExpression
         get() = children[1] as PtExpression
-    init {
-        require(operator.endsWith('=') || operator in PrefixOperators) {
-            "invalid augmented assign operator $operator"
-        }
-    }
 }
 
 

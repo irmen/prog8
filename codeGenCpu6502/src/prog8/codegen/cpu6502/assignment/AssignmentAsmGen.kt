@@ -5,6 +5,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
+import prog8.codegen.cpu6502.ExpressionsAsmGen
 import prog8.codegen.cpu6502.VariableAllocator
 import prog8.codegen.cpu6502.returnsWhatWhere
 import java.util.*
@@ -438,16 +439,84 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     val resultVarname = evalVarName(it.type, asmExtra.rpnDepth)
                     asmExtra.rpnDepth++
                     symbolTable.resetCachedFlat()
-                    if(leftvar!=resultVarname) {
-                        val scopeName = (scope as PtNamedNode).scopedName
-                        val leftVarPt = PtIdentifier("$scopeName.$leftvar", it.leftType, it.position)
-                        leftVarPt.parent=scope
-                        assignExpressionToVariable(leftVarPt, resultVarname, it.type)
+
+                    val scopeName = (scope as PtNamedNode).scopedName
+                    val leftVarPt = PtIdentifier("$scopeName.$leftvar", it.leftType, it.position)
+                    leftVarPt.parent = scope
+                    if(it.rightType largerThan it.type) {
+                        if(it.operator !in ComparisonOperators)
+                            throw AssemblyError("only expected a boolean comparison, got ${it.operator}")
+                        if(it.rightType !in WordDatatypes || it.type !in ByteDatatypes) {
+                            when (it.rightType) {
+                                DataType.STR -> {
+                                    val rightString = PtIdentifier("$scopeName.$rightvar", DataType.STR, it.position)
+                                    rightString.parent = scope
+                                    asmgen.assignExpressionToVariable(leftVarPt, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD)
+                                    asmgen.assignExpressionToVariable(rightString, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD)
+                                    asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
+                                    when(it.operator) {
+                                        "==" -> asmgen.out(" and  #1 |  eor  #1")
+                                        "!=" -> asmgen.out(" and  #1")
+                                        "<=" -> asmgen.out("""
+                bpl  +
+                lda  #1
+                bne  ++
++               lda  #0
++""")
+                                        ">=" -> asmgen.out("""
+                bmi  +
+                lda  #1
+                bne  ++
++               lda  #0
++""")
+                                        "<" -> asmgen.out("""
+                bmi  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
+                                        ">" -> asmgen.out("""
+                bpl  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
+                                    }
+                                    asmgen.out("  sta  $resultVarname")
+                                }
+                                in NumericDatatypes -> {
+                                    val jumpIfFalseLabel = asmgen.makeLabel("cmp")
+                                    val rightVarPt = PtIdentifier("$scopeName.$rightvar", it.rightType, it.position)
+                                    rightVarPt.parent = scope
+                                    asmgen.testNonzeroComparisonAndJump(leftVarPt, it.operator, rightVarPt, jumpIfFalseLabel, null, null)
+                                    asmgen.out("""
+                                        lda  #1
+                                        bne  +
+$jumpIfFalseLabel                           lda  #0
+        +                               sta  $resultVarname""")
+                                }
+                                else -> throw AssemblyError("weird type for operator: ${it.rightType}")
+                            }
+                        } else {
+                            // use in-place assignment with optional cast to the target variable
+                            val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
+                            val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.leftType, scope, assign.position, variableAsmName = leftvar)
+                            val operator = if(it.operator in ComparisonOperators) it.operator else it.operator+'='
+                            val augAssign = AsmAugmentedAssignment(src, operator, target, program.memsizer, assign.position)
+                            augmentableAsmGen.translate(augAssign, scope)
+                            if(resultVarname!=leftvar)
+                                assignTypeCastedIdentifier(resultVarname, it.type, leftvar, it.leftType)
+                        }
+                    } else {
+                        // use in-place assignment with optional cast to the target variable
+                        val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
+                        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.leftType, scope, assign.position, variableAsmName = leftvar)
+                        val operator = if(it.operator in ComparisonOperators) it.operator else it.operator+'='
+                        val augAssign = AsmAugmentedAssignment(src, operator, target, program.memsizer, assign.position)
+                        augmentableAsmGen.translate(augAssign, scope)
+                        if(resultVarname!=leftvar)
+                            assignTypeCastedIdentifier(resultVarname, it.type, leftvar, it.leftType)
                     }
-                    val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.type, scope, assign.position, variableAsmName = resultVarname)
-                    val augAssign = AsmAugmentedAssignment(src, it.operator+":=", target, program.memsizer, assign.position)
-                    augmentableAsmGen.translate(augAssign, scope)
                 }
                 is PtExpression -> {
                     val varname = evalVarName(it.type, asmExtra.rpnDepth)
