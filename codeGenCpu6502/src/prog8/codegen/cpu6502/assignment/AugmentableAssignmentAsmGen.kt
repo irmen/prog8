@@ -593,7 +593,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     cmp  $name
                     beq  +
                     lda  #0
-                    bne  ++
+                    beq  ++
 +                   lda  #1
 +                   sta  $name""")
             }
