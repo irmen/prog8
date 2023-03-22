@@ -6,9 +6,11 @@ import prog8.ast.Program
 import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
+import prog8.ast.printProgram
 import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
+import prog8.code.ast.printAst
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -117,10 +119,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 args.errors.report()
 
                 val intermediateAst = IntermediateAstMaker(program, compilationOptions).transform()
-//                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
-//                printProgram(program)
-//                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
-//                printAst(intermediateAst, true, ::println)
+                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
+                printProgram(program)
+                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
+                printAst(intermediateAst, true, ::println)
 
                 if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
