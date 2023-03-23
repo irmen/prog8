@@ -233,14 +233,18 @@ cx16 {
     &ubyte  VERA_IEN            = VERA_BASE + $0006
     &ubyte  VERA_ISR            = VERA_BASE + $0007
     &ubyte  VERA_IRQ_LINE_L     = VERA_BASE + $0008
-    &ubyte  VERA_DC_VIDEO       = VERA_BASE + $0009
-    &ubyte  VERA_DC_HSCALE      = VERA_BASE + $000A
-    &ubyte  VERA_DC_VSCALE      = VERA_BASE + $000B
-    &ubyte  VERA_DC_BORDER      = VERA_BASE + $000C
-    &ubyte  VERA_DC_HSTART      = VERA_BASE + $0009
-    &ubyte  VERA_DC_HSTOP       = VERA_BASE + $000A
-    &ubyte  VERA_DC_VSTART      = VERA_BASE + $000B
-    &ubyte  VERA_DC_VSTOP       = VERA_BASE + $000C
+    &ubyte  VERA_DC_VIDEO       = VERA_BASE + $0009 ; DCSEL= 0
+    &ubyte  VERA_DC_HSCALE      = VERA_BASE + $000A ; DCSEL= 0
+    &ubyte  VERA_DC_VSCALE      = VERA_BASE + $000B ; DCSEL= 0
+    &ubyte  VERA_DC_BORDER      = VERA_BASE + $000C ; DCSEL= 0
+    &ubyte  VERA_DC_HSTART      = VERA_BASE + $0009 ; DCSEL= 1
+    &ubyte  VERA_DC_HSTOP       = VERA_BASE + $000A ; DCSEL= 1
+    &ubyte  VERA_DC_VSTART      = VERA_BASE + $000B ; DCSEL= 1
+    &ubyte  VERA_DC_VSTOP       = VERA_BASE + $000C ; DCSEL= 1
+    &ubyte  VERA_DC_VER0        = VERA_BASE + $0009 ; DCSEL=63
+    &ubyte  VERA_DC_VER1        = VERA_BASE + $000A ; DCSEL=63
+    &ubyte  VERA_DC_VER2        = VERA_BASE + $000B ; DCSEL=63
+    &ubyte  VERA_DC_VER3        = VERA_BASE + $000C ; DCSEL=63
     &ubyte  VERA_L0_CONFIG      = VERA_BASE + $000D
     &ubyte  VERA_L0_MAPBASE     = VERA_BASE + $000E
     &ubyte  VERA_L0_TILEBASE    = VERA_BASE + $000F
