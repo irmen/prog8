@@ -143,7 +143,7 @@ graphics {
     inline asmsub  plot(uword plotx @R0, uword ploty @R1) clobbers(A, X, Y) {
         %asm {{
             jsr  cx16.FB_cursor_position
-            lda  #1
+            lda  graphics.stroke_color
             jsr  cx16.FB_set_pixel
         }}
     }

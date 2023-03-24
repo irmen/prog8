@@ -345,7 +345,7 @@ romsub $ff41 = GRAPH_put_next_char(ubyte char @A)  clobbers(A,X,Y)     ; alias f
 ; framebuffer
 romsub $fef6 = FB_init()  clobbers(A,X,Y)
 romsub $fef9 = FB_get_info()  clobbers(X,Y) -> byte @A, uword @R0, uword @R1    ; width=r0, height=r1
-romsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte bytecount @X)  clobbers(A,X,Y)
+romsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte colorcount @X)  clobbers(A,X,Y)
 romsub $feff = FB_cursor_position(uword x @R0, uword y @R1)  clobbers(A,X,Y)
 romsub $feff = FB_cursor_position2()  clobbers(A,X,Y)           ;  alias for the previous routine, but avoiding having to respecify both x and y every time
 romsub $ff02 = FB_cursor_next_line(uword x @R0)  clobbers(A,X,Y)
