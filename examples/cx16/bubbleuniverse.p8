@@ -23,8 +23,8 @@ main {
             ubyte i
             for i in 0 to n {
                 ubyte j
-                float ang1_start = i+t
-                float ang2_start = r*i+t
+                float ang1_start = i as float + t
+                float ang2_start = i as float * r + t
                 float v=0
                 float u=0
                 for j in 0 to n {
