@@ -3,8 +3,6 @@ TODO
 RPN: swirl is MUCH slower
 RPN: wizzine is slower
 
-- Move asmExtra vars into BSS as well, now are .byte 0 allocated
-
 then:
 RPN: swirl is bigger
 RPN: petaxian is 900 bytes larger, chess is a lot bigger

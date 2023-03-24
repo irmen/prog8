@@ -358,31 +358,29 @@ internal class ProgramAndVarsGen(
         sub.children.forEach { asmgen.translate(it) }
 
         asmgen.out("; variables")
+        asmgen.out("    .section BSS")
         val asmGenInfo = asmgen.subroutineExtra(sub)
-        // TODO move these to BSS as well
         for((dt, name, addr) in asmGenInfo.extraVars) {
             if(addr!=null)
                 asmgen.out("$name = $addr")
             else when(dt) {
-                DataType.UBYTE -> asmgen.out("$name    .byte  0")
-                DataType.UWORD -> asmgen.out("$name    .word  0")
-                DataType.FLOAT -> {
-                    require(options.compTarget.machine.FLOAT_MEM_SIZE==5)
-                    asmgen.out("$name    .byte  0,0,0,0,0")
-                }
+                DataType.UBYTE -> asmgen.out("$name    .byte  ?")
+                DataType.UWORD -> asmgen.out("$name    .word  ?")
+                DataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
                 else -> throw AssemblyError("weird dt for extravar $dt")
             }
         }
         if(asmGenInfo.usedRegsaveA)      // will probably never occur
-            asmgen.out("prog8_regsaveA     .byte  0")
+            asmgen.out("prog8_regsaveA     .byte  ?")
         if(asmGenInfo.usedRegsaveX)
-            asmgen.out("prog8_regsaveX     .byte  0")
+            asmgen.out("prog8_regsaveX     .byte  ?")
         if(asmGenInfo.usedRegsaveY)
-            asmgen.out("prog8_regsaveY     .byte  0")
+            asmgen.out("prog8_regsaveY     .byte  ?")
         if(asmGenInfo.usedFloatEvalResultVar1)
-            asmgen.out("$subroutineFloatEvalResultVar1    .byte  0,0,0,0,0")
+            asmgen.out("$subroutineFloatEvalResultVar1    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
         if(asmGenInfo.usedFloatEvalResultVar2)
-            asmgen.out("$subroutineFloatEvalResultVar2    .byte  0,0,0,0,0")
+            asmgen.out("$subroutineFloatEvalResultVar2    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+        asmgen.out("  .send BSS")
 
         // normal statically allocated variables
         val variables = varsInSubroutine
