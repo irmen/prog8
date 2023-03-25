@@ -1,15 +1,9 @@
 TODO
 ====
 
-replace RPN by something that actually works and is efficient...
-
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- ubyte fits = cx<numCellsHoriz-1   much larger code than when declared as bool ????
-- if fits and @(celladdr(cx+1))  much larger code than   if fits and not @(celladdr(cx+1))   ????
-- @($5000 + c<<$0003) = 22   why is 22 pushed on the stack first and then popped after the address is calculated
-
 ...
 
 
