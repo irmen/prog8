@@ -1,5 +1,7 @@
 TODO
 ====
+replace RPN by something that actually works and is efficient...
+
 RPN: assembler fails selftest (something with output file name extension being wrong!)
 RPN: swirl is MUCH slower
 RPN: wizzine is slightly slower
