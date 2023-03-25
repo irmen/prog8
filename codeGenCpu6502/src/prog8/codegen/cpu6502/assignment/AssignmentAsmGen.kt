@@ -146,14 +146,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     is PtIdentifier -> {
                         assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
-                    is PtRpn -> {
-                        val addrExpr = value.address as PtRpn
-                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
-                            assignRegisterByte(assign.target, CpuRegister.A)
-                        } else {
-                            assignViaExprEval(value.address)
-                        }
-                    }
                     is PtBinaryExpression -> {
                         val addrExpr = value.address as PtBinaryExpression
                         if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
@@ -309,18 +301,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
             is PtBinaryExpression -> {
-                require(!program.binaryExpressionsAreRPN)
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
-                    // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
-                    // because the code here is the implementation of exactly that...)
-                    fallbackToStackEval(assign)
-                }
-            }
-            is PtRpn -> {
-                if(!attemptAssignOptimizedExprRPN(assign, scope!!)) {
-                    // All remaining binary expressions just evaluate via the stack for now.
-                    // TODO: For RPN expressions this should never occur anymore and the eval stack should be removed when we achieve this
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
                     // because the code here is the implementation of exactly that...)
                     fallbackToStackEval(assign)
@@ -361,234 +343,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             in WordDatatypes -> assignRegisterpairWord(target, register)
             else -> throw AssemblyError("expected byte or word")
         }
-    }
-
-    private fun attemptAssignOptimizedExprRPN(assign: AsmAssignment, scope: IPtSubroutine): Boolean {
-        val value = assign.source.expression as PtRpn
-        val (left, oper, right) = value.finalOperation()
-        if(oper.type != value.type)
-            throw AssemblyError("rpn node type error, expected ${value.type} got ${oper.type}")
-
-        if(value.children.size==3 && left is PtExpression && right is PtExpression) {
-
-            // TODO re-enable after compiler errors are fixed:
-//            if(right.asConstInteger() == 0) {
-//                if(oper.operator == "==" || oper.operator=="!=") {
-//                    when(assign.target.datatype) {
-//                        in ByteDatatypes -> if(attemptAssignToByteCompareZeroRPN(value, assign)) return true
-//                        else -> {
-//                            // do nothing, this is handled by a type cast.
-//                        }
-//                    }
-//                }
-//            }
-
-            if(assign.target.datatype == oper.type && oper.leftType == oper.type) {
-                println("TODO simple augmented assign operator into target: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-                println("    left=$left  right=$right")
-                //augmentableAsmGen.translate()
-            } else {
-                println("TODO augmented assign operator into target but needs tempvar: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-                println("    left=$left  right=$right")
-            }
-//            if(oper.operator in ComparisonOperators) {
-//                println("TODO simple comparison: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-//            }
-//            else if(oper.operator in setOf("&", "|", "^", "and", "or", "xor")) {
-//                println("TODO simple logical: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-//            }
-//            else if(oper.operator=="+" || oper.operator=="-") {
-//                println("TODO simple plus or minus: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-//            }
-//            else if(oper.operator=="<<" || oper.operator==">>") {
-//                println("TODO simple bitshift: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
-//            }
-        }
-
-        // TODO RPN optimizations for simple cases
-//        if(oper.operator in ComparisonOperators) {
-//            assignRPNComparison(assign, value)
-//            return true
-//        }
-//
-//        if(right is PtExpression) {
-//            if (simpleEqualityExprRPN(value, oper, right, assign.target))
-//                return true
-//            if (simpleLogicalExprRPN(value, oper, right, assign.target))
-//                return true
-//            if (simplePlusOrMinusExprRPN(value, oper, right, assign.target))
-//                return true
-//            if (simpleBitshiftExprRPN(value, oper, right, assign.target))
-//                return true
-//        }
-
-        val asmExtra = asmgen.subroutineExtra(scope)
-        val evalVars = mutableMapOf (
-            DataType.UBYTE to Stack<String>(),
-            DataType.UWORD to Stack<String>(),
-            DataType.FLOAT to Stack<String>()
-        )
-
-        fun getVarDt(dt: DataType) =
-            when(dt) {
-                in ByteDatatypes -> DataType.UBYTE
-                in WordDatatypes, in PassByReferenceDatatypes -> DataType.UWORD
-                else -> dt
-            }
-
-        fun evalVarName(dt: DataType, depth: Int): String {
-            val name: String
-            val varDt: DataType
-            when(dt) {
-                in ByteDatatypes -> {
-                    name = "p8_rpn_eval_byte_$depth"
-                    varDt = DataType.UBYTE
-                }
-                in WordDatatypes, in PassByReferenceDatatypes -> {
-                    name = "p8_rpn_eval_word_$depth"
-                    varDt = DataType.UWORD
-                }
-                DataType.FLOAT -> {
-                    name = "p8_rpn_eval_float_$depth"
-                    varDt = DataType.FLOAT
-                }
-                else -> throw AssemblyError("weird dt")
-            }
-            evalVars.getValue(varDt).push(name)
-            if(!asmExtra.extraVars.any { it.second==name }) {
-                val stScope = symbolTable.lookup((scope as PtNamedNode).scopedName)!!
-                val dummyNode = PtVariable(name, varDt, ZeropageWish.DONTCARE, null, null, Position.DUMMY)
-                dummyNode.parent = scope
-                stScope.add(StStaticVariable(name, varDt, null, null, null, null, ZeropageWish.DONTCARE, dummyNode))
-                asmExtra.extraVars.add(Triple(varDt, name, null))
-            }
-            return name
-        }
-
-        val startDepth = asmExtra.rpnDepth
-        value.children.forEach {
-            when (it) {
-                is PtRpnOperator -> {
-                    val rightvar = evalVars.getValue(getVarDt(it.rightType)).pop()
-                    val leftvar = evalVars.getValue(getVarDt(it.leftType)).pop()
-                    asmExtra.rpnDepth -= 2
-                    val resultVarname = evalVarName(it.type, asmExtra.rpnDepth)
-                    asmExtra.rpnDepth++
-                    symbolTable.resetCachedFlat()
-
-                    val scopeName = (scope as PtNamedNode).scopedName
-                    val leftVarPt = PtIdentifier("$scopeName.$leftvar", it.leftType, it.position)
-                    leftVarPt.parent = scope
-                    if(it.rightType largerThan it.type) {
-                        if(it.operator !in ComparisonOperators)
-                            throw AssemblyError("only expected a boolean comparison, got ${it.operator}")
-                        if(it.rightType !in WordDatatypes || it.type !in ByteDatatypes) {
-                            when (it.rightType) {
-                                DataType.STR -> {
-                                    val rightString = PtIdentifier("$scopeName.$rightvar", DataType.STR, it.position)
-                                    rightString.parent = scope
-                                    asmgen.assignExpressionToVariable(leftVarPt, "prog8_lib.strcmp_expression._arg_s1", DataType.UWORD)
-                                    asmgen.assignExpressionToVariable(rightString, "prog8_lib.strcmp_expression._arg_s2", DataType.UWORD)
-                                    asmgen.out(" jsr  prog8_lib.strcmp_expression")    // result  of compare is in A
-                                    when(it.operator) {
-                                        "==" -> asmgen.out(" and  #1 |  eor  #1")
-                                        "!=" -> asmgen.out(" and  #1")
-                                        "<=" -> asmgen.out("""
-                bpl  +
-                lda  #1
-                bne  ++
-+               lda  #0
-+""")
-                                        ">=" -> asmgen.out("""
-                bmi  +
-                lda  #1
-                bne  ++
-+               lda  #0
-+""")
-                                        "<" -> asmgen.out("""
-                bmi  +
-                lda  #0
-                beq  ++
-+               lda  #1
-+""")
-                                        ">" -> asmgen.out("""
-                bpl  +
-                lda  #0
-                beq  ++
-+               lda  #1
-+""")
-                                    }
-                                    asmgen.out("  sta  $resultVarname")
-                                }
-                                in NumericDatatypes -> {
-                                    val jumpIfFalseLabel = asmgen.makeLabel("cmp")
-                                    val rightVarPt = PtIdentifier("$scopeName.$rightvar", it.rightType, it.position)
-                                    rightVarPt.parent = scope
-                                    asmgen.testNonzeroComparisonAndJump(leftVarPt, it.operator, rightVarPt, jumpIfFalseLabel, null, null)
-                                    asmgen.out("""
-                                        lda  #1
-                                        bne  +
-$jumpIfFalseLabel                           lda  #0
-        +                               sta  $resultVarname""")
-                                }
-                                else -> throw AssemblyError("weird type for operator: ${it.rightType}")
-                            }
-                        } else {
-                            // use in-place assignment with optional cast to the target variable
-                            val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
-                            val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.leftType, scope, assign.position, variableAsmName = leftvar)
-                            val operator = if(it.operator in ComparisonOperators) it.operator else it.operator+'='
-                            val augAssign = AsmAugmentedAssignment(src, operator, target, program.memsizer, assign.position)
-                            augmentableAsmGen.translate(augAssign, scope)
-                            if(resultVarname!=leftvar)
-                                assignTypeCastedIdentifier(resultVarname, it.type, leftvar, it.leftType)
-                        }
-                    } else {
-                        // use in-place assignment with optional cast to the target variable
-                        val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, it.rightType, variableAsmName = rightvar)
-                        val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, it.leftType, scope, assign.position, variableAsmName = leftvar)
-                        val operator = if(it.operator in ComparisonOperators) it.operator else it.operator+'='
-                        val augAssign = AsmAugmentedAssignment(src, operator, target, program.memsizer, assign.position)
-                        augmentableAsmGen.translate(augAssign, scope)
-                        if(resultVarname!=leftvar)
-                            assignTypeCastedIdentifier(resultVarname, it.type, leftvar, it.leftType)
-                    }
-                }
-                is PtExpression -> {
-                    val varname = evalVarName(it.type, asmExtra.rpnDepth)
-                    assignExpressionToVariable(it, varname, it.type)
-                    asmExtra.rpnDepth++
-                }
-                else -> throw AssemblyError("weird rpn node")
-            }
-        }
-        require(asmExtra.rpnDepth-startDepth == 1) {
-            "unbalanced RPN ${value.position}"
-        }
-
-        val resultVariable = evalVars.getValue(getVarDt(value.type)).pop()
-        asmExtra.rpnDepth--
-        if(!(assign.target.datatype equalsSize  value.type)) {
-            // we only allow for transparent byte -> word / ubyte -> uword assignments
-            // any other type difference is an error
-            if(assign.target.datatype in WordDatatypes && value.type in ByteDatatypes) {
-                assignVariableToRegister(resultVariable, RegisterOrPair.A, value.type==DataType.BYTE, scope, assign.position)
-                asmgen.signExtendAYlsb(value.type)
-                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-            } else {
-                throw AssemblyError("data type mismatch, missing typecast ${value.type} -> ${assign.target.datatype}")
-            }
-        } else {
-            when (value.type) {
-                in ByteDatatypes -> assignVariableByte(assign.target, resultVariable)
-                in WordDatatypes -> assignVariableWord(assign.target, resultVariable)
-                DataType.FLOAT -> assignVariableFloat(assign.target, resultVariable)
-                else -> throw AssemblyError("weird dt")
-            }
-        }
-        require(evalVars.all { it.value.isEmpty() }) { "invalid rpn evaluation" }
-
-        return true
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
@@ -973,82 +727,6 @@ $jumpIfFalseLabel                           lda  #0
         assignRegisterpairWord(target, RegisterOrPair.AY)
     }
 
-    private fun attemptAssignToByteCompareZeroRPN(expr: PtRpn, assign: AsmAssignment): Boolean {
-        val (leftRpn, oper, right) = expr.finalOperation()
-        val left = if(expr.children.size!=3 || leftRpn !is PtExpression)
-            expr.truncateLastOperator()
-        else
-            leftRpn
-        when (oper.operator) {
-            "==" -> {
-                when(val dt = left.type) {
-                    in ByteDatatypes -> {
-                        assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
-                        asmgen.out("""
-                            beq  +
-                            lda  #0
-                            beq  ++
-+                           lda  #1
-+""")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    in WordDatatypes -> {
-                        assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                        asmgen.out("""
-                            sty  P8ZP_SCRATCH_B1
-                            ora  P8ZP_SCRATCH_B1
-                            beq  +
-                            lda  #0
-                            beq  ++
-+                           lda  #1
-+""")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    DataType.FLOAT -> {
-                        assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
-                        asmgen.out("  jsr  floats.SIGN |  and  #1 |  eor  #1")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    else->{
-                        return false
-                    }
-                }
-            }
-            "!=" -> {
-                when(val dt = left.type) {
-                    in ByteDatatypes -> {
-                        assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
-                        asmgen.out("  beq  + |  lda  #1")
-                        asmgen.out("+")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    in WordDatatypes -> {
-                        assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
-                        asmgen.out("  beq  + |  lda  #1")
-                        asmgen.out("+")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    DataType.FLOAT -> {
-                        assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
-                        asmgen.out("  jsr  floats.SIGN")
-                        assignRegisterByte(assign.target, CpuRegister.A)
-                        return true
-                    }
-                    else->{
-                        return false
-                    }
-                }
-            }
-            else -> return false
-        }
-    }
-
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when (expr.operator) {
             "==" -> {
@@ -1227,15 +905,6 @@ $jumpIfFalseLabel                           lda  #0
                         }
                         is PtIdentifier -> {
                             assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
-                        }
-                        is PtRpn -> {
-                            val addrExpr = value.address as PtRpn
-                            if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
-                                asmgen.out("  ldy  #0")
-                                assignRegisterpairWord(target, RegisterOrPair.AY)
-                            } else {
-                                assignViaExprEval(value.address)
-                            }
                         }
                         is PtBinaryExpression -> {
                             val addrExpr = value.address as PtBinaryExpression
@@ -3158,10 +2827,6 @@ $jumpIfFalseLabel                           lda  #0
             }
             addressExpr is PtIdentifier -> {
                 asmgen.storeAIntoPointerVar(addressExpr)
-            }
-            addressExpr is PtRpn -> {
-                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.finalOperator().operator, true))
-                    storeViaExprEval()
             }
             addressExpr is PtBinaryExpression -> {
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))

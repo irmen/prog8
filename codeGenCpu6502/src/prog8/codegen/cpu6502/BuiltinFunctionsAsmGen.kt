@@ -661,7 +661,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtRpn, is PtBinaryExpression -> {
+            is PtBinaryExpression -> {
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
                 val pointer = result?.first as? PtIdentifier
                 if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
@@ -723,7 +723,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                 } else fallback()
             }
-            is PtRpn, is PtBinaryExpression -> {
+            is PtBinaryExpression -> {
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
                 val pointer = result?.first as? PtIdentifier
                 if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {

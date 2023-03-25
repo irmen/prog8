@@ -15,9 +15,9 @@ class VmCodeGen: ICodeGeneratorBackend {
         errors: IErrorReporter
     ): IAssemblyProgram? {
 
-        if(options.useRPN) {
-            program.transformBinExprToRPN()
-            errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
+        if(options.useNewExprCode) {
+            // TODO("transform BinExprs?")
+            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
         }
 
 

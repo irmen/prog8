@@ -53,8 +53,7 @@ sealed class PtNamedNode(var name: String, position: Position): PtNode(position)
 class PtProgram(
     val name: String,
     val memsizer: IMemSizer,
-    val encoding: IStringEncoding,
-    var binaryExpressionsAreRPN: Boolean = false
+    val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {
 
 //    fun allModuleDirectives(): Sequence<PtDirective> =
@@ -65,53 +64,6 @@ class PtProgram(
 
     fun entrypoint(): PtSub? =
         allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && it.name == "start" } as PtSub?
-
-    // If the code generator wants, it can transform binary expression nodes into flat RPN nodes.
-    // This will destroy the original binaryexpression nodes!
-    fun transformBinExprToRPN() {
-        if(binaryExpressionsAreRPN)
-            return
-        fun transformToRPN(originalExpr: PtBinaryExpression): PtRpn {
-            fun makeRpn(expr: PtExpression): PtRpn {
-                val rpn = PtRpn(expr.type, expr.position)
-                if(expr is PtBinaryExpression)
-                    rpn.addRpnNode(transformToRPN(expr))
-                else
-                    rpn.addRpnNode(expr)
-                return rpn
-            }
-
-            val rpn = PtRpn(originalExpr.type, originalExpr.position)
-            rpn.addRpnNode(makeRpn(originalExpr.left))
-            rpn.addRpnNode(makeRpn(originalExpr.right))
-            rpn.addRpnNode(PtRpnOperator(originalExpr.operator, originalExpr.type, originalExpr.left.type, originalExpr.right.type, originalExpr.position))
-            return rpn
-        }
-
-        fun transformBinExprToRPN(node: PtNode, parent: PtNode) {
-            if(node is PtBinaryExpression) {
-                val rpn = transformToRPN(node)
-                val idx = parent.children.indexOf(node)
-                rpn.parent = parent
-                parent.children[idx] = rpn
-            }
-
-            node.children.forEach {child ->
-                transformBinExprToRPN(child, node)
-            }
-        }
-
-        children.forEach { transformBinExprToRPN(it, this) }
-        binaryExpressionsAreRPN = true
-
-        // extra check to see that all PtBinaryExpressions have been transformed
-        fun binExprCheck(node: PtNode) {
-            if(node is PtBinaryExpression)
-                throw IllegalArgumentException("still got binexpr $node ${node.position}")
-            node.children.forEach { binExprCheck(it) }
-        }
-        binExprCheck(this)
-    }
 }
 
 

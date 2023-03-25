@@ -93,7 +93,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtPrefix -> translate(expr)
             is PtArrayIndexer -> translate(expr)
             is PtBinaryExpression -> translate(expr)
-            is PtRpn -> translate(expr)
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
@@ -314,10 +313,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else -> throw AssemblyError("weird cast type")
         }
         return ExpressionCodeResult(result, codeGen.irType(cast.type), actualResultReg2, actualResultFpReg2)
-    }
-
-    private fun translate(rpn: PtRpn): ExpressionCodeResult {
-        TODO("RPN expression (intermediate codegen) $rpn")
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {

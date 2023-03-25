@@ -160,9 +160,9 @@ main {
         qq = 16000 + c*${'$'}0008
     }
 }"""
-        compileText(C64Target(), true, text, writeAssembly = true, useRPN = false) shouldNotBe null
-        compileText(C64Target(), true, text, writeAssembly = true, useRPN = true) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true, useRPN = false) shouldNotBe null
-        // TODO RPN once IR RPN codegen is done:  compileText(VMTarget(), true, text, writeAssembly = true, useRPN = true) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
     }
 })

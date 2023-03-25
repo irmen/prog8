@@ -1,26 +1,14 @@
 TODO
 ====
+
 replace RPN by something that actually works and is efficient...
-
-RPN: assembler fails selftest (something with output file name extension being wrong!)
-RPN: swirl is MUCH slower
-RPN: wizzine is slightly slower
-RPN: bsieve is much slower
-
-then:
-RPN: swirl is bigger
-RPN: petaxian is 900 bytes larger, chess is a lot bigger
-RPN: cube3d is much larger, but a bit faster
-RPN: cube3d-float is massive and slow
-RPN: mandelbrot is bigger, but seems faster
-RPN: Implement RPN codegen for IR.
 
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- ubyte fits = cx<numCellsHoriz-1   much larger code than when declared as bool.  (RPN only?)
-- if fits and @(celladdr(cx+1))  much larger code than   if fits and not @(celladdr(cx+1))   (RPN only?)
-- @($5000 + c<<$0003) = 22   why is 22 pushed on the stack first and then popped after the address is calcualted
+- ubyte fits = cx<numCellsHoriz-1   much larger code than when declared as bool ????
+- if fits and @(celladdr(cx+1))  much larger code than   if fits and not @(celladdr(cx+1))   ????
+- @($5000 + c<<$0003) = 22   why is 22 pushed on the stack first and then popped after the address is calculated
 
 ...
 

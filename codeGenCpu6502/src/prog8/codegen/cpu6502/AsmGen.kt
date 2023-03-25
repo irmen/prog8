@@ -21,9 +21,9 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        if(options.useRPN) {
-            program.transformBinExprToRPN()
-            errors.warn("EXPERIMENTAL RPN EXPRESSION NODES ARE USED. CODE SIZE+SPEED WILL SUFFER.", Position.DUMMY)
+        if(options.useNewExprCode) {
+            // TODO("transform BinExprs?")
+            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
         }
 
         // printAst(program, true) { println(it) }
@@ -551,59 +551,33 @@ class AsmGen6502Internal (
             }
 
     private fun translate(stmt: PtIfElse) {
-        if(stmt.condition is PtRpn) {
-            val condition = stmt.condition as PtRpn
-            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-            if (stmt.elseScope.children.isEmpty()) {
-                val jump = stmt.ifScope.children.singleOrNull()
-                if (jump is PtJump) {
-                    translateCompareAndJumpIfTrueRPN(condition, jump)
-                } else {
-                    val endLabel = makeLabel("if_end")
-                    translateCompareAndJumpIfFalseRPN(condition, endLabel)
-                    translate(stmt.ifScope)
-                    out(endLabel)
-                }
+        val condition = stmt.condition as PtBinaryExpression
+        requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
+        if (stmt.elseScope.children.isEmpty()) {
+            val jump = stmt.ifScope.children.singleOrNull()
+            if (jump is PtJump) {
+                translateCompareAndJumpIfTrue(condition, jump)
             } else {
-                // both true and else parts
-                val elseLabel = makeLabel("if_else")
                 val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalseRPN(condition, elseLabel)
+                translateCompareAndJumpIfFalse(condition, endLabel)
                 translate(stmt.ifScope)
-                jmp(endLabel)
-                out(elseLabel)
-                translate(stmt.elseScope)
                 out(endLabel)
             }
         } else {
-            val condition = stmt.condition as PtBinaryExpression
-            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-            if (stmt.elseScope.children.isEmpty()) {
-                val jump = stmt.ifScope.children.singleOrNull()
-                if (jump is PtJump) {
-                    translateCompareAndJumpIfTrue(condition, jump)
-                } else {
-                    val endLabel = makeLabel("if_end")
-                    translateCompareAndJumpIfFalse(condition, endLabel)
-                    translate(stmt.ifScope)
-                    out(endLabel)
-                }
-            } else {
-                // both true and else parts
-                val elseLabel = makeLabel("if_else")
-                val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalse(condition, elseLabel)
-                translate(stmt.ifScope)
-                jmp(endLabel)
-                out(elseLabel)
-                translate(stmt.elseScope)
-                out(endLabel)
-            }
+            // both true and else parts
+            val elseLabel = makeLabel("if_else")
+            val endLabel = makeLabel("if_end")
+            translateCompareAndJumpIfFalse(condition, elseLabel)
+            translate(stmt.ifScope)
+            jmp(endLabel)
+            out(elseLabel)
+            translate(stmt.elseScope)
+            out(endLabel)
         }
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if (!(condition is PtRpn && condition.finalOperator().operator in ComparisonOperators) && !(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
+        if (!(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
             throw AssemblyError("expected boolean comparison expression $condition")
     }
 
@@ -766,7 +740,7 @@ $repeatLabel    lda  $counterVar
         }
         val isNested = parent is PtRepeatLoop
 
-        if(!isNested && !options.useRPN) {
+        if(!isNested && !options.useNewExprCode) {
             // we can re-use a counter var from the subroutine if it already has one for that datatype
             val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("counter") }
             if(existingVar!=null) {
@@ -1012,45 +986,12 @@ $repeatLabel    lda  $counterVar
         val right: PtExpression
         val operator: String
 
-        when (pointerOffsetExpr) {
-            is PtRpn -> {
-                if(pointerOffsetExpr.children.size>3) {
-                    val rightmostOperator = pointerOffsetExpr.finalOperator()
-                    if(rightmostOperator.operator=="+") {
-                        val rightmostOperand = pointerOffsetExpr.finalRightOperand()
-                        if ((rightmostOperand is PtNumber && rightmostOperand.type in IntegerDatatypes && rightmostOperand.number.toInt() in 0..255)
-                            || (rightmostOperand is PtExpression && rightmostOperand.type == DataType.UBYTE)
-                            || (rightmostOperand is PtTypeCast && rightmostOperand.value.type == DataType.UBYTE)
-                        ) {
-                            // split up the big expression in 2 parts so that we CAN use ZP,Y indexing after all
-                            val truncatedExpr = pointerOffsetExpr.truncateLastOperator()
-                            val tempvar = getTempVarName(DataType.UWORD)
-                            assignExpressionToVariable(truncatedExpr, tempvar, DataType.UWORD)
-                            val smallExpr = PtRpn(DataType.UWORD, truncatedExpr.position)
-                            smallExpr.addRpnNode(PtIdentifier(tempvar, DataType.UWORD, truncatedExpr.position))
-                            smallExpr.addRpnNode(rightmostOperand)
-                            smallExpr.addRpnNode(rightmostOperator)
-                            smallExpr.parent = truncatedExpr.parent
-                            val result = pointerViaIndexRegisterPossible(smallExpr)
-                            require(result != null)
-                            return result
-                        }
-                    }
-                    return null     // expression is too complex
-                }
-                val (leftNode, oper, rightNode) = pointerOffsetExpr.finalOperation()
-                operator=oper.operator
-                if (leftNode !is PtExpression || rightNode !is PtExpression) return null
-                left = leftNode
-                right = rightNode
-            }
-            is PtBinaryExpression -> {
-                operator = pointerOffsetExpr.operator
-                left = pointerOffsetExpr.left
-                right = pointerOffsetExpr.right
-            }
-            else -> return null
+        if (pointerOffsetExpr is PtBinaryExpression) {
+            operator = pointerOffsetExpr.operator
+            left = pointerOffsetExpr.left
+            right = pointerOffsetExpr.right
         }
+        else return null
 
         if (operator != "+") return null
         val leftDt = left.type
@@ -1171,53 +1112,6 @@ $repeatLabel    lda  $counterVar
         if(node is PtSubroutineParameter)
             return node
         return node.definingSub()?.parameters?.singleOrNull { it.name===name }
-    }
-
-    private fun translateCompareAndJumpIfTrueRPN(expr: PtRpn, jump: PtJump) {
-        val (leftRpn, oper, right) = expr.finalOperation()
-        if(oper.operator !in ComparisonOperators)
-            throw AssemblyError("must be comparison expression")
-        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression)
-            expr.truncateLastOperator()
-        else
-            leftRpn
-
-        // invert the comparison, so we can reuse the JumpIfFalse code generation routines
-        val invertedComparisonOperator = invertedComparisonOperator(oper.operator)
-            ?: throw AssemblyError("can't invert comparison $expr")
-
-        val label = when {
-            jump.generatedLabel!=null -> jump.generatedLabel!!
-            jump.identifier!=null -> asmSymbolName(jump.identifier!!)
-            jump.address!=null -> jump.address!!.toHex()
-            else -> throw AssemblyError("weird jump")
-        }
-        val rightConstVal = right as? PtNumber
-        if (rightConstVal!=null && rightConstVal.number == 0.0) {
-            testZeroAndJump(left, invertedComparisonOperator, label)
-        }
-        else {
-            require(right is PtExpression)
-            val leftConstVal = left as? PtNumber
-            testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
-        }
-    }
-
-    private fun translateCompareAndJumpIfFalseRPN(expr: PtRpn, jumpIfFalseLabel: String) {
-        val (leftRpn, oper, right) = expr.finalOperation()
-        val left: PtExpression = if(expr.children.size>3 || leftRpn !is PtExpression)
-            expr.truncateLastOperator()
-        else
-            leftRpn
-
-        require(right is PtExpression)
-        val leftConstVal = left as? PtNumber
-        val rightConstVal = right as? PtNumber
-
-        if (rightConstVal!=null && rightConstVal.number == 0.0)
-            testZeroAndJump(left, oper.operator, jumpIfFalseLabel)
-        else
-            testNonzeroComparisonAndJump(left, oper.operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
@@ -2967,15 +2861,6 @@ $repeatLabel    lda  $counterVar
                     assignViaExprEval()
                 }
             }
-            is PtRpn -> {
-                val addrExpr = expr.address as PtRpn
-                if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.finalOperator().operator, false)) {
-                    if(pushResultOnEstack)
-                        out("  sta  P8ESTACK_LO,x |  dex")
-                } else {
-                    assignViaExprEval()
-                }
-            }
             else -> assignViaExprEval()
         }
     }
@@ -3205,7 +3090,6 @@ internal class SubroutineExtraAsmInfo {
     var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
-    var rpnDepth = 0        // 'depth' tracking of the RPN expression evaluator
 
     val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
 }

@@ -33,7 +33,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         asmListfile = false,
         experimentalCodegen = false,
         varsHigh = false,
-        useRPN = false,
+        useNewExprCode = false,
         compilationTarget = target.name,
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),

@@ -269,8 +269,6 @@ class IRCodeGen(
             is PtProgram,
             is PtArrayIndexer,
             is PtBinaryExpression,
-            is PtRpn,
-            is PtRpnOperator,
             is PtIdentifier,
             is PtWhenChoice,
             is PtPrefix,
@@ -912,39 +910,14 @@ class IRCodeGen(
                     else -> translateIfElseNonZeroComparison(ifElse, irDtLeft, signed)
                 }
             }
-            is PtRpn -> {
-                val (left, oper, right) = condition.finalOperation()
-                if(oper.operator !in ComparisonOperators)
-                    throw AssemblyError("if condition should only be a binary comparison expression")
-
-                val signed = oper.leftType in SignedDatatypes
-                val irDtLeft = irType(oper.leftType)
-                return when {
-                    goto!=null && ifElse.elseScope.children.isEmpty() -> translateIfFollowedByJustGotoRPN(ifElse, goto, irDtLeft, signed)
-                    constValue(right as PtExpression) == 0.0 -> translateIfElseZeroComparisonRPN(ifElse, irDtLeft, signed)
-                    else -> translateIfElseNonZeroComparisonRPN(ifElse, irDtLeft, signed)
-                }
-            }
             else -> {
                 throw AssemblyError("weird condition node: $condition")
             }
         }
     }
 
-    private fun translateIfFollowedByJustGotoRPN(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
-        TODO("RPN translateIfFollowedByJustGotoRPN")
-    }
-
-    private fun translateIfElseZeroComparisonRPN(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
-        TODO("RPN translateIfElseZeroComparisonRPN")
-    }
-
-    private fun translateIfElseNonZeroComparisonRPN(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
-        TODO("RPN translateIfElseNonZeroComparisonRPN")
-    }
 
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
-        require(!program.binaryExpressionsAreRPN)
         val condition = ifElse.condition as PtBinaryExpression
         val result = mutableListOf<IRCodeChunkBase>()
         if (irDtLeft == IRDataType.FLOAT) {
@@ -1010,7 +983,6 @@ class IRCodeGen(
         irDtLeft: IRDataType,
         goto: PtJump
     ): MutableList<IRCodeChunkBase> {
-        require(!program.binaryExpressionsAreRPN)
         val condition = ifElse.condition as PtBinaryExpression
         val leftTr = expressionEval.translateExpression(condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1039,7 +1011,6 @@ class IRCodeGen(
         irDtLeft: IRDataType,
         goto: PtJump
     ): MutableList<IRCodeChunkBase> {
-        require(!program.binaryExpressionsAreRPN)
         val condition = ifElse.condition as PtBinaryExpression
         val leftTr = expressionEval.translateExpression(condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1093,7 +1064,6 @@ class IRCodeGen(
     }
 
     private fun translateIfElseZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
-        require(!program.binaryExpressionsAreRPN)
         val result = mutableListOf<IRCodeChunkBase>()
         val elseBranch: Opcode
         val compResultReg: Int
@@ -1155,7 +1125,6 @@ class IRCodeGen(
     }
 
     private fun translateIfElseNonZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
-        require(!program.binaryExpressionsAreRPN)
         val result = mutableListOf<IRCodeChunkBase>()
         val elseBranchOpcode: Opcode
         val elseBranchFirstReg: Int

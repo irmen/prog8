@@ -25,7 +25,6 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         when(expression) {
             is PtPrefix -> translateExpression(expression)
             is PtBinaryExpression -> translateExpression(expression)
-            is PtRpn -> translateRpnExpression(expression)
             is PtArrayIndexer -> translateExpression(expression)
             is PtTypeCast -> translateExpression(expression)
             is PtAddressOf -> translateExpression(expression)
@@ -245,70 +244,8 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateRpnExpression(expr: PtRpn) {
-        // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
-        val (left, oper, right) = expr.finalOperation()
-        if(left is PtExpression && right is PtExpression && translateSomewhatOptimized(left, oper.operator, right))
-            return
-
-        val leftDt = oper.leftType
-        val rightDt = oper.rightType
-
-        // comparison with zero
-        if(oper.operator in ComparisonOperators && leftDt in NumericDatatypes && rightDt in NumericDatatypes) {
-            val rightVal = (expr.finalRightOperand() as PtExpression).asConstInteger()
-            if (rightVal == 0) {
-                when (left) {
-                    is PtExpression -> {
-                        translateComparisonWithZero(left, leftDt, oper.operator)
-                    }
-                    is PtRpnOperator -> {
-                        val truncated = expr.truncateLastOperator()
-                        translateComparisonWithZero(truncated, leftDt, oper.operator)
-                    }
-                    else -> throw AssemblyError("weird rpn node")
-                }
-                return
-            }
-        }
-
-        // string compare
-        if(left is PtExpression && leftDt==DataType.STR && rightDt==DataType.STR && oper.operator in ComparisonOperators)
-            return translateCompareStrings(left, oper.operator, expr.finalRightOperand() as PtExpression)
-
-        // any other expression
-        if((leftDt in ByteDatatypes && rightDt !in ByteDatatypes)
-                || (leftDt in WordDatatypes && rightDt !in WordDatatypes))
-            throw AssemblyError("operator ${oper.operator} left/right dt not identical: $leftDt $rightDt  right=${expr.finalRightOperand()}")
-
-        val asmExtra = asmgen.subroutineExtra(expr.definingISub()!!)
-        val startDepth = asmExtra.rpnDepth
-        expr.children.forEach {
-            if(it is PtRpnOperator) {
-                when(it.leftType) {
-                    in ByteDatatypes -> translateBinaryOperatorBytes(it.operator, it.leftType)
-                    in WordDatatypes -> translateBinaryOperatorWords(it.operator, it.leftType)
-                    DataType.FLOAT -> translateBinaryOperatorFloats(it.operator)
-                    DataType.STR -> {
-                        if(it.operator !in ComparisonOperators)
-                            throw AssemblyError("expected only comparison operators on string, not ${oper.operator}")
-                        asmgen.out("  jsr  prog8_lib.strcmp_stack")
-                        compareStringsProcessResultInA(it.operator)
-                    }
-                    else -> throw AssemblyError("non-numerical datatype  ${it.leftType}")
-                }
-                asmExtra.rpnDepth--
-            } else {
-                translateExpressionInternal(it as PtExpression)
-                asmExtra.rpnDepth++
-            }
-        }
-        require(asmExtra.rpnDepth-startDepth==1) { "unbalanced RPN: ${expr.position}" }
-    }
-
     private fun translateExpression(expr: PtBinaryExpression) {
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
-        require(!program.binaryExpressionsAreRPN)
         if(translateSomewhatOptimized(expr.left, expr.operator, expr.right))
             return
 

@@ -452,8 +452,6 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
     }
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
-        // NOTE: the  Ast maker here will NOT create RPN-expression nodes for the code generator.
-        // If the code generator prefers RPN expressions, it has to transform the PtBinaryExpression itself into PtRpn.
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
         val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
         val expr = PtBinaryExpression(srcExpr.operator, actualType, srcExpr.position)
