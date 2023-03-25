@@ -1,7 +1,6 @@
 TODO
 ====
-RPN: assembler fails selftest
-RPN: examples/cx16/cobramk3-gfx.p8 crashes compiler
+RPN: assembler fails selftest (something with output file name extension being wrong!)
 RPN: swirl is MUCH slower
 RPN: wizzine is slightly slower
 RPN: bsieve is much slower

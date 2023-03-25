@@ -1450,7 +1450,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             sta  $name+1""")
                     }
                     // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
-                    "<", "<=", ">", ">=" -> TODO("word-bytevar-to-var comparisons")
+                    "<", "<=", ">", ">=" -> TODO("word-bytevar-to-var comparisons ${ident.position}")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
@@ -1555,8 +1555,64 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?
-                    "<", "<=", ">", ">=" -> TODO("word-var-to-var comparisons")
+                    "<" -> {
+                        val compareRoutine = if(dt==DataType.UWORD) "reg_less_uw" else "reg_less_w"
+                        asmgen.out("""
+                            lda  $otherName
+                            ldy  $otherName+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  prog8_lib.$compareRoutine
+                            sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    ">" -> {
+                        // a > b  -->  b < a
+                        val compareRoutine = if(dt==DataType.UWORD) "reg_less_uw" else "reg_less_w"
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $otherName
+                            ldy  $otherName+1
+                            jsr  prog8_lib.$compareRoutine
+                            sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    "<=" -> {
+                        val compareRoutine = if(dt==DataType.UWORD) "reg_lesseq_uw" else "reg_lesseq_w"
+                        asmgen.out("""
+                            lda  $otherName
+                            ldy  $otherName+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  prog8_lib.$compareRoutine
+                            sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
+                    ">=" -> {
+                        // a>=b --> b<=a
+                        val compareRoutine = if(dt==DataType.UWORD) "reg_lesseq_uw" else "reg_lesseq_w"
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $otherName
+                            ldy  $otherName+1
+                            jsr  prog8_lib.$compareRoutine
+                            sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                    }
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }

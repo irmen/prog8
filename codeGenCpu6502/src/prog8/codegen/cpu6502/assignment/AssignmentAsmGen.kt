@@ -369,6 +369,42 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(oper.type != value.type)
             throw AssemblyError("rpn node type error, expected ${value.type} got ${oper.type}")
 
+        if(value.children.size==3 && left is PtExpression && right is PtExpression) {
+
+            // TODO re-enable after compiler errors are fixed:
+//            if(right.asConstInteger() == 0) {
+//                if(oper.operator == "==" || oper.operator=="!=") {
+//                    when(assign.target.datatype) {
+//                        in ByteDatatypes -> if(attemptAssignToByteCompareZeroRPN(value, assign)) return true
+//                        else -> {
+//                            // do nothing, this is handled by a type cast.
+//                        }
+//                    }
+//                }
+//            }
+
+            if(assign.target.datatype == oper.type && oper.leftType == oper.type) {
+                println("TODO simple augmented assign operator into target: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+                println("    left=$left  right=$right")
+                //augmentableAsmGen.translate()
+            } else {
+                println("TODO augmented assign operator into target but needs tempvar: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+                println("    left=$left  right=$right")
+            }
+//            if(oper.operator in ComparisonOperators) {
+//                println("TODO simple comparison: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+//            }
+//            else if(oper.operator in setOf("&", "|", "^", "and", "or", "xor")) {
+//                println("TODO simple logical: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+//            }
+//            else if(oper.operator=="+" || oper.operator=="-") {
+//                println("TODO simple plus or minus: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+//            }
+//            else if(oper.operator=="<<" || oper.operator==">>") {
+//                println("TODO simple bitshift: ${assign.position}  ${oper.leftType} ${oper.operator} ${oper.rightType} -> ${oper.type}")
+//            }
+        }
+
         // TODO RPN optimizations for simple cases
 //        if(oper.operator in ComparisonOperators) {
 //            assignRPNComparison(assign, value)
