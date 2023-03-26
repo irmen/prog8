@@ -180,7 +180,13 @@ class PtFunctionCall(val name: String,
 }
 
 
-class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position)
+class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {
+    override fun toString(): String {
+        return "[PtIdentifier:$name $type $position]"
+    }
+
+    fun copy() = PtIdentifier(name, type, position)
+}
 
 
 class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {

@@ -38,20 +38,17 @@ class PtSub(
 class PtSubroutineParameter(name: String, val type: DataType, position: Position): PtNamedNode(name, position)
 
 
-class PtAssignment(position: Position) : PtNode(position) {
+sealed interface IPtAssignment {
+    val children: MutableList<PtNode>
     val target: PtAssignTarget
         get() = children[0] as PtAssignTarget
     val value: PtExpression
         get() = children[1] as PtExpression
 }
 
+class PtAssignment(position: Position) : PtNode(position), IPtAssignment
 
-class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position) {
-    val target: PtAssignTarget
-        get() = children[0] as PtAssignTarget
-    val value: PtExpression
-        get() = children[1] as PtExpression
-}
+class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
 
 
 class PtAssignTarget(position: Position) : PtNode(position) {
@@ -95,7 +92,7 @@ class PtForLoop(position: Position) : PtNode(position) {
 
 
 class PtIfElse(position: Position) : PtNode(position) {
-    val condition: PtExpression     // either PtRpn or PtBinaryExpression
+    val condition: PtExpression
         get() = children[0] as PtExpression
     val ifScope: PtNodeGroup
         get() = children[1] as PtNodeGroup

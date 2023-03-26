@@ -251,7 +251,7 @@ pop_float_fac1	.proc
 		.pend
 
 copy_float	.proc
-		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
+		; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_W1,
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
 		sta  _target+1
 		sty  _target+2

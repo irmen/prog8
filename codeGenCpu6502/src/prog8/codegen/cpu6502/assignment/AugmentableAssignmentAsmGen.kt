@@ -1319,8 +1319,174 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     lda  #0
                     sta  $name+1""")
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
-            "<", "<=", ">", ">=" -> TODO("word-litval-to-var comparisons")
+            "<" -> {
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  $name+1
+                        cmp  #>$value
+                        bcc  ++
+                        bne  +
+                        lda  $name
+                        cmp  #<$value
+                        bcc  ++
++                       lda  #0     ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1     ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #<$value
+                        lda  $name+1
+                        sbc  #>$value
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1     ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            "<=" -> {
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  $name+1
+                        cmp  #>$value
+                        beq  +
+                        bcc  ++
+-                       lda  #0             ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  +++
++                       lda  $name          ; next
+                        cmp  #<$value
+                        bcc  +
+                        bne  -
++                       lda  #1             ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  #<$value
+                        cmp  $name
+                        lda  #>$value
+                        sbc  $name+1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            ">" -> {
+                // word > value  -->  value < word
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  #>$value
+                        cmp  $name+1
+                        bcc  ++
+                        bne  +
+                        lda  #<$value
+                        cmp  $name
+                        bcc  ++
++                       lda  #0         ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1         ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  #<$value
+                        cmp  $name
+                        lda  #>$value
+                        sbc  $name+1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1         ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            ">=" -> {
+                // word >= value  -->  value <= word
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  #>$value
+                        cmp  $name+1
+                        beq  +
+                        bcc  ++
+-                       lda  #0             ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  +++
++                       lda  #<$value        ; next
+                        cmp  $name
+                        bcc  +
+                        bne  -
++                       lda  #1             ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #<$value
+                        lda  $name+1
+                        sbc  #>$value
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -2129,8 +2295,126 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
-            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-litval-to-var comparisons")
+            "==" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.vars_equal_f
+                    bne  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.vars_equal_f
+                    beq  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
+            "<" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.FCOMP       ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+                    cmp  #0
+                    bmi  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
+            "<=" -> {
+                asmgen.out("""
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.FCOMP       ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+                    cmp  #0
+                    bpl  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
+            ">" -> {
+                asmgen.out("""
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.MOVFM
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.FCOMP       ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+                    cmp  #0
+                    bmi  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
+            ">=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.FCOMP       ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+                    cmp  #0
+                    bpl  +""")
+                val nameTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, scope, Position.DUMMY, variableAsmName = name)
+                assignmentAsmGen.assignConstantFloat(nameTarget, 0.0)
+                asmgen.out("""
+                    jmp  ++
++""")
+                assignmentAsmGen.assignConstantFloat(nameTarget, 1.0)
+                asmgen.out("+")
+                asmgen.restoreRegisterLocal(CpuRegister.X)
+                return
+            }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory

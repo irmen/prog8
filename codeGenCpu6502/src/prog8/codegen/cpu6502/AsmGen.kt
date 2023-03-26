@@ -21,13 +21,6 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        if(options.useNewExprCode) {
-            // TODO("transform BinExprs?")
-            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
-        }
-
-        // printAst(program, true) { println(it) }
-
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
     }
@@ -551,28 +544,74 @@ class AsmGen6502Internal (
             }
 
     private fun translate(stmt: PtIfElse) {
-        val condition = stmt.condition as PtBinaryExpression
-        requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-        if (stmt.elseScope.children.isEmpty()) {
-            val jump = stmt.ifScope.children.singleOrNull()
-            if (jump is PtJump) {
-                translateCompareAndJumpIfTrue(condition, jump)
+        val condition = stmt.condition as? PtBinaryExpression
+        if(condition!=null) {
+            require(!options.useNewExprCode)
+            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    translateCompareAndJumpIfTrue(condition, jump)
+                } else {
+                    val endLabel = makeLabel("if_end")
+                    translateCompareAndJumpIfFalse(condition, endLabel)
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
             } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
                 val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalse(condition, endLabel)
+                translateCompareAndJumpIfFalse(condition, elseLabel)
                 translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
                 out(endLabel)
             }
         } else {
-            // both true and else parts
-            val elseLabel = makeLabel("if_else")
-            val endLabel = makeLabel("if_end")
-            translateCompareAndJumpIfFalse(condition, elseLabel)
-            translate(stmt.ifScope)
-            jmp(endLabel)
-            out(elseLabel)
-            translate(stmt.elseScope)
-            out(endLabel)
+            // condition is a simple expression  "if X"   -->  "if X!=0"
+            val zero = PtNumber(DataType.UBYTE,0.0, stmt.position)
+            val leftConst = stmt.condition as? PtNumber
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    val label = when {
+                        jump.generatedLabel!=null -> jump.generatedLabel!!
+                        jump.identifier!=null -> asmSymbolName(jump.identifier!!)
+                        jump.address!=null -> jump.address!!.toHex()
+                        else -> throw AssemblyError("weird jump")
+                    }
+                    when(stmt.condition.type) {
+                        in WordDatatypes -> translateWordEqualsJump(stmt.condition, zero, leftConst, zero, label)
+                        in ByteDatatypes -> translateByteEqualsJump(stmt.condition, zero, leftConst, zero, label)
+                        else -> throw AssemblyError("weird condition dt")
+                    }
+                } else {
+                    val endLabel = makeLabel("if_end")
+                    when(stmt.condition.type) {
+                        in WordDatatypes -> translateWordEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
+                        in ByteDatatypes -> translateByteEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
+                        else -> throw AssemblyError("weird condition dt")
+                    }
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
+            } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
+                val endLabel = makeLabel("if_end")
+                when(stmt.condition.type) {
+                    in WordDatatypes -> translateWordEqualsJump(stmt.condition, zero, leftConst, zero, elseLabel)
+                    in ByteDatatypes -> translateByteEqualsJump(stmt.condition, zero, leftConst, zero, elseLabel)
+                    else -> throw AssemblyError("weird condition dt")
+                }
+                translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
+                out(endLabel)
+            }
         }
     }
 
@@ -740,7 +779,7 @@ $repeatLabel    lda  $counterVar
         }
         val isNested = parent is PtRepeatLoop
 
-        if(!isNested && !options.useNewExprCode) {
+        if(!isNested) {
             // we can re-use a counter var from the subroutine if it already has one for that datatype
             val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("counter") }
             if(existingVar!=null) {
@@ -987,6 +1026,7 @@ $repeatLabel    lda  $counterVar
         val operator: String
 
         if (pointerOffsetExpr is PtBinaryExpression) {
+            require(!options.useNewExprCode)
             operator = pointerOffsetExpr.operator
             left = pointerOffsetExpr.left
             right = pointerOffsetExpr.right
@@ -2853,6 +2893,7 @@ $repeatLabel    lda  $counterVar
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
+                require(!options.useNewExprCode)
                 val addrExpr = expr.address as PtBinaryExpression
                 if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     if(pushResultOnEstack)

@@ -14,13 +14,6 @@ class VmCodeGen: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-
-        if(options.useNewExprCode) {
-            // TODO("transform BinExprs?")
-            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
-        }
-
-
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
         return VmAssemblyProgram(irProgram.name, irProgram)
