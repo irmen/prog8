@@ -30,8 +30,10 @@ BIN_INTEGER :  '%' ('0' | '1')+ ;
 ADDRESS_OF: '&' ;
 INVALID_AND_COMPOSITE: '&&' ;
 
-FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? FNUMBER)? ;	// sign comes later from unary expression
-fragment FNUMBER :  ('0' .. '9') + ('.' ('0' .. '9') +)? ;
+FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;	// sign comes later from unary expression
+fragment FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
+fragment FDOTNUMBER : '.' ('0'..'9')+ ;
+fragment FNUMDOTNUMBER : ('0'..'9')+ ('.' ('0'..'9')+ )? ;
 
 fragment STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
 STRING :
