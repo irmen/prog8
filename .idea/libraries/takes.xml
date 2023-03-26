@@ -1,15 +1,16 @@
 <component name="libraryTable">
   <library name="takes" type="repository">
-    <properties maven-id="org.takes:takes:1.20" />
+    <properties maven-id="org.takes:takes:1.24.4" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/takes/takes/1.20/takes-1.20.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/cactoos/cactoos/0.50/cactoos-0.50.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-text/1.4/commons-text-1.4.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/apache/commons/commons-lang3/3.7/commons-lang3-3.7.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-core/2.3.0/jaxb-core-2.3.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-impl/2.3.0/jaxb-impl-2.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/takes/takes/1.24.4/takes-1.24.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/cactoos/cactoos/0.54.0/cactoos-0.54.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/xml/bind/jaxb-api/2.4.0-b180830.0359/jaxb-api-2.4.0-b180830.0359.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-core/4.0.0/jaxb-core-4.0.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/jakarta/xml/bind/jakarta.xml.bind-api/4.0.0/jakarta.xml.bind-api-4.0.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/jakarta/activation/jakarta.activation-api/2.1.0/jakarta.activation-api-2.1.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/angus/angus-activation/1.0.0/angus-activation-1.0.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/sun/xml/bind/jaxb-impl/4.0.0/jaxb-impl-4.0.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

@@ -29,11 +29,11 @@ dependencies {
     implementation project(':compiler')
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.4'
-    implementation "org.takes:takes:1.19"
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.5'
+    implementation "org.takes:takes:1.24.4"
     implementation "javax.json:javax.json-api:1.1.4"
     implementation "org.glassfish:javax.json:1.1.4"
-    implementation "org.slf4j:slf4j-simple:1.7.36"
+    implementation "org.slf4j:slf4j-simple:2.0.7"
 }
 
 configurations.all {
