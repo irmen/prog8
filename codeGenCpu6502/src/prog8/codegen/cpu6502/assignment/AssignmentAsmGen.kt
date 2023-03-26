@@ -491,7 +491,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         cpy  P8ZP_SCRATCH_W1+1
                         bne  +
                         lda  #0
-                        bne  ++
+                        beq  ++
 +                       lda  #1
 +""")
                 }
