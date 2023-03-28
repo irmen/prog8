@@ -19,9 +19,9 @@ main {
             txt.print("name2 fail!\n")
         }
 
-        if name=="aaa" or name=="john" or name=="bbb"           ; TODO fix this result on C64 target, no newexpr!
+        if name=="aaa" or name=="john" or name=="bbb"
             txt.print("name1b ok\n")
-        if name=="aaa" or name=="zzz" or name=="bbb"            ; TODO fix this result on C64 target, no newexpr!
+        if name=="aaa" or name=="zzz" or name=="bbb"
             txt.print("name2b fail!\n")
 
 

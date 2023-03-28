@@ -583,15 +583,15 @@ class AsmGen6502Internal (
                         else -> throw AssemblyError("weird jump")
                     }
                     when(stmt.condition.type) {
-                        in WordDatatypes -> translateWordEqualsJump(stmt.condition, zero, leftConst, zero, label)
-                        in ByteDatatypes -> translateByteEqualsJump(stmt.condition, zero, leftConst, zero, label)
+                        in WordDatatypes -> translateWordNotEqualsJump(stmt.condition, zero, leftConst, zero, label)
+                        in ByteDatatypes -> translateByteNotEqualsJump(stmt.condition, zero, leftConst, zero, label)
                         else -> throw AssemblyError("weird condition dt")
                     }
                 } else {
                     val endLabel = makeLabel("if_end")
                     when(stmt.condition.type) {
-                        in WordDatatypes -> translateWordEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
-                        in ByteDatatypes -> translateByteEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
+                        in WordDatatypes -> translateWordNotEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
+                        in ByteDatatypes -> translateByteNotEqualsJump(stmt.condition, zero, leftConst, zero, endLabel)
                         else -> throw AssemblyError("weird condition dt")
                     }
                     translate(stmt.ifScope)

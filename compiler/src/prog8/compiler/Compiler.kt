@@ -4,6 +4,7 @@ import com.github.michaelbull.result.onFailure
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.ast.base.AstException
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
@@ -428,9 +429,28 @@ private fun createAssemblyAndAssemble(program: PtProgram,
 
 private fun transformNewExpressions(program: PtProgram) {
     val newVariables = mutableMapOf<PtSub, MutableList<PtVariable>>()
+    var countByteVars = 0
+    var countWordVars = 0
+    var countFloatVars = 0
+    // TODO: find a reliable way to reuse the temp vars across expressions
 
-    fun getExprVar(what: String, type: DataType, count: Int, pos: Position, scope: PtSub): PtIdentifier {
-        val name = "p8p_exprvar_${what}_${count}_${type.toString().lowercase()}"
+    fun getExprVar(type: DataType, pos: Position, scope: PtSub): PtIdentifier {
+        val count = when(type) {
+            in ByteDatatypes -> {
+                countByteVars++
+                countByteVars
+            }
+            in WordDatatypes -> {
+                countWordVars++
+                countWordVars
+            }
+            DataType.FLOAT -> {
+                countFloatVars++
+                countFloatVars
+            }
+            else -> throw FatalAstException("weird dt")
+        }
+        val name = "p8p_exprvar_${count}_${type.toString().lowercase()}"
         var subVars = newVariables[scope]
         if(subVars==null) {
             subVars = mutableListOf()
@@ -442,21 +462,21 @@ private fun transformNewExpressions(program: PtProgram) {
         return PtIdentifier("${scope.scopedName}.$name", type, pos)
     }
 
-    fun transformExpr(expr: PtBinaryExpression, postfix: String, depth: Int): Pair<PtExpression, List<IPtAssignment>> {
+    fun transformExpr(expr: PtBinaryExpression): Pair<PtExpression, List<IPtAssignment>> {
         // depth first process the expression tree
         val scope = expr.definingSub()!!
         val assignments = mutableListOf<IPtAssignment>()
 
-        fun transformOperand(node: PtExpression, kind: String): PtNode {
+        fun transformOperand(node: PtExpression): PtNode {
             return when(node) {
                 is PtNumber, is PtIdentifier, is PtArray, is PtString, is PtMachineRegister -> node
                 is PtBinaryExpression -> {
-                    val (replacement, subAssigns) = transformExpr(node, kind, depth+1)
+                    val (replacement, subAssigns) = transformExpr(node)
                     assignments.addAll(subAssigns)
                     replacement
                 }
                 else -> {
-                    val variable = getExprVar(kind, node.type, depth, node.position, scope)
+                    val variable = getExprVar(node.type, node.position, scope)
                     val assign = PtAssignment(node.position)
                     val target = PtAssignTarget(variable.position)
                     target.add(variable)
@@ -468,26 +488,26 @@ private fun transformNewExpressions(program: PtProgram) {
             }
         }
 
-        val newLeft = transformOperand(expr.left,"l")
-        val newRight = transformOperand(expr.right, "r")
+        val newLeft = transformOperand(expr.left)
+        val newRight = transformOperand(expr.right)
 
         // process the binexpr
 
         val resultVar =
             if(expr.type == expr.left.type) {
-                getExprVar(postfix, expr.type, depth, expr.position, scope)
+                getExprVar(expr.type, expr.position, scope)
             } else {
                 if(expr.operator in ComparisonOperators && expr.type in ByteDatatypes) {
                     // this is very common and should be dealth with correctly; byte==0, word>42
                     val varType = if(expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
-                    getExprVar(postfix, varType, depth, expr.position, scope)
+                    getExprVar(varType, expr.position, scope)
                 }
                 else if(expr.left.type in PassByReferenceDatatypes && expr.type==DataType.UBYTE) {
                     // this is common and should be dealth with correctly; for instance "name"=="john"
                     val varType = if (expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
-                    getExprVar(postfix, varType, depth, expr.position, scope)
+                    getExprVar(varType, expr.position, scope)
                 } else if(expr.left.type equalsSize expr.type) {
-                    getExprVar(postfix, expr.type, depth, expr.position, scope)
+                    getExprVar(expr.type, expr.position, scope)
                 } else {
                     TODO("expression type differs from left operand type! got ${expr.left.type} expected ${expr.type}   ${expr.position}")
                 }
@@ -539,12 +559,13 @@ private fun transformNewExpressions(program: PtProgram) {
         }
     }
 
-    fun transform(node: PtNode, parent: PtNode, depth: Int) {
+    fun transform(node: PtNode, parent: PtNode) {
         if(node is PtBinaryExpression) {
+            println("BINEXPR AT ${node.position}")
             node.children.toTypedArray().forEach {
-                transform(it, node, depth+1)
+                transform(it, node)
             }
-            val (rep, assignments) = transformExpr(node, "l", depth)
+            val (rep, assignments) = transformExpr(node)
             var replacement = rep
             if(!(rep.type equalsSize node.type)) {
                 if(rep.type in NumericDatatypes && node.type in ByteDatatypes) {
@@ -565,13 +586,13 @@ private fun transformNewExpressions(program: PtProgram) {
                 stmt.parent.add(idx, it as PtNode)
             }
         } else {
-            node.children.toTypedArray().forEach { child -> transform(child, node, depth+1) }
+            node.children.toTypedArray().forEach { child -> transform(child, node) }
         }
     }
 
     program.allBlocks().forEach { block ->
         block.children.toTypedArray().forEach {
-            transform(it, block, 0)
+            transform(it, block)
         }
     }
 
