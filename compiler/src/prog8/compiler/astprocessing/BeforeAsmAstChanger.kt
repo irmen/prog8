@@ -36,6 +36,19 @@ internal class BeforeAsmAstChanger(val program: Program,
         return noModifications
     }
 
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator in ComparisonOperators && expr.left.inferType(program) istype DataType.STR && expr.right.inferType(program) istype DataType.STR) {
+            // replace string comparison expressions with calls to string.compare()
+            val stringCompare = BuiltinFunctionCall(
+                IdentifierReference(listOf("prog8_lib_stringcompare"), expr.position),
+                mutableListOf(expr.left.copy(), expr.right.copy()), expr.position)
+            val zero = NumericLiteral.optimalInteger(0, expr.position)
+            val comparison = BinaryExpression(stringCompare, expr.operator, zero, expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, comparison, parent))
+        }
+        return noModifications
+    }
+
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
             throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")

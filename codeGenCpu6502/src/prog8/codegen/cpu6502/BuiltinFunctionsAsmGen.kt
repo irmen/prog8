@@ -70,10 +70,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rrestorex" -> funcRrestoreX()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
+            "prog8_lib_stringcompare" -> funcStringCompare(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
+    }
+
+    private fun funcStringCompare(fcall: PtBuiltinFunctionCall) {
+        assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", DataType.UWORD)
+        assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, false)
+        asmgen.out("  jsr  prog8_lib.strcmp_mem")
     }
 
     private fun funcRsave() {

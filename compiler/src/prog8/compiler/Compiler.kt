@@ -477,13 +477,17 @@ private fun transformNewExpressions(program: PtProgram) {
             if(expr.type == expr.left.type) {
                 getExprVar(postfix, expr.type, depth, expr.position, scope)
             } else {
-                if(expr.operator in ComparisonOperators && expr.type == DataType.UBYTE) {
+                if(expr.operator in ComparisonOperators && expr.type in ByteDatatypes) {
                     // this is very common and should be dealth with correctly; byte==0, word>42
-                    getExprVar(postfix, expr.left.type, depth, expr.position, scope)
+                    val varType = if(expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
+                    getExprVar(postfix, varType, depth, expr.position, scope)
                 }
                 else if(expr.left.type in PassByReferenceDatatypes && expr.type==DataType.UBYTE) {
-                    // this is common and should be dealth with correctly; for instance "name"=="irmen"
-                    getExprVar(postfix, expr.left.type, depth, expr.position, scope)
+                    // this is common and should be dealth with correctly; for instance "name"=="john"
+                    val varType = if (expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
+                    getExprVar(postfix, varType, depth, expr.position, scope)
+                } else if(expr.left.type equalsSize expr.type) {
+                    getExprVar(postfix, expr.type, depth, expr.position, scope)
                 } else {
                     TODO("expression type differs from left operand type! got ${expr.left.type} expected ${expr.type}   ${expr.position}")
                 }
