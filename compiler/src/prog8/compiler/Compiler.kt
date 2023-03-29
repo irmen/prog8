@@ -413,7 +413,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     if(compilerOptions.useNewExprCode)
         transformNewExpressions(program)
 
-    printAst(program, true) { println(it) }
+    // printAst(program, true) { println(it) }
 
     val stMaker = SymbolTableMaker(program, compilerOptions)
     val symbolTable = stMaker.make()
@@ -561,7 +561,6 @@ private fun transformNewExpressions(program: PtProgram) {
 
     fun transform(node: PtNode, parent: PtNode) {
         if(node is PtBinaryExpression) {
-            println("BINEXPR AT ${node.position}")
             node.children.toTypedArray().forEach {
                 transform(it, node)
             }

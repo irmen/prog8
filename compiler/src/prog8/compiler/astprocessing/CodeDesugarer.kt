@@ -79,7 +79,7 @@ if CONDITION==0
 while CONDITION { STUFF }
     ==>
 _whileloop:
-  if CONDITION==0 goto _after
+  if INVERTED-CONDITION goto _after
   STUFF
   goto _whileloop
 _after:
