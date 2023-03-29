@@ -958,7 +958,11 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(expr.operator !in ComparisonOperators) {
+        if(expr.operator in ComparisonOperators) {
+            if(leftDt!=rightDt && !(leftDt in ByteDatatypes && rightDt in ByteDatatypes)) {
+                throw FatalAstException("got comparison with different operand types: $leftDt ${expr.operator} $rightDt  ${expr.position}")
+            }
+        } else  {
             if (leftDt == DataType.STR && rightDt == DataType.STR || leftDt in ArrayDatatypes && rightDt in ArrayDatatypes) {
                 // str+str  and  str*number have already been const evaluated before we get here.
                 errors.err("no computational or logical expressions with strings or arrays are possible", expr.position)

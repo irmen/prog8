@@ -72,6 +72,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rrestorex" -> funcRrestoreX()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
+            "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultToStack)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
@@ -109,6 +110,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             ldy  P8ZP_SCRATCH_W2+1
             sta  $remainderVar
             sty  $remainderVar+1""")
+    }
+
+    private fun funcStringCompare(fcall: PtBuiltinFunctionCall, resultToStack: Boolean) {
+        assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", DataType.UWORD)
+        assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, false)
+        asmgen.out("  jsr  prog8_lib.strcmp_mem")
+        if(resultToStack)
+            asmgen.out("  sta  P8ESTACK_LO,x |  dex")
     }
 
     private fun funcRsave() {
@@ -697,6 +706,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 }
             }
             is PtBinaryExpression -> {
+                require(!asmgen.options.useNewExprCode)
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
                 val pointer = result?.first as? PtIdentifier
                 if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
@@ -759,6 +769,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 } else fallback()
             }
             is PtBinaryExpression -> {
+                require(!asmgen.options.useNewExprCode)
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
                 val pointer = result?.first as? PtIdentifier
                 if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {

@@ -21,13 +21,6 @@ class AsmGen6502: ICodeGeneratorBackend {
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        if(options.useNewExprCode) {
-            // TODO("transform BinExprs?")
-            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
-        }
-
-        // printAst(program, true) { println(it) }
-
         val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
         return asmgen.compileToAssembly()
     }
@@ -551,28 +544,76 @@ class AsmGen6502Internal (
             }
 
     private fun translate(stmt: PtIfElse) {
-        val condition = stmt.condition as PtBinaryExpression
-        requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
-        if (stmt.elseScope.children.isEmpty()) {
-            val jump = stmt.ifScope.children.singleOrNull()
-            if (jump is PtJump) {
-                translateCompareAndJumpIfTrue(condition, jump)
+        val condition = stmt.condition as? PtBinaryExpression
+        if(condition!=null) {
+            require(!options.useNewExprCode)
+            requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    translateCompareAndJumpIfTrue(condition, jump)
+                } else {
+                    val endLabel = makeLabel("if_end")
+                    translateCompareOrJumpIfFalse(condition, endLabel)
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
             } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
                 val endLabel = makeLabel("if_end")
-                translateCompareAndJumpIfFalse(condition, endLabel)
+                translateCompareOrJumpIfFalse(condition, elseLabel)
                 translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
                 out(endLabel)
             }
         } else {
-            // both true and else parts
-            val elseLabel = makeLabel("if_else")
-            val endLabel = makeLabel("if_end")
-            translateCompareAndJumpIfFalse(condition, elseLabel)
-            translate(stmt.ifScope)
-            jmp(endLabel)
-            out(elseLabel)
-            translate(stmt.elseScope)
-            out(endLabel)
+            // condition is a simple expression  "if X"   -->  "if X!=0"
+            val zero = PtNumber(DataType.UBYTE,0.0, stmt.position)
+            val leftConst = stmt.condition as? PtNumber
+            if (stmt.elseScope.children.isEmpty()) {
+                val jump = stmt.ifScope.children.singleOrNull()
+                if (jump is PtJump) {
+                    // jump somewhere if X!=0
+                    val label = when {
+                        jump.generatedLabel!=null -> jump.generatedLabel!!
+                        jump.identifier!=null -> asmSymbolName(jump.identifier!!)
+                        jump.address!=null -> jump.address!!.toHex()
+                        else -> throw AssemblyError("weird jump")
+                    }
+                    when(stmt.condition.type) {
+                        in WordDatatypes -> translateWordEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, label)
+                        in ByteDatatypes -> translateByteEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, label)
+                        else -> throw AssemblyError("weird condition dt")
+                    }
+                } else {
+                    // skip the true block (=jump to end label) if X==0
+                    val endLabel = makeLabel("if_end")
+                    when(stmt.condition.type) {
+                        in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, endLabel)
+                        in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, endLabel)
+                        else -> throw AssemblyError("weird condition dt")
+                    }
+                    translate(stmt.ifScope)
+                    out(endLabel)
+                }
+            } else {
+                // both true and else parts
+                val elseLabel = makeLabel("if_else")
+                val endLabel = makeLabel("if_end")
+                when(stmt.condition.type) {
+                    in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, elseLabel)
+                    in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, elseLabel)
+                    else -> throw AssemblyError("weird condition dt")
+                }
+                translate(stmt.ifScope)
+                jmp(endLabel)
+                out(elseLabel)
+                translate(stmt.elseScope)
+                out(endLabel)
+            }
         }
     }
 
@@ -740,7 +781,7 @@ $repeatLabel    lda  $counterVar
         }
         val isNested = parent is PtRepeatLoop
 
-        if(!isNested && !options.useNewExprCode) {
+        if(!isNested) {
             // we can re-use a counter var from the subroutine if it already has one for that datatype
             val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("counter") }
             if(existingVar!=null) {
@@ -987,6 +1028,7 @@ $repeatLabel    lda  $counterVar
         val operator: String
 
         if (pointerOffsetExpr is PtBinaryExpression) {
+            require(!options.useNewExprCode)
             operator = pointerOffsetExpr.operator
             left = pointerOffsetExpr.left
             right = pointerOffsetExpr.right
@@ -1132,15 +1174,16 @@ $repeatLabel    lda  $counterVar
             jump.address!=null -> jump.address!!.toHex()
             else -> throw AssemblyError("weird jump")
         }
-        if (rightConstVal!=null && rightConstVal.number == 0.0)
-            testZeroAndJump(left, invertedComparisonOperator, label)
+        if (rightConstVal!=null && rightConstVal.number == 0.0) {
+            testZeroOrJumpElsewhere(left, invertedComparisonOperator, label)
+        }
         else {
             val leftConstVal = left as? PtNumber
-            testNonzeroComparisonAndJump(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
+            testNonzeroComparisonOrJumpElsewhere(left, invertedComparisonOperator, right, label, leftConstVal, rightConstVal)
         }
     }
 
-    private fun translateCompareAndJumpIfFalse(expr: PtBinaryExpression, jumpIfFalseLabel: String) {
+    private fun translateCompareOrJumpIfFalse(expr: PtBinaryExpression, jumpIfFalseLabel: String) {
         val left = expr.left
         val right = expr.right
         val operator = expr.operator
@@ -1148,19 +1191,19 @@ $repeatLabel    lda  $counterVar
         val rightConstVal = right as? PtNumber
 
         if (rightConstVal!=null && rightConstVal.number == 0.0)
-            testZeroAndJump(left, operator, jumpIfFalseLabel)
+            testZeroOrJumpElsewhere(left, operator, jumpIfFalseLabel)
         else
-            testNonzeroComparisonAndJump(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
+            testNonzeroComparisonOrJumpElsewhere(left, operator, right, jumpIfFalseLabel, leftConstVal, rightConstVal)
     }
 
-    private fun testZeroAndJump(
+    private fun testZeroOrJumpElsewhere(
         left: PtExpression,
         operator: String,
         jumpIfFalseLabel: String
     ) {
         val dt = left.type
         if(dt in IntegerDatatypes && left is PtIdentifier)
-            return testVariableZeroAndJump(left, dt, operator, jumpIfFalseLabel)
+            return testVariableZeroOrJumpElsewhere(left, dt, operator, jumpIfFalseLabel)
 
         when(dt) {
             DataType.BOOL, DataType.UBYTE, DataType.UWORD -> {
@@ -1246,7 +1289,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun testVariableZeroAndJump(variable: PtIdentifier, dt: DataType, operator: String, jumpIfFalseLabel: String) {
+    private fun testVariableZeroOrJumpElsewhere(variable: PtIdentifier, dt: DataType, operator: String, jumpIfFalseLabel: String) {
         // optimized code if the expression is just an identifier (variable)
         val varname = asmVariableName(variable)
         when(dt) {
@@ -1306,7 +1349,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    internal fun testNonzeroComparisonAndJump(
+    internal fun testNonzeroComparisonOrJumpElsewhere(
         left: PtExpression,
         operator: String,
         right: PtExpression,
@@ -1319,70 +1362,70 @@ $repeatLabel    lda  $counterVar
         when (operator) {
             "==" -> {
                 when (dt) {
-                    in ByteDatatypes -> translateByteEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    in WordDatatypes -> translateWordEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringEqualsJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    in ByteDatatypes -> translateByteEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringEqualsOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "!=" -> {
                 when (dt) {
-                    in ByteDatatypes -> translateByteNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    in WordDatatypes -> translateWordNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatNotEqualsJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringNotEqualsJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringNotEqualsOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatLessJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringLessJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteLessOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             "<=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatLessOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringLessOrEqualJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteLessOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteLessOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordLessOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordLessOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatLessOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringLessOrEqualOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatGreaterJump(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringGreaterJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteGreaterOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterOrJumpElsewhere(left, right, leftConstVal,rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
             ">=" -> {
                 when(dt) {
-                    DataType.UBYTE -> translateUbyteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.BYTE -> translateByteGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.UWORD -> translateUwordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.WORD -> translateWordGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.FLOAT -> translateFloatGreaterOrEqualJump(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
-                    DataType.STR -> translateStringGreaterOrEqualJump(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
+                    DataType.UBYTE -> translateUbyteGreaterOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.BYTE -> translateByteGreaterOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.UWORD -> translateUwordGreaterOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.WORD -> translateWordGreaterOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.FLOAT -> translateFloatGreaterOrEqualOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    DataType.STR -> translateStringGreaterOrEqualOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
                     else -> throw AssemblyError("weird operand datatype")
                 }
             }
         }
     }
 
-    private fun translateFloatLessJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatLessOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1427,7 +1470,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatLessOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatLessOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1472,7 +1515,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatGreaterJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatGreaterOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1517,7 +1560,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatGreaterOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatGreaterOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(leftConstVal!=null && rightConstVal!=null) {
             throw AssemblyError("const-compare should have been optimized away")
         }
@@ -1562,7 +1605,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateUbyteLessJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bcs  $jumpIfFalseLabel")
@@ -1607,7 +1650,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteLessJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteLessOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(sbcOperand: String) {
             out("""
@@ -1648,7 +1691,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordLessJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1692,7 +1735,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordLessOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1738,7 +1781,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("""
@@ -1784,7 +1827,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteGreaterJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(sbcOperand: String) {
             out("""
@@ -1827,7 +1870,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordGreaterJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1877,7 +1920,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_W2+1", "P8ZP_SCRATCH_W2")
     }
 
-    private fun translateWordGreaterJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCmpOperand: String, lsbCmpOperand: String) {
             out("""
@@ -1928,7 +1971,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_less_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteLessOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUbyteLessOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("""
@@ -1975,7 +2018,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteLessOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteLessOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         fun code(sbcOperand: String) {
             out("""
                 clc
@@ -2018,7 +2061,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordLessOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUwordLessOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2070,7 +2113,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordLessOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordLessOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(leftName: String) {
             out("""
@@ -2125,7 +2168,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateUbyteGreaterOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUbyteGreaterOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bcc  $jumpIfFalseLabel")
@@ -2168,7 +2211,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateByteGreaterOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteGreaterOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         fun code(sbcOperand: String) {
             out("""
                 sec
@@ -2208,7 +2251,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateUwordGreaterOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateUwordGreaterOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2251,7 +2294,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_uw |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateWordGreaterOrEqualJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordGreaterOrEqualOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(msbCpyOperand: String, lsbCmpOperand: String) {
             out("""
@@ -2297,7 +2340,7 @@ $repeatLabel    lda  $counterVar
         return out("  jsr  prog8_lib.reg_lesseq_w |  beq  $jumpIfFalseLabel")
     }
 
-    private fun translateByteEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  bne  $jumpIfFalseLabel")
         }
@@ -2342,7 +2385,7 @@ $repeatLabel    lda  $counterVar
         out("  cmp  P8ZP_SCRATCH_B1 |  bne  $jumpIfFalseLabel")
     }
 
-    private fun translateByteNotEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateByteNotEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         fun code(cmpOperand: String) {
             out("  cmp  $cmpOperand |  beq  $jumpIfFalseLabel")
@@ -2388,7 +2431,7 @@ $repeatLabel    lda  $counterVar
         return code("P8ZP_SCRATCH_B1")
     }
 
-    private fun translateWordEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -2472,7 +2515,7 @@ $repeatLabel    lda  $counterVar
 
     }
 
-    private fun translateWordNotEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateWordNotEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
 
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
@@ -2560,7 +2603,7 @@ $repeatLabel    lda  $counterVar
 
     }
 
-    private fun translateFloatEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal!=leftConstVal)
@@ -2644,7 +2687,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateFloatNotEqualsJump(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
+    private fun translateFloatNotEqualsOrJumpElsewhere(left: PtExpression, right: PtExpression, leftConstVal: PtNumber?, rightConstVal: PtNumber?, jumpIfFalseLabel: String) {
         if(rightConstVal!=null) {
             if(leftConstVal!=null) {
                 if(rightConstVal==leftConstVal)
@@ -2729,7 +2772,7 @@ $repeatLabel    lda  $counterVar
         }
     }
 
-    private fun translateStringEqualsJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringEqualsOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2740,11 +2783,10 @@ $repeatLabel    lda  $counterVar
             lda  #<$leftNam
             ldy  #>$leftNam
             jsr  prog8_lib.strcmp_mem
-            cmp  #0
             bne  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringNotEqualsJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringNotEqualsOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2755,11 +2797,10 @@ $repeatLabel    lda  $counterVar
             lda  #<$leftNam
             ldy  #>$leftNam
             jsr  prog8_lib.strcmp_mem
-            cmp  #0
             beq  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringLessJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringLessOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2773,7 +2814,7 @@ $repeatLabel    lda  $counterVar
             bpl  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringGreaterJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringGreaterOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2788,7 +2829,7 @@ $repeatLabel    lda  $counterVar
             bmi  $jumpIfFalseLabel""")
     }
 
-    private fun translateStringLessOrEqualJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringLessOrEqualOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2804,7 +2845,7 @@ $repeatLabel    lda  $counterVar
 +""")
     }
 
-    private fun translateStringGreaterOrEqualJump(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
+    private fun translateStringGreaterOrEqualOrJumpElsewhere(left: PtIdentifier, right: PtIdentifier, jumpIfFalseLabel: String) {
         val leftNam = asmVariableName(left)
         val rightNam = asmVariableName(right)
         out("""
@@ -2853,6 +2894,7 @@ $repeatLabel    lda  $counterVar
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
+                require(!options.useNewExprCode)
                 val addrExpr = expr.address as PtBinaryExpression
                 if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     if(pushResultOnEstack)

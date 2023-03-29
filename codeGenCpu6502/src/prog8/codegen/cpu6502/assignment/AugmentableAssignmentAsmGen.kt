@@ -668,43 +668,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "<" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    bcc  +
-                    beq  +
-                    lda  #1
-                    bne  ++
-+                   lda  #0
-+                   sta  $name""")
+                if(dt==DataType.UBYTE)
+                    TODO("ubyte <")
+                else
+                    TODO("byte <")
             }
             "<=" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    lda  #0
-                    adc  #0
-                    sta  $name""")
+                if(dt==DataType.UBYTE)
+                    TODO("ubyte <=")
+                else
+                    TODO("byte <=")
             }
             ">" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    bcc  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+                   sta  $name""")
+                if(dt==DataType.UBYTE)
+                    TODO("ubyte >")
+                else
+                    TODO("byte >")
             }
             ">=" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    bcc  +
-                    beq  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1                    
-+                   sta  $name""")
+                if(dt==DataType.UBYTE)
+                    TODO("ubyte >=")
+                else
+                    TODO("byte >=")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -782,41 +770,106 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   sta  $name""")
             }
             "<" -> {
-                asmgen.out("""
-                    lda  $name
-                    cmp  $otherName
-                    bcs  +
-                    lda  #1
-                    bne  ++
-+                   lda  #0
-+                   sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  $otherName
+                        bcc  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
+                else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  $otherName
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             "<=" -> {
-                asmgen.out("""
-                    lda  $otherName
-                    cmp  $name
-                    lda  #0
-                    adc  #0
-                    sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $otherName
+                        cmp  $name
+                        bcs  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        clc
+                        sbc  $otherName
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             ">" -> {
-                asmgen.out("""
-                    lda  $otherName
-                    cmp  $name
-                    bcc  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+                   sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  $otherName
+                        beq  +
+                        bcs  ++
++                       lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        clc
+                        sbc  $otherName
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             ">=" -> {
-                asmgen.out("""
-                    lda  $name
-                    cmp  $otherName
-                    lda  #0
-                    adc  #0
-                    sta  $name""")
-            }
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  $otherName
+                        bcs  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  $otherName
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -908,40 +961,106 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   sta  $name""")
             }
             "<" -> {
-                asmgen.out("""
-                    lda  $name
-                    cmp  #$value
-                    bcs  +
-                    lda  #1
-                    bne  ++
-+                   lda  #0
-+                   sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #$value
+                        bcc  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
+                else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  #$value
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             "<=" -> {
-                asmgen.out("""
-                    lda  #$value
-                    cmp  $name
-                    lda  #0
-                    adc  #0
-                    sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  #$value
+                        cmp  $name
+                        bcs  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        clc
+                        sbc  #$value
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             ">" -> {
-                asmgen.out("""
-                    lda  #$value
-                    cmp  $name
-                    bcc  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+                   sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #$value
+                        beq  +
+                        bcs  ++
++                       lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        clc
+                        sbc  #$value
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             ">=" -> {
-                asmgen.out("""
-                    lda  $name
-                    cmp  #$value
-                    lda  #0
-                    adc  #0
-                    sta  $name""")
+                if(dt==DataType.UBYTE) {
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #$value
+                        bcs  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        lda  $name
+                        sec
+                        sbc  #$value
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++                       sta  $name""")
+                }
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1319,8 +1438,174 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     lda  #0
                     sta  $name+1""")
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
-            "<", "<=", ">", ">=" -> TODO("word-litval-to-var comparisons")
+            "<" -> {
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  $name+1
+                        cmp  #>$value
+                        bcc  ++
+                        bne  +
+                        lda  $name
+                        cmp  #<$value
+                        bcc  ++
++                       lda  #0     ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1     ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #<$value
+                        lda  $name+1
+                        sbc  #>$value
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1     ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            "<=" -> {
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  $name+1
+                        cmp  #>$value
+                        beq  +
+                        bcc  ++
+-                       lda  #0             ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  +++
++                       lda  $name          ; next
+                        cmp  #<$value
+                        bcc  +
+                        bne  -
++                       lda  #1             ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  #<$value
+                        cmp  $name
+                        lda  #>$value
+                        sbc  $name+1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            ">" -> {
+                // word > value  -->  value < word
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  #>$value
+                        cmp  $name+1
+                        bcc  ++
+                        bne  +
+                        lda  #<$value
+                        cmp  $name
+                        bcc  ++
++                       lda  #0         ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1         ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  #<$value
+                        cmp  $name
+                        lda  #>$value
+                        sbc  $name+1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1         ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
+            ">=" -> {
+                // word >= value  -->  value <= word
+                if(dt==DataType.UWORD) {
+                    asmgen.out("""
+                        lda  #>$value
+                        cmp  $name+1
+                        beq  +
+                        bcc  ++
+-                       lda  #0             ; false
+                        sta  $name
+                        sta  $name+1
+                        beq  +++
++                       lda  #<$value        ; next
+                        cmp  $name
+                        bcc  +
+                        bne  -
++                       lda  #1             ; true
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+                else {
+                    // signed
+                    asmgen.out("""
+                        lda  $name
+                        cmp  #<$value
+                        lda  $name+1
+                        sbc  #>$value
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        sta  $name
+                        sta  $name+1
+                        beq  ++
++                       lda  #1
+                        sta  $name
+                        lda  #0
+                        sta  $name+1
++""")
+                }
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
@@ -1650,33 +1935,63 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             sta  $name+1""")
                     }
                     "<=" -> {
-                        val compareRoutine = if(dt==DataType.UWORD) "reg_lesseq_uw" else "reg_lesseq_w"
-                        asmgen.out("""
+                        if(dt==DataType.UWORD) {
+                            asmgen.out("""
                             lda  $otherName
                             ldy  $otherName+1
                             sta  P8ZP_SCRATCH_W2
                             sty  P8ZP_SCRATCH_W2+1
                             lda  $name
                             ldy  $name+1
-                            jsr  prog8_lib.$compareRoutine
+                            jsr  prog8_lib.reg_lesseq_uw
                             sta  $name
                             lda  #0
                             sta  $name+1""")
+                        } else {
+                            // note: reg_lesseq_w routine takes the arguments in reverse order
+                            asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $otherName
+                            ldy  $otherName+1
+                            jsr  prog8_lib.reg_lesseq_w
+                            sta  $name
+                            lda  #0
+                            sta  $name+1""")
+                        }
                     }
                     ">=" -> {
                         // a>=b --> b<=a
-                        val compareRoutine = if(dt==DataType.UWORD) "reg_lesseq_uw" else "reg_lesseq_w"
-                        asmgen.out("""
+                        if(dt==DataType.UWORD) {
+                            asmgen.out("""
                             lda  $name
                             ldy  $name+1
                             sta  P8ZP_SCRATCH_W2
                             sty  P8ZP_SCRATCH_W2+1
                             lda  $otherName
                             ldy  $otherName+1
-                            jsr  prog8_lib.$compareRoutine
+                            jsr  prog8_lib.reg_lesseq_uw
                             sta  $name
                             lda  #0
-                            sta  $name+1""")
+                            sta  $name+1"""
+                            )
+                        } else {
+                            // note: reg_lesseq_w routine takes the arguments in reverse order
+                            asmgen.out("""
+                            lda  $otherName
+                            ldy  $otherName+1
+                            sta  P8ZP_SCRATCH_W2
+                            sty  P8ZP_SCRATCH_W2+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  prog8_lib.reg_lesseq_w
+                            sta  $name
+                            lda  #0
+                            sta  $name+1"""
+                            )
+                        }
                     }
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2011,9 +2326,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 """)
             }
             // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
-            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-value-to-var comparisons")
+            "==" -> TODO("float-value-to-var comparison ==")
+            "!=" -> TODO("float-value-to-var comparison !=")
+            "<", "<=", ">", ">=" -> TODO("float-value-to-var comparisons")
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
+        // store Fac1 back into memory
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
@@ -2066,7 +2384,67 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 """)
             }
             // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
-            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-var-to-var comparisons")
+            "==" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_notequal_f
+                    eor  #1
+                    jsr  floats.FREADSA""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_notequal_f
+                    jsr  floats.FREADSA""")
+            }
+            "<" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_less_f
+                    jsr  floats.FREADSA""")
+            }
+            "<=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_lesseq_f
+                    jsr  floats.FREADSA""")
+            }
+            ">" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_greater_f
+                    jsr  floats.FREADSA""")
+            }
+            ">=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$otherName
+                    ldy  #>$otherName
+                    jsr  floats.var_fac1_greatereq_f
+                    jsr  floats.FREADSA""")
+            }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory
@@ -2129,8 +2507,67 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
-            "==", "!=", "<", "<=", ">", ">=" -> TODO("float-litval-to-var comparisons")
+            "==" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_notequal_f
+                    eor  #1
+                    jsr  floats.FREADSA""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_notequal_f
+                    jsr  floats.FREADSA""")
+            }
+            "<" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_less_f
+                    jsr  floats.FREADSA""")
+            }
+            "<=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_lesseq_f
+                    jsr  floats.FREADSA""")
+            }
+            ">" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_greater_f
+                    jsr  floats.FREADSA""")
+            }
+            ">=" -> {
+                asmgen.out("""
+                    lda  #<$name
+                    ldy  #>$name
+                    jsr  floats.MOVFM
+                    lda  #<$constValueName
+                    ldy  #>$constValueName
+                    jsr  floats.var_fac1_greatereq_f
+                    jsr  floats.FREADSA""")
+            }
             else -> throw AssemblyError("invalid operator for in-place float modification $operator")
         }
         // store Fac1 back into memory

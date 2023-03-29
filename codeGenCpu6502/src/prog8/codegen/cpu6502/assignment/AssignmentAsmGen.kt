@@ -147,6 +147,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignMemoryByte(assign.target, null, value.address as PtIdentifier)
                     }
                     is PtBinaryExpression -> {
+                        require(!asmgen.options.useNewExprCode)
                         val addrExpr = value.address as PtBinaryExpression
                         if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A)
@@ -301,6 +302,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignRegisterByte(assign.target, CpuRegister.A)
             }
             is PtBinaryExpression -> {
+                require(!asmgen.options.useNewExprCode)
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // All remaining binary expressions just evaluate via the stack for now.
                     // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
@@ -346,6 +348,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        require(!asmgen.options.useNewExprCode)
         if(expr.operator in ComparisonOperators) {
             if(expr.right.asConstInteger() == 0) {
                 if(expr.operator == "==" || expr.operator=="!=") {
@@ -728,6 +731,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        require(!asmgen.options.useNewExprCode)
         when (expr.operator) {
             "==" -> {
                 when(val dt = expr.left.type) {
@@ -907,6 +911,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             assignMemoryByteIntoWord(target, null, value.address as PtIdentifier)
                         }
                         is PtBinaryExpression -> {
+                            require(!asmgen.options.useNewExprCode)
                             val addrExpr = value.address as PtBinaryExpression
                             if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                                 asmgen.out("  ldy  #0")
@@ -2519,7 +2524,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun assignConstantFloat(target: AsmAssignTarget, float: Double) {
+    internal fun assignConstantFloat(target: AsmAssignTarget, float: Double) {
         if (float == 0.0) {
             // optimized case for float zero
             when(target.kind) {
@@ -2829,6 +2834,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtBinaryExpression -> {
+                require(!asmgen.options.useNewExprCode)
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))
                     storeViaExprEval()
             }

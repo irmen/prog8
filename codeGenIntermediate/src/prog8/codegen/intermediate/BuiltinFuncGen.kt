@@ -43,6 +43,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "ror" -> funcRolRor(Opcode.ROXR, call)
             "rol2" -> funcRolRor(Opcode.ROL, call)
             "ror2" -> funcRolRor(Opcode.ROR, call)
+            "prog8_lib_stringcompare" -> funcStringCompare(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
     }
@@ -66,6 +67,18 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         result += assignRegisterTo(call.args[2], 0)
         result += assignRegisterTo(call.args[3], 1)
         return ExpressionCodeResult(result, type, -1, -1)
+    }
+
+    private fun funcStringCompare(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val left  = exprGen.translateExpression(call.args[0])
+        val right = exprGen.translateExpression(call.args[1])
+        val targetReg = codeGen.registers.nextFree()
+        addToResult(result, left, 65500, -1)
+        addToResult(result, right, 65501, -1)
+        addInstr(result, IRInstruction(Opcode.SYSCALL, value=IMSyscall.COMPARE_STRINGS.number), null)
+        addInstr(result, IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=targetReg, reg2=0), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, targetReg, -1)
     }
 
     private fun funcCmp(call: PtBuiltinFunctionCall): ExpressionCodeResult {

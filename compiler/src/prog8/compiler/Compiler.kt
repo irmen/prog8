@@ -4,11 +4,12 @@ import com.github.michaelbull.result.onFailure
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.ast.base.AstException
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
-import prog8.code.ast.PtProgram
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
@@ -409,6 +410,11 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     else
         throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.machine.cpu}")
 
+    if(compilerOptions.useNewExprCode)
+        transformNewExpressions(program)
+
+    // printAst(program, true) { println(it) }
+
     val stMaker = SymbolTableMaker(program, compilerOptions)
     val symbolTable = stMaker.make()
     val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
@@ -420,3 +426,188 @@ private fun createAssemblyAndAssemble(program: PtProgram,
         false
     }
 }
+
+private fun transformNewExpressions(program: PtProgram) {
+    val newVariables = mutableMapOf<PtSub, MutableList<PtVariable>>()
+    var countByteVars = 0
+    var countWordVars = 0
+    var countFloatVars = 0
+    // TODO: find a reliable way to reuse the temp vars across expressions
+
+    fun getExprVar(type: DataType, pos: Position, scope: PtSub): PtIdentifier {
+        val count = when(type) {
+            in ByteDatatypes -> {
+                countByteVars++
+                countByteVars
+            }
+            in WordDatatypes -> {
+                countWordVars++
+                countWordVars
+            }
+            DataType.FLOAT -> {
+                countFloatVars++
+                countFloatVars
+            }
+            else -> throw FatalAstException("weird dt")
+        }
+        val name = "p8p_exprvar_${count}_${type.toString().lowercase()}"
+        var subVars = newVariables[scope]
+        if(subVars==null) {
+            subVars = mutableListOf()
+            newVariables[scope] = subVars
+        }
+        if(subVars.all { it.name!=name }) {
+            subVars.add(PtVariable(name, type, ZeropageWish.DONTCARE, null, null, pos))
+        }
+        return PtIdentifier("${scope.scopedName}.$name", type, pos)
+    }
+
+    fun transformExpr(expr: PtBinaryExpression): Pair<PtExpression, List<IPtAssignment>> {
+        // depth first process the expression tree
+        val scope = expr.definingSub()!!
+        val assignments = mutableListOf<IPtAssignment>()
+
+        fun transformOperand(node: PtExpression): PtNode {
+            return when(node) {
+                is PtNumber, is PtIdentifier, is PtArray, is PtString, is PtMachineRegister -> node
+                is PtBinaryExpression -> {
+                    val (replacement, subAssigns) = transformExpr(node)
+                    assignments.addAll(subAssigns)
+                    replacement
+                }
+                else -> {
+                    val variable = getExprVar(node.type, node.position, scope)
+                    val assign = PtAssignment(node.position)
+                    val target = PtAssignTarget(variable.position)
+                    target.add(variable)
+                    assign.add(target)
+                    assign.add(node)
+                    assignments.add(assign)
+                    variable
+                }
+            }
+        }
+
+        val newLeft = transformOperand(expr.left)
+        val newRight = transformOperand(expr.right)
+
+        // process the binexpr
+
+        val resultVar =
+            if(expr.type == expr.left.type) {
+                getExprVar(expr.type, expr.position, scope)
+            } else {
+                if(expr.operator in ComparisonOperators && expr.type in ByteDatatypes) {
+                    // this is very common and should be dealth with correctly; byte==0, word>42
+                    val varType = if(expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
+                    getExprVar(varType, expr.position, scope)
+                }
+                else if(expr.left.type in PassByReferenceDatatypes && expr.type==DataType.UBYTE) {
+                    // this is common and should be dealth with correctly; for instance "name"=="john"
+                    val varType = if (expr.left.type in PassByReferenceDatatypes) DataType.UWORD else expr.left.type
+                    getExprVar(varType, expr.position, scope)
+                } else if(expr.left.type equalsSize expr.type) {
+                    getExprVar(expr.type, expr.position, scope)
+                } else {
+                    TODO("expression type differs from left operand type! got ${expr.left.type} expected ${expr.type}   ${expr.position}")
+                }
+            }
+
+        if(resultVar.name!=(newLeft as? PtIdentifier)?.name) {
+            // resultvar = left
+            val assign1 = PtAssignment(newLeft.position)
+            val target1 = PtAssignTarget(resultVar.position)
+            target1.add(resultVar)
+            assign1.add(target1)
+            assign1.add(newLeft)
+            assignments.add(assign1)
+        }
+        // resultvar {oper}= right
+        val operator = if(expr.operator in ComparisonOperators) expr.operator else expr.operator+'='
+        val assign2 = PtAugmentedAssign(operator, newRight.position)
+        val target2 = PtAssignTarget(resultVar.position)
+        target2.add(resultVar.copy())
+        assign2.add(target2)
+        assign2.add(newRight)
+        assignments.add(assign2)
+        return Pair(resultVar, assignments)
+    }
+
+    fun isProperStatement(node: PtNode): Boolean {
+        return when(node) {
+            is PtAssignment -> true
+            is PtAugmentedAssign -> true
+            is PtBreakpoint -> true
+            is PtConditionalBranch -> true
+            is PtForLoop -> true
+            is PtIfElse -> true
+            is PtIncludeBinary -> true
+            is PtInlineAssembly -> true
+            is PtJump -> true
+            is PtAsmSub -> true
+            is PtLabel -> true
+            is PtSub -> true
+            is PtVariable -> true
+            is PtNop -> true
+            is PtPostIncrDecr -> true
+            is PtRepeatLoop -> true
+            is PtReturn -> true
+            is PtWhen -> true
+            is PtBuiltinFunctionCall -> node.void
+            is PtFunctionCall -> node.void
+            else -> false
+        }
+    }
+
+    fun transform(node: PtNode, parent: PtNode) {
+        if(node is PtBinaryExpression) {
+            node.children.toTypedArray().forEach {
+                transform(it, node)
+            }
+            val (rep, assignments) = transformExpr(node)
+            var replacement = rep
+            if(!(rep.type equalsSize node.type)) {
+                if(rep.type in NumericDatatypes && node.type in ByteDatatypes) {
+                    replacement = PtTypeCast(node.type, node.position)
+                    replacement.add(rep)
+                } else
+                    TODO("cast replacement type ${rep.type} -> ${node.type}")
+            }
+            var idx = parent.children.indexOf(node)
+            parent.children[idx] = replacement
+            replacement.parent = parent
+            // find the statement above which we should insert the assignments
+            var stmt = node
+            while(!isProperStatement(stmt))
+                stmt = stmt.parent
+            idx = stmt.parent.children.indexOf(stmt)
+            assignments.reversed().forEach {
+                stmt.parent.add(idx, it as PtNode)
+            }
+        } else {
+            node.children.toTypedArray().forEach { child -> transform(child, node) }
+        }
+    }
+
+    program.allBlocks().forEach { block ->
+        block.children.toTypedArray().forEach {
+            transform(it, block)
+        }
+    }
+
+    // add the new variables
+    newVariables.forEach { (sub, vars) ->
+        vars.forEach {
+            sub.add(0, it)
+        }
+    }
+
+    // extra check to see that all PtBinaryExpressions have been transformed
+    fun binExprCheck(node: PtNode) {
+        if(node is PtBinaryExpression)
+            throw IllegalArgumentException("still got binexpr $node ${node.position}")
+        node.children.forEach { binExprCheck(it) }
+    }
+    binExprCheck(program)
+}
+

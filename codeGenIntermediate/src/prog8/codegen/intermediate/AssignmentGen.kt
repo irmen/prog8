@@ -93,7 +93,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             require(origAssign.operator.endsWith('='))
             if(codeGen.options.useNewExprCode) {
-                TODO("use something else than a BinExpr?")
+                TODO("use something else than a BinExpr")
             } else {
                 value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
                 val left: PtExpression = origAssign.target.children.single() as PtExpression
@@ -268,7 +268,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             val mult : PtExpression
             if(codeGen.options.useNewExprCode) {
-                TODO("use something else than a BinExpr?")
+                TODO("use something else than a BinExpr")
             } else {
                 mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
                 mult.children += array.index

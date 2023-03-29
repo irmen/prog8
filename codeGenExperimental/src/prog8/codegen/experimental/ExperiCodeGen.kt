@@ -14,11 +14,6 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         errors: IErrorReporter
     ): IAssemblyProgram? {
 
-        if(options.useNewExprCode) {
-            // TODO("transform BinExprs?")
-            // errors.warn("EXPERIMENTAL NEW EXPRESSION CODEGEN IS USED. CODE SIZE+SPEED POSSIBLY SUFFERS.", Position.DUMMY)
-        }
-
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
