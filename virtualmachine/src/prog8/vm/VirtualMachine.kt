@@ -229,6 +229,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.DIVSM -> InsDIVSM(ins)
             Opcode.MODR -> InsMODR(ins)
             Opcode.MOD -> InsMOD(ins)
+            Opcode.DIVMODR -> InsDIVMODR(ins)
+            Opcode.DIVMOD -> InsDIVMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
             Opcode.SQRT -> InsSQRT(ins)
@@ -1110,8 +1112,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divModByteUnsigned("/", i.reg1!!, i.reg2!!)
-            IRDataType.WORD -> divModWordUnsigned("/", i.reg1!!, i.reg2!!)
+            IRDataType.BYTE -> divOrModByteUnsigned("/", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> divOrModWordUnsigned("/", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1119,8 +1121,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIV(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divModConstByteUnsigned("/", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> divModConstWordUnsigned("/", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> divOrModConstByteUnsigned("/", i.reg1!!, i.value!!.toUByte())
+            IRDataType.WORD -> divOrModConstWordUnsigned("/", i.reg1!!, i.value!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1180,8 +1182,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMODR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divModByteUnsigned("%", i.reg1!!, i.reg2!!)
-            IRDataType.WORD -> divModWordUnsigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.BYTE -> divOrModByteUnsigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> divOrModWordUnsigned("%", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1189,8 +1191,26 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divModConstByteUnsigned("%", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> divModConstWordUnsigned("%", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> divOrModConstByteUnsigned("%", i.reg1!!, i.value!!.toUByte())
+            IRDataType.WORD -> divOrModConstWordUnsigned("%", i.reg1!!, i.value!!.toUShort())
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
+    private fun InsDIVMODR(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)        // output in r0+r1
+            IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)        // output in r0+r1
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
+    private fun InsDIVMOD(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.value!!.toUByte())    // output in r0+r1
+            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.value!!.toUShort())   // output in r0+r1
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1329,7 +1349,7 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setSB(address, result.toByte())
     }
 
-    private fun divModByteUnsigned(operator: String, reg1: Int, reg2: Int) {
+    private fun divOrModByteUnsigned(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getUB(reg1)
         val right = registers.getUB(reg2)
         val result = when(operator) {
@@ -1346,7 +1366,7 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUB(reg1, result.toUByte())
     }
 
-    private fun divModConstByteUnsigned(operator: String, reg1: Int, value: UByte) {
+    private fun divOrModConstByteUnsigned(operator: String, reg1: Int, value: UByte) {
         val left = registers.getUB(reg1)
         val result = when(operator) {
             "/" -> {
@@ -1360,6 +1380,40 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator byte $operator")
         }
         registers.setUB(reg1, result.toUByte())
+    }
+
+    private fun divAndModUByte(reg1: Int, reg2: Int) {
+        val left = registers.getUB(reg1)
+        val right = registers.getUB(reg2)
+        val division = if(right==0.toUByte()) 0xffu else left / right
+        val remainder = if(right==0.toUByte()) 0xffu else left % right
+        registers.setUB(0, division.toUByte())
+        registers.setUB(1, remainder.toUByte())
+    }
+
+    private fun divAndModConstUByte(reg1: Int, value: UByte) {
+        val left = registers.getUB(reg1)
+        val division = if(value==0.toUByte()) 0xffu else left / value
+        val remainder = if(value==0.toUByte()) 0xffu else left % value
+        registers.setUB(0, division.toUByte())
+        registers.setUB(1, remainder.toUByte())
+    }
+
+    private fun divAndModUWord(reg1: Int, reg2: Int) {
+        val left = registers.getUW(reg1)
+        val right = registers.getUW(reg2)
+        val division = if(right==0.toUShort()) 0xffffu else left / right
+        val remainder = if(right==0.toUShort()) 0xffffu else left % right
+        registers.setUW(0, division.toUShort())
+        registers.setUW(1, remainder.toUShort())
+    }
+
+    private fun divAndModConstUWord(reg1: Int, value: UShort) {
+        val left = registers.getUW(reg1)
+        val division = if(value==0.toUShort()) 0xffffu else left / value
+        val remainder = if(value==0.toUShort()) 0xffffu else left % value
+        registers.setUW(0, division.toUShort())
+        registers.setUW(1, remainder.toUShort())
     }
 
     private fun divModByteUnsignedInplace(operator: String, reg1: Int, address: Int) {
@@ -1414,7 +1468,7 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setUW(address, result.toUShort())
     }
 
-    private fun divModWordUnsigned(operator: String, reg1: Int, reg2: Int) {
+    private fun divOrModWordUnsigned(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getUW(reg1)
         val right = registers.getUW(reg2)
         val result = when(operator) {
@@ -1431,7 +1485,7 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUW(reg1, result.toUShort())
     }
 
-    private fun divModConstWordUnsigned(operator: String, reg1: Int, value: UShort) {
+    private fun divOrModConstWordUnsigned(operator: String, reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
         val result = when(operator) {
             "/" -> {

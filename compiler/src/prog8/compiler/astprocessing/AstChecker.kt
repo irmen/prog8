@@ -6,6 +6,7 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.ast.PtIdentifier
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.compiler.builtinFunctionReturnType
@@ -1136,6 +1137,22 @@ internal class AstChecker(private val program: Program,
                         errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
                     }
                 }
+            }
+            else if(funcName[0] == "divmod") {
+                if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
+                    errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
+                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression)
+                    errors.err("all arguments must be ubyte", functionCallStatement.position)
+                if(!functionCallStatement.args.all {it.inferType(program) istype DataType.UBYTE})
+                    errors.err("all arguments must be ubyte", functionCallStatement.position)
+            }
+            else if(funcName[0] == "divmodw") {
+                if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
+                    errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
+                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression)
+                    errors.err("all arguments must be uword", functionCallStatement.position)
+                if(!functionCallStatement.args.all {it.inferType(program) istype DataType.UWORD})
+                    errors.err("all arguments must be uword", functionCallStatement.position)
             }
 
             if(funcName[0] in InplaceModifyingBuiltinFunctions) {

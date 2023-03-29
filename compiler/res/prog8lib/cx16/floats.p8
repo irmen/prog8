@@ -40,8 +40,8 @@ romsub $fe18 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt valu
 romsub $fe1b = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2
 romsub $fe1e = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
 romsub $fe21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
-romsub $fe24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
-romsub $fe27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
+romsub $fe24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
+romsub $fe27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands
 romsub $fe2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
 romsub $fe2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
 romsub $fe30 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)

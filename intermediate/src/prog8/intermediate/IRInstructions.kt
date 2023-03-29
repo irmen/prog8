@@ -125,6 +125,8 @@ divs        reg1,              value        - signed division reg1 /= value  not
 divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767
 modr        reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
+divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing division in r0 and remainder in r2 (by convention, because we can't specify enough registers in the instruction)
+divmod      reg1,              value        - unsigned division reg1/value, storing division in r0 and remainder in r2 (by convention, because we can't specify enough registers in the instruction)
 sqrt        reg1, reg2                      - reg1 is the square root of reg2
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
@@ -290,6 +292,8 @@ enum class Opcode {
     DIVSM,
     MODR,
     MOD,
+    DIVMODR,
+    DIVMOD,
     SQRT,
     SGN,
     CMP,
@@ -615,6 +619,8 @@ val instructionFormats = mutableMapOf(
     Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<v"),
+    Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
+    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<v"),
     Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),
     Opcode.EXT        to InstructionFormat.from("BW,<>r1"),
     Opcode.EXTS       to InstructionFormat.from("BW,<>r1"),

@@ -1,38 +1,29 @@
 %import textio
-%import floats
 %zeropage basicsafe
 
-; Draw a mandelbrot in graphics mode (the image will be 256 x 200 pixels).
-; NOTE: this will take an eternity to draw on a real c64. A CommanderX16 is a bit faster.
-; even in Vice in warp mode (700% speed on my machine) it's slow, but you can see progress
-
-; Note: this program is compatible with C64 and CX16.
 
 main {
     sub start()  {
-        float xsquared = 2.0
-        float ysquared = 1.9
-        uword w = 1
-        ubyte h = 0
 
-        str name = ".tx2"
+        ubyte ub1 = 100
+        ubyte ub2 = 13
+        ubyte ubd
+        ubyte ubr
+        divmod(ub1, ub2, ubd, ubr)
+        txt.print_ub(ubd)
+        txt.spc()
+        txt.print_ub(ubr)
+        txt.nl()
 
-        if name==".jpg" or name==".txt" or name==".gif" {
-            txt.print("yes")
-        }
+        uword uw1 = 10000
+        uword uw2 = 900
+        uword uwd
+        uword uwr
+        divmodw(uw1, uw2, uwd, uwr)
+        txt.print_uw(uwd)
+        txt.spc()
+        txt.print_uw(uwr)
+        txt.nl()
 
-;        if w==0 or xsquared+ysquared<4.0 {
-;            txt.print("yes")
-;        }
-
-;        if w==0 {
-;            txt.print("w=0 ")
-;        }
-;        if h==0 {
-;            txt.print("h=0 ")
-;        }
-;        if w==0 or h==0 {
-;            txt.print(" w or h=0")
-;        }
     }
 }

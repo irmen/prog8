@@ -39,8 +39,8 @@ romsub $af18 = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt valu
 romsub $af1b = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2      NOTE: use FADDT2() instead!
 romsub $af1e = FMULT(uword mflpt @ AY) clobbers(A,X,Y)      ; fac1 *= mflpt value from A/Y
 romsub $af21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2      NOTE: use FMULTT2() instead!
-romsub $af24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1  (remainder in fac2)
-romsub $af27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands  NOTE: use FDIVT2() instead!
+romsub $af24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
+romsub $af27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands  NOTE: use FDIVT2() instead!
 romsub $af2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
 romsub $af2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
 romsub $af30 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
@@ -75,7 +75,7 @@ romsub $af7b = NEGFAC() clobbers(A)                         ; switch the sign of
 romsub $af7e = FMULTT2() clobbers(A,X,Y)                    ; fac1 *= fac2
 romsub $af81 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 romsub $af84 = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
-romsub $af87 = FDIVT2() clobbers(A,X,Y)                     ; fac1 = fac2/fac1  (remainder in fac2)  mind the order of the operands
+romsub $af87 = FDIVT2() clobbers(A,X,Y)                     ; fac1 = fac2/fac1  mind the order of the operands
 romsub $af8a = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $af8d = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
 romsub $af90 = FLOAT() clobbers(A,X,Y)                      ; FAC = (s8).A

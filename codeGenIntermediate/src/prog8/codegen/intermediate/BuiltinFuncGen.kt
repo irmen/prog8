@@ -17,6 +17,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
             "sqrt16" -> funcSqrt16(call)
+            "divmod" -> funcDivmod(call, IRDataType.BYTE)
+            "divmodw" -> funcDivmod(call, IRDataType.WORD)
             "pop" -> funcPop(call)
             "popw" -> funcPopw(call)
             "push" -> funcPush(call)
@@ -43,6 +45,27 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "ror2" -> funcRolRor(Opcode.ROR, call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcDivmod(call: PtBuiltinFunctionCall, type: IRDataType): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val number = call.args[0]
+        val divident = call.args[1]
+        if(divident is PtNumber) {
+            val tr = exprGen.translateExpression(number)
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.DIVMOD, type, reg1 = tr.resultReg, value=divident.number.toInt()), null)
+        } else {
+            val numTr = exprGen.translateExpression(number)
+            addToResult(result, numTr, numTr.resultReg, -1)
+            val dividentTr = exprGen.translateExpression(divident)
+            addToResult(result, dividentTr, dividentTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.DIVMODR, type, reg1 = numTr.resultReg, reg2=dividentTr.resultReg), null)
+        }
+        // DIVMOD result convention: division in r0, remainder in r1
+        result += assignRegisterTo(call.args[2], 0)
+        result += assignRegisterTo(call.args[3], 1)
+        return ExpressionCodeResult(result, type, -1, -1)
     }
 
     private fun funcCmp(call: PtBuiltinFunctionCall): ExpressionCodeResult {

@@ -774,6 +774,13 @@ sqrt16(w)
     16 bit unsigned integer Square root. Result is unsigned byte.
     To do the reverse, squaring an integer, just write ``x*x``.
 
+divmod(number, divident, division, remainder)
+    Performs division and remainder calculation in a single call. This is faster than using separate '/' and '%' calculations.
+    All values are ubytes. The last two arguments must be ubyte variables to receive the division and remainder results, respectively.
+
+divmodw(number, divident, division, remainder)
+    Same as divmod, but for uwords.
+
 
 Array operations
 ^^^^^^^^^^^^^^^^
