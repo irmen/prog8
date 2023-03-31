@@ -4,6 +4,9 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+
+newexpr: fix fallbackAssign()  and loadIndexReg()
+
 ...
 
 

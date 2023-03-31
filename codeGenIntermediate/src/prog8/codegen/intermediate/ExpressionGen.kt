@@ -925,7 +925,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
 
-    internal fun operatorAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
@@ -934,10 +934,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         else
             IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
             ,null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
@@ -946,10 +946,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         else
             IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
             , null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorDivideInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorDivideInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
@@ -995,10 +995,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, ins, null)
             }
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorMultiplyInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorMultiplyInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
@@ -1028,10 +1028,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     , null)
             }
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorMinusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorMinusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
@@ -1068,10 +1068,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     , null)
             }
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorPlusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorPlusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
@@ -1108,10 +1108,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     , null)
             }
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorShiftRightInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorShiftRightInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)) {
             val opc = if (signed) Opcode.ASRM else Opcode.LSRM
@@ -1130,10 +1130,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(opc, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
             addInstr(result, ins, null)
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorShiftLeftInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorShiftLeftInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)){
             addInstr(result, if(knownAddress!=null)
@@ -1150,10 +1150,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                 ,null)
         }
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
-    internal fun operatorXorInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): ExpressionCodeResult {
+    internal fun operatorXorInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
@@ -1162,9 +1162,198 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         else
             IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
             ,null)
-        return ExpressionCodeResult(result, vmDt, -1, -1)
+        return result
     }
 
+    fun operatorModuloInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultReg = codeGen.registers.nextFree()
+        if(operand is PtNumber) {
+            val number = operand.number.toInt()
+            if (knownAddress != null) {
+                // @(address) = @(address) %= operand
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, value = knownAddress)
+                    it += IRInstruction(Opcode.MOD, vmDt, reg1 = resultReg, value = number)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, value = knownAddress)
+                }
+            } else {
+                // symbol = symbol %= operand
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, labelSymbol = symbol)
+                    it += IRInstruction(Opcode.MOD, vmDt, reg1 = resultReg, value = number)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, labelSymbol = symbol)
+                }
+            }
+        } else {
+            val tr = translateExpression(operand)
+            result += tr.chunks
+            if (knownAddress != null) {
+                // @(address) = @(address) %= operand
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, value = knownAddress)
+                    it += IRInstruction(Opcode.MODR, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, value = knownAddress)
+                }
+            } else {
+                // symbol = symbol %= operand
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, labelSymbol = symbol)
+                    it += IRInstruction(Opcode.MODR, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, labelSymbol = symbol)
+                }
+            }
+        }
+        return result
+    }
+
+    fun operatorEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        if(knownAddress!=null) {
+            // @(address) = @(address) == operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(Opcode.SEQ, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol == operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.SEQ, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
+
+    fun operatorNotEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        if(knownAddress!=null) {
+            // @(address) = @(address) != operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(Opcode.SNE, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol != operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.SNE, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
+
+    fun operatorGreaterInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        val opcode = if(signed) Opcode.SGTS else Opcode.SGT
+        if(knownAddress!=null) {
+            // @(address) = @(address) > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
+
+    fun operatorLessInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        val opcode = if(signed) Opcode.SLTS else Opcode.SLT
+        if(knownAddress!=null) {
+            // @(address) = @(address) < operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol < operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
+
+    fun operatorGreaterEqualInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        val opcode = if(signed) Opcode.SGES else Opcode.SGE
+        if(knownAddress!=null) {
+            // @(address) = @(address) > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
+
+    fun operatorLessEqualInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        addToResult(result, tr, tr.resultReg, -1)
+        val opcode = if(signed) Opcode.SLES else Opcode.SLE
+        if(knownAddress!=null) {
+            // @(address) = @(address) > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+            }
+        } else {
+            // symbol = symbol > operand
+            val valueReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+            }
+        }
+        return result
+    }
 }
 
 

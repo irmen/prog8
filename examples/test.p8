@@ -1,9 +1,16 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
 
 main {
     sub start()  {
+        ubyte xx=100
+        ubyte yy=21
+
+        xx %= yy
+        txt.print_ub(xx)
+        txt.nl()
 
         ubyte ub1 = 100
         ubyte ub2 = 13
