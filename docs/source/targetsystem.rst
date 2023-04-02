@@ -28,6 +28,11 @@ This chapter explains some relevant system details of the c64 and cx16 machines.
 Memory Model
 ============
 
+(Work in Progress) Memory Map Diagram for C64 and X16
+
+.. image:: memorymap.svg
+
+
 Physical address space layout
 -----------------------------
 
