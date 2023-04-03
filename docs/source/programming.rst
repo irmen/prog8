@@ -763,35 +763,35 @@ You can use them in expressions and the compiler will evaluate them at compile-t
 Math
 ^^^^
 
-abs(x)
+abs (x)
     Absolute value of an integer. Value returned is an unsigned word.
     For floating point numbers, use ``floats.fabs()`` instead.
 
-sgn(x)
+sgn (x)
     Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
 
-sqrt16(w)
+sqrt16 (w)
     16 bit unsigned integer Square root. Result is unsigned byte.
     To do the reverse, squaring an integer, just write ``x*x``.
 
-divmod(number, divident, division, remainder)
+divmod (number, divident, division, remainder)
     Performs division and remainder calculation in a single call. This is faster than using separate '/' and '%' calculations.
     All values are ubytes. The last two arguments must be ubyte variables to receive the division and remainder results, respectively.
 
-divmodw(number, divident, division, remainder)
+divmodw (number, divident, division, remainder)
     Same as divmod, but for uwords.
 
 
 Array operations
 ^^^^^^^^^^^^^^^^
 
-any(x)
+any (x)
     1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
 
-all(x)
+all (x)
     1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
 
-len(x)
+len (x)
     Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
@@ -799,11 +799,11 @@ len(x)
     (use the ``string.length`` routine if you want to dynamically determine the length by counting to the
     first 0-byte)
 
-reverse(array)
+reverse (array)
     Reverse the values in the array (in-place).
     Can be used after sort() to sort an array in descending order.
 
-sort(array)
+sort (array)
     Sort the array in ascending order (in-place)
     Supported are arrays of bytes or word values.
     Sorting a floating-point array is not supported right now, as a general sorting routine for this will
@@ -816,18 +816,18 @@ sort(array)
 Miscellaneous
 ^^^^^^^^^^^^^
 
-cmp(x,y)
+cmp (x,y)
     Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!
     You can use a conditional jumps (``if_cc`` etcetera) to act on this.
     Normally you should just use a comparison expression (``x < y``)
 
-lsb(x)
+lsb (x)
     Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
 
-msb(x)
+msb (x)
     Get the most significant byte of the word x.
 
-mkword(msb, lsb)
+mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.
     So mkword($80, $22) results in $8022.
 
@@ -836,36 +836,36 @@ mkword(msb, lsb)
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
         in little-endian format, so lsb first then msb)
 
-peek(address)
+peek (address)
     same as @(address) - reads the byte at the given address in memory.
 
-peekw(address)
+peekw (address)
     reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
 
-poke(address, value)
+poke (address, value)
     same as @(address)=value - writes the byte value at the given address in memory.
 
-pokew(address, value)
+pokew (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
-pokemon(address, value)
+pokemon (address, value)
     Doesn't do anything useful. Also doesn't have anything to do with a certain video game.
 
-push(value)
+push (value)
     pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
 
-pushw(value)
+pushw (value)
     pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
 
-pop(variable)
+pop (variable)
     pops a byte value off the CPU hardware stack into the given variable. Only variables can be used.
     Low-level function that should normally not be used.
 
-popw(value)
+popw (value)
     pops a 16-bit word value off the CPU hardware stack into the given variable. Only variables can be used.
     Low-level function that should normally not be used.
 
-rol(x)
+rol (x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
@@ -873,13 +873,13 @@ rol(x)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
 
-rol2(x)
+rol2 (x)
     Like ``rol`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol2(@($5000))``
 
-ror(x)
+ror (x)
     Rotate the bits in x (byte or word) one position to the right.
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
@@ -887,19 +887,19 @@ ror(x)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
 
-ror2(x)
+ror2 (x)
     Like ``ror`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror2(@($5000))``
 
-sizeof(name)
+sizeof (name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
-memory(name, size, alignment)
+memory (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
     with the given name. The block is uninitialized memory, it is *not* set to zero!
     If you specify an alignment value >1, it means the block of memory will
@@ -914,7 +914,7 @@ memory(name, size, alignment)
     The return value is just a simple uword address so it cannot be used as an array in your program.
     You can only treat it as a pointer or use it in inline assembly.
 
-callfar(bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
+callfar (bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another bank on the Commander X16 (using its ``jsrfar`` routine)
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
@@ -922,7 +922,7 @@ callfar(bank, address, argumentword) -> uword     ; NOTE: specific to cx16 targe
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
     or even write a custom tailored trampoline routine if you need to.
 
-syscall(callnr), syscall1(callnr, arg), syscall2(callnr, arg1, arg2), syscall3(callnr, arg1, arg2, arg3)
+syscall (callnr), syscall1 (callnr, arg), syscall2 (callnr, arg1, arg2), syscall3 (callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
     uses this though except, possibly, the experimental code generation target!
     The regular 6502 based compiler targets just use a subroutine call to asmsub Kernal routines at
