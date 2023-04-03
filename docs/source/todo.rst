@@ -4,8 +4,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-
-newexpr: fix fallbackAssign()  and loadIndexReg()
+newexpr in VM: fix float printing from arrays
 
 ...
 

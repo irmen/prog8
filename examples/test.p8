@@ -5,32 +5,27 @@
 
 main {
     sub start()  {
-        ubyte xx=100
-        ubyte yy=21
+        ubyte[] ba = [11,22,33]
+        uword[] wa = [1111,2222,3333]
+        float[] fa = [1.1, 2.2, 3.3]
 
-        xx %= yy
-        txt.print_ub(xx)
+        txt.print_ub(ba[1])
+        txt.nl()
+        txt.print_uw(wa[1])
+        txt.nl()
+        floats.print_f(fa[1])       ; TODO FIX FLOAT PRINT IN VM
         txt.nl()
 
-        ubyte ub1 = 100
-        ubyte ub2 = 13
-        ubyte ubd
-        ubyte ubr
-        divmod(ub1, ub2, ubd, ubr)
-        txt.print_ub(ubd)
-        txt.spc()
-        txt.print_ub(ubr)
+        ubyte index=1
+        ubyte calc=1
+        ba[index] += 1
+        wa[index] += 1
+        fa[index] += 1
+        txt.print_ub(ba[1])
         txt.nl()
-
-        uword uw1 = 10000
-        uword uw2 = 900
-        uword uwd
-        uword uwr
-        divmodw(uw1, uw2, uwd, uwr)
-        txt.print_uw(uwd)
-        txt.spc()
-        txt.print_uw(uwr)
+        txt.print_uw(wa[1])
         txt.nl()
-
+        floats.print_f(fa[1])       ; TODO FIX FLOAT PRINT IN VM
+        txt.nl()
     }
 }

@@ -21,6 +21,7 @@ class IRCodeGen(
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
+    private var irSymbolTable: IRSymbolTable = IRSymbolTable(null)
     internal val registers = RegisterPool()
 
     fun generate(): IRProgram {
@@ -28,7 +29,8 @@ class IRCodeGen(
         moveAllNestedSubroutinesToBlockScope()
         verifyNameScoping(program, symbolTable)
 
-        val irProg = IRProgram(program.name, IRSymbolTable(symbolTable), options, program.encoding)
+        irSymbolTable = IRSymbolTable(symbolTable)
+        val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
         if(options.evalStackBaseAddress!=null)
             throw AssemblyError("IR doesn't use eval-stack")
@@ -1531,4 +1533,22 @@ class IRCodeGen(
     internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
 
     internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
+
+    fun getReusableTempvar(scope: PtNamedNode, type: DataType): PtIdentifier {
+        val uniqueId = Pair(scope, type).hashCode().toUInt()
+        val tempvarname = "${scope.scopedName}.tempvar_${uniqueId}"
+        val tempvar = PtIdentifier(tempvarname, type, Position.DUMMY)
+        val staticVar = StStaticVariable(
+            tempvarname,
+            type,
+            null,
+            null,
+            null,
+            null,
+            ZeropageWish.DONTCARE,
+            tempvar
+        )
+        irSymbolTable.add(staticVar)
+        return tempvar
+    }
 }

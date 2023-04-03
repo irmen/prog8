@@ -106,8 +106,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             require(origAssign.operator.endsWith('='))
             if(codeGen.options.useNewExprCode) {
                 // X += Y  ->   temp = X,  temp += Y,  X = temp
-                val tempvarname = "some_random_tempvar"     // TODO create proper tempvar
-                val tempvar = PtIdentifier(tempvarname, origAssign.target.type, origAssign.position)
+                val tempvar = codeGen.getReusableTempvar(origAssign.definingSub()!!, origAssign.target.type)
                 val assign = PtAssignment(origAssign.position)
                 val target = PtAssignTarget(origAssign.position)
                 target.add(tempvar)
@@ -291,22 +290,26 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {
         // returns the code to load the Index into the register, which is also return\ed.
 
-        if(codeGen.options.useNewExprCode) {
-            TODO("use aug assigns instead of BinExpr to calc proper array index")
-            // return blah
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(itemsize==1) {
+            val tr = expressionEval.translateExpression(array.index)
+            addToResult(result, tr, tr.resultReg, -1)
+            return Pair(result, tr.resultReg)
         }
 
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = if(itemsize==1) {
-            expressionEval.translateExpression(array.index)
+        if(codeGen.options.useNewExprCode) {
+            val tr = expressionEval.translateExpression(array.index)
+            result += tr.chunks
+            addInstr(result, IRInstruction(Opcode.MUL, tr.dt, reg1=tr.resultReg, value = itemsize), null)
+            return Pair(result, tr.resultReg)
         } else {
-            val mult : PtExpression
+            val mult: PtExpression
             mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
             mult.children += array.index
             mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
-            expressionEval.translateExpression(mult)
+            val tr = expressionEval.translateExpression(mult)
+            addToResult(result, tr, tr.resultReg, -1)
+            return Pair(result, tr.resultReg)
         }
-        addToResult(result, tr, tr.resultReg, -1)
-        return Pair(result, tr.resultReg)
     }
 }
