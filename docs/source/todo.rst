@@ -4,7 +4,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-newexpr in VM: fix float printing from arrays
+newxpr vm: fix bouncegfx (crash), bsieve (loops), primes (way too many), textelite (map is wrong, incomplete planet info)
 
 ...
 

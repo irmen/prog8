@@ -289,7 +289,7 @@ class VmProgramLoader {
                         }
                         DataType.ARRAY_F -> {
                             for(elt in it) {
-                                memory.setSW(addr, elt.number!!.toInt().toShort())
+                                memory.setFloat(addr, elt.number!!.toFloat())
                                 addr+=program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
                         }
