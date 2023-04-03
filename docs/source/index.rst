@@ -166,12 +166,12 @@ Detailed instructions on how to obtain a version of the compiler are in :ref:`bu
 Required additional tools
 -------------------------
 
-`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this on your shell path.
-It's very easy to compile yourself.
-A recent precompiled .exe (only for Windows) can be obtained from my `clone <https://github.com/irmen/64tass/releases>`_ of this project.
-*You need at least version 1.55.2257 of this assembler to correctly use the breakpoints feature.*
-If you are on a Debian based Linux, there's a "64tass" package in the repositories. It's a bit old but seems to work.
-It's possible to use these older versions of 64tass, but it is likely that the automatic VICE breakpoints won't work with them though.
+`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this program somewhere on your shell's search path.
+It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
+`the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
+*You need at least version 1.56 of this assembler.*
+If you are on a Debian based Linux, there's a "64tass" package in the repositories, which is a bit old, but it seems to work.
+It's possible to use old versions of 64tass, but it is likely that certain things will break.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK or similar in their packages repository instead.
