@@ -4,9 +4,14 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-newxpr vm: fix bouncegfx (crash), bsieve (loops), primes (way too many), textelite (map is wrong, incomplete planet info)
+newxpr vm:  vm/bsieve.p8 has wrong result
+once everything works, disable -newexpr option for IR/virtual target because that already works without eval stack
+and creates far superior code without the newexpr flattening.
+
+IR (normal): fix reg1 out of bounds crash in compiler/test/comparisons/test_compares.p8
 
 ...
+
 
 
 For 9.0 major changes

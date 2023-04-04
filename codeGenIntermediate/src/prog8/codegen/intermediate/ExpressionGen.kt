@@ -1216,16 +1216,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(Opcode.SEQ, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(Opcode.SEQ, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol == operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(Opcode.SEQ, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.SEQ, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
@@ -1240,16 +1240,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(Opcode.SNE, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(Opcode.SNE, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol != operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(Opcode.SNE, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.SNE, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
@@ -1265,16 +1265,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol > operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
@@ -1290,16 +1290,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol < operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
@@ -1315,16 +1315,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol > operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
@@ -1340,16 +1340,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, value=knownAddress)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, value=knownAddress)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, value=knownAddress)
             }
         } else {
             // symbol = symbol > operand
             val valueReg = codeGen.registers.nextFree()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = symbol)
-                it += IRInstruction(opcode, vmDt, reg1=tr.resultReg, reg2=valueReg)
-                it += IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                it += IRInstruction(opcode, vmDt, reg1=valueReg, reg2=tr.resultReg)
+                it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueReg, labelSymbol = symbol)
             }
         }
         return result
