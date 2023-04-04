@@ -80,4 +80,19 @@ class TestVariables: FunSpec({
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
+    test("initialization of boolean array with single value") {
+        val text = """
+            main {
+                sub start() {
+                    bool[10] sieve0 = false
+                    bool[10] sieve1 = true
+                    bool[10] sieve2 = 42
+                    sieve0[0] = true
+                    sieve1[0] = true
+                    sieve2[0] = true
+                }
+            }
+        """
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })

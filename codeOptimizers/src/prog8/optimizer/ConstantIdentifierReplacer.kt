@@ -242,6 +242,17 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                         }
                     }
                 }
+                DataType.ARRAY_BOOL -> {
+                    val numericLv = decl.value as? NumericLiteral
+                    val size = decl.arraysize?.constIndex() ?: return noModifications
+                    if(numericLv!=null) {
+                        // arraysize initializer is a single int, and we know the size.
+                        val fillvalue = if(numericLv.number==0.0) 0.0 else 1.0
+                        val array = Array(size) {fillvalue}.map { NumericLiteral(DataType.UBYTE, fillvalue, numericLv.position) }.toTypedArray<Expression>()
+                        val refValue = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_BOOL), array, position = numericLv.position)
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, refValue, decl))
+                    }
+                }
                 else -> {
                     // nothing to do for this type
                 }

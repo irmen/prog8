@@ -23,9 +23,19 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val valueDt = declValue.inferType(program)
             if(valueDt isnot decl.datatype) {
 
-                // don't add a typecast on an array initializer value
-                if(valueDt.isInteger && decl.datatype in ArrayDatatypes)
-                    return noModifications
+                // don't add a typecast on an array initializer value, unless booleans
+                if(valueDt.isInteger && decl.datatype in ArrayDatatypes) {
+                    if(decl.datatype == DataType.ARRAY_BOOL) {
+                        val integer = declValue.constValue(program)?.number
+                        if(integer!=null) {
+                            val num = NumericLiteral(DataType.UBYTE, if(integer==0.0) 0.0 else 1.0, declValue.position)
+                            num.parent = decl
+                            decl.value = num
+                        }
+                    } else {
+                        return noModifications
+                    }
+                }
 
                 // don't add a typecast if the initializer value is inherently not assignable
                 if(valueDt isNotAssignableTo decl.datatype)

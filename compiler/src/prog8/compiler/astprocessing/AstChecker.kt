@@ -656,10 +656,13 @@ internal class AstChecker(private val program: Program,
             if (iDt isnot decl.datatype) {
                 if(decl.datatype in ArrayDatatypes) {
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
-                    if(iDt isnot eltDt)
-                        err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                    if(iDt isnot eltDt) {
+                        if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
+                            err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                    }
                 } else {
-                    err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                    if(!(iDt.isBool && decl.datatype==DataType.UBYTE || iDt.istype(DataType.UBYTE) && decl.datatype==DataType.BOOL))
+                        err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
                 }
             }
         }
