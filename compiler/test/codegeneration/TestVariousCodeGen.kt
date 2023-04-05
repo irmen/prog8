@@ -163,6 +163,6 @@ main {
         compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
         compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
         compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
+        // no newexpr for IR targets: compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
     }
 })

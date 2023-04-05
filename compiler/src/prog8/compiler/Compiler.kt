@@ -410,8 +410,14 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     else
         throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.machine.cpu}")
 
-    if(compilerOptions.useNewExprCode)
+    if(compilerOptions.useNewExprCode) {
+        if(compilerOptions.compTarget.machine.cpu !in arrayOf(CpuType.CPU6502, CpuType.CPU65c02)) {
+            // the IR code gen backend has its own, better, version of dealing with binary expressions.
+            throw IllegalArgumentException("'newexpr' expression rewrite should not be used with compilation target ${compilerOptions.compTarget.name}")
+        }
+
         transformNewExpressions(program)
+    }
 
     // printAst(program, true) { println(it) }
 
