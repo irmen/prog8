@@ -4,11 +4,9 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-newxpr vm:  vm/bsieve.p8 has wrong result
-once everything works, disable -newexpr option for IR/virtual target because that already works without eval stack
+disable -newexpr option for IR/virtual target because that already works without eval stack
 and creates far superior code without the newexpr flattening.
-
-IR (normal): fix reg1 out of bounds crash in compiler/test/comparisons/test_compares.p8
+-> move the transform to the 6502 codegen again ? instead of doing it in compiler itself?
 
 ...
 
