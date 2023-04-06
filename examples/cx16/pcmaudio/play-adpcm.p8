@@ -146,7 +146,7 @@ main {
             }
 
         } else {
-            ; TODO not AFLOW, handle other IRQ
+            ; it's not AFLOW, handle other IRQ here.
         }
 
         ;; cx16.vpoke(1,$fa0c, 0)      ; back to other screen color

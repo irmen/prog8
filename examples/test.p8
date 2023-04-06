@@ -13,7 +13,7 @@ main {
         txt.nl()
         txt.print_uw(wa[1])
         txt.nl()
-        floats.print_f(fa[1])       ; TODO FIX FLOAT PRINT IN VM
+        floats.print_f(fa[1])
         txt.nl()
 
         ubyte index=1
@@ -25,7 +25,7 @@ main {
         txt.nl()
         txt.print_uw(wa[1])
         txt.nl()
-        floats.print_f(fa[1])       ; TODO FIX FLOAT PRINT IN VM
+        floats.print_f(fa[1])
         txt.nl()
     }
 }

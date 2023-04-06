@@ -109,12 +109,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
         if(binExpr==null || binExpr.operator !in ComparisonOperators)
             return noModifications
 
-        return noModifications      // TODO tijdelijk geen simplify
-
         // Simplify the conditional expression, introduce simple assignments if required.
-        // This is REQUIRED for correct code generation on 6502 because evaluating certain expressions
-        // clobber the handful of temporary variables in the zeropage and leaving everything in one
-        // expression then results in invalid values being compared. VM Codegen doesn't suffer from this.
         // NOTE: sometimes this increases code size because additional stores/loads are generated for the
         //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
         val simplify = simplifyConditionalExpression(binExpr)

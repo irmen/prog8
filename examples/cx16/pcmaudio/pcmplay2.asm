@@ -83,7 +83,7 @@ irq_handler:
 	lda  VERA_ISR
 	and  #%00001000		; is aflow?
 	bne  _aflow_irq
-	; TODO other irq
+	; handle other irq here
 	bra  _exit_irq
 
 _aflow_irq:

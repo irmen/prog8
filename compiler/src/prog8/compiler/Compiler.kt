@@ -438,7 +438,7 @@ private fun transformNewExpressions(program: PtProgram) {
     var countByteVars = 0
     var countWordVars = 0
     var countFloatVars = 0
-    // TODO: find a reliable way to reuse the temp vars across expressions
+    // TODO: find a reliable way to reuse more temp vars across expressions
 
     fun getExprVar(type: DataType, pos: Position, scope: PtSub): PtIdentifier {
         val count = when(type) {

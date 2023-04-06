@@ -399,8 +399,11 @@ romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
 
 ; Audio (bank 10)
-romsub $C09F = audio_init() -> ubyte @Pc                ; (re)initialize PSG and YM audio chips
-; TODO: add more of the audio routines here.
+romsub $C04B = psg_init() clobbers(A,X,Y)
+romsub $C063 = ym_init() clobbers(A,X,Y) -> ubyte @Pc                   ; (re)init YM chip
+romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> ubyte @Pc         ; load default YM patches
+romsub $C09F = audio_init() clobbers(A,X,Y) -> ubyte @Pc                ; (re)initialize PSG and YM audio chips
+; TODO: add more of the audio routines?
 
 
 asmsub kbdbuf_clear() {

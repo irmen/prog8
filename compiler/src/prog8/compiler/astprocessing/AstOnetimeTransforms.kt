@@ -30,7 +30,7 @@ internal class AstOnetimeTransforms(private val program: Program, private val op
     private fun replacePointerVarIndexWithMemreadOrMemwrite(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         // note: The CodeDesugarer already does something similar, but that is meant ONLY to take
         //       into account the case where the index value is a word type.
-        //       The replacement here is to fix missing cases in the 6502 codegen.
+        //       The replacement here is to fix missing cases in the 6502 codegen. (VM codegen doesn't use this workaround)
         // TODO make the 6502 codegen better so this workaround can be removed
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype == DataType.UWORD) {

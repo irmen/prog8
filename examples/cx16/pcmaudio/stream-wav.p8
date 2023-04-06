@@ -168,7 +168,7 @@ interrupt {
                 uncompressed_block_8()
         } else if cx16.VERA_ISR & %00000001 {
             cx16.VERA_ISR = %00000001
-            ; TODO handle vsync irq
+            ; handle vsync irq here
         }
 
         %asm {{
