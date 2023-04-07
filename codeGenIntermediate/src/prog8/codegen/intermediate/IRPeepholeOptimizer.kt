@@ -3,6 +3,14 @@ package prog8.codegen.intermediate
 import prog8.intermediate.*
 
 internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
+    fun optimizeOnlyJoinChunks() {
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+            removeEmptyChunks(sub)
+            joinChunks(sub)
+        }
+        irprog.linkChunks() // re-link
+    }
+
     fun optimize() {
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             removeEmptyChunks(sub)

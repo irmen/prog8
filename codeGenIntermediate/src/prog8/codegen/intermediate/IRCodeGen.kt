@@ -66,6 +66,9 @@ class IRCodeGen(
             errors.report()
 
             irProg.linkChunks()  // re-link
+        } else {
+            val optimizer = IRPeepholeOptimizer(irProg)
+            optimizer.optimizeOnlyJoinChunks()
         }
 
         irProg.validate()

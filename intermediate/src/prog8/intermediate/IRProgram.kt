@@ -199,19 +199,29 @@ class IRProgram(val name: String,
     }
 
     fun registersUsed(): RegistersUsed {
-        val readRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val readFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+        val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<Int, MutableSet<IRDataType>>()
+        val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
 
         fun addUsed(usedRegisters: RegistersUsed) {
-            usedRegisters.readRegs.forEach{ (reg, count) -> readRegs[reg] = readRegs.getValue(reg) + count }
-            usedRegisters.writeRegs.forEach{ (reg, count) -> writeRegs[reg] = writeRegs.getValue(reg) + count }
-            usedRegisters.readFpRegs.forEach{ (reg, count) -> readFpRegs[reg] = readFpRegs.getValue(reg) + count }
-            usedRegisters.writeFpRegs.forEach{ (reg, count) -> writeFpRegs[reg] = writeFpRegs.getValue(reg) + count }
+            usedRegisters.readRegs.forEach{ (reg, count) -> readRegsCounts[reg] = readRegsCounts.getValue(reg) + count }
+            usedRegisters.writeRegs.forEach{ (reg, count) -> writeRegsCounts[reg] = writeRegsCounts.getValue(reg) + count }
+            usedRegisters.readFpRegs.forEach{ (reg, count) -> readFpRegsCounts[reg] = readFpRegsCounts.getValue(reg) + count }
+            usedRegisters.writeFpRegs.forEach{ (reg, count) -> writeFpRegsCounts[reg] = writeFpRegsCounts.getValue(reg) + count }
+            usedRegisters.regsTypes.forEach{ (reg, types) ->
+                var t = regsTypes[reg]
+                if(t==null) t = mutableSetOf()
+                t += types
+                regsTypes[reg] = t
+            }
         }
 
-        globalInits.instructions.forEach { it.addUsedRegistersCounts(readRegs, writeRegs, readFpRegs, writeFpRegs) }
+        globalInits.instructions.forEach {
+            it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+        }
+
         blocks.forEach {block ->
             block.children.forEach { child ->
                 when(child) {
@@ -223,8 +233,7 @@ class IRProgram(val name: String,
                 }
             }
         }
-
-        return RegistersUsed(readRegs, writeRegs, readFpRegs, writeFpRegs)
+        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
 }
 
@@ -333,12 +342,13 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
     override fun usedRegisters(): RegistersUsed {
-        val readRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val readFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-        instructions.forEach { it.addUsedRegistersCounts(readRegs, writeRegs, readFpRegs, writeFpRegs) }
-        return RegistersUsed(readRegs, writeRegs, readFpRegs, writeFpRegs)
+        val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<Int, MutableSet<IRDataType>>()
+        val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes) }
+        return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
 
     operator fun plusAssign(ins: IRInstruction) {
@@ -373,7 +383,7 @@ class IRInlineBinaryChunk(label: String?,
     // note: no instructions, data is in the property
     override fun isEmpty() = data.isEmpty()
     override fun isNotEmpty() = data.isNotEmpty()
-    override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap())
+    override fun usedRegisters() = RegistersUsed(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
 }
 
 typealias IRCodeChunks = List<IRCodeChunkBase>
@@ -384,9 +394,11 @@ class RegistersUsed(
     val writeRegs: Map<Int, Int>,
     val readFpRegs: Map<Int, Int>,
     val writeFpRegs: Map<Int, Int>,
+    val regsTypes: Map<Int, Set<IRDataType>>
 ) {
+
     override fun toString(): String {
-        return "read=$readRegs, write=$writeRegs, readFp=$readFpRegs, writeFp=$writeFpRegs"
+        return "read=$readRegs, write=$writeRegs, readFp=$readFpRegs, writeFp=$writeFpRegs, types=$regsTypes"
     }
 
     fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty() && readFpRegs.isEmpty() && writeFpRegs.isEmpty()
@@ -394,20 +406,20 @@ class RegistersUsed(
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {
-    val readRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-    val readFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-    val writeRegs = mutableMapOf<Int, Int>().withDefault { 0 }
-    val writeFpRegs = mutableMapOf<Int, Int>().withDefault { 0 }
+    val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+    val regsTypes = mutableMapOf<Int, MutableSet<IRDataType>>()
+    val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+    val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+    val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
             val result = parseIRCodeLine(line.trim(), null, mutableMapOf())
             result.fold(
-                ifLeft = { it.addUsedRegistersCounts(readRegs, writeRegs, readFpRegs, writeFpRegs) },
+                ifLeft = { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts,readFpRegsCounts, writeFpRegsCounts, regsTypes) },
                 ifRight = { /* labels can be skipped */ }
             )
         }
     }
-
-    return RegistersUsed(readRegs, writeRegs, readFpRegs, writeFpRegs)
+    return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
 }

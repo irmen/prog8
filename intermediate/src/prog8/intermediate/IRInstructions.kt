@@ -767,37 +767,76 @@ data class IRInstruction(
     }
 
     fun addUsedRegistersCounts(
-        readRegs: MutableMap<Int, Int>,
-        writeRegs: MutableMap<Int, Int>,
-        readFpRegs: MutableMap<Int, Int>,
-        writeFpRegs: MutableMap<Int, Int>
+        readRegsCounts: MutableMap<Int, Int>,
+        writeRegsCounts: MutableMap<Int, Int>,
+        readFpRegsCounts: MutableMap<Int, Int>,
+        writeFpRegsCounts: MutableMap<Int, Int>,
+        regsTypes: MutableMap<Int, MutableSet<IRDataType>>
     ) {
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> readRegs[this.reg1!!] = readRegs.getValue(this.reg1)+1
-            OperandDirection.WRITE -> writeRegs[this.reg1!!] = writeRegs.getValue(this.reg1)+1
+            OperandDirection.READ -> {
+                readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg1]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg1] = types
+                }
+            }
+            OperandDirection.WRITE -> {
+                writeRegsCounts[this.reg1!!] = writeRegsCounts.getValue(this.reg1)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg1]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg1] = types
+                }
+            }
             OperandDirection.READWRITE -> {
-                readRegs[this.reg1!!] = readRegs.getValue(this.reg1)+1
-                writeRegs[this.reg1] = writeRegs.getValue(this.reg1)+1
+                readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg1]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg1] = types
+                }
+                writeRegsCounts[this.reg1] = writeRegsCounts.getValue(this.reg1)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg1]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg1] = types
+                }
             }
         }
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> writeRegs[this.reg2!!] = writeRegs.getValue(this.reg2)+1
+            OperandDirection.READ -> {
+                writeRegsCounts[this.reg2!!] = writeRegsCounts.getValue(this.reg2)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg2]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg2] = types
+                }
+            }
             else -> throw IllegalArgumentException("reg2 can only be read")
         }
         when (this.fpReg1direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> readFpRegs[this.fpReg1!!] = readFpRegs.getValue(this.fpReg1)+1
-            OperandDirection.WRITE -> writeFpRegs[this.fpReg1!!] = writeFpRegs.getValue(this.fpReg1)+1
+            OperandDirection.READ -> {
+                readFpRegsCounts[this.fpReg1!!] = readFpRegsCounts.getValue(this.fpReg1)+1
+            }
+            OperandDirection.WRITE -> writeFpRegsCounts[this.fpReg1!!] = writeFpRegsCounts.getValue(this.fpReg1)+1
             OperandDirection.READWRITE -> {
-                readFpRegs[this.fpReg1!!] = readFpRegs.getValue(this.fpReg1)+1
-                writeFpRegs[this.fpReg1] = writeFpRegs.getValue(this.fpReg1)+1
+                readFpRegsCounts[this.fpReg1!!] = readFpRegsCounts.getValue(this.fpReg1)+1
+                writeFpRegsCounts[this.fpReg1] = writeFpRegsCounts.getValue(this.fpReg1)+1
             }
         }
         when (this.fpReg2direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> readFpRegs[this.fpReg2!!] = readFpRegs.getValue(this.fpReg2)+1
+            OperandDirection.READ -> readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
             else -> throw IllegalArgumentException("fpReg2 can only be read")
         }
     }
