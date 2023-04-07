@@ -69,7 +69,7 @@ class VmProgramLoader {
 
         programChunks.forEach {
             it.instructions.forEach { ins ->
-                if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch)
+                if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch && ins.opcode !in OpcodesForCpuRegisters)
                     require(ins.value != null) { "instruction with labelSymbol for a var should have value set to var's memory address" }
             }
         }
@@ -153,8 +153,11 @@ class VmProgramLoader {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
                     val opcode = chunk.instructions[line].opcode
-                    if(target==null)
-                        throw IRParseException("placeholder not found in variables nor labels: $label")
+                    if(target==null) {
+                        // exception allowed: storecpu/loadcpu instructions that refer to CPU registers
+                        if(opcode !in OpcodesForCpuRegisters)
+                            throw IRParseException("placeholder not found in variables nor labels: $label")
+                    }
                     else if(opcode in OpcodesThatBranch) {
                         chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, value = null)
                     } else if(opcode in OpcodesWithMemoryAddressAsValue) {

@@ -355,9 +355,9 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
             for (asm in srcSub.statements) {
                 asm as InlineAssembly
                 if(asm.isIR)
-                    combinedIrAsm += asm.assembly + "\n"
+                    combinedIrAsm += asm.assembly.trimEnd() + "\n"
                 else
-                    combinedTrueAsm += asm.assembly + "\n"
+                    combinedTrueAsm += asm.assembly.trimEnd() + "\n"
             }
 
             if(combinedTrueAsm.isNotEmpty()) {

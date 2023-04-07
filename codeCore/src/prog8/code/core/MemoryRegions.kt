@@ -131,6 +131,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 }
 
 
+// TODO: this class is not yet used
 class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAllocator(options) {
     private var nextLocation: UInt = region.first
 

@@ -64,7 +64,7 @@ class CX16MachineDefinition: IMachineDefinition {
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, 0x0600u until 0x0800u)
+        golden = GoldenRam(compilerOptions, 0x0400u until ESTACK_LO)
     }
 
 }

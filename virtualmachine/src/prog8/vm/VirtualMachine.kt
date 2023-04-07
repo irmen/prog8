@@ -1,6 +1,7 @@
 package prog8.vm
 
 import prog8.code.StMemVar
+import prog8.code.core.toHex
 import prog8.code.target.virtual.IVirtualMachineRunner
 import prog8.intermediate.*
 import java.awt.Color
@@ -147,7 +148,12 @@ class VirtualMachine(irProgram: IRProgram) {
                 pcChunk = target
                 pcIndex = 0
             }
-            null -> throw IllegalArgumentException("no branchtarget in $i")
+            null -> {
+                if(i.value!=null)
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.value!!.toHex()})")
+                else
+                    throw IllegalArgumentException("no branchtarget in $i")
+            }
             else -> throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
         }
     }

@@ -326,8 +326,6 @@ internal class AstChecker(private val program: Program,
             err("subroutines can only be defined in the scope of a block or within another subroutine")
 
         if(subroutine.isAsmSubroutine) {
-            if(compilerOptions.compTarget.name==VMTarget.NAME)
-                err("cannot use asmsub for vm target, use regular subs")
             if(subroutine.asmParameterRegisters.size != subroutine.parameters.size)
                 err("number of asm parameter registers is not the isSameAs as number of parameters")
             if(subroutine.asmReturnvaluesRegisters.size != subroutine.returntypes.size)

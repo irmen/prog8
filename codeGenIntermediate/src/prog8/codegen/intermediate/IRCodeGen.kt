@@ -1465,9 +1465,12 @@ class IRCodeGen(
                         }
                     } else {
                         // regular asmsub
-                        val assemblyChild = child.children.single() as PtInlineAssembly
+                        if(child.children.map { (it as PtInlineAssembly).isIR }.toSet().size>1)
+                            errors.err("asmsub mixes IR and non-IR assembly code (could be compiler-generated)", child.position)
+                        val asmblocks = child.children.map { (it as PtInlineAssembly).assembly.trimEnd() }
+                        val assembly = asmblocks.joinToString("\n")
                         val asmChunk = IRInlineAsmChunk(
-                            child.name, assemblyChild.assembly, assemblyChild.isIR, null
+                            child.name, assembly, (child.children[0] as PtInlineAssembly).isIR , null
                         )
                         irBlock += IRAsmSubroutine(
                             child.name,

@@ -8,6 +8,7 @@ import prog8.code.target.VMTarget
 import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
 import prog8.intermediate.IRSubroutine
+import prog8.intermediate.Opcode
 
 class TestVmCodeGen: FunSpec({
 
@@ -440,4 +441,33 @@ class TestVmCodeGen: FunSpec({
         irChunks.size shouldBe 1
     }
 
+    test("romsub allowed in codegen") {
+//main {
+//    romsub $5000 = routine()
+//
+//    sub start()  {
+//        routine()
+//    }
+//}
+        val codegen = VmCodeGen()
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val romsub = PtAsmSub("routine", 0x5000u, emptySet(), emptyList(), emptyList(), false, Position.DUMMY)
+        block.add(romsub)
+        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val call = PtFunctionCall("main.routine", true, DataType.UNDEFINED, Position.DUMMY)
+        sub.add(call)
+        block.add(sub)
+        program.add(block)
+
+        val options = getTestOptions()
+        val st = SymbolTableMaker(program, options).make()
+        val errors = ErrorReporterForTests()
+        val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
+        val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
+        irChunks.size shouldBe 1
+        val callInstr = irChunks.single().instructions.single()
+        callInstr.opcode shouldBe Opcode.CALL
+        callInstr.value shouldBe 0x5000
+    }
 })

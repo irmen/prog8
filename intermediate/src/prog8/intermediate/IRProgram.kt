@@ -414,11 +414,14 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->
-            val result = parseIRCodeLine(line.trim(), null, mutableMapOf())
-            result.fold(
-                ifLeft = { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts,readFpRegsCounts, writeFpRegsCounts, regsTypes) },
-                ifRight = { /* labels can be skipped */ }
-            )
+            val t = line.trim()
+            if(t.isNotEmpty()) {
+                val result = parseIRCodeLine(t, null, mutableMapOf())
+                result.fold(
+                    ifLeft = { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts,readFpRegsCounts, writeFpRegsCounts, regsTypes) },
+                    ifRight = { /* labels can be skipped */ }
+                )
+            }
         }
     }
     return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)

@@ -14,7 +14,6 @@ import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
 import prog8.vm.VmRunner
-import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
@@ -217,54 +216,6 @@ main {
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.stepCount shouldBe 49
         }
-    }
-
-    test("asmsub for virtual target not supported") {
-        val src = """
-main {
-  sub start() {
-    void test(42)
-  }
-
-  asmsub test(ubyte xx @A) -> ubyte @Y {
-    %asm {{
-        lda #99
-        tay
-        rts
-    }}
-  }
-}"""
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
-
-        val target = VMTarget()
-        val errors = ErrorReporterForTests()
-        compileText(target, false, src, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "cannot use asmsub for vm target"
-    }
-
-    test("asmsub for virtual target not supported even with IR") {
-        val src = """
-main {
-  sub start() {
-    void test(42)
-  }
-
-  asmsub test(ubyte xx @A) -> ubyte @Y {
-    %ir {{
-        return
-    }}
-  }
-}"""
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
-
-        val target = VMTarget()
-        val errors = ErrorReporterForTests()
-        compileText(target, false, src, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "cannot use asmsub for vm target"
     }
 
     test("inline asm for virtual target should be IR") {
