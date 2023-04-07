@@ -6,7 +6,6 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.ast.PtIdentifier
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.compiler.builtinFunctionReturnType

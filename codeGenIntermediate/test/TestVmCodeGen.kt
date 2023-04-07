@@ -1,5 +1,6 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -98,7 +99,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBeGreaterThan 4
+        irChunks.size shouldBe 1
     }
 
     test("float comparison expressions against zero") {
@@ -267,7 +268,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBeGreaterThan 4
+        irChunks.size shouldBe 1
     }
 
     test("integer comparison expressions against zero") {
@@ -436,7 +437,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBeGreaterThan 4
+        irChunks.size shouldBe 1
     }
 
 })

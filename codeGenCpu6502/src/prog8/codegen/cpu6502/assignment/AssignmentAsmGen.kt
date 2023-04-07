@@ -1,14 +1,11 @@
 package prog8.codegen.cpu6502.assignment
 
-import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
-import prog8.codegen.cpu6502.ExpressionsAsmGen
 import prog8.codegen.cpu6502.VariableAllocator
 import prog8.codegen.cpu6502.returnsWhatWhere
-import java.util.*
 
 
 internal class AssignmentAsmGen(private val program: PtProgram,

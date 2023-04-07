@@ -2,7 +2,10 @@ package prog8.codegen.vm
 
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.IAssemblyProgram
+import prog8.code.core.ICodeGeneratorBackend
+import prog8.code.core.IErrorReporter
 import prog8.codegen.intermediate.IRCodeGen
 import prog8.intermediate.IRFileWriter
 import prog8.intermediate.IRProgram

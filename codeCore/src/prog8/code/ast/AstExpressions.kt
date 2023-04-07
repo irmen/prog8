@@ -1,6 +1,9 @@
 package prog8.code.ast
 
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.NumericDatatypes
+import prog8.code.core.Position
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.round
