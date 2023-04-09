@@ -58,7 +58,7 @@ class IRCodeGen(
             val optimizer = IRPeepholeOptimizer(irProg)
             optimizer.optimize()
 
-            val remover = IRUnusedCodeRemover(irProg, errors)
+            val remover = IRUnusedCodeRemover(irProg, irSymbolTable, errors)
             do {
                 val numRemoved = remover.optimize()
             } while(numRemoved>0 && errors.noErrors())
@@ -115,10 +115,10 @@ class IRCodeGen(
             block.children.firstOrNull { it is IRInlineAsmChunk }?.let { first->
                 first as IRInlineAsmChunk
                 if(first.label==null) {
-                    val replacement = IRInlineAsmChunk(block.name, first.assembly, first.isIR, first.next)
+                    val replacement = IRInlineAsmChunk(block.label, first.assembly, first.isIR, first.next)
                     block.children.removeAt(0)
                     block.children.add(0, replacement)
-                } else if(first.label != block.name) {
+                } else if(first.label != block.label) {
                     throw AssemblyError("first chunk in block has label that differs from block name")
                 }
             }

@@ -3,7 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-remove unused variables from IR output, such as sys.wait.jiffies when never calling sys.wait
+
 ...
 
 

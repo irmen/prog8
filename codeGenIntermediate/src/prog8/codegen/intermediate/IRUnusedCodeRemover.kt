@@ -5,7 +5,11 @@ import prog8.code.core.SourceCode.Companion.libraryFilePrefix
 import prog8.intermediate.*
 
 
-internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val errors: IErrorReporter) {
+internal class IRUnusedCodeRemover(
+    private val irprog: IRProgram,
+    private val symbolTable: IRSymbolTable,
+    private val errors: IErrorReporter
+) {
     fun optimize(): Int {
         val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
 
@@ -25,6 +29,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
                         errors.warn("unused subroutine ${sub.label}", sub.position)
                     }
                     block.children.remove(sub)
+                    symbolTable.removeTree(sub.label)
                     numRemoved++
                 }
             }
@@ -34,6 +39,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
         irprog.blocks.reversed().forEach { block ->
             if(block.isEmpty()) {
                 irprog.blocks.remove(block)
+                symbolTable.removeTree(block.label)
                 numRemoved++
             }
         }
@@ -42,7 +48,7 @@ internal class IRUnusedCodeRemover(private val irprog: IRProgram, private val er
     }
 
     private fun removeUnreachable(allLabeledChunks: MutableMap<String, IRCodeChunkBase>): Int {
-        val entrypointSub = irprog.blocks.single { it.name=="main" }.children.single { it is IRSubroutine && it.label=="main.start" }
+        val entrypointSub = irprog.blocks.single { it.label=="main" }.children.single { it is IRSubroutine && it.label=="main.start" }
         val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
 
         fun grow() {

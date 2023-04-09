@@ -4,6 +4,7 @@ import prog8.code.*
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.core.ZeropageWish
+import prog8.code.core.internedStringsModuleName
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -120,4 +121,15 @@ class IRSymbolTable(sourceSt: SymbolTable?) {
     }
 
     fun getAsmSymbols(): Map<String, String> = asmSymbols
+
+    fun removeTree(label: String) {
+        val prefix = "$label."
+        val vars = table.filter { it.key.startsWith(prefix) }
+        vars.forEach {
+            // check if attempt is made to delete interned strings, if so, refuse that.
+            if(!it.key.startsWith(internedStringsModuleName)) {
+                table.remove(it.key)
+            }
+        }
+    }
 }

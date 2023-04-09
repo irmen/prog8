@@ -60,7 +60,7 @@ class IRProgram(val name: String,
     }
 
     fun addBlock(block: IRBlock) {
-        require(blocks.all { it.name != block.name}) { "duplicate block ${block.name} ${block.position}" }
+        require(blocks.all { it.label != block.label}) { "duplicate block ${block.label} ${block.position}" }
         blocks.add(block)
     }
 
@@ -238,7 +238,7 @@ class IRProgram(val name: String,
 }
 
 class IRBlock(
-    val name: String,
+    val label: String,
     val address: UInt?,
     val alignment: BlockAlignment,
     val position: Position

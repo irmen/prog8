@@ -55,7 +55,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeBlocks() {
         irProgram.blocks.forEach { block ->
             xml.writeStartElement("BLOCK")
-            xml.writeAttribute("NAME", block.name)
+            xml.writeAttribute("NAME", block.label)
             xml.writeAttribute("ADDRESS", block.address?.toHex() ?: "")
             xml.writeAttribute("ALIGN", block.alignment.toString())
             xml.writeAttribute("POS", block.position.toString())
