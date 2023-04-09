@@ -3,8 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-fix compiler crash on test/arithmethic/builtins.p8 and test the others as well
-
 remove unused variables from IR output, such as sys.wait.jiffies when never calling sys.wait
 ...
 

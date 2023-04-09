@@ -596,9 +596,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 throw AssemblyError("non-array var indexing requires bytes dt")
             asmgen.assignExpressionToVariable(arrayvar, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
         } else {
+            val p = arrayvar.parent
             val addressOf = PtAddressOf(arrayvar.position)
             addressOf.add(arrayvar)
-            addressOf.parent = arrayvar.parent.parent
+            addressOf.parent = p
             asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
         }
         asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE)
