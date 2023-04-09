@@ -188,18 +188,22 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BSTNEG -> InsBSTNEG(ins)
             Opcode.BSTPOS -> InsBSTPOS(ins)
             Opcode.BSTVC, Opcode.BSTVS -> TODO("overflow status flag not yet supported in VM (BSTVC,BSTVS)")
-            Opcode.BZ -> InsBZ(ins)
-            Opcode.BNZ -> InsBNZ(ins)
-            Opcode.BGZS -> InsBGZS(ins)
-            Opcode.BGEZS -> InsBGEZS(ins)
-            Opcode.BLZS -> InsBLZS(ins)
-            Opcode.BLEZS -> InsBLEZS(ins)
+            Opcode.BEQR -> InsBEQR(ins)
+            Opcode.BNER -> InsBNER(ins)
+            Opcode.BGTR -> InsBGTR(ins)
+            Opcode.BGTSR -> InsBGTSR(ins)
+            Opcode.BGER -> InsBGER(ins)
+            Opcode.BGESR -> InsBGESR(ins)
             Opcode.BEQ -> InsBEQ(ins)
             Opcode.BNE -> InsBNE(ins)
-            Opcode.BGT -> InsBGTU(ins)
+            Opcode.BGT -> InsBGT(ins)
+            Opcode.BLT -> InsBLT(ins)
             Opcode.BGTS -> InsBGTS(ins)
-            Opcode.BGE -> InsBGEU(ins)
+            Opcode.BLTS -> InsBLTS(ins)
+            Opcode.BGE -> InsBGE(ins)
+            Opcode.BLE -> InsBLE(ins)
             Opcode.BGES -> InsBGES(ins)
+            Opcode.BLES -> InsBLES(ins)
             Opcode.SZ -> InsSZ(ins)
             Opcode.SNZ -> InsSNZ(ins)
             Opcode.SEQ -> InsSEQ(ins)
@@ -697,115 +701,7 @@ class VirtualMachine(irProgram: IRProgram) {
             nextPc()
     }
 
-    private fun InsBZ(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getUB(i.reg1!!)==0.toUByte())
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getUW(i.reg1!!)==0.toUShort())
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBNZ(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getUB(i.reg1!!)!=0.toUByte())
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getUW(i.reg1!!)!=0.toUShort())
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBGZS(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getSB(i.reg1!!)>0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getSW(i.reg1!!)>0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBGEZS(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getSB(i.reg1!!)>=0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getSW(i.reg1!!)>=0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBLZS(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getSB(i.reg1!!)<0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getSW(i.reg1!!)<0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBLEZS(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                if(registers.getSB(i.reg1!!)<=0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.WORD -> {
-                if(registers.getSW(i.reg1!!)<=0)
-                    branchTo(i)
-                else
-                    nextPc()
-            }
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
-        }
-    }
-
-    private fun InsBEQ(i: IRInstruction) {
+    private fun InsBEQR(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left==right)
             branchTo(i)
@@ -813,7 +709,15 @@ class VirtualMachine(irProgram: IRProgram) {
             nextPc()
     }
 
-    private fun InsBNE(i: IRInstruction) {
+    private fun InsBEQ(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left==right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBNER(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
         if(left!=right)
             branchTo(i)
@@ -821,35 +725,105 @@ class VirtualMachine(irProgram: IRProgram) {
             nextPc()
     }
 
-    private fun InsBGTU(i: IRInstruction) {
+    private fun InsBNE(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left!=right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBGTR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left>right)
             branchTo(i)
         else
             nextPc()
+    }
 
+    private fun InsBGT(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left>right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBLT(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left<right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBGTSR(i: IRInstruction) {
+        val (left: Int, right: Int) = getBranchOperands(i)
+        if(left>right)
+            branchTo(i)
+        else
+            nextPc()
     }
 
     private fun InsBGTS(i: IRInstruction) {
-        val (left: Int, right: Int) = getBranchOperands(i)
+        val (left: Int, right: Int) = getBranchOperandsImm(i)
         if(left>right)
             branchTo(i)
         else
             nextPc()
     }
 
-    private fun InsBGEU(i: IRInstruction) {
+    private fun InsBLTS(i: IRInstruction) {
+        val (left: Int, right: Int) = getBranchOperandsImm(i)
+        if(left<right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBGER(i: IRInstruction) {
         val (left: UInt, right: UInt) = getBranchOperandsU(i)
         if(left>=right)
             branchTo(i)
         else
             nextPc()
+    }
 
+    private fun InsBGE(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left>=right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBLE(i: IRInstruction) {
+        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
+        if(left<=right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBGESR(i: IRInstruction) {
+        val (left: Int, right: Int) = getBranchOperands(i)
+        if(left>=right)
+            branchTo(i)
+        else
+            nextPc()
     }
 
     private fun InsBGES(i: IRInstruction) {
-        val (left: Int, right: Int) = getBranchOperands(i)
+        val (left: Int, right: Int) = getBranchOperandsImm(i)
         if(left>=right)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBLES(i: IRInstruction) {
+        val (left: Int, right: Int) = getBranchOperandsImm(i)
+        if(left<=right)
             branchTo(i)
         else
             nextPc()
@@ -2228,10 +2202,32 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
+    private fun getBranchOperandsImm(i: IRInstruction): Pair<Int, Int> {
+        return when(i.type) {
+            IRDataType.BYTE -> Pair(registers.getSB(i.reg1!!).toInt(), i.immediate!!)
+            IRDataType.WORD -> Pair(registers.getSW(i.reg1!!).toInt(), i.immediate!!)
+            IRDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
+    }
+
     private fun getBranchOperandsU(i: IRInstruction): Pair<UInt, UInt> {
         return when(i.type) {
             IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), registers.getUB(i.reg2!!).toUInt())
             IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), registers.getUW(i.reg2!!).toUInt())
+            IRDataType.FLOAT -> {
+                throw IllegalArgumentException("can't use float here")
+            }
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
+    }
+
+    private fun getBranchOperandsImmU(i: IRInstruction): Pair<UInt, UInt> {
+        return when(i.type) {
+            IRDataType.BYTE -> Pair(registers.getUB(i.reg1!!).toUInt(), i.immediate!!.toUInt())
+            IRDataType.WORD -> Pair(registers.getUW(i.reg1!!).toUInt(), i.immediate!!.toUInt())
             IRDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }

@@ -258,8 +258,9 @@ fun parseMainModule(filepath: Path,
     for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importImplicitLibraryModule(lib)
 
-    // always import prog8_lib and math
-    importer.importImplicitLibraryModule("math")
+    if(compilerOptions.compTarget.name!=VMTarget.NAME && !compilerOptions.experimentalCodegen) {
+        importer.importImplicitLibraryModule("math")
+    }
     importer.importImplicitLibraryModule("prog8_lib")
 
     if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)

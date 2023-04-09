@@ -5,52 +5,46 @@ import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
 
 
-fun getTypeString(dt : DataType): String {
-    return when(dt) {
-        DataType.UBYTE -> "ubyte"
-        DataType.BYTE -> "byte"
-        DataType.UWORD -> "uword"
-        DataType.WORD -> "word"
-        DataType.FLOAT -> "float"
-        DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
-        DataType.ARRAY_B -> "byte[]"
-        DataType.ARRAY_UW -> "uword[]"
-        DataType.ARRAY_W -> "word[]"
-        DataType.ARRAY_F -> "float[]"
-        else -> throw InternalCompilerException("weird dt")
-    }
+fun getTypeString(dt : DataType): String = when(dt) {
+    DataType.UBYTE -> "ubyte"
+    DataType.BYTE -> "byte"
+    DataType.UWORD -> "uword"
+    DataType.WORD -> "word"
+    DataType.FLOAT -> "float"
+    DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
+    DataType.ARRAY_B -> "byte[]"
+    DataType.ARRAY_UW -> "uword[]"
+    DataType.ARRAY_W -> "word[]"
+    DataType.ARRAY_F -> "float[]"
+    else -> throw InternalCompilerException("weird dt")
 }
 
-fun getTypeString(memvar: StMemVar): String {
-    return when(memvar.dt) {
-        DataType.UBYTE -> "ubyte"
-        DataType.BYTE -> "byte"
-        DataType.UWORD -> "uword"
-        DataType.WORD -> "word"
-        DataType.FLOAT -> "float"
-        DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
-        DataType.ARRAY_B -> "byte[${memvar.length}]"
-        DataType.ARRAY_UW -> "uword[${memvar.length}]"
-        DataType.ARRAY_W -> "word[${memvar.length}]"
-        DataType.ARRAY_F -> "float[${memvar.length}]"
-        else -> throw InternalCompilerException("weird dt")
-    }
+fun getTypeString(memvar: StMemVar): String = when(memvar.dt) {
+    DataType.UBYTE -> "ubyte"
+    DataType.BYTE -> "byte"
+    DataType.UWORD -> "uword"
+    DataType.WORD -> "word"
+    DataType.FLOAT -> "float"
+    DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
+    DataType.ARRAY_B -> "byte[${memvar.length}]"
+    DataType.ARRAY_UW -> "uword[${memvar.length}]"
+    DataType.ARRAY_W -> "word[${memvar.length}]"
+    DataType.ARRAY_F -> "float[${memvar.length}]"
+    else -> throw InternalCompilerException("weird dt")
 }
 
-fun getTypeString(variable : StStaticVariable): String {
-    return when(variable.dt) {
-        DataType.UBYTE -> "ubyte"
-        DataType.BYTE -> "byte"
-        DataType.UWORD -> "uword"
-        DataType.WORD -> "word"
-        DataType.FLOAT -> "float"
-        DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
-        DataType.ARRAY_B -> "byte[${variable.length}]"
-        DataType.ARRAY_UW -> "uword[${variable.length}]"
-        DataType.ARRAY_W -> "word[${variable.length}]"
-        DataType.ARRAY_F -> "float[${variable.length}]"
-        else -> throw InternalCompilerException("weird dt")
-    }
+fun getTypeString(variable : StStaticVariable): String = when(variable.dt) {
+    DataType.UBYTE -> "ubyte"
+    DataType.BYTE -> "byte"
+    DataType.UWORD -> "uword"
+    DataType.WORD -> "word"
+    DataType.FLOAT -> "float"
+    DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
+    DataType.ARRAY_B -> "byte[${variable.length}]"
+    DataType.ARRAY_UW -> "uword[${variable.length}]"
+    DataType.ARRAY_W -> "word[${variable.length}]"
+    DataType.ARRAY_F -> "float[${variable.length}]"
+    else -> throw InternalCompilerException("weird dt")
 }
 
 fun convertIRType(typestr: String): IRDataType? {
@@ -101,92 +95,72 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
     }
     var type: IRDataType? = convertIRType(typestr)
     val formats = instructionFormats.getValue(opcode)
-    val format: InstructionFormat
-    if(type !in formats) {
-        type = IRDataType.BYTE
-        format = if(type !in formats)
-            formats.getValue(null)
-        else
+    val format: InstructionFormat =
+        if(type !in formats) {
+            type = IRDataType.BYTE
+            if(type !in formats)
+                formats.getValue(null)
+            else
+                formats.getValue(type)
+        } else {
             formats.getValue(type)
-    } else {
-        format = formats.getValue(type)
-    }
+        }
 
     // parse the operands
-    val operands = rest.lowercase().split(",").toMutableList()
+    val operands = if(rest.isBlank()) emptyList() else rest.split(",").map{ it.trim() }.toMutableList()
     var reg1: Int? = null
     var reg2: Int? = null
-    var reg3: Int? = null
     var fpReg1: Int? = null
     var fpReg2: Int? = null
-    var fpReg3: Int? = null
-    var value: Float? = null
-    var operand: String?
+    var immediateInt: Int? = null
+    var immediateFp: Float? = null
+    var address: Int? = null
     var labelSymbol: String? = null
 
-    fun parseValueOrPlaceholder(operand: String, location: Pair<IRCodeChunk, Int>?, rest: String, restIndex: Int): Float? {
+    fun parseValueOrPlaceholder(operand: String, location: Pair<IRCodeChunk, Int>?): Float? {
         return if(operand[0].isLetter()) {
-            labelSymbol = rest.split(",")[restIndex].trim()
             if(location!=null)
-                placeholders[location] = labelSymbol!!
+                placeholders[location] = operand
             null
         } else {
             parseIRValue(operand)
         }
     }
 
-    if(operands.isNotEmpty() && operands[0].isNotEmpty()) {
-        operand = operands.removeFirst().trim()
-        if(operand[0]=='r')
-            reg1 = operand.substring(1).toInt()
-        else if(operand[0]=='f' && operand[1]=='r')
-            fpReg1 = operand.substring(2).toInt()
-        else {
-            value = parseValueOrPlaceholder(operand, location, rest, 0)
-            operands.clear()
-        }
-        if(operands.isNotEmpty()) {
-            operand = operands.removeFirst().trim()
-            if(operand[0]=='r')
-                reg2 = operand.substring(1).toInt()
-            else if(operand[0]=='f' && operand[1]=='r')
-                fpReg2 = operand.substring(2).toInt()
-            else {
-                value = parseValueOrPlaceholder(operand, location, rest, 1)
-                operands.clear()
-            }
-            if(operands.isNotEmpty()) {
-                operand = operands.removeFirst().trim()
-                if(operand[0]=='r')
-                    reg3 = operand.substring(1).toInt()
-                else if(operand[0]=='f' && operand[1]=='r')
-                    fpReg3 = operand.substring(2).toInt()
-                else {
-                    value = parseValueOrPlaceholder(operand, location, rest, 2)
-                    operands.clear()
+    operands.forEach { oper ->
+        if(oper[0] == '&')
+            throw IRParseException("address-of should be done with normal LOAD <symbol>")
+        else if(oper[0] in "rR") {
+            if(reg1==null) reg1 = oper.substring(1).toInt()
+            else if(reg2==null) reg2 = oper.substring(1).toInt()
+            else throw IRParseException("too many register operands")
+        } else if (oper[0] in "fF" && oper[1] in "rR") {
+            if(fpReg1==null) fpReg1 = oper.substring(2).toInt()
+            else if(fpReg2==null) fpReg2 = oper.substring(2).toInt()
+            else throw IRParseException("too many fp register operands")
+        } else if (oper[0].isDigit() || oper[0] == '$' || oper[0]=='%' || oper[0]=='-' || oper.startsWith("0x")) {
+            val value = parseIRValue(oper)
+            if(format.immediate) {
+                if(immediateInt==null && immediateFp==null) {
+                    if (type == IRDataType.FLOAT)
+                        immediateFp = value
+                    else
+                        immediateInt = value.toInt()
+                } else {
+                    address = value.toInt()
                 }
-                if(operands.isNotEmpty()) {
-                    throw IRParseException("unexpected even more operands? $operands  rest=$rest'")
-                }
+            } else {
+                address = value.toInt()
             }
+        } else {
+            if(!oper[0].isLetter())
+                throw IRParseException("expected symbol name: $oper")
+            labelSymbol = oper
+            val value = parseValueOrPlaceholder(oper, location)
+            if(value!=null)
+                address = value.toInt()
         }
     }
-
-    // shift the operands back into place
-    while(reg1==null && reg2!=null) {
-        reg1 = reg2
-        reg2 = reg3
-        reg3 = null
-    }
-    while(fpReg1==null && fpReg2!=null) {
-        fpReg1 = fpReg2
-        fpReg2 = fpReg3
-        fpReg3 = null
-    }
-    if(reg3!=null)
-        throw IRParseException("too many reg arguments $line")
-    if(fpReg3!=null)
-        throw IRParseException("too many fpreg arguments $line")
 
     if(type!=null && type !in formats)
         throw IRParseException("invalid type code for $line")
@@ -194,41 +168,47 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         throw IRParseException("needs reg1 for $line")
     if(format.reg2!=OperandDirection.UNUSED && reg2==null)
         throw IRParseException("needs reg2 for $line")
-    if(format.address!=OperandDirection.UNUSED && value==null && labelSymbol==null)
-        throw IRParseException("needs value or symbol for $line")
+    if(format.fpReg1!=OperandDirection.UNUSED && fpReg1==null)
+        throw IRParseException("needs fpReg1 for $line")
+    if(format.fpReg2!=OperandDirection.UNUSED && fpReg2==null)
+        throw IRParseException("needs fpReg2 for $line")
+    if(format.address!=OperandDirection.UNUSED && address==null && labelSymbol==null)
+        throw IRParseException("needs address or symbol for $line")
     if(format.reg1==OperandDirection.UNUSED && reg1!=null)
         throw IRParseException("invalid reg1 for $line")
     if(format.reg2==OperandDirection.UNUSED && reg2!=null)
         throw IRParseException("invalid reg2 for $line")
-    if(value!=null && format.immediate) {
+    if(format.fpReg1==OperandDirection.UNUSED && fpReg1!=null)
+        throw IRParseException("invalid fpReg1 for $line")
+    if(format.fpReg2==OperandDirection.UNUSED && fpReg2!=null)
+        throw IRParseException("invalid fpReg2 for $line")
+    if(format.immediate) {
+        if(immediateInt==null && immediateFp==null && labelSymbol==null)
+            throw IRParseException("needs value or symbol for $line")
         when (type) {
             IRDataType.BYTE -> {
-                if (value < -128 || value > 255)
-                    throw IRParseException("immediate value out of range for byte: $value")
+                if (immediateInt!=null && (immediateInt!! < -128 || immediateInt!! > 255))
+                    throw IRParseException("immediate value out of range for byte: $immediateInt")
             }
             IRDataType.WORD -> {
-                if (value < -32768 || value > 65535)
-                    throw IRParseException("immediate value out of range for word: $value")
+                if (immediateInt!=null && (immediateInt!! < -32768 || immediateInt!! > 65535))
+                    throw IRParseException("immediate value out of range for word: $immediateInt")
             }
             IRDataType.FLOAT -> {}
             null -> {}
         }
     }
-    var immediateFp: Float? = null
-    var immediateInt: Int? = null
-    var address: Int? = null
 
-    if(format.address!=OperandDirection.UNUSED && value!=null)
-        address = value.toInt()
-    if(format.immediate && value!=null) {
-        if(type==IRDataType.FLOAT)
-            immediateFp = value
-        else
-            immediateInt = value.toInt()
+    if(format.address!=OperandDirection.UNUSED && address==null && labelSymbol==null)
+        throw IRParseException("requires address or symbol for $line")
+
+    if(labelSymbol!=null) {
+        if (labelSymbol!![0] == 'r' && labelSymbol!![1].isDigit())
+            throw IRParseException("labelsymbol confused with register?: $labelSymbol")
     }
 
     if(opcode in OpcodesForCpuRegisters) {
-        val reg = rest.split(',').last().lowercase().trim()
+        val reg = operands.last().lowercase()
         if(reg !in setOf(
                 "a", "x", "y",
                 "ax", "ay", "xy",

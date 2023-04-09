@@ -69,19 +69,23 @@ bstneg                        address   - branch to location if Status bit Negat
 bstpos                        address   - branch to location if Status bit Negative is not set
 bstvc                         address   - branch to location if Status bit Overflow is not set
 bstvs                         address   - branch to location if Status bit Overflow is not set
-bz          reg1,             address   - branch to location if reg1 is zero
-bnz         reg1,             address   - branch to location if reg1 is not zero
-bgzs        reg1,             address   - branch to location if reg1 > 0 (signed)
-bgezs       reg1,             address   - branch to location if reg1 >= 0 (signed)
-blzs        reg1,             address   - branch to location if reg1 < 0 (signed)
-blezs       reg1,             address   - branch to location if reg1 <= 0 (signed)
-beq         reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
-bne         reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
-bgt         reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
-bgts        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
-bge         reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
-bges        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
-( NOTE: there are no blt/ble instructions because these are equivalent to bgt/bge with the operands swapped around.)
+beqr        reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
+beq         reg1, value,      address   - jump to location in program given by location, if reg1 == immediate value
+bner        reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
+bne         reg1, value,      address   - jump to location in program given by location, if reg1 != immediate value
+bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
+bgt         reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (unsigned)
+blt         reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (unsigned)
+bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
+bgts        reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (signed)
+blts        reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (signed)
+bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
+bge         reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (unsigned)
+ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
+bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
+bges        reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (signed)
+bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
+( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
 sz          reg1, reg2                  - set reg1=1 if reg2==0,  otherwise set reg1=0
 snz         reg1, reg2                  - set reg1=1 if reg2!=0,  otherwise set reg1=0
 seq         reg1, reg2                  - set reg1=1 if reg1 == reg2,  otherwise set reg1=0
@@ -244,18 +248,22 @@ enum class Opcode {
     BSTPOS,
     BSTVC,
     BSTVS,
-    BZ,
-    BNZ,
-    BGZS,
-    BGEZS,
-    BLZS,
-    BLEZS,
+    BEQR,
     BEQ,
+    BNER,
     BNE,
+    BGTR,
     BGT,
+    BLT,
+    BGTSR,
     BGTS,
+    BLTS,
+    BGER,
     BGE,
+    BLE,
+    BGESR,
     BGES,
+    BLES,
     SZ,
     SNZ,
     SEQ,
@@ -386,18 +394,22 @@ val OpcodesThatBranch = setOf(
     Opcode.BSTPOS,
     Opcode.BSTVC,
     Opcode.BSTVS,
-    Opcode.BZ,
-    Opcode.BNZ,
-    Opcode.BGZS,
-    Opcode.BGEZS,
-    Opcode.BLZS,
-    Opcode.BLEZS,
+    Opcode.BEQR,
     Opcode.BEQ,
+    Opcode.BNER,
     Opcode.BNE,
+    Opcode.BGTR,
     Opcode.BGT,
+    Opcode.BLT,
+    Opcode.BGTSR,
     Opcode.BGTS,
+    Opcode.BLTS,
+    Opcode.BGER,
     Opcode.BGE,
-    Opcode.BGES
+    Opcode.BLE,
+    Opcode.BGESR,
+    Opcode.BGES,
+    Opcode.BLES
 )
 
 val OpcodesForCpuRegisters = setOf(
@@ -516,18 +528,22 @@ val instructionFormats = mutableMapOf(
     Opcode.BSTPOS     to InstructionFormat.from("N,<a"),
     Opcode.BSTVC      to InstructionFormat.from("N,<a"),
     Opcode.BSTVS      to InstructionFormat.from("N,<a"),
-    Opcode.BZ         to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BNZ        to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BGZS       to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BGEZS      to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BLZS       to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BLEZS      to InstructionFormat.from("BW,<r1,<a"),
-    Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BNE        to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGT        to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGTS       to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGE        to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGES       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BEQR       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BEQ        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BNER       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BNE        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BGTR       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGT        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BLT        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BGTSR      to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGTS       to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BLTS       to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BGER       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGE        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BLE        to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BGESR      to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGES       to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.SZ         to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2"),
@@ -694,15 +710,14 @@ data class IRInstruction(
                 IRDataType.FLOAT, null -> {}
             }
         }
-
         reg1direction = format.reg1
         reg2direction = format.reg2
         fpReg1direction = format.fpReg1
         fpReg2direction = format.fpReg2
 
-        if(opcode in setOf(Opcode.BEQ, Opcode.BNE,
-                Opcode.BGT, Opcode.BGTS,
-                Opcode.BGE, Opcode.BGES,
+        if(opcode in setOf(Opcode.BEQR, Opcode.BNER,
+                Opcode.BGTR, Opcode.BGTSR,
+                Opcode.BGER, Opcode.BGESR,
                 Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
                 Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
                 Opcode.SGE, Opcode.SGES)) {

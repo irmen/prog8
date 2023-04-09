@@ -211,10 +211,16 @@ main {
         compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        var result = compileText(target, true, src, writeAssembly = true)!!
+        var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 49
+            vm.stepCount shouldBe 37
+        }
+
+        result = compileText(target, false, src, writeAssembly = true)!!
+        virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            vm.stepCount shouldBe 48
         }
     }
 

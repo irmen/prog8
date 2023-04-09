@@ -566,9 +566,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 1), null)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=valueReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
             if (notEquals) {
-                addInstr(result, IRInstruction(Opcode.BNZ, IRDataType.BYTE, reg1=valueReg, labelSymbol = label), null)
+                addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=valueReg, immediate = 0, labelSymbol = label), null)
             } else {
-                addInstr(result, IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=valueReg, labelSymbol = label), null)
+                addInstr(result, IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1=valueReg, immediate = 0, labelSymbol = label), null)
             }
             addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
             result += IRCodeChunk(label, null)
