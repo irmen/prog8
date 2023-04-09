@@ -406,63 +406,6 @@ val OpcodesForCpuRegisters = setOf(
     Opcode.STOREZCPU
 )
 
-val OpcodesWithMemoryAddressAsValue = setOf(
-    Opcode.LOADM,
-    Opcode.LOADX,
-    Opcode.LOADIX,
-    Opcode.STOREM,
-    Opcode.STOREX,
-    Opcode.STOREIX,
-    Opcode.STOREZM,
-    Opcode.STOREZX,
-    Opcode.JUMP,
-    Opcode.JUMPA,
-    Opcode.CALL,
-    Opcode.CALLRVAL,
-    Opcode.BSTCC,
-    Opcode.BSTCS,
-    Opcode.BSTEQ,
-    Opcode.BSTNE,
-    Opcode.BSTNEG,
-    Opcode.BSTPOS,
-    Opcode.BSTVC,
-    Opcode.BSTVS,
-    Opcode.BZ,
-    Opcode.BNZ,
-    Opcode.BGZS,
-    Opcode.BGEZS,
-    Opcode.BLZS,
-    Opcode.BLEZS,
-    Opcode.BEQ,
-    Opcode.BNE,
-    Opcode.BGT,
-    Opcode.BGTS,
-    Opcode.BGE,
-    Opcode.BGES,
-    Opcode.INCM,
-    Opcode.DECM,
-    Opcode.NEGM,
-    Opcode.ADDM,
-    Opcode.SUBM,
-    Opcode.MULM,
-    Opcode.DIVM,
-    Opcode.DIVSM,
-    Opcode.INVM,
-    Opcode.ORM,
-    Opcode.XORM,
-    Opcode.ANDM,
-    Opcode.ASRM,
-    Opcode.LSRM,
-    Opcode.LSLM,
-    Opcode.LSLNM,
-    Opcode.LSRNM,
-    Opcode.ASRNM,
-    Opcode.ROLM,
-    Opcode.RORM,
-    Opcode.ROXLM,
-    Opcode.ROXRM
-)
-
 enum class IRDataType {
     BYTE,
     WORD,
@@ -482,9 +425,8 @@ data class InstructionFormat(val datatype: IRDataType?,
                              val reg2: OperandDirection,
                              val fpReg1: OperandDirection,
                              val fpReg2: OperandDirection,
-                             val valueIn: Boolean,
-                             val fpValueIn: Boolean
-                             ) {
+                             val address: OperandDirection,
+                             val immediate: Boolean) {
     companion object {
         fun from(spec: String): Map<IRDataType?, InstructionFormat> {
             val result = mutableMapOf<IRDataType?, InstructionFormat>()
@@ -493,8 +435,8 @@ data class InstructionFormat(val datatype: IRDataType?,
                 var reg2 = OperandDirection.UNUSED
                 var fpreg1 = OperandDirection.UNUSED
                 var fpreg2 = OperandDirection.UNUSED
-                var valueIn = false
-                var fpvalueIn = false
+                var address = OperandDirection.UNUSED
+                var immediate = false
                 val splits = part.splitToSequence(',').iterator()
                 val typespec = splits.next()
                 while(splits.hasNext()) {
@@ -507,23 +449,23 @@ data class InstructionFormat(val datatype: IRDataType?,
                         ">fr1" -> { fpreg1=OperandDirection.WRITE }
                         "<>fr1" -> { fpreg1=OperandDirection.READWRITE }
                         "<fr2" -> fpreg2 = OperandDirection.READ
-                        "<v" -> {
-                            if('F' in typespec)
-                                fpvalueIn = true
-                            else
-                                valueIn = true
-                        }
+                        ">i", "<>i" -> throw IllegalArgumentException("can't write into an immediate value")
+                        "<i" -> immediate = true
+                        "<a" -> address = OperandDirection.READ
+                        ">a" -> address = OperandDirection.WRITE
+                        "<>a" -> address = OperandDirection.READWRITE
                         else -> throw IllegalArgumentException(spec)
                     }
                 }
+
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
+                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, address, immediate)
                 if('B' in typespec)
-                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
+                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, address, immediate)
                 if('W' in typespec)
-                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
+                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, address, immediate)
                 if('F' in typespec)
-                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, valueIn, fpvalueIn)
+                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, address, immediate)
             }
             return result
         }
@@ -534,54 +476,58 @@ data class InstructionFormat(val datatype: IRDataType?,
   <X  =  X is not modified (readonly value)
   >X  =  X is overwritten with output value (write value)
   <>X =  X is modified (read + written)
+  where X is one of:
+     r0... = integer register
+     fr0... = fp register
+     a = memory address
+     i = immediate value
   TODO: also encode if *memory* is read/written/modified?
  */
-@Suppress("BooleanLiteralArgument")
 val instructionFormats = mutableMapOf(
     Opcode.NOP        to InstructionFormat.from("N"),
-    Opcode.LOAD       to InstructionFormat.from("BW,>r1,<v     | F,>fr1,<v"),
-    Opcode.LOADM      to InstructionFormat.from("BW,>r1,<v     | F,>fr1,<v"),
+    Opcode.LOAD       to InstructionFormat.from("BW,>r1,<i     | F,>fr1,<i"),
+    Opcode.LOADM      to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADI      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<r1"),
-    Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<v | F,>fr1,<r1,<v"),
-    Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<v | F,>fr1,<r1,<v"),
+    Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
+    Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.LOADCPU    to InstructionFormat.from("BW,>r1"),
-    Opcode.STOREM     to InstructionFormat.from("BW,<r1,<v     | F,<fr1,<v"),
+    Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
     Opcode.STORECPU   to InstructionFormat.from("BW,<r1"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
-    Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,<v | F,<fr1,<r1,<v"),
-    Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,<v | F,<fr1,<r1,<v"),
-    Opcode.STOREZM    to InstructionFormat.from("BW,<v         | F,<v"),
+    Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
+    Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
+    Opcode.STOREZM    to InstructionFormat.from("BW,>a         | F,>a"),
     Opcode.STOREZCPU  to InstructionFormat.from("BW"),
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
-    Opcode.STOREZX    to InstructionFormat.from("BW,<r1,<v     | F,<r1,<v"),
-    Opcode.JUMP       to InstructionFormat.from("N,<v"),
-    Opcode.JUMPA      to InstructionFormat.from("N,<v"),
-    Opcode.CALL       to InstructionFormat.from("N,<v"),
-    Opcode.CALLRVAL   to InstructionFormat.from("BW,<r1,<v     | F,<fr1,<v"),
-    Opcode.SYSCALL    to InstructionFormat.from("N,<v"),
+    Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
+    Opcode.JUMP       to InstructionFormat.from("N,<a"),
+    Opcode.JUMPA      to InstructionFormat.from("N,<a"),
+    Opcode.CALL       to InstructionFormat.from("N,<a"),
+    Opcode.CALLRVAL   to InstructionFormat.from("BW,<r1,<a     | F,<fr1,<a"),
+    Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
     Opcode.RETURN     to InstructionFormat.from("N"),
     Opcode.RETURNREG  to InstructionFormat.from("BW,<r1        | F,<fr1"),
-    Opcode.BSTCC      to InstructionFormat.from("N,<v"),
-    Opcode.BSTCS      to InstructionFormat.from("N,<v"),
-    Opcode.BSTEQ      to InstructionFormat.from("N,<v"),
-    Opcode.BSTNE      to InstructionFormat.from("N,<v"),
-    Opcode.BSTNEG     to InstructionFormat.from("N,<v"),
-    Opcode.BSTPOS     to InstructionFormat.from("N,<v"),
-    Opcode.BSTVC      to InstructionFormat.from("N,<v"),
-    Opcode.BSTVS      to InstructionFormat.from("N,<v"),
-    Opcode.BZ         to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BNZ        to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BGZS       to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BGEZS      to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BLZS       to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BLEZS      to InstructionFormat.from("BW,<r1,<v"),
-    Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BNE        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BGT        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BGTS       to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BGE        to InstructionFormat.from("BW,<r1,<r2,<v"),
-    Opcode.BGES       to InstructionFormat.from("BW,<r1,<r2,<v"),
+    Opcode.BSTCC      to InstructionFormat.from("N,<a"),
+    Opcode.BSTCS      to InstructionFormat.from("N,<a"),
+    Opcode.BSTEQ      to InstructionFormat.from("N,<a"),
+    Opcode.BSTNE      to InstructionFormat.from("N,<a"),
+    Opcode.BSTNEG     to InstructionFormat.from("N,<a"),
+    Opcode.BSTPOS     to InstructionFormat.from("N,<a"),
+    Opcode.BSTVC      to InstructionFormat.from("N,<a"),
+    Opcode.BSTVS      to InstructionFormat.from("N,<a"),
+    Opcode.BZ         to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BNZ        to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BGZS       to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BGEZS      to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BLZS       to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BLEZS      to InstructionFormat.from("BW,<r1,<a"),
+    Opcode.BEQ        to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BNE        to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGT        to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGTS       to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGE        to InstructionFormat.from("BW,<r1,<r2,<a"),
+    Opcode.BGES       to InstructionFormat.from("BW,<r1,<r2,<a"),
     Opcode.SZ         to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2"),
@@ -595,66 +541,66 @@ val instructionFormats = mutableMapOf(
     Opcode.SGE        to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.INCM       to InstructionFormat.from("BW,<v        | F,<v"),
+    Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.DECM       to InstructionFormat.from("BW,<v        | F,<v"),
+    Opcode.DECM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.NEG        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.NEGM       to InstructionFormat.from("BW,<v        | F,<v"),
+    Opcode.NEGM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.ADDR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.ADD        to InstructionFormat.from("BW,<>r1,<v   | F,<>fr1,<v"),
-    Opcode.ADDM       to InstructionFormat.from("BW,<r1,<v    | F,<fr1,<v"),
+    Opcode.ADD        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.ADDM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SUBR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.SUB        to InstructionFormat.from("BW,<>r1,<v   | F,<>fr1,<v"),
-    Opcode.SUBM       to InstructionFormat.from("BW,<r1,<v    | F,<fr1,<v"),
+    Opcode.SUB        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.SUBM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<v   | F,<>fr1,<v"),
-    Opcode.MULM       to InstructionFormat.from("BW,<r1,<v    | F,<fr1,<v"),
+    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.DIV        to InstructionFormat.from("BW,<>r1,<v"),
-    Opcode.DIVM       to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.DIVSR      to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.DIVS       to InstructionFormat.from("BW,<>r1,<v   | F,<>fr1,<v"),
-    Opcode.DIVSM      to InstructionFormat.from("BW,<r1,<v    | F,<fr1,<v"),
+    Opcode.DIVS       to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.DIVSM      to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SQRT       to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.MOD        to InstructionFormat.from("BW,<>r1,<v"),
+    Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<v"),
+    Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),
     Opcode.EXT        to InstructionFormat.from("BW,<>r1"),
     Opcode.EXTS       to InstructionFormat.from("BW,<>r1"),
     Opcode.ANDR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.AND        to InstructionFormat.from("BW,<>r1,<v"),
-    Opcode.ANDM       to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.AND        to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.ANDM       to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.ORR        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.OR         to InstructionFormat.from("BW,<>r1,<v"),
-    Opcode.ORM        to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.OR         to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.ORM        to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.XORR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.XOR        to InstructionFormat.from("BW,<>r1,<v"),
-    Opcode.XORM       to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.XOR        to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.XORM       to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.INV        to InstructionFormat.from("BW,<>r1"),
-    Opcode.INVM       to InstructionFormat.from("BW,<v"),
+    Opcode.INVM       to InstructionFormat.from("BW,<>a"),
     Opcode.ASRN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.ASRNM      to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.ASRNM      to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.LSRN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.LSRNM      to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.LSRNM      to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.LSLN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.LSLNM      to InstructionFormat.from("BW,<r1,<v"),
+    Opcode.LSLNM      to InstructionFormat.from("BW,<r1,<>a"),
     Opcode.ASR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.ASRM       to InstructionFormat.from("BW,<v"),
+    Opcode.ASRM       to InstructionFormat.from("BW,<>a"),
     Opcode.LSR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.LSRM       to InstructionFormat.from("BW,<v"),
+    Opcode.LSRM       to InstructionFormat.from("BW,<>a"),
     Opcode.LSL        to InstructionFormat.from("BW,<>r1"),
-    Opcode.LSLM       to InstructionFormat.from("BW,<v"),
+    Opcode.LSLM       to InstructionFormat.from("BW,<>a"),
     Opcode.ROR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.RORM       to InstructionFormat.from("BW,<v"),
+    Opcode.RORM       to InstructionFormat.from("BW,<>a"),
     Opcode.ROXR       to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROXRM      to InstructionFormat.from("BW,<v"),
+    Opcode.ROXRM      to InstructionFormat.from("BW,<>a"),
     Opcode.ROL        to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROLM       to InstructionFormat.from("BW,<v"),
+    Opcode.ROLM       to InstructionFormat.from("BW,<>a"),
     Opcode.ROXL       to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROXLM      to InstructionFormat.from("BW,<v"),
+    Opcode.ROXLM      to InstructionFormat.from("BW,<>a"),
 
     Opcode.FFROMUB    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FFROMSB    to InstructionFormat.from("F,>fr1,<r1"),
@@ -695,8 +641,9 @@ data class IRInstruction(
     val reg2: Int?=null,        // 0-$ffff
     val fpReg1: Int?=null,      // 0-$ffff
     val fpReg2: Int?=null,      // 0-$ffff
-    val value: Int?=null,       // 0-$ffff
-    val fpValue: Float?=null,
+    val immediate: Int?=null,   // 0-$ff or $ffff if word
+    val immediateFp: Float?=null,
+    val address: Int?=null,       // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
     val binaryData: Collection<UByte>?=null,
     var branchTarget: IRCodeChunkBase? = null    // will be linked after loading
@@ -715,13 +662,6 @@ data class IRInstruction(
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
         if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
-        if(value!=null && opcode !in OpcodesWithMemoryAddressAsValue) {
-            when (type) {
-                IRDataType.BYTE -> require(value in -128..255) {"value out of range for byte: $value"}
-                IRDataType.WORD -> require(value in -32768..65535) {"value out of range for word: $value"}
-                IRDataType.FLOAT, null -> {}
-            }
-        }
 
         require((opcode==Opcode.BINARYDATA && binaryData!=null) || (opcode!=Opcode.BINARYDATA && binaryData==null)) {
             "binarydata inconsistency"
@@ -739,14 +679,21 @@ data class IRInstruction(
         if(format.reg2==OperandDirection.UNUSED) require(reg2==null) { "invalid reg2" }
         if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
-
-        if (type==IRDataType.FLOAT) {
-            if(format.fpValueIn) require(fpValue!=null || labelSymbol!=null) {"missing a fp-value or labelsymbol"}
-        } else {
-            if(format.valueIn) require(value!=null || labelSymbol!=null) {"missing a value or labelsymbol"}
-            require(fpReg1==null && fpReg2==null) {"integer point instruction can't use floating point registers"}
+        if(format.immediate) {
+            if(type==IRDataType.FLOAT) require(immediateFp !=null) {"missing immediate fp value"}
+            else require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
-
+        if(type!=IRDataType.FLOAT)
+            require(fpReg1==null && fpReg2==null) {"int instruction can't use fp reg"}
+        if(format.address!=OperandDirection.UNUSED)
+            require(address!=null || labelSymbol!=null) {"missing an address or labelsymbol"}
+        if(format.immediate && (immediate!=null || immediateFp!=null)) {
+            when (type) {
+                IRDataType.BYTE -> require(immediate in -128..255) {"immediate value out of range for byte: $immediate"}
+                IRDataType.WORD -> require(immediate in -32768..65535) {"immediate value out of range for word: $immediate"}
+                IRDataType.FLOAT, null -> {}
+            }
+        }
 
         reg1direction = format.reg1
         reg2direction = format.reg2
@@ -866,12 +813,16 @@ data class IRInstruction(
             result.add("fr$it")
             result.add(",")
         }
-        value?.let {
+        immediate?.let {
             result.add(it.toHex())
             result.add(",")
         }
-        fpValue?.let {
+        immediateFp?.let {
             result.add(it.toString())
+            result.add(",")
+        }
+        address?.let {
+            result.add(it.toHex())
             result.add(",")
         }
         labelSymbol?.let {

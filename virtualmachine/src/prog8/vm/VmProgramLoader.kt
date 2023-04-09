@@ -70,7 +70,7 @@ class VmProgramLoader {
         programChunks.forEach {
             it.instructions.forEach { ins ->
                 if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch && ins.opcode !in OpcodesForCpuRegisters)
-                    require(ins.value != null) { "instruction with labelSymbol for a var should have value set to var's memory address" }
+                    require(ins.address != null) { "instruction with labelSymbol for a var should have value set to the memory address" }
             }
         }
 
@@ -102,7 +102,7 @@ class VmProgramLoader {
             chunk.instructions.withIndex().forEach { (index, ins) ->
                 if(ins.opcode == Opcode.SYSCALL) {
                     // convert IR Syscall to VM Syscall
-                    val vmSyscall = when(ins.value!!) {
+                    val vmSyscall = when(ins.immediate!!) {
                         IMSyscall.SORT_UBYTE.number -> Syscall.SORT_UBYTE
                         IMSyscall.SORT_BYTE.number -> Syscall.SORT_BYTE
                         IMSyscall.SORT_UWORD.number -> Syscall.SORT_UWORD
@@ -124,7 +124,7 @@ class VmProgramLoader {
                     }
 
                     if(vmSyscall!=null)
-                        chunk.instructions[index] = ins.copy(value = vmSyscall.ordinal)
+                        chunk.instructions[index] = ins.copy(immediate = vmSyscall.ordinal)
                 }
 
                 val label = ins.labelSymbol
@@ -148,7 +148,7 @@ class VmProgramLoader {
                     val (symbol, indexStr) = label.split('+')
                     val index = indexStr.toInt()
                     val address = variableAddresses.getValue(symbol) + index
-                    chunk.instructions[line] = chunk.instructions[line].copy(value = address)
+                    chunk.instructions[line] = chunk.instructions[line].copy(address = address)
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
@@ -159,15 +159,13 @@ class VmProgramLoader {
                             throw IRParseException("placeholder not found in variables nor labels: $label")
                     }
                     else if(opcode in OpcodesThatBranch) {
-                        chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, value = null)
-                    } else if(opcode in OpcodesWithMemoryAddressAsValue) {
-                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
+                        chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, address = null)
                     } else {
                         throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
                     }
                 }
             } else {
-                chunk.instructions[line] = chunk.instructions[line].copy(value = replacement)
+                chunk.instructions[line] = chunk.instructions[line].copy(address = replacement)
             }
         }
     }

@@ -205,7 +205,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             if(idx>0 && ins.opcode==Opcode.RETURN) {
                 val previous = chunk.instructions[idx-1]
                 if(previous.opcode==Opcode.CALL || previous.opcode==Opcode.CALLRVAL) {
-                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, value=previous.value, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
+                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, address = previous.address, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }
@@ -220,47 +220,47 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when (ins.opcode) {
                 Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MOD -> {
-                    if (ins.value == 1) {
+                    if (ins.immediate == 1) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.ADD, Opcode.SUB -> {
-                    if (ins.value == 1) {
+                    if (ins.immediate == 1) {
                         chunk.instructions[idx] = IRInstruction(
                             if (ins.opcode == Opcode.ADD) Opcode.INC else Opcode.DEC,
                             ins.type,
                             ins.reg1
                         )
                         changed = true
-                    } else if (ins.value == 0) {
+                    } else if (ins.immediate == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.AND -> {
-                    if (ins.value == 0) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = 0)
+                    if (ins.immediate == 0) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
                         changed = true
-                    } else if (ins.value == 255 && ins.type == IRDataType.BYTE) {
+                    } else if (ins.immediate == 255 && ins.type == IRDataType.BYTE) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if (ins.value == 65535 && ins.type == IRDataType.WORD) {
+                    } else if (ins.immediate == 65535 && ins.type == IRDataType.WORD) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
                 }
                 Opcode.OR -> {
-                    if (ins.value == 0) {
+                    if (ins.immediate == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if ((ins.value == 255 && ins.type == IRDataType.BYTE) || (ins.value == 65535 && ins.type == IRDataType.WORD)) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, value = ins.value)
+                    } else if ((ins.immediate == 255 && ins.type == IRDataType.BYTE) || (ins.immediate == 65535 && ins.type == IRDataType.WORD)) {
+                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = ins.immediate)
                         changed = true
                     }
                 }
                 Opcode.XOR -> {
-                    if (ins.value == 0) {
+                    if (ins.immediate == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }

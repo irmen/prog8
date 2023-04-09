@@ -468,6 +468,6 @@ class TestVmCodeGen: FunSpec({
         irChunks.size shouldBe 1
         val callInstr = irChunks.single().instructions.single()
         callInstr.opcode shouldBe Opcode.CALL
-        callInstr.value shouldBe 0x5000
+        callInstr.address shouldBe 0x5000
     }
 })

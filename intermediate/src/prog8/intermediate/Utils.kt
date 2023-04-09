@@ -194,33 +194,38 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         throw IRParseException("needs reg1 for $line")
     if(format.reg2!=OperandDirection.UNUSED && reg2==null)
         throw IRParseException("needs reg2 for $line")
-    if(format.valueIn && value==null && labelSymbol==null)
+    if(format.address!=OperandDirection.UNUSED && value==null && labelSymbol==null)
         throw IRParseException("needs value or symbol for $line")
     if(format.reg1==OperandDirection.UNUSED && reg1!=null)
         throw IRParseException("invalid reg1 for $line")
     if(format.reg2==OperandDirection.UNUSED && reg2!=null)
         throw IRParseException("invalid reg2 for $line")
-    if(value!=null && opcode !in OpcodesWithMemoryAddressAsValue) {
+    if(value!=null && format.immediate) {
         when (type) {
             IRDataType.BYTE -> {
                 if (value < -128 || value > 255)
-                    throw IRParseException("value out of range for byte: $value")
+                    throw IRParseException("immediate value out of range for byte: $value")
             }
             IRDataType.WORD -> {
                 if (value < -32768 || value > 65535)
-                    throw IRParseException("value out of range for word: $value")
+                    throw IRParseException("immediate value out of range for word: $value")
             }
             IRDataType.FLOAT -> {}
             null -> {}
         }
     }
-    var floatValue: Float? = null
-    var intValue: Int? = null
+    var immediateFp: Float? = null
+    var immediateInt: Int? = null
+    var address: Int? = null
 
-    if(format.valueIn && value!=null)
-        intValue = value.toInt()
-    if(format.fpValueIn && value!=null)
-        floatValue = value
+    if(format.address!=OperandDirection.UNUSED && value!=null)
+        address = value.toInt()
+    if(format.immediate && value!=null) {
+        if(type==IRDataType.FLOAT)
+            immediateFp = value
+        else
+            immediateInt = value.toInt()
+    }
 
     if(opcode in OpcodesForCpuRegisters) {
         val reg = rest.split(',').last().lowercase().trim()
@@ -237,5 +242,5 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         return left(IRInstruction(opcode, type, reg1, labelSymbol = reg))
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, intValue, floatValue, labelSymbol = labelSymbol))
+    return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
 }

@@ -149,8 +149,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 pcIndex = 0
             }
             null -> {
-                if(i.value!=null)
-                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.value!!.toHex()})")
+                if(i.address!=null)
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.address!!.toHex()})")
                 else
                     throw IllegalArgumentException("no branchtarget in $i")
             }
@@ -357,7 +357,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSYSCALL(i: IRInstruction) {
-        val call = Syscall.values()[i.value!!]
+        val call = Syscall.values()[i.immediate!!]
         SysCalls.call(call, this)
         nextPc()
     }
@@ -452,17 +452,24 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsLOAD(i: IRInstruction) {
         if(i.type==IRDataType.FLOAT)
-            registers.setFloat(i.fpReg1!!, i.fpValue!!)
-        else
-            setResultReg(i.reg1!!, i.value!!, i.type!!)
+            registers.setFloat(i.fpReg1!!, i.immediateFp!!)
+        else {
+            if(i.immediate!=null)
+                setResultReg(i.reg1!!, i.immediate!!, i.type!!)
+            else {
+                if(i.labelSymbol==null)
+                    throw IllegalArgumentException("expected LOAD of address of labelsymbol")
+                setResultReg(i.reg1!!, i.address!!, i.type!!)
+            }
+        }
         nextPc()
     }
 
     private fun InsLOADM(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!!))
-            IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!!))
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.value!!))
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.address!!))
+            IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!!))
+            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!))
         }
         nextPc()
     }
@@ -478,9 +485,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsLOADX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.value!! + registers.getUW(i.reg2!!).toInt()))
-            IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.value!! + registers.getUW(i.reg2!!).toInt()))
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.value!! + registers.getUW(i.reg1!!).toInt()))
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, memory.getUB(i.address!! + registers.getUW(i.reg2!!).toInt()))
+            IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!! + registers.getUW(i.reg2!!).toInt()))
+            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!! + registers.getUW(i.reg1!!).toInt()))
         }
         nextPc()
     }
@@ -488,15 +495,15 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsLOADIX(i: IRInstruction) {
         when (i.type!!) {
             IRDataType.BYTE -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 registers.setUB(i.reg1!!, memory.getUB(pointer.toInt()))
             }
             IRDataType.WORD -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 registers.setUW(i.reg1!!, memory.getUW(pointer.toInt()))
             }
             IRDataType.FLOAT -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg1!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
                 registers.setFloat(i.fpReg1!!, memory.getFloat(pointer.toInt()))
             }
         }
@@ -514,9 +521,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREM(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.value!!, registers.getUB(i.reg1!!))
-            IRDataType.WORD -> memory.setUW(i.value!!, registers.getUW(i.reg1!!))
-            IRDataType.FLOAT -> memory.setFloat(i.value!!, registers.getFloat(i.fpReg1!!))
+            IRDataType.BYTE -> memory.setUB(i.address!!, registers.getUB(i.reg1!!))
+            IRDataType.WORD -> memory.setUW(i.address!!, registers.getUW(i.reg1!!))
+            IRDataType.FLOAT -> memory.setFloat(i.address!!, registers.getFloat(i.fpReg1!!))
         }
         nextPc()
     }
@@ -532,9 +539,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + i.value!!, registers.getUB(i.reg1!!))
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + i.value!!, registers.getUW(i.reg1!!))
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.value!!, registers.getFloat(i.fpReg1!!))
+            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + i.address!!, registers.getUB(i.reg1!!))
+            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + i.address!!, registers.getUW(i.reg1!!))
+            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.address!!, registers.getFloat(i.fpReg1!!))
         }
         nextPc()
     }
@@ -542,15 +549,15 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSTOREIX(i: IRInstruction) {
         when (i.type!!) {
             IRDataType.BYTE -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 memory.setUB(pointer.toInt(), registers.getUB(i.reg1!!))
             }
             IRDataType.WORD -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg2!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 memory.setUW(pointer.toInt(), registers.getUW(i.reg1!!))
             }
             IRDataType.FLOAT -> {
-                val pointer = memory.getUW(i.value!!) + registers.getUB(i.reg1!!)
+                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
                 memory.setFloat(pointer.toInt(), registers.getFloat(i.fpReg1!!))
             }
         }
@@ -559,9 +566,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREZM(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.value!!, 0u)
-            IRDataType.WORD -> memory.setUW(i.value!!, 0u)
-            IRDataType.FLOAT -> memory.setFloat(i.value!!, 0f)
+            IRDataType.BYTE -> memory.setUB(i.address!!, 0u)
+            IRDataType.WORD -> memory.setUW(i.address!!, 0u)
+            IRDataType.FLOAT -> memory.setFloat(i.address!!, 0f)
         }
         nextPc()
     }
@@ -577,9 +584,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREZX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt() + i.value!!, 0u)
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt() + i.value!!, 0u)
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.value!!, 0f)
+            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt() + i.address!!, 0u)
+            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt() + i.address!!, 0u)
+            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.address!!, 0f)
         }
         nextPc()
     }
@@ -944,7 +951,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsINCM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(address, (memory.getUB(address)+1u).toUByte())
             IRDataType.WORD -> memory.setUW(address, (memory.getUW(address)+1u).toUShort())
@@ -964,9 +971,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDECM(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> memory.setUB(i.value!!, (memory.getUB(i.value!!)-1u).toUByte())
-            IRDataType.WORD -> memory.setUW(i.value!!, (memory.getUW(i.value!!)-1u).toUShort())
-            IRDataType.FLOAT -> memory.setFloat(i.value!!, memory.getFloat(i.value!!)-1f)
+            IRDataType.BYTE -> memory.setUB(i.address!!, (memory.getUB(i.address!!)-1u).toUByte())
+            IRDataType.WORD -> memory.setUW(i.address!!, (memory.getUW(i.address!!)-1u).toUShort())
+            IRDataType.FLOAT -> memory.setFloat(i.address!!, memory.getFloat(i.address!!)-1f)
         }
         nextPc()
     }
@@ -981,7 +988,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsNEGM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(address, (-memory.getUB(address).toInt()).toUByte())
             IRDataType.WORD -> memory.setUW(address, (-memory.getUW(address).toInt()).toUShort())
@@ -1006,11 +1013,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsADD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultConstByte("+", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> plusMinusMultConstWord("+", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> plusMinusMultConstByte("+", i.reg1!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> plusMinusMultConstWord("+", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
-                val result = arithFloat(left, "+", i.fpValue!!)
+                val result = arithFloat(left, "+", i.immediateFp!!)
                 registers.setFloat(i.fpReg1!!, result)
             }
         }
@@ -1018,7 +1025,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsADDM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("+", i.reg1!!, address)
             IRDataType.WORD -> plusMinusMultAnyWordInplace("+", i.reg1!!, address)
@@ -1048,11 +1055,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSUB(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultConstByte("-", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> plusMinusMultConstWord("-", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> plusMinusMultConstByte("-", i.reg1!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> plusMinusMultConstWord("-", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
-                val result = arithFloat(left, "-", i.fpValue!!)
+                val result = arithFloat(left, "-", i.immediateFp!!)
                 registers.setFloat(i.fpReg1!!, result)
             }
         }
@@ -1060,7 +1067,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSUBM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("-", i.reg1!!, address)
             IRDataType.WORD -> plusMinusMultAnyWordInplace("-", i.reg1!!, address)
@@ -1090,11 +1097,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMUL(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultConstByte("*", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> plusMinusMultConstWord("*", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> plusMinusMultConstByte("*", i.reg1!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> plusMinusMultConstWord("*", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
-                val result = arithFloat(left, "*", i.fpValue!!)
+                val result = arithFloat(left, "*", i.immediateFp!!)
                 registers.setFloat(i.fpReg1!!, result)
             }
         }
@@ -1102,7 +1109,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsMULM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> plusMinusMultAnyByteInplace("*", i.reg1!!, address)
             IRDataType.WORD -> plusMinusMultAnyWordInplace("*", i.reg1!!, address)
@@ -1127,15 +1134,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIV(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divOrModConstByteUnsigned("/", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> divOrModConstWordUnsigned("/", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> divOrModConstByteUnsigned("/", i.reg1!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> divOrModConstWordUnsigned("/", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
     }
 
     private fun InsDIVM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> divModByteUnsignedInplace("/", i.reg1!!, address)
             IRDataType.WORD -> divModWordUnsignedInplace("/", i.reg1!!, address)
@@ -1160,11 +1167,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVS(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divModConstByteSigned("/", i.reg1!!, i.value!!.toByte())
-            IRDataType.WORD -> divModConstWordSigned("/", i.reg1!!, i.value!!.toShort())
+            IRDataType.BYTE -> divModConstByteSigned("/", i.reg1!!, i.immediate!!.toByte())
+            IRDataType.WORD -> divModConstWordSigned("/", i.reg1!!, i.immediate!!.toShort())
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
-                val result = arithFloat(left, "/", i.fpValue!!)
+                val result = arithFloat(left, "/", i.immediateFp!!)
                 registers.setFloat(i.fpReg1!!, result)
             }
         }
@@ -1172,7 +1179,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsDIVSM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> divModByteSignedInplace("/", i.reg1!!, address)
             IRDataType.WORD -> divModWordSignedInplace("/", i.reg1!!, address)
@@ -1197,8 +1204,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divOrModConstByteUnsigned("%", i.reg1!!, i.value!!.toUByte())
-            IRDataType.WORD -> divOrModConstWordUnsigned("%", i.reg1!!, i.value!!.toUShort())
+            IRDataType.BYTE -> divOrModConstByteUnsigned("%", i.reg1!!, i.immediate!!.toUByte())
+            IRDataType.WORD -> divOrModConstWordUnsigned("%", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1215,8 +1222,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.value!!.toUByte())    // output in r0+r1
-            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.value!!.toUShort())   // output in r0+r1
+            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.immediate!!.toUByte())    // output in r0+r1
+            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.immediate!!.toUShort())   // output in r0+r1
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1619,15 +1626,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsAND(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) and i.value!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) and i.value!!.toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) and i.immediate!!.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) and i.immediate!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
     }
 
     private fun InsANDM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
@@ -1656,15 +1663,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsOR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) or i.value!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) or i.value!!.toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) or i.immediate!!.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) or i.immediate!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
     }
 
     private fun InsORM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
@@ -1693,15 +1700,15 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsXOR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) xor i.value!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) xor i.value!!.toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) xor i.immediate!!.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) xor i.immediate!!.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
     }
 
     private fun InsXORM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
@@ -1728,7 +1735,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsINVM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(address, memory.getUB(address).inv())
             IRDataType.WORD -> memory.setUW(address, memory.getUW(address).inv())
@@ -1749,7 +1756,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsASRNM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
             IRDataType.BYTE -> {
@@ -1785,7 +1792,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsASRM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val value = memory.getSB(address).toInt()
@@ -1814,7 +1821,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLSRNM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
             IRDataType.BYTE -> {
@@ -1850,7 +1857,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLSRM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(address).toInt()
@@ -1884,7 +1891,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLSLNM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         val operand = registers.getUB(i.reg1!!).toInt()
         when(i.type!!) {
             IRDataType.BYTE -> {
@@ -1920,7 +1927,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsLSLM(i: IRInstruction) {
-        val address = i.value!!
+        val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(address).toInt()
@@ -1970,7 +1977,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsRORM(i: IRInstruction, useCarry: Boolean) {
         val newStatusCarry: Boolean
-        val address = i.value!!
+        val address = i.address!!
         when (i.type!!) {
             IRDataType.BYTE -> {
                 val orig = memory.getUB(address)
@@ -2032,7 +2039,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsROLM(i: IRInstruction, useCarry: Boolean) {
-        val address = i.value!!
+        val address = i.address!!
         val newStatusCarry: Boolean
         when (i.type!!) {
             IRDataType.BYTE -> {

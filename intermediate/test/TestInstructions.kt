@@ -15,20 +15,24 @@ class TestInstructions: FunSpec({
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe null
         ins.reg2 shouldBe null
-        ins.value shouldBe null
+        ins.address shouldBe null
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe null
         ins.toString() shouldBe "nop"
     }
 
     test("with value") {
-        val ins = IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42, value = 99)
+        val ins = IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42, address = 99)
         ins.opcode shouldBe Opcode.BZ
         ins.type shouldBe IRDataType.BYTE
         ins.reg1direction shouldBe OperandDirection.READ
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 42
         ins.reg2 shouldBe null
-        ins.value shouldBe 99
+        ins.address shouldBe 99
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe null
         ins.toString() shouldBe "bz.b r42,$63"
     }
@@ -41,7 +45,9 @@ class TestInstructions: FunSpec({
         ins.fpReg1direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe null
-        ins.value shouldBe null
+        ins.address shouldBe null
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe "a.b.c"
         ins.toString() shouldBe "bz.w r11,a.b.c"
     }
@@ -56,7 +62,9 @@ class TestInstructions: FunSpec({
         ins.fpReg2direction shouldBe OperandDirection.UNUSED
         ins.reg1 shouldBe 11
         ins.reg2 shouldBe 22
-        ins.value shouldBe null
+        ins.address shouldBe null
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe null
         ins.toString() shouldBe "addr.w r11,r22"
 
@@ -69,7 +77,9 @@ class TestInstructions: FunSpec({
         ins2.fpReg2direction shouldBe OperandDirection.UNUSED
         ins2.reg1 shouldBe 11
         ins2.reg2 shouldBe 22
-        ins2.value shouldBe null
+        ins.address shouldBe null
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins2.labelSymbol shouldBe null
         ins2.toString() shouldBe "sqrt.b r11,r22"
     }
@@ -86,7 +96,9 @@ class TestInstructions: FunSpec({
         ins.fpReg2 shouldBe 2
         ins.reg1 shouldBe null
         ins.reg2 shouldBe null
-        ins.value shouldBe null
+        ins.address shouldBe null
+        ins.immediate shouldBe null
+        ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe null
         ins.toString() shouldBe "fsin.f fr1,fr2"
     }
@@ -94,18 +106,18 @@ class TestInstructions: FunSpec({
 
     test("missing type should fail") {
         shouldThrow<IllegalArgumentException> {
-            IRInstruction(Opcode.BZ, reg1=42, value=99)
+            IRInstruction(Opcode.BZ, reg1=42, address=99)
         }
     }
 
     test("missing registers should fail") {
         shouldThrowWithMessage<IllegalArgumentException>("missing reg1") {
-            IRInstruction(Opcode.BZ, IRDataType.BYTE, value=99)
+            IRInstruction(Opcode.BZ, IRDataType.BYTE, address=99)
         }
     }
 
-    test("missing value should fail") {
-        shouldThrowWithMessage<IllegalArgumentException>("missing a value or labelsymbol") {
+    test("missing address should fail") {
+        shouldThrowWithMessage<IllegalArgumentException>("missing an address or labelsymbol") {
             IRInstruction(Opcode.BZ, IRDataType.BYTE, reg1=42)
         }
     }

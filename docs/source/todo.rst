@@ -3,6 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+fix compiler crash on test/arithmethic/builtins.p8 and test the others as well
 ...
 
 

@@ -12,6 +12,7 @@ generate:
 	p8compile -noopt -target cx16 *.p8 >/dev/null
 
 test_prgs:
+	x16emu -run -prg more_compares.prg
 	for program in *.prg; do \
 		echo "RUNNING:" $$program ; \
 		x16emu -run -prg $$program >/dev/null ; \
