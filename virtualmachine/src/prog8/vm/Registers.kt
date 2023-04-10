@@ -7,7 +7,7 @@ package prog8.vm
  */
 class Registers {
     private val registers = Array<UShort>(65536) { 0u }
-    private val floatRegisters = Array(65535) { 0f }
+    private val floatRegisters = Array(65536) { 0f }
     var cpuA: UByte = 0u
     var cpuX: UByte = 0u
     var cpuY: UByte = 0u

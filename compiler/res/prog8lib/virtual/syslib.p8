@@ -15,7 +15,8 @@ sys {
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
         %ir {{
-            loadm.w r65500,sys.wait.jiffies
+            loadm.w r65535,sys.wait.jiffies
+            push.w r65535
             syscall 13
         }}
     }
@@ -62,7 +63,8 @@ sys {
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
         %ir {{
-            loadm.b r65500,sys.exit.returnvalue
+            loadm.b r65535,sys.exit.returnvalue
+            push.b r65535
             syscall 1
         }}
     }
@@ -82,31 +84,38 @@ sys {
 
     sub gfx_enable(ubyte mode) {
         %ir {{
-            loadm.b r65500,sys.gfx_enable.mode
+            loadm.b r65535,sys.gfx_enable.mode
+            push.b r65535
             syscall 8
         }}
     }
 
     sub gfx_clear(ubyte color) {
         %ir {{
-            loadm.b r65500,sys.gfx_clear.color
+            loadm.b r65535,sys.gfx_clear.color
+            push.b r65535
             syscall 9
         }}
     }
 
     sub gfx_plot(uword xx, uword yy, ubyte color) {
         %ir {{
-            loadm.w r65500,sys.gfx_plot.xx
-            loadm.w r65501,sys.gfx_plot.yy
-            loadm.b r65502,sys.gfx_plot.color
+            loadm.w r65535,sys.gfx_plot.xx
+            push.w r65535
+            loadm.w r65535,sys.gfx_plot.yy
+            push.w r65535
+            loadm.b r65535,sys.gfx_plot.color
+            push.b r65535
             syscall 10
         }}
     }
 
     sub gfx_getpixel(uword xx, uword yy) -> ubyte {
         %ir {{
-            loadm.w r65500,sys.gfx_getpixel.xx
-            loadm.w r65501,sys.gfx_getpixel.yy
+            loadm.w r65535,sys.gfx_getpixel.xx
+            push.w r65535
+            loadm.w r65535,sys.gfx_getpixel.yy
+            push.w r65535
             syscall 30
             pop.b r0
             returnreg.b r0

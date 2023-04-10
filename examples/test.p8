@@ -1,12 +1,11 @@
 %import textio
-%zeropage basicsafe
+%import math
+%import floats
+%import string
+
 main {
     sub start() {
-        cx16.r1=0
-        for cx16.r0 in 0 to 10 {
-            cx16.r1++
-        }
-        txt.print_uw(cx16.r1)
+        math.rndseed(11111,22222)
     }
 }
 

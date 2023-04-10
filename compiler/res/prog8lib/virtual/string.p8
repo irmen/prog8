@@ -84,8 +84,10 @@ string {
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (it will use strcmp for you under water automatically).
         %ir {{
-            loadm.w r65500,string.compare.st1
-            loadm.w r65501,string.compare.st2
+            loadm.w r65535,string.compare.st1
+            push.w r65535
+            loadm.w r65535,string.compare.st2
+            push.w r65535
             syscall 29
             pop.b r0
             returnreg.b r0

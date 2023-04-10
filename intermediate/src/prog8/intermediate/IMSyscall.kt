@@ -23,5 +23,3 @@ enum class IMSyscall(val number: Int) {
     BYTEARRAY_CONTAINS(10015),
     WORDARRAY_CONTAINS(10016)
 }
-
-const val SyscallRegisterBase = 65500

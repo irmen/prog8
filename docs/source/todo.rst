@@ -3,7 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-change syscalls to take parameters on value stack (not in r65500+ registers)
+test vm array reverse, sort, string containment, string input, float array containment (how translated? there is no syscall)
 
 ...
 

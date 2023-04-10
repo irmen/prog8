@@ -117,17 +117,14 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun stepNextChunk() {
         do {
-            val nextChunk = pcChunk.next
-            when (nextChunk) {
+            when (val nextChunk = pcChunk.next) {
                 is IRCodeChunk -> {
                     pcChunk = nextChunk
                     pcIndex = 0
                 }
-
                 null -> {
                     exit(0)   // end of program reached
                 }
-
                 else -> {
                     throw IllegalArgumentException("VM cannot run code from non-code chunk $nextChunk")
                 }
@@ -142,8 +139,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun branchTo(i: IRInstruction) {
-        val target = i.branchTarget
-        when (target) {
+        when (val target = i.branchTarget) {
             is IRCodeChunk -> {
                 pcChunk = target
                 pcIndex = 0
@@ -154,7 +150,11 @@ class VirtualMachine(irProgram: IRProgram) {
                 else
                     throw IllegalArgumentException("no branchtarget in $i")
             }
-            else -> throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
+            is IRInlineAsmChunk -> TODO()
+            is IRInlineBinaryChunk -> TODO()
+            else -> {
+                throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
+            }
         }
     }
 
@@ -335,7 +335,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 valueStack.pushw(value)
             }
             IRDataType.FLOAT -> {
-                throw IllegalArgumentException("can't PUSH a float")
+                val value = registers.getFloat(i.fpReg1!!)
+                valueStack.pushf(value)
             }
         }
         nextPc()
@@ -343,26 +344,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsPOP(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> {
-                val value = valueStack.pop().toInt()
-                setResultReg(i.reg1!!, value, i.type!!)
-            }
-            IRDataType.WORD -> {
-                val msb = valueStack.pop()
-                val lsb = valueStack.pop()
-                val value = (msb.toInt() shl 8) + lsb.toInt()
-                setResultReg(i.reg1!!, value, i.type!!)
-            }
-            IRDataType.FLOAT -> {
-                // pop float; lsb is on bottom, msb on top
-                val b0 = valueStack.pop()
-                val b1 = valueStack.pop()
-                val b2 = valueStack.pop()
-                val b3 = valueStack.pop()
-                val bits = b3 + 256u*b2 + 65536u*b1 + 16777216u*b0
-                val value = Float.fromBits(bits.toInt())
-                registers.setFloat(i.fpReg1!!, value)
-            }
+            IRDataType.BYTE -> setResultReg(i.reg1!!, valueStack.pop().toInt(), i.type!!)
+            IRDataType.WORD -> setResultReg(i.reg1!!, valueStack.popw().toInt(), i.type!!)
+            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, valueStack.popf())
         }
         nextPc()
     }
@@ -2289,7 +2273,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private var window: GraphicsWindow? = null
 
     fun gfx_enable() {
-        window = when(registers.getUB(SyscallRegisterBase).toInt()) {
+        window = when(valueStack.pop().toInt()) {
             0 -> GraphicsWindow(320, 240, 3)
             1 -> GraphicsWindow(640, 480, 2)
             else -> throw IllegalArgumentException("invalid screen mode")
@@ -2298,21 +2282,23 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     fun gfx_clear() {
-        window?.clear(registers.getUB(SyscallRegisterBase).toInt())
+        window?.clear(valueStack.pop().toInt())
     }
 
     fun gfx_plot() {
-        window?.plot(registers.getUW(SyscallRegisterBase).toInt(),
-            registers.getUW(SyscallRegisterBase+1).toInt(),
-            registers.getUB(SyscallRegisterBase+2).toInt())
+        val color = valueStack.pop()
+        val y = valueStack.popw()
+        val x = valueStack.popw()
+        window?.plot(x.toInt(), y.toInt(), color.toInt())
     }
 
     fun gfx_getpixel() {
         if(window==null)
             registers.setUB(0, 0u)
         else {
-            val color = Color(window!!.getpixel(registers.getUW(SyscallRegisterBase).toInt(),
-                registers.getUW(SyscallRegisterBase+1).toInt()))
+            val y = valueStack.popw()
+            val x = valueStack.popw()
+            val color = Color(window!!.getpixel(x.toInt(), y.toInt()))
             registers.setUB(0, color.green.toUByte())
         }
     }
@@ -2349,6 +2335,22 @@ internal fun Stack<UByte>.pushf(value: Float) {
     push(bits.toUByte())
     bits = bits ushr 8
     push(bits.toUByte())
+}
+
+internal fun Stack<UByte>.popw(): UShort {
+    val msb = pop()
+    val lsb = pop()
+    return ((msb.toInt() shl 8) + lsb.toInt()).toUShort()
+}
+
+internal fun Stack<UByte>.popf(): Float {
+    // pop float; lsb is on bottom, msb on top
+    val b0 = pop()
+    val b1 = pop()
+    val b2 = pop()
+    val b3 = pop()
+    val bits = b3 + 256u*b2 + 65536u*b1 + 16777216u*b0
+    return Float.fromBits(bits.toInt())
 }
 
 // probably called via reflection

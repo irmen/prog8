@@ -1,7 +1,6 @@
 package prog8.vm
 
 import prog8.code.core.AssemblyError
-import prog8.intermediate.SyscallRegisterBase
 import kotlin.math.min
 
 /*
@@ -92,14 +91,14 @@ object SysCalls {
                 vm.reset(false)
             }
             Syscall.EXIT ->{
-                vm.exit(vm.registers.getUB(SyscallRegisterBase).toInt())
+                vm.exit(vm.valueStack.pop().toInt())
             }
             Syscall.PRINT_C -> {
-                val char = vm.registers.getUB(SyscallRegisterBase).toInt()
+                val char = vm.valueStack.pop().toInt()
                 print(Char(char))
             }
             Syscall.PRINT_S -> {
-                var addr = vm.registers.getUW(SyscallRegisterBase).toInt()
+                var addr = vm.valueStack.popw().toInt()
                 while(true) {
                     val char = vm.memory.getUB(addr).toInt()
                     if(char==0)
@@ -109,21 +108,21 @@ object SysCalls {
                 }
             }
             Syscall.PRINT_U8 -> {
-                print(vm.registers.getUB(SyscallRegisterBase))
+                print(vm.valueStack.pop())
             }
             Syscall.PRINT_U16 -> {
-                print(vm.registers.getUW(SyscallRegisterBase))
+                print(vm.valueStack.popw())
             }
             Syscall.INPUT -> {
                 var input = readln()
-                val maxlen = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val maxlen = vm.valueStack.pop().toInt()
                 if(maxlen>0)
                     input = input.substring(0, min(input.length, maxlen))
-                vm.memory.setString(vm.registers.getUW(SyscallRegisterBase).toInt(), input, true)
+                vm.memory.setString(vm.valueStack.popw().toInt(), input, true)
                 vm.valueStack.pushw(input.length.toUShort())
             }
             Syscall.SLEEP -> {
-                val duration = vm.registers.getUW(SyscallRegisterBase).toLong()
+                val duration = vm.valueStack.popw().toLong()
                 Thread.sleep(duration)
             }
             Syscall.GFX_ENABLE -> vm.gfx_enable()
@@ -131,13 +130,13 @@ object SysCalls {
             Syscall.GFX_PLOT -> vm.gfx_plot()
             Syscall.GFX_GETPIXEL ->vm.gfx_getpixel()
             Syscall.WAIT -> {
-                val millis = vm.registers.getUW(SyscallRegisterBase).toLong() * 1000/60
+                val millis = vm.valueStack.popw().toLong() * 1000/60
                 Thread.sleep(millis)
             }
             Syscall.WAITVSYNC -> vm.waitvsync()
             Syscall.SORT_UBYTE -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
                     vm.memory.getUB(it)
                 }.sorted()
@@ -146,8 +145,8 @@ object SysCalls {
                 }
             }
             Syscall.SORT_BYTE -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
                     vm.memory.getSB(it)
                 }.sorted()
@@ -156,8 +155,8 @@ object SysCalls {
                 }
             }
             Syscall.SORT_UWORD -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
                     vm.memory.getUW(it)
                 }.sorted()
@@ -166,8 +165,8 @@ object SysCalls {
                 }
             }
             Syscall.SORT_WORD -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
                     vm.memory.getSW(it)
                 }.sorted()
@@ -176,8 +175,8 @@ object SysCalls {
                 }
             }
             Syscall.REVERSE_BYTES -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
                     vm.memory.getUB(it)
                 }.reversed()
@@ -186,8 +185,8 @@ object SysCalls {
                 }
             }
             Syscall.REVERSE_WORDS -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
                     vm.memory.getUW(it)
                 }.reversed()
@@ -196,8 +195,8 @@ object SysCalls {
                 }
             }
             Syscall.REVERSE_FLOATS -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val array = IntProgression.fromClosedRange(address, address+length*4-2, 4).map {
                     vm.memory.getFloat(it)
                 }.reversed()
@@ -206,8 +205,8 @@ object SysCalls {
                 }
             }
             Syscall.ANY_BYTE -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
                 if(addresses.any { vm.memory.getUB(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -215,8 +214,8 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.ANY_WORD -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
                 if(addresses.any { vm.memory.getUW(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -224,8 +223,8 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.ANY_FLOAT -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
                 if(addresses.any { vm.memory.getFloat(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -233,8 +232,8 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.ALL_BYTE -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
                 if(addresses.all { vm.memory.getUB(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -242,8 +241,8 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.ALL_WORD -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
                 if(addresses.all { vm.memory.getUW(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -251,8 +250,8 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.ALL_FLOAT -> {
-                val address = vm.registers.getUW(SyscallRegisterBase).toInt()
-                val length = vm.registers.getUB(SyscallRegisterBase+1).toInt()
+                val length = vm.valueStack.pop().toInt()
+                val address = vm.valueStack.popw().toInt()
                 val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
                 if(addresses.all { vm.memory.getFloat(it).toInt()!=0 })
                     vm.valueStack.push(1u)
@@ -260,11 +259,10 @@ object SysCalls {
                     vm.valueStack.push(0u)
             }
             Syscall.PRINT_F -> {
-                val value = vm.registers.getFloat(SyscallRegisterBase)
-                print(value)
+                print(vm.valueStack.popf())
             }
             Syscall.STR_TO_UWORD -> {
-                val stringAddr = vm.registers.getUW(SyscallRegisterBase)
+                val stringAddr = vm.valueStack.popw()
                 val string = vm.memory.getString(stringAddr.toInt()).takeWhile { it.isDigit() }
                 val value = try {
                     string.toUShort()
@@ -274,7 +272,7 @@ object SysCalls {
                 vm.valueStack.pushw(value)
             }
             Syscall.STR_TO_WORD -> {
-                val stringAddr = vm.registers.getUW(SyscallRegisterBase)
+                val stringAddr = vm.valueStack.popw()
                 val memstring = vm.memory.getString(stringAddr.toInt())
                 val match = Regex("^[+-]?\\d+").find(memstring)
                 if(match==null) {
@@ -289,8 +287,8 @@ object SysCalls {
                 vm.valueStack.pushw(value.toUShort())
             }
             Syscall.COMPARE_STRINGS -> {
-                val firstAddr = vm.registers.getUW(SyscallRegisterBase)
-                val secondAddr = vm.registers.getUW(SyscallRegisterBase+1)
+                val secondAddr = vm.valueStack.popw()
+                val firstAddr = vm.valueStack.popw()
                 val first = vm.memory.getString(firstAddr.toInt())
                 val second = vm.memory.getString(secondAddr.toInt())
                 val comparison = first.compareTo(second)
@@ -302,15 +300,15 @@ object SysCalls {
                     vm.valueStack.push(1u)
             }
             Syscall.RNDFSEED -> {
-                val seed = vm.registers.getFloat(SyscallRegisterBase)
+                val seed = vm.valueStack.popf()
                 if(seed>0)  // always use negative seed, this mimics the behavior on CBM machines
                     vm.randomSeedFloat(-seed)
                 else
                     vm.randomSeedFloat(seed)
             }
             Syscall.RNDSEED -> {
-                val seed1 = vm.registers.getUW(SyscallRegisterBase)
-                val seed2 = vm.registers.getUW(SyscallRegisterBase+1)
+                val seed2 = vm.valueStack.popw()
+                val seed1 = vm.valueStack.popw()
                 vm.randomSeed(seed1, seed2)
             }
             Syscall.RND -> {
@@ -323,15 +321,15 @@ object SysCalls {
                 vm.valueStack.pushf(vm.randomGeneratorFloats.nextFloat())
             }
             Syscall.STRING_CONTAINS -> {
-                val char = vm.registers.getUB(SyscallRegisterBase).toInt().toChar()
-                val stringAddr = vm.registers.getUW(SyscallRegisterBase+1)
+                val stringAddr = vm.valueStack.popw()
+                val char = vm.valueStack.pop().toInt().toChar()
                 val string = vm.memory.getString(stringAddr.toInt())
                 vm.valueStack.push(if(char in string) 1u else 0u)
             }
             Syscall.BYTEARRAY_CONTAINS -> {
-                val value = vm.registers.getUB(SyscallRegisterBase)
-                var array = vm.registers.getUW(SyscallRegisterBase+1).toInt()
-                var length = vm.registers.getUB(SyscallRegisterBase+2)
+                var length = vm.valueStack.pop()
+                var array = vm.valueStack.popw().toInt()
+                val value = vm.valueStack.pop()
                 while(length>0u) {
                     if(vm.memory.getUB(array)==value) {
                         vm.valueStack.push(1u)
@@ -343,10 +341,9 @@ object SysCalls {
                 vm.valueStack.push(0u)
             }
             Syscall.WORDARRAY_CONTAINS -> {
-                // r0.w = value,  r1.w = array,  r2.b = array length
-                val value = vm.registers.getUW(SyscallRegisterBase)
-                var array = vm.registers.getUW(SyscallRegisterBase+1).toInt()
-                var length = vm.registers.getUB(SyscallRegisterBase+2)
+                var length = vm.valueStack.pop()
+                var array = vm.valueStack.popw().toInt()
+                val value = vm.valueStack.popw()
                 while(length>0u) {
                     if(vm.memory.getUW(array)==value) {
                         vm.valueStack.push(1u)

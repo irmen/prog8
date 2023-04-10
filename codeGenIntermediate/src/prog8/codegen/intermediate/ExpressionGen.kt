@@ -111,42 +111,47 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         when(iterable.dt) {
             DataType.STR -> {
                 tr = translateExpression(check.element)
-                addToResult(result, tr, SyscallRegisterBase, -1)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg), null)
                 tr = translateExpression(check.iterable)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
-                val resultReg = codeGen.registers.nextFree()
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg), null)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.STRING_CONTAINS.number)
-                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
                 }
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 tr = translateExpression(check.element)
-                addToResult(result, tr, SyscallRegisterBase, -1)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg), null)
                 tr = translateExpression(check.iterable)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
-                val resultReg = codeGen.registers.nextFree()
+                addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
+                    it += IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = iterable.length!!)
+                    it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg)
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
-                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
                 }
                 // SysCall call convention: return value in register r0
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 tr = translateExpression(check.element)
-                addToResult(result, tr, SyscallRegisterBase, -1)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg), null)
                 tr = translateExpression(check.iterable)
-                addToResult(result, tr, SyscallRegisterBase+1, -1)
-                val resultReg = codeGen.registers.nextFree()
+                addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
+                    it += IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = iterable.length!!)
+                    it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg)
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
-                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
                 }
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
             }
             DataType.ARRAY_F -> throw AssemblyError("containment check in float-array not supported")
             else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.name}")
