@@ -52,20 +52,28 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val number = call.args[0]
         val divident = call.args[1]
+        val divisionReg: Int
+        val remainderReg: Int
         if(divident is PtNumber) {
             val tr = exprGen.translateExpression(number)
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.DIVMOD, type, reg1 = tr.resultReg, immediate = divident.number.toInt()), null)
+            divisionReg = tr.resultReg
+            remainderReg = codeGen.registers.nextFree()
         } else {
             val numTr = exprGen.translateExpression(number)
             addToResult(result, numTr, numTr.resultReg, -1)
             val dividentTr = exprGen.translateExpression(divident)
             addToResult(result, dividentTr, dividentTr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.DIVMODR, type, reg1 = numTr.resultReg, reg2=dividentTr.resultReg), null)
+            divisionReg = numTr.resultReg
+            remainderReg = dividentTr.resultReg
         }
-        // DIVMOD result convention: division in r0, remainder in r1
-        result += assignRegisterTo(call.args[2], 0)
-        result += assignRegisterTo(call.args[3], 1)
+        // DIVMOD result convention: on value stack, division and remainder on top.
+        addInstr(result, IRInstruction(Opcode.POP, type, reg1=remainderReg), null)
+        addInstr(result, IRInstruction(Opcode.POP, type, reg1=divisionReg), null)
+        result += assignRegisterTo(call.args[2], divisionReg)
+        result += assignRegisterTo(call.args[3], remainderReg)
         return ExpressionCodeResult(result, type, -1, -1)
     }
 

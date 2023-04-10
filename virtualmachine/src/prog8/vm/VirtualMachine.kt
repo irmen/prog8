@@ -1188,8 +1188,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVMODR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)        // output in r0+r1
-            IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)        // output in r0+r1
+            IRDataType.BYTE -> divAndModUByte(i.reg1!!, i.reg2!!)       // division+remainder results on value stack
+            IRDataType.WORD -> divAndModUWord(i.reg1!!, i.reg2!!)       // division+remainder results on value stack
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1197,8 +1197,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsDIVMOD(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.immediate!!.toUByte())    // output in r0+r1
-            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.immediate!!.toUShort())   // output in r0+r1
+            IRDataType.BYTE -> divAndModConstUByte(i.reg1!!, i.immediate!!.toUByte())    // division+remainder results on value stack
+            IRDataType.WORD -> divAndModConstUWord(i.reg1!!, i.immediate!!.toUShort())   // division+remainder results on value stack
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1375,16 +1375,16 @@ class VirtualMachine(irProgram: IRProgram) {
         val right = registers.getUB(reg2)
         val division = if(right==0.toUByte()) 0xffu else left / right
         val remainder = if(right==0.toUByte()) 0xffu else left % right
-        registers.setUB(0, division.toUByte())
-        registers.setUB(1, remainder.toUByte())
+        valueStack.push(division.toUByte())
+        valueStack.push(remainder.toUByte())
     }
 
     private fun divAndModConstUByte(reg1: Int, value: UByte) {
         val left = registers.getUB(reg1)
         val division = if(value==0.toUByte()) 0xffu else left / value
         val remainder = if(value==0.toUByte()) 0xffu else left % value
-        registers.setUB(0, division.toUByte())
-        registers.setUB(1, remainder.toUByte())
+        valueStack.push(division.toUByte())
+        valueStack.push(remainder.toUByte())
     }
 
     private fun divAndModUWord(reg1: Int, reg2: Int) {
@@ -1392,16 +1392,20 @@ class VirtualMachine(irProgram: IRProgram) {
         val right = registers.getUW(reg2)
         val division = if(right==0.toUShort()) 0xffffu else left / right
         val remainder = if(right==0.toUShort()) 0xffffu else left % right
-        registers.setUW(0, division.toUShort())
-        registers.setUW(1, remainder.toUShort())
+        valueStack.push((division and 255u).toUByte())
+        valueStack.push((division.toInt() ushr 8).toUByte())
+        valueStack.push((remainder and 255u).toUByte())
+        valueStack.push((remainder.toInt() ushr 8).toUByte())
     }
 
     private fun divAndModConstUWord(reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
         val division = if(value==0.toUShort()) 0xffffu else left / value
         val remainder = if(value==0.toUShort()) 0xffffu else left % value
-        registers.setUW(0, division.toUShort())
-        registers.setUW(1, remainder.toUShort())
+        valueStack.push((division and 255u).toUByte())
+        valueStack.push((division.toInt() ushr 8).toUByte())
+        valueStack.push((remainder and 255u).toUByte())
+        valueStack.push((remainder.toInt() ushr 8).toUByte())
     }
 
     private fun divModByteUnsignedInplace(operator: String, reg1: Int, address: Int) {
