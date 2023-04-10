@@ -127,6 +127,8 @@ sub  input_chars  (uword buffer) -> ubyte  {
     %ir {{
         loadm.w r65535,txt.input_chars.buffer
         push.w r65535
+        load.b r65535,80
+        push.b r65535
         syscall 6
         pop.b r0
         returnreg.b r0

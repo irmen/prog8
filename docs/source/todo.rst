@@ -3,8 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-test vm array reverse, sort, string containment, string input, float array containment (how translated? there is no syscall)
-
 ...
 
 
@@ -35,6 +33,9 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- ir: investigate passing parameters to function calls using fixed set of regs r60000,r60001, etc.
+  these have to be offset somehow by the subroutine number (?) somehow to have a unique list of them per subroutine.
+  also only if we can optimize the subroutine to replace the parameter variables to those registers.
 - ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)

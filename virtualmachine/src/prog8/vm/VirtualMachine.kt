@@ -2299,7 +2299,7 @@ class VirtualMachine(irProgram: IRProgram) {
             val y = valueStack.popw()
             val x = valueStack.popw()
             val color = Color(window!!.getpixel(x.toInt(), y.toInt()))
-            registers.setUB(0, color.green.toUByte())
+            valueStack.push(color.green.toUByte())      // gets called from a syscall, return value via stack.
         }
     }
 

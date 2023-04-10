@@ -1,7 +1,6 @@
 %import textio
 %import conv
 %import math
-%import test_stack
 %zeropage basicsafe
 
 ; The classic number guessing game.
@@ -61,8 +60,6 @@ main {
             txt.print("Thanks for playing, ")
             txt.print(name)
             txt.print(".\n")
-
-            ; test_stack.test()
         }
     }
 }

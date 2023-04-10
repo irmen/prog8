@@ -119,7 +119,7 @@ object SysCalls {
                 if(maxlen>0)
                     input = input.substring(0, min(input.length, maxlen))
                 vm.memory.setString(vm.valueStack.popw().toInt(), input, true)
-                vm.valueStack.pushw(input.length.toUShort())
+                vm.valueStack.push(input.length.toUByte())
             }
             Syscall.SLEEP -> {
                 val duration = vm.valueStack.popw().toLong()

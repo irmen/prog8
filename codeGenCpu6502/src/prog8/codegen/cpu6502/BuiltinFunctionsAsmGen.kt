@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
@@ -337,6 +338,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         lda  #$numElements
                         jsr  prog8_lib.func_reverse_w""")
                 }
+                DataType.STR -> {
+                    val stringLength = (symbol as StStaticVariable).length!!-1
+                    asmgen.out("""
+                        lda  #<$varName
+                        ldy  #>$varName
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #$stringLength
+                        jsr  prog8_lib.func_reverse_b""")
+                }
                 DataType.ARRAY_F -> {
                     asmgen.out("""
                         lda  #<$varName
@@ -380,6 +391,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         sty  P8ZP_SCRATCH_W1+1
                         lda  #$numElements""")
                     asmgen.out(if (decl.type == DataType.ARRAY_UW) "  jsr  prog8_lib.func_sort_uw" else "  jsr  prog8_lib.func_sort_w")
+                }
+                DataType.STR -> {
+                    val stringLength = (symbol as StStaticVariable).length!!-1
+                    asmgen.out("""
+                        lda  #<$varName
+                        ldy  #>$varName
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #$stringLength
+                        jsr  prog8_lib.func_sort_ub""")
                 }
                 DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
                 else -> throw AssemblyError("weird type")

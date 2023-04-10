@@ -5,7 +5,18 @@
 
 main {
     sub start() {
-        math.rndseed(11111,22222)
+        str name = "irmen"
+        reverse(name)
+        txt.print(name)
+        txt.nl()
+        sort(name)
+        txt.print(name)
+        txt.nl()
+        txt.print_ub('@' in name)
+        txt.nl()
+        txt.print_ub('i' in name)
+        txt.nl()
+        sys.wait(60)
     }
 }
 

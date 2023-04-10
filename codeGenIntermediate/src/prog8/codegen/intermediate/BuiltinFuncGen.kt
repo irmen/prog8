@@ -273,7 +273,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, tr, tr.resultReg, -1)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1 = tr.resultReg)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length)
             it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1 = tr.resultReg)
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
         }
@@ -298,7 +298,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, tr, tr.resultReg, -1)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1 = tr.resultReg)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = array.length)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length)
             it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1 = tr.resultReg)
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
         }
