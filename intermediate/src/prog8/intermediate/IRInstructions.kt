@@ -52,8 +52,7 @@ jump                    location      - continue running at instruction number g
 jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
 call                    location      - save current instruction location+1, continue execution at instruction nr given by location. Expect no return value.
 callrval    reg1,       location      - like call but expects a return value from a returnreg instruction, and puts that in reg1
-syscall                 value         - do a systemcall identified by call number, no result value
-syscallr    reg1,       value         - do a systemcall identified by call number, result value is set into reg1
+syscall                 value         - do a systemcall identified by call number, result value(s) are pushed on value stack so need to be POPped off (depends on syscall)
 return                                - restore last saved instruction location and continue at that instruction. No return value.
 returnreg   reg1                      - like return, but also returns a value to the caller via reg1
 
@@ -209,8 +208,8 @@ nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
 concat [b, w] reg1, reg2                  - reg1 = concatenated lsb/lsw of reg1 (as lsb) and lsb/lsw of reg2 (as msb) into word or int (int not yet implemented; requires 32bits regs)
-push [b, w]   reg1                        - push value in reg1 on the stack
-pop [b, w]    reg1                        - pop value from stack into reg1
+push [b, w, f]   reg1                     - push value in reg1 on the stack
+pop [b, w, f]    reg1                     - pop value from stack into reg1
 binarydata                                - 'instruction' to hold inlined binary data bytes
  */
 
@@ -238,7 +237,6 @@ enum class Opcode {
     CALL,
     CALLRVAL,
     SYSCALL,
-    SYSCALLR,
     RETURN,
     RETURNREG,
 
@@ -388,7 +386,6 @@ val OpcodesThatBranch = setOf(
     Opcode.CALL,
     Opcode.CALLRVAL,
     Opcode.SYSCALL,
-    Opcode.SYSCALLR,
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTEQ,
@@ -520,7 +517,6 @@ val instructionFormats = mutableMapOf(
     Opcode.CALL       to InstructionFormat.from("N,<a"),
     Opcode.CALLRVAL   to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
-    Opcode.SYSCALLR   to InstructionFormat.from("BW,>r1,<i     | F,>fr1,<i"),
     Opcode.RETURN     to InstructionFormat.from("N"),
     Opcode.RETURNREG  to InstructionFormat.from("BW,>r1        | F,>fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
@@ -643,8 +639,8 @@ val instructionFormats = mutableMapOf(
     Opcode.FCEIL      to InstructionFormat.from("F,>fr1,<fr2"),
 
     Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.PUSH       to InstructionFormat.from("BW,<r1"),
-    Opcode.POP        to InstructionFormat.from("BW,>r1"),
+    Opcode.PUSH       to InstructionFormat.from("BW,<r1       | F,<fr1"),
+    Opcode.POP        to InstructionFormat.from("BW,>r1       | F,>fr1"),
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
@@ -699,7 +695,7 @@ data class IRInstruction(
         if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
-            if(type==IRDataType.FLOAT && opcode!=Opcode.SYSCALLR) require(immediateFp !=null) {"missing immediate fp value"}
+            if(type==IRDataType.FLOAT) require(immediateFp !=null) {"missing immediate fp value"}
             else require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
         if(type!=IRDataType.FLOAT)
@@ -707,7 +703,7 @@ data class IRInstruction(
         if(format.address!=OperandDirection.UNUSED)
             require(address!=null || labelSymbol!=null) {"missing an address or labelsymbol"}
         if(format.immediate && (immediate!=null || immediateFp!=null)) {
-            if(opcode!=Opcode.SYSCALL && opcode!=Opcode.SYSCALLR) {
+            if(opcode!=Opcode.SYSCALL) {
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
@@ -732,7 +728,7 @@ data class IRInstruction(
                 require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
         }
 
-        if(opcode==Opcode.SYSCALL || opcode==Opcode.SYSCALLR) {
+        if(opcode==Opcode.SYSCALL) {
             require(immediate!=null) {
                 "syscall needs immediate integer for the syscall number"
             }

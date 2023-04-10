@@ -84,7 +84,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val targetReg = codeGen.registers.nextFree()
         addToResult(result, left, SyscallRegisterBase, -1)
         addToResult(result, right, SyscallRegisterBase+1, -1)
-        addInstr(result, IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=targetReg, immediate = IMSyscall.COMPARE_STRINGS.number), null)
+        addInstr(result, IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.COMPARE_STRINGS.number), null)
+        addInstr(result, IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=targetReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, targetReg, -1)
     }
 
@@ -118,7 +119,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, tr, SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, immediate = array.length)
-            it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=tr.resultReg, immediate = syscall.number)
+            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
+            it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
         }
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
@@ -140,7 +142,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, tr, SyscallRegisterBase, -1)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = SyscallRegisterBase+1, immediate = array.length)
-            it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=tr.resultReg, immediate = syscall.number)
+            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
+            it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
         }
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }

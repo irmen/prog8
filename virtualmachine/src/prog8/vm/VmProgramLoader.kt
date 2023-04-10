@@ -100,7 +100,7 @@ class VmProgramLoader {
     private fun pass2translateSyscalls(chunks: MutableList<IRCodeChunk>) {
         chunks.forEach { chunk ->
             chunk.instructions.withIndex().forEach { (index, ins) ->
-                if(ins.opcode == Opcode.SYSCALL || ins.opcode==Opcode.SYSCALLR) {
+                if(ins.opcode == Opcode.SYSCALL) {
                     // convert IR Syscall to VM Syscall
                     val vmSyscall = when(ins.immediate!!) {
                         IMSyscall.SORT_UBYTE.number -> Syscall.SORT_UBYTE

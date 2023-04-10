@@ -107,7 +107,8 @@ sys {
         %ir {{
             loadm.w r65500,sys.gfx_getpixel.xx
             loadm.w r65501,sys.gfx_getpixel.yy
-            syscallr.b r0,30
+            syscall 30
+            pop.b r0
             returnreg.b r0
         }}
     }

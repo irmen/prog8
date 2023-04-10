@@ -116,7 +116,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, tr, SyscallRegisterBase+1, -1)
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.STRING_CONTAINS.number)
+                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.STRING_CONTAINS.number)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -128,7 +129,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
+                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
                 }
                 // SysCall call convention: return value in register r0
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
@@ -141,7 +143,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
+                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
+                    it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultReg)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -461,20 +464,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, SyscallRegisterBase, -1)
-                val rightTr = translateExpression(binExpr.right)
-                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1 = leftTr.resultReg, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    val zeroReg = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = zeroReg, immediate = 0)
-                    it += if (greaterEquals)
-                        IRInstruction(Opcode.SGES, IRDataType.BYTE, reg1 = leftTr.resultReg, reg2 = zeroReg)
-                    else
-                        IRInstruction(Opcode.SGTS, IRDataType.BYTE, reg1 = leftTr.resultReg, reg2 = zeroReg)
-                }
-                return ExpressionCodeResult(result, IRDataType.BYTE, leftTr.resultReg, -1)
+                throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -516,21 +506,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, SyscallRegisterBase, -1)
-                val rightTr = translateExpression(binExpr.right)
-                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
-                val resultReg = codeGen.registers.nextFree()    // TODO reuse leftTr resultreg?
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    val zeroReg = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = zeroReg, immediate = 0)
-                    it += if (lessEquals)
-                        IRInstruction(Opcode.SLES, IRDataType.BYTE, reg1 = resultReg, reg2 = zeroReg)
-                    else
-                        IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = resultReg, reg2 = zeroReg)
-                }
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -569,18 +545,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
             if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, SyscallRegisterBase, -1)
-                val rightTr = translateExpression(binExpr.right)
-                addToResult(result, rightTr, SyscallRegisterBase+1, -1)
-                val resultRegister = codeGen.registers.nextFree()
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultRegister, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    if (!notEquals)
-                        it += IRInstruction(Opcode.INV, vmDt, reg1 = resultRegister)
-                    it += IRInstruction(Opcode.AND, vmDt, reg1 = resultRegister, immediate = 1)
-                }
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+                throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 return if(constValue(binExpr.right)==0.0) {
                     val tr = translateExpression(binExpr.left)
@@ -844,7 +809,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             else {
                 return if(binExpr.right is PtNumber) {
-                    val tr = translateExpression(binExpr.left,)
+                    val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, tr.resultReg, -1)
                     addInstr(result, IRInstruction(Opcode.SUB, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
                     ExpressionCodeResult(result, vmDt, tr.resultReg, -1)

@@ -178,8 +178,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
             Opcode.CALL -> InsCALL(ins)
             Opcode.CALLRVAL -> InsCALLRVAL(ins)
-            Opcode.SYSCALL -> InsSYSCALL(ins, false)
-            Opcode.SYSCALLR -> InsSYSCALL(ins, true)
+            Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
             Opcode.RETURNREG -> InsRETURNREG(ins)
             Opcode.BSTCC -> InsBSTCC(ins)
@@ -333,8 +332,7 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             IRDataType.WORD -> {
                 val value = registers.getUW(i.reg1!!)
-                valueStack.push((value and 255u).toUByte())
-                valueStack.push((value.toInt() ushr 8).toUByte())
+                valueStack.pushw(value)
             }
             IRDataType.FLOAT -> {
                 throw IllegalArgumentException("can't PUSH a float")
@@ -344,26 +342,34 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsPOP(i: IRInstruction) {
-        val value = when(i.type!!) {
+        when(i.type!!) {
             IRDataType.BYTE -> {
-                valueStack.pop().toInt()
+                val value = valueStack.pop().toInt()
+                setResultReg(i.reg1!!, value, i.type!!)
             }
             IRDataType.WORD -> {
                 val msb = valueStack.pop()
                 val lsb = valueStack.pop()
-                (msb.toInt() shl 8) + lsb.toInt()
+                val value = (msb.toInt() shl 8) + lsb.toInt()
+                setResultReg(i.reg1!!, value, i.type!!)
             }
             IRDataType.FLOAT -> {
-                throw IllegalArgumentException("can't POP a float")
+                // pop float; lsb is on bottom, msb on top
+                val b0 = valueStack.pop()
+                val b1 = valueStack.pop()
+                val b2 = valueStack.pop()
+                val b3 = valueStack.pop()
+                val bits = b3 + 256u*b2 + 65536u*b1 + 16777216u*b0
+                val value = Float.fromBits(bits.toInt())
+                registers.setFloat(i.fpReg1!!, value)
             }
         }
-        setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
     }
 
-    private fun InsSYSCALL(i: IRInstruction, hasReturnReg: Boolean) {
+    private fun InsSYSCALL(i: IRInstruction) {
         val call = Syscall.values()[i.immediate!!]
-        SysCalls.call(call, this)
+        SysCalls.call(call, this)   // note: any result value(s) are pushed on the value stack
         nextPc()
     }
 
@@ -1392,20 +1398,16 @@ class VirtualMachine(irProgram: IRProgram) {
         val right = registers.getUW(reg2)
         val division = if(right==0.toUShort()) 0xffffu else left / right
         val remainder = if(right==0.toUShort()) 0xffffu else left % right
-        valueStack.push((division and 255u).toUByte())
-        valueStack.push((division.toInt() ushr 8).toUByte())
-        valueStack.push((remainder and 255u).toUByte())
-        valueStack.push((remainder.toInt() ushr 8).toUByte())
+        valueStack.pushw(division.toUShort())
+        valueStack.pushw(remainder.toUShort())
     }
 
     private fun divAndModConstUWord(reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
         val division = if(value==0.toUShort()) 0xffffu else left / value
         val remainder = if(value==0.toUShort()) 0xffffu else left % value
-        valueStack.push((division and 255u).toUByte())
-        valueStack.push((division.toInt() ushr 8).toUByte())
-        valueStack.push((remainder and 255u).toUByte())
-        valueStack.push((remainder.toInt() ushr 8).toUByte())
+        valueStack.pushw(division.toUShort())
+        valueStack.pushw(remainder.toUShort())
     }
 
     private fun divModByteUnsignedInplace(operator: String, reg1: Int, address: Int) {
@@ -2330,6 +2332,23 @@ class VirtualMachine(irProgram: IRProgram) {
     fun randomSeedFloat(seed: Float) {
         randomGeneratorFloats = Random(seed.toBits())
     }
+}
+
+internal fun Stack<UByte>.pushw(value: UShort) {
+    push((value and 255u).toUByte())
+    push((value.toInt() ushr 8).toUByte())
+}
+
+internal fun Stack<UByte>.pushf(value: Float) {
+    // push float; lsb first, msb last
+    var bits = value.toBits()
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
 }
 
 // probably called via reflection

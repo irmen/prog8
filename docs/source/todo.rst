@@ -3,7 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-change syscalls to output results on value stack
 change syscalls to take parameters on value stack (not in r65500+ registers)
 
 ...

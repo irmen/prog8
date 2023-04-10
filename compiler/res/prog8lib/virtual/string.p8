@@ -86,7 +86,8 @@ string {
         %ir {{
             loadm.w r65500,string.compare.st1
             loadm.w r65501,string.compare.st2
-            syscallr.b r0,29
+            syscall 29
+            pop.b r0
             returnreg.b r0
         }}
     }

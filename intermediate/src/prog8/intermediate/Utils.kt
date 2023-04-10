@@ -182,7 +182,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
         throw IRParseException("invalid fpReg1 for $line")
     if(format.fpReg2==OperandDirection.UNUSED && fpReg2!=null)
         throw IRParseException("invalid fpReg2 for $line")
-    if(format.immediate && opcode!=Opcode.SYSCALL && opcode!=Opcode.SYSCALLR) {
+    if(format.immediate && opcode!=Opcode.SYSCALL) {
         if(immediateInt==null && immediateFp==null && labelSymbol==null)
             throw IRParseException("needs value or symbol for $line")
         when (type) {
@@ -220,11 +220,6 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
             throw IRParseException("invalid cpu reg: $reg")
 
         return left(IRInstruction(opcode, type, reg1, labelSymbol = reg))
-    }
-
-    if(opcode==Opcode.SYSCALLR && type==IRDataType.FLOAT) {
-        immediateInt = immediateFp!!.toInt()
-        immediateFp = null
     }
 
     return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
