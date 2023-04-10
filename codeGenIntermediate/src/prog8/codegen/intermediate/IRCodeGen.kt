@@ -1014,9 +1014,6 @@ class IRCodeGen(
             else
                 addInstr(result, IRInstruction(Opcode.BNE, irDtLeft, reg1 = tr.resultReg, immediate = 0, labelSymbol = goto.identifier!!.name), null)
         } else {
-
-            // TODO use immediate branch instructions if the value is constant
-
             val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val opcode: Opcode

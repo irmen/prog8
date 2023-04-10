@@ -493,7 +493,6 @@ data class InstructionFormat(val datatype: IRDataType?,
      fr0... = fp register
      a = memory address
      i = immediate value
-  TODO: also encode if *memory* is read/written/modified?
  */
 val instructionFormats = mutableMapOf(
     Opcode.NOP        to InstructionFormat.from("N"),
@@ -516,10 +515,10 @@ val instructionFormats = mutableMapOf(
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPA      to InstructionFormat.from("N,<a"),
     Opcode.CALL       to InstructionFormat.from("N,<a"),
-    Opcode.CALLRVAL   to InstructionFormat.from("BW,<r1,<a     | F,<fr1,<a"),
+    Opcode.CALLRVAL   to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
     Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNREG  to InstructionFormat.from("BW,<r1        | F,<fr1"),
+    Opcode.RETURNREG  to InstructionFormat.from("BW,>r1        | F,>fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
     Opcode.BSTCS      to InstructionFormat.from("N,<a"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<a"),
