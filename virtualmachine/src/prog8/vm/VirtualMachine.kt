@@ -178,7 +178,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
             Opcode.CALL -> InsCALL(ins)
             Opcode.CALLRVAL -> InsCALLRVAL(ins)
-            Opcode.SYSCALL -> InsSYSCALL(ins)
+            Opcode.SYSCALL -> InsSYSCALL(ins, false)
+            Opcode.SYSCALLR -> InsSYSCALL(ins, true)
             Opcode.RETURN -> InsRETURN()
             Opcode.RETURNREG -> InsRETURNREG(ins)
             Opcode.BSTCC -> InsBSTCC(ins)
@@ -360,7 +361,7 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsSYSCALL(i: IRInstruction) {
+    private fun InsSYSCALL(i: IRInstruction, hasReturnReg: Boolean) {
         val call = Syscall.values()[i.immediate!!]
         SysCalls.call(call, this)
         nextPc()

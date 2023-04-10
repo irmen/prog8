@@ -123,7 +123,7 @@ sub  input_chars  (uword buffer) -> ubyte  {
     ;      It assumes the keyboard is selected as I/O channel!
     %ir {{
         loadm.w r65500,txt.input_chars.buffer
-        syscall 6
+        syscallr.b r0,6
         returnreg.b r0
     }}
 }

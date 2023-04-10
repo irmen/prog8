@@ -161,14 +161,14 @@ math {
 
     sub rnd() -> ubyte {
         %ir {{
-            syscall 33
+            syscallr.b r0,33
             returnreg.b r0
         }}
     }
 
     sub rndw() -> uword {
         %ir {{
-            syscall 34
+            syscallr.w r0,34
             returnreg.w r0
         }}
     }

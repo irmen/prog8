@@ -197,7 +197,7 @@ sub  str2uword(str string) -> uword {
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
         loadm.w r65500,conv.str2uword.string
-        syscall 11
+        syscallr.w r0,11
         returnreg.w r0
     }}
 }
@@ -208,7 +208,7 @@ sub  str2word(str string) -> word {
     ;    (any non-digit character will terminate the number string that is parsed)
     %ir {{
         loadm.w r65500,conv.str2word.string
-        syscall 12
+        syscallr.w r0,12
         returnreg.w r0
     }}
 }

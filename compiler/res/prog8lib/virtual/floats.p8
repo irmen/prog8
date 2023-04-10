@@ -126,7 +126,7 @@ sub ceil(float value) -> float {
 
 sub rndf() -> float {
     %ir {{
-        syscall 35
+        syscallr.f fr0,35
         returnreg.f fr0
     }}
 }

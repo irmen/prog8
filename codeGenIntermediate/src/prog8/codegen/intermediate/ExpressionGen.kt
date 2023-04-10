@@ -116,8 +116,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, tr, SyscallRegisterBase+1, -1)
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.STRING_CONTAINS.number)
-                    it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultReg, reg2=0)
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.STRING_CONTAINS.number)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -129,8 +128,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
-                    it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultReg, reg2=0)
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
                 }
                 // SysCall call convention: return value in register r0
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
@@ -143,8 +141,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=SyscallRegisterBase+2, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
-                    it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultReg, reg2=0)
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
@@ -469,8 +466,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, SyscallRegisterBase+1, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    // SysCall call convention: return value in register r0
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1 = leftTr.resultReg, immediate = IMSyscall.COMPARE_STRINGS.number)
                     val zeroReg = codeGen.registers.nextFree()
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = zeroReg, immediate = 0)
                     it += if (greaterEquals)
@@ -524,17 +520,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, leftTr, SyscallRegisterBase, -1)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, SyscallRegisterBase+1, -1)
-                val resultReg = codeGen.registers.nextFree()
+                val resultReg = codeGen.registers.nextFree()    // TODO reuse leftTr resultreg?
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    // SysCall call convention: return value in register r0
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultReg, immediate = IMSyscall.COMPARE_STRINGS.number)
                     val zeroReg = codeGen.registers.nextFree()
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = zeroReg, immediate = 0)
                     it += if (lessEquals)
-                        IRInstruction(Opcode.SLES, IRDataType.BYTE, reg1 = 0, reg2 = zeroReg)
+                        IRInstruction(Opcode.SLES, IRDataType.BYTE, reg1 = resultReg, reg2 = zeroReg)
                     else
-                        IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = 0, reg2 = zeroReg)
-                    it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=resultReg, reg2=0)
+                        IRInstruction(Opcode.SLTS, IRDataType.BYTE, reg1 = resultReg, reg2 = zeroReg)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             } else {
@@ -581,11 +575,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, rightTr, SyscallRegisterBase+1, -1)
                 val resultRegister = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.COMPARE_STRINGS.number)
-                    // SysCall call convention: return value in register r0
+                    it += IRInstruction(Opcode.SYSCALLR, IRDataType.BYTE, reg1=resultRegister, immediate = IMSyscall.COMPARE_STRINGS.number)
                     if (!notEquals)
-                        it += IRInstruction(Opcode.INV, vmDt, reg1 = 0)
-                    it += IRInstruction(Opcode.LOADR, vmDt, reg1=resultRegister, reg2=0)
+                        it += IRInstruction(Opcode.INV, vmDt, reg1 = resultRegister)
                     it += IRInstruction(Opcode.AND, vmDt, reg1 = resultRegister, immediate = 1)
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
