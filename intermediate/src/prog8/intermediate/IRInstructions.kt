@@ -17,8 +17,11 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
                                              logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
-Most instructions have an associated data type 'b','w','f'. (omitting it defaults to 'b' - byte).
-Currently NO support for 24 or 32 bits integers.
+
+Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=32 bits). Omitting it defaults to b.
+Currently ther is NO support for 24 or 32 bits integers.
+There is no distinction between signed and unsigned integers.
+Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 Instructions taking more than 1 register cannot take the same register multiple times! (to avoid confusing different datatypes)
 
@@ -50,11 +53,11 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction number given by location
 jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
-call                    location      - save current instruction location+1, continue execution at instruction nr given by location. Expect no return value.
-callrval    reg1,       location      - like call but expects a return value from a returnreg instruction, and puts that in reg1
+call                    location      - save current instruction location+1, continue execution at instruction nr given by location. No return value is expected.
+callr       reg1,       location      - like call but expects the routine to  return a value with a returnr instruction, it then puts that in reg1
 syscall                 value         - do a systemcall identified by call number, result value(s) are pushed on value stack so need to be POPped off (depends on syscall)
 return                                - restore last saved instruction location and continue at that instruction. No return value.
-returnreg   reg1                      - like return, but also returns a value to the caller via reg1
+returnr     reg1                      - like return, but also returns the value in reg1 to the caller
 
 
 BRANCHING and CONDITIONALS
@@ -112,12 +115,12 @@ dec         reg1                            - reg1 = reg1-1
 decm                           address      - memory at address -= 1
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
-addr        reg1, reg2                      - reg1 += reg2 (unsigned + signed)
-add         reg1,              value        - reg1 += value (unsigned + signed)
-addm        reg1,              address      - memory at address += reg1 (unsigned + signed)
-subr        reg1, reg2                      - reg1 -= reg2 (unsigned + signed)
-sub         reg1,              value        - reg1 -= value (unsigned + signed)
-subm        reg1,              address      - memory at address -= reg1 (unsigned + signed)
+addr        reg1, reg2                      - reg1 += reg2 
+add         reg1,              value        - reg1 += value 
+addm        reg1,              address      - memory at address += reg1 
+subr        reg1, reg2                      - reg1 -= reg2 
+sub         reg1,              value        - reg1 -= value 
+subm        reg1,              address      - memory at address -= reg1 
 mulr        reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
 mul         reg1,              value        - unsigned multiply reg1 *= value  note: byte*byte->byte, no type extension to word!
 mulm        reg1,              address      - memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
@@ -235,10 +238,10 @@ enum class Opcode {
     JUMP,
     JUMPA,
     CALL,
-    CALLRVAL,
+    CALLR,
     SYSCALL,
     RETURN,
-    RETURNREG,
+    RETURNR,
 
     BSTCC,
     BSTCS,
@@ -375,16 +378,16 @@ val OpcodesThatJump = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
     Opcode.RETURN,
-    Opcode.RETURNREG
+    Opcode.RETURNR
 )
 
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
     Opcode.JUMPA,
     Opcode.RETURN,
-    Opcode.RETURNREG,
+    Opcode.RETURNR,
     Opcode.CALL,
-    Opcode.CALLRVAL,
+    Opcode.CALLR,
     Opcode.SYSCALL,
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -515,10 +518,10 @@ val instructionFormats = mutableMapOf(
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPA      to InstructionFormat.from("N,<a"),
     Opcode.CALL       to InstructionFormat.from("N,<a"),
-    Opcode.CALLRVAL   to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
+    Opcode.CALLR   to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
     Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNREG  to InstructionFormat.from("BW,>r1        | F,>fr1"),
+    Opcode.RETURNR  to InstructionFormat.from("BW,>r1        | F,>fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
     Opcode.BSTCS      to InstructionFormat.from("N,<a"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<a"),

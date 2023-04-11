@@ -89,7 +89,7 @@ internal class BitmapScreenPanel(private val drawImage: BufferedImage, val pixel
 
     override fun paint(graphics: Graphics) {
         val g2d = graphics as Graphics2D
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
         g2d.drawImage(drawImage, 0, 0, size.width, size.height, null)
         Toolkit.getDefaultToolkit().sync()
     }

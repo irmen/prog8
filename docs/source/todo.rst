@@ -3,11 +3,15 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
+- try to optimize newexpr a bit more
+
 ...
 
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
+- try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
+  This is a major change because it will likely break existing code that is now using min and max as variable names.
 - get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
   the large majority of users will only deal with a single disk drive so why not make it easier for them.
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
@@ -33,9 +37,9 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- ir: investigate passing parameters to function calls using fixed set of regs r60000,r60001, etc.
-  these have to be offset somehow by the subroutine number (?) somehow to have a unique list of them per subroutine.
-  also only if we can optimize the subroutine to replace the parameter variables to those registers.
+- ir: idea? (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
+  global initialization values are simply a list of LOAD instructions.
+  Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)

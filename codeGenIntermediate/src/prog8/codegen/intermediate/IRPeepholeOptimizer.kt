@@ -184,7 +184,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             }
 
             // remove useless RETURN
-            if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNREG)) {
+            if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNR)) {
                 val previous = chunk.instructions[idx-1]
                 if(previous.opcode in OpcodesThatJump) {
                     chunk.instructions.removeAt(idx)
@@ -204,7 +204,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // replace call + return --> jump
             if(idx>0 && ins.opcode==Opcode.RETURN) {
                 val previous = chunk.instructions[idx-1]
-                if(previous.opcode==Opcode.CALL || previous.opcode==Opcode.CALLRVAL) {
+                if(previous.opcode==Opcode.CALL || previous.opcode==Opcode.CALLR) {
                     chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, address = previous.address, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
                     chunk.instructions.removeAt(idx)
                     changed = true

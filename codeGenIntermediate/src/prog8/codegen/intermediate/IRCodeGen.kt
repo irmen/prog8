@@ -1458,12 +1458,12 @@ class IRCodeGen(
             if(value.type==DataType.FLOAT) {
                 val tr = expressionEval.translateExpression(value)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, IRInstruction(Opcode.RETURNREG, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
             }
             else {
                 val tr = expressionEval.translateExpression(value)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.RETURNREG, irType(value.type) , reg1=tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.RETURNR, irType(value.type) , reg1=tr.resultReg), null)
             }
         }
         return result

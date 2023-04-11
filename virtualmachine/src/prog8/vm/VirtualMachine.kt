@@ -17,7 +17,7 @@ Virtual machine specs:
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
 65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
-65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
+65536 bytes of memory, thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
                                              logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
@@ -176,11 +176,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
-            Opcode.CALL -> InsCALL(ins)
-            Opcode.CALLRVAL -> InsCALLRVAL(ins)
+            Opcode.CALL, Opcode.CALLR -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
-            Opcode.RETURNREG -> InsRETURNREG(ins)
+            Opcode.RETURNR -> InsRETURNR(ins)
             Opcode.BSTCC -> InsBSTCC(ins)
             Opcode.BSTCS -> InsBSTCS(ins)
             Opcode.BSTEQ -> InsBSTEQ(ins)
@@ -591,11 +590,6 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsCALL(i: IRInstruction) {
-        callStack.push(CallSiteContext(pcChunk, pcIndex+1, null, null))
-        branchTo(i)
-    }
-
-    private fun InsCALLRVAL(i: IRInstruction) {
         callStack.push(CallSiteContext(pcChunk, pcIndex+1, i.reg1, i.fpReg1))
         branchTo(i)
     }
@@ -611,7 +605,7 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private fun InsRETURNREG(i: IRInstruction) {
+    private fun InsRETURNR(i: IRInstruction) {
         if(callStack.isEmpty())
             exit(0)
         else {
@@ -2293,11 +2287,11 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     fun gfx_getpixel() {
+        val y = valueStack.popw()
+        val x = valueStack.popw()
         if(window==null)
-            registers.setUB(0, 0u)
+            valueStack.push(0u)
         else {
-            val y = valueStack.popw()
-            val x = valueStack.popw()
             val color = Color(window!!.getpixel(x.toInt(), y.toInt()))
             valueStack.push(color.green.toUByte())      // gets called from a syscall, return value via stack.
         }

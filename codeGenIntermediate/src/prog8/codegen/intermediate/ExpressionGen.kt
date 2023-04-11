@@ -383,10 +383,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     var resultFpReg = -1
                     if(fcall.type==DataType.FLOAT) {
                         resultFpReg = codeGen.registers.nextFreeFloat()
-                        addInstr(result, IRInstruction(Opcode.CALLRVAL, IRDataType.FLOAT, fpReg1=resultFpReg, labelSymbol=fcall.name), null)
+                        addInstr(result, IRInstruction(Opcode.CALLR, IRDataType.FLOAT, fpReg1=resultFpReg, labelSymbol=fcall.name), null)
                     } else {
                         resultReg = codeGen.registers.nextFree()
-                        addInstr(result, IRInstruction(Opcode.CALLRVAL, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol=fcall.name), null)
+                        addInstr(result, IRInstruction(Opcode.CALLR, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol=fcall.name), null)
                     }
                     ExpressionCodeResult(result, codeGen.irType(fcall.type), resultReg, resultFpReg)
                 }

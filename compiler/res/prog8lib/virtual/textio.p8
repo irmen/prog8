@@ -131,7 +131,7 @@ sub  input_chars  (uword buffer) -> ubyte  {
         push.b r65535
         syscall 6
         pop.b r0
-        returnreg.b r0
+        returnr.b r0
     }}
 }
 

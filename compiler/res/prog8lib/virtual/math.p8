@@ -163,7 +163,7 @@ math {
         %ir {{
             syscall 33
             pop.b r0
-            returnreg.b r0
+            returnr.b r0
         }}
     }
 
@@ -171,7 +171,7 @@ math {
         %ir {{
             syscall 34
             pop.w r0
-            returnreg.w r0
+            returnr.w r0
         }}
     }
 

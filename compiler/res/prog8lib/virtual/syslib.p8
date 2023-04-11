@@ -118,7 +118,7 @@ sys {
             push.w r65535
             syscall 30
             pop.b r0
-            returnreg.b r0
+            returnr.b r0
         }}
     }
 }

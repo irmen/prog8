@@ -200,7 +200,7 @@ sub  str2uword(str string) -> uword {
         push.w  r65535
         syscall 11
         pop.w r0
-        returnreg.w r0
+        returnr.w r0
     }}
 }
 
@@ -213,7 +213,7 @@ sub  str2word(str string) -> word {
         push.w r65535
         syscall 12
         pop.w r0
-        returnreg.w r0
+        returnr.w r0
     }}
 }
 
