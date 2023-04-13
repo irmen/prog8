@@ -16,7 +16,7 @@ sub  clear_screen() {
     str @shared sequence = "\x1b[2J\x1B[H"
     %ir {{
         load.w r65535,txt.clear_screen.sequence
-        push.w r65535
+        setparam.w r65535,0
         syscall 3
     }}
 }
@@ -40,7 +40,7 @@ sub uppercase() {
 sub chrout(ubyte char) {
     %ir {{
         loadm.b r65535,txt.chrout.char
-        push.b r65535
+        setparam.b r65535,0
         syscall 2
     }}
 }
@@ -48,7 +48,7 @@ sub chrout(ubyte char) {
 sub  print (str text) {
     %ir {{
         loadm.w r65535,txt.print.text
-        push.w r65535
+        setparam.w r65535,0
         syscall 3
     }}
 }
@@ -126,9 +126,9 @@ sub  input_chars  (uword buffer) -> ubyte  {
     ;      It assumes the keyboard is selected as I/O channel!
     %ir {{
         loadm.w r65535,txt.input_chars.buffer
-        push.w r65535
+        setparam.w r65535,0
         load.b r65535,80
-        push.b r65535
+        setparam.b r65535,1
         syscall 6
         pop.b r0
         returnr.b r0

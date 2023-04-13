@@ -47,9 +47,6 @@ Compiler:
 - ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
-- ir: write arguments for subroutine calls in IR differently?
-  don't load them explicitly into the variables but use a new special instruction to do it transparently.
-  (vm should take care of it based on the subroutine's parameter list)
 - PtAst/IR: more complex common subexpression eliminations
 - vm: somehow be able to load a label address as value? (VmProgramLoader) this may require storing the program as bytecodes in actual memory though...
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.

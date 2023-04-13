@@ -4,18 +4,24 @@
 %import string
 
 main {
+    ubyte a
+    sub func1() {
+        a++
+    }
+
+    sub func2() -> ubyte {
+        a++
+        return a
+    }
+
     sub start() {
-        str name = "irmen"
-        reverse(name)
-        txt.print(name)
+        a=42
+        func1()
+        txt.print_ub(a)
         txt.nl()
-        sort(name)
-        txt.print(name)
+        txt.print_ub(func2())
         txt.nl()
-        txt.print_ub('@' in name)
-        txt.nl()
-        txt.print_ub('i' in name)
-        txt.nl()
+        floats.print_f(floats.PI)
         sys.wait(60)
     }
 }

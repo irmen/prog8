@@ -112,10 +112,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             DataType.STR -> {
                 tr = translateExpression(check.element)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, tr.resultReg, immediate = 0), null)
                 tr = translateExpression(check.iterable)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.WORD, tr.resultReg, immediate = 1), null)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.STRING_CONTAINS.number)
                     it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
@@ -125,13 +125,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 tr = translateExpression(check.element)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, tr.resultReg, immediate = 0), null)
                 tr = translateExpression(check.iterable)
                 addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg)
+                    it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, tr.resultReg, immediate = 1)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg)
+                    it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, tr.resultReg, immediate = 2)
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.BYTEARRAY_CONTAINS.number)
                     it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
                 }
@@ -141,13 +141,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
                 tr = translateExpression(check.element)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.WORD, tr.resultReg, immediate = 0), null)
                 tr = translateExpression(check.iterable)
                 addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.PUSH, IRDataType.WORD, tr.resultReg)
+                    it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, tr.resultReg, immediate = 1)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = iterable.length!!)
-                    it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, tr.resultReg)
+                    it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, tr.resultReg, immediate = 2)
                     it += IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.WORDARRAY_CONTAINS.number)
                     it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
                 }
@@ -358,23 +358,33 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)) {
             is StSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
-                for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
-                    val paramDt = codeGen.irType(parameter.type)
-                    val symbol = "${fcall.name}.${parameter.name}"
-                    if(codeGen.isZero(arg)) {
-                        addInstr(result, IRInstruction(Opcode.STOREZM, paramDt, labelSymbol = symbol), null)
-                    } else {
-                        if (paramDt == IRDataType.FLOAT) {
-                            val tr = translateExpression(arg)
-                            addToResult(result, tr, -1, tr.resultFpReg)
-                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol), null)
-                        } else {
-                            val tr = translateExpression(arg)
-                            addToResult(result, tr, tr.resultReg, -1)
-                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, reg1 = tr.resultReg, labelSymbol = symbol), null)
-                        }
-                    }
+                for ((index, argspec) in fcall.args.zip(callTarget.parameters).withIndex()) {
+                    val (arg, param) = argspec
+                    val paramDt = codeGen.irType(param.type)
+                    val tr = translateExpression(arg)
+                    result += tr.chunks
+                    if(paramDt==IRDataType.FLOAT)
+                        addInstr(result, IRInstruction(Opcode.SETPARAM, paramDt, fpReg1 = tr.resultFpReg, immediate = index), null)
+                    else
+                        addInstr(result, IRInstruction(Opcode.SETPARAM, paramDt, reg1 = tr.resultReg, immediate = index), null)
                 }
+//                for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
+//                    val paramDt = codeGen.irType(parameter.type)
+//                    val symbol = "${fcall.name}.${parameter.name}"
+//                    if(codeGen.isZero(arg)) {
+//                        addInstr(result, IRInstruction(Opcode.STOREZM, paramDt, labelSymbol = symbol), null)
+//                    } else {
+//                        if (paramDt == IRDataType.FLOAT) {
+//                            val tr = translateExpression(arg)
+//                            addToResult(result, tr, -1, tr.resultFpReg)
+//                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol), null)
+//                        } else {
+//                            val tr = translateExpression(arg)
+//                            addToResult(result, tr, tr.resultReg, -1)
+//                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, reg1 = tr.resultReg, labelSymbol = symbol), null)
+//                        }
+//                    }
+//                }
                 return if(fcall.void) {
                     addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name), null)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)

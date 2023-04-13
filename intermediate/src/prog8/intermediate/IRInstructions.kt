@@ -53,6 +53,7 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction number given by location
 jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
+setparam    reg1,       argpos        - sets reg1 as the value for the parameter in the given position for an upcoming function call (call, callr, syscall, or even jump opcode).
 call                    location      - save current instruction location+1, continue execution at instruction nr given by location. No return value is expected.
 callr       reg1,       location      - like call but expects the routine to  return a value with a returnr instruction, it then puts that in reg1
 syscall                 value         - do a systemcall identified by call number, result value(s) are pushed on value stack so need to be POPped off (depends on syscall)
@@ -237,6 +238,7 @@ enum class Opcode {
 
     JUMP,
     JUMPA,
+    SETPARAM,
     CALL,
     CALLR,
     SYSCALL,
@@ -517,11 +519,12 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPA      to InstructionFormat.from("N,<a"),
+    Opcode.SETPARAM     to InstructionFormat.from("BW,<r1,<i     | F,<fr1,<i"),
     Opcode.CALL       to InstructionFormat.from("N,<a"),
-    Opcode.CALLR   to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
+    Opcode.CALLR      to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
     Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNR  to InstructionFormat.from("BW,>r1        | F,>fr1"),
+    Opcode.RETURNR    to InstructionFormat.from("BW,>r1        | F,>fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
     Opcode.BSTCS      to InstructionFormat.from("N,<a"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<a"),
@@ -698,7 +701,12 @@ data class IRInstruction(
         if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
-            if(type==IRDataType.FLOAT) require(immediateFp !=null) {"missing immediate fp value"}
+            if(type==IRDataType.FLOAT) {
+                if(opcode!=Opcode.SETPARAM)
+                    require(immediateFp !=null) {"missing immediate fp value"}
+                else
+                    require(immediateFp==null) {"setparam never has immediateFp only immediate"}
+            }
             else require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
         if(type!=IRDataType.FLOAT)

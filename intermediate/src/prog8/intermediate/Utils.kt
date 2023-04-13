@@ -198,6 +198,10 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
             null -> {}
         }
     }
+    if(format.immediate && opcode==Opcode.SETPARAM && immediateInt==null) {
+        immediateInt = immediateFp!!.toInt()
+        immediateFp = null
+    }
 
     if(format.address!=OperandDirection.UNUSED && address==null && labelSymbol==null)
         throw IRParseException("requires address or symbol for $line")

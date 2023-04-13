@@ -179,9 +179,9 @@ math {
         ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
         %ir {{
             loadm.w r65535,math.rndseed.seed1
-            push.w r65535
+            setparam.w r65535,0
             loadm.w r65535,math.rndseed.seed2
-            push.w r65535
+            setparam.w r65535,1
             syscall 31
             return
         }}

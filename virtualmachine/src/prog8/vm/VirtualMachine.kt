@@ -176,6 +176,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
+            Opcode.SETPARAM -> InsSETPARAM(ins)
             Opcode.CALL, Opcode.CALLR -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
@@ -351,8 +352,19 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSYSCALL(i: IRInstruction) {
-        val call = Syscall.values()[i.immediate!!]
-        SysCalls.call(call, this)   // note: any result value(s) are pushed on the value stack
+        // put the syscall's arguments that were prepared onto the stack
+        for(value in syscallParams) {
+            if(value.dt==null)
+                break
+            when(value.dt!!) {
+                IRDataType.BYTE -> valueStack.push(value.value as UByte)
+                IRDataType.WORD -> valueStack.pushw(value.value as UShort)
+                IRDataType.FLOAT -> valueStack.pushf(value.value as Float)
+            }
+            value.dt=null
+        }
+        val call = Syscall.fromInt(i.immediate!!)
+        SysCalls.call(call, this)   // note: any result value(s) are pushed back on the value stack
         nextPc()
     }
 
@@ -587,6 +599,31 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsJUMP(i: IRInstruction) {
         branchTo(i)
+    }
+
+    private class SyscallParamValue(var dt: IRDataType?, var value: Comparable<*>?)
+    private val syscallParams = Array(100) { SyscallParamValue(null, null) }
+
+    private fun InsSETPARAM(i: IRInstruction) {
+        // store the argument value into the retrieved subroutine's parameter variable (already cached in the instruction's address)
+        // the reason this is a special instruction is to be flexible in implementing the call convention
+        val address = i.address
+        if(address==null) {
+            // this param is for a SYSCALL (that has no param variable address, instead it goes via the stack)
+            syscallParams[i.immediate!!].dt = i.type!!
+            syscallParams[i.immediate!!].value = when(i.type!!) {
+                IRDataType.BYTE -> registers.getUB(i.reg1!!)
+                IRDataType.WORD -> registers.getUW(i.reg1!!)
+                IRDataType.FLOAT -> registers.getFloat(i.fpReg1!!)
+            }
+        } else {
+            when (i.type!!) {
+                IRDataType.BYTE -> memory.setUB(address, registers.getUB(i.reg1!!))
+                IRDataType.WORD -> memory.setUW(address, registers.getUW(i.reg1!!))
+                IRDataType.FLOAT -> memory.setFloat(address, registers.getFloat(i.fpReg1!!))
+            }
+        }
+        nextPc()
     }
 
     private fun InsCALL(i: IRInstruction) {

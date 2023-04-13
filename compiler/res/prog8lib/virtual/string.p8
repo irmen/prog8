@@ -85,9 +85,9 @@ string {
         ; comparison operators ==, < etcetera (it will use strcmp for you under water automatically).
         %ir {{
             loadm.w r65535,string.compare.st1
-            push.w r65535
+            setparam.w r65535,0
             loadm.w r65535,string.compare.st2
-            push.w r65535
+            setparam.w r65535,1
             syscall 29
             pop.b r0
             returnr.b r0

@@ -7,10 +7,12 @@ import prog8.intermediate.*
 
 class VmProgramLoader {
     private val placeholders = mutableMapOf<Pair<IRCodeChunk, Int>, String>()      // program chunk+index to symbolname
+    private val subroutines = mutableMapOf<String, IRSubroutine>()                 // label to subroutine node
 
     fun load(irProgram: IRProgram, memory: Memory): List<IRCodeChunk> {
-        placeholders.clear()
         irProgram.validate()
+        placeholders.clear()
+        subroutines.clear()
         val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget)
         val variableAddresses = allocations.allocations.toMutableMap()
         val programChunks = mutableListOf<IRCodeChunk>()
@@ -48,6 +50,7 @@ class VmProgramLoader {
                     }
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
                     is IRSubroutine -> {
+                        subroutines[child.label] = child
                         child.chunks.forEach { chunk ->
                             when (chunk) {
                                 is IRInlineAsmChunk -> {
@@ -58,13 +61,14 @@ class VmProgramLoader {
                                 is IRCodeChunk -> programChunks += chunk
                                 else -> throw AssemblyError("weird chunk type")
                             }
-                        }                    }
+                        }
+                    }
                 }
             }
         }
 
         pass2translateSyscalls(programChunks)
-        pass2replaceLabelsByProgIndex(programChunks, variableAddresses)
+        pass2replaceLabelsByProgIndex(programChunks, variableAddresses, subroutines)
         phase2relinkReplacedChunks(chunkReplacements, programChunks)
 
         programChunks.forEach {
@@ -137,7 +141,8 @@ class VmProgramLoader {
 
     private fun pass2replaceLabelsByProgIndex(
         chunks: MutableList<IRCodeChunk>,
-        variableAddresses: MutableMap<String, Int>
+        variableAddresses: MutableMap<String, Int>,
+        subroutines: MutableMap<String, IRSubroutine>
     ) {
         for((ref, label) in placeholders) {
             val (chunk, line) = ref
@@ -168,6 +173,33 @@ class VmProgramLoader {
                 chunk.instructions[line] = chunk.instructions[line].copy(address = replacement)
             }
         }
+
+        chunks.forEach {
+            it.instructions.withIndex().forEach { (index, ins) ->
+                if(ins.opcode==Opcode.SETPARAM && ins.address==null) {
+                    val call = findCall(it, index)
+                    if(call.opcode==Opcode.SYSCALL) {
+                        // there is no variable to set, SYSCALLs get their args from the stack.
+                    } else if(call.labelSymbol!=null) {
+                        // set the address in the instruction to the subroutine's parameter variable's address
+                        // this avoids having to look it up every time the SETPARAM instruction is encountered during execution
+                        val target = subroutines.getValue(call.labelSymbol!!)
+                        val paramVar = target.parameters[ins.immediate!!]
+                        val address = variableAddresses.getValue(paramVar.name)
+                        it.instructions[index] = ins.copy(address = address)
+                    } else
+                        throw IRParseException("weird call $call")
+                }
+            }
+        }
+    }
+
+    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.CALLR, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
+    private fun findCall(it: IRCodeChunk, startIndex: Int): IRInstruction {
+        var idx = startIndex
+        while(it.instructions[idx].opcode !in functionCallOpcodes)
+            idx++
+        return it.instructions[idx]
     }
 
     private fun varsToMemory(

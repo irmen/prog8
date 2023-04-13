@@ -80,7 +80,12 @@ enum class Syscall {
     RNDF,
     STRING_CONTAINS,
     BYTEARRAY_CONTAINS,
-    WORDARRAY_CONTAINS
+    WORDARRAY_CONTAINS;
+
+    companion object {
+        private val VALUES = values()
+        fun fromInt(value: Int) = VALUES[value]
+    }
 }
 
 object SysCalls {
