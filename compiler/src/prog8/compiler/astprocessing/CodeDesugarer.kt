@@ -142,8 +142,8 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val indexerDt = indexExpr.inferType(program)
         if(indexerDt.isWords) {
-            val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)!!
-            if(arrayVar.datatype==DataType.UWORD) {
+            val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+            if(arrayVar!=null && arrayVar.datatype==DataType.UWORD) {
                 val add: Expression =
                     if(indexExpr.constValue(program)?.number==0.0)
                         arrayIndexedExpression.arrayvar.copy()
