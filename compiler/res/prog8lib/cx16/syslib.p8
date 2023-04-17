@@ -786,7 +786,7 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 		}}
 }
 
-asmsub push_vera_context() clobbers(A) {
+asmsub save_vera_context() clobbers(A) {
     ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
     %asm {{
         ; note cannot store this on cpu hardware stack because this gets called as a subroutine
@@ -813,24 +813,24 @@ _vera_storage:  .byte 0,0,0,0,0,0,0,0
     }}
 }
 
-asmsub pop_vera_context() clobbers(A) {
+asmsub restore_vera_context() clobbers(A) {
     ; -- use this at the end of your IRQ handler if it uses Vera registers, to restore the state
     %asm {{
-        lda  cx16.push_vera_context._vera_storage+7
+        lda  cx16.save_vera_context._vera_storage+7
         sta  cx16.VERA_CTRL
-        lda  cx16.push_vera_context._vera_storage+6
+        lda  cx16.save_vera_context._vera_storage+6
         sta  cx16.VERA_ADDR_H
-        lda  cx16.push_vera_context._vera_storage+5
+        lda  cx16.save_vera_context._vera_storage+5
         sta  cx16.VERA_ADDR_M
-        lda  cx16.push_vera_context._vera_storage+4
+        lda  cx16.save_vera_context._vera_storage+4
         sta  cx16.VERA_ADDR_L
-        lda  cx16.push_vera_context._vera_storage+3
+        lda  cx16.save_vera_context._vera_storage+3
         sta  cx16.VERA_CTRL
-        lda  cx16.push_vera_context._vera_storage+2
+        lda  cx16.save_vera_context._vera_storage+2
         sta  cx16.VERA_ADDR_H
-        lda  cx16.push_vera_context._vera_storage+1
+        lda  cx16.save_vera_context._vera_storage+1
         sta  cx16.VERA_ADDR_M
-        lda  cx16.push_vera_context._vera_storage+0
+        lda  cx16.save_vera_context._vera_storage+0
         sta  cx16.VERA_ADDR_L
         rts
     }}

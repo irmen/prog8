@@ -104,6 +104,7 @@ psg {
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler,
         ; or just install this routine as the only irq handler if you don't have to do other things there.
         ; Example: cx16.set_irq(&psg.envelopes_irq, true)
+        ; NOTE: this routine calls save/restore_vera_context() for you, don't nest this!
 
         ; cx16.r0 = the volume word (volume scaled by 256)
         ; cx16.r1L = the voice number
@@ -148,7 +149,7 @@ psg {
         }
 
         ; set new volumes of all 16 voices, using vera stride of 4
-        cx16.push_vera_context()
+        cx16.save_vera_context()
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = $c2
         cx16.VERA_ADDR_M = $f9
@@ -160,7 +161,7 @@ psg {
         for cx16.r1L in 0 to 15 {
             cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r1L])
         }
-        cx16.pop_vera_context()
+        cx16.restore_vera_context()
         popw(cx16.r9)
         pop(cx16.r2L)
         pop(cx16.r1L)

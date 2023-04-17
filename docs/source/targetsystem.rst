@@ -162,9 +162,9 @@ The Commander X16 syslib does provides two additional routines that should be us
 They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
 will corrupt any Vera operations that were going on in the main program. The routines are::
 
-    cx16.push_vera_context()
+    cx16.save_vera_context()
     ; ... do your work that uses vera here...
-    cx16.pop_vera_context()
+    cx16.restore_vera_context()
 
 .. caution::
     The Commander X16's 16 'virtual registers' R0-R15 are located in zeropage and *are not preserved* in the IRQ handler!
