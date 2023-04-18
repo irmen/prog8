@@ -112,6 +112,12 @@ sys (part of syslib)
     Soft-reset the system back to initial power-on BASIC prompt.
     (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
 
+``poweroff_system()``  (commander x16 only)
+    Powers down the computer.
+
+``set_leds_brightness(ubyte activity, ubyte power)``  (commander x16 only)
+    Sets the brightness of the activity and power leds on the computer.
+
 
 conv
 ----

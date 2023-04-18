@@ -917,11 +917,25 @@ sys {
 
     asmsub reset_system() {
         ; Soft-reset the system back to initial power-on Basic prompt.
+        ; We do this via the SMC so that a true reset is performed that also resets the Vera fully.
         %asm {{
             sei
-            stz  $01                        ; bank the kernal in
-            jmp  (cx16.RESET_VEC)
+            ldx #$42
+            ldy #1
+            tya
+            jsr  cx16.i2c_write_byte
+            bra  *
         }}
+    }
+
+    sub poweroff_system() {
+        ; use the SMC to shutdown the computer
+        cx16.i2c_write_byte($42, $01, $00)
+    }
+
+    sub set_leds_brightness(ubyte activity, ubyte power) {
+        cx16.i2c_write_byte($42, $04, power)
+        cx16.i2c_write_byte($42, $05, activity)
     }
 
     asmsub wait(uword jiffies @AY) {
