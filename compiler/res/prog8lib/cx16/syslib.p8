@@ -930,12 +930,12 @@ sys {
 
     sub poweroff_system() {
         ; use the SMC to shutdown the computer
-        cx16.i2c_write_byte($42, $01, $00)
+        void cx16.i2c_write_byte($42, $01, $00)
     }
 
     sub set_leds_brightness(ubyte activity, ubyte power) {
-        cx16.i2c_write_byte($42, $04, power)
-        cx16.i2c_write_byte($42, $05, activity)
+        void cx16.i2c_write_byte($42, $04, power)
+        void cx16.i2c_write_byte($42, $05, activity)
     }
 
     asmsub wait(uword jiffies @AY) {
