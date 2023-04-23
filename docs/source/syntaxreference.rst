@@ -77,8 +77,6 @@ Directives
       to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
     - style ``dontuse`` -- don't use *any* location in the zeropage.
 
-    Also read :ref:`zeropage`.
-
 .. note::
     ``kernalsafe`` and ``full`` on the C64 leave enough room in the zeropage to reallocate the
     16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well

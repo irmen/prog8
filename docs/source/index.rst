@@ -180,9 +180,11 @@ For MacOS you can use the Homebrew system to install a recent version of OpenJDK
 
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.
 In C64 mode, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
-If you're targeting the Commander X16 instead, there's a choice of the official `x16emu <https://github.com/commanderx16/x16-emulator>`_
-and the unofficial `box16 <https://github.com/indigodarkwolf/box16>`_  (you can select which one you want to launch
-using the ``-emu`` or ``-emu2`` command line options)
+If you're targeting the Commander X16 instead,
+download a recent emulator version (R42 or newer) for the CommanderX16, such as `x16emu <https://cx16forum.com/forum/viewforum.php?f=30>`_
+(preferred, this is the official emulator. If required, source code is `here <https://github.com/X16Community/x16-emulator/>`_.
+There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
+You can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.

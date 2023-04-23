@@ -76,7 +76,9 @@ IntelliJ IDEA with the Kotlin plugin).
 
 It's handy to have an emulator (or a real machine perhaps!) to run the programs on. The compiler assumes the presence
 of the [Vice emulator](http://vice-emu.sourceforge.net/)  for the C64 target,
-and the [x16emu emulator](https://github.com/commanderx16/x16-emulator) for the CommanderX16 target.
+and a recent emulator version (R42 or newer) for the CommanderX16, such as [x16emu](https://cx16forum.com/forum/viewforum.php?f=30) 
+(preferred, this is the official emulator. If required, source code is [here](https://github.com/X16Community/x16-emulator/)).
+There is also [Box16](https://github.com/indigodarkwolf/box16) which has powerful debugging features.
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the [syntax-files](https://github.com/irmen/prog8/tree/master/syntax-files) directory in the github repository to find them.
