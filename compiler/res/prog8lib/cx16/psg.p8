@@ -75,8 +75,11 @@ psg {
         ; -- Enables AttackSustainRelease volume envelope for a voice.
         ;    Note: this requires setting up envelopes_irq() as well, read its description.
         ;    voice_num = 0-15   maxvolume = 0-63
-        ;    attack, sustain, release = 0-255 that determine the speed of the A/D/R.
-        ;    TODO describe how the speeds are calculated. For now, experiment. Higher values means *slower* enveloping.
+        ;    attack, sustain, release = 0-255 that determine the speed of the A/D/R:
+        ;    attack time:    MAXVOL/15/attack  seconds.    higher value = faster attack.
+        ;    sustain time:   sustain/60 seconds    higher sustain value = longer sustain (!).
+        ;    release time:   MAXVOL/15/release seconds.   higher vaule = faster release.
+
         envelope_states[voice_num] = 255
         envelope_attacks[voice_num] = attack
         envelope_sustains[voice_num] = sustain
