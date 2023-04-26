@@ -170,7 +170,7 @@ class StatementOptimizer(private val program: Program,
         if(iterationCount!=null) {
             val loopName = forLoop.loopVar.nameInSource
             if(!forLoop.iterable.referencesIdentifier(loopName) && !forLoop.body.referencesIdentifier(loopName)) {
-                errors.warn("for loop can be replaced with repeat loop, possibly also remove the loop variable", forLoop.position)
+                errors.warn("for loop can be replaced with repeat loop", forLoop.position)
                 val repeat = RepeatLoop(NumericLiteral.optimalNumeric(iterationCount, forLoop.position), forLoop.body, forLoop.position)
                 return listOf(IAstModification.ReplaceNode(forLoop, repeat, parent))
             }

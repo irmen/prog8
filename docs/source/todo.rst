@@ -10,13 +10,27 @@ For next minor release
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
+- rename builtin function sqrt16 to just sqrt
+- copy (not move) the CBM kernal romsubs to a new 'cbm' block so programs on c128 and cx16 can also
+  simply refer to cbm.CHROUT rather than c64.CHROUT which looks a bit silly on the non-c64 cbm systems.
+  we keep the old definitions intact because of backwards compatibility reasons.
 - try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
   This is a major change because it will likely break existing code that is now using min and max as variable names.
-- get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
+  Also add optimization that changes the word variant to byte variant if the operands are bytes.
+- 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
+  It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
+  Lot of work because of so many special cases in ForLoopsAsmgen.....
+  (vm codegen already behaves like this!)
+- ?? get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
   the large majority of users will only deal with a single disk drive so why not make it easier for them.
+  But see complaint on github https://github.com/irmen/prog8/issues/106
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
+- add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+  this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
+  So maybe only allow the bare essentials? (store, get, bitwise operations?)
 - Some more support for (64tass) SEGMENTS ?
+    - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
     - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
@@ -37,31 +51,23 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- ir: idea? (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
+- ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- ir: can we determine for the loop variable in forloops if it could be kept in a (virtual) register instead of a real variable? Need to be able to check if the variable is used by another statement beside just the for loop.
 - ir: mechanism to determine for chunks which registers are getting input values from "outside"
 - ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
-- ir: peephole opt: renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
-- ir: peephole opt: reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
+- ir: peephole opt: (maybe just integrate this in the variable/register allocator though?) renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
+- ir: peephole opt: (maybe just integrate this in the variable/register allocator though?) reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations
-- vm: somehow be able to load a label address as value? (VmProgramLoader) this may require storing the program as bytecodes in actual memory though...
-- 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
-  It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
-  Lot of work because of so many special cases in ForLoopsAsmgen.....  (vm codegen already behaves like this)
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
-- [problematic due to using 64tass:] add a compiler option to not remove unused subroutines. this allows for building library programs. But this won't work with 64tass's .proc ...
+- [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- add special (u)word array type (or modifier?) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
-  this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
-  So maybe only allow the bare essntials? (store, get)
 
 
 Libraries:

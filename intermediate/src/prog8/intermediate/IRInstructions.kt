@@ -30,7 +30,7 @@ LOAD/STORE
 ----------
 All have type b or w or f.
 
-load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the address of the symbol.
+load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
