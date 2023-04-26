@@ -22,6 +22,7 @@ psg {
         ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
         ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
         envelope_states[voice_num] = 255
+        sys.set_irqd()
         cx16.r0 = $f9c2 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -32,6 +33,7 @@ psg {
         cx16.VERA_DATA0 = waveform | pulsewidth
         envelope_volumes[voice_num] = mkword(volume, 0)
         envelope_maxvolumes[voice_num] = volume
+        sys.clear_irqd()
     }
 
 ;    sub freq_hz(ubyte voice_num, float hertz) {
@@ -45,30 +47,31 @@ psg {
         ; -- Changes the frequency of the voice's sound.
         ;    voice_num = 0-15,  vera_freq = 0-65535  calculate this via the formula given in the Vera's PSG documentation.
         ;    (https://github.com/x16community/x16-docs/blob/master/VERA%20Programmer's%20Reference.md)
-        cx16.r0 = $f9c0 + voice_num * 4
+        ;    Write freq MSB first and then LSB to reduce the chance on clicks
+        sys.set_irqd()
+        cx16.r0 = $f9c1 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
         cx16.VERA_ADDR_M = msb(cx16.r0)
         cx16.VERA_ADDR_H = 1
-        cx16.VERA_DATA0 = lsb(vera_freq)
-        cx16.VERA_ADDR_L++
         cx16.VERA_DATA0 = msb(vera_freq)
+        cx16.VERA_ADDR_L--
+        cx16.VERA_DATA0 = lsb(vera_freq)
+        sys.clear_irqd()
     }
 
     sub volume(ubyte voice_num, ubyte vol) {
         ; -- Modifies the volume of this voice.
         ;    voice_num = 0-15, vol = 0-63 where 0=silent, 63=loudest.
-        cx16.r0 = $f9c2 + voice_num * 4
-        cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | vol)
         envelope_volumes[voice_num] = mkword(vol, 0)
+        cx16.vpoke_mask(1, $f9c2 + voice_num * 4, %11000000, vol)
         envelope_maxvolumes[voice_num] = vol
     }
 
     sub pulse_width(ubyte voice_num, ubyte pw) {
         ; -- Modifies the pulse width of this voice (when waveform=PULSE)
         ;    voice_num = 0-15, pw = 0-63  where 0=narrow, 63=50%cycle so square wave.
-        cx16.r0 = $f9c3 + voice_num * 4
-        cx16.vpoke(1, cx16.r0, cx16.vpeek(1, cx16.r0) & %11000000 | pw)
+        cx16.vpoke_mask(1, $f9c3 + voice_num * 4, %11000000, pw)
     }
 
     sub envelope(ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) {
@@ -84,11 +87,8 @@ psg {
         envelope_attacks[voice_num] = attack
         envelope_sustains[voice_num] = sustain
         envelope_releases[voice_num] = release
-        if attack
-            attack = 0
-        else
-            attack = maxvolume     ; max volume when no attack is set
-        envelope_volumes[voice_num] = mkword(attack, 0)
+        if maxvolume<envelope_volumes[voice_num]
+            envelope_volumes[voice_num] = maxvolume
         envelope_maxvolumes[voice_num] = maxvolume
         envelope_states[voice_num] = 0
     }
@@ -97,7 +97,6 @@ psg {
         ; -- Shut down all PSG voices.
         for cx16.r1L in 0 to 15 {
             envelope_states[cx16.r1L] = 255
-            envelope_volumes[cx16.r1L] = 0
             volume(cx16.r1L, 0)
         }
     }

@@ -604,6 +604,25 @@ asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) 
     }}
 }
 
+asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @Y) clobbers (A) {
+    ; -- bitwise or a single byte to the value already in the VERA's video memory at that location
+    ;    after applying the and-mask. Note: inefficient when writing multiple sequential bytes!
+    %asm {{
+        sty  P8ZP_SCRATCH_B1
+        stz  cx16.VERA_CTRL
+        and  #1
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.r0
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.r0+1
+        sta  cx16.VERA_ADDR_M
+        txa
+        and  cx16.VERA_DATA0
+        ora  P8ZP_SCRATCH_B1
+        sta  cx16.VERA_DATA0
+        rts
+    }}
+}
 
 ; ---- system stuff -----
 asmsub  init_system()  {
