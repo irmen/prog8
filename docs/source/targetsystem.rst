@@ -145,20 +145,16 @@ Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
 There are a few library routines available to make setting up C64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
 
-For the C64 these routines are::
+These routines are::
 
-    c64.set_irq(uword handler_address, boolean useKernal)
-    c64.set_rasterirq(uword handler_address, uword rasterline, boolean useKernal)
-    c64.restore_irq()     ; set everything back to the systems default irq handler
+    sys.set_irq(uword handler_address, boolean useKernal)
+    sys.set_rasterirq(uword handler_address, uword rasterline, boolean useKernal)
+    sys.restore_irq()     ; set everything back to the systems default irq handler
 
-And for the Commander X16::
+Note that for the CommanderX16 the "useKernal" parameter doesn't exists for the set_rasterirq() routine;
+it will always disable the system IRQ handler (which also means the default sys.wait() routine won't work anymore)
 
-    cx16.set_irq(uword handler_address, boolean useKernal)          ; vsync irq
-    cx16.set_rasterirq(uword handler_address, uword rasterline)     ; note: disables Kernal irq handler! sys.wait() won't work anymore
-    cx16.restore_irq()     ; set everything back to the systems default irq handler
-
-
-The Commander X16 syslib does provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
+The Commander X16 syslib provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
 They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
 will corrupt any Vera operations that were going on in the main program. The routines are::
 

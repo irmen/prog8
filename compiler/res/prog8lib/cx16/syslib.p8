@@ -1,9 +1,9 @@
 ; Prog8 definitions for the CommanderX16
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 
-c64 {
+cbm {
 
-; ---- kernal routines, these are the same as on the Commodore-64 (hence the same block name) ----
+    ; Commodore (CBM) common variables, vectors and kernal routines
 
 ; STROUT --> use txt.print
 ; CLEARSCR -> use txt.clear_screen
@@ -55,7 +55,7 @@ asmsub STOP2() -> ubyte @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
         phx
-        jsr  c64.STOP
+        jsr  cbm.STOP
         beq  +
         plx
         lda  #0
@@ -70,7 +70,7 @@ asmsub RDTIM16() -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
         phx
-        jsr  c64.RDTIM
+        jsr  cbm.RDTIM
         pha
         txa
         tay
@@ -85,37 +85,37 @@ asmsub RDTIM16() -> uword @AY {
 cx16 {
 
 ; irq, system and hardware vectors:
-    &uword  IERROR          = $0300
-    &uword  IMAIN           = $0302
-    &uword  ICRNCH          = $0304
-    &uword  IQPLOP          = $0306
-    &uword  IGONE           = $0308
-    &uword  IEVAL           = $030a
-    &ubyte  SAREG           = $030c     ; register storage for A for SYS calls
-    &ubyte  SXREG           = $030d     ; register storage for X for SYS calls
-    &ubyte  SYREG           = $030e     ; register storage for Y for SYS calls
-    &ubyte  SPREG           = $030f     ; register storage for P (status register) for SYS calls
-    &uword  USRADD          = $0311     ; vector for the USR() basic command
+    &uword  IERROR      = $0300
+    &uword  IMAIN       = $0302
+    &uword  ICRNCH      = $0304
+    &uword  IQPLOP      = $0306
+    &uword  IGONE       = $0308
+    &uword  IEVAL       = $030a
+    &ubyte  SAREG       = $030c     ; register storage for A for SYS calls
+    &ubyte  SXREG       = $030d     ; register storage for X for SYS calls
+    &ubyte  SYREG       = $030e     ; register storage for Y for SYS calls
+    &ubyte  SPREG       = $030f     ; register storage for P (status register) for SYS calls
+    &uword  USRADD      = $0311     ; vector for the USR() basic command
     ; $0313 is unused.
-    &uword  CINV            = $0314     ; IRQ vector (in ram)
-    &uword  CBINV           = $0316     ; BRK vector (in ram)
-    &uword  NMINV           = $0318     ; NMI vector (in ram)
-    &uword  IOPEN           = $031a
-    &uword  ICLOSE          = $031c
-    &uword  ICHKIN          = $031e
-    &uword  ICKOUT          = $0320
-    &uword  ICLRCH          = $0322
-    &uword  IBASIN          = $0324
-    &uword  IBSOUT          = $0326
-    &uword  ISTOP           = $0328
-    &uword  IGETIN          = $032a
-    &uword  ICLALL          = $032c
-    &uword  KEYHDL          = $032e     ; keyboard scan code handler see examples/cx16/keyboardhandler.p8
-    &uword  ILOAD           = $0330
-    &uword  ISAVE           = $0332
-    &uword  NMI_VEC         = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
-    &uword  RESET_VEC       = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
-    &uword  IRQ_VEC         = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
+    &uword  CINV        = $0314     ; IRQ vector (in ram)
+    &uword  CBINV       = $0316     ; BRK vector (in ram)
+    &uword  NMINV       = $0318     ; NMI vector (in ram)
+    &uword  IOPEN       = $031a
+    &uword  ICLOSE      = $031c
+    &uword  ICHKIN      = $031e
+    &uword  ICKOUT      = $0320
+    &uword  ICLRCH      = $0322
+    &uword  IBASIN      = $0324
+    &uword  IBSOUT      = $0326
+    &uword  ISTOP       = $0328
+    &uword  IGETIN      = $032a
+    &uword  ICLALL      = $032c
+    &uword  KEYHDL      = $032e     ; keyboard scan code handler see examples/cx16/keyboardhandler.p8
+    &uword  ILOAD       = $0330
+    &uword  ISAVE       = $0332
+    &uword  NMI_VEC     = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
+    &uword  RESET_VEC   = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
+    &uword  IRQ_VEC     = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
 
 ; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
@@ -271,44 +271,44 @@ cx16 {
 ; I/O
 
     const uword  VIA1_BASE   = $9f00                  ;VIA 6522 #1
-    &ubyte  via1prb	= VIA1_BASE + 0
-    &ubyte  via1pra	= VIA1_BASE + 1
-    &ubyte  via1ddrb	= VIA1_BASE + 2
-    &ubyte  via1ddra	= VIA1_BASE + 3
-    &ubyte  via1t1l	= VIA1_BASE + 4
-    &ubyte  via1t1h	= VIA1_BASE + 5
-    &ubyte  via1t1ll	= VIA1_BASE + 6
-    &ubyte  via1t1lh	= VIA1_BASE + 7
-    &ubyte  via1t2l	= VIA1_BASE + 8
-    &ubyte  via1t2h	= VIA1_BASE + 9
-    &ubyte  via1sr	= VIA1_BASE + 10
-    &ubyte  via1acr	= VIA1_BASE + 11
-    &ubyte  via1pcr	= VIA1_BASE + 12
-    &ubyte  via1ifr	= VIA1_BASE + 13
-    &ubyte  via1ier	= VIA1_BASE + 14
-    &ubyte  via1ora	= VIA1_BASE + 15
+    &ubyte  via1prb    = VIA1_BASE + 0
+    &ubyte  via1pra    = VIA1_BASE + 1
+    &ubyte  via1ddrb   = VIA1_BASE + 2
+    &ubyte  via1ddra   = VIA1_BASE + 3
+    &ubyte  via1t1l    = VIA1_BASE + 4
+    &ubyte  via1t1h    = VIA1_BASE + 5
+    &ubyte  via1t1ll   = VIA1_BASE + 6
+    &ubyte  via1t1lh   = VIA1_BASE + 7
+    &ubyte  via1t2l    = VIA1_BASE + 8
+    &ubyte  via1t2h    = VIA1_BASE + 9
+    &ubyte  via1sr     = VIA1_BASE + 10
+    &ubyte  via1acr    = VIA1_BASE + 11
+    &ubyte  via1pcr    = VIA1_BASE + 12
+    &ubyte  via1ifr    = VIA1_BASE + 13
+    &ubyte  via1ier    = VIA1_BASE + 14
+    &ubyte  via1ora    = VIA1_BASE + 15
 
     const uword  VIA2_BASE   = $9f10                  ;VIA 6522 #2
-    &ubyte  via2prb	= VIA2_BASE + 0
-    &ubyte  via2pra	= VIA2_BASE + 1
-    &ubyte  via2ddrb	= VIA2_BASE + 2
-    &ubyte  via2ddra	= VIA2_BASE + 3
-    &ubyte  via2t1l	= VIA2_BASE + 4
-    &ubyte  via2t1h	= VIA2_BASE + 5
-    &ubyte  via2t1ll	= VIA2_BASE + 6
-    &ubyte  via2t1lh	= VIA2_BASE + 7
-    &ubyte  via2t2l	= VIA2_BASE + 8
-    &ubyte  via2t2h	= VIA2_BASE + 9
-    &ubyte  via2sr	= VIA2_BASE + 10
-    &ubyte  via2acr	= VIA2_BASE + 11
-    &ubyte  via2pcr	= VIA2_BASE + 12
-    &ubyte  via2ifr	= VIA2_BASE + 13
-    &ubyte  via2ier	= VIA2_BASE + 14
-    &ubyte  via2ora	= VIA2_BASE + 15
+    &ubyte  via2prb    = VIA2_BASE + 0
+    &ubyte  via2pra    = VIA2_BASE + 1
+    &ubyte  via2ddrb   = VIA2_BASE + 2
+    &ubyte  via2ddra   = VIA2_BASE + 3
+    &ubyte  via2t1l    = VIA2_BASE + 4
+    &ubyte  via2t1h    = VIA2_BASE + 5
+    &ubyte  via2t1ll   = VIA2_BASE + 6
+    &ubyte  via2t1lh   = VIA2_BASE + 7
+    &ubyte  via2t2l    = VIA2_BASE + 8
+    &ubyte  via2t2h    = VIA2_BASE + 9
+    &ubyte  via2sr     = VIA2_BASE + 10
+    &ubyte  via2acr    = VIA2_BASE + 11
+    &ubyte  via2pcr    = VIA2_BASE + 12
+    &ubyte  via2ifr    = VIA2_BASE + 13
+    &ubyte  via2ier    = VIA2_BASE + 14
+    &ubyte  via2ora    = VIA2_BASE + 15
 
 ; YM-2151 sound chip
     &ubyte  YM_ADDRESS	= $9f40
-    &ubyte  YM_DATA	= $9f41
+    &ubyte  YM_DATA	    = $9f41
 
     const uword  extdev	= $9f60
 
@@ -409,7 +409,7 @@ romsub $C09F = audio_init() clobbers(A,X,Y) -> ubyte @Pc                ; (re)in
 asmsub kbdbuf_clear() {
     ; -- convenience helper routine to clear the keyboard buffer
     %asm {{
--       jsr  c64.GETIN
+-       jsr  cbm.GETIN
         bne  -
         rts
     }}
@@ -482,7 +482,7 @@ asmsub numbanks() -> uword @AY {
     %asm {{
         phx
         sec
-        jsr  c64.MEMTOP
+        jsr  cbm.MEMTOP
         ldy  #0
         cmp  #0
         bne  +
@@ -624,7 +624,63 @@ asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @
     }}
 }
 
-; ---- system stuff -----
+asmsub save_vera_context() clobbers(A) {
+    ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
+    %asm {{
+        ; note cannot store this on cpu hardware stack because this gets called as a subroutine
+        lda  cx16.VERA_ADDR_L
+        sta  _vera_storage
+        lda  cx16.VERA_ADDR_M
+        sta  _vera_storage+1
+        lda  cx16.VERA_ADDR_H
+        sta  _vera_storage+2
+        lda  cx16.VERA_CTRL
+        sta  _vera_storage+3
+        eor  #1
+        sta  cx16.VERA_CTRL
+        lda  cx16.VERA_ADDR_L
+        sta  _vera_storage+4
+        lda  cx16.VERA_ADDR_M
+        sta  _vera_storage+5
+        lda  cx16.VERA_ADDR_H
+        sta  _vera_storage+6
+        lda  cx16.VERA_CTRL
+        sta  _vera_storage+7
+        rts
+_vera_storage:  .byte 0,0,0,0,0,0,0,0
+    }}
+}
+
+asmsub restore_vera_context() clobbers(A) {
+    ; -- use this at the end of your IRQ handler if it uses Vera registers, to restore the state
+    %asm {{
+        lda  cx16.save_vera_context._vera_storage+7
+        sta  cx16.VERA_CTRL
+        lda  cx16.save_vera_context._vera_storage+6
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.save_vera_context._vera_storage+5
+        sta  cx16.VERA_ADDR_M
+        lda  cx16.save_vera_context._vera_storage+4
+        sta  cx16.VERA_ADDR_L
+        lda  cx16.save_vera_context._vera_storage+3
+        sta  cx16.VERA_CTRL
+        lda  cx16.save_vera_context._vera_storage+2
+        sta  cx16.VERA_ADDR_H
+        lda  cx16.save_vera_context._vera_storage+1
+        sta  cx16.VERA_ADDR_M
+        lda  cx16.save_vera_context._vera_storage+0
+        sta  cx16.VERA_ADDR_L
+        rts
+    }}
+}
+
+}
+
+sys {
+    ; ------- lowlevel system routines --------
+
+    const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
+
 asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.
@@ -635,29 +691,29 @@ asmsub  init_system()  {
         tay
         jsr  cx16.mouse_config  ; disable mouse
         cld
-        lda  VERA_DC_VIDEO
+        lda  cx16.VERA_DC_VIDEO
         and  #%00000111 ; retain chroma + output mode
         sta  P8ZP_SCRATCH_REG
         lda  #$0a
         sta  $01        ; rom bank 10 (audio)
-        jsr  audio_init ; silence
+        jsr  cx16.audio_init ; silence
         stz  $01        ; rom bank 0 (kernal)
-        jsr  c64.IOINIT
-        jsr  c64.RESTOR
-        jsr  c64.CINT
-        lda  VERA_DC_VIDEO
+        jsr  cbm.IOINIT
+        jsr  cbm.RESTOR
+        jsr  cbm.CINT
+        lda  cx16.VERA_DC_VIDEO
         and  #%11111000
         ora  P8ZP_SCRATCH_REG
-        sta  VERA_DC_VIDEO  ; restore old output mode
+        sta  cx16.VERA_DC_VIDEO  ; restore old output mode
         lda  #$90       ; black
-        jsr  c64.CHROUT
+        jsr  cbm.CHROUT
         lda  #1
         sta  $00        ; select ram bank 1
-        jsr  c64.CHROUT ; swap fg/bg
+        jsr  cbm.CHROUT ; swap fg/bg
         lda  #$9e       ; yellow
-        jsr  c64.CHROUT
+        jsr  cbm.CHROUT
         lda  #147       ; clear screen
-        jsr  c64.CHROUT
+        jsr  cbm.CHROUT
         lda  #0
         tax
         tay
@@ -694,21 +750,21 @@ asmsub  cleanup_at_exit() {
 
 asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
 	%asm {{
-	        sta  _modified+1
-	        sty  _modified+2
-	        lda  #0
-	        adc  #0
-	        sta  _use_kernal
-		sei
-		lda  #<_irq_handler
-		sta  cx16.CINV
-		lda  #>_irq_handler
-		sta  cx16.CINV+1
-                lda  cx16.VERA_IEN
-                ora  #%00000001     ; enable the vsync irq
-                sta  cx16.VERA_IEN
-		cli
-		rts
+        sta  _modified+1
+        sty  _modified+2
+        lda  #0
+        adc  #0
+        sta  _use_kernal
+        sei
+        lda  #<_irq_handler
+        sta  cx16.CINV
+        lda  #>_irq_handler
+        sta  cx16.CINV+1
+        lda  cx16.VERA_IEN
+        ora  #%00000001     ; enable the vsync irq
+        sta  cx16.VERA_IEN
+        cli
+        rts
 
 _irq_handler    jsr  _irq_handler_init
 _modified	jsr  $ffff                      ; modified
@@ -770,57 +826,6 @@ IRQ_SCRATCH_ZPWORD2	.word  0
 
 		}}
 }
-
-asmsub save_vera_context() clobbers(A) {
-    ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
-    %asm {{
-        ; note cannot store this on cpu hardware stack because this gets called as a subroutine
-        lda  cx16.VERA_ADDR_L
-        sta  _vera_storage
-        lda  cx16.VERA_ADDR_M
-        sta  _vera_storage+1
-        lda  cx16.VERA_ADDR_H
-        sta  _vera_storage+2
-        lda  cx16.VERA_CTRL
-        sta  _vera_storage+3
-        eor  #1
-        sta  cx16.VERA_CTRL
-        lda  cx16.VERA_ADDR_L
-        sta  _vera_storage+4
-        lda  cx16.VERA_ADDR_M
-        sta  _vera_storage+5
-        lda  cx16.VERA_ADDR_H
-        sta  _vera_storage+6
-        lda  cx16.VERA_CTRL
-        sta  _vera_storage+7
-        rts
-_vera_storage:  .byte 0,0,0,0,0,0,0,0
-    }}
-}
-
-asmsub restore_vera_context() clobbers(A) {
-    ; -- use this at the end of your IRQ handler if it uses Vera registers, to restore the state
-    %asm {{
-        lda  cx16.save_vera_context._vera_storage+7
-        sta  cx16.VERA_CTRL
-        lda  cx16.save_vera_context._vera_storage+6
-        sta  cx16.VERA_ADDR_H
-        lda  cx16.save_vera_context._vera_storage+5
-        sta  cx16.VERA_ADDR_M
-        lda  cx16.save_vera_context._vera_storage+4
-        sta  cx16.VERA_ADDR_L
-        lda  cx16.save_vera_context._vera_storage+3
-        sta  cx16.VERA_CTRL
-        lda  cx16.save_vera_context._vera_storage+2
-        sta  cx16.VERA_ADDR_H
-        lda  cx16.save_vera_context._vera_storage+1
-        sta  cx16.VERA_ADDR_M
-        lda  cx16.save_vera_context._vera_storage+0
-        sta  cx16.VERA_ADDR_L
-        rts
-    }}
-}
-
 
 asmsub  restore_irq() clobbers(A) {
 	%asm {{
@@ -891,15 +896,6 @@ asmsub  set_rasterline(uword line @AY) {
     }}
 }
 
-}
-
-
-sys {
-    ; ------- lowlevel system routines --------
-
-    const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
-
-
     asmsub reset_system() {
         ; Soft-reset the system back to initial power-on Basic prompt.
         ; We do this via the SMC so that a true reset is performed that also resets the Vera fully.
@@ -937,9 +933,9 @@ _loop       lda  P8ZP_SCRATCH_W1
             plx
             rts
 
-+           jsr  c64.RDTIM
++           jsr  cbm.RDTIM
             sta  P8ZP_SCRATCH_B1
--           jsr  c64.RDTIM
+-           jsr  cbm.RDTIM
             cmp  P8ZP_SCRATCH_B1
             beq  -
 
@@ -1082,7 +1078,7 @@ _longcopy
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            jsr  c64.CLRCHN		; reset i/o channels
+            jsr  cbm.CLRCHN		; reset i/o channels
             ldx  prog8_lib.orig_stackpointer
             txs
             rts		; return to original caller

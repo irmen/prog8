@@ -78,11 +78,11 @@ main {
         void cx16.clock_get_date_time()
         txt.plot(33, 12)
         if lsb(cx16.r2) < 10
-            c64.CHROUT('0')
+            txt.chrout('0')
         txt.print_ub(lsb(cx16.r2))
-        c64.CHROUT(':')
+        txt.chrout(':')
         if msb(cx16.r2) < 10
-            c64.CHROUT('0')
+            txt.chrout('0')
         txt.print_ub(msb(cx16.r2))
     }
 }

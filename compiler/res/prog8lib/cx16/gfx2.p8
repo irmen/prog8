@@ -84,7 +84,7 @@ gfx2 {
             else -> {
                 ; back to default text mode
                 cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
-                c64.CINT()
+                cbm.CINT()
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
                 width = 0
                 height = 0

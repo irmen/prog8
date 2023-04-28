@@ -6,7 +6,7 @@ main {
 
     sub start() {
         txt.print("playing the music from boulderdash,\nmade in 1984 by peter liepa.\n\n")
-        c64.set_rasterirq(&irq.irqhandler, 60, true)     ; enable playback via raster irq
+        sys.set_rasterirq(&irq.irqhandler, 60, true)     ; enable playback via raster irq
     }
 }
 

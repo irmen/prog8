@@ -31,10 +31,10 @@ main {
         txt.print("\n\nwriting 64kb using save")
         batchtotaltime = 0
         repeat REPEATS {
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
             void diskio.save(8, "@:benchmark.dat", $100, 32768)
             void diskio.save(8, "@:benchmark.dat", $100, 32768)
-            batchtotaltime += c64.RDTIM16()
+            batchtotaltime += cbm.RDTIM16()
             txt.chrout('.')
         }
         print_speed(batchtotaltime)
@@ -43,12 +43,12 @@ main {
         batchtotaltime = 0
         repeat REPEATS {
             if diskio.f_open_w(8, "@:benchmark.dat") {
-                c64.SETTIM(0,0,0)
+                cbm.SETTIM(0,0,0)
                 repeat 65536/256 {
                     if not diskio.f_write(buffer, 256)
                         sys.exit(1)
                 }
-                batchtotaltime += c64.RDTIM16()
+                batchtotaltime += cbm.RDTIM16()
                 diskio.f_close_w()
             }
             txt.chrout('.')
@@ -58,10 +58,10 @@ main {
         txt.print("\nreading 64kb using load into hiram")
         batchtotaltime = 0
         repeat REPEATS {
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
             if not cx16diskio.load(8, "benchmark.dat", 4, $a000)
                 sys.exit(1)
-            batchtotaltime += c64.RDTIM16()
+            batchtotaltime += cbm.RDTIM16()
             txt.chrout('.')
         }
         print_speed(batchtotaltime)
@@ -69,10 +69,10 @@ main {
         txt.print("\nreading 64kb using vload into videoram")
         batchtotaltime = 0
         repeat REPEATS {
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
             if not cx16diskio.vload("benchmark.dat", 8, 0, $0000)
                 sys.exit(1)
-            batchtotaltime += c64.RDTIM16()
+            batchtotaltime += cbm.RDTIM16()
             txt.chrout('.')
         }
         print_speed(batchtotaltime)
@@ -81,12 +81,12 @@ main {
         batchtotaltime = 0
         repeat REPEATS {
             if diskio.f_open(8, "benchmark.dat") {
-                c64.SETTIM(0,0,0)
+                cbm.SETTIM(0,0,0)
                 repeat 65536/255 {
                     if not diskio.f_read(buffer, 255)
                         sys.exit(1)
                 }
-                batchtotaltime += c64.RDTIM16()
+                batchtotaltime += cbm.RDTIM16()
                 diskio.f_close()
             }
             txt.chrout('.')
@@ -97,12 +97,12 @@ main {
         batchtotaltime = 0
         repeat REPEATS {
             if diskio.f_open(8, "benchmark.dat") {
-                c64.SETTIM(0,0,0)
+                cbm.SETTIM(0,0,0)
                 repeat 65536/255 {
                     if not cx16diskio.f_read(buffer, 255)
                         sys.exit(1)
                 }
-                batchtotaltime += c64.RDTIM16()
+                batchtotaltime += cbm.RDTIM16()
                 diskio.f_close()
             }
             txt.chrout('.')

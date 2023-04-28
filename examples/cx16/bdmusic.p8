@@ -7,7 +7,7 @@ main {
     sub explosion() {
         ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
         psg.silent()
-        cx16.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq, true)
         psg.voice(0, psg.LEFT, 0, psg.NOISE, 0)
         psg.voice(1, psg.RIGHT, 0, psg.NOISE, 0)
         psg.freq(0, 1000)
@@ -16,7 +16,7 @@ main {
         psg.envelope(1, 63, 80, 0, 6)
         sys.wait(100)
         psg.silent()
-        cx16.restore_irq()
+        sys.restore_irq()
     }
 
     sub sweeping() {
@@ -53,13 +53,13 @@ main {
 
     sub start() {
         txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
-        void c64.CHRIN()
+        void cbm.CHRIN()
         txt.clear_screen()
 
         psg.silent()
         psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
         psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
-        cx16.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq, true)
 
         repeat {
             uword note

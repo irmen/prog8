@@ -1,23 +1,13 @@
 TODO
 ====
 
-New major release 9.0
-^^^^^^^^^^^^^^^^^^^^^^
-- renamed builtin function sqrt16 to sqrtw for consistency
-
-
-For next minor release
-^^^^^^^^^^^^^^^^^^^^^^
-- try to optimize newexpr a bit more
+- once 9.0 is stable, upgrade other programs (assem, shell, etc) to it.
 
 ...
 
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
-- copy (not move) the CBM kernal romsubs to a new 'cbm' block so programs on c128 and cx16 can also
-  simply refer to cbm.CHROUT rather than c64.CHROUT which looks a bit silly on the non-c64 cbm systems.
-  we keep the old definitions intact because of backwards compatibility reasons.
 - try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
   This is a major change because it will likely break existing code that is now using min and max as variable names.
   Also add optimization that changes the word variant to byte variant if the operands are bytes.

@@ -45,8 +45,8 @@ newgame:
         spawnNextBlock()
 
 waitkey:
-        if c64.TIME_LO>=(60-4*speedlevel) {
-            c64.TIME_LO = 0
+        if cbm.TIME_LO>=(60-4*speedlevel) {
+            cbm.TIME_LO = 0
 
             drawBlock(xpos, ypos, 32) ; hide block
             if blocklogic.noCollision(xpos, ypos+1) {
@@ -73,7 +73,7 @@ waitkey:
             ; test_stack.test()
         }
 
-        ubyte key=c64.GETIN()
+        ubyte key=cbm.GETIN()
         if key==0 goto waitkey
 
         keypress(key)
@@ -228,31 +228,31 @@ waitkey:
     sub gameOver() {
         sound.gameover()
         txt.plot(7, 7)
-        c64.CHROUT('U')
+        txt.chrout('U')
         txt.print("────────────────────────")
-        c64.CHROUT('I')
+        txt.chrout('I')
         txt.plot(7, 8)
         txt.print("│*** g a m e  o v e r ***│")
         txt.plot(7, 9)
-        c64.CHROUT('J')
+        txt.chrout('J')
         txt.print("────────────────────────")
-        c64.CHROUT('K')
+        txt.chrout('K')
 
         txt.plot(7, 18)
-        c64.CHROUT('U')
+        txt.chrout('U')
         txt.print("────────────────────────")
-        c64.CHROUT('I')
+        txt.chrout('I')
         txt.plot(7, 19)
         txt.print("│    f1 for new game     │")
         txt.plot(7, 20)
-        c64.CHROUT('J')
+        txt.chrout('J')
         txt.print("────────────────────────")
-        c64.CHROUT('K')
+        txt.chrout('K')
 
         ubyte key = 0
         while key!=133 {
             ; endless loop until user presses F1 to restart the game
-            key = c64.GETIN()
+            key = cbm.GETIN()
         }
     }
 
@@ -268,7 +268,7 @@ waitkey:
     }
 
     sub swapBlock(ubyte newblock) {
-        c64.TIME_LO = 0
+        cbm.TIME_LO = 0
         blocklogic.newCurrentBlock(newblock)
         xpos = startXpos
         ypos = startYpos

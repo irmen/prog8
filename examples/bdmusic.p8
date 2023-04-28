@@ -14,7 +14,7 @@ sub start() {
     c64.MVOL = 15
 
     txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
-    void c64.CHRIN()
+    void cbm.CHRIN()
     txt.clear_screen()
 
     repeat {

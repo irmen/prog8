@@ -15,14 +15,14 @@ main {
         }
 
         txt.print("enter for disc:")
-        void c64.CHRIN()
-        c64.CHROUT('\n')
+        void cbm.CHRIN()
+        txt.nl()
         txt.clear_screen()
         disc(20, 12, 12)
 
         txt.print("enter for rectangles:")
-        void c64.CHRIN()
-        c64.CHROUT('\n')
+        void cbm.CHRIN()
+        txt.nl()
         txt.clear_screen()
 
         rect(4, 8, 37, 23, false)

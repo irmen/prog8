@@ -19,7 +19,7 @@ main {
             maze.drawStartFinish()
 
             txt.print(" enter=new maze")
-            void c64.CHRIN()
+            void cbm.CHRIN()
         }
     }
 

@@ -15,7 +15,7 @@ sub print_f(float value) {
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_W1),y
 		beq  +
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		bne  -
 +		ldx  floats_store_reg

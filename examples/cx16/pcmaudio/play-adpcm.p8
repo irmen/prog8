@@ -42,7 +42,7 @@ main {
         txt.print_uw(vera_rate_hz)
         txt.print("\n(b)enchmark or (p)layback? ")
 
-        when c64.CHRIN() {
+        when cbm.CHRIN() {
             'b' -> benchmark()
             'p' -> playback()
         }
@@ -63,7 +63,7 @@ main {
         nibblesptr = &wavdata.wav_data + wavfile.data_offset
 
         txt.print("\ndecoding all blocks...\n")
-        c64.SETTIM(0,0,0)
+        cbm.SETTIM(0,0,0)
         repeat num_adpcm_blocks {
             adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
             nibblesptr += 4
@@ -75,7 +75,7 @@ main {
             }
         }
         const float REFRESH_RATE = 25.0e6/(525.0*800)       ; Vera VGA refresh rate is not precisely 60 hz!
-        float duration_secs = (c64.RDTIM16() as float) / REFRESH_RATE
+        float duration_secs = (cbm.RDTIM16() as float) / REFRESH_RATE
         floats.print_f(duration_secs)
         txt.print(" seconds (approx)\n")
         const float PCM_WORDS_PER_BLOCK = 1 + 252*2

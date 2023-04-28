@@ -638,10 +638,10 @@ the parameters are strictly passed via cpu registers), are defined with ``asmsub
     asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         %asm {{
             ldy  #0
-    _loop   sta  c64.Screen,y
-            sta  c64.Screen+$0100,y
-            sta  c64.Screen+$0200,y
-            sta  c64.Screen+$02e8,y
+    _loop   sta  cbm.Screen,y
+            sta  cbm.Screen+$0100,y
+            sta  cbm.Screen+$0200,y
+            sta  cbm.Screen+$02e8,y
             iny
             bne  _loop
             rts

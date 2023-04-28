@@ -415,8 +415,8 @@ address you specified, and setting the variable will directly modify that memory
 
 Direct access to memory locations ('peek' and 'poke')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Normally memory locations are accessed by a *memory mapped* name, such as ``c64.BGCOL0`` that is defined
-as the memory mapped address $d021.
+Normally memory locations are accessed by a *memory mapped* name, such as ``cbm.BGCOL0`` that is defined
+as the memory mapped address $d021 (on the c64 target).
 
 If you want to access a memory location directly (by using the address itself or via an uword pointer variable),
 without defining a memory mapped location, you can do so by enclosing the address in ``@(...)``::

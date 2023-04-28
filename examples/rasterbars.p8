@@ -5,7 +5,7 @@ main {
 
     sub start() {
         c64.SCROLY &= %11101111                    ; blank the screen
-        c64.set_rasterirq(&irq.irqhandler, 40, false)     ; register exclusive raster irq handler
+        sys.set_rasterirq(&irq.irqhandler, 40, false)     ; register exclusive raster irq handler
 
         repeat {
             ; enjoy the moving bars :)

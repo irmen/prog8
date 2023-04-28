@@ -19,11 +19,11 @@ main {
 
     sub start() {
         txt.print("calculating...")
-        c64.SETTIM(0,0,0)
+        cbm.SETTIM(0,0,0)
         uword crc = crc16($e000, $2000)
         txt.print_uwhex(crc, true)      ; should be $ffd0
         txt.nl()
-        txt.print_uw(c64.RDTIM16())
+        txt.print_uw(cbm.RDTIM16())
         txt.print(" jiffies")
         sys.wait(100)
     }

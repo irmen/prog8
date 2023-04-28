@@ -1039,28 +1039,28 @@ util {
             ldy  #0     ; have we started printing?
             cmp  #'0'
             beq  +
-            jsr  c64.CHROUT
+            jsr  cbm.CHROUT
             iny
 +           lda  conv.uword2decimal.decThousands
 		    cmp  #'0'
             bne  +
             cpy  #0
             beq  ++
-+           jsr  c64.CHROUT
++           jsr  cbm.CHROUT
             iny
 +           lda  conv.uword2decimal.decHundreds
 		    cmp  #'0'
 		    bne  +
 		    cpy  #0
             beq  ++
-+           jsr  c64.CHROUT
++           jsr  cbm.CHROUT
             iny
 +           lda  conv.uword2decimal.decTens
-            jsr  c64.CHROUT
+            jsr  cbm.CHROUT
             lda  #'.'
-            jsr  c64.CHROUT
+            jsr  cbm.CHROUT
             lda  conv.uword2decimal.decOnes
-            jsr  c64.CHROUT
+            jsr  cbm.CHROUT
             rts
         }}
     }

@@ -26,7 +26,7 @@ main {
         makechar()
 
         ubyte block = c64.CIA2PRA
-        ; ubyte v = c64.VMCSB
+        ; ubyte v = cbm.VMCSB
         c64.CIA2PRA = (block & $FC) | (lsb(SCREEN1 >> 14) ^ $03)
 
         repeat {

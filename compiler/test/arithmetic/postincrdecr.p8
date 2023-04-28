@@ -85,9 +85,9 @@ main {
             txt.print("err! ")
         txt.print(" ubyte ")
         txt.print_ub(value)
-        c64.CHROUT(',')
+        cbm.CHROUT(',')
         txt.print_ub(expected)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub check_b(byte value, byte expected) {
@@ -97,9 +97,9 @@ main {
             txt.print("err! ")
         txt.print(" byte ")
         txt.print_b(value)
-        c64.CHROUT(',')
+        cbm.CHROUT(',')
         txt.print_b(expected)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub check_uw(uword value, uword expected) {
@@ -109,9 +109,9 @@ main {
             txt.print("err! ")
         txt.print(" uword ")
         txt.print_uw(value)
-        c64.CHROUT(',')
+        cbm.CHROUT(',')
         txt.print_uw(expected)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub check_w(word value, word expected) {
@@ -121,9 +121,9 @@ main {
             txt.print("err! ")
         txt.print(" word ")
         txt.print_w(value)
-        c64.CHROUT(',')
+        cbm.CHROUT(',')
         txt.print_w(expected)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub check_fl(float value, float expected) {
@@ -133,8 +133,8 @@ main {
             txt.print("err! ")
         txt.print(" float ")
         floats.print_f(value)
-        c64.CHROUT(',')
+        cbm.CHROUT(',')
         floats.print_f(expected)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 }

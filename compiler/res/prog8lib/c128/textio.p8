@@ -30,10 +30,10 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     ; ---- set the cursor on the given column (starting with 0) on the current line
     %asm {{
         sec
-        jsr  c64.PLOT
+        jsr  cbm.PLOT
         tay
         clc
-        jmp  c64.PLOT
+        jmp  cbm.PLOT
     }}
 }
 
@@ -57,10 +57,10 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	;      (assumes screen matrix is at the default address)
 	%asm {{
 		ldy  #250
--		sta  c64.Screen+250*0-1,y
-		sta  c64.Screen+250*1-1,y
-		sta  c64.Screen+250*2-1,y
-		sta  c64.Screen+250*3-1,y
+-		sta  cbm.Screen+250*0-1,y
+		sta  cbm.Screen+250*1-1,y
+		sta  cbm.Screen+250*2-1,y
+		sta  cbm.Screen+250*3-1,y
 		dey
 		bne  -
 		rts
@@ -72,10 +72,10 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	;      (assumes color matrix is at the default address)
 	%asm {{
 		ldy  #250
--		sta  c64.Colors+250*0-1,y
-		sta  c64.Colors+250*1-1,y
-		sta  c64.Colors+250*2-1,y
-		sta  c64.Colors+250*3-1,y
+-		sta  cbm.Colors+250*0-1,y
+		sta  cbm.Colors+250*1-1,y
+		sta  cbm.Colors+250*2-1,y
+		sta  cbm.Colors+250*3-1,y
 		dey
 		bne  -
 		rts
@@ -83,7 +83,7 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 }
 
 sub color (ubyte txtcol) {
-    c64.COLOR = txtcol
+    cbm.COLOR = txtcol
 }
 
 sub lowercase() {
@@ -110,10 +110,10 @@ asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
 		ldy  #38
 -
         .for row=0, row<=24, row+=1
-            lda  c64.Screen + 40*row + 1,x
-            sta  c64.Screen + 40*row + 0,x
-            lda  c64.Colors + 40*row + 1,x
-            sta  c64.Colors + 40*row + 0,x
+            lda  cbm.Screen + 40*row + 1,x
+            sta  cbm.Screen + 40*row + 0,x
+            lda  cbm.Colors + 40*row + 1,x
+            sta  cbm.Colors + 40*row + 0,x
         .next
 		inx
 		dey
@@ -125,8 +125,8 @@ _scroll_screen  ; scroll only the screen memory
 		ldy  #38
 -
         .for row=0, row<=24, row+=1
-            lda  c64.Screen + 40*row + 1,x
-            sta  c64.Screen + 40*row + 0,x
+            lda  cbm.Screen + 40*row + 1,x
+            sta  cbm.Screen + 40*row + 0,x
         .next
 		inx
 		dey
@@ -149,10 +149,10 @@ asmsub  scroll_right  (ubyte alsocolors @ Pc) clobbers(A)  {
 		ldx  #38
 -
         .for row=0, row<=24, row+=1
-            lda  c64.Screen + 40*row + 0,x
-            sta  c64.Screen + 40*row + 1,x
-            lda  c64.Colors + 40*row + 0,x
-            sta  c64.Colors + 40*row + 1,x
+            lda  cbm.Screen + 40*row + 0,x
+            sta  cbm.Screen + 40*row + 1,x
+            lda  cbm.Colors + 40*row + 0,x
+            sta  cbm.Colors + 40*row + 1,x
         .next
 		dex
 		bpl  -
@@ -162,8 +162,8 @@ _scroll_screen  ; scroll only the screen memory
 		ldx  #38
 -
         .for row=0, row<=24, row+=1
-            lda  c64.Screen + 40*row + 0,x
-            sta  c64.Screen + 40*row + 1,x
+            lda  cbm.Screen + 40*row + 0,x
+            sta  cbm.Screen + 40*row + 1,x
         .next
 		dex
 		bpl  -
@@ -185,10 +185,10 @@ asmsub  scroll_up  (ubyte alsocolors @ Pc) clobbers(A)  {
 		ldx #39
 -
         .for row=1, row<=24, row+=1
-            lda  c64.Screen + 40*row,x
-            sta  c64.Screen + 40*(row-1),x
-            lda  c64.Colors + 40*row,x
-            sta  c64.Colors + 40*(row-1),x
+            lda  cbm.Screen + 40*row,x
+            sta  cbm.Screen + 40*(row-1),x
+            lda  cbm.Colors + 40*row,x
+            sta  cbm.Colors + 40*(row-1),x
         .next
 		dex
 		bpl  -
@@ -198,8 +198,8 @@ _scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
         .for row=1, row<=24, row+=1
-            lda  c64.Screen + 40*row,x
-            sta  c64.Screen + 40*(row-1),x
+            lda  cbm.Screen + 40*row,x
+            sta  cbm.Screen + 40*(row-1),x
         .next
 		dex
 		bpl  -
@@ -221,10 +221,10 @@ asmsub  scroll_down  (ubyte alsocolors @ Pc) clobbers(A)  {
 		ldx #39
 -
         .for row=23, row>=0, row-=1
-            lda  c64.Colors + 40*row,x
-            sta  c64.Colors + 40*(row+1),x
-            lda  c64.Screen + 40*row,x
-            sta  c64.Screen + 40*(row+1),x
+            lda  cbm.Colors + 40*row,x
+            sta  cbm.Colors + 40*(row+1),x
+            lda  cbm.Screen + 40*row,x
+            sta  cbm.Screen + 40*(row+1),x
         .next
 		dex
 		bpl  -
@@ -234,8 +234,8 @@ _scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
         .for row=23, row>=0, row-=1
-            lda  c64.Screen + 40*row,x
-            sta  c64.Screen + 40*(row+1),x
+            lda  cbm.Screen + 40*row,x
+            sta  cbm.Screen + 40*(row+1),x
         .next
 		dex
 		bpl  -
@@ -245,20 +245,20 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
+romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to c64.CHROUT of that single char.
+	;       by just one call to cbm.CHROUT of that single char.
 	%asm {{
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_B1),y
 		beq  +
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		bne  -
 +		rts
@@ -272,11 +272,11 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  conv.ubyte2decimal
 		pha
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		txa
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
@@ -292,16 +292,16 @@ _print_byte_digits
 		cpy  #'0'
 		beq  +
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		jmp  _ones
 +       pla
         cmp  #'0'
         beq  _ones
-        jsr  c64.CHROUT
+        jsr  cbm.CHROUT
 _ones   txa
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
@@ -315,7 +315,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 		cmp  #0
 		bpl  +
 		lda  #'-'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 +		pla
 		jsr  conv.byte2decimal
 		jmp  print_ub._print_byte_digits
@@ -329,12 +329,12 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		bcc  +
 		pha
 		lda  #'$'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
 +		jsr  conv.ubyte2hex
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
@@ -347,13 +347,13 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 +		ldy  #8
 -		lda  #'0'
 		asl  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'1'
-+		jsr  c64.CHROUT
++		jsr  cbm.CHROUT
 		dey
 		bne  -
 		ldx  P8ZP_SCRATCH_REG
@@ -394,7 +394,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
         beq  +
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		bne  -
 +		ldx  P8ZP_SCRATCH_REG
@@ -417,14 +417,14 @@ asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 		bne  -
 
 _gotdigit
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		lda  conv.uword2decimal.decTenThousands,y
 		bne  _gotdigit
 		rts
 _allzero
         lda  #'0'
-        jmp  c64.CHROUT
+        jmp  cbm.CHROUT
 	}}
 }
 
@@ -435,7 +435,7 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		bpl  +
 		pha
 		lda  #'-'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		tya
 		eor  #255
 		tay
@@ -457,7 +457,7 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0				; char counter = 0
--		jsr  c64.CHRIN
+-		jsr  cbm.CHRIN
 		cmp  #$0d			; return (ascii 13) pressed?
 		beq  +				; yes, end.
 		sta  (P8ZP_SCRATCH_W1),y	; else store char in buffer
@@ -588,7 +588,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 		stx  P8ZP_SCRATCH_REG
 		tax
 		clc
-		jsr  c64.PLOT
+		jsr  cbm.PLOT
 		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
@@ -597,7 +597,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
-        jsr  c64.SCREEN
+        jsr  cbm.SCREEN
         txa
         rts
     }}
@@ -606,7 +606,7 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
 asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
     %asm {{
-        jsr  c64.SCREEN
+        jsr  cbm.SCREEN
         tya
         rts
     }}

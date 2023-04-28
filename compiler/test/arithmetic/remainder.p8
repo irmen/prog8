@@ -27,7 +27,7 @@ main {
         txt.print_ub(a2)
         txt.print(" = ")
         txt.print_ub(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub remainder_uword(uword a1, uword  a2, uword c) {
@@ -42,6 +42,6 @@ main {
         txt.print_uw(a2)
         txt.print(" = ")
         txt.print_uw(r)
-        c64.CHROUT('\n')
+        txt.nl()
     }
 }

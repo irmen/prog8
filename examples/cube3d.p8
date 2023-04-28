@@ -30,11 +30,11 @@ main {
             anglez+=907
             txt.plot(0,0)
             txt.print("3d cube! ")
-            txt.print_ub(c64.TIME_LO)
+            txt.print_ub(cbm.TIME_LO)
             txt.print(" jiffies/fr = ")
-            txt.print_ub(60/c64.TIME_LO)
+            txt.print_ub(60/cbm.TIME_LO)
             txt.print(" fps")
-            c64.TIME_LO=0
+            cbm.TIME_LO=0
 
             ; test_stack.test()
         }

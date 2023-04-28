@@ -66,9 +66,9 @@ waitkey:
         if ticks_since_previous_move==0
             ticks_since_previous_move=255
 
-        ubyte time_lo = lsb(c64.RDTIM16())
+        ubyte time_lo = lsb(cbm.RDTIM16())
         if time_lo>=(60-4*speedlevel) {
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
 
             drawBlock(xpos, ypos, true) ; hide block
             if blocklogic.noCollision(xpos, ypos+1) {
@@ -95,7 +95,7 @@ waitkey:
             ; test_stack.test()
         }
 
-        ubyte key=c64.GETIN()
+        ubyte key=cbm.GETIN()
         keypress(key)
         joystick(cx16.joystick_get2(1))
 
@@ -310,26 +310,26 @@ waitkey:
     sub gameOver() {
         sound.gameover()
         txt.plot(7, 7)
-        c64.CHROUT('U')
+        txt.chrout('U')
         txt.print("────────────────────────")
-        c64.CHROUT('I')
+        txt.chrout('I')
         txt.plot(7, 8)
         txt.print("│*** g a m e  o v e r ***│")
         txt.plot(7, 9)
-        c64.CHROUT('J')
+        txt.chrout('J')
         txt.print("────────────────────────")
-        c64.CHROUT('K')
+        txt.chrout('K')
 
         txt.plot(7, 18)
-        c64.CHROUT('U')
+        txt.chrout('U')
         txt.print("────────────────────────")
-        c64.CHROUT('I')
+        txt.chrout('I')
         txt.plot(7, 19)
         txt.print("│ f1/start for new game  │")
         txt.plot(7, 20)
-        c64.CHROUT('J')
+        txt.chrout('J')
         txt.print("────────────────────────")
-        c64.CHROUT('K')
+        txt.chrout('K')
 
         ubyte key
         do {
@@ -337,7 +337,7 @@ waitkey:
             cx16.r0 = cx16.joystick_get2(1)
             if cx16.r0 & %0000000000010000 == 0
                 break
-            key = c64.GETIN()
+            key = cbm.GETIN()
         } until key==133
     }
 
@@ -363,7 +363,7 @@ waitkey:
 
     sub spawnNextBlock() {
         swapBlock(nextBlock)
-        nextBlock = (math.rnd() + lsb(c64.RDTIM16())) % 7
+        nextBlock = (math.rnd() + lsb(cbm.RDTIM16())) % 7
         drawNextBlock()
         holdingAllowed = true
     }
@@ -679,7 +679,7 @@ sound {
     sub init() {
         cx16.vpoke(1, $f9c2, %00111111)     ; volume max, no channels
         psg.silent()
-        cx16.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq, true)
     }
 
     sub blockrotate() {

@@ -39,7 +39,7 @@ main {
         txt.print_ub(a2)
         txt.print(" = ")
         txt.print_ub(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub mul_byte(byte a1, byte a2, byte c) {
@@ -54,7 +54,7 @@ main {
         txt.print_b(a2)
         txt.print(" = ")
         txt.print_b(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub mul_uword(uword a1, uword  a2, uword c) {
@@ -69,7 +69,7 @@ main {
         txt.print_uw(a2)
         txt.print(" = ")
         txt.print_uw(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub mul_word(word a1, word a2, word c) {
@@ -84,7 +84,7 @@ main {
         txt.print_w(a2)
         txt.print(" = ")
         txt.print_w(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 
     sub mul_float(float  a1, float a2, float  c) {
@@ -100,6 +100,6 @@ main {
         floats.print_f(a2)
         txt.print(" = ")
         floats.print_f(r)
-        c64.CHROUT('\n')
+        cbm.CHROUT('\n')
     }
 }

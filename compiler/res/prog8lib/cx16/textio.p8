@@ -33,10 +33,10 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     ; ---- set the cursor on the given column (starting with 0) on the current line
     %asm {{
         sec
-        jsr  c64.PLOT
+        jsr  cbm.PLOT
         tay
         clc
-        jmp  c64.PLOT
+        jmp  cbm.PLOT
     }}
 }
 
@@ -46,7 +46,7 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
         sty  _ly+1
         phx
         pha
-        jsr  c64.SCREEN             ; get dimensions in X/Y
+        jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
@@ -94,7 +94,7 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 	%asm {{
         phx
         pha
-        jsr  c64.SCREEN             ; get dimensions in X/Y
+        jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
@@ -125,7 +125,7 @@ asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
 	%asm {{
         phx
         sta  _la+1
-        jsr  c64.SCREEN             ; get dimensions in X/Y
+        jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
@@ -158,35 +158,35 @@ ubyte[16] color_to_charcode = [$90,$05,$1c,$9f,$9c,$1e,$1f,$9e,$81,$95,$96,$97,$
 
 sub color (ubyte txtcol) {
     txtcol &= 15
-    c64.CHROUT(color_to_charcode[txtcol])
+    cbm.CHROUT(color_to_charcode[txtcol])
 }
 
 sub color2 (ubyte txtcol, ubyte bgcol) {
     txtcol &= 15
     bgcol &= 15
-    c64.CHROUT(color_to_charcode[bgcol])
-    c64.CHROUT(1)       ; switch fg and bg colors
-    c64.CHROUT(color_to_charcode[txtcol])
+    cbm.CHROUT(color_to_charcode[bgcol])
+    cbm.CHROUT(1)       ; switch fg and bg colors
+    cbm.CHROUT(color_to_charcode[txtcol])
 }
 
 sub lowercase() {
-    c64.CHROUT($0e)
+    cbm.CHROUT($0e)
     ; this is not 100% compatible: cx16.screen_set_charset(3, 0)  ; lowercase petscii charset
 }
 
 sub uppercase() {
-    c64.CHROUT($8e)
+    cbm.CHROUT($8e)
     ; this is not 100% compatible: cx16.screen_set_charset(2, 0)  ; uppercase petscii charset
 }
 
 sub iso() {
-    c64.CHROUT($0f)
+    cbm.CHROUT($0f)
     ; This doesn't enable it completely: cx16.screen_set_charset(1, 0)  ; iso charset
 }
 
 sub iso_off() {
     ; -- you have to call this first when switching back from iso charset to regular charset.
-    c64.CHROUT($8f)
+    cbm.CHROUT($8f)
 }
 
 
@@ -195,7 +195,7 @@ asmsub  scroll_left() clobbers(A, Y)  {
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
-	    jsr  c64.SCREEN
+	    jsr  cbm.SCREEN
 	    dex
 	    stx  _lx+1
         dey
@@ -241,7 +241,7 @@ asmsub  scroll_right() clobbers(A)  {
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	%asm {{
 	    phx
-	    jsr  c64.SCREEN
+	    jsr  cbm.SCREEN
 	    dex
 	    stx  _lx+1
 	    txa
@@ -295,7 +295,7 @@ asmsub  scroll_up() clobbers(A, Y)  {
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
-	    jsr  c64.SCREEN
+	    jsr  cbm.SCREEN
 	    stx  _nextline+1
 	    dey
         sty  P8ZP_SCRATCH_B1
@@ -345,7 +345,7 @@ asmsub  scroll_down() clobbers(A, Y)  {
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	%asm {{
 	    phx
-	    jsr  c64.SCREEN
+	    jsr  cbm.SCREEN
 	    stx  _nextline+1
 	    dey
         sty  P8ZP_SCRATCH_B1
@@ -396,20 +396,20 @@ _nextline
 	}}
 }
 
-romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use c64.CHROUT directly ofcourse.
+romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
-	;       by just one call to c64.CHROUT of that single char.
+	;       by just one call to cbm.CHROUT of that single char.
 	%asm {{
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_B1),y
 		beq  +
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		bne  -
 +		rts
@@ -423,11 +423,11 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		jsr  conv.ubyte2decimal
 		pha
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		txa
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		plx
 		rts
 	}}
@@ -443,16 +443,16 @@ _print_byte_digits
 		cpy  #'0'
 		beq  +
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		bra  _ones
 +       pla
         cmp  #'0'
         beq  _ones
-        jsr  c64.CHROUT
+        jsr  cbm.CHROUT
 _ones   txa
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		plx
 		rts
 	}}
@@ -466,7 +466,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 		cmp  #0
 		bpl  +
 		lda  #'-'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 +		pla
 		jsr  conv.byte2decimal
 		bra  print_ub._print_byte_digits
@@ -480,12 +480,12 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		bcc  +
 		pha
 		lda  #'$'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		pla
 +		jsr  conv.ubyte2hex
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		tya
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		plx
 		rts
 	}}
@@ -498,13 +498,13 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 +		ldy  #8
 -		lda  #'0'
 		asl  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'1'
-+		jsr  c64.CHROUT
++		jsr  cbm.CHROUT
 		dey
 		bne  -
 		plx
@@ -545,7 +545,7 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
         beq  +
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		bne  -
 +		plx
@@ -568,14 +568,14 @@ asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
 		bne  -
 
 _gotdigit
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		iny
 		lda  conv.uword2decimal.decTenThousands,y
 		bne  _gotdigit
 		rts
 _allzero
         lda  #'0'
-        jmp  c64.CHROUT
+        jmp  cbm.CHROUT
 	}}
 }
 
@@ -586,7 +586,7 @@ asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
 		bpl  +
 		pha
 		lda  #'-'
-		jsr  c64.CHROUT
+		jsr  cbm.CHROUT
 		tya
 		eor  #255
 		tay
@@ -607,7 +607,7 @@ asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0				; char counter = 0
--		jsr  c64.CHRIN
+-		jsr  cbm.CHRIN
 		cmp  #$0d			; return (ascii 13) pressed?
 		beq  +				; yes, end.
 		sta  (P8ZP_SCRATCH_W1),y	; else store char in buffer
@@ -769,7 +769,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 		phx
 		tax
 		clc
-		jsr  c64.PLOT
+		jsr  cbm.PLOT
 		plx
 		rts
 	}}
@@ -778,7 +778,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
 asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
-        jsr  c64.SCREEN
+        jsr  cbm.SCREEN
         txa
         rts
     }}
@@ -787,7 +787,7 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
 asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
     %asm {{
-        jsr  c64.SCREEN
+        jsr  cbm.SCREEN
         tya
         rts
     }}

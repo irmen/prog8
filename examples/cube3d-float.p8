@@ -21,7 +21,7 @@ main {
         float time=0.0
 
         repeat {
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
 
             rotate_vertices(time)
             txt.clear_screenchars(' ')
@@ -32,7 +32,7 @@ main {
             txt.print("3d cube! floats. ")
 
 
-            ubyte jiffies = lsb(c64.RDTIM16())
+            ubyte jiffies = lsb(cbm.RDTIM16())
             txt.print_ub(jiffies)
             txt.print(" jiffies/fr = ")
             txt.print_ub(60/jiffies)

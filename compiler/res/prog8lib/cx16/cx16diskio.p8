@@ -53,26 +53,26 @@ internal_vload:
             bne  ++
 +           ldy  #0             ; normal load mode
 +           lda  #1
-            jsr  c64.SETLFS
+            jsr  cbm.SETLFS
             lda  cx16.r0
             ldy  cx16.r0+1
             jsr  prog8_lib.strlen
             tya
             ldx  cx16.r0
             ldy  cx16.r0+1
-            jsr  c64.SETNAM
+            jsr  cbm.SETNAM
             pla
             clc
             adc  #2
             ldx  cx16.r1
             ldy  cx16.r1+1
             stz  P8ZP_SCRATCH_B1
-            jsr  c64.LOAD
+            jsr  cbm.LOAD
             bcs  +
             inc  P8ZP_SCRATCH_B1
-    +       jsr  c64.CLRCHN
+    +       jsr  cbm.CLRCHN
             lda  #1
-            jsr  c64.CLOSE
+            jsr  cbm.CLOSE
             plx
             lda  P8ZP_SCRATCH_B1
             rts
@@ -114,7 +114,7 @@ internal_vload:
             if msb(bufferpointer) == $c0
                 bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
             num_bytes -= size
-            if c64.READST() & $40 {
+            if cbm.READST() & $40 {
                 diskio.f_close()       ; end of file, close it
                 break
             }
@@ -129,14 +129,14 @@ byte_read_loop:         ; fallback if macptr() isn't supported on the device
             sta  m_in_buffer+2
         }}
         while num_bytes {
-            if c64.READST() {
+            if cbm.READST() {
                 diskio.f_close()
-                if c64.READST() & $40    ; eof?
+                if cbm.READST() & $40    ; eof?
                     return diskio.list_blocks   ; number of bytes read
                 return 0  ; error.
             }
             %asm {{
-                jsr  c64.CHRIN
+                jsr  cbm.CHRIN
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
@@ -157,7 +157,7 @@ m_in_buffer     sta  $ffff
             return 0
 
         uword total_read = 0
-        while not c64.READST() {
+        while not cbm.READST() {
             cx16.r0 = cx16diskio.f_read(bufferpointer, 256)
             total_read += cx16.r0
             bufferpointer += cx16.r0
@@ -215,10 +215,10 @@ m_in_buffer     sta  $ffff
         command[4] = lsb(pos_hiword)
         command[5] = msb(pos_hiword)
     send_command:
-        c64.SETNAM(sizeof(command), &command)
-        c64.SETLFS(15, diskio.last_drivenumber, 15)
-        void c64.OPEN()
-        c64.CLOSE(15)
+        cbm.SETNAM(sizeof(command), &command)
+        cbm.SETLFS(15, diskio.last_drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLOSE(15)
     }
 
     ; TODO see if we can get this to work as well:

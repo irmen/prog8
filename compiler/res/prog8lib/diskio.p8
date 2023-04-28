@@ -9,51 +9,51 @@ diskio {
     sub directory(ubyte drivenumber) -> bool {
         ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
 
-        c64.SETNAM(1, "$")
-        c64.SETLFS(12, drivenumber, 0)
+        cbm.SETNAM(1, "$")
+        cbm.SETLFS(12, drivenumber, 0)
         ubyte status = 1
-        void c64.OPEN()          ; open 12,8,0,"$"
+        void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(12)        ; use #12 as input channel
+        void cbm.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
         repeat 4 {
-            void c64.CHRIN()     ; skip the 4 prologue bytes
+            void cbm.CHRIN()     ; skip the 4 prologue bytes
         }
 
         ; while not stop key pressed / EOF encountered, read data.
-        status = c64.READST()
+        status = cbm.READST()
         if status!=0 {
             status = 1
             goto io_error
         }
 
         while status==0 {
-            ubyte low = c64.CHRIN()
-            ubyte high = c64.CHRIN()
+            ubyte low = cbm.CHRIN()
+            ubyte high = cbm.CHRIN()
             txt.print_uw(mkword(high, low))
             txt.spc()
             ubyte @zp char
             repeat {
-                char = c64.CHRIN()
+                char = cbm.CHRIN()
                 if char==0
                     break
                 txt.chrout(char)
             }
             txt.nl()
-            void c64.CHRIN()     ; skip 2 bytes
-            void c64.CHRIN()
-            status = c64.READST()
-            if c64.STOP2()
+            void cbm.CHRIN()     ; skip 2 bytes
+            void cbm.CHRIN()
+            status = cbm.READST()
+            if cbm.STOP2()
                 break
         }
-        status = c64.READST()
+        status = cbm.READST()
 
 io_error:
-        c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(12)
+        cbm.CLRCHN()        ; restore default i/o devices
+        cbm.CLOSE(12)
 
         if status and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
@@ -68,25 +68,25 @@ io_error:
     sub diskname(ubyte drivenumber) -> uword {
         ; -- Returns pointer to disk name string or 0 if failure.
 
-        c64.SETNAM(1, "$")
-        c64.SETLFS(12, drivenumber, 0)
+        cbm.SETNAM(1, "$")
+        cbm.SETLFS(12, drivenumber, 0)
         ubyte okay = false
-        void c64.OPEN()          ; open 12,8,0,"$"
+        void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(12)        ; use #12 as input channel
+        void cbm.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
         repeat 6 {
-            void c64.CHRIN()     ; skip the 6 prologue bytes
+            void cbm.CHRIN()     ; skip the 6 prologue bytes
         }
-        if c64.READST()!=0
+        if cbm.READST()!=0
             goto io_error
 
         cx16.r0 = &list_filename
         repeat {
-            @(cx16.r0) = c64.CHRIN()
+            @(cx16.r0) = cbm.CHRIN()
             if @(cx16.r0)==0
                 break
             cx16.r0++
@@ -94,8 +94,8 @@ io_error:
         okay = true
 
 io_error:
-        c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(12)
+        cbm.CLRCHN()        ; restore default i/o devices
+        cbm.CLOSE(12)
         if okay
             return &list_filename
         return 0
@@ -150,20 +150,20 @@ io_error:
         list_skip_disk_name = true
         iteration_in_progress = true
 
-        c64.SETNAM(1, "$")
-        c64.SETLFS(12, drivenumber, 0)
-        void c64.OPEN()          ; open 12,8,0,"$"
+        cbm.SETNAM(1, "$")
+        cbm.SETLFS(12, drivenumber, 0)
+        void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void c64.CHKIN(12)        ; use #12 as input channel
+        void cbm.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
         repeat 4 {
-            void c64.CHRIN()     ; skip the 4 prologue bytes
+            void cbm.CHRIN()     ; skip the 4 prologue bytes
         }
 
-        if c64.READST()==0
+        if cbm.READST()==0
             return true
 
 io_error:
@@ -180,26 +180,26 @@ io_error:
             return false
 
         repeat {
-            void c64.CHKIN(12)        ; use #12 as input channel again
+            void cbm.CHKIN(12)        ; use #12 as input channel again
 
             uword nameptr = &list_filename
-            ubyte blocks_lsb = c64.CHRIN()
-            ubyte blocks_msb = c64.CHRIN()
+            ubyte blocks_lsb = cbm.CHRIN()
+            ubyte blocks_msb = cbm.CHRIN()
 
-            if c64.READST()
+            if cbm.READST()
                 goto close_end
 
             list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
-            while c64.CHRIN()!='\"'  {
-                if c64.READST()
+            while cbm.CHRIN()!='\"'  {
+                if cbm.READST()
                     goto close_end
             }
 
             ; read the filename
             repeat {
-                ubyte char = c64.CHRIN()
+                ubyte char = cbm.CHRIN()
                 if char==0
                     break
                 if char=='\"'
@@ -211,17 +211,17 @@ io_error:
             @(nameptr) = 0
 
             do {
-                cx16.r15L = c64.CHRIN()
+                cx16.r15L = cbm.CHRIN()
             } until cx16.r15L!=' '      ; skip blanks up to 3 chars entry type
             list_filetype[0] = cx16.r15L
-            list_filetype[1] = c64.CHRIN()
-            list_filetype[2] = c64.CHRIN()
-            while c64.CHRIN() {
+            list_filetype[1] = cbm.CHRIN()
+            list_filetype[2] = cbm.CHRIN()
+            while cbm.CHRIN() {
                 ; read the rest of the entry until the end
             }
 
-            void c64.CHRIN()     ; skip 2 bytes
-            void c64.CHRIN()
+            void cbm.CHRIN()     ; skip 2 bytes
+            void cbm.CHRIN()
 
             if not list_skip_disk_name {
                 if not list_pattern
@@ -240,8 +240,8 @@ close_end:
     sub lf_end_list() {
         ; -- end an iterative file listing session (close channels).
         if iteration_in_progress {
-            c64.CLRCHN()
-            c64.CLOSE(12)
+            cbm.CLRCHN()
+            cbm.CLOSE(12)
             iteration_in_progress = false
         }
     }
@@ -254,20 +254,20 @@ close_end:
         ;    note: only a single iteration loop can be active at a time!
         f_close()
 
-        c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(12, drivenumber, 12)     ; note: has to be 12,x,12 because otherwise f_seek doesn't work
+        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETLFS(12, drivenumber, 12)     ; note: has to be 12,x,12 because otherwise f_seek doesn't work
         last_drivenumber = drivenumber
-        void c64.OPEN()          ; open 12,8,12,"filename"
+        void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
-            if c64.READST()==0 {
+            if cbm.READST()==0 {
                 iteration_in_progress = true
-                void c64.CHKIN(12)          ; use #12 as input channel
+                void cbm.CHKIN(12)          ; use #12 as input channel
                 if_cc {
-                    void c64.CHRIN()        ; read first byte to test for file not found
-                    if not c64.READST() {
-                        c64.CLOSE(12)           ; close file because we already consumed first byte
-                        void c64.OPEN()         ; re-open the file
-                        void c64.CHKIN(12)
+                    void cbm.CHRIN()        ; read first byte to test for file not found
+                    if not cbm.READST() {
+                        cbm.CLOSE(12)           ; close file because we already consumed first byte
+                        void cbm.OPEN()         ; re-open the file
+                        void cbm.CHKIN(12)
                         return true
                     }
                 }
@@ -295,14 +295,14 @@ close_end:
             sta  m_in_buffer+2
         }}
         while num_bytes {
-            if c64.READST() {
+            if cbm.READST() {
                 f_close()
-                if c64.READST() & $40    ; eof?
+                if cbm.READST() & $40    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
             %asm {{
-                jsr  c64.CHRIN
+                jsr  cbm.CHRIN
 m_in_buffer     sta  $ffff
                 inc  m_in_buffer+1
                 bne  +
@@ -322,7 +322,7 @@ m_in_buffer     sta  $ffff
             return 0
 
         uword total_read = 0
-        while not c64.READST() {
+        while not cbm.READST() {
             cx16.r0 = f_read(bufferpointer, 256)
             total_read += cx16.r0
             bufferpointer += cx16.r0
@@ -340,9 +340,9 @@ m_in_buffer     sta  $ffff
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             ldx  #12
-            jsr  c64.CHKIN              ; use channel 12 again for input
+            jsr  cbm.CHKIN              ; use channel 12 again for input
             ldy  #0
-_loop       jsr  c64.CHRIN
+_loop       jsr  cbm.CHRIN
             sta  (P8ZP_SCRATCH_W1),y
             beq  _end
             iny
@@ -361,8 +361,8 @@ _end        rts
     sub f_close() {
         ; -- end an iterative file loading session (close channels).
         if iteration_in_progress {
-            c64.CLRCHN()
-            c64.CLOSE(12)
+            cbm.CLRCHN()
+            cbm.CLOSE(12)
             iteration_in_progress = false
         }
     }
@@ -374,12 +374,12 @@ _end        rts
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
-        c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(13, drivenumber, 1)
-        void c64.OPEN()             ; open 13,8,1,"filename"
+        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETLFS(13, drivenumber, 1)
+        void cbm.OPEN()             ; open 13,8,1,"filename"
         if_cc {
-            c64.CHKOUT(13)          ; use #13 as output channel
-            return not c64.READST()
+            cbm.CHKOUT(13)          ; use #13 as output channel
+            return not cbm.READST()
         }
         f_close_w()
         return false
@@ -388,20 +388,20 @@ _end        rts
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         if num_bytes!=0 {
-            c64.CHKOUT(13)        ; use #13 as output channel again
+            cbm.CHKOUT(13)        ; use #13 as output channel again
             repeat num_bytes {
-                c64.CHROUT(@(bufferpointer))
+                cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
             }
-            return not c64.READST()
+            return not cbm.READST()
         }
         return true
     }
 
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
-        c64.CLRCHN()
-        c64.CLOSE(13)
+        cbm.CLRCHN()
+        cbm.CLOSE(13)
     }
 
 
@@ -410,17 +410,17 @@ _end        rts
     sub status(ubyte drivenumber) -> uword {
         ; -- retrieve the disk drive's current status message
         uword messageptr = &list_filename
-        c64.SETNAM(0, list_filename)
-        c64.SETLFS(15, drivenumber, 15)
-        void c64.OPEN()          ; open 15,8,15
+        cbm.SETNAM(0, list_filename)
+        cbm.SETLFS(15, drivenumber, 15)
+        void cbm.OPEN()          ; open 15,8,15
         if_cs
             goto io_error
-        void c64.CHKIN(15)        ; use #15 as input channel
+        void cbm.CHKIN(15)        ; use #15 as input channel
         if_cs
             goto io_error
 
-        while not c64.READST() {
-            cx16.r5L = c64.CHRIN()
+        while not cbm.READST() {
+            cx16.r5L = cbm.CHRIN()
             if cx16.r5L=='\r' or cx16.r5L=='\n'
                 break
             @(messageptr) = cx16.r5L
@@ -429,8 +429,8 @@ _end        rts
         @(messageptr) = 0
 
 done:
-        c64.CLRCHN()        ; restore default i/o devices
-        c64.CLOSE(15)
+        cbm.CLRCHN()        ; restore default i/o devices
+        cbm.CLOSE(15)
         return list_filename
 
 io_error:
@@ -439,8 +439,8 @@ io_error:
     }
 
     sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> bool {
-        c64.SETNAM(string.length(filenameptr), filenameptr)
-        c64.SETLFS(1, drivenumber, 0)
+        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = address + size
         cx16.r0L = 0
 
@@ -453,17 +453,17 @@ io_error:
             lda  #<P8ZP_SCRATCH_W1
             ldx  end_address
             ldy  end_address+1
-            jsr  c64.SAVE
+            jsr  cbm.SAVE
             php
             ldx  P8ZP_SCRATCH_REG
             plp
         }}
 
         if_cc
-            cx16.r0L = c64.READST()==0
+            cx16.r0L = cbm.READST()==0
 
-        c64.CLRCHN()
-        c64.CLOSE(1)
+        cbm.CLRCHN()
+        cbm.CLOSE(1)
 
         return cx16.r0L
     }
@@ -510,28 +510,28 @@ io_error:
     ; because this routine uses kernal support for that to load headerless files.
     ; On C64 it will always be called with headerless=false.
     sub internal_load_routine(ubyte drivenumber, uword filenameptr, uword address_override, bool headerless) -> uword {
-        c64.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
         if address_override
             secondary = 0
         if headerless
             secondary |= %00000010  ; activate cx16 kernal headerless load support
-        c64.SETLFS(1, drivenumber, secondary)
+        cbm.SETLFS(1, drivenumber, secondary)
         %asm {{
             stx  P8ZP_SCRATCH_REG
             lda  #0
             ldx  address_override
             ldy  address_override+1
-            jsr  c64.LOAD
+            jsr  cbm.LOAD
             bcs  +
             stx  cx16.r1
             sty  cx16.r1+1
 +           ldx  P8ZP_SCRATCH_REG
         }}
 
-        c64.CLRCHN()
-        c64.CLOSE(1)
+        cbm.CLRCHN()
+        cbm.CLOSE(1)
         return cx16.r1
     }
 
@@ -540,11 +540,11 @@ io_error:
         list_filename[0] = 's'
         list_filename[1] = ':'
         ubyte flen = string.copy(filenameptr, &list_filename+2)
-        c64.SETNAM(flen+2, list_filename)
-        c64.SETLFS(1, drivenumber, 15)
-        void c64.OPEN()
-        c64.CLRCHN()
-        c64.CLOSE(1)
+        cbm.SETNAM(flen+2, list_filename)
+        cbm.SETLFS(1, drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLRCHN()
+        cbm.CLOSE(1)
     }
 
     sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
@@ -554,19 +554,19 @@ io_error:
         ubyte flen_new = string.copy(newfileptr, &list_filename+2)
         list_filename[flen_new+2] = '='
         ubyte flen_old = string.copy(oldfileptr, &list_filename+3+flen_new)
-        c64.SETNAM(3+flen_new+flen_old, list_filename)
-        c64.SETLFS(1, drivenumber, 15)
-        void c64.OPEN()
-        c64.CLRCHN()
-        c64.CLOSE(1)
+        cbm.SETNAM(3+flen_new+flen_old, list_filename)
+        cbm.SETLFS(1, drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLRCHN()
+        cbm.CLOSE(1)
     }
 
     sub send_command(ubyte drivenumber, uword commandptr) {
         ; -- send a dos command to the drive
-        c64.SETNAM(string.length(commandptr), commandptr)
-        c64.SETLFS(15, drivenumber, 15)
-        void c64.OPEN()
-        c64.CLRCHN()
-        c64.CLOSE(15)
+        cbm.SETNAM(string.length(commandptr), commandptr)
+        cbm.SETLFS(15, drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLRCHN()
+        cbm.CLOSE(15)
     }
 }

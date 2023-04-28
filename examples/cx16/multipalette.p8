@@ -30,7 +30,7 @@ main {
         palette.set_color(0, 0)
         palette.set_color(16, 0)
 
-        cx16.set_rasterirq(&irq.irqhandler, 0)
+        sys.set_rasterirq(&irq.irqhandler, 0)
 
         repeat {
             ; don't exit
@@ -402,7 +402,7 @@ irq {
             phase = 0
         }
 
-        cx16.set_rasterline(next_rasterline)
+        sys.set_rasterline(next_rasterline)
 
 ;
 ;        uword[16] colors1 = 0

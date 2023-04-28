@@ -21,7 +21,7 @@ main {
 
             txt.nl()
             txt.nl()
-            uword jiffies = c64.RDTIM16()
+            uword jiffies = cbm.RDTIM16()
             txt.print_uw(jiffies)
 	}
     }

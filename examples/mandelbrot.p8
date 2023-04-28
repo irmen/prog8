@@ -12,7 +12,7 @@ main {
 
     sub start()  {
         txt.print("calculating mandelbrot fractal...")
-        c64.SETTIM(0, 0, 0)
+        cbm.SETTIM(0, 0, 0)
 
         ubyte pixelx
         ubyte pixely
@@ -40,7 +40,7 @@ main {
             }
         }
 
-        float duration = (c64.RDTIM16() as float) / 60
+        float duration = (cbm.RDTIM16() as float) / 60
         txt.plot(0, 21)
         txt.print("finished in ")
         floats.print_f(duration)

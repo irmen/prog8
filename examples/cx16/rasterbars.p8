@@ -16,7 +16,7 @@ main {
         txt.plot(14,14)
         txt.print("raster bars!")
 
-        cx16.set_rasterirq(&irq.irqhandler, 0)
+        sys.set_rasterirq(&irq.irqhandler, 0)
 
         repeat {
             ; don't exit
@@ -56,6 +56,6 @@ irq {
 
         palette.set_color(0, c)
 
-        cx16.set_rasterline(next_irq_line)
+        sys.set_rasterline(next_irq_line)
     }
 }

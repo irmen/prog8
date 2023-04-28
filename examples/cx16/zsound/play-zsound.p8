@@ -52,7 +52,7 @@ zsound_lib:
     sub start() {
         txt.print("zsound demo program!\n")
 
-        c64.SETMSG(%10000000)       ; enable kernal status messages for load
+        cbm.SETMSG(%10000000)       ; enable kernal status messages for load
         if not cx16diskio.load_raw(8, "colony.zsm", song_bank, song_address) {
             txt.print("?can't load\n")
             return
@@ -66,7 +66,7 @@ zsound_lib:
             ; poke(digi_address+2, digi_bank)
             ; pokew(digi_address, digi_address+zcm_DIGITAB_size)
         }
-        c64.SETMSG(0)
+        cbm.SETMSG(0)
         txt.nl()
         cx16.rambank(song_bank)
 

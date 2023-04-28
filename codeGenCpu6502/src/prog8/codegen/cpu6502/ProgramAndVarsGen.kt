@@ -104,15 +104,15 @@ internal class ProgramAndVarsGen(
                         asmgen.out("+\t.word  0")
                         asmgen.out("prog8_entrypoint\t; assembly code starts here")
                         if(!options.noSysInit)
-                            asmgen.out("  jsr  ${compTarget.name}.init_system")
-                        asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
+                            asmgen.out("  jsr  sys.init_system")
+                        asmgen.out("  jsr  sys.init_system_phase2")
                     }
                     CbmPrgLauncherType.NONE -> {
                         asmgen.out("; ---- program without basic sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
                         if(!options.noSysInit)
-                            asmgen.out("  jsr  ${compTarget.name}.init_system")
-                        asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
+                            asmgen.out("  jsr  sys.init_system")
+                        asmgen.out("  jsr  sys.init_system_phase2")
                     }
                 }
             }
@@ -120,8 +120,8 @@ internal class ProgramAndVarsGen(
                 asmgen.out("; ---- atari xex program ----")
                 asmgen.out("* = ${options.loadAddress.toHex()}")
                 if(!options.noSysInit)
-                    asmgen.out("  jsr  ${compTarget.name}.init_system")
-                asmgen.out("  jsr  ${compTarget.name}.init_system_phase2")
+                    asmgen.out("  jsr  sys.init_system")
+                asmgen.out("  jsr  sys.init_system_phase2")
             }
         }
 
@@ -140,19 +140,19 @@ internal class ProgramAndVarsGen(
                 if(options.floats)
                     asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
                 asmgen.out("  jsr  main.start")
-                asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             "c64" -> {
                 asmgen.out("  jsr  main.start |  lda  #31 |  sta  $01")
                 if(!options.noSysInit)
-                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                    asmgen.out("  jmp  sys.cleanup_at_exit")
                 else
                     asmgen.out("  rts")
             }
             "c128" -> {
                 asmgen.out("  jsr  main.start |  lda  #0 |  sta ${"$"}ff00")
                 if(!options.noSysInit)
-                    asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
+                    asmgen.out("  jmp  sys.cleanup_at_exit")
                 else
                     asmgen.out("  rts")
             }

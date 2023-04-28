@@ -21,7 +21,7 @@ main {
         txt.print("random gradients")
 
         irq.make_new_gradient()
-        cx16.set_rasterirq(&irq.irqhandler, irq.top_scanline)
+        sys.set_rasterirq(&irq.irqhandler, irq.top_scanline)
 
         repeat {
         }
@@ -65,9 +65,7 @@ irq {
             color_ix = blinds_start_ix
         }
 
-
-
-        cx16.set_rasterline(next_irq_line)
+        sys.set_rasterline(next_irq_line)
     }
 
     sub make_new_gradient() {

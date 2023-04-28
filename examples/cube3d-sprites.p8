@@ -85,7 +85,7 @@ main {
         uword angley
         uword anglez
         repeat {
-            c64.TIME_LO=0
+            cbm.TIME_LO=0
             rotate_vertices(msb(anglex), msb(angley), msb(anglez))
             position_sprites()
             anglex-=500
@@ -93,9 +93,9 @@ main {
             anglez+=452
             txt.plot(0,0)
             txt.print("3d cube! (sprites) ")
-            txt.print_ub(c64.TIME_LO)
+            txt.print_ub(cbm.TIME_LO)
             txt.print(" jiffies/fr = ")
-            txt.print_ub(60/c64.TIME_LO)
+            txt.print_ub(60/cbm.TIME_LO)
             txt.print(" fps")
 
             ; test_stack.test()
