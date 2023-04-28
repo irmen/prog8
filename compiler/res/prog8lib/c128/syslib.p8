@@ -480,10 +480,8 @@ asmsub  init_system()  {
     %asm {{
         sei
         cld
-        ;;lda  #%00101111                     ; TODO c128 ram and rom bank selection how?
-        ;;sta  $00
-        ;;lda  #%00100111
-        ;;sta  $01
+        lda  #0
+        sta  $ff00      ; select default bank 15
         jsr  c64.IOINIT
         jsr  c64.RESTOR
         jsr  c64.CINT
@@ -549,8 +547,8 @@ sys {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{
             sei
-            ;lda  #14
-            ;sta  $01        ; bank the kernal in       TODO c128 how to do this?
+            lda  #0
+            sta  $ff00      ; default bank 15
             jmp  (c64.RESET_VEC)
         }}
     }
@@ -731,8 +729,8 @@ _longcopy
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            ;lda  #14
-            ;sta  $01        ; bank the kernal in       TODO c128 how to do this?
+            lda  #0
+            sta  $ff00          ; default bank 15
             jsr  c64.CLRCHN		; reset i/o channels
             jsr  c64.enable_runstop_and_charsetswitch
             ldx  prog8_lib.orig_stackpointer

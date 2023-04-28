@@ -150,8 +150,7 @@ internal class ProgramAndVarsGen(
                     asmgen.out("  rts")
             }
             "c128" -> {
-                asmgen.out("  jsr  main.start")
-                // TODO c128: how to bank basic+kernal back in?
+                asmgen.out("  jsr  main.start |  lda  #0 |  sta ${"$"}ff00")
                 if(!options.noSysInit)
                     asmgen.out("  jmp  ${compTarget.name}.cleanup_at_exit")
                 else
