@@ -18,6 +18,8 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
     init {
         if (options.floats) {
             throw InternalCompilerException("C128 target doesn't yet support floating point routines")
+            // note: in git commit labeled 'c128: remove floats module' the floats.p8 and floats.asm files are removed,
+            //       they could be retrieved again at a later time if the compiler somehow *does* store the fp variables in bank1.
         }
 
         if (options.floats && options.zeropage !in arrayOf(
