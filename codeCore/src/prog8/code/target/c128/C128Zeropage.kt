@@ -16,6 +16,10 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_W2 = 0xfdu      // temp storage 2 for a word  $fd+$fe
 
     init {
+        if (options.floats) {
+            throw InternalCompilerException("C128 target doesn't yet support floating point routines")
+        }
+
         if (options.floats && options.zeropage !in arrayOf(
                 ZeropageType.FLOATSAFE,
                 ZeropageType.BASICSAFE,
@@ -45,13 +49,13 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
                     0xb0u, 0xb1u, 0xb4u, 0xb5u, 0xb6u
                 ))
 
-                if(options.zeropage==ZeropageType.BASICSAFE) {
-                    // can also clobber the FP locations
+                // if(options.zeropage==ZeropageType.BASICSAFE) {
+                    // can also clobber the FP locations (unconditionally, because the C128 target doesn't support floating point calculations in prog8 at this time0
                     free.addAll(listOf(0x14u, 0x28u, 0x29u, 0x2au, 0x2bu, 0x2cu,
                         0x50u, 0x51u, 0x52u, 0x53u, 0x54u, 0x59u, 0x5au, 0x5bu, 0x5cu, 0x5du, 0x5eu, 0x5fu, 0x60u, 0x61u, 0x62u,
                         0x63u, 0x64u, 0x65u, 0x66u, 0x67u, 0x68u,
                         0x6au, 0x6bu, 0x6cu, 0x6du, 0x6eu, 0x6fu, 0x71u))
-                }
+                // }
             }
             ZeropageType.DONTUSE -> {
                 free.clear()  // don't use zeropage at all

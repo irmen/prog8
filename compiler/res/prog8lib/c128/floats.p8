@@ -1,7 +1,10 @@
 ; Prog8 definitions for floating point handling on the Commodore 128
 
-%option enable_floats
-%import floats_functions
+; NOTE: it can't currently be used at all because the float variables
+;       on the c128 have to be stored in memory bank 1 (separate bank)
+;       and prog8 can't do that now (it just inlines everything)
+
+%option enable_floats       ; this is here to trigger the compiler error.
 
 floats {
 	; ---- this block contains C-128 compatible floating point related functions ----

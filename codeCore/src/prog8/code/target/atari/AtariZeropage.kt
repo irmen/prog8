@@ -13,6 +13,10 @@ class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_W2 = 0xcfu      // temp storage 2 for a word  $cf+$d0        TODO is $d0 okay to use?
 
     init {
+        if (options.floats) {
+            throw InternalCompilerException("Atari target doesn't yet support floating point routines")
+        }
+
         if (options.floats && options.zeropage !in arrayOf(
                 ZeropageType.FLOATSAFE,
                 ZeropageType.BASICSAFE,
