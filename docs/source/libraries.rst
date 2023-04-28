@@ -220,6 +220,10 @@ Provides string manipulation routines.
 
 floats
 ------
+
+.. note::
+    Floating point support is only available on c64, cx16 and virtual targets for now.
+
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating
 point variables.  This includes ``print_f``, the routine used to print floating point numbers,
 ``fabs`` to get the absolute value of a floating point number, and a dozen or so floating point

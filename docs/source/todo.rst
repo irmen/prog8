@@ -42,7 +42,6 @@ For 9.0 major changes
 
 Need help with
 ^^^^^^^^^^^^^^
-- c128 target: various machine specific things (free zp locations, how banking works, getting the floating point routines working, ...)
 - atari target: more details details about the machine, fixing library routines. I have no clue whatsoever.
 - see the :ref:`portingguide` for details on what information is needed.
 
@@ -68,11 +67,10 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-
+- For c128 target; put floating point variables in bank 1 to make the FP routines work (is this even worth it? very few people will use fp)
 
 Libraries:
 
-- fix the problems in c128 target, and flesh out its libraries.
 - fix the problems in atari target, and flesh out its libraries.
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?

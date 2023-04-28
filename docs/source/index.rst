@@ -68,7 +68,7 @@ Language features
 - ``in`` expression for concise and efficient multi-value/containment test
 - Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
-- Floating point math also supported if the target system provides floating point library routines (C64 and Cx16 both do).
+- Floating point math also supported on select compiler targets (C64, Cx16 and virtual).
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - High-level code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
 - Many built-in functions, such as ``sin``, ``cos``, ``abs``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``sort`` and ``reverse``

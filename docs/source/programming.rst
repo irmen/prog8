@@ -255,11 +255,13 @@ This saves a lot of memory and may be faster as well.
 Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines,
-and currently all floating point operations are specific to the Commodore 64.
-This is because routines in the C64 BASIC and Kernal ROMs are used for that.
-So floating point operations will only work if the C64 BASIC ROM (and Kernal ROM)
-are banked in.
+Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
+Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
+On the c64 and cx16, the rom routines are used for floating point operations,
+so on both systems the correct rom banks have to be banked in to make this work.
+Although the C128 shares the same floating point format, Prog8 currently doesn't support
+using floating point on that system (because the c128 fp routines require the fp variables
+to be in another ram bank than the program, something Prog8 doesn't do).
 
 Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.
@@ -267,10 +269,6 @@ in the compiler, and to gain access to the floating point routines.
 to worry about this yourself)
 
 The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
-
-.. note::
-    On the Commander X16, to use floating point operations, ROM bank 4 has to be enabled (BASIC).
-    Importing the ``floats`` library will do this for you if needed.
 
 
 Arrays
