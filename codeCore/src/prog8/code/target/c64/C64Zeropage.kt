@@ -65,9 +65,9 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             }
         }
 
-        val distictFree = free.distinct()
+        val distinctFree = free.distinct()
         free.clear()
-        free.addAll(distictFree)
+        free.addAll(distinctFree)
 
         removeReservedFromFreePool()
 
