@@ -1318,14 +1318,15 @@ internal class AstChecker(private val program: Program,
         val whenStmt = whenChoice.parent as When
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
-            if(!conditionType.isKnown)
-                throw FatalAstException("can't determine when choice datatype $whenChoice")
             val constvalues = whenChoice.values!!.map { it.constValue(program) }
             for(constvalue in constvalues) {
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
-                    conditionType isnot constvalue.type -> errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    conditionType isnot constvalue.type -> {
+                        if(conditionType.isKnown)
+                            errors.err("choice value datatype differs from condition value", whenChoice.position)
+                    }
                 }
             }
         } else {
