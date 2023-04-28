@@ -768,9 +768,10 @@ abs (x)
 sgn (x)
     Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
 
-sqrt16 (w)
+sqrtw (w)
     16 bit unsigned integer Square root. Result is unsigned byte.
     To do the reverse, squaring an integer, just write ``x*x``.
+    Floating point square root has its own function `floats.sqrt()`
 
 divmod (number, divident, division, remainder)
     Performs division and remainder calculation in a single call. This is faster than using separate '/' and '%' calculations.

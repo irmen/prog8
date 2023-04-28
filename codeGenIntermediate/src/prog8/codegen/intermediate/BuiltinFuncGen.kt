@@ -16,7 +16,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "abs" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
-            "sqrt16" -> funcSqrt16(call)
+            "sqrtw" -> funcSqrtw(call)
             "divmod" -> funcDivmod(call, IRDataType.BYTE)
             "divmodw" -> funcDivmod(call, IRDataType.WORD)
             "pop" -> funcPop(call)
@@ -209,7 +209,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return ExpressionCodeResult(result, vmDt, resultReg, -1)
     }
 
-    private fun funcSqrt16(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+    private fun funcSqrtw(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args.single())
         addToResult(result, tr, tr.resultReg, -1)

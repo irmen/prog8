@@ -21,7 +21,7 @@ class TestIntermediateAst: FunSpec({
                     ubyte cc
                     ubyte[] array = [1,2,3]
                     cc = 11 in array
-                    cc = sqrt16(lsb(cc))
+                    cc = sqrtw(lsb(cc))
                 }
             }
         """

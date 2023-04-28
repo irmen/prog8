@@ -298,10 +298,10 @@ main {
 
 
         uw = 50000
-        ub = sqrt16(uw)
+        ub = sqrtw(uw)
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+sqrt16(uw)*1+zero
+        ub = zero+sqrtw(uw)*1+zero
         txt.print_ub(ub)
         txt.nl()
 

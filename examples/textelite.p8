@@ -817,7 +817,7 @@ planet {
         else
             ay=y-py
         ay /= 2
-        ubyte d = sqrt16(ax*ax + ay*ay)
+        ubyte d = sqrtw(ax*ax + ay*ay)
         if d>63
             return 255
         return d*4

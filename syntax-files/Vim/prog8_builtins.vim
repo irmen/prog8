@@ -7,7 +7,7 @@
 " Built-in functions
 
 " Math functions
-syn keyword prog8BuiltInFunc sgn sqrt16
+syn keyword prog8BuiltInFunc sgn sqrtw
 
 " Array functions
 syn keyword prog8BuiltInFunc any all len reverse sort

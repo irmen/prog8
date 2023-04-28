@@ -203,14 +203,14 @@ func_sign_w_stack	.proc
 		rts
 		.pend
 
-func_sqrt16_stack	.proc
-		jsr  func_sqrt16_into_A
+func_sqrtw_stack	.proc
+		jsr  func_sqrtw_into_A
 		sta  P8ESTACK_LO,x
 		dex
 		rts
 		.pend
 
-func_sqrt16_into_A	.proc
+func_sqrtw_into_A	.proc
 		; integer square root from  http://6502org.wikidot.com/software-math-sqrt
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1

@@ -1,6 +1,11 @@
 TODO
 ====
 
+New major release 9.0
+^^^^^^^^^^^^^^^^^^^^^^
+- renamed builtin function sqrt16 to sqrtw for consistency
+
+
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
 - try to optimize newexpr a bit more
@@ -8,9 +13,35 @@ For next minor release
 ...
 
 
-For 9.0 major changes are being made in the "version_9" branch. Look there.
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+For 9.0 major changes
+^^^^^^^^^^^^^^^^^^^^^
+- copy (not move) the CBM kernal romsubs to a new 'cbm' block so programs on c128 and cx16 can also
+  simply refer to cbm.CHROUT rather than c64.CHROUT which looks a bit silly on the non-c64 cbm systems.
+  we keep the old definitions intact because of backwards compatibility reasons.
+- try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
+  This is a major change because it will likely break existing code that is now using min and max as variable names.
+  Also add optimization that changes the word variant to byte variant if the operands are bytes.
+- 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
+  It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
+  Lot of work because of so many special cases in ForLoopsAsmgen.....
+  (vm codegen already behaves like this!)
+- ?? get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
+  the large majority of users will only deal with a single disk drive so why not make it easier for them.
+  But see complaint on github https://github.com/irmen/prog8/issues/106
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
+- get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
+- add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+  this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
+  So maybe only allow the bare essentials? (store, get, bitwise operations?)
+- Some more support for (64tass) SEGMENTS ?
+    - (What, how, isn't current BSS support enough?)
+    - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
+    - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
+    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
+      just initialize them yourself in start() if you need a non-zero value .
+    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
+    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
+    - (need separate step in codegen and IR to write the "golden" variables)
 
 
 Need help with
