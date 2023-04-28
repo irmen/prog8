@@ -8,10 +8,9 @@ c64 {
         &ubyte  TIME_LO         = $a2       ;    .. lo byte. Updated by IRQ every 1/60 sec
         &ubyte  STATUS          = $90       ; kernal status variable for I/O
         &ubyte  STKEY           = $91       ; various keyboard statuses (updated by IRQ)
-        ;;&ubyte  SFDX            = $cb       ; current key pressed (matrix value) (updated by IRQ)     // TODO c128 ??
-
-        &ubyte  COLOR           = $00f1     ; cursor color
-        ;;&ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)        // TODO c128 ??
+        &ubyte  SHFLAG          = $d3       ; various modifier key status (updated by IRQ)
+        &ubyte  SFDX            = $d4       ; current key pressed (matrix value) (updated by IRQ)
+        &ubyte  COLOR           = $f1       ; cursor color
 
         &uword  IERROR          = $0300
         &uword  IMAIN           = $0302

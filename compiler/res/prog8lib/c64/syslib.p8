@@ -8,6 +8,7 @@ c64 {
         &ubyte  STATUS          = $90       ; kernal status variable for I/O
         &ubyte  STKEY           = $91       ; various keyboard statuses (updated by IRQ)
         &ubyte  SFDX            = $cb       ; current key pressed (matrix value) (updated by IRQ)
+        &ubyte  SHFLAG          = $028d     ; various modifier key status (updated by IRQ)
 
         &ubyte  COLOR           = $0286     ; cursor color
         &ubyte  HIBASE          = $0288     ; screen base address / 256 (hi-byte of screen memory address)
