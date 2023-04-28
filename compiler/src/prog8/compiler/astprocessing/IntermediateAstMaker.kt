@@ -168,6 +168,7 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
                     "align_word" -> alignment = PtBlock.BlockAlignment.WORD
                     "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
                     "force_output" -> forceOutput=true
+                    "merge" -> { /* ignore this one */ }
                     else -> throw FatalAstException("weird directive option: ${arg.name}")
                 }
             }

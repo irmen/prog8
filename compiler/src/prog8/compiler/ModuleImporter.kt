@@ -114,6 +114,9 @@ class ModuleImporter(private val program: Program,
                 if(existingBlock!=null) {
                     existingBlock.statements.addAll(block.statements.filter { it !is Directive })
                     importedModule.statements.remove(block)
+                } else {
+                    val merges = block.statements.filter { it is Directive && it.directive=="%option" && it.args.any { a->a.name=="merge" } }
+                    block.statements.removeAll(merges)
                 }
             }
         }
