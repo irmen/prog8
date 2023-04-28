@@ -106,13 +106,15 @@ class ModuleImporter(private val program: Program,
         removeDirectivesFromImportedModule(importedModule)
 
         // modules can contain blocks with "merge" option.
-        // their content has to be merged into already existing block with the same name.
+        // their content has to be merged into already existing other block with the same name.
         val blocks = importedModule.statements.filterIsInstance<Block>()
         for(block in blocks) {
             if("merge" in block.options()) {
-                val existingBlock = program.allBlocks.first { it.name==block.name}
-                existingBlock.statements.addAll(block.statements.filter { it !is Directive})
-                importedModule.statements.remove(block)
+                val existingBlock = program.allBlocks.firstOrNull { it.name==block.name && it !== block}
+                if(existingBlock!=null) {
+                    existingBlock.statements.addAll(block.statements.filter { it !is Directive })
+                    importedModule.statements.remove(block)
+                }
             }
         }
 
