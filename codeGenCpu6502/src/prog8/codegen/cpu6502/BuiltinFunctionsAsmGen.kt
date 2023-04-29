@@ -91,8 +91,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val var3name = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)
         val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
         val remainderTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[3].position, var3name)
-        assignAsmGen.assignRegisterByte(remainderTarget, CpuRegister.A)
-        assignAsmGen.assignRegisterByte(divisionTarget, CpuRegister.Y)
+        assignAsmGen.assignRegisterByte(remainderTarget, CpuRegister.A, false)
+        assignAsmGen.assignRegisterByte(divisionTarget, CpuRegister.Y, false)
     }
 
     private fun funcDivmodW(fcall: PtBuiltinFunctionCall) {
@@ -304,7 +304,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
         else {
             asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
         }
     }
 
@@ -647,7 +647,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
                 else -> throw AssemblyError("weird type $dt")
             }
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true)
         }
     }
 
@@ -668,7 +668,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A |  ldy  #0")
                 else -> throw AssemblyError("weird type $dt")
             }
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes)
         }
     }
 

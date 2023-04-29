@@ -75,7 +75,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
                         asmgen.out("  lda  (P8ZP_SCRATCH_W1),y")
                     }
-                    assignRegisterByte(assign.target, CpuRegister.A)
+                    assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes)
                     return
                 }
 
@@ -86,7 +86,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     when (elementDt) {
                         in ByteDatatypes -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
-                            assignRegisterByte(assign.target, CpuRegister.A)
+                            assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes)
                         }
                         in WordDatatypes -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue |  ldy  $arrayVarName+$indexValue+1")
@@ -104,7 +104,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         in ByteDatatypes -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y")
-                            assignRegisterByte(assign.target, CpuRegister.A)
+                            assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes)
                         }
                         in WordDatatypes  -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
@@ -131,7 +131,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 fun assignViaExprEval(expression: PtExpression) {
                     assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
-                    assignRegisterByte(assign.target, CpuRegister.A)
+                    assignRegisterByte(assign.target, CpuRegister.A, false)
                 }
 
                 val value = assign.source.memory!!
@@ -147,7 +147,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         require(!asmgen.options.useNewExprCode)
                         val addrExpr = value.address as PtBinaryExpression
                         if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
-                            assignRegisterByte(assign.target, CpuRegister.A)
+                            assignRegisterByte(assign.target, CpuRegister.A, false)
                         } else {
                             assignViaExprEval(value.address)
                         }
@@ -207,9 +207,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> {
                         // do NOT restore X register before assigning the result values first
                         when (returnValue.first.registerOrPair) {
-                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A)
-                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X)
-                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y)
+                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second in SignedDatatypes)
+                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second in SignedDatatypes)
+                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second in SignedDatatypes)
                             RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
                             RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
                             RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
@@ -247,7 +247,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
                     when(returnDt) {
-                        in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A)            // function's byte result is in A
+                        in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A, returnDt in SignedDatatypes)            // function's byte result is in A
                         in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                         DataType.STR -> {
                             when (assign.target.datatype) {
@@ -296,7 +296,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             is PtContainmentCheck -> {
                 containmentCheckIntoA(value)
-                assignRegisterByte(assign.target, CpuRegister.A)
+                assignRegisterByte(assign.target, CpuRegister.A, false)
             }
             is PtBinaryExpression -> {
                 require(!asmgen.options.useNewExprCode)
@@ -337,7 +337,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(target.datatype) {
             in ByteDatatypes -> {
                 asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
-                assignRegisterByte(target, CpuRegister.A)
+                assignRegisterByte(target, CpuRegister.A, false)
             }
             in WordDatatypes -> assignRegisterpairWord(target, register)
             else -> throw AssemblyError("expected byte or word")
@@ -398,7 +398,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
                     else -> throw AssemblyError("invalid operator")
                 }
-                assignRegisterByte(assign.target, CpuRegister.A)
+                assignRegisterByte(assign.target, CpuRegister.A, false)
             }
         }
 
@@ -464,7 +464,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                       lda  #0
 +""")
                 }
-                assignRegisterByte(assign.target, CpuRegister.A)
+                assignRegisterByte(assign.target, CpuRegister.A, false)
                 return true
             } else if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes &&
                     expr.left.isSimple() && expr.right.isSimple()) {
@@ -495,7 +495,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                       lda  #1
 +""")
                 }
-                assignRegisterByte(assign.target, CpuRegister.A)
+                assignRegisterByte(assign.target, CpuRegister.A, false)
                 return true
             }
             return false
@@ -513,7 +513,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  clc |  adc  $symname")
                         else
                             asmgen.out("  sec |  sbc  $symname")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
                         return true
                     }
                     is PtNumber -> {
@@ -522,7 +522,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  clc |  adc  #${right.number.toHex()}")
                         else
                             asmgen.out("  sec |  sbc  #${right.number.toHex()}")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
                         return true
                     }
                     else -> return false
@@ -650,7 +650,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    assignRegisterByte(assign.target, CpuRegister.A)
+                    assignRegisterByte(assign.target, CpuRegister.A, signed)
                     return true
                 } else if(dt in WordDatatypes && shifts in 0..7) {
                     val signed = dt == DataType.WORD
@@ -698,7 +698,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             "^", "xor" -> asmgen.out("  eor  $operand")
             else -> throw AssemblyError("invalid operator")
         }
-        assignRegisterByte(target, CpuRegister.A)
+        assignRegisterByte(target, CpuRegister.A, false)
     }
 
     private fun assignLogicalWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
@@ -740,7 +740,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             beq  ++
 +                           lda  #1
 +""")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
                         return true
                     }
                     in WordDatatypes -> {
@@ -753,13 +753,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             beq  ++
 +                           lda  #1
 +""")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
                         return true
                     }
                     DataType.FLOAT -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
                         asmgen.out("  jsr  floats.SIGN |  and  #1 |  eor  #1")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
                         return true
                     }
                     else->{
@@ -773,7 +773,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("  beq  + |  lda  #1")
                         asmgen.out("+")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
                         return true
                     }
                     in WordDatatypes -> {
@@ -781,13 +781,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
                         asmgen.out("  beq  + |  lda  #1")
                         asmgen.out("+")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
                         return true
                     }
                     DataType.FLOAT -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
                         asmgen.out("  jsr  floats.SIGN")
-                        assignRegisterByte(assign.target, CpuRegister.A)
+                        assignRegisterByte(assign.target, CpuRegister.A, true)
                         return true
                     }
                     else->{
@@ -868,7 +868,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             else -> throw AssemblyError("can't use Z or N flags as return 'values'")
         }
-        assignRegisterByte(target, CpuRegister.A)
+        assignRegisterByte(target, CpuRegister.A, false)
     }
 
     private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: PtExpression, origTypeCastExpression: PtTypeCast) {
@@ -2057,7 +2057,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister) {
+    internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean) {
         // we make an exception in the type check for assigning something to a register pair AX, AY or XY
         // these will be correctly typecasted from a byte to a word value here
         if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
@@ -2099,9 +2099,40 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         RegisterOrPair.A -> {}
                         RegisterOrPair.X -> { asmgen.out("  tax") }
                         RegisterOrPair.Y -> { asmgen.out("  tay") }
-                        RegisterOrPair.AY -> { asmgen.out("  ldy  #0") }
-                        RegisterOrPair.AX -> { asmgen.out("  ldx  #0") }
-                        RegisterOrPair.XY -> { asmgen.out("  tax |  ldy  #0") }
+                        RegisterOrPair.AY -> {
+                            if(signed)
+                                asmgen.out("""
+                ldy  #0
+                cmp  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  ldy  #0")
+                        }
+                        RegisterOrPair.AX -> {
+                            if(signed)
+                                asmgen.out("""
+                ldx  #0
+                cmp  #${'$'}80
+                bcc  +
+                dex
++""")
+                            else
+                                asmgen.out("  ldx  #0")
+                        }
+                        RegisterOrPair.XY -> {
+                            if(signed)
+                                asmgen.out("""
+                tax
+                ldy  #0
+                cpx  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  tax |  ldy  #0")
+                        }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                         in Cx16VirtualRegisters -> {
                             // only assign a single byte to the virtual register's Lsb
@@ -2113,9 +2144,41 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         RegisterOrPair.A -> { asmgen.out("  txa") }
                         RegisterOrPair.X -> {  }
                         RegisterOrPair.Y -> { asmgen.out("  txy") }
-                        RegisterOrPair.AY -> { asmgen.out("  txa |  ldy  #0") }
-                        RegisterOrPair.AX -> { asmgen.out("  txa |  ldx  #0") }
-                        RegisterOrPair.XY -> { asmgen.out("  ldy  #0") }
+                        RegisterOrPair.AY -> {
+                            if(signed)
+                                asmgen.out("""
+                txa
+                ldy  #0
+                cmp  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  txa |  ldy  #0")
+                        }
+                        RegisterOrPair.AX -> {
+                            if(signed)
+                                asmgen.out("""
+                txa
+                ldx  #0
+                cmp  #${'$'}80
+                bcc  +
+                dex
++""")
+                            else
+                                asmgen.out("  txa |  ldx  #0")
+                        }
+                        RegisterOrPair.XY -> {
+                            if(signed)
+                                asmgen.out("""
+                ldy  #0
+                cpx  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  ldy  #0")
+                        }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                         in Cx16VirtualRegisters -> {
                             // only assign a single byte to the virtual register's Lsb
@@ -2127,9 +2190,43 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         RegisterOrPair.A -> { asmgen.out("  tya") }
                         RegisterOrPair.X -> { asmgen.out("  tyx") }
                         RegisterOrPair.Y -> { }
-                        RegisterOrPair.AY -> { asmgen.out("  tya |  ldy  #0") }
-                        RegisterOrPair.AX -> { asmgen.out("  tya |  ldx  #0") }
-                        RegisterOrPair.XY -> { asmgen.out("  tya |  tax |  ldy  #0") }
+                        RegisterOrPair.AY -> {
+                            if(signed)
+                                asmgen.out("""
+                tya
+                ldy  #0
+                cmp  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  tya |  ldy  #0")
+                        }
+                        RegisterOrPair.AX -> {
+                            if(signed)
+                                asmgen.out("""
+                tya
+                ldx  #0
+                cmp  #${'$'}80
+                bcc  +
+                dex
++""")
+                            else
+                                asmgen.out("  tya |  ldx  #0")
+                        }
+                        RegisterOrPair.XY -> {
+                            if(signed)
+                                asmgen.out("""
+                tya
+                tax
+                ldy  #0
+                cpx  #${'$'}80
+                bcc  +
+                dey
++""")
+                            else
+                                asmgen.out("  tya |  tax |  ldy  #0")
+                        }
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected type cast to float")
                         in Cx16VirtualRegisters -> {
                             // only assign a single byte to the virtual register's Lsb
@@ -2666,7 +2763,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 TargetStorageKind.ARRAY -> {
                     asmgen.out("  lda  ${address.toHex()}")
-                    assignRegisterByte(target, CpuRegister.A)
+                    assignRegisterByte(target, CpuRegister.A, false)
                 }
                 TargetStorageKind.REGISTER -> when(target.register!!) {
                     RegisterOrPair.A -> asmgen.out("  lda  ${address.toHex()}")
@@ -2706,7 +2803,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 TargetStorageKind.ARRAY -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
-                    assignRegisterByte(target, CpuRegister.A)
+                    assignRegisterByte(target, CpuRegister.A, false)
                 }
                 TargetStorageKind.REGISTER -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
