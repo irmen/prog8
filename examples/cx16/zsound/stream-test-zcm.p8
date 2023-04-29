@@ -68,9 +68,10 @@ zsound_lib:
             size = cx16diskio.f_read(digi_address, ram_bank_size)       ; load next bank
             txt.print_ub(cx16.getrambank())
             txt.spc()
+            sys.wait(5)     ; artificial delay
         }
 
-        txt.print("file end.\n")
+        txt.print("sound file end reached.\n")
         diskio.f_close()
 
         repeat {
