@@ -306,7 +306,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("  jsr  prog8_lib.func_sqrtw_stack")
         else {
             asmgen.out("  jsr  prog8_lib.func_sqrtw_into_A")
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A)
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
         }
     }
 
