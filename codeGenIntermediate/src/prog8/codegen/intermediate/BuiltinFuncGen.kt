@@ -17,7 +17,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "abs" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
-            "sqrtw" -> funcSqrtw(call)
+            "sqrt" -> funcSqrt(call)
             "divmod" -> funcDivmod(call, IRDataType.BYTE)
             "divmodw" -> funcDivmod(call, IRDataType.WORD)
             "pop" -> funcPop(call)
@@ -212,15 +212,37 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return ExpressionCodeResult(result, vmDt, resultReg, -1)
     }
 
-    private fun funcSqrtw(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+    private fun funcSqrt(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args.single())
-        addToResult(result, tr, tr.resultReg, -1)
-        val resultReg = codeGen.registers.nextFree()
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SQRT, IRDataType.WORD, reg1=resultReg, reg2=tr.resultReg)
+        val dt = call.args[0].type
+        when(dt) {
+            DataType.UBYTE -> {
+                addToResult(result, tr, tr.resultReg, -1)
+                val resultReg = codeGen.registers.nextFree()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SQRT, IRDataType.BYTE, reg1=resultReg, reg2=tr.resultReg)
+                }
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+            }
+            DataType.UWORD -> {
+                addToResult(result, tr, tr.resultReg, -1)
+                val resultReg = codeGen.registers.nextFree()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SQRT, IRDataType.WORD, reg1=resultReg, reg2=tr.resultReg)
+                }
+                return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+            }
+            DataType.FLOAT -> {
+                addToResult(result, tr, -1, tr.resultFpReg)
+                val resultFpReg = codeGen.registers.nextFreeFloat()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SQRT, IRDataType.FLOAT, fpReg1 = resultFpReg, reg2 = tr.resultFpReg)
+                }
+                return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
+            }
+            else -> throw AssemblyError("invalid dt for sqrt")
         }
-        return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
     }
 
     private fun funcPop(call: PtBuiltinFunctionCall): ExpressionCodeResult {

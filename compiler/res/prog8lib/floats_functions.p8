@@ -128,7 +128,7 @@ sub log2(float value) -> float {
     }}
 }
 
-sub sqrt(float value) -> float {
+sub sqrtf(float value) -> float {
     %asm {{
         lda  #<value
         ldy  #>value

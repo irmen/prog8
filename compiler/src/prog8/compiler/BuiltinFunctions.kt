@@ -16,7 +16,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "len" to ::builtinLen,
     "sizeof" to ::builtinSizeof,
     "sgn" to ::builtinSgn,
-    "sqrtw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "sqrt" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
     "any" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
     "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },

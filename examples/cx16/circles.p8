@@ -66,7 +66,7 @@ main {
             word dy = y as word - circle_y[cix]
             uword sqx = dx*dx as uword
             uword sqy = dy*dy as uword
-            return sqrtw(sqx + sqy)
+            return sqrt(sqx + sqy)
         }
 
 ;        sub distance(ubyte cix) -> uword {

@@ -36,7 +36,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "abs" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultToStack, resultRegister, sscope)
-            "sqrtw" -> funcSqrtw(fcall, resultToStack, resultRegister, sscope)
+            "sqrt" -> funcSqrt(fcall, resultToStack, resultRegister, sscope)
             "divmod" -> funcDivmod(fcall)
             "divmodw" -> funcDivmodW(fcall)
             "rol" -> funcRol(fcall)
@@ -300,12 +300,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.translateNormalAssignment(assign, fcall.definingISub())
     }
 
-    private fun funcSqrtw(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
+    private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
         if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_sqrtw_stack")
+            asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
         else {
-            asmgen.out("  jsr  prog8_lib.func_sqrtw_into_A")
+            asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
             assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
         }
     }

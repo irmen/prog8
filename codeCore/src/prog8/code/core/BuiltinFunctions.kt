@@ -68,7 +68,6 @@ class FSignature(val pure: Boolean,      // does it have side effects?
     }
 }
 
-
 val BuiltinFunctions: Map<String, FSignature> = mapOf(
     // this set of function have no return value and operate in-place:
     "rol"       to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
@@ -85,7 +84,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     // normal functions follow:
     "sizeof"    to FSignature(true, listOf(FParam("object", DataType.values())), DataType.UBYTE),
     "sgn"       to FSignature(true, listOf(FParam("value", NumericDatatypesNoBool)), DataType.BYTE),
-    "sqrtw"     to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE),
+    "sqrt"      to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD))), DataType.UBYTE),
     "divmod"    to FSignature(false, listOf(FParam("number", arrayOf(DataType.UBYTE)), FParam("divident", arrayOf(DataType.UBYTE)), FParam("division", arrayOf(DataType.UBYTE)), FParam("remainder", arrayOf(DataType.UBYTE))), null),
     "divmodw"   to FSignature(false, listOf(FParam("number", arrayOf(DataType.UWORD)), FParam("divident", arrayOf(DataType.UWORD)), FParam("division", arrayOf(DataType.UWORD)), FParam("remainder", arrayOf(DataType.UWORD))), null),
     "any"       to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.UBYTE),

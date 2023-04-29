@@ -82,9 +82,9 @@ sub log2(float value) -> float {
     }}
 }
 
-sub sqrt(float value) -> float {
+sub sqrtf(float value) -> float {
     %ir {{
-        loadm.f fr0,floats.sqrt.value
+        loadm.f fr0,floats.sqrtf.value
         sqrt.f fr0,fr0
         returnr.f fr0
     }}
