@@ -1524,20 +1524,6 @@ class IRCodeGen(
         }
     }
 
-
-    internal fun irType(type: DataType): IRDataType {
-        return when(type) {
-            DataType.BOOL,
-            DataType.UBYTE,
-            DataType.BYTE -> IRDataType.BYTE
-            DataType.UWORD,
-            DataType.WORD -> IRDataType.WORD
-            DataType.FLOAT -> IRDataType.FLOAT
-            in PassByReferenceDatatypes -> IRDataType.WORD
-            else -> throw AssemblyError("no IR datatype for $type")
-        }
-    }
-
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {
         labelSequenceNumber++

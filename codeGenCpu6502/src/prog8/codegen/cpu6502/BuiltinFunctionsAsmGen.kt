@@ -31,6 +31,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "msb" -> funcMsb(fcall, resultToStack, resultRegister)
             "lsb" -> funcLsb(fcall, resultToStack, resultRegister)
             "mkword" -> funcMkword(fcall, resultToStack, resultRegister)
+            "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultToStack, resultRegister)
+            "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultToStack, resultRegister)
             "abs" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultToStack, resultRegister, sscope)
@@ -822,6 +824,126 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         resultRegister.toString().lowercase()
                     } |  sty  cx16.${resultRegister.toString().lowercase()}+1")
                 else -> throw AssemblyError("invalid reg")
+            }
+        }
+    }
+
+    private fun funcMin(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        val signed = fcall.type in SignedDatatypes
+        if(fcall.type in ByteDatatypes) {
+            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
+            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+            if(signed) asmgen.out("  bmi  +") else asmgen.out("  bcc  +")
+            asmgen.out("""
+                lda  P8ZP_SCRATCH_B1
++""")
+            if(resultToStack) {
+                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            } else {
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.A, targetReg)
+            }
+        } else {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+            if(signed) {
+                asmgen.out("""
+                    lda  P8ZP_SCRATCH_W1
+                    ldy  P8ZP_SCRATCH_W1+1
+                    cmp  P8ZP_SCRATCH_W2
+                    tya
+                    sbc  P8ZP_SCRATCH_W2+1
+                    bvc  +
+                    eor  #$80
++                   bpl  +
+                    lda  P8ZP_SCRATCH_W1                   
+                    ldy  P8ZP_SCRATCH_W1+1
+                    jmp  ++
++                   lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1
++""")
+            } else {
+                asmgen.out("""
+                    lda  P8ZP_SCRATCH_W1+1
+                    cmp  P8ZP_SCRATCH_W2+1
+                    bcc  ++
+                    bne  +
+                    lda  P8ZP_SCRATCH_W1
+                    cmp  P8ZP_SCRATCH_W2
+                    bcc  ++
++                   lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1
+                    jmp  ++
++                   lda  P8ZP_SCRATCH_W1
+                    ldy  P8ZP_SCRATCH_W1+1
++""")
+            }
+            if(resultToStack) {
+                asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+            } else {
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.AY, targetReg)
+            }
+        }
+    }
+
+    private fun funcMax(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        val signed = fcall.type in SignedDatatypes
+        if(fcall.type in ByteDatatypes) {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
+            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+            if(signed) asmgen.out("  bpl  +") else asmgen.out("  bcs  +")
+            asmgen.out("""
+                lda  P8ZP_SCRATCH_B1
++""")
+            if(resultToStack) {
+                asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+            } else {
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.A, targetReg)
+            }
+        } else {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+            if(signed) {
+                asmgen.out("""
+                    lda  P8ZP_SCRATCH_W1
+                    ldy  P8ZP_SCRATCH_W1+1
+                    cmp  P8ZP_SCRATCH_W2
+                    tya
+                    sbc  P8ZP_SCRATCH_W2+1
+                    bvc  +
+                    eor  #$80
++                   bmi  +
+                    lda  P8ZP_SCRATCH_W1                   
+                    ldy  P8ZP_SCRATCH_W1+1
+                    jmp  ++
++                   lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1
++""")
+            } else {
+                asmgen.out("""
+                    lda  P8ZP_SCRATCH_W1+1
+                    cmp  P8ZP_SCRATCH_W2+1
+                    bcc  ++
+                    bne  +
+                    lda  P8ZP_SCRATCH_W1
+                    cmp  P8ZP_SCRATCH_W2
+                    bcc  ++
++                   lda  P8ZP_SCRATCH_W1
+                    ldy  P8ZP_SCRATCH_W1+1
+                    jmp  ++
++                   lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1
++""")
+            }
+            if(resultToStack) {
+                asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+            } else {
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.AY, targetReg)
             }
         }
     }

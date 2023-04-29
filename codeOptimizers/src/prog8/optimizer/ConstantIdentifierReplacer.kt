@@ -68,6 +68,39 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
 
         return noModifications
     }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        // choose specific builtin function for the given types
+        val func = functionCallExpr.target.nameInSource
+        if(func==listOf("min") || func==listOf("max")) {
+            val t1 = functionCallExpr.args[0].inferType(program)
+            val t2 = functionCallExpr.args[1].inferType(program)
+            if(t1.isKnown && t2.isKnown) {
+                val funcName = func[0]
+                val replaceFunc: String
+                if(t1.isBytes && t2.isBytes) {
+                    replaceFunc = if(t1.istype(DataType.BYTE) || t2.istype(DataType.BYTE))
+                        "${funcName}__byte"
+                    else
+                        "${funcName}__ubyte"
+                } else if(t1.isInteger && t2.isInteger) {
+                    replaceFunc = if(t1.istype(DataType.WORD) || t2.istype(DataType.WORD))
+                        "${funcName}__word"
+                    else
+                        "${funcName}__uword"
+                } else if(t1.isNumeric && t2.isNumeric) {
+                    replaceFunc = "${funcName}__float"
+                } else {
+                    errors.err("expected numeric arguments", functionCallExpr.position)
+                    return noModifications
+                }
+                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
+                    functionCallExpr))
+            }
+        }
+        return noModifications
+    }
 }
 
 

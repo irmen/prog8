@@ -7,10 +7,7 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
 import prog8.code.core.*
-import kotlin.math.abs
-import kotlin.math.sign
-import kotlin.math.sqrt
-
+import kotlin.math.*
 
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
@@ -24,7 +21,15 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
-    "mkword" to ::builtinMkword
+    "mkword" to ::builtinMkword,
+    "min__ubyte" to ::builtinMinUByte,
+    "min__byte" to ::builtinMinByte,
+    "min__uword" to ::builtinMinUWord,
+    "min__word" to ::builtinMinWord,
+    "max__ubyte" to ::builtinMaxUByte,
+    "max__byte" to ::builtinMaxByte,
+    "max__uword" to ::builtinMaxUWord,
+    "max__word" to ::builtinMaxWord,
 )
 
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
@@ -155,4 +160,76 @@ private fun builtinSgn(args: List<Expression>, position: Position, program: Prog
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return NumericLiteral(DataType.BYTE, constval.number.sign, position)
+}
+
+private fun builtinMinByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("min requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.BYTE, result.toDouble(), position)
+}
+
+private fun builtinMinUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("min requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.UBYTE, result.toDouble(), position)
+}
+
+private fun builtinMinWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("min requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.WORD, result.toDouble(), position)
+}
+
+private fun builtinMinUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("min requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
+}
+
+private fun builtinMaxByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("max requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = max(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.BYTE, result.toDouble(), position)
+}
+
+private fun builtinMaxUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("max requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = max(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.UBYTE, result.toDouble(), position)
+}
+
+private fun builtinMaxWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("max requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = max(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.WORD, result.toDouble(), position)
+}
+
+private fun builtinMaxUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("max requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = max(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
 }

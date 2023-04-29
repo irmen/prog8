@@ -1,5 +1,8 @@
 package prog8.intermediate
 
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
+import prog8.code.core.PassByReferenceDatatypes
 import prog8.code.core.toHex
 
 /*
@@ -88,7 +91,7 @@ bger        reg1, reg2,       address   - jump to location in program given by l
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
-( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
+ ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
 sz          reg1, reg2                  - set reg1=1 if reg2==0,  otherwise set reg1=0
 snz         reg1, reg2                  - set reg1=1 if reg2!=0,  otherwise set reg1=0
 seq         reg1, reg2                  - set reg1=1 if reg1 == reg2,  otherwise set reg1=0
@@ -851,5 +854,19 @@ data class IRInstruction(
         if(result.last() == ",")
             result.removeLast()
         return result.joinToString("").trimEnd()
+    }
+}
+
+
+fun irType(type: DataType): IRDataType {
+    return when(type) {
+        DataType.BOOL,
+        DataType.UBYTE,
+        DataType.BYTE -> IRDataType.BYTE
+        DataType.UWORD,
+        DataType.WORD -> IRDataType.WORD
+        DataType.FLOAT -> IRDataType.FLOAT
+        in PassByReferenceDatatypes -> IRDataType.WORD
+        else -> throw AssemblyError("no IR datatype for $type")
     }
 }

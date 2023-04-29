@@ -1,6 +1,14 @@
 TODO
 ====
 
+- try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
+  This is a major change because it will likely break existing code that is now using min and max as variable names.
+  Add "polymorphism" that translates min -> min__ubyte etc etc.
+  Also add optimization that changes the word variant to byte variant if the operands are bytes.
+  Add to docs.
+
+- add polymorphism to other builtin functions as well!  Fix docs.
+
 - once 9.0 is stable, upgrade other programs (assem, shell, etc) to it.
 
 ...
@@ -8,9 +16,6 @@ TODO
 
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
-- try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
-  This is a major change because it will likely break existing code that is now using min and max as variable names.
-  Also add optimization that changes the word variant to byte variant if the operands are bytes.
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....

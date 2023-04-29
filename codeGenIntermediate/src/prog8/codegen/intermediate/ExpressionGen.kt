@@ -28,10 +28,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
             is PtMachineRegister -> {
-                ExpressionCodeResult(emptyList(), codeGen.irType(expr.type), expr.register, -1)
+                ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
             }
             is PtNumber -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if(vmDt==IRDataType.FLOAT) {
                     val resultFpRegister = codeGen.registers.nextFreeFloat()
@@ -45,7 +45,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtIdentifier -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if (expr.type in PassByValueDatatypes) {
                     if(vmDt==IRDataType.FLOAT) {
@@ -66,7 +66,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtAddressOf -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val symbol = expr.identifier.name
                 // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
                 val code = IRCodeChunk(null, null)
@@ -160,7 +160,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(arrayIx: PtArrayIndexer): ExpressionCodeResult {
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type)
-        val vmDt = codeGen.irType(arrayIx.type)
+        val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val arrayVarSymbol = arrayIx.variable.name
 
@@ -210,7 +210,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(expr.value)
         addToResult(result, tr, tr.resultReg, tr.resultFpReg)
-        val vmDt = codeGen.irType(expr.type)
+        val vmDt = irType(expr.type)
         when(expr.operator) {
             "+" -> { }
             "-" -> {
@@ -326,12 +326,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else -> throw AssemblyError("weird cast type")
         }
 
-        return ExpressionCodeResult(result, codeGen.irType(cast.type), actualResultReg2, actualResultFpReg2)
+        return ExpressionCodeResult(result, irType(cast.type), actualResultReg2, actualResultFpReg2)
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {
         require(!codeGen.options.useNewExprCode)
-        val vmDt = codeGen.irType(binExpr.left.type)
+        val vmDt = irType(binExpr.left.type)
         val signed = binExpr.left.type in SignedDatatypes
         return when(binExpr.operator) {
             "+" -> operatorPlus(binExpr, vmDt)
@@ -360,7 +360,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val result = mutableListOf<IRCodeChunkBase>()
                 for ((index, argspec) in fcall.args.zip(callTarget.parameters).withIndex()) {
                     val (arg, param) = argspec
-                    val paramDt = codeGen.irType(param.type)
+                    val paramDt = irType(param.type)
                     val tr = translateExpression(arg)
                     result += tr.chunks
                     if(paramDt==IRDataType.FLOAT)
@@ -369,7 +369,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.SETPARAM, paramDt, reg1 = tr.resultReg, immediate = index), null)
                 }
 //                for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
-//                    val paramDt = codeGen.irType(parameter.type)
+//                    val paramDt = irType(parameter.type)
 //                    val symbol = "${fcall.name}.${parameter.name}"
 //                    if(codeGen.isZero(arg)) {
 //                        addInstr(result, IRInstruction(Opcode.STOREZM, paramDt, labelSymbol = symbol), null)
@@ -396,15 +396,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.CALLR, IRDataType.FLOAT, fpReg1=resultFpReg, labelSymbol=fcall.name), null)
                     } else {
                         resultReg = codeGen.registers.nextFree()
-                        addInstr(result, IRInstruction(Opcode.CALLR, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol=fcall.name), null)
+                        addInstr(result, IRInstruction(Opcode.CALLR, irType(fcall.type), reg1=resultReg, labelSymbol=fcall.name), null)
                     }
-                    ExpressionCodeResult(result, codeGen.irType(fcall.type), resultReg, resultFpReg)
+                    ExpressionCodeResult(result, irType(fcall.type), resultReg, resultFpReg)
                 }
             }
             is StRomSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
-                    val paramDt = codeGen.irType(parameter.type)
+                    val paramDt = irType(parameter.type)
                     val paramRegStr = if(parameter.register.registerOrPair!=null) parameter.register.registerOrPair.toString() else parameter.register.statusflag.toString()
                     if(codeGen.isZero(arg)) {
                         addInstr(result, IRInstruction(Opcode.STOREZCPU, paramDt, labelSymbol = paramRegStr), null)
@@ -427,20 +427,20 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                                 throw AssemblyError("doesn't support float register result in asm romsub")
                             val returns = callTarget.returns.single()
                             val regStr = if(returns.register.registerOrPair!=null) returns.register.registerOrPair.toString() else returns.register.statusflag.toString()
-                            addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
+                            addInstr(result, IRInstruction(Opcode.LOADCPU, irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
                         }
                         else -> {
                             val returnRegister = callTarget.returns.singleOrNull{ it.register.registerOrPair!=null }
                             if(returnRegister!=null) {
                                 // we skip the other values returned in the status flags.
                                 val regStr = returnRegister.register.registerOrPair.toString()
-                                addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
+                                addInstr(result, IRInstruction(Opcode.LOADCPU, irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
                             } else {
                                 val firstReturnRegister = callTarget.returns.firstOrNull{ it.register.registerOrPair!=null }
                                 if(firstReturnRegister!=null) {
                                     // we just take the first register return value and ignore the rest.
                                     val regStr = firstReturnRegister.register.registerOrPair.toString()
-                                    addInstr(result, IRInstruction(Opcode.LOADCPU, codeGen.irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
+                                    addInstr(result, IRInstruction(Opcode.LOADCPU, irType(fcall.type), reg1=resultReg, labelSymbol = regStr), null)
                                 } else {
                                     throw AssemblyError("invalid number of return values from call")
                                 }
@@ -448,7 +448,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         }
                     }
                 }
-                return ExpressionCodeResult(result, if(fcall.void) IRDataType.BYTE else codeGen.irType(fcall.type), resultReg, -1)
+                return ExpressionCodeResult(result, if(fcall.void) IRDataType.BYTE else irType(fcall.type), resultReg, -1)
             }
             else -> throw AssemblyError("invalid node type")
         }
