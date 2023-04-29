@@ -144,3 +144,11 @@ func_all_f_stack	.proc
 		jsr  a_times_5
 		jmp  prog8_lib.func_all_b_stack
 		.pend
+
+func_abs_f_into_FAC1    .proc
+        stx  P8ZP_SCRATCH_REG
+        jsr  MOVFM
+        jsr  ABS
+        ldx  P8ZP_SCRATCH_REG
+        rts
+	.pend

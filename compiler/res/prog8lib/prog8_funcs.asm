@@ -86,16 +86,15 @@ func_all_w_stack	.proc
 
 abs_b_stack	.proc
 	; -- push abs(A) on stack (as unsigned word)
-		jsr  abs_b_into_AY
+		jsr  abs_b_into_A
 		sta  P8ESTACK_LO,x
 		stz  P8ESTACK_HI,x
 		dex
 		rts
 		.pend
 
-abs_b_into_AY	.proc
-	; -- AY = abs(A)  (abs always returns unsigned word)
-		ldy  #0
+abs_b_into_A	.proc
+	; -- A = abs(A)
 		cmp  #0
 		bmi  +
 		rts

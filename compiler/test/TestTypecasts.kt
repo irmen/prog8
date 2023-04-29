@@ -27,14 +27,14 @@ class TestTypecasts: FunSpec({
             main {
                 sub start() {
                     float fl
-                    floats.print_f(abs(fl))
+                    floats.print_f(lsb(fl))
                 }
             }"""
         val errors = ErrorReporterForTests()
         val result = compileText(C64Target(), false, text, writeAssembly = false, errors=errors)
         result shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "type mismatch, was: FLOAT expected one of: [UBYTE, BYTE, UWORD, WORD]"
+        errors.errors[0] shouldContain "type mismatch, was: FLOAT expected one of: [UWORD, WORD]"
     }
 
     test("not casting bool operands to logical operators") {

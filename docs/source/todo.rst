@@ -6,7 +6,8 @@ For 9.0 major changes
 - DONE: added min() max() builtin functions
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
 - DONE: rename sqrt16() to just sqrt(), rename floats.sqrt() to floats.sqrtf()
-- add "polymorphism" of min() and max() to several other builtin functions as well (abs, divmod, pop, push) Fix docs.
+- DONE: abs() now supports multiple datatypes including float. No need to use floats.fabs() anymore.
+- add "polymorphism" of min() and max() to several other builtin functions as well (divmod, pop, push) Fix docs.
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....

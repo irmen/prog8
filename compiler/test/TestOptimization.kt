@@ -532,7 +532,7 @@ class TestOptimization: FunSpec({
                 uword @shared zz
                 zz += 60            ; NOT ok to remove initializer, should evaluate to 60
                 ubyte @shared xx
-                xx = 6+lsb(abs(xx))   ; is not an initializer because it references xx
+                xx = 6+lsb(mkword(xx,22))   ; is not an initializer because it references xx
             }
         }
         """

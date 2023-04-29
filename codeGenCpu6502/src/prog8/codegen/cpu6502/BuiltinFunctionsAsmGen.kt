@@ -33,7 +33,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "mkword" -> funcMkword(fcall, resultToStack, resultRegister)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultToStack, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultToStack, resultRegister)
-            "abs" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
+            "abs__byte", "abs__word", "abs__float" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultToStack, resultRegister, sscope)
             "sqrt" -> funcSqrt(fcall, resultToStack, resultRegister, sscope)
@@ -301,6 +301,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
+        require(fcall.type != DataType.FLOAT)
         translateArguments(fcall, scope)
         if(resultToStack)
             asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
@@ -679,21 +680,32 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val dt = fcall.args.single().type
         if(resultToStack) {
             when (dt) {
-                DataType.UBYTE -> asmgen.out("  ldy  #0")
                 DataType.BYTE -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
-                DataType.UWORD -> {}
                 DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_stack")
-                else -> throw AssemblyError("weird type")
+                else -> throw AssemblyError("no support for abs onto stack for this dt")
             }
         } else {
             when (dt) {
-                DataType.UBYTE -> asmgen.out("  ldy  #0")
-                DataType.BYTE -> asmgen.out("  jsr  prog8_lib.abs_b_into_AY")
-                DataType.UWORD -> {}
-                DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
+                DataType.BYTE -> {
+                    asmgen.out("  jsr  prog8_lib.abs_b_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A,false)
+                }
+                DataType.WORD -> {
+                    asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen), RegisterOrPair.AY)
+                }
+                DataType.FLOAT -> {
+                    asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
+                }
+                DataType.UBYTE -> {
+                    asmgen.assignRegister(RegisterOrPair.A, AsmAssignTarget.fromRegisters(resultRegister?:RegisterOrPair.A, false, fcall.position, scope, asmgen))
+                }
+                DataType.UWORD -> {
+                    asmgen.assignRegister(RegisterOrPair.AY, AsmAssignTarget.fromRegisters(resultRegister?:RegisterOrPair.AY, false, fcall.position, scope, asmgen))
+                }
                 else -> throw AssemblyError("weird type")
             }
-            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen), RegisterOrPair.AY)
         }
     }
 

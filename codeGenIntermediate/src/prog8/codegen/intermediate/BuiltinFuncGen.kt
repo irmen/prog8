@@ -14,7 +14,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return when(call.name) {
             "any" -> funcAny(call)
             "all" -> funcAll(call)
-            "abs" -> funcAbs(call)
+            "abs__byte", "abs__word", "abs__float" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
             "sqrt" -> funcSqrt(call)
@@ -165,12 +165,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         when (sourceDt) {
-            DataType.UBYTE -> {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = tr.resultReg)
-                }
-                return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
-            }
             DataType.BYTE -> {
                 val notNegativeLabel = codeGen.createLabelName()
                 val compareReg = codeGen.registers.nextFree()
@@ -196,7 +190,12 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 result += IRCodeChunk(notNegativeLabel, null)
                 return ExpressionCodeResult(result, IRDataType.WORD, tr.resultReg, -1)
             }
-            else -> throw AssemblyError("weird type")
+            DataType.FLOAT -> {
+                val resultFpReg = codeGen.registers.nextFreeFloat()
+                addInstr(result, IRInstruction(Opcode.FABS, IRDataType.FLOAT, fpReg1 = resultFpReg, fpReg2 = tr.resultFpReg), null)
+                return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
+            }
+            else -> throw AssemblyError("weird dt")
         }
     }
 

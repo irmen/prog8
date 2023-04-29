@@ -762,8 +762,7 @@ Math
 ^^^^
 
 abs (x)
-    Absolute value of an integer. Value returned is an unsigned word.
-    For floating point numbers, use ``floats.fabs()`` instead.
+    Returns the absolute value of a number.
 
 min (x, y)
     Returns the smallest of x and y. Supported for integer types only, for floats use ``floats.minf()`` instead.

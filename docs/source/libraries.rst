@@ -50,11 +50,11 @@ sys (part of syslib)
     - 16 = compiled for Commander X16 with 65C02 CPU
     - 64 = compiled for Commodore 64 with 6502/6510 CPU
 
-``exit(returncode)``
+``exit (returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.
     Note: custom interrupt handlers remain active unless manually cleared first!
 
-``memcopy(from, to, numbytes)``
+``memcopy (from, to, numbytes)``
     Efficiently copy a number of bytes from a memory location to another.
     *Warning:* can only copy *non-overlapping* memory areas correctly!
     Because this function imposes some overhead to handle the parameters,
@@ -62,60 +62,60 @@ sys (part of syslib)
     Compare the generated code to see if it was beneficial or not.
     The most efficient will often be to write a specialized copy routine in assembly yourself!
 
-``memset(address, numbytes, bytevalue)``
+``memset (address, numbytes, bytevalue)``
     Efficiently set a part of memory to the given (u)byte value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
     Note that for clearing the screen, very fast specialized subroutines are
     available in the ``textio`` and ``graphics`` library modules.
 
-``memsetw(address, numwords, wordvalue)``
+``memsetw (address, numwords, wordvalue)``
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
-``read_flags() -> ubyte``
+``read_flags () -> ubyte``
     Returns the current value of the CPU status register.
 
-``set_carry()``
+``set_carry ()``
     Sets the CPU status register Carry flag.
 
-``clear_carry()``
+``clear_carry ()``
     Clears the CPU status register Carry flag.
 
-``set_irqd()``
+``set_irqd ()``
     Sets the CPU status register Interrupt Disable flag.
 
-``clear_irqd()``
+``clear_irqd ()``
     Clears the CPU status register Interrupt Disable flag.
 
-``progend()``
+``progend ()``
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.
 
-``wait(uword jiffies)``
+``wait (uword jiffies)``
     wait approximately the given number of jiffies (1/60th seconds)
     Note: the regular system irq handler has run for this to work as it depends on the system jiffy clock.
     If this is is not possible (for instance because your program is running its own irq handler logic *and* no longer calls
     the kernal's handler routine), you'll have to write your own wait routine instead.
 
-``waitvsync()``
+``waitvsync ()``
     busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
     can be used to avoid screen flicker/tearing when updating screen contents.
     note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
     note for cx16: the regular system irq handler has to run for this to work (this is not required on C64 and C128)
 
-``waitrastborder()`` (c64/c128 targets only)
+``waitrastborder ()`` (c64/c128 targets only)
     busy wait till the raster position has reached the bottom screen border (approximately)
     can be used to avoid screen flicker/tearing when updating screen contents.
     note: a more accurate way to do this is by using a raster irq handler instead.
 
-``reset_system()``
+``reset_system ()``
     Soft-reset the system back to initial power-on BASIC prompt.
     (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
 
-``poweroff_system()``  (commander x16 only)
+``poweroff_system ()``  (commander x16 only)
     Powers down the computer.
 
-``set_leds_brightness(ubyte activity, ubyte power)``  (commander x16 only)
+``set_leds_brightness (ubyte activity, ubyte power)``  (commander x16 only)
     Sets the brightness of the activity and power leds on the computer.
 
 
@@ -157,63 +157,63 @@ string
 ------
 Provides string manipulation routines.
 
-``length(str) -> ubyte length``
+``length (str) -> ubyte length``
     Number of bytes in the string. This value is determined during runtime and counts upto
     the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
     Don't confuse this with ``len`` and ``sizeof``!
 
-``left(source, length, target)``
+``left (source, length, target)``
     Copies the left side of the source string of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
     Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-``right(source, length, target)``
+``right (source, length, target)``
     Copies the right side of the source string of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
     Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-``slice(source, start, length, target)``
+``slice (source, start, length, target)``
     Copies a segment from the source string, starting at the given index,
     and of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result.
     Also, you have to make sure yourself that start and length are within bounds of the strings.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-``find(string, char) -> ubyte index + carry bit``
+``find (string, char) -> ubyte index + carry bit``
     Locates the first position of the given character in the string, returns carry bit set if found
     and the index in the string. Or 0+carry bit clear if the character was not found.
 
-``compare(string1, string2) -> ubyte result``
+``compare (string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
     Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use string.compare for you under water automatically).
 
-``copy(from, to) -> ubyte length``
+``copy (from, to) -> ubyte length``
     Copy a string to another, overwriting that one. Returns the length of the string that was copied.
     Often you don't have to call this explicitly and can just write ``string1 = string2``
     but this function is useful if you're dealing with addresses for instance.
 
-``lower(string)``
+``lower (string)``
     Lowercases the PETSCII-string in place.
 
-``upper(string)``
+``upper (string)``
     Uppercases the PETSCII-string in place.
 
-``lowerchar(char)``
+``lowerchar (char)``
     Returns lowercased character.
 
-``upperchar(char)``
+``upperchar (char)``
     Returns uppercased character.
 
-``startswith(string, prefix) -> bool``
+``startswith (string, prefix) -> bool``
     Returns true if string starts with prefix, otherwise false
 
-``endswith(string, suffix) -> bool``
+``endswith (string, suffix) -> bool``
     Returns true if string ends with suffix, otherwise false
 
-``pattern_match(string, pattern) -> ubyte`` (not on Virtual target)
+``pattern_match (string, pattern) -> ubyte`` (not on Virtual target)
     Returns 1 (true) if the string matches the pattern, 0 (false) if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
 
@@ -225,61 +225,65 @@ floats
     Floating point support is only available on c64, cx16 and virtual targets for now.
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating
-point variables.  This includes ``print_f``, the routine used to print floating point numbers,
-``fabs`` to get the absolute value of a floating point number, and a dozen or so floating point
-math routines.
+point variables.  This includes ``print_f``, the routine used to print floating point numbers.
 
-atan(x)
+``atan (x)``
     Arctangent.
 
-ceil(x)
+``ceil (x)``
     Rounds the floating point up to an integer towards positive infinity.
 
-cos(x)
+``cos (x)``
     Cosine.
     If you want a fast integer cosine, have a look at examples/cx16/sincos.p8
     that contains various lookup tables generated by the 64tass assembler.
 
-deg(x)
+``deg (x)``
     Radians to degrees.
 
-floor (x)
+``fabs (x)``
+    Returns the absolute value of x. Deprecated, just use the builtin ``abs(x)`` function instead.
+
+``floor (x)``
     Rounds the floating point down to an integer towards minus infinity.
 
-ln(x)
+``ln (x)``
     Natural logarithm (base e).
 
-log2(x)
+``log2 (x)``
     Base 2 logarithm.
 
-minf(x, y)
+``minf (x, y)``
     returns the smallest of x and y.
 
-maxf(x, y)
+``maxf (x, y)``
     returns the largest of x and y.
 
-rad(x)
+``print_f (x)``
+    prints the floating point number x as a string.
+
+``rad (x)``
     Degrees to radians.
 
-round(x)
+``round (x)``
     Rounds the floating point to the closest integer.
 
-sin(x)
+``sin (x)``
     Sine.
     If you want a fast integer sine, have a look at examples/cx16/sincos.p8
     that contains various lookup tables generated by the 64tass assembler.
 
-sqrtf(x)
+``sqrtf (x)``
     Floating point Square root.
     To do the reverse, squaring a floating point number, just write ``x*x``.
 
-tan(x)
+``tan (x)``
     Tangent.
 
-rndf()
+``rndf ()``
     returns the next random float between 0.0 and 1.0 from the Pseudo RNG sequence.
 
-rndseedf(seed)
+``rndseedf (seed)``
     Sets a new seed for the float pseudo-RNG sequence. Use a negative non-zero number as seed value.
 
 
@@ -306,41 +310,41 @@ Usually a custom lookup table is the way to go if your application needs these,
 but perhaps the provided ones can be of service too.
 
 
-rnd()
+``rnd ()``
     Returns next random byte 0-255 from the pseudo-RNG sequence.
 
-rndw()
+``rndw ()``
     Returns next random word 0-65535 from the pseudo-RNG sequence.
 
-rndseed(uword seed1, uword seed2)
+``rndseed (uword seed1, uword seed2)``
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
     Do not use zeros for the seed!
 
-sin8u(x)
+``sin8u (x)``
     Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
 
-sin8(x)
+``sin8 (x)``
     Fast 8-bit byte sine of angle 0..255, result is in range -127..127
 
-sinr8u(x)
+``sinr8u (x)``
     Fast 8-bit ubyte sine of angle 0..179 (each is a 2 degree step), result is in range 0..255
     Angles 180..255 will yield a garbage result!
 
-sinr8(x)
+``sinr8 (x)``
     Fast 8-bit byte sine of angle 0..179 (each is a 2 degree step), result is in range -127..127
     Angles 180..255 will yield a garbage result!
 
-cos8u(x)
+``cos8u (x)``
     Fast 8-bit ubyte cosine of angle 0..255, result is in range 0..255
 
-cos8(x)
+``cos8 (x)``
     Fast 8-bit byte cosine of angle 0..255, result is in range -127..127
 
-cosr8u(x)
+``cosr8u (x)``
     Fast 8-bit ubyte cosine of angle 0..179 (each is a 2 degree step), result is in range 0..255
     Angles 180..255 will yield a garbage result!
 
-cosr8(x)
+``cosr8 (x)``
     Fast 8-bit byte cosine of angle 0..179 (each is a 2 degree step), result is in range -127..127
     Angles 180..255 will yield a garbage result!
 

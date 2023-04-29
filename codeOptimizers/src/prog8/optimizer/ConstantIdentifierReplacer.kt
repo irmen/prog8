@@ -100,6 +100,27 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
                     functionCallExpr))
             }
         }
+        else if(func==listOf("abs")) {
+            val t1 = functionCallExpr.args[0].inferType(program)
+            if(t1.isKnown) {
+                val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
+                val replaceFunc = when(dt) {
+                    DataType.BYTE -> "abs__byte"
+                    DataType.WORD -> "abs__word"
+                    DataType.FLOAT -> "abs__float"
+                    DataType.UBYTE, DataType.UWORD -> {
+                        return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
+                    }
+                    else -> {
+                        errors.err("expected numeric argument", functionCallExpr.position)
+                        return noModifications
+                    }
+                }
+                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
+                    functionCallExpr))
+            }
+        }
         return noModifications
     }
 }
