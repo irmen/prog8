@@ -89,7 +89,8 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
                     else
                         "${funcName}__uword"
                 } else if(t1.isNumeric && t2.isNumeric) {
-                    replaceFunc = "${funcName}__float"
+                    errors.err("min/max not supported for floats", functionCallExpr.position)
+                    return noModifications
                 } else {
                     errors.err("expected numeric arguments", functionCallExpr.position)
                     return noModifications

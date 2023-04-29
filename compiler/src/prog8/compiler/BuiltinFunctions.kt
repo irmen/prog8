@@ -29,7 +29,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "max__ubyte" to ::builtinMaxUByte,
     "max__byte" to ::builtinMaxByte,
     "max__uword" to ::builtinMaxUWord,
-    "max__word" to ::builtinMaxWord,
+    "max__word" to ::builtinMaxWord
 )
 
 private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0

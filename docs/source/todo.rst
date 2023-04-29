@@ -1,21 +1,12 @@
 TODO
 ====
 
-- try to reintroduce builtin functions max/maxw/min/minw that take 2 args and return the largest/smallest of them.
-  This is a major change because it will likely break existing code that is now using min and max as variable names.
-  Add "polymorphism" that translates min -> min__ubyte etc etc.
-  Also add optimization that changes the word variant to byte variant if the operands are bytes.
-  Add to docs.
-
-- add polymorphism to other builtin functions as well!  Fix docs.
-
-- once 9.0 is stable, upgrade other programs (assem, shell, etc) to it.
-
-...
-
-
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
+- DONE: added min() max() builtin functions
+- DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
+- DONE: rename sqrt16() to just sqrtw()
+- add "polymorphism" of min() and max() to several other builtin functions as well!  Fix docs.
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
@@ -25,10 +16,11 @@ For 9.0 major changes
   But see complaint on github https://github.com/irmen/prog8/issues/106
 - duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
-- add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+- once 9.0 is stable, upgrade other programs (assem, shell, etc) to it. + add migration guide to the manual.
+- [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
   this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
   So maybe only allow the bare essentials? (store, get, bitwise operations?)
-- Some more support for (64tass) SEGMENTS ?
+- [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?

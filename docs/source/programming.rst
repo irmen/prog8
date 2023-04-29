@@ -765,6 +765,12 @@ abs (x)
     Absolute value of an integer. Value returned is an unsigned word.
     For floating point numbers, use ``floats.fabs()`` instead.
 
+min (x, y)
+    Returns the smallest of x and y. Supported for integer types only, for floats use ``floats.minf()`` instead.
+
+max (x, y)
+    Returns the largest of x and y.  Supported for integer types only, for floats use ``floats.maxf()`` instead.
+
 sgn (x)
     Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
 

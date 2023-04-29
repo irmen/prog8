@@ -1,4 +1,5 @@
 %import textio
+%import floats
 %option no_sysinit
 %zeropage basicsafe
 
@@ -13,6 +14,14 @@ main {
         uword w2 = 8888
         word w1s = 2222
         word w2s = -9999
+
+        float f1 = 1111.1
+        float f2 = -999.9
+
+        floats.print_f(floats.minf(f1, f2))
+        txt.spc()
+        floats.print_f(floats.maxf(f1, f2))
+        txt.nl()
 
         txt.print_uw(min(v1, v2))
         txt.spc()

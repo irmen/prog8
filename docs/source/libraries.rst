@@ -252,6 +252,12 @@ ln(x)
 log2(x)
     Base 2 logarithm.
 
+minf(x, y)
+    returns the smallest of x and y.
+
+maxf(x, y)
+    returns the largest of x and y.
+
 rad(x)
     Degrees to radians.
 

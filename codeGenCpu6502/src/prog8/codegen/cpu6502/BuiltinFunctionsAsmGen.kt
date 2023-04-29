@@ -844,7 +844,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
-        } else {
+        } else if(fcall.type in WordDatatypes) {
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
             asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
             if(signed) {
@@ -885,6 +885,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.AY, targetReg)
             }
+        } else {
+            throw AssemblyError("min float not supported")
         }
     }
 
@@ -904,7 +906,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
-        } else {
+        } else if(fcall.type in WordDatatypes) {
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
             asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
             if(signed) {
@@ -945,6 +947,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.AY, targetReg)
             }
+        } else {
+            throw AssemblyError("max float not supported")
         }
     }
 
