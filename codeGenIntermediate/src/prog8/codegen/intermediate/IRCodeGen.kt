@@ -1020,7 +1020,7 @@ class IRCodeGen(
             val number = (condition.right as? PtNumber)?.number?.toInt()
             if(number!=null) {
                 val firstReg = leftTr.resultReg
-                val opcode = when (condition.operator) {
+                opcode = when (condition.operator) {
                     "==" -> Opcode.BEQ
                     "!=" -> Opcode.BNE
                     "<" -> if(signed) Opcode.BLTS else Opcode.BLT
@@ -1231,7 +1231,7 @@ class IRCodeGen(
                 addToResult(result, leftTr, leftTr.resultReg, -1)
                 val number = (condition.right as? PtNumber)?.number?.toInt()
                 if (number!=null) {
-                    val elseBranchOpcode = when (condition.operator) {
+                    elseBranchOpcode = when (condition.operator) {
                         "==" -> Opcode.BNE
                         "!=" -> Opcode.BEQ
                         "<" -> if(signed) Opcode.BGES else Opcode.BGE
