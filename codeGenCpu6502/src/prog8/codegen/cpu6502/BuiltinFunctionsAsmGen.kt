@@ -828,9 +828,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcMkword(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
         if(resultToStack) {
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // msb
+            asmgen.out("  pha")
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-            asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
+            asmgen.out("  sta  P8ESTACK_LO,x |  pla |  sta  P8ESTACK_HI,x |  dex")
         } else {
             val reg = resultRegister ?: RegisterOrPair.AY
             var needAsave = asmgen.needAsaveForExpr(fcall.args[0])
