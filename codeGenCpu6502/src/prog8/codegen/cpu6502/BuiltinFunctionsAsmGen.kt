@@ -36,7 +36,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "abs__byte", "abs__word", "abs__float" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
             "any", "all" -> funcAnyAll(fcall, resultToStack, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultToStack, resultRegister, sscope)
-            "sqrt" -> funcSqrt(fcall, resultToStack, resultRegister, sscope)
+            "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(fcall, resultToStack, resultRegister, sscope)
             "divmod" -> funcDivmod(fcall)
             "divmodw" -> funcDivmodW(fcall)
             "rol" -> funcRol(fcall)
@@ -301,13 +301,33 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        require(fcall.type != DataType.FLOAT)
         translateArguments(fcall, scope)
-        if(resultToStack)
-            asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
-        else {
-            asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
-            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
+        when(fcall.type) {
+            DataType.UBYTE -> {
+                if(resultToStack)
+                    asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_stack")
+                else {
+                    asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
+                }
+            }
+            DataType.UWORD -> {
+                if(resultToStack)
+                    asmgen.out("  jsr  prog8_lib.func_sqrt16_stack")
+                else {
+                    asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
+                }
+            }
+            DataType.FLOAT -> {
+                if(resultToStack)
+                    throw AssemblyError("no support for sqrt float onto stack")
+                else {
+                    asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
+                }
+            }
+            else -> throw AssemblyError("weird dt")
         }
     }
 

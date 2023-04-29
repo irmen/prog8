@@ -16,7 +16,9 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "len" to ::builtinLen,
     "sizeof" to ::builtinSizeof,
     "sgn" to ::builtinSgn,
-    "sqrt" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { sqrt(it) } },
     "any" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
     "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
@@ -62,6 +64,16 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
 
     val integer = constval.number.toInt()
     return NumericLiteral.optimalInteger(function(integer).toInt(), args[0].position)
+}
+
+private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Double): NumericLiteral {
+    if(args.size!=1)
+        throw SyntaxError("built-in function requires one float argument", position)
+    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
+    if(constval.type != DataType.FLOAT)
+        throw SyntaxError("built-in function requires one float argument", position)
+
+    return NumericLiteral(DataType.FLOAT, function(constval.number), args[0].position)
 }
 
 private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Double): NumericLiteral {

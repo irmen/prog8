@@ -152,3 +152,11 @@ func_abs_f_into_FAC1    .proc
         ldx  P8ZP_SCRATCH_REG
         rts
 	.pend
+
+func_sqrt_into_FAC1     .proc
+        stx  P8ZP_SCRATCH_REG
+        jsr  MOVFM
+        jsr  SQR
+        ldx  P8ZP_SCRATCH_REG
+        rts
+	.pend

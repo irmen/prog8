@@ -92,7 +92,7 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
                     errors.err("min/max not supported for floats", functionCallExpr.position)
                     return noModifications
                 } else {
-                    errors.err("expected numeric arguments", functionCallExpr.position)
+                    errors.err("expected numeric arguments", functionCallExpr.args[0].position)
                     return noModifications
                 }
                 return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
@@ -112,7 +112,25 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
                         return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
                     }
                     else -> {
-                        errors.err("expected numeric argument", functionCallExpr.position)
+                        errors.err("expected numeric argument", functionCallExpr.args[0].position)
+                        return noModifications
+                    }
+                }
+                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
+                    functionCallExpr))
+            }
+        }
+        else if(func==listOf("sqrt")) {
+            val t1 = functionCallExpr.args[0].inferType(program)
+            if(t1.isKnown) {
+                val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
+                val replaceFunc = when(dt) {
+                    DataType.UBYTE -> "sqrt__ubyte"
+                    DataType.UWORD -> "sqrt__uword"
+                    DataType.FLOAT -> "sqrt__float"
+                    else -> {
+                        errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
                         return noModifications
                     }
                 }

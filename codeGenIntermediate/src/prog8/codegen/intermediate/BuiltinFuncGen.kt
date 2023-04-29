@@ -17,7 +17,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "abs__byte", "abs__word", "abs__float" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
-            "sqrt" -> funcSqrt(call)
+            "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(call)
             "divmod" -> funcDivmod(call, IRDataType.BYTE)
             "divmodw" -> funcDivmod(call, IRDataType.WORD)
             "pop" -> funcPop(call)
@@ -236,7 +236,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val resultFpReg = codeGen.registers.nextFreeFloat()
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.SQRT, IRDataType.FLOAT, fpReg1 = resultFpReg, reg2 = tr.resultFpReg)
+                    it += IRInstruction(Opcode.SQRT, IRDataType.FLOAT, fpReg1 = resultFpReg, fpReg2 = tr.resultFpReg)
                 }
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
             }
