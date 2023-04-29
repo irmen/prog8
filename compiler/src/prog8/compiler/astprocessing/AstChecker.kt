@@ -1142,21 +1142,13 @@ internal class AstChecker(private val program: Program,
                     }
                 }
             }
-            else if(funcName[0] == "divmod") {
-                if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
-                    errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
-                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression)
-                    errors.err("all arguments must be ubyte", functionCallStatement.position)
-                if(!functionCallStatement.args.all {it.inferType(program) istype DataType.UBYTE})
-                    errors.err("all arguments must be ubyte", functionCallStatement.position)
-            }
-            else if(funcName[0] == "divmodw") {
-                if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
-                    errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
-                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression)
-                    errors.err("all arguments must be uword", functionCallStatement.position)
-                if(!functionCallStatement.args.all {it.inferType(program) istype DataType.UWORD})
-                    errors.err("all arguments must be uword", functionCallStatement.position)
+            else if(funcName[0].startsWith("divmod")) {
+                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression) {
+                    errors.err("arguments must be all ubyte or all uword", functionCallStatement.position)
+                } else {
+                    if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
+                        errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
+                }
             }
 
             if(funcName[0] in InplaceModifyingBuiltinFunctions) {

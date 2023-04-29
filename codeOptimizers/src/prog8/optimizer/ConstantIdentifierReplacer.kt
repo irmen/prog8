@@ -141,6 +141,34 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
         }
         return noModifications
     }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        // choose specific builtin function for the given types
+        val func = functionCallStatement.target.nameInSource
+        if(func==listOf("divmod")) {
+            val argTypes = functionCallStatement.args.map {it.inferType(program)}.toSet()
+            if(argTypes.size!=1) {
+                errors.err("expected all ubyte or all uword arguments", functionCallStatement.args[0].position)
+                return noModifications
+            }
+            val t1 = argTypes.single()
+            if(t1.isKnown) {
+                val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
+                val replaceFunc = when(dt) {
+                    DataType.UBYTE -> "divmod__ubyte"
+                    DataType.UWORD -> "divmod__uword"
+                    else -> {
+                        errors.err("expected all ubyte or all uword arguments", functionCallStatement.args[0].position)
+                        return noModifications
+                    }
+                }
+                return listOf(IAstModification.SetExpression({functionCallStatement.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallStatement.target.position),
+                    functionCallStatement))
+            }
+        }
+        return noModifications
+    }
 }
 
 
