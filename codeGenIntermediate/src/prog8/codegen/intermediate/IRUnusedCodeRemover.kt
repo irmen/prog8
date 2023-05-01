@@ -78,12 +78,18 @@ class IRUnusedCodeRemover(
         // check if asmsub is called from another asmsub
         irprog.blocks.asSequence().forEach { block ->
             block.children.filterIsInstance<IRAsmSubroutine>().forEach { sub ->
-                require(sub.asmChunk.next == null) { "asmsubs won't be pointing to their successor, otherwise we should do more work here" }
                 if (block.forceOutput || block.library)
                     linkedAsmSubs += sub
                 if (sub.asmChunk.isNotEmpty()) {
                     allSubs.forEach { (label, asmsub) ->
                         if (sub.asmChunk.assembly.contains(label))
+                            linkedAsmSubs += asmsub
+                    }
+                }
+                val inlineAsm = sub.asmChunk.next as? IRInlineAsmChunk
+                if(inlineAsm!=null) {
+                    allSubs.forEach { (label, asmsub) ->
+                        if (inlineAsm.assembly.contains(label))
                             linkedAsmSubs += asmsub
                     }
                 }
