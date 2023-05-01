@@ -1,9 +1,28 @@
 package prog8.codegen.intermediate
 
+import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
-internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
-    fun optimizeOnlyJoinChunks() {
+class IRPeepholeOptimizer(private val irprog: IRProgram) {
+    fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
+        if(!optimizationsEnabled)
+            return optimizeOnlyJoinChunks()
+
+        peepholeOptimize()
+        val remover = IRUnusedCodeRemover(irprog, errors)
+        var totalRemovals = 0
+        do {
+            val numRemoved = remover.optimize()
+            totalRemovals += numRemoved
+        } while(numRemoved>0 && errors.noErrors())
+        errors.report()
+
+        if(totalRemovals>0) {
+            irprog.linkChunks()  // re-link again.
+        }
+    }
+
+    private fun optimizeOnlyJoinChunks() {
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             removeEmptyChunks(sub)
             joinChunks(sub)
@@ -11,7 +30,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
         irprog.linkChunks() // re-link
     }
 
-    fun optimize() {
+    private fun peepholeOptimize() {
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             removeEmptyChunks(sub)
             joinChunks(sub)
@@ -36,7 +55,7 @@ internal class IRPeepholeOptimizer(private val irprog: IRProgram) {
             removeEmptyChunks(sub)
         }
 
-        irprog.linkChunks() // re-link
+        irprog.linkChunks()  // re-link
     }
 
     private fun removeEmptyChunks(sub: IRSubroutine) {

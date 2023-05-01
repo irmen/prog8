@@ -43,7 +43,7 @@ class TestVm: FunSpec( {
 
     test("vm execution: modify memory") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
-        val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val block = IRBlock("testmain", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
         code += IRInstruction(Opcode.NOP)
@@ -72,7 +72,7 @@ class TestVm: FunSpec( {
 
     test("vm asmbinary not supported") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
-        val block = IRBlock("testmain", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val block = IRBlock("testmain", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
         code += IRInstruction(Opcode.BINARYDATA, binaryData = listOf(1u,2u,3u))
@@ -88,7 +88,7 @@ class TestVm: FunSpec( {
 
     test("asmsub not supported in vm even with IR") {
         val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
-        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val block = IRBlock("main", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine(
             "main.asmstart",
             0x2000u,
@@ -129,7 +129,7 @@ class TestVm: FunSpec( {
 <INITGLOBALS>
 </INITGLOBALS>
 
-<BLOCK NAME="main" ADDRESS="" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
 </BLOCK>
 </PROGRAM>
 """

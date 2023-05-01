@@ -57,6 +57,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             xml.writeStartElement("BLOCK")
             xml.writeAttribute("NAME", block.label)
             xml.writeAttribute("ADDRESS", block.address?.toHex() ?: "")
+            xml.writeAttribute("LIBRARY", block.library.toString())
+            xml.writeAttribute("FORCEOUTPUT", block.forceOutput.toString())
             xml.writeAttribute("ALIGN", block.alignment.toString())
             xml.writeAttribute("POS", block.position.toString())
             xml.writeCharacters("\n")

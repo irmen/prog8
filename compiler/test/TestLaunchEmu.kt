@@ -33,7 +33,7 @@ class TestLaunchEmu: FunSpec({
 <INITGLOBALS>
 </INITGLOBALS>
 
-<BLOCK NAME="main" ADDRESS="" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" ALIGN="NONE" POS="[unittest: line 42 col 1-9]">
 </BLOCK>
 </PROGRAM>
 """)

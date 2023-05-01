@@ -5,14 +5,27 @@ import prog8.code.core.SourceCode.Companion.libraryFilePrefix
 import prog8.intermediate.*
 
 
-internal class IRUnusedCodeRemover(
+class IRUnusedCodeRemover(
     private val irprog: IRProgram,
-    private val symbolTable: IRSymbolTable,
     private val errors: IErrorReporter
 ) {
     fun optimize(): Int {
-        val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
+        var numRemoved = removeUnusedSubroutines() + removeUnusedAsmSubroutines()
 
+        // remove empty blocks
+        irprog.blocks.reversed().forEach { block ->
+            if(block.isEmpty()) {
+                irprog.blocks.remove(block)
+                irprog.st.removeTree(block.label)
+                numRemoved++
+            }
+        }
+
+        return numRemoved
+    }
+
+    private fun removeUnusedSubroutines(): Int {
+        val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
             sub.chunks.forEach { chunk ->
                 chunk.label?.let { allLabeledChunks[it] = chunk }
@@ -20,8 +33,6 @@ internal class IRUnusedCodeRemover(
         }
 
         var numRemoved = removeSimpleUnlinked(allLabeledChunks) + removeUnreachable(allLabeledChunks)
-
-        // remove empty subs
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
@@ -29,21 +40,79 @@ internal class IRUnusedCodeRemover(
                         errors.warn("unused subroutine ${sub.label}", sub.position)
                     }
                     block.children.remove(sub)
-                    symbolTable.removeTree(sub.label)
+                    irprog.st.removeTree(sub.label)
                     numRemoved++
                 }
             }
         }
 
-        // remove empty blocks
-        irprog.blocks.reversed().forEach { block ->
-            if(block.isEmpty()) {
-                irprog.blocks.remove(block)
-                symbolTable.removeTree(block.label)
-                numRemoved++
+        return numRemoved
+    }
+
+    private fun removeUnusedAsmSubroutines(): Int {
+        val allLabeledAsmsubs = irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRAsmSubroutine>() }
+            .associateBy { it.label }
+
+        var numRemoved = removeSimpleUnlinkedAsmsubs(allLabeledAsmsubs)
+        irprog.blocks.forEach { block ->
+            block.children.filterIsInstance<IRAsmSubroutine>().reversed().forEach { sub ->
+                if(sub.isEmpty()) {
+                    if(!sub.position.file.startsWith(libraryFilePrefix)) {
+                        errors.warn("unused asmsubroutine ${sub.label}", sub.position)
+                    }
+                    block.children.remove(sub)
+                    irprog.st.removeTree(sub.label)
+                    numRemoved++
+                }
             }
         }
 
+        return numRemoved
+    }
+
+    private fun removeSimpleUnlinkedAsmsubs(allSubs: Map<String, IRAsmSubroutine>): Int {
+        val linkedAsmSubs = mutableSetOf<IRAsmSubroutine>()
+
+        // TODO: asmsubs in library modules are never removed, we can't really tell here if they're actually being called or not...
+
+        // check if asmsub is called from another asmsub
+        irprog.blocks.asSequence().forEach { block ->
+            block.children.filterIsInstance<IRAsmSubroutine>().forEach { sub ->
+                require(sub.asmChunk.next == null) { "asmsubs won't be pointing to their successor, otherwise we should do more work here" }
+                if (block.forceOutput || block.library)
+                    linkedAsmSubs += sub
+                if (sub.asmChunk.isNotEmpty()) {
+                    allSubs.forEach { (label, asmsub) ->
+                        if (sub.asmChunk.assembly.contains(label))
+                            linkedAsmSubs += asmsub
+                    }
+                }
+            }
+        }
+
+        // check if asmsub is linked or called from another regular subroutine
+        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+            sub.chunks.forEach { chunk ->
+                chunk.instructions.forEach {
+                    it.labelSymbol?.let { label -> allSubs[label]?.let { cc -> linkedAsmSubs += cc } }
+                    // note: branchTarget can't yet point to another IRAsmSubroutine, so do nothing when it's set
+                }
+            }
+        }
+
+        return removeUnlinkedAsmsubs(linkedAsmSubs)
+    }
+
+    private fun removeUnlinkedAsmsubs(linkedAsmSubs: Set<IRAsmSubroutine>): Int {
+        var numRemoved = 0
+        irprog.blocks.asSequence().forEach { block ->
+            block.children.withIndex().reversed().forEach { (index, child) ->
+                if(child is IRAsmSubroutine && child !in linkedAsmSubs) {
+                    block.children.removeAt(index)
+                    numRemoved++
+                }
+            }
+        }
         return numRemoved
     }
 
@@ -98,7 +167,7 @@ internal class IRUnusedCodeRemover(
     }
 
     private fun removeUnlinkedChunks(
-        linkedChunks: MutableSet<IRCodeChunkBase>
+        linkedChunks: Set<IRCodeChunkBase>
     ): Int {
         var numRemoved = 0
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->

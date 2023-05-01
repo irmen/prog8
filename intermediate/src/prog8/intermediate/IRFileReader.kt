@@ -336,6 +336,8 @@ class IRFileReader {
         val block = IRBlock(
             attrs.getValue("NAME"),
             if(attrs.getValue("ADDRESS")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+            if(attrs.getValue("LIBRARY")=="") false else attrs.getValue("LIBRARY").toBoolean(),
+            if(attrs.getValue("FORCEOUTPUT")=="") false else attrs.getValue("FORCEOUTPUT").toBoolean(),
             IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN")),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)

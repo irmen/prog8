@@ -23,7 +23,6 @@ Currently ther is NO support for 24 or 32 bits integers.
 There is no distinction between signed and unsigned integers.
 Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
-Instructions taking more than 1 register cannot take the same register multiple times! (to avoid confusing different datatypes)
 
 
 LOAD/STORE
@@ -65,29 +64,29 @@ BRANCHING and CONDITIONALS
 --------------------------
 All have type b or w except the branches that only check status bits.
 
-bstcc                         address   - branch to location if Status bit Carry is Clear
-bstcs                         address   - branch to location if Status bit Carry is Set
+bstcc                         address   - branch to location if Status bit Carry is clear
+bstcs                         address   - branch to location if Status bit Carry is set
+bstne                         address   - branch to location if Status bit Zero is clear
 bsteq                         address   - branch to location if Status bit Zero is set
-bstne                         address   - branch to location if Status bit Zero is not set
-bstneg                        address   - branch to location if Status bit Negative is not set
-bstpos                        address   - branch to location if Status bit Negative is not set
-bstvc                         address   - branch to location if Status bit Overflow is not set
-bstvs                         address   - branch to location if Status bit Overflow is not set
+bstpos                        address   - branch to location if Status bit Negative is clear
+bstneg                        address   - branch to location if Status bit Negative is set
+bstvc                         address   - branch to location if Status bit Overflow is clear
+bstvs                         address   - branch to location if Status bit Overflow is set
 beqr        reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
 beq         reg1, value,      address   - jump to location in program given by location, if reg1 == immediate value
 bner        reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
 bne         reg1, value,      address   - jump to location in program given by location, if reg1 != immediate value
-bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
 bgt         reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (unsigned)
-blt         reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (unsigned)
-bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
 bgts        reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (signed)
+bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
+bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
+blt         reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (unsigned)
 blts        reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (signed)
-bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
 bge         reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (unsigned)
-ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
-bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 bges        reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (signed)
+bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
+bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
+ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
 ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
 sz          reg1, reg2                  - set reg1=1 if reg2==0,  otherwise set reg1=0
@@ -726,18 +725,6 @@ data class IRInstruction(
         reg2direction = format.reg2
         fpReg1direction = format.fpReg1
         fpReg2direction = format.fpReg2
-
-        if(opcode in setOf(Opcode.BEQR, Opcode.BNER,
-                Opcode.BGTR, Opcode.BGTSR,
-                Opcode.BGER, Opcode.BGESR,
-                Opcode.SEQ, Opcode.SNE, Opcode.SLT, Opcode.SLTS,
-                Opcode.SGT, Opcode.SGTS, Opcode.SLE, Opcode.SLES,
-                Opcode.SGE, Opcode.SGES)) {
-            if(type==IRDataType.FLOAT)
-                require(fpReg1!=fpReg2) {"$opcode: fpReg1 and fpReg2 should be different"}
-            else
-                require(reg1!=reg2) {"$opcode: reg1 and reg2 should be different"}
-        }
 
         if(opcode==Opcode.SYSCALL) {
             require(immediate!=null) {

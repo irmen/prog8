@@ -8,7 +8,7 @@ import prog8.intermediate.*
 class TestIRPeepholeOpt: FunSpec({
     fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {
         require(chunks.first().label=="main.start")
-        val block = IRBlock("main", null, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val block = IRBlock("main", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val sub = IRSubroutine("main.start", emptyList(), null, Position.DUMMY)
         chunks.forEach { sub += it }
         block += sub
@@ -46,7 +46,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 3
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         irProg.chunks().single().instructions.size shouldBe 1
     }
 
@@ -65,7 +65,7 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().size shouldBe 4
         irProg.chunks().flatMap { it.instructions }.size shouldBe 5
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         irProg.chunks().size shouldBe 4
         irProg.chunks()[0].label shouldBe "main.start"
         irProg.chunks()[1].label shouldBe "label"
@@ -92,7 +92,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 6
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
         instr.size shouldBe 1
         instr[0].opcode shouldBe Opcode.CLC
@@ -107,7 +107,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
         instr.size shouldBe 1
         instr[0].opcode shouldBe Opcode.LOADR
@@ -130,7 +130,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 10
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         irProg.chunks().single().instructions.size shouldBe 4
     }
 
@@ -141,7 +141,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 2
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
         instr.size shouldBe 2
         instr[0].opcode shouldBe Opcode.INC
@@ -161,7 +161,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 8
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         irProg.chunks().single().instructions.size shouldBe 4
     }
 
@@ -174,7 +174,7 @@ class TestIRPeepholeOpt: FunSpec({
         ))
         irProg.chunks().single().instructions.size shouldBe 4
         val opt = IRPeepholeOptimizer(irProg)
-        opt.optimize()
+        opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
         instr.size shouldBe 4
         instr[0].opcode shouldBe Opcode.LOAD

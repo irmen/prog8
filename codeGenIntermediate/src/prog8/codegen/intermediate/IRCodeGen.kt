@@ -54,23 +54,8 @@ class IRCodeGen(
         ensureFirstChunkLabels(irProg)
         irProg.linkChunks()
 
-        if(options.optimize) {
-            val optimizer = IRPeepholeOptimizer(irProg)
-            optimizer.optimize()
-
-            val remover = IRUnusedCodeRemover(irProg, irSymbolTable, errors)
-            do {
-                val numRemoved = remover.optimize()
-            } while(numRemoved>0 && errors.noErrors())
-
-            errors.report()
-
-            irProg.linkChunks()  // re-link
-        } else {
-            val optimizer = IRPeepholeOptimizer(irProg)
-            optimizer.optimizeOnlyJoinChunks()
-        }
-
+        val optimizer = IRPeepholeOptimizer(irProg)
+        optimizer.optimize(options.optimize, errors)
         irProg.validate()
         return irProg
     }
@@ -1470,7 +1455,7 @@ class IRCodeGen(
     }
 
     private fun translate(block: PtBlock): IRBlock {
-        val irBlock = IRBlock(block.name, block.address, translate(block.alignment), block.position)   // no use for other attributes yet?
+        val irBlock = IRBlock(block.name, block.address, block.library, block.forceOutput, translate(block.alignment), block.position)   // no use for other attributes yet?
         for (child in block.children) {
             when(child) {
                 is PtNop -> { /* nothing */ }
