@@ -31,7 +31,7 @@ main {
         uword buffer = memory("buffer", 1024, 256)
         str MUSIC_FILENAME = "?"*32
 
-        txt.print("name of .wav file to play: ")
+        txt.print("name of .wav file to play on drive 8: ")
         while 0==txt.input_chars(MUSIC_FILENAME) {
             ; until user types a name...
         }
@@ -40,7 +40,7 @@ main {
         txt.print("\nchecking ")
         txt.print(MUSIC_FILENAME)
         txt.nl()
-        if diskio.f_open(8, MUSIC_FILENAME) {
+        if diskio.f_open(MUSIC_FILENAME) {
             void cx16diskio.f_read(buffer, 128)
             wav_ok = wavfile.parse_header(buffer)
             diskio.f_close()
@@ -101,7 +101,7 @@ main {
         cx16.VERA_IEN = %00001000               ; enable AFLOW  only for now
         sys.clear_irqd()
 
-        if diskio.f_open(8, MUSIC_FILENAME) {
+        if diskio.f_open(MUSIC_FILENAME) {
             uword block_size = 1024
             if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
                 block_size = wavfile.block_align

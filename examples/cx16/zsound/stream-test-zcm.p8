@@ -48,9 +48,9 @@ zsound_lib:
     }
 
     sub start() {
-        txt.print("\nzsound digi streaming!\n")
+        txt.print("\nzsound digi streaming (drive 8)!\n")
 
-        if not diskio.f_open(8, "thriller.zcm") {
+        if not diskio.f_open("thriller.zcm") {
             txt.print("?no file\n")
             return
         }

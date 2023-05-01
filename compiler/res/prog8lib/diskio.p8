@@ -6,8 +6,14 @@
 
 diskio {
 
-    sub directory(ubyte drivenumber) -> bool {
-        ; -- Prints the directory contents of disk drive 8-11 to the screen. Returns success.
+    ubyte drivenumber = 8
+
+    sub set_drive(ubyte number) {
+        drivenumber = number
+    }
+
+    sub directory() -> bool {
+        ; -- Prints the directory contents to the screen. Returns success.
 
         cbm.SETNAM(1, "$")
         cbm.SETLFS(12, drivenumber, 0)
@@ -65,7 +71,7 @@ io_error:
         return true
     }
 
-    sub diskname(ubyte drivenumber) -> uword {
+    sub diskname() -> uword {
         ; -- Returns pointer to disk name string or 0 if failure.
 
         cbm.SETNAM(1, "$")
@@ -106,13 +112,12 @@ io_error:
     uword list_pattern
     uword list_blocks
     bool iteration_in_progress = false
-    ubyte last_drivenumber = 8       ; which drive was last used for a f_open operation?
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
-    sub list_filenames(ubyte drivenumber, uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub list_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
         ;    Files in the buffer are separeted by a 0 byte. You can provide an optional pattern to match against.
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
@@ -120,7 +125,7 @@ io_error:
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
-        if lf_start_list(drivenumber, pattern_ptr) {
+        if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
                     filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
@@ -142,7 +147,7 @@ io_error:
 
     ; ----- iterative file lister functions (uses io channel 12) -----
 
-    sub lf_start_list(ubyte drivenumber, uword pattern_ptr) -> bool {
+    sub lf_start_list(uword pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
         lf_end_list()
@@ -249,14 +254,13 @@ close_end:
 
     ; ----- iterative file loader functions (uses io channel 12) -----
 
-    sub f_open(ubyte drivenumber, uword filenameptr) -> bool {
+    sub f_open(uword filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
         f_close()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(12, drivenumber, 12)     ; note: has to be 12,x,12 because otherwise f_seek doesn't work
-        last_drivenumber = drivenumber
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
             if cbm.READST()==0 {
@@ -357,7 +361,6 @@ _end        rts
         }}
     }
 
-
     sub f_close() {
         ; -- end an iterative file loading session (close channels).
         if iteration_in_progress {
@@ -370,7 +373,7 @@ _end        rts
 
     ; ----- iterative file writing functions (uses io channel 13) -----
 
-    sub f_open_w(ubyte drivenumber, uword filenameptr) -> bool {
+    sub f_open_w(uword filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
@@ -407,7 +410,7 @@ _end        rts
 
     ; ---- other functions ----
 
-    sub status(ubyte drivenumber) -> uword {
+    sub status() -> uword {
         ; -- retrieve the disk drive's current status message
         uword messageptr = &list_filename
         cbm.SETNAM(0, list_filename)
@@ -438,7 +441,7 @@ io_error:
         goto done
     }
 
-    sub save(ubyte drivenumber, uword filenameptr, uword address, uword size) -> bool {
+    sub save(uword filenameptr, uword address, uword size) -> bool {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = address + size
@@ -478,8 +481,8 @@ io_error:
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
     ;       Also consider using cx16diskio.load() instead  on the Commander X16.
-    sub load(ubyte drivenumber, uword filenameptr, uword address_override) -> uword {
-        return internal_load_routine(drivenumber, filenameptr, address_override, false)
+    sub load(uword filenameptr, uword address_override) -> uword {
+        return internal_load_routine(filenameptr, address_override, false)
     }
 
     ; Use kernal LOAD routine to load the given file in memory.
@@ -491,25 +494,25 @@ io_error:
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
     ;       Also consider using cx16diskio.load_raw() instead on the Commander X16.
-    sub load_raw(ubyte drivenumber, uword filenameptr, uword address) -> uword {
+    sub load_raw(uword filenameptr, uword address) -> uword {
         if sys.target==16   ; are we on commander X16?
-            return internal_load_routine(drivenumber, filenameptr, address, true)
+            return internal_load_routine(filenameptr, address, true)
         ; fallback to reading the 2 header bytes separately
-        if not f_open(drivenumber, filenameptr)
+        if not f_open(filenameptr)
             return 0
         cx16.r1 = f_read(address, 2)
         f_close()
         if cx16.r1!=2
             return 0
         address += 2
-        return load(drivenumber, filenameptr, address)
+        return load(filenameptr, address)
     }
 
 
     ; Internal routine, only to be used on Commander X16 platform if headerless=true,
     ; because this routine uses kernal support for that to load headerless files.
     ; On C64 it will always be called with headerless=false.
-    sub internal_load_routine(ubyte drivenumber, uword filenameptr, uword address_override, bool headerless) -> uword {
+    sub internal_load_routine(uword filenameptr, uword address_override, bool headerless) -> uword {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
@@ -535,7 +538,7 @@ io_error:
         return cx16.r1
     }
 
-    sub delete(ubyte drivenumber, uword filenameptr) {
+    sub delete(uword filenameptr) {
         ; -- delete a file on the drive
         list_filename[0] = 's'
         list_filename[1] = ':'
@@ -547,7 +550,7 @@ io_error:
         cbm.CLOSE(1)
     }
 
-    sub rename(ubyte drivenumber, uword oldfileptr, uword newfileptr) {
+    sub rename(uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
         list_filename[0] = 'r'
         list_filename[1] = ':'
@@ -561,7 +564,7 @@ io_error:
         cbm.CLOSE(1)
     }
 
-    sub send_command(ubyte drivenumber, uword commandptr) {
+    sub send_command(uword commandptr) {
         ; -- send a dos command to the drive
         cbm.SETNAM(string.length(commandptr), commandptr)
         cbm.SETLFS(15, drivenumber, 15)

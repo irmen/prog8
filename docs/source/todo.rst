@@ -8,15 +8,13 @@ For 9.0 major changes
 - DONE: rename sqrt16() to just sqrt(), make it accept multiple numeric types. Renamed floats.sqrt() to floats.sqrtf() but you can just use sqrt()
 - DONE: abs() now supports multiple datatypes including float. No need to use floats.fabs() anymore.
 - DONE: divmod() now supports multiple datatypes.  divmodw() has been removed.
+- DONE: drivenumber parameter removed from all routines in diskio and cx16diskio modules. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
 
+- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
   (vm codegen already behaves like this!)
-- ?? get rid of the disknumber parameter everywhere in diskio, make it a configurable variable that defaults to 8.
-  the large majority of users will only deal with a single disk drive so why not make it easier for them.
-  But see complaint on github https://github.com/irmen/prog8/issues/106
-- duplicate diskio for cx16 (get rid of cx16diskio, just copy diskio and tweak everything) + documentation
 - get f_seek_w working like in the BASIC program  - this needs the changes to diskio.f_open to use suffixes ,p,m
 - once 9.0 is stable, upgrade other programs (assem, shell, etc) to it. + add migration guide to the manual.
 - [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing

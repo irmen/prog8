@@ -13,9 +13,9 @@ cx16diskio {
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
-    sub load(ubyte drivenumber, uword filenameptr, ubyte bank, uword address_override) -> uword {
+    sub load(uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
-        return diskio.internal_load_routine(drivenumber, filenameptr, address_override, false)
+        return diskio.internal_load_routine(filenameptr, address_override, false)
     }
 
     ; Same as diskio.load_raw() but with additional bank parameter to select the Ram bank to load into.
@@ -26,9 +26,9 @@ cx16diskio {
     ; or alternatively make sure to reset the correct ram bank yourself after the load!
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
-    sub load_raw(ubyte drivenumber, uword filenameptr, ubyte bank, uword address_override) -> uword {
+    sub load_raw(uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
-        return diskio.internal_load_routine(drivenumber, filenameptr, address_override, true)
+        return diskio.internal_load_routine(filenameptr, address_override, true)
     }
 
     ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
@@ -37,7 +37,7 @@ cx16diskio {
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
 
-    asmsub vload(str name @R0, ubyte drivenumber @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
         ; -- like the basic command VLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file has to have the usual 2 byte header (which will be skipped)
@@ -46,8 +46,7 @@ cx16diskio {
 internal_vload:
             phx
             pha
-            tya
-            tax
+            ldx  diskio.drivenumber
             bcc +
             ldy  #%00000010     ; headerless load mode
             bne  ++
@@ -79,7 +78,7 @@ internal_vload:
         }}
     }
 
-    asmsub vload_raw(str name @R0, ubyte drivenumber @Y, ubyte bank @A, uword address @R1) -> ubyte @A {
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
         ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file is read fully including the first two bytes.
@@ -166,25 +165,25 @@ m_in_buffer     sta  $ffff
     }
 
 
-    sub chdir(ubyte drivenumber, str path) {
+    sub chdir(str path) {
         ; -- change current directory.
         diskio.list_filename[0] = 'c'
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(path, &diskio.list_filename+3)
-        diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(diskio.list_filename)
     }
 
-    sub mkdir(ubyte drivenumber, str name) {
+    sub mkdir(str name) {
         ; -- make a new subdirectory.
         diskio.list_filename[0] = 'm'
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(name, &diskio.list_filename+3)
-        diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(diskio.list_filename)
     }
 
-    sub rmdir(ubyte drivenumber, str name) {
+    sub rmdir(str name) {
         ; -- remove a subdirectory.
         void string.find(name, '*')
         if_cs
@@ -193,17 +192,17 @@ m_in_buffer     sta  $ffff
         diskio.list_filename[1] = 'd'
         diskio.list_filename[2] = ':'
         void string.copy(name, &diskio.list_filename+3)
-        diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(diskio.list_filename)
     }
 
-    sub relabel(ubyte drivenumber, str name) {
+    sub relabel(str name) {
         ; -- change the disk label.
         diskio.list_filename[0] = 'r'
         diskio.list_filename[1] = '-'
         diskio.list_filename[2] = 'h'
         diskio.list_filename[3] = ':'
         void string.copy(name, &diskio.list_filename+4)
-        diskio.send_command(drivenumber, diskio.list_filename)
+        diskio.send_command(diskio.list_filename)
     }
 
     sub f_seek(uword pos_hiword, uword pos_loword) {
@@ -216,7 +215,7 @@ m_in_buffer     sta  $ffff
         command[5] = msb(pos_hiword)
     send_command:
         cbm.SETNAM(sizeof(command), &command)
-        cbm.SETLFS(15, diskio.last_drivenumber, 15)
+        cbm.SETLFS(15, diskio.drivenumber, 15)
         void cbm.OPEN()
         cbm.CLOSE(15)
     }

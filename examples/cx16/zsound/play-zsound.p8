@@ -50,14 +50,14 @@ zsound_lib:
     const ubyte zcm_DIGITAB_size = 8        ; header size
 
     sub start() {
-        txt.print("zsound demo program!\n")
+        txt.print("zsound demo program (drive 8)!\n")
 
         cbm.SETMSG(%10000000)       ; enable kernal status messages for load
-        if not cx16diskio.load_raw(8, "colony.zsm", song_bank, song_address) {
+        if not cx16diskio.load_raw("colony.zsm", song_bank, song_address) {
             txt.print("?can't load\n")
             return
         }
-        if not cx16diskio.load_raw(8, "terminator2.zcm", digi_bank, digi_address) {
+        if not cx16diskio.load_raw("terminator2.zcm", digi_bank, digi_address) {
             txt.print("?can't load\n")
             return
         } else {

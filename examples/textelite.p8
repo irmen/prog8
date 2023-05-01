@@ -85,12 +85,12 @@ trader {
     ; 22 ubyte fuel
 
     sub do_load() {
-        txt.print("\nLoading universe...")
-        if diskio.load(8, Savegame, &savedata) {
+        txt.print("\nLoading universe... (drive 8)")
+        if diskio.load(Savegame, &savedata) {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
-            txt.print(diskio.status(8))
+            txt.print(diskio.status())
             txt.nl()
             return
         }
@@ -113,13 +113,13 @@ trader {
         savedata[22] = ship.fuel
         sys.memcopy(ship.cargohold, &savedata + 2, len(ship.cargohold))
 
-        txt.print("\nSaving universe...")
-        diskio.delete(8, Savegame)
-        if diskio.save(8, Savegame, &savedata, sizeof(savedata)) {
+        txt.print("\nSaving universe... (drive 8)")
+        diskio.delete(Savegame)
+        if diskio.save(Savegame, &savedata, sizeof(savedata)) {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
-            txt.print(diskio.status(8))
+            txt.print(diskio.status())
             txt.nl()
         }
     }

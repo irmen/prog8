@@ -12,11 +12,11 @@ main {
 
     sub start() {
 
-        txt.print("writing data file...\n")
+        txt.print("writing data file (drive 8)...\n")
         uword total=0
-        if diskio.f_open_w(8, "@:seektestfile.bin") {
+        if diskio.f_open_w("@:seektestfile.bin") {
             repeat 100 {
-                str text = "hello world.\n"
+                str text = "hello world.*"
                 void diskio.f_write(text, string.length(text))
                 total += string.length(text)
             }
@@ -26,7 +26,7 @@ main {
             txt.nl()
         } else {
             txt.print("error: ")
-            txt.print(diskio.status(8))
+            txt.print(diskio.status())
             sys.exit(1)
         }
 
@@ -34,13 +34,13 @@ main {
 
 ; NOTE: f_seek_w() doesn't work right now. It requires substantial changes to the diskio library that are not compatible with the C64/C128.
 ;        txt.print("\nseeking to 1292 and writing a few bytes...\n")
-;        if diskio.f_open_w(8, "seektestfile.bin,p,m") {
+;        if diskio.f_open_w("seektestfile.bin,p,m") {
 ;            cx16diskio.f_seek_w(0, 1292)
 ;            void diskio.f_write("123", 3)
 ;            diskio.f_close_w()
 ;        } else {
 ;            txt.print("error: ")
-;            txt.print(diskio.status(8))
+;            txt.print(diskio.status())
 ;            sys.exit(1)
 ;        }
 ;
@@ -52,7 +52,7 @@ main {
         uword total = 0
         uword size
         txt.print("\nreading...\n")
-        if diskio.f_open(8, "seektestfile.bin") {
+        if diskio.f_open("seektestfile.bin") {
             size = diskio.f_read_all(megabuffer)
             diskio.f_close()
             txt.print("size read:")
@@ -64,7 +64,7 @@ main {
         }
 
         txt.print("\nseeking to 1290 and reading...\n")
-        if diskio.f_open(8, "seektestfile.bin") {
+        if diskio.f_open("seektestfile.bin") {
             cx16diskio.f_seek(0, 1290)
             uword ptr = megabuffer
             do {
@@ -83,14 +83,12 @@ main {
                 txt.print_ubhex(megabuffer[idx], false)
                 txt.spc()
             }
-            txt.spc()
-            txt.chrout('{')
+            txt.print("\nas text: \"")
             txt.print(megabuffer)
-            txt.chrout('}')
-            txt.nl()
+            txt.print("\"\n")
         } else {
             txt.print("error: ")
-            txt.print(diskio.status(8))
+            txt.print(diskio.status())
             sys.exit(1)
         }
     }
