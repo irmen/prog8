@@ -488,8 +488,8 @@ the given number of times. It's meant to "unroll loops" - trade memory for speed
 Only simple statements are allowed to be inside an unroll loop (assignments, function calls etc.).
 
 .. attention::
-    The value of the loop variable after executing the loop *is undefined*. Don't use it immediately
-    after the loop without first assigning a new value to it!
+    The value of the loop variable after executing the loop *is undefined* - you cannot rely
+    on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
 
 .. warning::

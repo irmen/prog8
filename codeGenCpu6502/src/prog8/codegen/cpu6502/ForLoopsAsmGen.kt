@@ -51,7 +51,22 @@ internal class ForLoopsAsmGen(private val program: PtProgram,
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.variable)
                     asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
-                    asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt))
+                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+                    // pre-check for end already reached
+                    if(iterableDt==DataType.ARRAY_B) {
+                        if(stepsize<0) {
+                            println("signed byte check to<=from") // TODO
+                        } else {
+                            println("signed byte check from<=to") // TODO
+                        }
+                    } else {
+                        if(stepsize<0) {
+                            println("unsigned byte check to<=from") // TODO
+                        } else {
+                            println("unsigned byte check from<=to") // TODO
+                        }
+                    }
+                    asmgen.out("  sta  $modifiedLabel+1")
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.statements)
                     asmgen.out("""
@@ -70,6 +85,20 @@ $modifiedLabel          cmp  #0         ; modified
                     val varname = asmgen.asmVariableName(stmt.variable)
                     asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
                     asmgen.assignExpressionToVariable(range.to, "$modifiedLabel+1", ArrayToElementTypes.getValue(iterableDt))
+                    // pre-check for end already reached
+                    if(iterableDt==DataType.ARRAY_B) {
+                        if(stepsize<0) {
+                            println("signed byte check to<=from") // TODO
+                        } else {
+                            println("signed byte check from<=to") // TODO
+                        }
+                    } else {
+                        if(stepsize<0) {
+                            println("unsigned byte check to<=from") // TODO
+                        } else {
+                            println("unsigned byte check from<=to") // TODO
+                        }
+                    }
                     asmgen.out(loopLabel)
                     asmgen.translate(stmt.statements)
                     if(stepsize>0) {
@@ -102,6 +131,20 @@ $modifiedLabel              cmp  #0     ; modified
                         val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                        // pre-check for end already reached
+                        if(iterableDt==DataType.ARRAY_W) {
+                            if(stepsize<0) {
+                                println("signed word check to<=from") // TODO
+                            } else {
+                                println("signed word check from<=to") // TODO
+                            }
+                        } else {
+                            if(stepsize<0) {
+                                println("unsigned word check to<=from") // TODO
+                            } else {
+                                println("unsigned word check from<=to") // TODO
+                            }
+                        }
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
@@ -136,6 +179,12 @@ $modifiedLabel2 cmp  #0    ; modified
                         val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                        // pre-check for end already reached
+                        if(iterableDt==DataType.ARRAY_W) {
+                            println("signed word check from<=to") // TODO
+                        } else {
+                            println("unsigned word check from<=to") // TODO
+                        }
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1
@@ -184,6 +233,12 @@ $endLabel""")
                         val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvar(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                        // pre-check for end already reached
+                        if(iterableDt==DataType.ARRAY_W) {
+                            println("signed word check to<=from") // TODO
+                        } else {
+                            println("unsigned word check to<=from")   // TODO
+                        }
                         asmgen.out("""
                             sty  $modifiedLabel+1
                             sta  $modifiedLabel2+1

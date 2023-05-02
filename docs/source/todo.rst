@@ -11,10 +11,11 @@ For 9.0 major changes
 - DONE: cx16diskio module merged into diskio (which got specialized for commander x16 target). load() and load_raw() with extra ram bank parameter are gone.
 - DONE: drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
 
+- VM codegen: fix for loop pre-check for negative stepsizes.
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
-  Lot of work because of so many special cases in ForLoopsAsmgen.....
-  (vm codegen already behaves like this!)
+  Lot of work because of many special cases in ForLoopsAsmgen.translateForOverNonconstRange()
+  (vm codegen already behaves like this partly! Except for negative step sizes right now)
 - once 9.0 is stable, upgrade other programs (assem, shell, etc) to it. + add migration guide to the manual.
 - [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
   this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
