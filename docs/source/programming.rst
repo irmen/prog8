@@ -473,6 +473,7 @@ Loops
 The *for*-loop is used to let a variable iterate over a range of values. Iteration is done in steps of 1, but you can change this.
 The loop variable must be declared separately as byte or word earlier, so that you can reuse it for multiple occasions.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
+If the from value is already outside of the loop range, the whole for loop is skipped.
 
 The *while*-loop is used to repeat a piece of code while a certain condition is still true.
 The *do--until* loop is used to repeat a piece of code until a certain condition is true.
@@ -491,16 +492,6 @@ Only simple statements are allowed to be inside an unroll loop (assignments, fun
     The value of the loop variable after executing the loop *is undefined* - you cannot rely
     on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
-
-.. warning::
-    For efficiency reasons, it is assumed that the ending value of the for loop is actually >= the starting value
-    (or <= if the step is negative).  This means that for loops in prog8 behave differently than in other
-    languages if this is *not* the case! A for loop from ubyte 10 to ubyte 2, for example, will iterate through
-    all values 10, 11, 12, 13, .... 254, 255, 0  (wrapped), 1, 2. In other languages the entire loop will
-    be skipped in such cases. But prog8 omits the overhead of an extra loop range check and/or branch for every for loop
-    because the most common case is that it is not needed.
-    You should add an explicit range check yourself if the ending value can be less than the start value and
-    a full wrap-around loop is not what you want!
 
 
 Conditional Execution
