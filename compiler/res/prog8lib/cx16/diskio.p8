@@ -693,15 +693,16 @@ internal_vload:
         cbm.CLOSE(15)
     }
 
-    ; TODO see if we can get this to work as well:
+
+    ; NOTE: f_seek_w() doesn't work reliably right now. I only manage to corrupt the fat32 filesystem on the sdcard with it...
 ;    sub f_seek_w(uword pos_hiword, uword pos_loword) {
 ;        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
-;        f_seek.command[1] = 13       ; f_open_w uses channel 13
-;        f_seek.command[2] = lsb(pos_loword)
-;        f_seek.command[3] = msb(pos_loword)
-;        f_seek.command[4] = lsb(pos_hiword)
-;        f_seek.command[5] = msb(pos_hiword)
-;        goto f_seek.send_command
+;        diskio.f_seek.command[1] = 13       ; f_open_w uses channel 13
+;        diskio.f_seek.command[2] = lsb(pos_loword)
+;        diskio.f_seek.command[3] = msb(pos_loword)
+;        diskio.f_seek.command[4] = lsb(pos_hiword)
+;        diskio.f_seek.command[5] = msb(pos_hiword)
+;        goto diskio.f_seek.send_command
 ;    }
 
 }

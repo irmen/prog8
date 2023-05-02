@@ -11,7 +11,6 @@ For 9.0 major changes
 - DONE: cx16diskio module merged into diskio (which got specialized for commander x16 target). load() and load_raw() with extra ram bank parameter are gone.
 - DONE: drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
 
-- get f_seek_w working like in the BASIC program on the sdcard - this needs the changes to diskio.f_open to use suffixes ,p,m
 - 6502 codegen: see if we can let for loops skip the loop if startvar>endvar, without adding a lot of code size/duplicating the loop condition.
   It is documented behavior to now loop 'around' $00 but it's too easy to forget about!
   Lot of work because of so many special cases in ForLoopsAsmgen.....
