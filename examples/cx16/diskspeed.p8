@@ -1,5 +1,4 @@
 %import diskio
-%import cx16diskio
 %import floats
 %zeropage basicsafe
 %option no_sysinit
@@ -59,7 +58,8 @@ main {
         batchtotaltime = 0
         repeat REPEATS {
             cbm.SETTIM(0,0,0)
-            if not cx16diskio.load("benchmark.dat", 4, $a000)
+            cx16.rambank(4)
+            if not diskio.load("benchmark.dat", $a000)
                 sys.exit(1)
             batchtotaltime += cbm.RDTIM16()
             txt.chrout('.')
@@ -70,7 +70,7 @@ main {
         batchtotaltime = 0
         repeat REPEATS {
             cbm.SETTIM(0,0,0)
-            if not cx16diskio.vload("benchmark.dat", 0, $0000)
+            if not diskio.vload("benchmark.dat", 0, $0000)
                 sys.exit(1)
             batchtotaltime += cbm.RDTIM16()
             txt.chrout('.')
@@ -99,7 +99,7 @@ main {
             if diskio.f_open("benchmark.dat") {
                 cbm.SETTIM(0,0,0)
                 repeat 65536/255 {
-                    if not cx16diskio.f_read(buffer, 255)
+                    if not diskio.f_read(buffer, 255)
                         sys.exit(1)
                 }
                 batchtotaltime += cbm.RDTIM16()

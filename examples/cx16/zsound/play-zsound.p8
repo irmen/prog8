@@ -1,5 +1,5 @@
 %import textio
-%import cx16diskio
+%import diskio
 %import palette
 %zeropage basicsafe
 %zpreserved $22,$2d     ; zsound lib uses this region
@@ -53,11 +53,13 @@ zsound_lib:
         txt.print("zsound demo program (drive 8)!\n")
 
         cbm.SETMSG(%10000000)       ; enable kernal status messages for load
-        if not cx16diskio.load_raw("colony.zsm", song_bank, song_address) {
+        cx16.rambank(song_bank)
+        if not diskio.load_raw("colony.zsm", song_address) {
             txt.print("?can't load\n")
             return
         }
-        if not cx16diskio.load_raw("terminator2.zcm", digi_bank, digi_address) {
+        cx16.rambank(digi_bank)
+        if not diskio.load_raw("terminator2.zcm", digi_address) {
             txt.print("?can't load\n")
             return
         } else {

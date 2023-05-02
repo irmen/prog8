@@ -2,7 +2,6 @@
 ; (this only works on Commander X16 DOS. on sdcard, not on host filesystem.)
 
 %import diskio
-%import cx16diskio
 %import textio
 %zeropage basicsafe
 %option no_sysinit
@@ -35,7 +34,7 @@ main {
 ; NOTE: f_seek_w() doesn't work right now. It requires substantial changes to the diskio library that are not compatible with the C64/C128.
 ;        txt.print("\nseeking to 1292 and writing a few bytes...\n")
 ;        if diskio.f_open_w("seektestfile.bin,p,m") {
-;            cx16diskio.f_seek_w(0, 1292)
+;            diskio.f_seek_w(0, 1292)
 ;            void diskio.f_write("123", 3)
 ;            diskio.f_close_w()
 ;        } else {
@@ -65,7 +64,7 @@ main {
 
         txt.print("\nseeking to 1290 and reading...\n")
         if diskio.f_open("seektestfile.bin") {
-            cx16diskio.f_seek(0, 1290)
+            diskio.f_seek(0, 1290)
             uword ptr = megabuffer
             do {
                 size = diskio.f_read(ptr, 255)

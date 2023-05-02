@@ -128,7 +128,7 @@ io_error:
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
-                    filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
+                    filenames_buffer += string.copy(list_filename, filenames_buffer) + 1
                     files_found++
                     if filenames_buffer - buffer_start > filenames_buf_size-20 {
                         @(filenames_buffer)=0
@@ -497,11 +497,9 @@ io_error:
         return cx16.r1
     }
 
-    ; Use kernal LOAD routine to load the given file in memory.
-    ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
-    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
-    ; The load address is mandatory.
-    ; Returns the end load address+1 if successful or 0 if a load error occurred.
+    ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
+    ; No program header is assumed in the file. Everything is loaded.
+    ; See comments on load() for more details.
     sub load_raw(uword filenameptr, uword address) -> uword {
         ; read the 2 header bytes separately to skip them
         if not f_open(filenameptr)

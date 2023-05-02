@@ -129,7 +129,7 @@ io_error:
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
-                    filenames_buffer += string.copy(diskio.list_filename, filenames_buffer) + 1
+                    filenames_buffer += string.copy(list_filename, filenames_buffer) + 1
                     files_found++
                     if filenames_buffer - buffer_start > filenames_buf_size-20 {
                         @(filenames_buffer)=0
@@ -282,18 +282,37 @@ close_end:
         return false
     }
 
+    ; optimized for Commander X16 to use MACPTR block read kernal call
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
-        ;    NOTE: on systems with banked ram (such as Commander X16) this routine DOES NOT
-        ;          automatically load into subsequent banks if it reaches a bank boundary!
-        ;          Consider using cx16diskio.f_read() on X16.
-        ; TODO join modules
         if not iteration_in_progress or not num_bytes
             return 0
 
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
+        ; commander X16 supports fast block-read via macptr() kernal call
+        uword size
+        while num_bytes {
+            size = 255
+            if num_bytes<size
+                size = num_bytes
+            size = cx16.macptr(lsb(size), bufferpointer, false)
+            if_cs
+                goto byte_read_loop     ; macptr block read not supported, do fallback loop
+            list_blocks += size
+            bufferpointer += size
+            if msb(bufferpointer) == $c0
+                bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
+            num_bytes -= size
+            if cbm.READST() & $40 {
+                f_close()       ; end of file, close it
+                break
+            }
+        }
+        return list_blocks  ; number of bytes read
+
+byte_read_loop:         ; fallback if macptr() isn't supported on the device
         %asm {{
             lda  bufferpointer
             sta  m_in_buffer+1
@@ -321,9 +340,9 @@ m_in_buffer     sta  $ffff
         return list_blocks  ; number of bytes read
     }
 
+    ; optimized for Commander X16 to use MACPTR block read kernal call
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
-        ;    Note: Consider using cx16diskio.f_read_all() on X16!  TODO join modules
         if not iteration_in_progress
             return 0
 
@@ -482,20 +501,17 @@ io_error:
     ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
     ;       (which is possible on the Commander X16), the returned size is not correct,
     ;       because it doesn't take the number of ram banks into account.
-    ;       Also consider using cx16diskio.load() instead  on the Commander X16. TODO join modules
+    ;       You can use the load_size() function to calcuate the size in this case.
+    ; NOTE: data is read into the current Ram bank if you're reading into banked ram.
+    ;       if you require loading into another ram bank, you have to set that
+    ;       yourself using cx16.rambank(bank) before calling load().
     sub load(uword filenameptr, uword address_override) -> uword {
         return internal_load_routine(filenameptr, address_override, false)
     }
 
-    ; Use kernal LOAD routine to load the given file in memory.
-    ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
-    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
-    ; The load address is mandatory.
-    ; Returns the end load address+1 if successful or 0 if a load error occurred.
-    ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
-    ;       (which is possible on the Commander X16), the returned size is not correct,
-    ;       because it doesn't take the number of ram banks into account.
-    ;       Also consider using cx16diskio.load_raw() instead on the Commander X16. TODO join modules
+    ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
+    ; No program header is assumed in the file. Everything is loaded.
+    ; See comments on load() for more details.
     sub load_raw(uword filenameptr, uword address) -> uword {
         return internal_load_routine(filenameptr, address, true)
     }
@@ -561,4 +577,131 @@ io_error:
         cbm.CLRCHN()
         cbm.CLOSE(15)
     }
+
+
+    ; CommanderX16 extensions over the basic C64/C128 diskio routines:
+
+    ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
+    ; Calculates the number of bytes loaded (files > 64Kb ar truncated to 16 bits)
+    sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
+        return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
+    }
+
+    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command VLOAD "filename",drivenumber,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file has to have the usual 2 byte header (which will be skipped)
+        %asm {{
+            clc
+internal_vload:
+            phx
+            pha
+            ldx  drivenumber
+            bcc +
+            ldy  #%00000010     ; headerless load mode
+            bne  ++
++           ldy  #0             ; normal load mode
++           lda  #1
+            jsr  cbm.SETLFS
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            jsr  prog8_lib.strlen
+            tya
+            ldx  cx16.r0
+            ldy  cx16.r0+1
+            jsr  cbm.SETNAM
+            pla
+            clc
+            adc  #2
+            ldx  cx16.r1
+            ldy  cx16.r1+1
+            stz  P8ZP_SCRATCH_B1
+            jsr  cbm.LOAD
+            bcs  +
+            inc  P8ZP_SCRATCH_B1
+    +       jsr  cbm.CLRCHN
+            lda  #1
+            jsr  cbm.CLOSE
+            plx
+            lda  P8ZP_SCRATCH_B1
+            rts
+        }}
+    }
+
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file is read fully including the first two bytes.
+        %asm {{
+            sec
+            jmp  vload.internal_vload
+        }}
+    }
+
+    sub chdir(str path) {
+        ; -- change current directory.
+        list_filename[0] = 'c'
+        list_filename[1] = 'd'
+        list_filename[2] = ':'
+        void string.copy(path, &list_filename+3)
+        send_command(list_filename)
+    }
+
+    sub mkdir(str name) {
+        ; -- make a new subdirectory.
+        list_filename[0] = 'm'
+        list_filename[1] = 'd'
+        list_filename[2] = ':'
+        void string.copy(name, &list_filename+3)
+        send_command(list_filename)
+    }
+
+    sub rmdir(str name) {
+        ; -- remove a subdirectory.
+        void string.find(name, '*')
+        if_cs
+            return    ; refuse to act on a wildcard *
+        list_filename[0] = 'r'
+        list_filename[1] = 'd'
+        list_filename[2] = ':'
+        void string.copy(name, &list_filename+3)
+        send_command(list_filename)
+    }
+
+    sub relabel(str name) {
+        ; -- change the disk label.
+        list_filename[0] = 'r'
+        list_filename[1] = '-'
+        list_filename[2] = 'h'
+        list_filename[3] = ':'
+        void string.copy(name, &list_filename+4)
+        send_command(list_filename)
+    }
+
+    sub f_seek(uword pos_hiword, uword pos_loword) {
+        ; -- seek in the reading file opened with f_open, to the given 32-bits position
+        ubyte[6] command = ['p',0,0,0,0,0]
+        command[1] = 12       ; f_open uses channel 12
+        command[2] = lsb(pos_loword)
+        command[3] = msb(pos_loword)
+        command[4] = lsb(pos_hiword)
+        command[5] = msb(pos_hiword)
+    send_command:
+        cbm.SETNAM(sizeof(command), &command)
+        cbm.SETLFS(15, drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLOSE(15)
+    }
+
+    ; TODO see if we can get this to work as well:
+;    sub f_seek_w(uword pos_hiword, uword pos_loword) {
+;        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
+;        f_seek.command[1] = 13       ; f_open_w uses channel 13
+;        f_seek.command[2] = lsb(pos_loword)
+;        f_seek.command[3] = msb(pos_loword)
+;        f_seek.command[4] = lsb(pos_hiword)
+;        f_seek.command[5] = msb(pos_hiword)
+;        goto f_seek.send_command
+;    }
+
 }

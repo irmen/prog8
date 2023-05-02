@@ -150,7 +150,12 @@ Provides several routines that deal with disk drive I/O, such as:
 - delete and rename files on the disk
 - send arbitrary CbmDos command to disk drive
 
+Commander X16 additions:
 On the Commander X16 it tries to use that machine's fast Kernal loading routines if possible.
+Routines to directly load data into video ram are also present (vload and vload_raw).
+Also contains a helper function to calculate the file size of a loaded file (although that is truncated
+to 16 bits, 64Kb)
+Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and to relabel the disk.
 
 
 string
@@ -379,16 +384,6 @@ Available for the Cx16 target. Various routines to set the display color palette
 There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C64.
-
-
-cx16diskio  (cx16 only)
------------------------
-Available for the Cx16 target. Contains extensions to the load and load_raw routines from the regular
-diskio module, to deal with loading of potentially large files in to banked ram (HiRam).
-Routines to directly load data into video ram are also present (vload and vload_raw).
-Also contains a helper function to calculate the file size of a loaded file (although that is truncated
-to 16 bits, 64Kb)
-Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and to relabel the disk.
 
 
 psg  (cx16 only)

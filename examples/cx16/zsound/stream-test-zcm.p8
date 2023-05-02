@@ -1,6 +1,5 @@
 %import textio
 %import diskio
-%import cx16diskio
 %zpreserved $22,$2d     ; zsound lib uses this region
 
 ; NOTE: this is a proof of concept to stream ZCM digi from disk while playing.
@@ -44,7 +43,7 @@ zsound_lib:
 
     sub prebuffer()  {
         txt.print("prebuffering...")
-        void cx16diskio.f_read(digi_address, ram_bank_size*4)
+        void diskio.f_read(digi_address, ram_bank_size*4)
     }
 
     sub start() {
@@ -65,7 +64,7 @@ zsound_lib:
         txt.print("\nstreaming from file, playback in irq!\n")
         uword size = 1
         while size {
-            size = cx16diskio.f_read(digi_address, ram_bank_size)       ; load next bank
+            size = diskio.f_read(digi_address, ram_bank_size)       ; load next bank
             txt.print_ub(cx16.getrambank())
             txt.spc()
             sys.wait(5)     ; artificial delay

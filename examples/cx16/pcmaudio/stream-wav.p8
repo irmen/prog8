@@ -1,6 +1,5 @@
 %import textio
 %import diskio
-%import cx16diskio
 %import floats
 %import adpcm
 %import wavfile
@@ -41,7 +40,7 @@ main {
         txt.print(MUSIC_FILENAME)
         txt.nl()
         if diskio.f_open(MUSIC_FILENAME) {
-            void cx16diskio.f_read(buffer, 128)
+            void diskio.f_read(buffer, 128)
             wav_ok = wavfile.parse_header(buffer)
             diskio.f_close()
         }
@@ -105,13 +104,13 @@ main {
             uword block_size = 1024
             if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
                 block_size = wavfile.block_align
-            void cx16diskio.f_read(buffer, wavfile.data_offset)       ; skip to actual sample data start
-            void cx16diskio.f_read(buffer, block_size)  ; preload buffer
+            void diskio.f_read(buffer, wavfile.data_offset)       ; skip to actual sample data start
+            void diskio.f_read(buffer, block_size)  ; preload buffer
             cx16.VERA_AUDIO_RATE = vera_rate    ; start playback
             repeat {
                 interrupt.wait_and_clear_aflow_semaphore()
                 ;; cx16.vpoke(1,$fa00, $a0)    ; paint a screen color
-                uword size = cx16diskio.f_read(buffer, block_size)
+                uword size = diskio.f_read(buffer, block_size)
                 ;; cx16.vpoke(1,$fa00, $00)    ; paint a screen color
                 if size<block_size
                     break
