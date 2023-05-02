@@ -1,4 +1,5 @@
-; C64/C128 disk drive I/O routines.
+; Commander X16 disk drive I/O routines.
+; Largely compatible with the default C64 ones, but adds more stuff specific to the X16 as well.
 
 %import textio
 %import string
@@ -284,6 +285,10 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
+        ;    NOTE: on systems with banked ram (such as Commander X16) this routine DOES NOT
+        ;          automatically load into subsequent banks if it reaches a bank boundary!
+        ;          Consider using cx16diskio.f_read() on X16.
+        ; TODO join modules
         if not iteration_in_progress or not num_bytes
             return 0
 
@@ -318,6 +323,7 @@ m_in_buffer     sta  $ffff
 
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
+        ;    Note: Consider using cx16diskio.f_read_all() on X16!  TODO join modules
         if not iteration_in_progress
             return 0
 
@@ -473,12 +479,36 @@ io_error:
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
+    ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
+    ;       (which is possible on the Commander X16), the returned size is not correct,
+    ;       because it doesn't take the number of ram banks into account.
+    ;       Also consider using cx16diskio.load() instead  on the Commander X16. TODO join modules
     sub load(uword filenameptr, uword address_override) -> uword {
+        return internal_load_routine(filenameptr, address_override, false)
+    }
+
+    ; Use kernal LOAD routine to load the given file in memory.
+    ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
+    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
+    ; The load address is mandatory.
+    ; Returns the end load address+1 if successful or 0 if a load error occurred.
+    ; NOTE: when the load is larger than 64Kb and/or spans multiple RAM banks
+    ;       (which is possible on the Commander X16), the returned size is not correct,
+    ;       because it doesn't take the number of ram banks into account.
+    ;       Also consider using cx16diskio.load_raw() instead on the Commander X16. TODO join modules
+    sub load_raw(uword filenameptr, uword address) -> uword {
+        return internal_load_routine(filenameptr, address, true)
+    }
+
+
+    sub internal_load_routine(uword filenameptr, uword address_override, bool headerless) -> uword {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
         if address_override
             secondary = 0
+        if headerless
+            secondary |= %00000010  ; activate cx16 kernal headerless load support
         cbm.SETLFS(1, drivenumber, secondary)
         %asm {{
             stx  P8ZP_SCRATCH_REG
@@ -495,23 +525,6 @@ io_error:
         cbm.CLRCHN()
         cbm.CLOSE(1)
         return cx16.r1
-    }
-
-    ; Use kernal LOAD routine to load the given file in memory.
-    ; INCLUDING the first 2 bytes in the file: no program header is assumed in the file.
-    ; This is different from Basic's LOAD instruction which always skips the first two bytes.
-    ; The load address is mandatory.
-    ; Returns the end load address+1 if successful or 0 if a load error occurred.
-    sub load_raw(uword filenameptr, uword address) -> uword {
-        ; read the 2 header bytes separately to skip them
-        if not f_open(filenameptr)
-            return 0
-        cx16.r1 = f_read(address, 2)
-        f_close()
-        if cx16.r1!=2
-            return 0
-        address += 2
-        return load(filenameptr, address)
     }
 
     sub delete(uword filenameptr) {

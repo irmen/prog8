@@ -13,6 +13,7 @@ cx16diskio {
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
+    ; TODO remove this, but add comment about bank and load_size to diskio.load_raw()
     sub load(uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
         return diskio.internal_load_routine(filenameptr, address_override, false)
@@ -26,71 +27,16 @@ cx16diskio {
     ; or alternatively make sure to reset the correct ram bank yourself after the load!
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     ; You can use the load_size() function to calcuate the size of the file that was loaded.
+    ; TODO remove this, but add comment about bank and load_size to diskio.load_raw()
     sub load_raw(uword filenameptr, ubyte bank, uword address_override) -> uword {
         cx16.rambank(bank)
         return diskio.internal_load_routine(filenameptr, address_override, true)
     }
 
-    ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
-    ; Calculates the number of bytes loaded (files > 64Kb ar truncated to 16 bits)
-    sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
-        return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
-    }
-
-    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
-        ; -- like the basic command VLOAD "filename",drivenumber,bank,address
-        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
-        ;    the file has to have the usual 2 byte header (which will be skipped)
-        %asm {{
-            clc
-internal_vload:
-            phx
-            pha
-            ldx  diskio.drivenumber
-            bcc +
-            ldy  #%00000010     ; headerless load mode
-            bne  ++
-+           ldy  #0             ; normal load mode
-+           lda  #1
-            jsr  cbm.SETLFS
-            lda  cx16.r0
-            ldy  cx16.r0+1
-            jsr  prog8_lib.strlen
-            tya
-            ldx  cx16.r0
-            ldy  cx16.r0+1
-            jsr  cbm.SETNAM
-            pla
-            clc
-            adc  #2
-            ldx  cx16.r1
-            ldy  cx16.r1+1
-            stz  P8ZP_SCRATCH_B1
-            jsr  cbm.LOAD
-            bcs  +
-            inc  P8ZP_SCRATCH_B1
-    +       jsr  cbm.CLRCHN
-            lda  #1
-            jsr  cbm.CLOSE
-            plx
-            lda  P8ZP_SCRATCH_B1
-            rts
-        }}
-    }
-
-    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
-        ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
-        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
-        ;    the file is read fully including the first two bytes.
-        %asm {{
-            sec
-            jmp  vload.internal_vload
-        }}
-    }
-
     ; Replacement function that makes use of fast block read capability of the X16,
     ; and can wrap over multiple ram banks while reading.
     ; Use this in place of regular diskio.f_read() on X16.
+    ; TODO use this one, get rid of diskio.f_read
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
@@ -150,6 +96,7 @@ m_in_buffer     sta  $ffff
 
     ; replacement function that makes use of fast block read capability of the X16
     ; use this in place of regular diskio.f_read_all() on X16
+    ; TODO use this one, get rid of diskio.f_read
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
         if not diskio.iteration_in_progress
@@ -164,6 +111,65 @@ m_in_buffer     sta  $ffff
         return total_read
     }
 
+
+    ; CommanderX16 extensions over the basic C64/C128 diskio routines:
+
+    ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
+    ; Calculates the number of bytes loaded (files > 64Kb ar truncated to 16 bits)
+    sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
+        return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
+    }
+
+    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command VLOAD "filename",drivenumber,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file has to have the usual 2 byte header (which will be skipped)
+        %asm {{
+            clc
+internal_vload:
+            phx
+            pha
+            ldx  diskio.drivenumber
+            bcc +
+            ldy  #%00000010     ; headerless load mode
+            bne  ++
++           ldy  #0             ; normal load mode
++           lda  #1
+            jsr  cbm.SETLFS
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            jsr  prog8_lib.strlen
+            tya
+            ldx  cx16.r0
+            ldy  cx16.r0+1
+            jsr  cbm.SETNAM
+            pla
+            clc
+            adc  #2
+            ldx  cx16.r1
+            ldy  cx16.r1+1
+            stz  P8ZP_SCRATCH_B1
+            jsr  cbm.LOAD
+            bcs  +
+            inc  P8ZP_SCRATCH_B1
+    +       jsr  cbm.CLRCHN
+            lda  #1
+            jsr  cbm.CLOSE
+            plx
+            lda  P8ZP_SCRATCH_B1
+            rts
+        }}
+    }
+
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+        ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
+        ;    loads a file into Vera's video memory in the given bank:address, returns success in A
+        ;    the file is read fully including the first two bytes.
+        %asm {{
+            sec
+            jmp  vload.internal_vload
+        }}
+    }
 
     sub chdir(str path) {
         ; -- change current directory.
