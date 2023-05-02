@@ -520,16 +520,36 @@ class IRCodeGen(
         addToResult(result, fromTr, fromTr.resultReg, -1)
 
         val labelAfterFor = createLabelName()
-        val greaterOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGTSR else Opcode.BGTR
-        addInstr(result, IRInstruction(greaterOpcode, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor), null)
+        val precheckInstruction = if(loopvarDt in SignedDatatypes) {
+            if(step>0)
+                IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+            else
+                IRInstruction(Opcode.BGTSR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+        } else {
+            if(step>0)
+                IRInstruction(Opcode.BGTR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+            else
+                IRInstruction(Opcode.BGTR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+        }
+        addInstr(result, precheckInstruction, null)
 
         addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
         addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol), null)
         // if endvalue >= index, iterate loop
-        val branchOpcode = if(loopvarDt in SignedDatatypes) Opcode.BGESR else Opcode.BGER
-        addInstr(result, IRInstruction(branchOpcode, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=loopLabel), null)
+        val branchInstr = if(loopvarDt in SignedDatatypes) {
+            if(step>0)
+                IRInstruction(Opcode.BGESR, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=loopLabel)
+            else
+                IRInstruction(Opcode.BGESR, loopvarDtIr, reg1=fromTr.resultReg, reg2=toTr.resultReg, labelSymbol=loopLabel)
+        } else {
+            if(step>0)
+                IRInstruction(Opcode.BGER, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol=loopLabel)
+            else
+                IRInstruction(Opcode.BGER, loopvarDtIr, reg1=fromTr.resultReg, reg2=toTr.resultReg, labelSymbol=loopLabel)
+        }
+        addInstr(result, branchInstr, null)
 
         result += IRCodeChunk(labelAfterFor, null)
         return result
