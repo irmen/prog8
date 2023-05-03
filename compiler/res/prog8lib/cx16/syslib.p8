@@ -784,6 +784,7 @@ asmsub save_vera_context() clobbers(A) {
         lda  cx16.VERA_CTRL
         sta  _vera_storage+3
         eor  #1
+        sta  _vera_storage+7
         sta  cx16.VERA_CTRL
         lda  cx16.VERA_ADDR_L
         sta  _vera_storage+4
@@ -791,8 +792,6 @@ asmsub save_vera_context() clobbers(A) {
         sta  _vera_storage+5
         lda  cx16.VERA_ADDR_H
         sta  _vera_storage+6
-        lda  cx16.VERA_CTRL
-        sta  _vera_storage+7
         rts
 _vera_storage:  .byte 0,0,0,0,0,0,0,0
     }}
