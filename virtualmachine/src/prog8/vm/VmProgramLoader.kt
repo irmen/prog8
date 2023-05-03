@@ -46,7 +46,7 @@ class VmProgramLoader {
                     is IRCodeChunk -> programChunks += child
                     is IRInlineAsmChunk -> {
                         val replacement = addAssemblyToProgram(child, programChunks, variableAddresses)
-                        chunkReplacements += replacement
+                        chunkReplacements += Pair(child, replacement)
                     }
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
                     is IRSubroutine -> {
@@ -55,7 +55,7 @@ class VmProgramLoader {
                             when (chunk) {
                                 is IRInlineAsmChunk -> {
                                     val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
-                                    chunkReplacements += replacement
+                                    chunkReplacements += Pair(chunk, replacement)
                                 }
                                 is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
                                 is IRCodeChunk -> programChunks += chunk
@@ -339,7 +339,7 @@ class VmProgramLoader {
         asmChunk: IRInlineAsmChunk,
         chunks: MutableList<IRCodeChunk>,
         symbolAddresses: MutableMap<String, Int>,
-    ): Pair<IRCodeChunkBase, IRCodeChunk> {
+    ): IRCodeChunk {
         if(asmChunk.isIR) {
             val chunk = IRCodeChunk(asmChunk.label, asmChunk.next)
             asmChunk.assembly.lineSequence().forEach {
@@ -350,7 +350,7 @@ class VmProgramLoader {
                 )
             }
             chunks += chunk
-            return Pair(asmChunk, chunk)
+            return chunk
         } else {
             throw IRParseException("vm currently does not support real inlined assembly (only IR): ${asmChunk.label}")
         }

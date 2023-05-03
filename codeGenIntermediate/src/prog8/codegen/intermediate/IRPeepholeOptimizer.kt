@@ -24,6 +24,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
 
     private fun optimizeOnlyJoinChunks() {
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+            joinChunks(sub)
             removeEmptyChunks(sub)
             joinChunks(sub)
         }
@@ -32,6 +33,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
 
     private fun peepholeOptimize() {
         irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+            joinChunks(sub)
             removeEmptyChunks(sub)
             joinChunks(sub)
             sub.chunks.withIndex().forEach { (index, chunk1) ->
@@ -112,7 +114,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         if(sub.chunks.isEmpty())
             return
 
-        fun mayJoin(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
+        fun mayJoinCodeChunks(previous: IRCodeChunkBase, chunk: IRCodeChunkBase): Boolean {
             if(chunk.label!=null)
                 return false
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
@@ -129,12 +131,39 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         chunks += sub.chunks[0]
         for(ix in 1 until sub.chunks.size) {
             val lastChunk = chunks.last()
-            if(mayJoin(lastChunk, sub.chunks[ix])) {
-                lastChunk.instructions += sub.chunks[ix].instructions
-                lastChunk.next = sub.chunks[ix].next
+            val candidate = sub.chunks[ix]
+            when(candidate) {
+                is IRCodeChunk -> {
+                    if(mayJoinCodeChunks(lastChunk, candidate)) {
+                        lastChunk.instructions += candidate.instructions
+                        lastChunk.next = candidate.next
+                    }
+                    else
+                        chunks += candidate
+                }
+                is IRInlineAsmChunk -> {
+                    if(candidate.label!=null)
+                        chunks += candidate
+                    else if(lastChunk.isEmpty()) {
+                        val label = lastChunk.label
+                        if(label!=null)
+                            chunks += IRInlineAsmChunk(label, candidate.assembly, candidate.isIR, candidate.next)
+                        else
+                            chunks += candidate
+                    }
+                }
+                is IRInlineBinaryChunk -> {
+                    if(candidate.label!=null)
+                        chunks += candidate
+                    else if(lastChunk.isEmpty()) {
+                        val label = lastChunk.label
+                        if(label!=null)
+                            chunks += IRInlineBinaryChunk(label, candidate.data, candidate.next)
+                        else
+                            chunks += candidate
+                    }
+                }
             }
-            else
-                chunks += sub.chunks[ix]
         }
         sub.chunks.clear()
         sub.chunks += chunks
