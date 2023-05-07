@@ -357,6 +357,15 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
+
+            if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+                if(assignOptimizedComparisonBytes(expr, assign))
+                    return true
+            } else  if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if(assignOptimizedComparisonWords(expr, assign))
+                    return true
+            }
+
             val origTarget = assign.target.origAstTarget
             if(origTarget!=null) {
                 assignConstantByte(assign.target, 0)
@@ -381,13 +390,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(expr.type !in IntegerDatatypes)
             return false
 
-        fun simpleLogicalBytesExpr() {
-            // both left and right expression operands are simple.
-            if (expr.right is PtNumber || expr.right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is PtNumber || expr.left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
-            else {
+        if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
+            if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+                if (expr.right.isSimple()) {
+                    if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
+                        return true
+                    }
+                    else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
+                        return true
+                    }
+                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
@@ -399,16 +414,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid operator")
                 }
                 assignRegisterByte(assign.target, CpuRegister.A, false)
+                return true
             }
-        }
-
-        fun simpleLogicalWordsExpr() {
-            // both left and right expression operands are simple.
-            if (expr.right is PtNumber || expr.right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is PtNumber || expr.left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
-            else {
+            else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if (expr.right.isSimple()) {
+                    if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
+                        return true
+                    }
+                    else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
+                        return true
+                    }
+                }
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
@@ -420,21 +438,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid operator")
                 }
                 assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-            }
-        }
-
-        if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
-            if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
-                if (expr.right.isSimple()) {
-                    simpleLogicalBytesExpr()
-                    return true
-                }
-            }
-            if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
-                if (expr.right.isSimple()) {
-                    simpleLogicalWordsExpr()
-                    return true
-                }
+                return true
             }
             return false
         }
@@ -682,6 +686,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
         }
+        return false
+    }
+
+    private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        // TODO("Not yet implemented")
+        return false
+    }
+
+    private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        // TODO("Not yet implemented")
         return false
     }
 
