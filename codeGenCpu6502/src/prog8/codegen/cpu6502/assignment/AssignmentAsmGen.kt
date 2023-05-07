@@ -820,7 +820,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
+        val signed = expr.left.type == DataType.WORD || expr.right.type ==  DataType.WORD
         fun assignExpressionOperandsLeftScratchRightAY() {
             if(expr.right.isSimple()) {
                 assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
@@ -830,6 +830,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
                 assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            }
+        }
+        fun assignExpressionOperandsLeftAYRightScratch() {
+            if(expr.left.isSimple()) {
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
+                assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
+            } else {
+                assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
             }
@@ -861,42 +874,118 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             "<" -> {
                 if(signed) {
-                    // TODO("word <")
-                    return false
+                    assignExpressionOperandsLeftAYRightScratch()
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
                 else {
-                    // TODO("uword <")
-                    return false
+                    assignExpressionOperandsLeftAYRightScratch()
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  +
+        bne  ++
+		cmp  P8ZP_SCRATCH_W1
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
             }
             "<=" -> {
                 if(signed) {
-                    // TODO("word <=")
-                    return false
+                    assignExpressionOperandsLeftScratchRightAY()
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
                 else {
-                    // TODO("uword =<")
-                    return false
+                    assignExpressionOperandsLeftScratchRightAY()
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  ++
+		bne  +
+		cmp  P8ZP_SCRATCH_W1
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
             }
             ">" -> {
                 if(signed) {
-                    // TODO("word >")
-                    return false
+                    assignExpressionOperandsLeftScratchRightAY()
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
                 else {
-                    // TODO("uword >")
-                    return false
+                    assignExpressionOperandsLeftScratchRightAY()
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  +
+        bne  ++
+		cmp  P8ZP_SCRATCH_W1
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
             }
             ">=" -> {
                 if(signed) {
-                    // TODO("word >=")
-                    return false
+                    assignExpressionOperandsLeftAYRightScratch()
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
                 else {
-                    // TODO("uword >=")
-                    return false
+                    assignExpressionOperandsLeftAYRightScratch()
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  ++
+		bne  +
+		cmp  P8ZP_SCRATCH_W1
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
                 }
             }
             else -> return false
