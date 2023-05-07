@@ -694,12 +694,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
         fun assignExpressionOperandsLeftScratchRightA() {
             if(expr.right.isSimple()) {
-                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", expr.left.type)
                 assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
             } else {
                 assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
-                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", expr.left.type)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
             }
         }
@@ -820,8 +820,90 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        // TODO("Not yet implemented")
-        return false
+        val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
+        fun assignExpressionOperandsLeftScratchRightAY() {
+            if(expr.right.isSimple()) {
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
+                assignExpressionToRegister(expr.right, RegisterOrPair.AY, signed)
+            } else {
+                assignExpressionToRegister(expr.right, RegisterOrPair.AY, signed)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            }
+        }
+        when(expr.operator) {
+            "==" -> {
+                assignExpressionOperandsLeftScratchRightAY()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W1
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W1+1
+                    bne  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++""")
+            }
+            "!=" -> {
+                assignExpressionOperandsLeftScratchRightAY()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W1
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W1+1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "<" -> {
+                if(signed) {
+                    // TODO("word <")
+                    return false
+                }
+                else {
+                    // TODO("uword <")
+                    return false
+                }
+            }
+            "<=" -> {
+                if(signed) {
+                    // TODO("word <=")
+                    return false
+                }
+                else {
+                    // TODO("uword =<")
+                    return false
+                }
+            }
+            ">" -> {
+                if(signed) {
+                    // TODO("word >")
+                    return false
+                }
+                else {
+                    // TODO("uword >")
+                    return false
+                }
+            }
+            ">=" -> {
+                if(signed) {
+                    // TODO("word >=")
+                    return false
+                }
+                else {
+                    // TODO("uword >=")
+                    return false
+                }
+            }
+            else -> return false
+        }
+
+        assignRegisterByte(assign.target, CpuRegister.A, signed)
+        return true
     }
 
     private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {

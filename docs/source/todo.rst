@@ -3,7 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- assignOptimizedComparisonBytes() / assignOptimizedComparisonWords()
+- finish assignOptimizedComparisonWords()
 - find bcc/bcs branches that could be a rol?
 - find adc #0  that could be a rol?
 - try to optimize newexpr a bit more

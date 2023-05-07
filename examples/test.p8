@@ -8,50 +8,48 @@ main {
 
 
         ; signed and unsigned word:
-        ; ==
-        ; !=
         ; >
         ; >=
         ; <
         ; <=
 
 
-        ; expect yep yep nope nope nope
-        cx16.r0sL = -10
-        cx16.r2sL = -9
-        if (cx16.r0sL <= cx16.r2sL) or (envelope_attacks[cx16.r1L]==0) {
+        ; expect nope nope yep yep yep
+        cx16.r0 = $ea30
+        cx16.r2 = $ea31
+        if (cx16.r0 > cx16.r2) or (envelope_attacks[cx16.r1L]==0) {
             txt.print("\nyep\n")
         } else {
             txt.print("\nnope\n")
         }
 
-        cx16.r0sL = -9
-        cx16.r2sL = -9
-        if (cx16.r0sL <= cx16.r2sL) or (envelope_attacks[cx16.r1L]==0) {
+        cx16.r0 = $ea31
+        cx16.r2 = $ea31
+        if (cx16.r0 > cx16.r2) or (envelope_attacks[cx16.r1L]==0) {
             txt.print("\nyep\n")
         } else {
             txt.print("\nnope\n")
         }
 
-        cx16.r0sL = -8
-        cx16.r2sL = -9
-        if (cx16.r0sL <= cx16.r2sL) or (envelope_attacks[cx16.r1L]==0) {
+        cx16.r0 = $ea32
+        cx16.r2 = $ea31
+        if (cx16.r0 > cx16.r2) or (envelope_attacks[cx16.r1L]==0) {
             txt.print("\nyep\n")
         } else {
             txt.print("\nnope\n")
         }
 
-        cx16.r0sL = 0
-        cx16.r2sL = -9
-        if (cx16.r0sL <= cx16.r2sL) or (envelope_attacks[cx16.r1L]==0) {
+        cx16.r0 = $ee30
+        cx16.r2 = $ea31
+        if (cx16.r0 > cx16.r2) or (envelope_attacks[cx16.r1L]==0) {
             txt.print("\nyep\n")
         } else {
             txt.print("\nnope\n")
         }
 
-        cx16.r0sL = 10
-        cx16.r2sL = 1
-        if (cx16.r0sL <= cx16.r2sL) or (envelope_attacks[cx16.r1L]==0) {
+        cx16.r0 = $ffff
+        cx16.r2 = $ee31
+        if (cx16.r0 > cx16.r2) or (envelope_attacks[cx16.r1L]==0) {
             txt.print("\nyep\n")
         } else {
             txt.print("\nnope\n")
