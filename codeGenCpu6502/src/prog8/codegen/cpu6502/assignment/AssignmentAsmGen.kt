@@ -690,8 +690,97 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        // TODO("Not yet implemented")
-        return false
+        val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
+
+        fun assignExpressionOperandsLeftScratchRightA() {
+            if(expr.right.isSimple()) {
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
+            } else {
+                assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            }
+        }
+
+        when(expr.operator) {
+            "==" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "!=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "<" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    return false    // TODO("< signed")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        beq  +
+                        bcs  ++
++                       lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
+            }
+            "<=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    return false    // TODO("< signed")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        lda  #0
+                        rol  a""")
+            }
+            ">" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    return false     // TODO("< signed")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        bcc  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+            }
+            ">=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    return false     // TODO(">= signed")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        bcc  +
+                        beq  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+            }
+            else -> return false
+        }
+
+        assignRegisterByte(assign.target, CpuRegister.A, signed)
+        return true
     }
 
     private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
