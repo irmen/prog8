@@ -728,7 +728,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             "<" -> {
                 assignExpressionOperandsLeftScratchRightA()
                 if(signed)
-                    return false    // TODO("< signed")
+                    asmgen.out("""
+                        clc
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
@@ -742,7 +751,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             "<=" -> {
                 assignExpressionOperandsLeftScratchRightA()
                 if(signed)
-                    return false    // TODO("< signed")
+                    asmgen.out("""
+                        sec
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
@@ -752,7 +770,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             ">" -> {
                 assignExpressionOperandsLeftScratchRightA()
                 if(signed)
-                    return false     // TODO("< signed")
+                    asmgen.out("""
+                        sec
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
@@ -765,7 +792,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             ">=" -> {
                 assignExpressionOperandsLeftScratchRightA()
                 if(signed)
-                    return false     // TODO(">= signed")
+                    asmgen.out("""
+                        clc
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
