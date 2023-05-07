@@ -19,7 +19,7 @@ zsound_lib:
     romsub $0832 = zsm_init() clobbers(A)
     romsub $0835 = zsm_play() clobbers(A, X, Y)
     romsub $0838 = zsm_playIRQ() clobbers(A, X, Y)
-    romsub $083b = zsm_start(ubyte bank @A, uword song_address @XY) clobbers(A, X, Y) -> ubyte @Pc
+    romsub $083b = zsm_start(ubyte bank @A, uword song_address @XY) clobbers(A, X, Y) -> bool @Pc
     romsub $083e = zsm_stop()
     romsub $0841 = zsm_setspeed(uword hz @XY) clobbers(A, X, Y)
     romsub $0844 = zsm_setloop(ubyte count @A)

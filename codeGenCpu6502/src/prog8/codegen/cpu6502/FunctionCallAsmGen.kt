@@ -164,7 +164,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             if(requiredDt!=value.type)
                 throw AssemblyError("for statusflag, byte value is required")
             if (statusflag == Statusflag.Pc) {
-                // this param needs to be set last, right before the jsr
+                // this boolean param needs to be set last, right before the jsr
                 // for now, this is already enforced on the subroutine definition by the Ast Checker
                 when(value) {
                     is PtNumber -> {
@@ -183,12 +183,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     }
                     else -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.out("""
-                            beq  +
-                            sec
-                            bcs  ++
-+                           clc
-+""")
+                        asmgen.out("  ror  a")
                     }
                 }
             } else throw AssemblyError("can only use Carry as status flag parameter")

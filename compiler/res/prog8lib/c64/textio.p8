@@ -94,7 +94,7 @@ sub uppercase() {
     c64.VMCSB &= ~2
 }
 
-asmsub  scroll_left  (ubyte alsocolors @ Pc) clobbers(A, Y)  {
+asmsub  scroll_left  (bool alsocolors @ Pc) clobbers(A, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -135,7 +135,7 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_right  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_right  (bool alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -171,7 +171,7 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_up  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_up  (bool alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -207,7 +207,7 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_down  (ubyte alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
@@ -320,7 +320,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
@@ -338,7 +338,7 @@ asmsub  print_ubhex  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		stx  P8ZP_SCRATCH_REG
@@ -359,7 +359,7 @@ asmsub  print_ubbin  (ubyte value @ A, ubyte prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -371,7 +371,7 @@ asmsub  print_uwbin  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uwhex  (uword value @ AY, ubyte prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{

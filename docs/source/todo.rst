@@ -11,6 +11,7 @@ For 9.0 major changes
 - DONE: cx16diskio module merged into diskio (which got specialized for commander x16 target). load() and load_raw() with extra ram bank parameter are gone.
 - DONE: drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
 - DONE: for loops now skip the whole loop if from value already outside the loop range (this is what all other programming languages also do)
+- DONE: asmsub params or return values passed in cpu flags (like carry) now must be declared as booleans (previously ubyte was still accepted).
 
 - once 9.0 is stable, upgrade other programs (assem, shell, etc) to it. + add migration guide to the manual.
 - [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing

@@ -333,7 +333,7 @@ internal class AstChecker(private val program: Program,
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 if(param.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
                     if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE && param.first.type != DataType.BOOL)
-                        err("parameter '${param.first.name}' should be (u)byte or bool")
+                        errors.err("parameter '${param.first.name}' should be (u)byte or bool", param.first.position)
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
@@ -341,8 +341,8 @@ internal class AstChecker(private val program: Program,
                         err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
-                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BOOL)
-                        err("parameter '${param.first.name}' should be bool or ubyte")
+                    if (param.first.type != DataType.BOOL)
+                        errors.err("parameter '${param.first.name}' should be of type bool", param.first.position)
                 }
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
@@ -356,8 +356,8 @@ internal class AstChecker(private val program: Program,
                         err("return type #${index + 1} should be (u)word/address")
                 }
                 else if(pair.second.statusflag!=null) {
-                    if (pair.first != DataType.UBYTE && pair.first != DataType.BOOL)
-                        err("return type #${index + 1} should be bool or ubyte")
+                    if (pair.first != DataType.BOOL)
+                        err("return type #${index + 1} should be bool")
                 }
             }
 
@@ -428,7 +428,6 @@ internal class AstChecker(private val program: Program,
             val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
             if(statusFlagsNoCarry.isNotEmpty())
                 err("can only use Carry as status flag parameter")
-
         }
 
         // Non-string and non-ubytearray Pass-by-reference datatypes can not occur as parameters to a subroutine directly

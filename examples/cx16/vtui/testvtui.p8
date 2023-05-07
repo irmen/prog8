@@ -116,9 +116,9 @@ vtui $1000 {
     ; The routines below are for VTUI 1.0
     romsub $1000  =  initialize() clobbers(A, X, Y)
     romsub $1002  =  screen_set(ubyte mode @A) clobbers(A, X, Y)
-    romsub $1005  =  set_bank(ubyte bank @Pc) clobbers(A)
+    romsub $1005  =  set_bank(bool bank1 @Pc) clobbers(A)
     romsub $1008  =  set_stride(ubyte stride @A) clobbers(A)
-    romsub $100b  =  set_decr(ubyte incrdecr @Pc) clobbers(A)
+    romsub $100b  =  set_decr(bool incrdecr @Pc) clobbers(A)
     romsub $100e  =  clr_scr(ubyte char @A, ubyte colors @X) clobbers(Y)
     romsub $1011  =  gotoxy(ubyte column @A, ubyte row @Y)
     romsub $1014  =  plot_char(ubyte char @A, ubyte colors @X)
@@ -130,15 +130,15 @@ vtui $1000 {
     romsub $1026  =  pet2scr(ubyte char @A) -> ubyte @A
     romsub $1029  =  scr2pet(ubyte char @A) -> ubyte @A
     romsub $102c  =  border(ubyte mode @A, ubyte width @R1, ubyte height @R2, ubyte colors @X) clobbers(Y)       ; NOTE: mode 6 means 'custom' characters taken from r3 - r6
-    romsub $102f  =  save_rect(ubyte ramtype @A, ubyte vbank @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
-    romsub $1032  =  rest_rect(ubyte ramtype @A, ubyte vbank @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
+    romsub $102f  =  save_rect(ubyte ramtype @A, bool vbank1 @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
+    romsub $1032  =  rest_rect(ubyte ramtype @A, bool vbank1 @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
     romsub $1035  =  input_str(uword buffer @R0, ubyte buflen @Y, ubyte colors @X) clobbers (A) -> ubyte @Y
-    romsub $1038  =  get_bank() clobbers (A) -> ubyte @Pc
+    romsub $1038  =  get_bank() clobbers (A) -> bool @Pc
     romsub $103b  =  get_stride() -> ubyte @A
-    romsub $103e  =  get_decr() clobbers (A) -> ubyte @Pc
+    romsub $103e  =  get_decr() clobbers (A) -> bool @Pc
 
     ; -- helper function to do string length counting for you internally, and turn the convertchars flag into a boolean again
-    asmsub print_str2(str txtstring @R0, ubyte colors @X, ubyte convertchars @Pc) clobbers(A, Y) {
+    asmsub print_str2(str txtstring @R0, ubyte colors @X, bool convertchars @Pc) clobbers(A, Y) {
         %asm {{
             lda  #0
             bcs  +

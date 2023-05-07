@@ -626,7 +626,7 @@ Assembly /  ROM subroutines
 
 Subroutines implemented in ROM are usually defined by compiler library files, with the following syntax::
 
-    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> clobbers() -> ubyte @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
+    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> clobbers() -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
 
 This defines the ``LOAD`` subroutine at ROM memory address $FFD5, taking arguments in all three registers A, X and Y,
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler

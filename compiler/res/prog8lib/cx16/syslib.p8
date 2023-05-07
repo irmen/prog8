@@ -13,12 +13,12 @@ romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT
 romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
 romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, tape buffer, screen
 romsub $FF8A = RESTOR() clobbers(A,X,Y)                         ; restore default I/O vectors
-romsub $FF8D = VECTOR(uword userptr @ XY, ubyte dir @ Pc) clobbers(A,Y)     ; read/set I/O vector table
+romsub $FF8D = VECTOR(uword userptr @ XY, bool dir @ Pc) clobbers(A,Y)     ; read/set I/O vector table
 romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag
 romsub $FF93 = SECOND(ubyte address @ A) clobbers(A)            ; (alias: LSTNSA) send secondary address after LISTEN
 romsub $FF96 = TKSA(ubyte address @ A) clobbers(A)              ; (alias: TALKSA) send secondary address after TALK
-romsub $FF99 = MEMTOP(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer.   NOTE: as a Cx16 extension, also returns the number of RAM memory banks in register A !  See cx16.numbanks()
-romsub $FF9C = MEMBOT(uword address @ XY, ubyte dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
+romsub $FF99 = MEMTOP(uword address @ XY, bool dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer.   NOTE: as a Cx16 extension, also returns the number of RAM memory banks in register A !  See cx16.numbanks()
+romsub $FF9C = MEMBOT(uword address @ XY, bool dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
 romsub $FF9F = SCNKEY() clobbers(A,X,Y)                         ; scan the keyboard
 romsub $FFA2 = SETTMO(ubyte timeout @ A)                        ; set time-out flag for IEEE bus
 romsub $FFA5 = ACPTR() -> ubyte @ A                             ; (alias: IECIN) input byte from serial bus
@@ -30,23 +30,23 @@ romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial
 romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word
 romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
 romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
-romsub $FFC0 = OPEN() clobbers(X,Y) -> ubyte @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
+romsub $FFC0 = OPEN() clobbers(X,Y) -> bool @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
 romsub $FFC3 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; (via 796 ($31C)) close a logical file
-romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> ubyte @Pc    ; (via 798 ($31E)) define an input channel
+romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; (via 798 ($31E)) define an input channel
 romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320)) define an output channel
 romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322)) restore default devices
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
 romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326)) output a character
-romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> ubyte @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
-romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> ubyte @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
+romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
+romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> bool @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
 romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
-romsub $FFE1 = STOP() clobbers(X) -> ubyte @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
-romsub $FFE4 = GETIN() clobbers(X,Y) -> ubyte @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
+romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
+romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
-romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, ubyte dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
+romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
 ; ---- utility
@@ -320,7 +320,7 @@ cx16 {
 romsub $ff4a = close_all(ubyte device @A)  clobbers(A,X,Y)
 romsub $ff59 = lkupla(ubyte la @A)  clobbers(A,X,Y)
 romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
-romsub $ff5f = screen_mode(ubyte mode @A, ubyte getCurrent @Pc)  clobbers(A, X, Y) -> ubyte @Pc
+romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc)  clobbers(A, X, Y) -> bool @Pc
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 ; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
 romsub $ff6e = jsrfar()  ; following word = address to call, byte after that=rom/ram bank it is in
@@ -337,12 +337,12 @@ romsub $ff23 = GRAPH_clear()  clobbers(A,X,Y)
 romsub $ff26 = GRAPH_set_window(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
 romsub $ff29 = GRAPH_set_colors(ubyte stroke @A, ubyte fill @X, ubyte background @Y)  clobbers (A,X,Y)
 romsub $ff2c = GRAPH_draw_line(uword x1 @R0, uword y1 @R1, uword x2 @R2, uword y2 @R3)  clobbers(A,X,Y)
-romsub $ff2f = GRAPH_draw_rect(uword x @R0, uword y @R1, uword width @R2, uword height @R3, uword cornerradius @R4, ubyte fill @Pc)  clobbers(A,X,Y)
+romsub $ff2f = GRAPH_draw_rect(uword x @R0, uword y @R1, uword width @R2, uword height @R3, uword cornerradius @R4, bool fill @Pc)  clobbers(A,X,Y)
 romsub $ff32 = GRAPH_move_rect(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword width @R4, uword height @R5)  clobbers(A,X,Y)
-romsub $ff35 = GRAPH_draw_oval(uword x @R0, uword y @R1, uword width @R2, uword height @R3, ubyte fill @Pc)  clobbers(A,X,Y)
+romsub $ff35 = GRAPH_draw_oval(uword x @R0, uword y @R1, uword width @R2, uword height @R3, bool fill @Pc)  clobbers(A,X,Y)
 romsub $ff38 = GRAPH_draw_image(uword x @R0, uword y @R1, uword ptr @R2, uword width @R3, uword height @R4)  clobbers(A,X,Y)
 romsub $ff3b = GRAPH_set_font(uword fontptr @R0)  clobbers(A,X,Y)
-romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, ubyte is_control @Pc)  clobbers(A,X,Y)
+romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, bool is_control @Pc)  clobbers(A,X,Y)
 romsub $ff41 = GRAPH_put_char(uword x @R0, uword y @R1, ubyte char @A)  clobbers(A,X,Y)
 romsub $ff41 = GRAPH_put_next_char(ubyte char @A)  clobbers(A,X,Y)     ; alias for the routine above that doesn't reset the position of the initial character
 
@@ -364,16 +364,16 @@ romsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A
 romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
-romsub $fec6 = i2c_read_byte(ubyte device @X, ubyte offset @Y) clobbers (X,Y) -> ubyte @A, ubyte @Pc
-romsub $fec9 = i2c_write_byte(ubyte device @X, ubyte offset @Y, ubyte data @A) clobbers (A,X,Y) -> ubyte @Pc
-romsub $fef0 = sprite_set_image(uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, ubyte apply_mask @Pc)  clobbers(A,X,Y) -> ubyte @Pc
+romsub $fec6 = i2c_read_byte(ubyte device @X, ubyte offset @Y) clobbers (X,Y) -> ubyte @A, bool @Pc
+romsub $fec9 = i2c_write_byte(ubyte device @X, ubyte offset @Y, ubyte data @A) clobbers (A,X,Y) -> bool @Pc
+romsub $fef0 = sprite_set_image(uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, bool apply_mask @Pc)  clobbers(A,X,Y) -> bool @Pc
 romsub $fef3 = sprite_set_position(uword x @R0, uword y @R1, ubyte number @A)  clobbers(A,X,Y)
 romsub $fee4 = memory_fill(uword address @R0, uword num_bytes @R1, ubyte value @A)  clobbers(A,X,Y)
 romsub $fee7 = memory_copy(uword source @R0, uword target @R1, uword num_bytes @R2)  clobbers(A,X,Y)
 romsub $feea = memory_crc(uword address @R0, uword num_bytes @R1)  clobbers(A,X,Y) -> uword @R2
 romsub $feed = memory_decompress(uword input @R0, uword output @R1)  clobbers(A,X,Y) -> uword @R1       ; last address +1 is result in R1
 romsub $fedb = console_init(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
-romsub $fede = console_put_char(ubyte char @A, ubyte wrapping @Pc)  clobbers(A,X,Y)
+romsub $fede = console_put_char(ubyte char @A, bool wrapping @Pc)  clobbers(A,X,Y)
 romsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
 romsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
 romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
@@ -381,7 +381,7 @@ romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
 romsub $ff44 = macptr(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
-romsub $ff47 = enter_basic(ubyte cold_or_warm @Pc)  clobbers(A,X,Y)
+romsub $ff47 = enter_basic(bool cold_or_warm @Pc)  clobbers(A,X,Y)
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
 
@@ -400,9 +400,9 @@ romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; altern
 
 ; Audio (bank 10)
 romsub $C04B = psg_init() clobbers(A,X,Y)
-romsub $C063 = ym_init() clobbers(A,X,Y) -> ubyte @Pc                   ; (re)init YM chip
-romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> ubyte @Pc         ; load default YM patches
-romsub $C09F = audio_init() clobbers(A,X,Y) -> ubyte @Pc                ; (re)initialize PSG and YM audio chips
+romsub $C063 = ym_init() clobbers(A,X,Y) -> bool @Pc                   ; (re)init YM chip
+romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc         ; load default YM patches
+romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc                ; (re)initialize PSG and YM audio chips
 ; TODO: add more of the audio routines?
 
 
@@ -748,7 +748,7 @@ asmsub  cleanup_at_exit() {
     }}
 }
 
-asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
+asmsub  set_irq(uword handler @AY, bool useKernal @Pc) clobbers(A)  {
 	%asm {{
         sta  _modified+1
         sty  _modified+2

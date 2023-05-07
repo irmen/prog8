@@ -127,7 +127,7 @@ _startloop	dey
         }}
     }
 
-    asmsub find(uword string @R0, ubyte character @A) -> ubyte @A, ubyte @Pc {
+    asmsub find(uword string @R0, ubyte character @A) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string,
         ; returns Carry set if found + index in A, or A=0 + Carry clear if not found.
         %asm {{
