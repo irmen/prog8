@@ -686,6 +686,120 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
         }
+        else if(expr.operator=="*") {
+            val value = expr.right.asConstInteger()
+            if(value==null) {
+                when(expr.type) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+                        asmgen.out("  pha")
+                        assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type in SignedDatatypes)
+                        asmgen.out("  pla |  jsr  math.multiply_bytes")
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.type)
+                        assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.type in SignedDatatypes)
+                        asmgen.out("""
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            ldy  math.multiply_words.result+1""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        return true
+                    }
+                    else -> return false
+                }
+            } else {
+                when (expr.type) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+                        if (value in asmgen.optimizedByteMultiplications)
+                            asmgen.out("  jsr  math.mul_byte_${value}")
+                        else
+                            asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
+                        if (value in asmgen.optimizedWordMultiplications)
+                            asmgen.out("  jsr  math.mul_word_${value}")
+                        else
+                            asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            ldy  math.multiply_words.result+1""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        return true
+                    }
+                    else -> return false
+                }
+            }
+        }
+        else if(expr.operator=="/") {
+            when(expr.type) {
+                DataType.UBYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                    asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                    assignRegisterByte(assign.target, CpuRegister.Y, false)
+                    return true
+                }
+                DataType.BYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, true)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
+                    asmgen.out("  pla |  jsr  math.divmod_b_asm")
+                    assignRegisterByte(assign.target, CpuRegister.Y, true)
+                    return true
+                }
+                DataType.UWORD -> {
+                    assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", DataType.UWORD)
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, false)
+                    asmgen.out("  jsr  math.divmod_uw_asm")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                DataType.WORD -> {
+                    assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", DataType.WORD)
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, true)
+                    asmgen.out("  jsr  math.divmod_w_asm")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                else -> return false
+            }
+        }
+        else if(expr.operator=="%") {
+            when(expr.type) {
+                DataType.UBYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                    asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                    if(assign.target.register==RegisterOrPair.A)
+                        asmgen.out("  cmp  #0")     // fix the status register
+                    else
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                    return true
+                }
+                DataType.UWORD -> {
+                    assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", DataType.UWORD)
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, false)
+                    asmgen.out("  jsr  math.divmod_uw_asm")
+                    assignVariableWord(assign.target, "P8ZP_SCRATCH_W2")
+                    return true
+                }
+                else -> return false
+            }
+        }
+
         return false
     }
 

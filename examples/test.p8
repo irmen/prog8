@@ -2,34 +2,32 @@
 %zeropage basicsafe
 
 main {
+
+    uword vv = 60
+
+        sub print_time(uword seconds) {
+            ubyte remainder = seconds % $0003 ==0
+            txt.print_uw(remainder)
+            txt.nl()
+        }
+
+        sub print_time2(ubyte seconds) {
+            ubyte remainder = seconds % 3 ==0
+            txt.print_uw(remainder)
+            txt.nl()
+        }
+
+
     sub start() {
-        ubyte[10] envelope_attacks = 99
-        ubyte @shared xx = 4
-        ubyte yy
-        ; 110
-        xx = 4
-        yy = 10
-        xx = xx <= yy
-        if xx
-            txt.chrout('1')
-        else
-            txt.chrout('0')
-
-        xx = 4
-        yy = 4
-        xx = xx <= yy
-        if xx
-            txt.chrout('1')
-        else
-            txt.chrout('0')
-
-        xx = 4
-        yy = 2
-        xx = xx <= yy
-        if xx
-            txt.chrout('1')
-        else
-            txt.chrout('0')
+        print_time(9870)
+        print_time(9871)
+        print_time(9872)
+        print_time(9873)
+        txt.nl()
+        print_time2(50)
+        print_time2(51)
+        print_time2(52)
+        print_time2(53)
     }
 }
 

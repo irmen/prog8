@@ -3,7 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- find bcc/bcs + lda branches that could be a rol? (see "TODO optimize Carry expr with rol")
+- fix crash: uword remainder = seconds_uword % $0003 ==0
 - try to optimize newexpr a bit more
 
 ...
