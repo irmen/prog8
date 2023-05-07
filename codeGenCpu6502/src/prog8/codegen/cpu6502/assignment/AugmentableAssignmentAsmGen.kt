@@ -771,6 +771,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "<" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  $otherName
@@ -797,6 +798,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "<=" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $otherName
                         cmp  $name
@@ -822,6 +824,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             ">" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  $otherName
@@ -848,6 +851,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             ">=" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  $otherName
@@ -962,6 +966,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "<" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  #$value
@@ -988,6 +993,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "<=" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  #$value
                         cmp  $name
@@ -1013,6 +1019,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             ">" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  #$value
@@ -1039,6 +1046,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             ">=" -> {
                 if(dt==DataType.UBYTE) {
+                    // TODO optimize Carry expr with rol?
                     asmgen.out("""
                         lda  $name
                         cmp  #$value

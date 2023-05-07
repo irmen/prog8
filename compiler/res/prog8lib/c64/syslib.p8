@@ -356,7 +356,7 @@ asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
 	        sta  _modified+1
 	        sty  _modified+2
 	        lda  #0
-	        adc  #0
+	        rol  a
 	        sta  _use_kernal
 		sei
 		lda  #<_irq_handler
@@ -450,7 +450,7 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0, ubyte useKernal @P
 	        sta  _modified+1
 	        sty  _modified+2
 	        lda  #0
-	        adc  #0
+	        rol  a
 	        sta  set_irq._use_kernal
 		lda  cx16.r0
 		ldy  cx16.r0+1

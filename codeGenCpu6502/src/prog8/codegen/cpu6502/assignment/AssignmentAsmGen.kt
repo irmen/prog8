@@ -740,12 +740,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +""")
                 else
                     asmgen.out("""
-                        cmp  P8ZP_SCRATCH_B1
+                        tay
+                        lda  #0
+                        cpy  P8ZP_SCRATCH_B1
                         beq  +
-                        bcs  ++
-+                       lda  #0
-                        beq  ++
-+                       lda  #1                        
+                        rol  a
 +""")
             }
             "<=" -> {
@@ -783,11 +782,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
-                        bcc  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+""")
+                        rol  a
+                        eor  #1""")
             }
             ">=" -> {
                 assignExpressionOperandsLeftScratchRightA()
@@ -803,10 +800,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                       lda  #1                        
 +""")
                 else
-                    asmgen.out("""
+                asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
-                        bcc  +
                         beq  +
+                        bcc  +
                         lda  #0
                         beq  ++
 +                       lda  #1

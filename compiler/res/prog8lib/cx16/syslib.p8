@@ -697,7 +697,7 @@ asmsub  set_irq(uword handler @AY, ubyte useKernal @Pc) clobbers(A)  {
 	        sta  _modified+1
 	        sty  _modified+2
 	        lda  #0
-	        adc  #0
+	        rol  a
 	        sta  _use_kernal
 		sei
 		lda  #<_irq_handler
