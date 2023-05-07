@@ -4,55 +4,32 @@
 main {
     sub start() {
         ubyte[10] envelope_attacks = 99
+        ubyte @shared xx = 4
+        ubyte yy
+        ; 110
+        xx = 4
+        yy = 10
+        xx = xx <= yy
+        if xx
+            txt.chrout('1')
+        else
+            txt.chrout('0')
 
-        ; expect nope yep yep nope yep yep
-        cx16.r0L = 8
-        cx16.r2L = 9
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
+        xx = 4
+        yy = 4
+        xx = xx <= yy
+        if xx
+            txt.chrout('1')
+        else
+            txt.chrout('0')
 
-        cx16.r0L = 9
-        cx16.r2L = 9
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
-
-        cx16.r0L = 10
-        cx16.r2L = 9
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
-
-        cx16.r0L = 0
-        cx16.r2L = 9
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
-
-        cx16.r0L = 9
-        cx16.r2L = 0
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
-
-        cx16.r0L = 255
-        cx16.r2L = 9
-        if (cx16.r0L >= cx16.r2L) or (envelope_attacks[cx16.r1L]==0) {
-            txt.print("\nyep\n")
-        } else {
-            txt.print("\nnope\n")
-        }
+        xx = 4
+        yy = 2
+        xx = xx <= yy
+        if xx
+            txt.chrout('1')
+        else
+            txt.chrout('0')
     }
 }
 
